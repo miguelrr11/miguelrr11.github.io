@@ -12,7 +12,7 @@ This is the landing page for my GitHub Pages site.
   {% if file.path contains '/' %}
     {% assign folder = file.path | split: '/' | first %}
     {% if folder != 'assets' and folder != 'docs' and folder != 'images' %}
-      - [{{ folder }}]({{ folder }})
+      - [{{ folder }}]({{ folder | append: '/' }})
     {% endif %}
   {% endif %}
 {% endfor %}
