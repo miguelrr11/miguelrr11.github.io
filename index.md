@@ -8,10 +8,11 @@ This is the landing page for my GitHub Pages site.
 
 ## Folders:
 
-{% for page in site.pages %}
-  {% if page.url != '/index.html' %}
-    {% assign folder_name = page.url | remove: '/index.html' %}
-    [{{ folder_name | remove: '/' }}]({{ site.baseurl }}{{ folder_name }})
+{% assign folder_urls = site.pages | map: 'url' | uniq | sort %}
+{% for folder_url in folder_urls %}
+  {% if folder_url contains '/' %}
+    {% assign folder_parts = folder_url | split: '/' %}
+    {% assign folder_name = folder_parts[1] %}
+    [{{ folder_name }}]({{ site.baseurl }}{{ folder_url | remove: '/index.html' }})
   {% endif %}
 {% endfor %}
-
