@@ -29,7 +29,7 @@ function mouseClicked(){
 
 function keyPressed(){
     if(keyCode == ESCAPE) pausa = !pausa
-    else if(!pausa) nexus.cargaAttack()
+    else if(!pausa && keyCode == 32) nexus.cargaAttack()    //32 == space key
     if(keyCode == UP_ARROW) orbit.addMoon()
     if(keyCode == 68) debug()
 }

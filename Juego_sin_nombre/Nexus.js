@@ -55,11 +55,22 @@ class Nexus{
 		// show radius
 		this.t = 0
 
+		//cooldown ataque principal (heat) //si heat < heatLimit se puede atacar (heated = false)
+		this.heatLimit = 20
+		this.heated = false 
+		this.heat = 0
+		this.heatUp = 1 		//cada vez que se hace click, el heat aumenta en 1
+		this.heatDown = 5/60 	//mientras no se esté atacando, el heat disminuye
+		this.heatDownCD = 2/60  //si se llega al limit, no se puede atacar y el heat disminuye mas lentamente
+
 	}
 
 	click(x, y){
-		if(dist(x, y, this.pos.x, this.pos.y) < this.tam/2){
-			this.attack(this.nrays)
+		if(this.heat < this.heatLimit && !this.heated){
+			if(dist(x, y, this.pos.x, this.pos.y) < this.tam/2){
+				this.heat += this.heatUp
+				this.attack(this.nrays)
+			}
 		}
 	}
 
@@ -91,6 +102,12 @@ class Nexus{
     		aumentarDificultadLevel()
     		this.money += Math.ceil(Math.exp(this.nivel)/this.nivel)
 		}
+		if(!mouseIsPressed && !this.heated && this.heat >= 0) this.heat -= this.heatDown
+		if(this.heat > this.heatLimit && !this.heated) this.heated = true
+		if(this.heated){ 
+			this.heat -= this.heatDownCD
+			if(this.heat <= 0) this.heated = false
+		}
 		this.show()
 	}
 
@@ -108,7 +125,7 @@ class Nexus{
 			if(!e.alive) continue
 			if(avoid.includes(e)) continue
 			if(e === this) continue
-				
+
 			let distEn = this.squaredDistance(this.pos.x, this.pos.y, e.pos.x, e.pos.y)
 			if(distEn > dstn) continue
 			if(distEn < closest_dist){ 
@@ -181,7 +198,7 @@ class Nexus{
 	}
 
 	cargaAttack(){
-		if(this.coolDown > 0) return
+		if(this.coolDown > 0 || this.heated) return
 		
 		// REPULSION
 		// this.isAttacking = true
@@ -226,6 +243,16 @@ class Nexus{
 	  	return (x2 - x1) ** 2 + (y2 - y1) ** 2
 	}
 
+	getAB(){
+		let heat = this.heat
+		if(heat < 0) heat = 0
+	  	let a = map(heat, 0, 21, 90, 270)
+	  	let b
+	  	if(heat/2 >= 10) b = map(heat, 10, 21, 360, 270)
+	  	else b = map(heat, 0, 10.5, 90, 0)
+	  	return [b,a]
+	}
+
 	showEmitter(bool, n = this.nivel+1){
 		push()
 		if(bool){
@@ -239,7 +266,7 @@ class Nexus{
 	show(){
 		let dis = this.squaredDistance(mouseX, mouseY, this.pos.x, this.pos.y)
 		let tam = (this.tam/2)**2
-		this.showEmitter(mouseIsPressed && dis < tam)
+		if(!this.heated)this.showEmitter(mouseIsPressed && dis < tam)
 	    // nexo
 		push()
 		fill(255) 	
@@ -248,23 +275,29 @@ class Nexus{
 		else ellipse(this.pos.x, this.pos.y, this.tam)
 
 		// carga nexo
-		fill(map(this.carga, 0, 200, 0, 255))
-		ellipse(this.pos.x, this.pos.y, this.tam-20)
+		//fill(map(this.carga, 0, 200, 0, 255))
+		//ellipse(this.pos.x, this.pos.y, this.tam-20)
 
-		// range nexo y carga nexo
+		// range nexo y carga ataque activo nexo
 		noFill()
 		this.discLinesEllipse(color(255,255,255,150), this.pos, this.range, 50, this.t)
 		this.discLinesEllipse(color(255,255,255,150), this.pos, map(this.carga, 1, 200, this.tam/2, 600), 50, this.t*2, true)
 		this.t += 0.003
 
+		// heat nexo
+		fill(0)
+		angleMode(DEGREES)
+		let rad = this.tam-20
+	    let res = this.getAB()
+    	arc(this.pos.x, this.pos.y, rad, rad, res[0], res[1], OPEN);
+    	angleMode(RADIANS)
+
+
+		if(this.heated){
+			let offset = 15
+			image(heatSprite, this.pos.x-offset, this.pos.y-offset, 35, 35)
+		}
+		
 		pop()
 	}
 }
-
-
-
-
-
-
-
-

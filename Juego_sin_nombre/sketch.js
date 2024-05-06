@@ -20,8 +20,13 @@ let activeAnim = []
 let activeAnimMenu = []
 
 let pausa = false
+let heatSprite
 
 let p
+
+function preload(){
+    heatSprite = loadImage('heat_sprite.png')
+}
 
 function setup(){
     createCanvas(WIDTH + 300, HEIGHT)
@@ -74,10 +79,13 @@ function draw(){
         if(a.isFinished()) activeAnimMenu.splice(i, 1)
     }
 
+    
+
     p.html("activeAnim: " + activeAnim.length +
             "   fleet: " + fleet.enemies.length +
             "   rayos: " + rayos.length +
-            "   moons: " + orbit.moons.length)
+            "   moons: " + orbit.moons.length + 
+            "   heat: " + floor(nexus.heat))
 }
 
 

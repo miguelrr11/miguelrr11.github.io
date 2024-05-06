@@ -17,7 +17,7 @@ Variantes de ataques del rayo:
 	- HECHO Slow
 
 Tipos de aiming:
-	- HECHO Al más cercano a la luna
+	- HECHO Al más cercano
 	- Al más fuerte
 	- A donde apunte el mouse
 
@@ -121,13 +121,24 @@ HECHO: enemigo boss
 
 HECHO: si ya hay un boss en pantalla, no spawnear mas hasta que se muera
 TODO: hacer un constrain para que el rango nunca se pase de la pantalla
+TODO: gameover screen
+TODO: pantalla iniciar partida:
+	- poder empezar la partida eligiendo uno de varias opciones por ejemplo:
+		- Tanque: el nexo empieza con mas vida
+		- Money Maker: los enemigos te dan mas dinero
+		- Lunatico: el nexo empieza en nivel 1 (con una luna)
+		- ...
 
-TODO IMPORTANTE: el ataque del nexo (haciendo click) deberia de tener cooldown:
-	- El atacar va aumentando un valor
-	- Si el valor llega a un limite, no se podra atacar durante un tiempo (cooldown), en 
-	ese momento el valor volvera a ser 0
-	- Si no se ataca, el valor desciende lentamente
-	- Esto es perfecto para que las lunas tengan mas sentido
+
+HECHO: el ataque del nexo (haciendo click) deberia de tener cooldown:
+	- El atacar va aumentando el "heat" del nexo
+	- Si el heat llega a un limite, no se podra atacar durante un tiempo (cooldown), en 
+	ese momento el heat volvera a ser 0
+	- Si no se ataca, el heat desciende lentamente
+	- Esto es perfecto para que las lunas sean mas importantes
+TODO: UI que enseñe el heat del nexo
+	- HECHO: visualizacion del heat
+	- TODO: dibujar icono de temperatura en rojo cuando heat ha llegado al limite (parpadeando o algo)
 
 BUG: cuando el speed de los enemigos es rapido creo que se salen de orbita
 
