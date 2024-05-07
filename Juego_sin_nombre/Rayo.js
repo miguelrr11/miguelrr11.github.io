@@ -54,13 +54,10 @@ class Rayo{
 
 	show(){
 		push()
-		let i = 0
-		while(this.step < this.nSteps && activeAnim.length < animationLimit){
-			if(i > 1) break
+		if(this.step < this.nSteps && activeAnim.length < animationLimit){ 	// && frameCount%1==x para ralentizarlo
 			this.createParticles()
-			i++
 		}
-		if(i == 0){
+		if(this.step >= this.nSteps){
 			this.finished = true 
 			this.enemy.hit(this.damage)
 			if(this.enemy.chainChance > 0){ 

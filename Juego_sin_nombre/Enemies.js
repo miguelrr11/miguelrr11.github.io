@@ -8,6 +8,14 @@ class EnemyRich extends Enemy{
 						sizePercent: 0.88,
 						gravity: false
 					   };
+
+		this.pActiveMuerte = {color:[color(255, 198, 0)], 
+						angle: [0, 360], 
+						size: [25,35], 
+						sizePercent: 0.92,
+						speed: 4,
+						gravity: false
+					   };
 	}
 
 	getStroke(){
@@ -30,7 +38,7 @@ class EnemyExplosive extends Enemy{
 		this.pActiveMuerte = {color:[color(255, 0, 97)], 
 						angle: [0, 360], 
 						size: [25,35], 
-						sizePercent: 0.88,
+						sizePercent: 0.92,
 						speed: 4,
 						gravity: false
 					   };			   
@@ -49,15 +57,11 @@ class EnemyExplosive extends Enemy{
 				// bomba que daña a enemigos cercanos
 				this.bomba()
 			}
-			// crear animacion muerte
-			activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 0.2))
-			activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 0.2))
-			activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 0.2))
-			activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 0.2))
 			this.alive = false
 		}
 	}
 
+	// bomba que daña a enemigos cercanos
 	bomba(){
 		let avoid = []
 		for(let i = 0; i < 10; i++){
@@ -100,9 +104,9 @@ class EnemyBoss extends Enemy{
 					   };
 
 		let p = {color:[this.col], 
-				 angle: [0,0], 
+				 angle: [0,360], 
 				 size: [45, 45], 
-				 sizePercent: 0.88
+				 sizePercent: 0.95
 				};
 		this.emitter = new Fountain(null, p, 100, 100)
 
@@ -111,7 +115,7 @@ class EnemyBoss extends Enemy{
 	
 	// cuando muere spawnea varios enemigos
 	die(){
-		let n = floor(random(4, 9))
+		let n = floor(random(8, 12))
 		for(let i = 0; i < n; i++){
 			let location = p5.Vector.add(this.pos, createVector(random(-25,25), random(-25,25)))
 			spawner.spawn(location, true)

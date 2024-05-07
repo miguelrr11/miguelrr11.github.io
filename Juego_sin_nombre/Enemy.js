@@ -77,14 +77,16 @@ class Enemy extends Nexus{
 		else if(random() < nexus.earnChance) nexus.money += this.reward
 		nexus.xp += this.xpReward
 
-		activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 0.2))
+		if(this instanceof EnemyExplosive) activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 10))
+		else if(this instanceof EnemyRich) activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 10))
+		else activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 2))
 
 		this.alive = false
 	}
 
 	hit(n){
 		this.health -= n
-		activeAnim.push(new Animation(this.pActiveHit, this.pos, 0.2))  	
+		activeAnim.push(new Animation(this.pActiveHit, this.pos, 2))  	
 		if(this.health <= 0){
 			if(this.alive) this.die()
 		}

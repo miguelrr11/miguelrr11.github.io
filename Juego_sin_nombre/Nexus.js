@@ -18,7 +18,7 @@ class Nexus{
 		this.slowedChanceLevel = 1
 
 		this.damage = 1
-		this.range = Infinity
+		this.range = 250
 		this.nrays = 1
 
 		this.damageLevel = 1
@@ -74,6 +74,20 @@ class Nexus{
 		}
 	}
 
+	levelUp(){
+		nexus.range += 15
+		this.xp = 0
+		this.nivel++
+		orbit.addMoon()
+		if(orbit.moons.length == 1){ 
+			//menu.createMoonButtons()
+		}
+		this.maxXp = Math.ceil(Math.exp(this.nivel) * this.nivel + 10)
+		aumentarDificultadLevel()
+		this.money += Math.ceil(Math.exp(this.nivel)/this.nivel)
+		spawner.counterSpawnAtCorner = this.nivel * 25
+	}
+
 	update(){
 		if(this.health <= 0) {console.log("GAME OVER"); noLoop()}
 		if(this.coolDown <= 0){
@@ -91,16 +105,7 @@ class Nexus{
 		}
 		// SUBIR DE NIVEL
 		if(this.xp >= this.maxXp){
-			nexus.range += 15
-			this.xp = 0
-			this.nivel++
-    		orbit.addMoon()
-    		if(orbit.moons.length == 1){ 
-    			//menu.createMoonButtons()
-    		}
-    		this.maxXp = Math.ceil(Math.exp(this.nivel) * this.nivel + 10)
-    		aumentarDificultadLevel()
-    		this.money += Math.ceil(Math.exp(this.nivel)/this.nivel)
+			this.levelUp()
 		}
 		if(!mouseIsPressed && !this.heated && this.heat >= 0) this.heat -= this.heatDown
 		if(this.heat > this.heatLimit && !this.heated) this.heated = true
@@ -136,7 +141,7 @@ class Nexus{
 		return closest
 	}
 
-	attack(nrays, avoid, range = this.range){
+	attack(nrays, avoid, range = this.range, chain){
 		let totalEnemiesAttack = []
 		if(avoid) totalEnemiesAttack = avoid
 		let closest = undefined
@@ -154,12 +159,13 @@ class Nexus{
 				}
 
 				//CHAIN
-				if(random() < this.chainChance){
+				if(random() < this.chainChance || chain){
 					totalEnemiesAttack.push(this)
 					// if(totalEnemiesAttack.length > 1)
 					// 	rayo.setTrans(map(totalEnemiesAttack.length, 2, 15, 200, 50))
 					closest.damage = this.damage/1.5
-					closest.chainChance = this.chainChance - 0.05
+					if(chain) closest.chainChance = chain
+					else closest.chainChance = this.chainChance - this.chainChance*0.8
 					closest.range = this.range - 50
 					closest.avoidEnemies = totalEnemiesAttack
 					//closest.attack(floor(random(1,4)), totalEnemiesAttack)
@@ -205,7 +211,9 @@ class Nexus{
 		// fleet.update()
 
 		// TORMENTA DE RAYOS
-		this.attack(10, undefined, map(this.carga, 1, 200, 75, 600))
+		let nrays = map(this.carga, 1, 200, 5, 20)
+		let range = map(this.carga, 1, 200, 75, 600)
+		this.attack(nrays, undefined, range, 0.5)
 		this.showEmitter(true, map(this.carga, 1, 200, 5, 50))
 
 		const n = this.carga

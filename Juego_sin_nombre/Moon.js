@@ -9,13 +9,13 @@ class Moon extends Nexus{
 		this.orbits = nexus
 		this.radius = undefined
 
-		this.range = 100
-		this.fov = 70
+		this.range = 120
+		this.fov = 90
 		this.damage = 1
 		this.nrays = 1
 
 		// cadencia = ataques por s
-		this.cadencia = 2
+		this.cadencia = 3
 		this.rate = 60/this.cadencia
 		this.count = random(0,60/this.cadencia) //para que no ataquen a la vez
 

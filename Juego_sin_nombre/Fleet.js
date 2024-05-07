@@ -5,8 +5,8 @@ class Fleet{
 		this.poolLimit = poolLimit
 	}
 
-	add(enemy){
-		if(this.enemies.length < this.poolLimit || enemy.fromBoss) {
+	add(enemy, forceAdd){
+		if(this.enemies.length < this.poolLimit || enemy.fromBoss || forceAdd) {
 			this.enemies.push(enemy) 
 			return true
 		}

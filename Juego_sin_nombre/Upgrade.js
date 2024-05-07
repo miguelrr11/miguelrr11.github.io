@@ -7,11 +7,12 @@ let rarities = [
 		      ]
 
 
+const nexusUpgradesList = ["Damage", "Rays", "Range"]
 
 class NexusUpgrade{
 	constructor(){
 		this.rarity = this.calcularRarity()
-		this.typeOfUpgrade = random(["Damage", "Rays", "Range"])
+		this.typeOfUpgrade = random(nexusUpgradesList)
 		this.price = floor(this.calcularPrice())
 		this.upgradeValue = this.calcularUpgradeValue()
 		this.col = 'white'
@@ -41,43 +42,25 @@ class NexusUpgrade{
 	}
 
 	calcularPrice(){
-		if(this.rarity == "Common" || this.rarity == "Rare"){
-			if(this.typeOfUpgrade == "Damage") return nexus.damageLevel * 10
-			else if(this.typeOfUpgrade == "Rays") return nexus.nraysLevel * 15
-			else if(this.typeOfUpgrade == "Range") return nexus.rangeLevel * 7
-		}
-		else if(this.rarity == "Discount"){
-			if(this.typeOfUpgrade == "Damage") return nexus.damageLevel * 5
-			else if(this.typeOfUpgrade == "Rays") return nexus.nraysLevel * 7.5
-			else if(this.typeOfUpgrade == "Range") return nexus.rangeLevel * 4
-		}
-		else if(this.rarity == "Galactic"){
-			if(this.typeOfUpgrade == "Damage") return nexus.damageLevel * 20
-			else if(this.typeOfUpgrade == "Rays") return nexus.nraysLevel * 30
-			else if(this.typeOfUpgrade == "Range") return nexus.rangeLevel * 14
-		}
+		let mult
+		if(this.rarity == "Common" || this.rarity == "Rare") mult = 1
+		else if(this.rarity == "Discount") mult = 0.5  
+		else if(this.rarity == "Galactic") mult = 2 
 		else if(this.rarity == "Sacrifice") return 0
+
+		if(this.typeOfUpgrade == "Damage") return floor(nexus.damageLevel * 10 * mult)
+		else if(this.typeOfUpgrade == "Rays") return floor(nexus.nraysLevel * 15 * mult)
+		else if(this.typeOfUpgrade == "Range") return floor(nexus.rangeLevel * 7 * mult)
 	}
 
 	calcularUpgradeValue(){
-		if(this.rarity == "Common" || this.rarity == "Discount"){
-			if(this.typeOfUpgrade == "Damage") return 1
-			else if(this.typeOfUpgrade == "Rays") return 1
-			else if(this.typeOfUpgrade == "Range") return 15
-		}
-		else if(this.rarity == "Rare"){
-			if(this.typeOfUpgrade == "Damage") return 2
-			else if(this.typeOfUpgrade == "Rays") return 2
-			else if(this.typeOfUpgrade == "Range") return 25
-		}
-		else if(this.rarity == "Galactic"){
-			if(this.typeOfUpgrade == "Damage") return 4
-			else if(this.typeOfUpgrade == "Rays") return 3
-			else if(this.typeOfUpgrade == "Range") return 50
-		}
+		let mult
+		if(this.rarity == "Common" || this.rarity == "Discount") mult = 1
+		else if(this.rarity == "Rare") mult = 2 
+		else if(this.rarity == "Galactic") mult = 3.5
 		else if(this.rarity == "Sacrifice"){
-			let other = random(["Damage", "Rays", "Range"])
-			while(other == this.typeOfUpgrade) other = random(["Damage", "Rays", "Range"])
+			let other = random(nexusUpgradesList)
+			while(other == this.typeOfUpgrade) other = random(nexusUpgradesList)
 			this.typeOfUpgrade = [this.typeOfUpgrade, other]
 			let res = []
 			if(this.typeOfUpgrade[0] == "Damage") res[0] = 3
@@ -89,6 +72,11 @@ class NexusUpgrade{
 			else if(this.typeOfUpgrade[1] == "Rays") res[1] = -2
 			return res
 		}
+
+		if(this.typeOfUpgrade == "Damage") return 1 * mult
+		else if(this.typeOfUpgrade == "Rays") return floor(1 * mult)
+		else if(this.typeOfUpgrade == "Range") return 15 * mult
+
 	}
 
 	exec(){
@@ -127,10 +115,12 @@ class NexusUpgrade{
 	}
 }
 
+const moonUpgradesList = ["Damage", "Rays", "Range", "Fire Rate"]
+
 class MoonUpgrade{
 	constructor(){
 		this.rarity = this.calcularRarity()
-		this.typeOfUpgrade = random(["Damage", "Rays", "Range", "Fire Rate"])
+		this.typeOfUpgrade = random(moonUpgradesList)
 		this.price = floor(this.calcularPrice())
 		this.upgradeValue = this.calcularUpgradeValue()
 		this.col = 'white'
@@ -160,7 +150,7 @@ class MoonUpgrade{
 	}
 
 	calcularPrice(){
-		let mult  
+		let mult
 		if(this.rarity == "Common" || this.rarity == "Rare") mult = 1
 		else if(this.rarity == "Discount") mult = 0.5  
 		else if(this.rarity == "Galactic") mult = 2 
@@ -174,27 +164,13 @@ class MoonUpgrade{
 	}
 
 	calcularUpgradeValue(){
-		if(this.rarity == "Common" || this.rarity == "Discount"){
-			if(this.typeOfUpgrade == "Damage") return 1
-			else if(this.typeOfUpgrade == "Rays") return 1
-			else if(this.typeOfUpgrade == "Range") return 15
-			else if(this.typeOfUpgrade == "Fire Rate") return 1
-		}
-		else if(this.rarity == "Rare"){
-			if(this.typeOfUpgrade == "Damage") return 2
-			else if(this.typeOfUpgrade == "Rays") return 2
-			else if(this.typeOfUpgrade == "Range") return 25
-			else if(this.typeOfUpgrade == "Fire Rate") return 2
-		}
-		else if(this.rarity == "Galactic"){
-			if(this.typeOfUpgrade == "Damage") return 4
-			else if(this.typeOfUpgrade == "Rays") return 3
-			else if(this.typeOfUpgrade == "Range") return 50
-			else if(this.typeOfUpgrade == "Fire Rate") return 4
-		}
+		let mult
+		if(this.rarity == "Common" || this.rarity == "Discount") mult = 1
+		else if(this.rarity == "Rare") mult = 2 
+		else if(this.rarity == "Galactic") mult = 3.5
 		else if(this.rarity == "Sacrifice"){
-			let other = random(["Damage", "Rays", "Range", "Fire Rate"])
-			while(other == this.typeOfUpgrade) other = random(["Damage", "Rays", "Range", "Fire Rate"])
+			let other = random(moonUpgradesList)
+			while(other == this.typeOfUpgrade) other = random(moonUpgradesList)
 			this.typeOfUpgrade = [this.typeOfUpgrade, other]
 			let res = []
 			if(this.typeOfUpgrade[0] == "Damage") res[0] = 3
@@ -208,6 +184,11 @@ class MoonUpgrade{
 			else if(this.typeOfUpgrade[1] == "Fire Rate") res[1] = -1
 			return res
 		}
+
+		if(this.typeOfUpgrade == "Damage") return 1 * mult
+		else if(this.typeOfUpgrade == "Rays") return floor(1 * mult)
+		else if(this.typeOfUpgrade == "Range") return 15 * mult
+		else if(this.typeOfUpgrade == "Fire Rate") return 1 * mult
 	}
 
 	exec(){
@@ -251,10 +232,12 @@ class MoonUpgrade{
 	}
 }
 
+const chanceUpgradesList = ["Critic", "Chain", "Freeze", "Slowed"]
+
 class ChanceUpgrade{
 	constructor(){
 		this.rarity = this.calcularRarity()
-		this.typeOfUpgrade = random(["Critic", "Chain", "Freeze", "Slowed"])
+		this.typeOfUpgrade = random(chanceUpgradesList)
 		this.price = floor(this.calcularPrice())
 		this.upgradeValue = this.calcularUpgradeValue()
 		this.col = 'white'
@@ -283,25 +266,16 @@ class ChanceUpgrade{
 	}
 
 	calcularPrice(){
-		if(this.rarity == "Common" || this.rarity == "Rare"){
-			if(this.typeOfUpgrade == "Critic") return nexus.criticalChanceLevel * 10
-			else if(this.typeOfUpgrade == "Chain") return nexus.chainChanceLevel * 15
-			else if(this.typeOfUpgrade == "Freeze") return nexus.freezeChanceLevel * 7
-			else if(this.typeOfUpgrade == "Slowed") return nexus.slowedChanceLevel * 10
-		}
-		else if(this.rarity == "Discount"){
-			if(this.typeOfUpgrade == "Critic") return nexus.criticalChanceLevel * 5
-			else if(this.typeOfUpgrade == "Chain") return nexus.chainChanceLevel * 7.5
-			else if(this.typeOfUpgrade == "Freeze") return nexus.freezeChanceLevel * 4
-			else if(this.typeOfUpgrade == "Slowed") return nexus.slowedChanceLevel * 5
-		}
-		else if(this.rarity == "Galactic"){
-			if(this.typeOfUpgrade == "Critic") return nexus.criticalChanceLevel * 20
-			else if(this.typeOfUpgrade == "Chain") return nexus.chainChanceLevel * 30
-			else if(this.typeOfUpgrade == "Freeze") return nexus.freezeChanceLevel * 14
-			else if(this.typeOfUpgrade == "Slowed") return nexus.slowedChanceLevel * 20
-		}
+		let mult
+		if(this.rarity == "Common" || this.rarity == "Rare") mult = 1
+		else if(this.rarity == "Discount") mult = 0.5  
+		else if(this.rarity == "Galactic") mult = 2 
 		else if(this.rarity == "Sacrifice") return 0
+
+		if(this.typeOfUpgrade == "Critic") return floor(nexus.criticalChanceLevel * 10 * mult)
+		else if(this.typeOfUpgrade == "Chain") return floor(nexus.chainChanceLevel * 15 * mult)
+		else if(this.typeOfUpgrade == "Freeze") return floor(nexus.freezeChanceLevel * 7 * mult)
+		else if(this.typeOfUpgrade == "Slowed") return floor(nexus.slowedChanceLevel * 10 * mult)
 	}
 
 	calcularUpgradeValue(){
@@ -315,8 +289,8 @@ class ChanceUpgrade{
 			return 0.04
 		}
 		else if(this.rarity == "Sacrifice"){
-			let other = random(["Critic", "Chain", "Freeze", "Slowed"])
-			while(other == this.typeOfUpgrade) other = random(["Critic", "Chain", "Freeze", "Slowed"])
+			let other = random(chanceUpgradesList)
+			while(other == this.typeOfUpgrade) other = random(chanceUpgradesList)
 			this.typeOfUpgrade = [this.typeOfUpgrade, other]
 			return [0.02, -0.02]
 		}
