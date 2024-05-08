@@ -4,7 +4,7 @@ Ataques:
 	- HECHO Ataque activo del nexo (se va cargando)
 	- Escudo
 	- Dron (como una luna pero separada, potente y con un tiempo de vida limitado)
-	- Agujero negro (atrae enemigos pero no puntuan)
+	- HECHO Agujero negro (atrae enemigos pero no puntuan)
 
 Variantes de ataque activo nexo: SE ELIGE AL EMPEZAR LA PARTIDA (TODO)
 	- HECHO Repulsion: repele a los enemigos cercanos, rango dependiente de la carga del ataque
@@ -91,6 +91,11 @@ REDISEÑO MENU:
 		- Una del las lunas: va rotando aleatoriamente entre daño, nrays, rango y cadencia
 		- Una que afecta a las probabilidades: chainChance, freezeChance, etc (va rotando entre estas)
 	- Panel con estadisticas actuales (nexus, moons, chances)
+REDISEÑO MENU v2:
+	- Aparece solo 1 upgrade a la vez en la tienda: (ahora el juego te "obliga" a mejorar las 3 partes (nexo, moon, chance))
+	- Va rotando asi: Nexo->Moon->Chance->Nexo->...
+	- TODO: boton "reroll" para rerollear upgrade
+	- Panel con estadisticas actuales (nexus, moons, chances)
 
 HECHO:
 UPGRADES: (los valores x2, x1,5, ... no son los reales)
@@ -128,6 +133,11 @@ TODO: pantalla iniciar partida:
 		- Money Maker: los enemigos te dan mas dinero
 		- Lunatico: el nexo empieza en nivel 1 (con una luna)
 		- ...
+TODO: agujero negro hecho, pero como añadirlo al juego de forma que tenga sentido? Opciones:
+	- "Enemigos regalo": cuando muere un enemigo de este tipo, se activa un habilidad especial
+	al azar durante un tiempo (solo esta el agujero negro)
+	- Se puede comprar en la tienda y usar cuando se quiera (precio elevado)
+	s
 
 
 HECHO: el ataque del nexo (haciendo click) deberia de tener cooldown:
@@ -136,9 +146,9 @@ HECHO: el ataque del nexo (haciendo click) deberia de tener cooldown:
 	ese momento el heat volvera a ser 0
 	- Si no se ataca, el heat desciende lentamente
 	- Esto es perfecto para que las lunas sean mas importantes
-TODO: UI que enseñe el heat del nexo
+HECHO: UI que enseñe el heat del nexo
 	- HECHO: visualizacion del heat
-	- TODO: dibujar icono de temperatura en rojo cuando heat ha llegado al limite (parpadeando o algo)
+	- HECHO: dibujar icono de temperatura en rojo cuando heat ha llegado al limite (parpadeando o algo)
 
 BUG: cuando el speed de los enemigos es rapido creo que se salen de orbita
 

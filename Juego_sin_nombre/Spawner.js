@@ -1,8 +1,8 @@
 let enemiesChances = [
 		        { item: "Common", weight: 0.95 },
 		        { item: "Rich", weight: 0.02 },
-		        { item: "Explosive", weight: 0.03 },
-		        { item: "Boss", weight: 1 }
+		        { item: "Explosive", weight: 0.01 },
+		        { item: "Boss", weight: 0.001 }
 		      ]
 
 class Spawner{
@@ -20,8 +20,8 @@ class Spawner{
 	} 
 
 	toggleBossChance(bool){
-		if(bool) {enemiesChances[3].weight = 1; console.log("true")}
-		else {enemiesChances[3].weight = 0; console.log("false")}
+		if(bool) enemiesChances[3].weight = 1
+		else enemiesChances[3].weight = 0
 	}
 
 	setSpawnPerSecond(n){

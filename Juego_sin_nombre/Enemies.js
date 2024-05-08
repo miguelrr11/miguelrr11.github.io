@@ -106,7 +106,9 @@ class EnemyBoss extends Enemy{
 		let p = {color:[this.col], 
 				 angle: [0,360], 
 				 size: [45, 45], 
-				 sizePercent: 0.95
+				 sizePercent: 0.97,
+				 gravity: false,
+				 speed: 0
 				};
 		this.emitter = new Fountain(null, p, 100, 100)
 

@@ -19,20 +19,24 @@ class Menu{
 		let u = new NexusUpgrade()
 		let b = new Boton(createVector(WIDTH+10, 200), 280, 45, u)
 		this.botones.push(b)
-		u = new MoonUpgrade()
-		b = new Boton(createVector(WIDTH+10, 280), 280, 45, u)
-		this.botones.push(b)
-		u = new ChanceUpgrade()
-		b = new Boton(createVector(WIDTH+10, 360), 280, 45, u)
-		this.botones.push(b)
+		// u = new MoonUpgrade()
+		// b = new Boton(createVector(WIDTH+10, 280), 280, 45, u)
+		// this.botones.push(b)
+		// u = new ChanceUpgrade()
+		// b = new Boton(createVector(WIDTH+10, 360), 280, 45, u)
+		// this.botones.push(b)
 	}
 
 	// se llama cada vez que se realiza cualquier compra: reinicia la tienda con nuevos upgrades
 	newUpgrades(){
-		this.botones[0].upgrade = new NexusUpgrade()
-		this.botones[1].upgrade = new MoonUpgrade()
-		this.botones[2].upgrade = new ChanceUpgrade()
+		// this.botones[0].upgrade = new NexusUpgrade()
+		// this.botones[1].upgrade = new MoonUpgrade()
+		// this.botones[2].upgrade = new ChanceUpgrade()
+		if(this.botones[0].upgrade instanceof NexusUpgrade) this.botones[0].upgrade = new MoonUpgrade()
+		else if(this.botones[0].upgrade instanceof MoonUpgrade) this.botones[0].upgrade = new ChanceUpgrade()
+		else this.botones[0].upgrade = new NexusUpgrade()
 	}
+
 
 	click(x, y){
 		for(let b of this.botones){
@@ -177,7 +181,6 @@ class Menu{
 		text("Slow:        ", 0, Yoffset += YoffsetMult); stroke(229, 151, 233); 
 		text(floor(nexus.slowedChance*100) + "%", Xoffset, Yoffset)
 		pop()
-		
 	}
 
 	showUpgrades(){
@@ -185,7 +188,5 @@ class Menu{
 		fill(100)
     	rect(WIDTH, 0, 300, HEIGHT)
     	for(let b of this.botones) b.show()
-
-    	
 	}
 }

@@ -24,6 +24,8 @@ let heatSprite
 
 let p
 
+let bh
+
 function preload(){
     heatSprite = loadImage('heat_sprite.png')
 }
@@ -39,10 +41,13 @@ function setup(){
     noSmooth()
     p = createP()
 
+    bh = new BlackHole(createVector(300, 300))
+
 }
 
 
 function draw(){
+
     if(isMouseInCanvas()) pausa = false
     else pausa = true
     if(!pausa){
@@ -68,16 +73,31 @@ function draw(){
         spawner.update()
         nexus.update()
         orbit.update()
+
+        if(bh){
+            bh.update()
+            bh.show()
+        }
+
         fleet.update()
+        
     }
     if(pausa) menu.showPausa()
     menu.show()
 
     for(let i = 0; i < activeAnimMenu.length; i++){
         let a = activeAnimMenu[i]
+        push()
         a.show()
+        pop()
         if(a.isFinished()) activeAnimMenu.splice(i, 1)
     }
+    
+    if(bh && bh.tam <= 0){ 
+        bh.explode()
+        bh = undefined
+    }
+    
 
     
 

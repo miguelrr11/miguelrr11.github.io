@@ -3,7 +3,7 @@ class Animation{
 	constructor(p, pos, dur, col, deg){
 		this.pos = pos
 		this.emitter = new Fountain(null, p, pos.x, pos.y)
-		if(col) this.emitter.colors[0] = col
+		if(col) this.col = col
 		if(deg) this.emitter.f.angle = [deg, deg]
 		this.nPart = Math.ceil(dur)
 	}
@@ -15,7 +15,8 @@ class Animation{
 	show(){
 		push()
 		this.emitter.location = this.pos
-		if(this.nPart > 0) this.emitter.Create()
+		if(this.col) this.emitter.colors[0] = this.col
+		if(this.nPart > 0) this.emitter.CreateN()
 	    this.emitter.Draw()
 	    this.emitter.Step()
 	    this.nPart--

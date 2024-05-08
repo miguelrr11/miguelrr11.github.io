@@ -232,12 +232,19 @@ class MoonUpgrade{
 	}
 }
 
-const chanceUpgradesList = ["Critic", "Chain", "Freeze", "Slowed"]
+//const chanceUpgradesList = ["Critic", "Chain", "Freeze", "Slowed"]
+let chanceUpgradesList = [
+				        { item: "Critic", weight: 0.25 },
+				        { item: "Chain", weight: 0.25 },
+				        { item: "Freeze", weight: 0.25 },
+				        { item: "Slowed", weight: 0.25 }
+				      ]
+
 
 class ChanceUpgrade{
 	constructor(){
 		this.rarity = this.calcularRarity()
-		this.typeOfUpgrade = random(chanceUpgradesList)
+		this.typeOfUpgrade = getRandomString(chanceUpgradesList)
 		this.price = floor(this.calcularPrice())
 		this.upgradeValue = this.calcularUpgradeValue()
 		this.col = 'white'
@@ -289,31 +296,36 @@ class ChanceUpgrade{
 			return 0.04
 		}
 		else if(this.rarity == "Sacrifice"){
-			let other = random(chanceUpgradesList)
-			while(other == this.typeOfUpgrade) other = random(chanceUpgradesList)
+			let other = getRandomString(chanceUpgradesList)
+			while(other == this.typeOfUpgrade) other = getRandomString(chanceUpgradesList)
 			this.typeOfUpgrade = [this.typeOfUpgrade, other]
 			return [0.02, -0.02]
 		}
 	}
 
 	exec(){
+		let add = 0.03  	//el comprar un upgrade aumenta las probabilidades de que aparezca otra vez
 		if(this.rarity != "Sacrifice"){
 			let val = this.upgradeValue
 			if(this.typeOfUpgrade == "Critic"){
 				nexus.criticalChance += val
 				nexus.criticalChanceLevel++
+				chanceUpgradesList[0].weight += add
 			}
 			else if(this.typeOfUpgrade == "Chain"){
 				nexus.chainChance += val
 				nexus.chainChanceLevel++
+				chanceUpgradesList[1].weight += add
 			}
 			else if(this.typeOfUpgrade == "Freeze"){
 				nexus.freezeChance += val
 				nexus.freezeChanceLevel++
+				chanceUpgradesList[2].weight += add
 			}
 			else if(this.typeOfUpgrade == "Slowed"){
 				nexus.slowedChance += val
 				nexus.slowedChanceLevel++
+				chanceUpgradesList[3].weight += add
 			}
 		}
 		else{

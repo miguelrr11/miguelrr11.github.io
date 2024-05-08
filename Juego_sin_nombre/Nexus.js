@@ -85,7 +85,7 @@ class Nexus{
 		this.maxXp = Math.ceil(Math.exp(this.nivel) * this.nivel + 10)
 		aumentarDificultadLevel()
 		this.money += Math.ceil(Math.exp(this.nivel)/this.nivel)
-		spawner.counterSpawnAtCorner = this.nivel * 25
+		spawner.counterSpawnAtCorner = 20
 	}
 
 	update(){

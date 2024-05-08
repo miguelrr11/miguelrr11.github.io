@@ -17,6 +17,7 @@ class Enemy extends Nexus{
 		this.fromBoss = false
 		this.chainChance = 0
 		this.avoidEnemies = []
+		this.lostNexusOrbit = false
 
 		this.range = 350
 		this.isFreezed = false
@@ -88,7 +89,7 @@ class Enemy extends Nexus{
 		this.health -= n
 		activeAnim.push(new Animation(this.pActiveHit, this.pos, 2))  	
 		if(this.health <= 0){
-			if(this.alive) this.die()
+			if(this.alive) {this.die(); return true}
 		}
 	}
 
@@ -107,24 +108,62 @@ class Enemy extends Nexus{
 	  	return (x2 - x1) ** 2 + (y2 - y1) ** 2
 	}
 
+	updatePhysicsNexus(bool){
+		let c
+		if(this.isSlowed) c = map(this.maxSpeed, 1, 10, 0.5, 10, true)
+		else c = map(this.maxSpeed, 1, 10, 2.5, 10, true)
+    	let G = map(this.maxSpeed, 1, 10, 4, 6, true)
+    	let m = 10000
+    	if(bool) m = map(nexus.carga, 0, 200, -20000, -20000)
+		const force = p5.Vector.sub(nexus.pos, this.pos);
+	    const R = force.mag();
+	    const fg = G * m / (R * R);
+	    force.setMag(fg);
+	    this.speed.add(force);
+	   // if(!this.lostNexusOrbit) this.speed.add(this.getTangentialVector(p5.Vector.sub(nexus.pos, this.pos)))
+	    this.speed.add(this.getTangentialVector(p5.Vector.sub(nexus.pos, this.pos)))
+	    this.speed.setMag(c);
+	    this.pos.add(this.speed)
+	}
+
+	updatePhysicsBH(){
+		this.lostNexusOrbit = true
+		let c
+		if(this.isSlowed) c = map(this.maxSpeed, 1, 10, 0.5, 10, true)
+		else c = map(this.maxSpeed, 1, 10, 2.5, 10, true)
+    	let G = map(this.maxSpeed, 1, 10, 4, 6, true)
+    	let m = 10000
+		const force = p5.Vector.sub(bh.pos, this.pos);
+	    const R = force.mag();
+	    let mBH = 30000
+    	let GBH = 5
+    	const fg = GBH * mBH / (R * R);
+	    force.setMag(fg);
+	    this.speed.add(force);
+	    this.speed.add(this.getTangentialVector(p5.Vector.sub(bh.pos, this.pos)))
+	    this.speed.setMag(c);
+	    this.pos.add(this.speed)
+	}
+
+	showWarning(){
+		push()
+		noStroke()
+		fill(255, 0, 97)
+		textSize(25)
+		textFont('Courier')
+		text("!", this.pos.x, this.pos.y-this.tam)
+		pop()
+	}
 
 	update(bool){
+		let distToNexus = this.squaredDistance(this.pos.x, this.pos.y, nexus.pos.x, nexus.pos.y)
+		let distToBH
+		if(bh) distToBH = this.squaredDistance(this.pos.x, this.pos.y, bh.pos.x, bh.pos.y)
+		if(distToNexus <= nexus.range**2) this.showWarning()
+
 		if(!this.isFreezed){
-			let c
-			if(this.isSlowed) c = map(this.maxSpeed, 1, 10, 0.5, 10, true)
-			else c = map(this.maxSpeed, 1, 10, 2.5, 10, true)
-	    	let G = map(this.maxSpeed, 1, 10, 4, 6, true)
-			//let G = map(this.maxSpeed, 1, 10, 8, 10, true)
-	    	let m = 10000
-	    	if(bool) m = map(nexus.carga, 0, 200, -20000, -20000)
-			const force = p5.Vector.sub(nexus.pos, this.pos);
-		    const R = force.mag();
-		    const fg = G * m / (R * R);
-		    force.setMag(fg);
-		    this.speed.add(force);
-		    this.speed.add(this.getTangentialVector(p5.Vector.sub(nexus.pos, this.pos)))
-		    this.speed.setMag(c);
-		    this.pos.add(this.speed)
+			if(bh && distToBH < bh.range**2) this.updatePhysicsBH(bool)
+			else this.updatePhysicsNexus(bool)
 		}
 		else{
 			this.freezeCounter--
@@ -134,9 +173,12 @@ class Enemy extends Nexus{
 			}
 		}
 
-		if(this.squaredDistance(this.pos.x, this.pos.y, nexus.pos.x, nexus.pos.y) < (nexus.tam/2 + this.tam/2)**2){ 
+		if(distToNexus < (nexus.tam/2 + this.tam/2)**2){ 
 			nexus.health -= this.damage
 			return undefined
+		}
+		if(bh && distToBH < (bh.tam/2 + this.tam/2)**2){ 
+			if(!bh.imploding && this.hit(0.3)) bh.tam++
 		}
 		return true
 	}
