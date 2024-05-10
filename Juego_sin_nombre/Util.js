@@ -4,6 +4,31 @@ const angles =[...new Array(360).fill(0)].map((_,i) => ({
   sin: Math.sin(i * pi180)
 }));
 
+function getClosestEnemy(pos, avoid, dis){
+    let dstn = dis ** 2
+    let closest = undefined
+    let closest_dist = Infinity
+    for(let i = 0; i < fleet.enemies.length; i++){
+        let e = fleet.enemies[i]
+        if(!e.inCanvas()) continue
+        if(!e.alive) continue
+        if(avoid && avoid.includes(e)) continue
+        if(e === this) continue
+
+        let distEn = squaredDistance(pos.x, pos.y, e.pos.x, e.pos.y)
+        if(distEn > dstn) continue
+        if(distEn < closest_dist){ 
+            closest = e
+            closest_dist = distEn
+        }
+    }
+    return closest
+}
+
+function squaredDistance(x1, y1, x2, y2) {
+    return (x2 - x1) ** 2 + (y2 - y1) ** 2
+}
+
 function getRandomString(options) {
     var i;
 

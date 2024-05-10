@@ -113,6 +113,8 @@ NOTA: ahora el spawner mete un offset random de vida los enemigos, ahora hay var
 NOTA: ahora es el rayo quien llama a hit() del enemigo justo cuando el rayo acaba su animacion, 
 	ahora el rayo en vez de aparecer inmediatamente, nace en el nexo y progresivamente avanza hasta
 	el enemigo
+NOTA: ahora si el rayo detecta que su objetivo a muerto, se redirige a otro enemigo 
+	(perceptible si el rayo es lento (maxSteps = 300 por ejemplo))
 
 TODO: rehacer todas las formulas de recalculatePrice()
 TODO: que el tamaño de las particulas de las animaciones vayan escalando con el daño/tam, etc

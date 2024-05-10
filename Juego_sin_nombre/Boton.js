@@ -55,9 +55,9 @@ class Boton{
 		stroke(strokeCol)
 		strokeWeight(3)
 		fill(fillColTrans)
-		if(this.upgrade instanceof NexusUpgrade) text("NEXUS UPGRADE: " + this.upgrade.rarity, 0, -10)
-		else if(this.upgrade instanceof MoonUpgrade) text("MOONS UPGRADE: " + this.upgrade.rarity, 0, -10)
-		else if(this.upgrade instanceof ChanceUpgrade) text("RAYS UPGRADE: " + this.upgrade.rarity, 0, -10)
+		if(this.upgrade instanceof NexusUpgrade) text("NEXUS Upgrade: " + this.upgrade.rarity, 0, -10)
+		else if(this.upgrade instanceof MoonUpgrade) text("MOONS Upgrade: " + this.upgrade.rarity, 0, -10)
+		else if(this.upgrade instanceof ChanceUpgrade) text("RAYS Upgrade: " + this.upgrade.rarity, 0, -10)
 
 		fill(fillColTrans)
 		strokeWeight(4)

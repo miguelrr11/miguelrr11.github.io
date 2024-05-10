@@ -1,32 +1,45 @@
 class Rayo{
-	constructor(A, B, nivel, isCritic, enemy, damage){
+	constructor(A, B, nivel, enemy, damage){
 		this.posA = A 
 		this.posB = B
-		if(nivel) this.width = nivel*2
-		else this.width = 3
 		this.col = color(255, 255, 255)
 		this.finished = false
 
-		let tam = nivel*3
-		tam = constrain(tam, 0, 20)
+		this.tam = nivel*3
+		this.tam = constrain(this.tam, 0, 20)
 
 		this.p = {color:['white'], 
 					angle: [0, 360], 
-					size: [tam,tam+5], 
+					size: [this.tam, this.tam+5], 
 					sizePercent: 0.80,
 					gravity: false
 				};
 		this.curx = this.posA.x
 		this.cury = this.posA.y
 		this.step = 0
-		let maxSteps = 30	//impacta en rendimiento
-		this.nSteps = map(dist(this.posA.x, this.posA.y, this.posB.x, this.posB.y), 0, 500, 1, maxSteps)
+		this.maxSteps = 30	//impacta en rendimiento
+		this.nSteps = map(dist(this.posA.x, this.posA.y, this.posB.x, this.posB.y), 0, 500, 1, this.maxSteps)
 		this.xStep = (this.posB.x - this.posA.x)/this.nSteps
 		this.yStep = (this.posB.y - this.posA.y)/this.nSteps
 		
 		this.enemy = enemy
 		this.damage = damage
+	}
 
+	reDoP(){
+		this.p = {color:['white'], 
+					angle: [0, 360], 
+					size: [this.tam, this.tam+5], 
+					sizePercent: 0.80,
+					gravity: false
+				};
+	}
+
+	calculateSteps(){
+		this.step = 0
+		this.nSteps = map(dist(this.posA.x, this.posA.y, this.posB.x, this.posB.y), 0, 500, 1, this.maxSteps)
+		this.xStep = (this.posB.x - this.posA.x)/this.nSteps
+		this.yStep = (this.posB.y - this.posA.y)/this.nSteps
 	}
 
 	setCritic(){
@@ -52,7 +65,19 @@ class Rayo{
 		this.step++
 	}
 
+	// Si el enemigo al que va destinado el rayo ha muerto, se redirige el rayo a otro enemigo
+	redirectRay(){
+		let newEn = getClosestEnemy(createVector(this.curx, this.cury), undefined, Infinity)
+		if(newEn){
+			this.enemy = newEn
+			this.posA = createVector(this.curx, this.cury)
+			this.posB = newEn.pos 
+			this.calculateSteps()
+		}
+	}
+
 	show(){
+		if(!this.enemy.alive) this.redirectRay()
 		push()
 		if(this.step < this.nSteps && activeAnim.length < animationLimit){ 	// && frameCount%1==x para ralentizarlo
 			this.createParticles()

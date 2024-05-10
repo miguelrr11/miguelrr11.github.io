@@ -12,6 +12,7 @@ class BlackHole extends Nexus{
 		this.pos = pos 
 		this.tam = 70
 		this.range = 250
+		this.imploding = false
 
 		this.pActiveMuerte = {color:['white'], 
 						angle: [0, 360], 

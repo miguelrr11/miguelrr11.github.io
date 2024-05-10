@@ -25,6 +25,7 @@ let heatSprite
 let p
 
 let bh
+let ml
 
 function preload(){
     heatSprite = loadImage('heat_sprite.png')
@@ -41,8 +42,8 @@ function setup(){
     noSmooth()
     p = createP()
 
-    bh = new BlackHole(createVector(300, 300))
-
+    //bh = new BlackHole(createVector(300, 300))
+    ml = new MisileLauncher(createVector(300, 300))
 }
 
 
@@ -74,9 +75,14 @@ function draw(){
         nexus.update()
         orbit.update()
 
+        // Hacer bien esta mierda
         if(bh){
             bh.update()
             bh.show()
+        }
+        if(ml){
+            ml.update()
+            ml.show()
         }
 
         fleet.update()

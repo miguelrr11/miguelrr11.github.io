@@ -19,10 +19,19 @@ class EnemyRich extends Enemy{
 	}
 
 	getStroke(){
-		strokeWeight(4)
-		stroke(255, 198, 0)
+		if(this.isFreezed){
+			stroke(87, 219, 255)
+			strokeWeight(4)
+		}
+		else if(this.isSlowed){
+			stroke(229, 151, 233)
+			strokeWeight(4)
+		}
+		else{
+			strokeWeight(4)
+			stroke(255, 198, 0)
+		}
 	}
-
 }
 
 class EnemyExplosive extends Enemy{
@@ -77,8 +86,18 @@ class EnemyExplosive extends Enemy{
 	}
 
 	getStroke(){
-		strokeWeight(4)
-		stroke(255, 0, 97)
+		if(this.isFreezed){
+			stroke(87, 219, 255)
+			strokeWeight(4)
+		}
+		else if(this.isSlowed){
+			stroke(229, 151, 233)
+			strokeWeight(4)
+		}
+		else{
+			strokeWeight(4)
+			stroke(255, 0, 97)
+		}
 	}
 
 }

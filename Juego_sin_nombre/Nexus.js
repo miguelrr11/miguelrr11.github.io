@@ -141,7 +141,8 @@ class Nexus{
 		return closest
 	}
 
-	attack(nrays, avoid, range = this.range, chain){
+	//TODO: refactorizar este desastre
+	attack(nrays, avoid, range = this.range, chain, critic, maxSteps, tamRayo){
 		let totalEnemiesAttack = []
 		if(avoid) totalEnemiesAttack = avoid
 		let closest = undefined
@@ -150,10 +151,18 @@ class Nexus{
 			closest = this.getClosestEnemy(totalEnemiesAttack, range)
 			if(closest != undefined){
 				let rayo = new Rayo(this.pos, closest.pos, this.damage)
+				if(maxSteps){ 
+					rayo.maxSteps = maxSteps
+					rayo.calculateSteps()
+				}
+				if(tamRayo){
+					rayo.tam = tamRayo
+					rayo.reDoP()
+				}
 				let damage = this.damage
 
 				// CRITICO
-				if(random() < this.criticalChance){ 
+				if(random() < this.criticalChance || critic){ 
 					rayo.setCritic()
 					damage *= 2.5
 				}
