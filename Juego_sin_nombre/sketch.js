@@ -43,7 +43,7 @@ function setup(){
     p = createP()
 
     //bh = new BlackHole(createVector(300, 300))
-    ml = new MisileLauncher(createVector(300, 300))
+    //ml = new MisileLauncher(createVector(300, 300))
 }
 
 
@@ -102,6 +102,11 @@ function draw(){
     if(bh && bh.tam <= 0){ 
         bh.explode()
         bh = undefined
+    }
+
+    if(ml && ml.lifetime == 0){ 
+        ml.explode()
+        ml = undefined
     }
     
 

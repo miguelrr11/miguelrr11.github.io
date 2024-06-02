@@ -78,6 +78,11 @@ class Nexus{
 		nexus.range += 15
 		this.xp = 0
 		this.nivel++
+
+		let x = 130+menu.pos.x
+		let y = 45+menu.pos.y
+		activeAnimMenu.push(new TextAnimation("+1", createVector(x,y), 40, color(255, 255, 255)))
+
 		orbit.addMoon()
 		if(orbit.moons.length == 1){ 
 			//menu.createMoonButtons()

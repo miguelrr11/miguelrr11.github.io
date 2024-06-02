@@ -63,7 +63,7 @@ class Enemy extends Nexus{
 	}
 
 	inCanvas(offset = 0){
-		return this.pos.x <= WIDTH+offset && this.pos.y >= 0-offset
+		return this.pos.x <= WIDTH+offset && this.pos.x >= 0-offset
 				&& this.pos.y <= HEIGHT+offset && this.pos.y >= 0-offset
 	}
 
@@ -74,8 +74,13 @@ class Enemy extends Nexus{
 	}
 
 	die(){
-		if(this instanceof EnemyRich) nexus.money += this.reward
-		else if(random() < nexus.earnChance) nexus.money += this.reward
+		if(this instanceof EnemyRich ||random() < nexus.earnChance ) {
+			nexus.money += this.reward
+			let x = random(40+menu.pos.x-10, 40+menu.pos.x+10)
+			let y = random(160+menu.pos.y-5, 160+menu.pos.y+5)
+			activeAnimMenu.push(new TextAnimation("+" + round(this.reward,2), createVector(x,y), 40, color(255, 255, 0)))
+		}
+		
 		nexus.xp += this.xpReward
 
 		if(this instanceof EnemyExplosive) activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 10))

@@ -20,6 +20,13 @@ class Boton{
 			if(this.upgrade instanceof MoonUpgrade && orbit.moons.length == 0) return
 
 			nexus.money -= this.upgrade.price
+			if(this.upgrade.price > 0){
+				let x = random(40+menu.pos.x-10, 40+menu.pos.x+10)
+				let y = random(160+menu.pos.y-5, 160+menu.pos.y+5)
+				activeAnimMenu.push(new TextAnimation("-" + round(this.upgrade.price,2), createVector(x,y), 40, color(255, 255, 0)))
+			}
+			
+			
 			this.upgrade.exec()
 			menu.newUpgrades()
 

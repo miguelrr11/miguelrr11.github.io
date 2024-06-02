@@ -11,6 +11,8 @@ class MisileLauncher extends Nexus{
 
         this.trans = 0
 
+		this.lifetime = 10
+
 		this.pAttack = {color:['white'], 
 						angle: [0, 360], 
 						size: [30,34], 
@@ -18,6 +20,14 @@ class MisileLauncher extends Nexus{
 						speed: 6,
 						gravity: false
 					   };
+
+		this.pActiveMuerte = {color:['white'], 
+					   angle: [0, 360], 
+					   size: [35,40], 
+					   sizePercent: 0.95,
+					   speed: 6,
+					   gravity: false
+					  };
     }
 
     update(){
@@ -25,6 +35,8 @@ class MisileLauncher extends Nexus{
 			this.pos.x = mouseX
 			this.pos.y = mouseY
 		}
+
+		if(frameCount % 60 == 0) this.lifetime--;
 
         this.count--
         this.count = constrain(this.count, 0, Infinity)
@@ -34,6 +46,14 @@ class MisileLauncher extends Nexus{
                this.trans = 255
             }
 		}
+	}
+
+	explode(){
+		//this.attack(20, undefined, Infinity)
+		activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 10, "#f70c0c"))
+		activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 10, "#ff5252"))
+		activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 10, "#ab1a1a"))
+		activeAnim.push(new Animation(this.pActiveMuerte, this.pos.copy(), 10, "#ed3939"))
 	}
 
     show(){

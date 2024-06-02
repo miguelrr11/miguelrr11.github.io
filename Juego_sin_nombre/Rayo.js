@@ -57,7 +57,7 @@ class Rayo{
 
 	// el rayo "persigue" al enemigo actualizando sus distancias
 	createParticles(){
-		activeAnim.push(new Animation(this.p, createVector(this.curx, this.cury), 2, this.col))
+		activeAnim.push(new Animation(this.p, createVector(this.curx, this.cury), 1, this.col))
 		this.xStep = (this.posB.x - this.curx)/(this.nSteps-this.step)
 		this.yStep = (this.posB.y - this.cury)/(this.nSteps-this.step)
 		this.curx += this.xStep
@@ -76,8 +76,13 @@ class Rayo{
 		}
 	}
 
+	inCanvas(offset = 0){
+		return this.curx <= WIDTH+offset && this.curx >= 0-offset
+				&& this.cury <= HEIGHT+offset && this.cury >= 0-offset
+	}
+
 	show(){
-		if(!this.enemy.alive) this.redirectRay()
+		if(!this.enemy.alive) this.redirectRay() //igual es la causa de los tirones (se queda congelado el juego)
 		push()
 		if(this.step < this.nSteps && activeAnim.length < animationLimit){ 	// && frameCount%1==x para ralentizarlo
 			this.createParticles()
@@ -89,6 +94,9 @@ class Rayo{
 				this.enemy.attackChain()
 	        }
 		}
+		//TODO
+		if(!this.inCanvas()){ this.finished = true; console.log("true")}
+
 		//if(this.trans == 255) 
 		//this.trans -= 25
 		// this.col.setAlpha(this.trans-150)
