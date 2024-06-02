@@ -20,10 +20,10 @@ class Menu{
 		let b = new Boton(createVector(WIDTH+10, 200), 280, 45, u)
 		this.botones.push(b)
 		u = new MoonUpgrade()
-		b = new Boton(createVector(WIDTH+10, 280), 280, 45, u)
+		b = new Boton(createVector(WIDTH+10, 280), 280, 45, u, 1)
 		this.botones.push(b)
 		u = new ChanceUpgrade()
-		b = new Boton(createVector(WIDTH+10, 360), 280, 45, u)
+		b = new Boton(createVector(WIDTH+10, 360), 280, 45, u, 4)
 		this.botones.push(b)
 	}
 
@@ -50,9 +50,9 @@ class Menu{
 		fill(255)
 		stroke(0)
 		strokeWeight(4)
-		textFont('Courier')
+		textFont('Gill Sans')
 		textSize(60)
-		text('PAUSE', 10, 50)
+		text('PAUSE', 30, 70)
 		pop()
 	}
 
@@ -165,6 +165,13 @@ class Menu{
 			text("FOV:         ", 0, Yoffset += YoffsetMult); text(orbit.bestMoon.fov, Xoffset, Yoffset)
 			text("Range:       ", 0, Yoffset += YoffsetMult); text(orbit.bestMoon.range, Xoffset, Yoffset)
 		}
+		if(nexus.nivel >= 4) this.showChances(Yoffset, Xoffset, tamTitle, YoffsetMult, tamSub)
+
+		pop()
+	}
+
+	showChances(Yoffset, Xoffset, tamTitle, YoffsetMult, tamSub){
+		push()
 
 		fill(0)
 		stroke(255)
@@ -181,6 +188,7 @@ class Menu{
 		text(floor(nexus.freezeChance*100) + "%", Xoffset, Yoffset); noStroke()
 		text("Slow:        ", 0, Yoffset += YoffsetMult); stroke(229, 151, 233); 
 		text(floor(nexus.slowedChance*100) + "%", Xoffset, Yoffset)
+
 		pop()
 	}
 

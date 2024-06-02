@@ -16,7 +16,7 @@ class Spawner{
 		this.count = 60/spawn_per_second
 		this.hayBoss = false
 
-		this.counterSpawnAtCorner = 10
+		this.counterSpawnAtCorner = 0
 	} 
 
 	toggleBossChance(bool){
@@ -104,6 +104,6 @@ class Spawner{
 			}
 		}
 		this.count--
-		if(random() < 0.001) this.counterSpawnAtCorner = 20
+		if(random() < 0.0001) this.counterSpawnAtCorner = 20
 	}
 }

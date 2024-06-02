@@ -118,11 +118,12 @@ NOTA: ahora si el rayo detecta que su objetivo a muerto, se redirige a otro enem
 
 TODO: rehacer todas las formulas de recalculatePrice()
 TODO: que el tamaño de las particulas de las animaciones vayan escalando con el daño/tam, etc
-TODO: animaciones para:
+HECHO: animaciones para:
 	- Realizar compra:
 		- HECHO Upgrade desaparece
-		- Nuevo upgrade aparece
-		- Dinero gastado
+		- HECHO Nuevo upgrade aparece
+		- HECHO Dinero gastado
+		- HECHO Dinero ganado
 		- Se podria hacer con particulas
 HECHO: enemigo boss
 
@@ -135,11 +136,11 @@ TODO: pantalla iniciar partida:
 		- Money Maker: los enemigos te dan mas dinero
 		- Lunatico: el nexo empieza en nivel 1 (con una luna)
 		- ...
-TODO: agujero negro hecho, pero como añadirlo al juego de forma que tenga sentido? Opciones:
+TODO: agujero negro y missile launcher hechos, pero como añadirlo al juego de forma que tenga sentido? Opciones:
 	- "Enemigos regalo": cuando muere un enemigo de este tipo, se activa un habilidad especial
 	al azar durante un tiempo (solo esta el agujero negro)
 	- Se puede comprar en la tienda y usar cuando se quiera (precio elevado)
-	s
+TODO: boton reroll tienda
 
 
 HECHO: el ataque del nexo (haciendo click) deberia de tener cooldown:

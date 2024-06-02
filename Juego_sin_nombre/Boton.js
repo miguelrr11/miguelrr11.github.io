@@ -1,10 +1,11 @@
 class Boton{
-	constructor(a, w, h, upgrade){
+	constructor(a, w, h, upgrade, locked){
 		this.a = a 		   											//esquina xy 1
 		this.b = createVector(this.a.x + w, this.a.y + h) 			//esquina xy 2
 		this.w = w 
 		this.h = h
 		this.upgrade = upgrade
+		if(locked) this.locked = locked
 	}
 
 	isHovering(){
@@ -15,8 +16,13 @@ class Boton{
 		return nexus.money >= this.upgrade.price
 	}
 
+	isLocked(){
+		return this.locked != undefined && this.locked > nexus.nivel
+	}
+
 	click(){
 		if(this.isHovering() && nexus.money >= this.upgrade.price){
+			if(this.isLocked()) return
 			if(this.upgrade instanceof MoonUpgrade && orbit.moons.length == 0) return
 
 			nexus.money -= this.upgrade.price
@@ -44,7 +50,47 @@ class Boton{
 		
 	}
 
+	//upgrade está bloqueado
+	showLocked(){
+		let strokeCol = getStroke("Common")
+		let fillCol = getFill("Common")
+		let fillColTrans = getFillTrans("Common")
+		push()
+		textFont('Gill Sans')
+		textSize(17)
+
+		stroke(strokeCol)
+		strokeWeight(3)
+		fill(fillCol)
+		translate(this.a.x, this.a.y)
+		rect(0,0,this.w,this.h)
+
+		stroke(strokeCol)
+		strokeWeight(3)
+		fill(fillColTrans)
+		if(this.upgrade instanceof NexusUpgrade) text("NEXUS Upgrade ", 0, -10)
+		else if(this.upgrade instanceof MoonUpgrade) text("MOONS Upgrade ", 0, -10)
+		else if(this.upgrade instanceof ChanceUpgrade) text("RAYS Upgrade ", 0, -10)
+
+		fill(fillColTrans)
+		strokeWeight(4)
+		textSize(30)
+
+		push()
+			//stroke(fillColTrans)
+			noStroke()
+			fill(fillColTrans)	
+			text("UNLOCK IN LV:  " + this.locked, 12, this.h/2 + 12)
+		pop()
+		//text("UNLOCK IN LV:  " + this.locked, 10, this.h/2 + 10)
+		pop()
+	}
+
 	show(){
+		if(this.isLocked()){ 
+			this.showLocked()
+			return
+		}
 		let strokeCol = getStroke(this.upgrade.rarity)
 		let fillCol = getFill(this.upgrade.rarity)
 		let fillColTrans = getFillTrans(this.upgrade.rarity)
