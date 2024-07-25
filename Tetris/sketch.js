@@ -32,6 +32,8 @@ let posRestartY = 490
 let widthButton = 98
 let heightButton = 35
 
+let gameSpeed = 60
+
 function mouseClicked(){
     if(isMouseOverPause()){
         isPaused = !isPaused
@@ -130,11 +132,13 @@ function draw(){
     }
     background(color_Back)
     timeStep++
-    if(timeStep % 20 == 0 && !gameOver && !isPaused){
+    if(timeStep % gameSpeed == 0 && !gameOver && !isPaused){
         gameStep()
         timeStep = 0
     }
-    
+    if(score >= 10000) gameSpeed = 10
+    else gameSpeed = floor(map(score, 0, 10000, 60, 10))
+
     drawNextTetra()
     drawPreview()
     drawHold()
