@@ -19,7 +19,7 @@ class Cell{
 	}
 
 	moveR(){
-		if(this.pos.x < 10){
+		if(this.pos.x < nWidth){
 			//newBoard[this.pos.x][this.pos.y+1] = this
 			this.nextPos = createVector(this.pos.x+1, this.pos.y)
 		}
@@ -41,7 +41,7 @@ class Cell{
 	}
 
 	clearR(tet){
-		for(let i = this.pos.x; i < 10; i++){
+		for(let i = this.pos.x; i < nWidth; i++){
 			let nextCell = board[i][this.pos.y]
 			if(nextCell == undefined) {return true}
 			if(nextCell.tetra == tet) {continue}

@@ -9,6 +9,7 @@ const color_Back = "#FFF7E5"
 const color_Lines = "#D7C498"
 const color_Text = "#BBA46E"
 const color_Preview = "#9F9F9F"
+const color_Back_Button = "#E7D6AE"
 
 function drawNextTetra(){
 	let tetraToDraw 
@@ -85,7 +86,6 @@ function checkGO(){
 	    drawBoard()
 	    drawGrid()
 	    drawGO()
-		noLoop()
 		console.log("GAME OVER")
 	}
 }
@@ -94,7 +94,7 @@ function checkLineClear(){
 	n_lineas = 0
 	for(let j = 0; j < 25; j++){
 		linea_llena = true
-		for(let i = 0; i < 10; i++){
+		for(let i = 0; i < nWidth; i++){
 			if(board[i][j] == undefined){
 				linea_llena = false
 				break
@@ -112,7 +112,7 @@ function checkLineClear(){
 }
 
 function clearLine(y){
-	for(let i = 0; i < 10; i++){
+	for(let i = 0; i < nWidth; i++){
 		cell = board[i][y]
 		cell.tetra.pieces.pop(cell)
 		board[i][y] = undefined
@@ -124,7 +124,7 @@ function clearLine(y){
 
 function fallEverything(y){
 	for(let j = 0; j < 25; j++){
-		for(let i = 0; i < 10; i++){
+		for(let i = 0; i < nWidth; i++){
 			if(j >= y) continue
 			if(board[i][j] != undefined){
 				board[i][j].nextPos = createVector(board[i][j].pos.x, board[i][j].pos.y+1)
@@ -194,7 +194,7 @@ function drawHold(){
 function hold(){
 	//solo ocurre una vez
 	if(holded == undefined){
-		taken_out = false
+		taken_out = true
 		holded = current.type
 		for(let p of current.pieces){
 			board[p.pos.x][p.pos.y] = undefined
@@ -288,7 +288,7 @@ class Tetramino_I extends Tetramino{
 		let x = this.pieces[0].pos.x 
 		let y = this.pieces[0].pos.y
 		if(this.rotationState == 0){
-			if(y+1 > 24 || y-2 < 0 || x+2 > 9) return
+			if(y+1 > 24 || y-2 < 0 || x+2 >nWidth-1) return
 			if(board[x+2][y-1] == undefined &&
 			   board[x+2][y+1] == undefined &&
 			   board[x+2][y+2] == undefined){
@@ -301,7 +301,7 @@ class Tetramino_I extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 1){
-			if(x+1 > 9 || y+2 > 24 || x-2 < 0) return
+			if(x+1 >nWidth-1 || y+2 > 24 || x-2 < 0) return
 			if(board[x-2][y-2] == undefined &&
 			   board[x-1][y-2] == undefined &&
 			   board[x+1][y-2] == undefined){
@@ -325,7 +325,7 @@ class Tetramino_I extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 3){
-			if(y-2 < 0 || x+2 > 9 || x-1 < 0) return
+			if(y-2 < 0 || x+2 >nWidth-1 || x-1 < 0) return
 			if(board[x-1][y-2] == undefined &&
 			   board[x+1][y-2] == undefined &&
 			   board[x+2][y-2] == undefined){
@@ -380,7 +380,7 @@ class Tetramino_J extends Tetramino{
 		let y = this.pieces[1].pos.y
 		let rotated = false
 		if(this.rotationState == 0){
-			if(y-1 < 0 || x+1 > 9 || x-1 < 0) return
+			if(y-1 < 0 || x+1 >nWidth-1 || x-1 < 0) return
 			if(board[x-1][y-1] == undefined &&
 			   board[x-1][y] == undefined &&
 			   board[x+1][y] == undefined){
@@ -391,7 +391,7 @@ class Tetramino_J extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 1){
-			if(y-1 < 0 || x+1 > 9 || y+1 > 24) return
+			if(y-1 < 0 || x+1 >nWidth-1 || y+1 > 24) return
 			if(board[x+1][y-1] == undefined &&
 			   board[x][y-1] == undefined &&
 			   board[x][y+1] == undefined){
@@ -402,7 +402,7 @@ class Tetramino_J extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 2){
-			if(y+1 > 24 || x+1 > 9 || x-1 < 0) return
+			if(y+1 > 24 || x+1 >nWidth-1 || x-1 < 0) return
 			if(board[x+1][y+1] == undefined &&
 			   board[x+1][y] == undefined &&
 			   board[x-1][y] == undefined){
@@ -432,7 +432,7 @@ class Tetramino_J extends Tetramino{
 	
 	spawn(bool){
 		if(bool == undefined){
-			let x = floor(random(1, 10))
+			let x = floor(random(1, nWidth))
 			let y = 2
 			this.pieces.push(new Cell(x, y, color_J, this),
 							 new Cell(x, y+1, color_J, this),
@@ -466,7 +466,7 @@ class Tetramino_L extends Tetramino{
 		let y = this.pieces[1].pos.y
 		let rotated = false
 		if(this.rotationState == 0){
-			if(y+1 > 24 || x+1 > 9 || x-1 < 0) return
+			if(y+1 > 24 || x+1 >nWidth-1 || x-1 < 0) return
 			if(board[x+1][y] == undefined &&
 			   board[x-1][y] == undefined &&
 			   board[x-1][y+1] == undefined){
@@ -488,7 +488,7 @@ class Tetramino_L extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 2){
-			if(y-1 < 0 || x+1 > 9 || x-1 < 0) return
+			if(y-1 < 0 || x+1 >nWidth-1 || x-1 < 0) return
 			if(board[x-1][y] == undefined &&
 			   board[x+1][y] == undefined &&
 			   board[x+1][y-1] == undefined){
@@ -499,7 +499,7 @@ class Tetramino_L extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 3){
-			if(y-1 < 0 || x+1 > 9 || y+1 > 24) return
+			if(y-1 < 0 || x+1 >nWidth-1 || y+1 > 24) return
 			if(board[x][y-1] == undefined &&
 			   board[x][y+1] == undefined &&
 			   board[x+1][y+1] == undefined){
@@ -518,7 +518,7 @@ class Tetramino_L extends Tetramino{
 
 	spawn(bool){
 		if(bool == undefined){
-			let x = floor(random(0, 9))
+			let x = floor(random(0,nWidth-1))
 			let y = 2
 			this.pieces.push(new Cell(x, y, color_L, this),
 							 new Cell(x, y+1, color_L, this),
@@ -553,7 +553,7 @@ class Tetramino_O extends Tetramino{
 
 	spawn(bool){
 		if(bool == undefined){
-			let x = floor(random(0, 9))
+			let x = floor(random(0,nWidth-1))
 			let y = 3
 			this.pieces.push(new Cell(x, y, color_O, this),
 							 new Cell(x, y+1, color_O, this),
@@ -589,7 +589,7 @@ class Tetramino_Z extends Tetramino{
 
 		if(this.rotationState == 0){
 
-			if(y+1 > 24 || x+1 > 9 || y-1 < 0) return
+			if(y+1 > 24 || x+1 >nWidth-1 || y-1 < 0) return
 			if(board[x+1][y-1] == undefined &&
 			   board[x][y+1] == undefined){
 				this.pieces[0].nextPos = createVector(x+1, y-1)
@@ -599,7 +599,7 @@ class Tetramino_Z extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 1){
-			if(x+1 > 9 || x-1 < 0 || y+1 > 24) return
+			if(x+1 >nWidth-1 || x-1 < 0 || y+1 > 24) return
 			if(board[x+1][y+1] == undefined &&
 			   board[x-1][y] == undefined){
 				this.pieces[0].nextPos = createVector(x+1, y+1)
@@ -619,7 +619,7 @@ class Tetramino_Z extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 3){
-			if(y-1 < 0 || x+1 > 9 || x-1 < 0) return
+			if(y-1 < 0 || x+1 >nWidth-1 || x-1 < 0) return
 			if(board[x+1][y] == undefined &&
 			   board[x-1][y-1] == undefined){
 				this.pieces[0].nextPos = createVector(x+1, y)
@@ -673,7 +673,7 @@ class Tetramino_S extends Tetramino{
 		let rotated = false
 
 		if(this.rotationState == 0){
-			if(y+1 > 24 || x+1 > 9 || y-1 < 0) return
+			if(y+1 > 24 || x+1 >nWidth-1 || y-1 < 0) return
 			if(board[x+1][y+1] == undefined &&
 			   board[x+1][y] == undefined){
 				this.pieces[0].nextPos = createVector(x, y-1)
@@ -683,7 +683,7 @@ class Tetramino_S extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 1){
-			if(x+1 > 9 || x-1 < 0 || y+1 > 24) return
+			if(x+1 >nWidth-1 || x-1 < 0 || y+1 > 24) return
 			if(board[x][y+1] == undefined &&
 			   board[x-1][y+1] == undefined){
 				this.pieces[0].nextPos = createVector(x+1, y)
@@ -703,7 +703,7 @@ class Tetramino_S extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 3){
-			if(y-1 < 0 || x+1 > 9 || x-1 < 0) return
+			if(y-1 < 0 || x+1 >nWidth-1 || x-1 < 0) return
 			if(board[x][y-1] == undefined &&
 			   board[x+1][y-1] == undefined){
 				this.pieces[0].nextPos = createVector(x-1, y)
@@ -766,7 +766,7 @@ class Tetramino_T extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 1){
-			if(x+1 > 9 || x-1 < 0 || y-1 < 0) return
+			if(x+1 >nWidth-1 || x-1 < 0 || y-1 < 0) return
 			if(board[x+1][y] == undefined){
 				this.pieces[0].nextPos = createVector(x+1, y)
 				this.pieces[2].nextPos = createVector(x, y-1)
@@ -775,7 +775,7 @@ class Tetramino_T extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 2){
-			if(y-1 < 0 || y+1 > 24 || x+1 > 9) return
+			if(y-1 < 0 || y+1 > 24 || x+1 >nWidth-1) return
 			if(board[x][y+1] == undefined){
 				this.pieces[0].nextPos = createVector(x, y+1)
 				this.pieces[2].nextPos = createVector(x+1, y)
@@ -784,7 +784,7 @@ class Tetramino_T extends Tetramino{
 			}
 		}
 		else if(this.rotationState == 3){
-			if(y+1 > 24 || x+1 > 9 || x-1 < 0) return
+			if(y+1 > 24 || x+1 >nWidth-1 || x-1 < 0) return
 			if(board[x-1][y] == undefined){
 				this.pieces[0].nextPos = createVector(x-1, y)
 				this.pieces[2].nextPos = createVector(x, y+1)

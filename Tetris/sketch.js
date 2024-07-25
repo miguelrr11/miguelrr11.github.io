@@ -1,11 +1,11 @@
-//10x20
-// Z - rotate
-// X - place piece the down
-// C - hold piece 
+//Tetris
+//Miguel Rodríguez
+//23-07-2024
 
+const nWidth = 10
 const tamCell = 25
 const tamNextCell = tamCell*0.82
-const WIDTH = 10*tamCell
+const WIDTH = nWidth*tamCell
 const HEIGHT = 20*tamCell
 
 let board = []
@@ -15,6 +15,7 @@ let current
 let next
 let preview
 
+let isPaused = false
 let taken_out = false
 let holded
 
@@ -24,18 +25,34 @@ let score = 0
 
 let gameOver = false
 
+let posPauseX = WIDTH+50
+let posPauseY = 430
+let posRestartX = WIDTH+50
+let posRestartY = 490
+let widthButton = 98
+let heightButton = 35
+
 function mouseClicked(){
-    console.log(floor(mouseX/tamCell), floor(mouseY/tamCell))
+    if(isMouseOverPause()){
+        isPaused = !isPaused
+    }
+    else if(isMouseOverRestart()){
+        isPaused = false
+        init()
+    }
 }
 
 function keyPressed(){
-    if(keyCode == 32) noLoop()
-    else if(keyCode == 13) loop()
-    else if(keyCode == 39) current.moveRight()
-    else if(keyCode == 37) current.moveLeft()
-    else if(keyCode == 90) current.rotate()
-    else if(keyCode == 88) current.moveMostDown()
-    else if(keyCode == 67) hold()
+    if(gameOver) return
+    if(keyCode == 32){ 
+        isPaused = !isPaused
+        return
+    }
+    if(keyCode == 39) current.moveRight()
+    if(keyCode == 37) current.moveLeft()
+    if(keyCode == 90) current.rotate()
+    if(keyCode == 88) current.moveMostDown()
+    if(keyCode == 67) hold()
     coolDown = 20
 }
 
@@ -46,7 +63,7 @@ function gameStep(){
 }
 
 function update(){
-    for(let i = 0; i < 10; i++){
+    for(let i = 0; i < nWidth; i++){
         for(let j = 0; j < 25; j++){
             cell = board[i][j]
             if(cell != undefined){
@@ -56,7 +73,7 @@ function update(){
 
         }
     }
-    for(let i = 0; i < 10; i++){
+    for(let i = 0; i < nWidth; i++){
         for(let j = 0; j < 25; j++){
             board[i][j] = newBoard[i][j]
             newBoard[i][j] = undefined
@@ -75,11 +92,12 @@ function init(){
 
     taken_out = false
     holded = undefined
+    gameOver = false
 
     coolDown = 0
     timeStep = 0
     score = 0
-    for(let i = 0; i < 10; i++){
+    for(let i = 0; i < nWidth; i++){
         board[i] = []
         newBoard[i] = []
     }
@@ -112,18 +130,53 @@ function draw(){
     }
     background(color_Back)
     timeStep++
-    if(timeStep % 20 == 0){
+    if(timeStep % 20 == 0 && !gameOver && !isPaused){
         gameStep()
         timeStep = 0
     }
-    if(!gameOver){
-        drawNextTetra()
-        drawPreview()
-        drawHold()
-        drawBoard()
-        drawGrid()
-    }
+    
+    drawNextTetra()
+    drawPreview()
+    drawHold()
+    drawBoard()
+    drawGrid()
+    drawButtons()
     if(gameOver) drawGO()
+}
+
+function isMouseOverPause(){
+    return (mouseX >= posPauseX && mouseX <= posPauseX+widthButton &&
+            mouseY >= posPauseY && mouseY <= posPauseY+heightButton)
+}
+
+function isMouseOverRestart(){
+    return (mouseX >= posRestartX && mouseX <= posRestartX+widthButton &&
+            mouseY >= posRestartY && mouseY <= posRestartY+heightButton)
+}
+
+function drawButtons(){
+    push()
+    textSize(22)
+    textFont("Gill Sans")
+    strokeWeight(2)
+    translate(posPauseX, posPauseY)
+    noFill()
+    if(isMouseOverPause()) fill(color_Back_Button)
+    stroke(color_Text)
+    rect(0, 0, widthButton, heightButton)
+    noStroke()
+    fill(color_Text)
+    if(!isPaused) text("PAUSE", 17, 24)
+    else text("RESUME", 10, 24)
+    stroke(color_Text)
+    noFill()
+    if(isMouseOverRestart()) fill(color_Back_Button)
+    translate(posRestartX-posPauseX, posRestartY-posPauseY)
+    rect(0, 0, widthButton, heightButton)
+    noStroke()
+    fill(color_Text)
+    text("RESTART", 6, 24)
+    pop()
 }
 
 function drawGO(){
@@ -140,7 +193,7 @@ function drawGO(){
 
 function drawBoard(){
     push()
-    for(let i = 0; i < 10; i++){
+    for(let i = 0; i < nWidth; i++){
         for(let j = 4; j < 25; j++){
             if(board[i][j] != undefined) board[i][j].show(tamCell)
         }
@@ -170,9 +223,9 @@ function drawBoard(){
     text("Z - Rotate", 0, 0)
     text("X - Place", 0, 20)
     text("C - Hold", 0, 40)
-    text("SCORE", 0, 80)
+    //text("SCORE", 0, 65)
     textSize(30)
-    text(score, 0, 110)
+    text(score, 0, 77)
     pop()
 }
 
@@ -182,9 +235,9 @@ function drawGrid(){
     strokeWeight(2)
     translate(25, 25)
     for(let i = 0; i < 21; i++){
-        line(0, i*tamCell, 10*tamCell, i*tamCell)
+        line(0, i*tamCell, nWidth*tamCell, i*tamCell)
     }
-    for(let j = 0; j < 11; j++){
+    for(let j = 0; j < nWidth+1; j++){
         line(j*tamCell, HEIGHT, j*tamCell, 0)   
     }
     pop()
