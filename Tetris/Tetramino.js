@@ -26,27 +26,12 @@ function drawNextTetra(){
 	}
 }
 
-function getNextTetra(){
-	let aux = random()
-	let interval = 1/7
-	if(aux < interval) next = "I"
-	else if(aux < interval*2) next = "J"
-	else if(aux < interval*3) next = "L"
-	else if(aux < interval*4) next = "O"
-	else if(aux < interval*5) next = "S"
-	else if(aux < interval*6) next = "T"
-	else next = "Z"
-	while(next == current.type){
-		let aux = random()
-		let interval = 1/7
-		if(aux < interval) next = "I"
-		else if(aux < interval*2) next = "J"
-		else if(aux < interval*3) next = "L"
-		else if(aux < interval*4) next = "O"
-		else if(aux < interval*5) next = "S"
-		else if(aux < interval*6) next = "T"
-		else next = "Z"
-	}
+function getNextTetra() {
+	arr = ["I", "J", "L", "O", "S", "T", "Z"]
+	avoid = current.type
+    const filteredArray = arr.filter(char => char !== avoid)
+    const randomIndex = floor(random() * filteredArray.length);
+    next = filteredArray[randomIndex]
 }
 
 function spawnTetraSpecific(tet){
@@ -59,16 +44,7 @@ function spawnTetraSpecific(tet){
 	else if(tet == "Z") current = new Tetramino_Z()
 }
 
-function spawnTetra(){
-	if(next == "I") current = new Tetramino_I()
-	else if(next == "J") current = new Tetramino_J()
-	else if(next == "L") current = new Tetramino_L()
-	else if(next == "O") current = new Tetramino_O()
-	else if(next == "S") current = new Tetramino_S()
-	else if(next == "T") current = new Tetramino_T()
-	else if(next == "Z") current = new Tetramino_Z()
-	getNextTetra()
-}
+
 
 function checkGO(){
 	bool = true
@@ -103,8 +79,10 @@ function checkLineClear(){
 		if(linea_llena){ 
 			n_lineas++
 			clearLine(j)
+			
 		}
 	}
+
 	if(n_lineas == 1) score += 100
 	if(n_lineas == 2) score += 300
 	if(n_lineas == 3) score += 500
@@ -199,7 +177,8 @@ function hold(){
 		for(let p of current.pieces){
 			board[p.pos.x][p.pos.y] = undefined
 		}
-		spawnTetra(next)
+		spawnTetraSpecific(next)
+		getNextTetra()
 	}
 	//ocurre cada vez que quieras guardar la pieza y no lo hayas hecho antes
 	else if(!taken_out){
@@ -247,6 +226,13 @@ class Tetramino{
 			this.pieces[i].nextPos = preview.pieces[i].pos
 		}
 		score += (preview.pieces[0].pos.y - current.pieces[0].pos.y) * 2
+		taken_out = false
+		update()
+		checkGO()
+		checkLineClear()
+		spawnTetraSpecific(next)
+		getNextTetra()
+		
 	}
 
 	fall(pts){
@@ -258,7 +244,9 @@ class Tetramino{
 				taken_out = false
 				checkGO()
 				checkLineClear()
-				spawnTetra()
+				spawnTetraSpecific(next)
+				getNextTetra()
+				update()
 			}
 			return
 		}
@@ -268,9 +256,7 @@ class Tetramino{
 			}
 			if(pts) score++
 		}
-		
 	}
-	
 }
 	
 class Tetramino_I extends Tetramino{
@@ -283,7 +269,6 @@ class Tetramino_I extends Tetramino{
 	}
 
 	rotate(){
-
 		let rotated = false
 		let x = this.pieces[0].pos.x 
 		let y = this.pieces[0].pos.y

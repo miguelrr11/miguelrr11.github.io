@@ -90,8 +90,20 @@ class Cell{
 		translate(0, -5*tam)
 		translate(25, 25)
 		fill(this.col)
-		if(num == 2) fill(color_Preview)
-		rect(this.pos.x * tam, this.pos.y * tam, tam, tam)
+		//if(num == 2) fill(color_Preview)
+		// if(num == 2){
+		// 	let type = this.tetra.type
+		// 	if(type == "I") fill(color_I)
+		// 	else if(type == "J") fill(color_J)
+		// 	else if(type == "L") fill(color_L)
+		// 	else if(type == "O") fill(color_O)
+		// 	else if(type == "S") fill(color_S)
+		// 	else if(type == "T") fill(color_T)
+		// 	else if(type == "Z") fill(color_Z)
+		// }
+		if(num == 2) ellipse((this.pos.x * tam) + tamCell/2, (this.pos.y * tam) + tamCell/2, tamCell/2, tamCell/2)
+		else rect(this.pos.x * tam, this.pos.y * tam, tam, tam)
+		//rect(this.pos.x * tam, this.pos.y * tam, tam, tam)
 		pop()
 	}
 

@@ -2,6 +2,7 @@
 //Miguel Rodríguez
 //23-07-2024
 
+p5.disableFriendlyErrors = true;
 const nWidth = 10
 const tamCell = 25
 const tamNextCell = tamCell*0.82
@@ -60,8 +61,9 @@ function keyPressed(){
 
 //avanzar todos los tetraminos a la vez
 function gameStep(){
-    for(t of tetras) t.fall()
-    update()
+    //for(t of tetras) t.fall() asi no funciona el tetris, cateto
+    current.fall()
+    
 }
 
 function update(){
@@ -124,21 +126,20 @@ function setup(){
 
 function draw(){
     coolDown--
-    if (keyIsPressed && timeStep % 3 == 0){ 
+    if (!gameOver && !isPaused && keyIsPressed && timeStep % 3 == 0){ 
         if(keyCode == 40) current.fall(true)
         if(coolDown <= 0 && keyCode == 39) current.moveRight()
         if(coolDown <= 0 && keyCode == 37) current.moveLeft()
-        update()
     }
     background(color_Back)
     timeStep++
-    if(timeStep % gameSpeed == 0 && !gameOver && !isPaused){
+    if(((timeStep % gameSpeed) == 0) && !gameOver && !isPaused){
         gameStep()
         timeStep = 0
     }
-    if(score >= 10000) gameSpeed = 10
-    else gameSpeed = floor(map(score, 0, 10000, 60, 10))
-
+    if(score >= 20000) gameSpeed = 20
+    else gameSpeed = floor(map(score, 0, 20000, 60, 20))
+    update()
     drawNextTetra()
     drawPreview()
     drawHold()
