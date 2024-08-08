@@ -2,10 +2,12 @@ const WIDTH = 600
 const HEIGHT = 600
 const col_back = "#F7E0AB"
 const col_grass = "#A1DD52"
-const col_wall = "#A04D31"
+const col_wall = "#6DB837"
+const dark_orange = "#bf770a"
+const light_orange = "#ff9900"
 
 let ball
-let rBall = 5
+let rBall = 6
 let level
 let levelID = 0
 let speed
@@ -14,10 +16,14 @@ let oldPos
 let moving
 let inGoal = false
 let levelsWalls = []
+let font
 
 let ballP
 let speedP
 let oldPosP
+let powerLeft = 100
+let powerToBeUsed = 0
+let powerAnim = 100
 
 function keyPressed(){
   level.restart()
@@ -25,18 +31,20 @@ function keyPressed(){
 
 function preload(){
   levelsWalls = loadJSON('levels1.json')
+  font = loadFont('PORKYS_.ttf')
+  console.log(font)
 }
 
 function setup() {
-  let canvas = createCanvas(WIDTH, HEIGHT);
+  let canvas = createCanvas(WIDTH, HEIGHT+100);
   centerCanvas(canvas)
 
   ball = createVector(0,0)
   ballP = createVector(0,0)
-  speed = createVector(0, 0)
-  speedP = createVector(0, 0)
+  speed = createVector(0,0)
+  speedP = createVector(0,0)
 
-  level = new Level(levelsWalls[levelID])
+  level = new Level(levelsWalls[levelID], levelsWalls[levelID+1])
 }
 
 function centerCanvas(canvas) {
@@ -46,14 +54,19 @@ function centerCanvas(canvas) {
 }
 
 function mouseClicked(){
-  if(moving) return
+  console.log(powerToBeUsed)
+  if(moving || powerToBeUsed == 0) return
+  powerAnim = powerLeft
+  powerLeft -= powerToBeUsed
   let angle = atan2(mouseY-ball.y, mouseX-ball.x)
   let x = cos(angle)
   let y = sin(angle)
   speed.x = x
   speed.y = y
   speed.normalize()
+  vel = abs(map(powerToBeUsed, 0, 100, 0.5, 15))
   speed.mult(-1*vel)
+  powerToBeUsed = 0
 }
 
 //de chatGpt
@@ -79,6 +92,13 @@ function isCircleIntersectingLine(C, R, P1, P2) {
 
 function draw() {
   background(col_back);
+  // strokeWeight(7)
+  // stroke(dark_orange)
+  // noFill()
+  // rect(3.5,3.5,WIDTH-7,HEIGHT-7)
+
+  if(powerAnim > powerLeft) powerAnim -= map(vel, 0.5, 15, 0.06, 1.3)
+  if(powerLeft >= 1) powerAnim = constrain(powerAnim, 1, 100)
 
   if(!inGoal){
     ball.add(speed)
@@ -98,44 +118,69 @@ function draw() {
     level.show()
     
     //render linea prediccion
+    //hay que refactorizar
     if(!moving){
-      let angle = atan2(mouseY-ball.y, mouseX-ball.x)
-      let x = cos(angle)
-      let y = sin(angle)
-      speedP.x = x
-      speedP.y = y
-      speedP.normalize()
-      speedP.mult(-1)
-      ballP = ball.copy()
-      let d = constrain(dist(mouseX, mouseY, ball.x, ball.y), 40, 250)
-      d = map(d, 40, 250, 20, 100)
-      vel = abs(map(d, 30, 100, 1, 10))
-      push()
-      strokeWeight(2)
-      stroke(0)
-      noFill()
-      beginShape()
-      for(let i = 0; i < d; i++){
-        ballP.add(speedP)
-        let colliding = level.collide(ballP, speedP)
-        if(colliding != undefined){
-          speedP.set(colliding)
-          ballP = oldPosP.copy()
-        }
-        vertex(ballP.x, ballP.y)
-        oldPosP = ballP.copy()
+      if(powerLeft <= 0){
+        level.restart()
       }
-      endShape()
-      pop()
+      else{
+        let angle = atan2(mouseY-ball.y, mouseX-ball.x)
+        let x = cos(angle)
+        let y = sin(angle)
+        speedP.x = x
+        speedP.y = y
+        speedP.normalize()
+        speedP.mult(-1)
+        ballP = ball.copy()
+        //deberia estar en la carcel por escribir semejante trozo de basura:
+        powerToBeUsed = constrain(round(map(constrain(dist(mouseX, mouseY, ball.x, ball.y), 20, 250), 20, 250, 0, 100)), 0, powerLeft)
+        push()
+        strokeWeight(6)
+        stroke(light_orange)
+        noFill()
+        beginShape()
+        for(let i = 0; i < 100; i++){
+          if(i == powerToBeUsed){
+            endShape()
+            stroke(dark_orange)
+            beginShape()
+          }
+          ballP.add(speedP)
+          let colliding = level.collide(ballP, speedP)
+          if(colliding != undefined){
+            speedP.set(colliding)
+            ballP = oldPosP.copy()
+          }
+          vertex(ballP.x, ballP.y)
+          oldPosP = ballP.copy()
+        }
+        endShape()
+        let posText = createVector(x, y)
+        posText.normalize().mult(40).add(ball)
+        fill(0)
+        textSize(28)
+        textAlign(CENTER, CENTER)
+        textFont(font)
+        stroke(dark_orange)
+        fill(light_orange)
+        strokeWeight(6)
+        text(powerToBeUsed + "%", posText.x, posText.y)
+        pop()
+      }
+
     }
     
     //render player
-    strokeWeight(2)
+    strokeWeight(3)
     fill(255)
     ellipse(ball.x, ball.y, rBall*2, rBall*2)
 
     inGoal = level.inGoal()
     oldPos = ball.copy()
+
+    // fill(0)
+    // text("Power Left: " + powerLeft, 30, 600-30)
+    // text("Power to be used: " + powerToBeUsed, 30, 600-15)
   }
   
   else{
@@ -152,9 +197,14 @@ function draw() {
       speedP = createVector(0, 0)
       oldPos = undefined
       moving = false
-      rBall = 5
-      level = new Level(levelsWalls[++levelID])
+      rBall = 6
+      levelID += 2
+      level = new Level(levelsWalls[levelID], levelsWalls[levelID+1])
+      powerLeft = 0
     }
+
+    
+
   }
 }
 

@@ -7,7 +7,7 @@ class Wall{
 	show(){
 		push()
 		stroke(col_wall)
-		strokeWeight(5)
+		strokeWeight(8)
 		line(this.a.x, this.a.y, this.b.x, this.b.y)
 		pop()
 	}

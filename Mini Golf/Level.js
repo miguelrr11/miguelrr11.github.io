@@ -1,24 +1,28 @@
 class Level{
-	constructor(levelScheme){
-		this.levelScheme = levelScheme
-		this.goalPos = createVector(levelScheme[levelScheme.length-2].x, levelScheme[levelScheme.length-2].y)
-		ball = createVector(levelScheme[levelScheme.length-3].x, levelScheme[levelScheme.length-3].y)
+	constructor(levelWalls, levelAux){
+		this.levelWalls = levelWalls
+		this.levelAux = levelAux
 		this.walls = []
+		this.water = []
+		this.goalPos = createVector(0, 0)
 		this.createWalls()
+		this.createAux()
 		this.pebbles = []
 		this.createPebbles()
 		//this.water = [createVector(200, 200, 25)]
 	}
 
 	restart(){
-		ball = createVector(this.levelScheme[this.levelScheme.length-3].x, this.levelScheme[this.levelScheme.length-3].y)
+		this.createAux()
 		inGoal = false
       	ballP = createVector(0,0)
       	speed = createVector(0, 0)
       	speedP = createVector(0, 0)
       	oldPos = undefined
       	moving = false
-      	rBall = 5
+      	rBall = 6
+      	powerLeft = 100
+      	powerAnim = 100
 	}
 
 	createPebbles(){
@@ -31,12 +35,25 @@ class Level{
 		}
 	}
 
+	createAux(){
+		for(let p of this.levelAux){
+			if(p.type == 'water'){
+				this.water.push(createVector(p.x, p.y))
+		  	}
+		  	if(p.type == 'start'){
+		    	ball = createVector(p.x, p.y)
+		  	}
+		  	if(p.type == 'end'){
+		    	this.goalPos = createVector(p.x, p.y)
+		  	}
+		}
+	}
+
 	createWalls(){
-		console.log(this.levelScheme)
-		let points = this.levelScheme.slice(0, -3)
-		for(let i = 0; i < points.length - 2; i += 2){
-			let a = points[i]
-			let b = points[i+1]
+		console.log(this.levelWalls)
+		for(let i = 0; i < this.levelWalls.length-2; i += 2){
+			let a = this.levelWalls[i]
+			let b = this.levelWalls[i+1]
 			this.walls.push(new Wall(a.x, a.y, b.x, b.y))
 		}
 	}
@@ -104,6 +121,23 @@ class Level{
 		// fill(3, 182, 252)
 		// ellipse(this.water[0].x, this.water[0].y, this.water[0].z*2, this.water[0].z*2)
 		// pop()
+		push()
+	    stroke(255)
+	    strokeWeight(7)
+	    line(0, HEIGHT, WIDTH, HEIGHT)
+	    stroke(dark_orange)
+	    fill(light_orange)
+	    textFont(font)
+	    textAlign(RIGHT)
+	    textSize(55)
+	    text(powerLeft + "%", 160, HEIGHT+70)
+	    fill(col_back)
+	    strokeWeight(5)
+	    rect(185, HEIGHT+20, 400, 60)
+	    fill(light_orange)
+	    noStroke()
+	    if(powerAnim >= 1) rect(190, HEIGHT+25, map(powerAnim, 0, 100, 0, 390), 50)
+	    pop()
 	}
 }
 
