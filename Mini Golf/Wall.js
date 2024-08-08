@@ -1,7 +1,8 @@
 class Wall{
-	constructor(ax, ay, bx, by){
+	constructor(ax, ay, bx, by, isLast){
 		this.a = createVector(ax, ay)
 		this.b = createVector(bx, by)
+		this.isLast = isLast 
 	}
 
 	show(){

@@ -5,6 +5,8 @@ const col_grass = "#A1DD52"
 const col_wall = "#6DB837"
 const dark_orange = "#bf770a"
 const light_orange = "#ff9900"
+const light_blue = "#4dacff"
+const dark_blue = "#3266cf"
 
 let ball
 let rBall = 6
@@ -54,7 +56,6 @@ function centerCanvas(canvas) {
 }
 
 function mouseClicked(){
-  console.log(powerToBeUsed)
   if(moving || powerToBeUsed == 0) return
   powerAnim = powerLeft
   powerLeft -= powerToBeUsed
@@ -102,6 +103,17 @@ function draw() {
 
   if(!inGoal){
     ball.add(speed)
+    if(level.collideWater()) level.restart()
+
+    let collPortal = level.collidePortals()
+    if(collPortal != undefined){
+      let angle = atan2(speed.y, speed.x)
+      let x = cos(angle)
+      let y = sin(angle)
+      let newPos = createVector(x, y)
+      newPos.normalize().mult(10).add(collPortal)
+      ball = newPos.copy()
+    }
 
     let colliding = level.collide(ball, speed)
 

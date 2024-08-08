@@ -4,6 +4,7 @@ class Level{
 		this.levelAux = levelAux
 		this.walls = []
 		this.water = []
+		this.portals = []
 		this.goalPos = createVector(0, 0)
 		this.createWalls()
 		this.createAux()
@@ -36,15 +37,23 @@ class Level{
 	}
 
 	createAux(){
+		let a
 		for(let p of this.levelAux){
 			if(p.type == 'water'){
-				this.water.push(createVector(p.x, p.y))
+				this.water.push(createVector(p.x, p.y, p.z))
 		  	}
 		  	if(p.type == 'start'){
 		    	ball = createVector(p.x, p.y)
 		  	}
 		  	if(p.type == 'end'){
 		    	this.goalPos = createVector(p.x, p.y)
+		  	}
+		  	if(p.type == 'portal'){
+		  		if(a == undefined) a = createVector(p.x, p.y)
+		  		else{
+		  			this.portals.push(new Portal(a.copy(), createVector(p.x, p.y)))
+		  			a = undefined
+		  		}
 		  	}
 		}
 	}
@@ -54,12 +63,27 @@ class Level{
 		for(let i = 0; i < this.levelWalls.length-2; i += 2){
 			let a = this.levelWalls[i]
 			let b = this.levelWalls[i+1]
-			this.walls.push(new Wall(a.x, a.y, b.x, b.y))
+			this.walls.push(new Wall(a.x, a.y, b.x, b.y, b.z))
 		}
 	}
 
 	inGoal(){
 		return dist(ball.x, ball.y, this.goalPos.x, this.goalPos.y) < 10
+	}
+
+	collidePortals(){
+		for(let p of this.portals){
+			let res = p.collide()
+			if(res) return res
+		}
+	}
+
+
+	collideWater(){
+		for(let w of this.water){
+			if(dist(ball.x, ball.y, w.x, w.y) < (w.z/2)) return true
+		}
+		return false
 	}
 
 	collide(b, sp){
@@ -82,8 +106,12 @@ class Level{
 		beginShape()
 		fill(col_grass)
 		noStroke()
-		for(let w of this.walls){
-			vertex(w.a.x, w.a.y)
+		for(let w of this.levelWalls){
+			if(w.z == 1) {
+				endShape()
+				beginShape()
+			}
+			else vertex(w.x, w.y)
 		}
 		endShape()
 		pop()
@@ -130,7 +158,7 @@ class Level{
 	    textFont(font)
 	    textAlign(RIGHT)
 	    textSize(55)
-	    text(powerLeft + "%", 160, HEIGHT+70)
+	    text(round(powerAnim) + "%", 160, HEIGHT+70)
 	    fill(col_back)
 	    strokeWeight(5)
 	    rect(185, HEIGHT+20, 400, 60)
@@ -138,6 +166,18 @@ class Level{
 	    noStroke()
 	    if(powerAnim >= 1) rect(190, HEIGHT+25, map(powerAnim, 0, 100, 0, 390), 50)
 	    pop()
+
+		push()
+		fill(light_blue)
+		stroke(dark_blue)
+		strokeWeight(7)
+		for(let w of this.water){
+			ellipse(w.x, w.y, w.z, w.z)
+		}
+		for(let p of this.portals){
+			p.show()
+		}
+		pop()
 	}
 }
 
