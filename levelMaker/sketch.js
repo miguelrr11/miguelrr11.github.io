@@ -12,6 +12,7 @@ let json
 let loaded
 let levelWithAux = false
 let selector
+let waterR = 50
 
 function preload(){
   json = loadJSON('lines.json');
@@ -21,18 +22,19 @@ function setup() {
   createCanvas(WIDTH, WIDTH);
   saveButton = createButton('Guardar Niveles en Json')
   saveButton.mousePressed(saveJson)
-  loadButton = createButton('Cargar Niveles de Json')
-  loadButton.mousePressed(loadJson)
+  //loadButton = createButton('Cargar Niveles de Json')
+  //loadButton.mousePressed(loadJson)
   selector = createSelect()
   selector.option('walls')
   selector.option('start')
   selector.option('end')
   selector.option('water')
+  selector.option('portal')
   selector.selected('walls')
 }
 
 function saveJson(){
-  let json = levels.map(level => level.map(point => ({ type: point.type, x: point.x, y: point.y })));
+  let json = levels.map(level => level.map(point => ({ type: point.type, x: point.x, y: point.y, z: point.z})));
   saveJSON(json, 'lines.json');
 }
 
@@ -52,6 +54,7 @@ function keyPressed(){
     auxPoints = []
     pointsR = []
     first = true
+    selector.selected('walls')
   }
   if(keyCode == 82){
     pointsR.pop()
@@ -59,6 +62,7 @@ function keyPressed(){
   }
   if(keyCode == 65){
     pointsR.pop()
+    pointsR[pointsR.length-1].z = 1
     first = true
   }
   if(keyCode == 88){
@@ -66,9 +70,12 @@ function keyPressed(){
     auxPoints = []
     first = true
   }
+  if(keyCode == 38) waterR += 10
+  if(keyCode == 40) waterR -= 10
+  waterR = constrain(waterR, 10, 500)
   //despued de cargar el json con los niveles, pulsar flecha de arriba para
   //ir mostrandolos
-  if(keyCode == UP_ARROW && loaded != undefined) loaded++
+  //if(keyCode == UP_ARROW && loaded != undefined) loaded++
   
 }
 
@@ -77,21 +84,24 @@ function keyPressed(){
 //para añadir puntos auxiliares (no forman parte del layout del nivel) presionar M al hacer click
 function mouseClicked(){
   if(mouseY > WIDTH || mouseX > WIDTH) return
-  if(first){
-    pointsR.push(createVector(x, y))
-    first = false
-  }
   if(selector.selected() == 'water'){
-    auxPoints.push({"type": 'water', "x": x, "y": y})
+    auxPoints.push({"type": 'water', "x": x, "y": y, "z": waterR})
   }
   if(selector.selected() == 'start'){
-    auxPoints.push({"type": 'start', "x": x, "y": y})
+    auxPoints.push({"type": 'start', "x": x, "y": y, "z": -1})
   }
   if(selector.selected() == 'end'){
-    auxPoints.push({"type": 'end', "x": x, "y": y})
+    auxPoints.push({"type": 'end', "x": x, "y": y, "z": -1})
+  }
+  if(selector.selected() == 'portal'){
+    auxPoints.push({"type": 'portal', "x": x, "y": y, "z": -1})
   }
   else if(selector.selected() == 'walls'){
-    pointsR.push(createVector(x, y), createVector(x, y))
+    if(first){
+      pointsR.push(createVector(x, y, -1))
+      first = false
+    }
+    else pointsR.push(createVector(x, y, -1), createVector(x, y, -1))
   }
 }
 
@@ -123,7 +133,8 @@ function drawGrid(){
   line(0, 525, 600, 525)
   line(525, 0, 525, 600)
   fill(255)
-  ellipse(x, y, def/2, def/2)
+  if(selector.selected() == "water") ellipse(x, y, waterR, waterR)
+  else ellipse(x, y, def/2, def/2)
 }
 
 
@@ -153,7 +164,7 @@ function draw() {
   for(let p of auxPoints){
     if(p.type == 'water'){
       fill(0,0,255)
-      ellipse(p.x, p.y, 10, 10)
+      ellipse(p.x, p.y, p.z, p.z)
     }
     if(p.type == 'start'){
       fill(0,255,0)
@@ -163,15 +174,20 @@ function draw() {
       fill(255,0,0)
       ellipse(p.x, p.y, 10, 10)
     }
+    if(p.type == 'portal'){
+      fill(255, 147, 5)
+      ellipse(p.x, p.y, 10, 10)
+    }
   }
   
   if(loaded != undefined) drawLevel(loaded)
 
   fill(100)
-  text("SPACE - guardar nivel y empezar otro", 20, WIDTH-70)
-  text("R - quitar punto ", 20, WIDTH-50)
-  text("A - agujero ", 20, WIDTH-30)
-  text("X - reiniciar nivel ", 20, WIDTH-10)
+  text("SPACE - guardar nivel y empezar otro", 20, WIDTH-90)
+  text("R - quitar punto ", 20, WIDTH-75)
+  text("A - agujero ", 20, WIDTH-60)
+  text("X - reiniciar nivel ", 20, WIDTH-45)
+  text("Arrow up/down - modificar radio water ", 20, WIDTH-30)
 }
 
 function drawLevel(n){
@@ -201,6 +217,10 @@ function drawLevel(n){
     }
     if(p.type == 'water'){
       fill(0, 0, 255)
+      ellipse(p.x, p.y, p.z, p.z)
+    }
+    if(p.type == 'portal'){
+      fill(255, 147, 5)
       ellipse(p.x, p.y, 10, 10)
     }
   }
