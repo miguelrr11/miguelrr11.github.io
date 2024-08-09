@@ -13,6 +13,7 @@ let loaded
 let levelWithAux = false
 let selector
 let waterR = 50
+let sandR = 50
 
 function preload(){
   json = loadJSON('lines.json');
@@ -26,10 +27,13 @@ function setup() {
   //loadButton.mousePressed(loadJson)
   selector = createSelect()
   selector.option('walls')
+  selector.option('inside walls')
   selector.option('start')
   selector.option('end')
   selector.option('water')
+  selector.option('sand')
   selector.option('portal')
+  selector.option('charge')
   selector.selected('walls')
 }
 
@@ -70,9 +74,12 @@ function keyPressed(){
     auxPoints = []
     first = true
   }
-  if(keyCode == 38) waterR += 10
-  if(keyCode == 40) waterR -= 10
+  if(keyCode == 38 && selector.selected() == "water") waterR += 10
+  if(keyCode == 40 && selector.selected() == "water") waterR -= 10
   waterR = constrain(waterR, 10, 500)
+  if(keyCode == 38 && selector.selected() == "sand") sandR += 10
+  if(keyCode == 40 && selector.selected() == "sand") sandR -= 10
+  sandR = constrain(sandR, 10, 500)
   //despued de cargar el json con los niveles, pulsar flecha de arriba para
   //ir mostrandolos
   //if(keyCode == UP_ARROW && loaded != undefined) loaded++
@@ -87,6 +94,9 @@ function mouseClicked(){
   if(selector.selected() == 'water'){
     auxPoints.push({"type": 'water', "x": x, "y": y, "z": waterR})
   }
+  if(selector.selected() == 'sand'){
+    auxPoints.push({"type": 'sand', "x": x, "y": y, "z": sandR})
+  }
   if(selector.selected() == 'start'){
     auxPoints.push({"type": 'start', "x": x, "y": y, "z": -1})
   }
@@ -96,12 +106,22 @@ function mouseClicked(){
   if(selector.selected() == 'portal'){
     auxPoints.push({"type": 'portal', "x": x, "y": y, "z": -1})
   }
+  if(selector.selected() == 'charge'){
+    auxPoints.push({"type": 'charge', "x": x, "y": y, "z": -1})
+  }
   else if(selector.selected() == 'walls'){
     if(first){
       pointsR.push(createVector(x, y, -1))
       first = false
     }
     else pointsR.push(createVector(x, y, -1), createVector(x, y, -1))
+  }
+  else if(selector.selected() == 'inside walls'){
+    if(first){
+      pointsR.push(createVector(x, y, 2))
+      first = false
+    }
+    else pointsR.push(createVector(x, y, 2), createVector(x, y, 2))
   }
 }
 
@@ -134,6 +154,7 @@ function drawGrid(){
   line(525, 0, 525, 600)
   fill(255)
   if(selector.selected() == "water") ellipse(x, y, waterR, waterR)
+  if(selector.selected() == "sand") ellipse(x, y, sandR, sandR)
   else ellipse(x, y, def/2, def/2)
 }
 
@@ -166,6 +187,10 @@ function draw() {
       fill(0,0,255)
       ellipse(p.x, p.y, p.z, p.z)
     }
+    if(p.type == 'sand'){
+      fill(255,255,0)
+      ellipse(p.x, p.y, p.z, p.z)
+    }
     if(p.type == 'start'){
       fill(0,255,0)
       ellipse(p.x, p.y, 10, 10)
@@ -178,9 +203,13 @@ function draw() {
       fill(255, 147, 5)
       ellipse(p.x, p.y, 10, 10)
     }
+    if(p.type == 'charge'){
+      fill(255, 0, 255)
+      ellipse(p.x, p.y, 10, 10)
+    }
   }
   
-  if(loaded != undefined) drawLevel(loaded)
+  //if(loaded != undefined) drawLevel(loaded)
 
   fill(100)
   text("SPACE - guardar nivel y empezar otro", 20, WIDTH-90)
@@ -190,40 +219,40 @@ function draw() {
   text("Arrow up/down - modificar radio water ", 20, WIDTH-30)
 }
 
-function drawLevel(n){
-  background(220);
-  drawGrid()
-  let levelWalls = levels[n%2]
-  let levelAuxPoints = levels[n%2+1]
-  push()
-  beginShape(LINES)
-  stroke(255, 0, 0)
-  strokeWeight(3)
-  noFill()
-  for(let i = 0; i < levelWalls.length; i++){
-    let p = levelWalls[i]
-    vertex(p.x, p.y)
-  }
-  endShape()
-  noStroke()
-  for(let p of levelAuxPoints){
-    if(p.type == 'start'){
-      fill(0, 255, 0)
-      ellipse(p.x, p.y, 10, 10)
-    }
-    if(p.type == 'end'){
-      fill(255, 0, 0)
-      ellipse(p.x, p.y, 10, 10)
-    }
-    if(p.type == 'water'){
-      fill(0, 0, 255)
-      ellipse(p.x, p.y, p.z, p.z)
-    }
-    if(p.type == 'portal'){
-      fill(255, 147, 5)
-      ellipse(p.x, p.y, 10, 10)
-    }
-  }
-  pop()
-}
+// function drawLevel(n){
+//   background(220);
+//   drawGrid()
+//   let levelWalls = levels[n%2]
+//   let levelAuxPoints = levels[n%2+1]
+//   push()
+//   beginShape(LINES)
+//   stroke(255, 0, 0)
+//   strokeWeight(3)
+//   noFill()
+//   for(let i = 0; i < levelWalls.length; i++){
+//     let p = levelWalls[i]
+//     vertex(p.x, p.y)
+//   }
+//   endShape()
+//   noStroke()
+//   for(let p of levelAuxPoints){
+//     if(p.type == 'start'){
+//       fill(0, 255, 0)
+//       ellipse(p.x, p.y, 10, 10)
+//     }
+//     if(p.type == 'end'){
+//       fill(255, 0, 0)
+//       ellipse(p.x, p.y, 10, 10)
+//     }
+//     if(p.type == 'water'){
+//       fill(0, 0, 255)
+//       ellipse(p.x, p.y, p.z, p.z)
+//     }
+//     if(p.type == 'portal'){
+//       fill(255, 147, 5)
+//       ellipse(p.x, p.y, 10, 10)
+//     }
+//   }
+//   pop()
+// }
 
