@@ -5,6 +5,7 @@ class Level{
 		this.walls = []
 		this.water = []
 		this.portals = []
+		this.winds = []
 		this.charges = []
 		this.sand = []
 		this.goalPos = createVector(0, 0)
@@ -21,6 +22,7 @@ class Level{
       	ballP = createVector(0,0)
       	speed = createVector(0, 0)
       	speedP = createVector(0, 0)
+      	speedWind = createVector(0,0)
       	oldPos = undefined
       	moving = false
       	rBall = 6
@@ -40,7 +42,8 @@ class Level{
 	}
 
 	createAux(){
-		let a
+		let portalAux
+		let windAux
 		for(let p of this.levelAux){
 			if(p.type == 'water'){
 				this.water.push(createVector(p.x, p.y, p.z))
@@ -57,11 +60,18 @@ class Level{
 		  	if(p.type == 'charge'){
 		    	this.charges.push(createVector(p.x, p.y))
 		  	}
-		  	if(p.type == 'portal'){
-		  		if(a == undefined) a = createVector(p.x, p.y)
+		  	if(p.type == 'wind'){
+		  		if(windAux == undefined) windAux = createVector(p.x, p.y)
 		  		else{
-		  			this.portals.push(new Portal(a.copy(), createVector(p.x, p.y)))
-		  			a = undefined
+		  			this.winds.push(new Wind(windAux.copy(), createVector(p.x, p.y), p.z))
+		  			windAux = undefined
+		  		}
+		  	}
+		  	if(p.type == 'portal'){
+		  		if(portalAux == undefined) portalAux = createVector(p.x, p.y)
+		  		else{
+		  			this.portals.push(new Portal(portalAux.copy(), createVector(p.x, p.y)))
+		  			portalAux = undefined
 		  		}
 		  	}
 		}
@@ -91,6 +101,13 @@ class Level{
 				powerAnim = constrain(powerAnim, 0, 100)
 				delete this.charges[i]
 			}
+		}
+	}
+
+	collideWinds(){
+		for(let w of this.winds){
+			let res = w.collide()
+			if(res) return res
 		}
 	}
 
@@ -232,6 +249,9 @@ class Level{
 			noFill()
 			stroke(dark_purple)
 			ellipse(p.x, p.y, 20, 20)
+		}
+		for(let w of this.winds){
+			w.show()
 		}
 		pop()
 	}

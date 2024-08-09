@@ -19,6 +19,7 @@ let rBall = 6
 let level
 let levelID = 0
 let speed
+let speedWind
 let vel = 10
 let oldPos
 let moving
@@ -27,6 +28,7 @@ let levelsWalls = []
 let font
 let inSand = false
 let friction = 0.98
+let forceWind = 0.5
 
 let ballP
 let speedP
@@ -54,6 +56,7 @@ function setup() {
   ballP = createVector(0,0)
   speed = createVector(0,0)
   speedP = createVector(0,0)
+  speedWind = createVector(0,0)
 
   level = new Level(levelsWalls[levelID], levelsWalls[levelID+1])
 }
@@ -112,7 +115,9 @@ function draw() {
   if(powerLeft >= 1) powerAnim = constrain(powerAnim, 1, 100)
 
   if(!inGoal){
+    speed.add(speedWind)
     ball.add(speed)
+    //ball.add(speedWind)
     if(level.collideWater()) level.restart()
 
     inSand = level.collideSand()
@@ -131,6 +136,15 @@ function draw() {
 
     level.collideCharges()
 
+    let wind = level.collideWinds()
+    if(wind){
+      if(wind == 1) speedWind = createVector(0, -forceWind)
+      if(wind == 2) speedWind = createVector(forceWind, 0)
+      if(wind == 3) speedWind = createVector(0, forceWind)
+      if(wind == 4) speedWind = createVector(-forceWind, 0)
+    }
+    else speedWind = createVector(0, 0)
+
     let colliding = level.collide(ball, speed)
 
     if(colliding != undefined){
@@ -141,6 +155,10 @@ function draw() {
     speed.mult(friction)
     moving = speed.mag() > 0.1
     if(!moving) speed = createVector(0,0)
+
+    console.log("speeds")
+    console.log(speed)
+    console.log(speedWind)
     
     //render level
     level.show()
