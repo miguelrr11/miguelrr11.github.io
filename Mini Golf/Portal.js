@@ -20,11 +20,15 @@ class Portal{
 
 	show(){
 		push()
-		fill(light_orange)
-		stroke(dark_orange)
-		strokeWeight(5)
+		fill(light_red)
+		noStroke()
 		ellipse(this.a.x, this.a.y, 15, 15)
+		DiscLinesEllipse(dark_red, this.a, 8, 5, -t, true)
+		fill(light_orange)
 		ellipse(this.b.x, this.b.y, 15, 15)
+		DiscLinesEllipse(dark_orange, this.b, 8, 5, t, true)
 		pop()
 	}
 }
+
+//DiscLinesEllipse(col, pos, rad, dis, offset = 0, isDotted = false)

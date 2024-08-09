@@ -5,6 +5,8 @@ class Level{
 		this.walls = []
 		this.water = []
 		this.portals = []
+		this.charges = []
+		this.sand = []
 		this.goalPos = createVector(0, 0)
 		this.createWalls()
 		this.createAux()
@@ -24,6 +26,7 @@ class Level{
       	rBall = 6
       	powerLeft = 100
       	powerAnim = 100
+      	friction = 0.98
 	}
 
 	createPebbles(){
@@ -42,11 +45,17 @@ class Level{
 			if(p.type == 'water'){
 				this.water.push(createVector(p.x, p.y, p.z))
 		  	}
+		  	if(p.type == 'sand'){
+				this.sand.push(createVector(p.x, p.y, p.z))
+		  	}
 		  	if(p.type == 'start'){
 		    	ball = createVector(p.x, p.y)
 		  	}
 		  	if(p.type == 'end'){
 		    	this.goalPos = createVector(p.x, p.y)
+		  	}
+		  	if(p.type == 'charge'){
+		    	this.charges.push(createVector(p.x, p.y))
 		  	}
 		  	if(p.type == 'portal'){
 		  		if(a == undefined) a = createVector(p.x, p.y)
@@ -71,11 +80,32 @@ class Level{
 		return dist(ball.x, ball.y, this.goalPos.x, this.goalPos.y) < 10
 	}
 
+	collideCharges(){
+		for(let i = 0; i < this.charges.length; i++){
+			let p = this.charges[i]
+			if(!p) continue
+			if(dist(ball.x, ball.y, p.x, p.y) < 20){
+				powerLeft += 25
+				powerAnim += 25
+				powerLeft = constrain(powerLeft, 0, 100)
+				powerAnim = constrain(powerAnim, 0, 100)
+				delete this.charges[i]
+			}
+		}
+	}
+
 	collidePortals(){
 		for(let p of this.portals){
 			let res = p.collide()
 			if(res) return res
 		}
+	}
+
+	collideSand(){
+		for(let w of this.sand){
+			if(dist(ball.x, ball.y, w.x, w.y) < (w.z/2)) return true
+		}
+		return false
 	}
 
 
@@ -107,11 +137,27 @@ class Level{
 		fill(col_grass)
 		noStroke()
 		for(let w of this.levelWalls){
+			//if(w.z == 2) continue
 			if(w.z == 1) {
 				endShape()
 				beginShape()
 			}
-			else vertex(w.x, w.y)
+			else{
+				vertex(w.x, w.y)
+			}
+		}
+		endShape()
+		fill(col_back)
+		beginShape()
+		for(let w of this.levelWalls){
+			if(w.z == -1) continue
+			if(w.z == 1) {
+				endShape()
+				beginShape()
+			}
+			else{
+				vertex(w.x, w.y)
+			}
 		}
 		endShape()
 		pop()
@@ -144,11 +190,6 @@ class Level{
 		for(let w of this.walls){
 			w.show()
 		}
-		// push()
-		// noStroke()
-		// fill(3, 182, 252)
-		// ellipse(this.water[0].x, this.water[0].y, this.water[0].z*2, this.water[0].z*2)
-		// pop()
 		push()
 	    stroke(255)
 	    strokeWeight(7)
@@ -174,8 +215,23 @@ class Level{
 		for(let w of this.water){
 			ellipse(w.x, w.y, w.z, w.z)
 		}
+		for(let w of this.sand){
+			fill(light_yellow)
+			stroke(dark_yellow)
+			ellipse(w.x, w.y, w.z, w.z)
+		}
 		for(let p of this.portals){
 			p.show()
+		}
+		for(let p of this.charges){
+			if(!p) continue
+			fill(dark_purple)
+			stroke(light_purple)
+			ellipse(p.x, p.y, 15, 15)
+			strokeWeight(3)
+			noFill()
+			stroke(dark_purple)
+			ellipse(p.x, p.y, 20, 20)
 		}
 		pop()
 	}

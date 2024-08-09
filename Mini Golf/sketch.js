@@ -6,7 +6,13 @@ const col_wall = "#6DB837"
 const dark_orange = "#bf770a"
 const light_orange = "#ff9900"
 const light_blue = "#4dacff"
-const dark_blue = "#3266cf"
+const dark_blue = "#327ecf"
+const dark_purple = "#912adb"
+const light_purple = "#c969f5"
+const dark_red = "#bf2222"
+const light_red = "#e65353"
+const light_yellow = "#edd34e"
+const dark_yellow = "#bda73a"
 
 let ball
 let rBall = 6
@@ -19,6 +25,8 @@ let moving
 let inGoal = false
 let levelsWalls = []
 let font
+let inSand = false
+let friction = 0.98
 
 let ballP
 let speedP
@@ -26,6 +34,7 @@ let oldPosP
 let powerLeft = 100
 let powerToBeUsed = 0
 let powerAnim = 100
+let t = 0
 
 function keyPressed(){
   level.restart()
@@ -93,6 +102,7 @@ function isCircleIntersectingLine(C, R, P1, P2) {
 
 function draw() {
   background(col_back);
+  t += 0.04
   // strokeWeight(7)
   // stroke(dark_orange)
   // noFill()
@@ -105,15 +115,21 @@ function draw() {
     ball.add(speed)
     if(level.collideWater()) level.restart()
 
+    inSand = level.collideSand()
+    if(inSand) friction = 0.88
+    else friction = 0.98
+
     let collPortal = level.collidePortals()
     if(collPortal != undefined){
       let angle = atan2(speed.y, speed.x)
       let x = cos(angle)
       let y = sin(angle)
       let newPos = createVector(x, y)
-      newPos.normalize().mult(10).add(collPortal)
+      newPos.normalize().mult(20).add(collPortal)
       ball = newPos.copy()
     }
+
+    level.collideCharges()
 
     let colliding = level.collide(ball, speed)
 
@@ -122,7 +138,7 @@ function draw() {
       ball = oldPos.copy()
     }
     
-    speed.mult(0.98)
+    speed.mult(friction)
     moving = speed.mag() > 0.1
     if(!moving) speed = createVector(0,0)
     
@@ -219,6 +235,32 @@ function draw() {
 
   }
 }
+
+function DiscLinesEllipse(col, pos, rad, dis, offset = 0, isDotted = false) {
+    push()
+    stroke(col)
+    strokeWeight(7)
+    noFill()
+    translate(pos)
+
+    let angleStep = TWO_PI / dis
+    let angleStep2 = TWO_PI / dis
+    let curAngleStep = offset % TWO_PI
+    let limit = TWO_PI + offset % TWO_PI
+    if(isDotted) angleStep2 = 0.000001
+
+    for (let i = 0; curAngleStep < limit; i++) {
+        let x1 = rad * cos(curAngleStep)
+        let y1 = rad * sin(curAngleStep)
+        curAngleStep += angleStep2
+        let x2 = rad * cos(curAngleStep)
+        let y2 = rad * sin(curAngleStep)
+        curAngleStep += angleStep
+        line(x1, y1, x2, y2)
+    }
+    pop();
+}
+
 
 
 
