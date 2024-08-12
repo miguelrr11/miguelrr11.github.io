@@ -13,7 +13,7 @@ class Wind{
   	this.h = b.y - a.y
 		this.dir = dir
 		this.particles = []
-		this.n = floor(map(this.w*this.h, 0, 360000, 0, 430))
+		this.n = floor(map(this.w*this.h, 0, 360000, 0, 300))
 		for(let i = 0; i < this.n; i++){
 		  this.spawnParticle(true)
 		}
@@ -36,10 +36,13 @@ class Wind{
 	    else if(this.dir == 4) speed = createVector(-random(1.6, 3.5), 0)
 	    let life = map(this.w, 0, 600, 0, 200)
 	    if(bool){
-	      let res = map(xAux, 0, this.w, 0, life)
+	      let res = map(xAux, this.a.x, this.b.x, 0, life)
 	      life -= res
 	    }
-	    this.particles.push({'a': createVector(xAux, yAux), 'b': createVector(xAux - random(10, 30), yAux), 'speed': speed, 'life': life})
+	    this.particles.push({'a': createVector(xAux, yAux), 
+	    										 'b': createVector(xAux - random(10, 50), yAux), 
+	    										 'speed': speed, 
+	    										 'life': life})
 	  }
 	  else{
 	    let xAux = random(this.a.x, this.b.x)
@@ -52,10 +55,13 @@ class Wind{
 	    else if(this.dir == 3) speed = createVector(0, random(1.6, 3.5))
 	    let life = map(this.h, 0, 600, 0, 200)
 	    if(bool){
-	      let res = map(yAux, 0, this.w, 0, life)
+	      let res = map(yAux, this.a.y, this.b.y, 0, life)
 	      life = res
 	    }
-	    this.particles.push({'a': createVector(xAux, yAux), 'b': createVector(xAux, yAux - random(10, 30)), 'speed': speed, 'life': life})
+	    this.particles.push({'a': createVector(xAux, yAux), 
+	    										 'b': createVector(xAux, yAux - random(10, 50)), 
+	    										 'speed': speed, 
+	    										 'life': life})
 	  }
 	}
 
@@ -67,6 +73,11 @@ class Wind{
 	  strokeWeight(4)
 	  for(let i = 0; i < this.particles.length; i++){
 	    let p = this.particles[i]
+	    let col
+	    if(p.life > 60) col = map(p.life, 80, 60, 0, 150)
+	    else if(p.life < 15) col = map(p.life, 15, 0, 150, 0)
+	    else col = 150
+	  	stroke(255, col)
 	    line(p.a.x, p.a.y, p.b.x, p.b.y)
 	    p.a.add(p.speed)
 	    p.b.add(p.speed)

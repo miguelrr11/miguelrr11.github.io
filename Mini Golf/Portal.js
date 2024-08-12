@@ -9,11 +9,11 @@ class Portal{
 		this.coolDown--
 		if(this.coolDown <= 0) this.coolDown = 0
 		if(dist(ball.x, ball.y, this.a.x, this.a.y) < 15 && this.coolDown == 0){ 
-			this.coolDown = 60
+			this.coolDown = 120
 			return this.b
 		}
 		if(dist(ball.x, ball.y, this.b.x, this.b.y) < 15 && this.coolDown == 0){ 
-			this.coolDown = 60
+			this.coolDown = 120
 			return this.a
 		}
 	}

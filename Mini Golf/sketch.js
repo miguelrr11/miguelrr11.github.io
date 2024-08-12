@@ -28,7 +28,7 @@ let levelsWalls = []
 let font
 let inSand = false
 let friction = 0.98
-let forceWind = 0.5
+let forceWind = 0.25
 
 let ballP
 let speedP
