@@ -6,7 +6,7 @@ const WIDTH = 600
 const HEIGHT = 700
 const col_back = "#F8EDE3"
 const col_green = "#49FF00"
-let level_id = 7
+let level_id = 0
 let level
 let levels
 
