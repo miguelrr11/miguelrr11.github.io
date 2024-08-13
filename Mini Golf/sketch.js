@@ -44,7 +44,8 @@ function keyPressed(){
 
 function preload(){
   levelsWalls = loadJSON('levels1.json')
-  font = loadFont('PORKYS_.ttf')
+  //font = loadFont('PORKYS_.ttf')
+  font = "Gill Sans"
   console.log(font)
 }
 
