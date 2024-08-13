@@ -35,20 +35,25 @@ class Ball{
 		if(distance < (this.r + b.r)){
 			let angleOfImpact = this.calculateImpactAngle(this.pos.x, this.pos.y, this.speed.x, this.speed.y,
 														  b.pos.x, b.pos.y, b.speed.x, b.speed.y)
+
 			let vels = this.calculateCollision(this.r, this.speed.x, this.speed.y,
 											   b.r, b.speed.x, b.speed.y,
 											   angleOfImpact)
+			
 			this.speed = createVector(vels.v1Final.x, vels.v1Final.y)
 			b.speed = createVector(vels.v2Final.x, vels.v2Final.y)
 
-			const r12x = b.pos.x - this.pos.x;
-        	const r12y = b.pos.y - this.pos.y;
-			const overlap = minDistance - distance;
-	        const separationX = (overlap / 2) * (r12x / distance);
-	        const separationY = (overlap / 2) * (r12y / distance);
+			let distanceBetweenCircles = 
+			Math.sqrt(
+			    (b.pos.x - this.pos.x) * (b.pos.x - this.pos.x) + 
+			    (b.pos.y - this.pos.y) * (b.pos.y - this.pos.y)
+			);
 
-	        this.pos.sub(createVector(separationX, separationY))
-	        b.pos.add(createVector(separationX, separationY))
+			let distanceToMove = b.r + this.r - distanceBetweenCircles;
+			let angle = atan2(b.pos.y - this.pos.y, b.pos.x - this.pos.x)
+			b.pos.x += Math.cos(angle) * distanceToMove;
+			b.pos.y += Math.sin(angle) * distanceToMove;
+
 		}
 	}
 
