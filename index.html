@@ -1,120 +1,15 @@
 <!DOCTYPE html>
 <html lang="en">
+  <head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.1/p5.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.1/addons/p5.sound.min.js"></script>
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <meta charset="utf-8" />
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Miguelrr11's GitHub Pages</title>
-    <link rel="stylesheet" href="styles.css">
-</head>
-
-<body>
-    <header>
-        <h1>Welcome to Miguelrr11's GitHub Pages</h1>
-        <p>This is the homepage for my GitHub Pages site. Below are links to the different sections of the site:</p>
-    </header>
-
+  </head>
+  <body>
     <main>
-        <div class="category">
-            <h2>Games</h2>
-            <ul>
-                <li><a href="Snake_2024_03_22_19_27_10/">Snake</a></li>
-                <li><a href="3_en_raya_2024_03_22_19_27_11/">3 en raya</a></li>
-                <li><a href="Break_Bricks_2024_03_22_19_26_28/">Break Bricks</a></li>
-                <li><a href="Flappy_Bird_2024_03_22_19_26_31/">Flappy Bird</a></li>
-                <li><a href="Ball%20Blast/">Ball Blast</a></li>
-                <li><a href="Flow_Free_Game_2024_03_22_19_25_04/">Flow Free</a></li>
-                <li><a href="aa/">aa</a></li>
-                <li><a href="2048_Game_2024_03_22_19_26_40/">2048</a></li>
-                <li><a href="Buscaminas_2024_03_22_19_26_38/">Buscaminas</a></li>
-                <li><a href="One%20More%20Line/">One More Line</a></li>
-                <li><a href="Tetris/">Tetris</a></li>
-                <li><a href="Mini%20Golf/">Mini Golf</a></li>
-                <li><a href="Juego_sin_nombre/">Nexus Attack</a></li>
-            </ul>
-        </div>
-
-        <div class="category">
-            <h2>Algorithms / Simulations</h2>
-            <ul>
-                <li><a href="A_algorithm_2024_03_22_19_26_55/">A* pathfinder visualization</a></li>
-                <li><a href="Bubble_Sort_Visualization_2024_03_22_19_27_06/">Bubble Sort visualization</a></li>
-                <li><a href="KD_tree/">KD Tree visualization</a></li>
-                <li><a href="Logic_Sim/">Logic Sim (not finished)</a></li>
-                <li><a href="Maze_generator_2024_03_22_19_26_54/">Maze Generator</a></li>
-                <li><a href="Paper_Rock_Scissors/">Paper Rock Scissors Battle</a></li>
-                <li><a href="Rippling_Water/">Rippling Water</a></li>
-                <li><a href="Self-avoiding_Walk_2024_03_22_19_26_57/">Self Avoiding Walk</a></li>
-                <li><a href="Wave_Function_Collapse_(normal_tiles)_2024_03_22_19_26_53/">Wave Function Collapse (normal tiles)</a></li>
-                <li><a href="Wave_Function_Collapse_(coloured_tiles)_2024_03_22_19_26_52/">Wave Function Collapse (coloured tiles)</a></li>
-                <li><a href="Wave_Function_Collapse_(Island)_2024_03_22_19_26_51/">Wave Function Collapse (islands)</a></li>
-            </ul>
-        </div>
-
-        <div class="category">
-            <h2>Automatas</h2>
-            <ul>
-                <li><a href="1-D_Cellular_Automata_2024_03_22_19_27_12/">1D Cellular Automata</a></li>
-                <li><a href="Brian's_Brain_2024_03_22_19_27_13/">Brian's Brain</a></li>
-                <li><a href="Game_of_Life_2024_03_22_19_27_16/">Game Of Life</a></li>
-                <li><a href="Hormiga_de_Langton_2024_03_22_19_27_15/">Langton's Ant</a></li>
-                <li><a href="Langtons_Loop/">Langton's Loop</a></li>
-            </ul>
-        </div>
-
-        <div class="category">
-            <h2>AI</h2>
-            <ul>
-                <li><a href="Smart%20Birds/">Smart Birds</a></li>
-                <li><a href="Smart%20Cars/">Smart Cars</a></li>
-                <li><a href="Smart%20Cars%20v2/">Smart Cars v2</a></li>
-                <li><a href="Smart%20Cars%20v3/">Smart Cars v3</a></li>
-                <li><a href="Smart%20Cars%20v4/">Smart Cars v4</a></li>
-                <li><a href="Smart_Rockets_(natural_selection)_2024_03_24_10_51_08/">Smart Rockets</a></li>
-                <li><a href="Smart%20Snakes/">Smart Snakes</a></li>
-            </ul>
-        </div>
-
-        <div class="category">
-            <h2>Math</h2>
-            <ul>
-                <li><a href="Bezier/">Bezier curve</a></li>
-                <li><a href="Bezier_cubic/">Bezier cubic curve</a></li>
-                <li><a href="Curves_table_Lissajous/">Lissajous Curves Table</a></li>
-                <li><a href="Fourier_Series/">Fourier Series</a></li>
-                <li><a href="Montecarlo's_Pi_Estimation_2024_03_22_19_27_07/">Montecarlo's Pi Estimation</a></li>
-            </ul>
-        </div>
-
-        <div class="category">
-            <h2>Physics</h2>
-            <ul>
-                <li><a href="Particle_Life/">Particle Life</a></li>
-                <li><a href="Black_hole_visualizer_2024_03_22_19_27_00/">Black Hole</a></li>
-                <li><a href="CirclesColliding/">Circles Colliding</a></li>
-                <li><a href="Double_Pendulum_2024_03_22_19_27_01/">Double Pendulum</a></li>
-                <li><a href="Falling_Sand_2024_03_22_19_27_09/">Falling Sand</a></li>
-                <li><a href="Flocking_Sim_-_Boids_v1_2024_03_22_19_26_36/">Flocking Sim - Boids</a></li>
-                <li><a href="Reaction_Diffusion_2024_03_22_19_26_44/">Reaction Diffusion</a></li>
-            </ul>
-        </div>
-
-        <div class="category">
-            <h2>Miscellaneous</h2>
-            <ul>
-                <li><a href="2D_Ray-Casting_2024_03_22_19_27_08/">2D Ray-Casting</a></li>
-                <li><a href="Continuous%20Circle/">Continuous Circle</a></li>
-                <li><a href="Discontinued_Lines_%26_Circle_Intersection/">Discontinued Lines & Circle Intersection</a></li>
-                <li><a href="prueba_game_orbit/">Prueba Game Orbit</a></li>
-                <li><a href="rain%3Awind effect/">Rain/Wind effect</a></li>
-                <li><a href="levelMaker/">Level Maker (created for Mini Golf)</a></li>
-            </ul>
-        </div>
     </main>
-
-    <footer>
-        <p>&copy; 2024 Miguelrr11. All rights reserved.</p>
-    </footer>
-</body>
-
+    <script src="sketch.js"></script>
+  </body>
 </html>
