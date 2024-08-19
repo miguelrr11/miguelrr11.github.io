@@ -1,24 +1,40 @@
-const WIDTH = 700
-const HEIGHT = 700
+//Real-Time Fluid Dynamics for Games 2003 paper implementation
+//Miguel Rodríguez Rodríguez
+//20-08-2024
+
+const WIDTH = 600
+const HEIGHT = 600
 const N = 70
 const tamCell = WIDTH/N
 const size = (N+2) * (N+2)
+
 let u, v, u_prev, v_prev
 let dens, dens_prev;
+
 let visc = 0.005
 let diff = 0.0001
 let dt = 0.01
 
 let dirShooter = 0
 let velShooter = 5
+let denShooter = 1
 
 let sliderVisc, 
 	sliderDiff,
 	sliderDt,
-	sliderVel
+	sliderVel,
+	sliderDen
 
-let checkShowVel
+let checkShowVel,
+	checkRandomShooter,
+	checkObstacles,
+	checkColor
 
+let btnRestart
+
+let angle = 0
+let avgDen
+let obstaclesR = []
 let p = []
 
 function init(){
@@ -37,6 +53,11 @@ function init(){
     	dens_prev[i] = 0
     }
 
+    obstaclesR.push({a: createVector(10,10), b: createVector(20, 30), type: "rect"},
+    				{a: createVector(40,50), b: createVector(60, 65), type: "rect"},
+    				{a: createVector(45,5), b: createVector(60, 35), type: "rect"})
+    				//{a: createVector(50, 25), rad: 8, type: "circle"})
+
     for (let i = 20; i <= N-20; i++) { 
     	dens[IX(i, 20)] = 3;
     }
@@ -54,12 +75,12 @@ function init(){
 function initUI(){
 	p[0] = createP('Viscosity: ' + visc)
 	p[0].position(WIDTH + 20, 0)
-	sliderVisc = createSlider(0, 0.1, 0.005, 0.005)
+	sliderVisc = createSlider(0, 0.1, 0.001, 0.001)
 	sliderVisc.position(WIDTH + 20, 40)
 
 	p[1] = createP('Diff: ' + diff)
 	p[1].position(WIDTH + 20, 50)
-	sliderDiff = createSlider(0.0001, 0.001, 0.0001, 0.0001)
+	sliderDiff = createSlider(0.0001, 0.01, 0.0001, 0.0001)
 	sliderDiff.position(WIDTH + 20, 90)
 
 	p[2] = createP('dt: ' + dt)
@@ -69,18 +90,42 @@ function initUI(){
 
 	p[3] = createP('Velocity of Shooter: ' + velShooter)
 	p[3].position(WIDTH + 20, 150)
-	sliderVel = createSlider(1, 10, 5, 0.1)
+	sliderVel = createSlider(1, 20, 5, 0.1)
 	sliderVel.position(WIDTH + 20, 190)
 
-	checkShowVel = createCheckbox()
-	checkShowVel.position(WIDTH + 20, 240)
-	p[4] = createP('Show velocity Field: ' + checkShowVel.checked())
+	p[4] = createP('Density of Shooter: ' + denShooter)
 	p[4].position(WIDTH + 20, 200)
+	sliderDen = createSlider(0, 7, 2.5, 0.5)
+	sliderDen.position(WIDTH + 20, 240)
 
-	p[5] = createP('Click to add source')
+	checkShowVel = createCheckbox()
+	checkShowVel.position(WIDTH + 20, 290)
+	p[5] = createP('Show velocity Field: ')
 	p[5].position(WIDTH + 20, 250)
-	p[6] = createP('Press any key to change direction')
-	p[6].position(WIDTH + 20, 270)
+
+	checkRandomShooter = createCheckbox()
+	checkRandomShooter.position(WIDTH + 20, 340)
+	p[6] = createP('Static-Random Shooter: ')
+	p[6].position(WIDTH + 20, 300)
+
+	checkObstacles = createCheckbox()
+	checkObstacles.position(WIDTH + 20, 390)
+	p[7] = createP('Obstacles: ')
+	p[7].position(WIDTH + 20, 350)
+
+	checkColor = createCheckbox()
+	checkColor.position(WIDTH + 20, 440)
+	p[8] = createP('Colorful: ')
+	p[8].position(WIDTH + 20, 400)
+
+	btnRestart = createButton('Clear')
+	btnRestart.position(WIDTH+20, HEIGHT - 50)
+	btnRestart.mouseClicked(init)
+
+	p[9] = createP('Click to add source')
+	p[9].position(WIDTH + 20, HEIGHT - 20)
+	p[10] = createP('Press any key to change direction')
+	p[10].position(WIDTH + 20, HEIGHT)
 }
 
 function setup(){
@@ -94,24 +139,16 @@ function updateConfig(){
 	diff = sliderDiff.value()
 	dt = sliderDt.value()
 	velShooter = sliderVel.value()
+	denShooter = sliderDen.value()
 	p[0].html('Viscosity: ' + visc)
 	p[1].html('Diff: ' + diff)
 	p[2].html('dt: ' + dt)
 	p[3].html('Velocity of Shooter: ' + velShooter)
-	p[4].html('Show velocity Field: ' + checkShowVel.checked())
-}
-
-function mousePressed(){
-	let x = ~~(mouseX/(WIDTH/N));
-  	let y = ~~(mouseY/(WIDTH/N));
-  	if(x < N && y < N){ 
-  		dens[IX(x, y)] = 1;
-  	}
+	p[4].html('Density of Shooter: ' + denShooter)
 }
 
 function keyPressed(){
-	dirShooter++
-	dirShooter = dirShooter%4
+	dirShooter = ++dirShooter%4
 }
 
 function draw(){
@@ -119,44 +156,86 @@ function draw(){
 	let x = ~~(mouseX/(WIDTH/N));
   	let y = ~~(mouseY/(WIDTH/N));
   	if(x < N && y < N){ 
-  		if(mouseIsPressed) dens[IX(x, y)] = 1;
+  		if(mouseIsPressed) dens[IX(x, y)] = denShooter;
   		if(dirShooter == 0) u[IX(x, y)] = velShooter;
   		else if(dirShooter == 1) v[IX(x, y)] = velShooter;
   		else if(dirShooter == 2) u[IX(x, y)] = -velShooter;
   		else if(dirShooter == 3) v[IX(x, y)] = -velShooter;
   	}
 
+  	if(checkRandomShooter.checked()){
+  		angle += 0.5 - noise(frameCount/2)
+  		angle = angle % TWO_PI
+  		let x = floor(N/2)
+  		dens[IX(x, x)] = denShooter
+  		dens[IX(x+1, x)] = denShooter
+  		dens[IX(x, x+1)] = denShooter
+  		dens[IX(x+1, x+1)] = denShooter
+  		u[IX(x, x)] = cos(angle)*velShooter
+  		v[IX(x, x)] = sin(angle)*velShooter
+  		u[IX(x, x+1)] = cos(angle)*velShooter
+  		v[IX(x, x+1)] = sin(angle)*velShooter
+  		u[IX(x+1, x)] = cos(angle)*velShooter
+  		v[IX(x+1, x)] = sin(angle)*velShooter
+  		u[IX(x+1, x+1)] = cos(angle)*velShooter
+  		v[IX(x+1, x+1)] = sin(angle)*velShooter
+  	}
+
 	vel_step( N, u, v, u_prev, v_prev, visc, dt );
 	dens_step( N, dens, dens_prev, u, v, diff, dt );
+
 	draw_dens()
 	if(checkShowVel.checked()) draw_vel()
+	if(checkObstacles.checked()) draw_obs()
 
 }
 
+function draw_obs(){
+	push()
+	rectMode(CORNERS)
+	stroke(255, 0, 0)
+	fill(0)
+	strokeWeight(2)
+	for(let ob of obstaclesR){
+		if(ob.type == "rect") rect(ob.a.x*tamCell, ob.a.y*tamCell, (ob.b.x+1)*tamCell, (ob.b.y+1)*tamCell)
+		else if(ob.type == "circle") ellipse(ob.a.x*tamCell, ob.a.y*tamCell, ob.rad*2*tamCell, ob.rad*2*tamCell)
+	}
+	pop()
+}
+
 function draw_dens(){
+	push()
 	noStroke()
+	if(checkColor.checked()) colorMode(HSB, 255)
+	else colorMode(RGB)
+	let sum = 0
 	for(let i = 0; i < N; i++){
 	    for(let j = 0; j < N; j++){
 	    	let den = map(dens[IX(i, j)], 0, 1, 0, 255)
-	        fill(den)
+	    	sum += dens[IX(i, j)]
+	        if(checkColor.checked()) fill(den, 255, 255)
+	        else fill(den)
 	        rect(i*tamCell, j*tamCell, tamCell, tamCell);
 	      	
 	    }
 	}
+	avgDen = sum/size
+	pop()
 }
 
 function draw_vel(){
-	// let maxSx = Math.max(...u)
-	// let maxSy = Math.max(...v)
-	// let maxS = createVector(maxSx, maxSy)
-	// let maxSmag = maxS.mag()
 	push()
-	colorMode(HSB)
+	strokeWeight(1.5)
+	colorMode(RGB)
 	for(let i = 0; i < N; i++){
 	    for(let j = 0; j < N; j++){
 	    	let speed = createVector(u[IX(i,j)], v[IX(i,j)])
-	    	let col = map(speed.mag(), 0, 1, 0, 120)
-	    	stroke(col, 100, 100)
+	    	let speedMag = speed.mag()
+	    	speedMag = map(constrain(speedMag, 0, 2), 0, 2, 0, 1)
+	    	let col = lerpColor(color(255, 0, 0), color(0, 255, 0), speedMag)
+	    	col.setAlpha(speedMag*1000)
+	    	stroke(col)
+
 	        let x0 = i*tamCell + tamCell/2
 	        let y0 = j*tamCell + tamCell/2
 	        let angle = atan2(v[IX(i,j)], u[IX(i,j)])
@@ -172,17 +251,9 @@ function draw_vel(){
 function add_source(N, x, s, dt) {
     for (let i = 0; i < size; i++) {
         //x[i] += dt * s[i];
+        //la clave que no te cuentan en el paper es la normalizacion:
         x[i] = (x[i]+dt*s[i])/(1+dt);
     }
-
-    // Normalize the density array to keep values within the range [0, 1]
-    // let maxDensity = Math.max(...x); // Find the maximum density value
-    
-    // if (maxDensity > 1) {
-    //     for (let i = 0; i < size; i++) {
-    //         x[i] /= maxDensity; // Normalize all values to keep them within [0, 1]
-    //     }
-    // }
 }
 
 
@@ -197,7 +268,6 @@ function diffuse(N, b, x, x0, diff, dt) {
         set_bnd(N, b, x);
     }
 }
-
 
 
 function advect(N, b, d, d0, u, v, dt) {
@@ -283,22 +353,48 @@ function project (N, u, v, p, div){
 	set_bnd ( N, 2, v );
 }
 
-function set_bnd (N, b, x){
-	let i;
-	for ( i=1 ; i<=N ; i++ ) {
-		x[IX(0 ,i)] = b==1 ? -x[IX(1,i)] : x[IX(1,i)];
-		x[IX(N+1,i)] = b==1 ? -x[IX(N,i)] : x[IX(N,i)];
-		x[IX(i,0 )] = b==2 ? -x[IX(i,1)] : x[IX(i,1)];
-		x[IX(i,N+1)] = b==2 ? -x[IX(i,N)] : x[IX(i,N)];
+function set_bnd (N, b, x) {
+	let bool = checkObstacles.checked()
+	let n = !bool ? 1 : obstaclesR.length
+	let inCircle = false
+
+	
+    for(let k = 0; k < n; k++){
+    	if(bool && obstaclesR[k] && obstaclesR[k].type == "rect"){
+    		xMin = obstaclesR[k].a.x
+    		yMin = obstaclesR[k].a.y
+    		xMax = obstaclesR[k].b.x
+    		yMax = obstaclesR[k].b.y
+    	}
+	    for (let i = 1; i <= N; i++) {
+	        for (let j = 1; j <= N; j++) {
+	            if (bool && obstaclesR[k].type == "rect" && i >= xMin && i <= xMax && j >= yMin && j <= yMax) {
+	                x[IX(i, j)] = b == 1 || b == 2 ? 0 : x[IX(i, j)];
+	            }
+	            //ralentiza muchisimo y ni siquiera mola
+	            // else if (bool && obstaclesR[k].type == "circle" && 
+	            // 	dist(i, j, obstaclesR[k].a.x, obstaclesR[k].a.y) < obstaclesR[k].rad) {
+	            //     x[IX(i, j)] = b == 1 || b == 2 ? 0 : x[IX(i, j)];
+	            // }
+	            else {
+	                if (i == 1) x[IX(0, j)] = b == 1 ? -x[IX(1, j)] : x[IX(1, j)];
+	                if (i == N) x[IX(N + 1, j)] = b == 1 ? -x[IX(N, j)] : x[IX(N, j)];
+	                if (j == 1) x[IX(i, 0)] = b == 2 ? -x[IX(i, 1)] : x[IX(i, 1)];
+	                if (j == N) x[IX(i, N + 1)] = b == 2 ? -x[IX(i, N)] : x[IX(i, N)];
+	            }
+	        }
+	    }
 	}
-	x[IX(0 ,0 )] = 0.5*(x[IX(1,0 )]+x[IX(0 ,1)]);
-	x[IX(0 ,N+1)] = 0.5*(x[IX(1,N+1)]+x[IX(0 ,N)]);
-	x[IX(N+1,0 )] = 0.5*(x[IX(N,0 )]+x[IX(N+1,1)]);
-	x[IX(N+1,N+1)] = 0.5*(x[IX(N,N+1)]+x[IX(N+1,N)]);
+
+    // Handle the corners
+    x[IX(0, 0)] = 0.5 * (x[IX(1, 0)] + x[IX(0, 1)]);
+    x[IX(0, N + 1)] = 0.5 * (x[IX(1, N + 1)] + x[IX(0, N)]);
+    x[IX(N + 1, 0)] = 0.5 * (x[IX(N, 0)] + x[IX(N + 1, 1)]);
+    x[IX(N + 1, N + 1)] = 0.5 * (x[IX(N, N + 1)] + x[IX(N + 1, N)]);
 }
 
 function IX(i, j){
-	return ((i)+(N+2)*(j))
+	return i+(N+2)*j
 }
 
 function SWAP(x0, x) {
@@ -308,10 +404,3 @@ function SWAP(x0, x) {
     x.length = 0;           // Clear x
     x.push(...temp);        // Copy contents of temp (old x0) to x
 }
-
-
-
-
-
-
-
