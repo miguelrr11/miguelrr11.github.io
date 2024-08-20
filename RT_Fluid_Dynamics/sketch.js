@@ -39,6 +39,8 @@ let avgDen
 let obstaclesR = []
 let p = []
 
+let dragging = false
+
 function init(){
 	u = []
     v = []
@@ -55,11 +57,8 @@ function init(){
     	dens_prev[i] = 0
     }
 
-    if(N == 70) obstaclesR.push({a: createVector(10,10), b: createVector(20, 30), type: "rect"},
-    				{a: createVector(40,50), b: createVector(60, 65), type: "rect"},
-    				{a: createVector(45,5), b: createVector(60, 35), type: "rect"})
-    				//{a: createVector(50, 25), rad: 8, type: "circle"})
-    else obstaclesR = []
+    
+
 
     for (let i = 20; i <= N-20; i++) { 
     	dens[IX(i, 20)] = 3;
@@ -127,19 +126,25 @@ function initUI(){
 	sliderN.position(WIDTH + 20, 490)
 
 	btnRestart = createButton('Clear')
-	btnRestart.position(WIDTH+20, HEIGHT - 50)
+	btnRestart.position(WIDTH+20, HEIGHT - 70)
 	btnRestart.mouseClicked(init)
 
 	p[10] = createP('Click to add source')
-	p[10].position(WIDTH + 20, HEIGHT - 20)
+	p[10].position(WIDTH + 20, HEIGHT - 60)
 	p[11] = createP('Press any key to change direction')
-	p[11].position(WIDTH + 20, HEIGHT)
+	p[11].position(WIDTH + 20, HEIGHT - 40)
+	p[12] = createP('FPS: ' + frameRate())
+	p[12].position(WIDTH + 20, HEIGHT - 20)
 }
 
 function setup(){
 	createCanvas(WIDTH, HEIGHT)
 	init()
 	initUI()
+	obstaclesR.push({a: createVector(40,50), b: createVector(60, 70), type: "rect"})
+    				//{a: createVector(40,50), b: createVector(60, 65), type: "rect"},
+    				//{a: createVector(45,5), b: createVector(60, 35), type: "rect"})
+    				//{a: createVector(50, 25), rad: 8, type: "circle"})
 }
 
 function updateConfig(){
@@ -161,6 +166,27 @@ function updateConfig(){
 	p[3].html('Velocity of Shooter: ' + velShooter)
 	p[4].html('Density of Shooter: ' + denShooter)
 	p[9].html('Size of grid: ' + N + ' x ' + N)
+	p[12].html('FPS: ' + round(frameRate()))
+}
+
+function mouseDragged(){
+	if(checkObstacles.checked()){
+		xMin = obstaclesR[0].a.x * tamCell
+    	yMin = obstaclesR[0].a.y * tamCell
+    	xMax = obstaclesR[0].b.x * tamCell
+    	yMax = obstaclesR[0].b.y * tamCell
+    	if(mouseX >= xMin && mouseX <= xMax && mouseY >= yMin && mouseY <= yMax){
+    		dragging = true
+    		let w = xMax - xMin
+    		let h = yMax - yMin
+    		obstaclesR[0].a.x = (mouseX - w/2)/tamCell
+    		obstaclesR[0].a.y = (mouseY - w/2)/tamCell
+    		obstaclesR[0].b.x = (mouseX + h/2)/tamCell
+    		obstaclesR[0].b.y = (mouseY + h/2)/tamCell
+    	}
+    	else dragging = false
+	}
+	
 }
 
 function keyPressed(){
@@ -172,7 +198,7 @@ function draw(){
 	let x = ~~(mouseX/(WIDTH/N));
   	let y = ~~(mouseY/(WIDTH/N));
   	if(x < N && y < N){ 
-  		if(mouseIsPressed) dens[IX(x, y)] = denShooter;
+  		if(mouseIsPressed && !dragging) dens[IX(x, y)] = denShooter;
   		if(dirShooter == 0) u[IX(x, y)] = velShooter;
   		else if(dirShooter == 1) v[IX(x, y)] = velShooter;
   		else if(dirShooter == 2) u[IX(x, y)] = -velShooter;
@@ -223,7 +249,8 @@ function draw_obs(){
 function draw_dens(){
 	push()
 	noStroke()
-	if(checkColor.checked()) colorMode(HSB, 255)
+	let colorBool = checkColor.checked()
+	if(colorBool) colorMode(HSB, 255)
 	else colorMode(RGB)
 	let sum = 0
 	fill(0)
@@ -231,9 +258,9 @@ function draw_dens(){
 	translate(-tamCell/2, -tamCell/2)
 	for(let i = 1; i < N; i++){
 	    for(let j = 1; j < N; j++){
-	    	let den = map(dens[IX(i, j)], 0, 1, 0, 255)
+	    	let den = dens[IX(i, j)] * 255;
 	    	sum += dens[IX(i, j)]
-	        if(checkColor.checked()) fill(den, 255, 255)
+	        if(colorBool) fill(den, 255, 255)
 	        else fill(den)
 	        rect(i*tamCell, j*tamCell, tamCell, tamCell);
 	      	
@@ -252,11 +279,12 @@ function draw_vel(){
 	    for(let j = 1; j < N; j++){
 	    	let speed = createVector(u[IX(i,j)], v[IX(i,j)])
 	    	let speedMag = speed.mag()
-	    	speedMag = map(constrain(speedMag, 0, 2), 0, 2, 0, 1)
-	    	let col = lerpColor(color(255, 0, 0), color(0, 255, 0), speedMag)
-	    	col.setAlpha(speedMag*1000)
-	    	stroke(col)
-
+			if (speedMag < 0) speedMag = 0
+			else if (speedMag > 2) speedMag = 2
+			speedMag *= 0.5;
+			let red = 255 * (1 - speedMag);
+			let green = 255 * speedMag;
+	    	stroke(red, green, 0, speedMag*1000)
 	        let x0 = i*tamCell + tamCell/2
 	        let y0 = j*tamCell + tamCell/2
 	        let angle = atan2(v[IX(i,j)], u[IX(i,j)])
@@ -279,10 +307,11 @@ function add_source(N, x, s, dt) {
 
 function diffuse(N, b, x, x0, diff, dt) {
     let a = dt * diff * N * N;
+    let c = (1 + 4 * a)
     for (let k = 0; k < 20; k++) {
         for (let i = 1; i <= N; i++) {
             for (let j = 1; j <= N; j++) {
-                x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / (1 + 4 * a);
+                x[IX(i, j)] = (x0[IX(i, j)] + a * (x[IX(i - 1, j)] + x[IX(i + 1, j)] + x[IX(i, j - 1)] + x[IX(i, j + 1)])) / c;
             }
         }
         set_bnd(N, b, x);
