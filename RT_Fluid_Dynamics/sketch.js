@@ -2,11 +2,12 @@
 //Miguel Rodríguez Rodríguez
 //20-08-2024
 
-const WIDTH = 600
-const HEIGHT = 600
-const N = 70
-const tamCell = WIDTH/N
-const size = (N+2) * (N+2)
+const WIDTH = 700
+const HEIGHT = 700
+let N = 70
+let oldN = 70
+let tamCell = WIDTH/N
+let size = (N+2) * (N+2)
 
 let u, v, u_prev, v_prev
 let dens, dens_prev;
@@ -23,7 +24,8 @@ let sliderVisc,
 	sliderDiff,
 	sliderDt,
 	sliderVel,
-	sliderDen
+	sliderDen,
+	sliderN
 
 let checkShowVel,
 	checkRandomShooter,
@@ -53,10 +55,11 @@ function init(){
     	dens_prev[i] = 0
     }
 
-    obstaclesR.push({a: createVector(10,10), b: createVector(20, 30), type: "rect"},
+    if(N == 70) obstaclesR.push({a: createVector(10,10), b: createVector(20, 30), type: "rect"},
     				{a: createVector(40,50), b: createVector(60, 65), type: "rect"},
     				{a: createVector(45,5), b: createVector(60, 35), type: "rect"})
     				//{a: createVector(50, 25), rad: 8, type: "circle"})
+    else obstaclesR = []
 
     for (let i = 20; i <= N-20; i++) { 
     	dens[IX(i, 20)] = 3;
@@ -118,14 +121,19 @@ function initUI(){
 	p[8] = createP('Colorful: ')
 	p[8].position(WIDTH + 20, 400)
 
+	p[9] = createP('Size of grid: ' + N + ' x ' + N)
+	p[9].position(WIDTH + 20, 450)
+	sliderN = createSlider(10, 70, 70, 1)
+	sliderN.position(WIDTH + 20, 490)
+
 	btnRestart = createButton('Clear')
 	btnRestart.position(WIDTH+20, HEIGHT - 50)
 	btnRestart.mouseClicked(init)
 
-	p[9] = createP('Click to add source')
-	p[9].position(WIDTH + 20, HEIGHT - 20)
-	p[10] = createP('Press any key to change direction')
-	p[10].position(WIDTH + 20, HEIGHT)
+	p[10] = createP('Click to add source')
+	p[10].position(WIDTH + 20, HEIGHT - 20)
+	p[11] = createP('Press any key to change direction')
+	p[11].position(WIDTH + 20, HEIGHT)
 }
 
 function setup(){
@@ -140,11 +148,19 @@ function updateConfig(){
 	dt = sliderDt.value()
 	velShooter = sliderVel.value()
 	denShooter = sliderDen.value()
+	N = sliderN.value()
+	if(N != oldN){
+		oldN = N 
+		size = (N+2) * (N+2)
+		tamCell = WIDTH/N
+		init()
+	}
 	p[0].html('Viscosity: ' + visc)
 	p[1].html('Diff: ' + diff)
 	p[2].html('dt: ' + dt)
 	p[3].html('Velocity of Shooter: ' + velShooter)
 	p[4].html('Density of Shooter: ' + denShooter)
+	p[9].html('Size of grid: ' + N + ' x ' + N)
 }
 
 function keyPressed(){
@@ -171,14 +187,16 @@ function draw(){
   		dens[IX(x+1, x)] = denShooter
   		dens[IX(x, x+1)] = denShooter
   		dens[IX(x+1, x+1)] = denShooter
-  		u[IX(x, x)] = cos(angle)*velShooter
-  		v[IX(x, x)] = sin(angle)*velShooter
-  		u[IX(x, x+1)] = cos(angle)*velShooter
-  		v[IX(x, x+1)] = sin(angle)*velShooter
-  		u[IX(x+1, x)] = cos(angle)*velShooter
-  		v[IX(x+1, x)] = sin(angle)*velShooter
-  		u[IX(x+1, x+1)] = cos(angle)*velShooter
-  		v[IX(x+1, x+1)] = sin(angle)*velShooter
+  		let coss = cos(angle)*velShooter
+  		let sinn = sin(angle)*velShooter
+  		u[IX(x, x)] = coss
+  		v[IX(x, x)] = sinn
+  		u[IX(x, x+1)] = coss
+  		v[IX(x, x+1)] = sinn
+  		u[IX(x+1, x)] = coss
+  		v[IX(x+1, x)] = sinn
+  		u[IX(x+1, x+1)] = coss
+  		v[IX(x+1, x+1)] = sinn
   	}
 
 	vel_step( N, u, v, u_prev, v_prev, visc, dt );
@@ -187,7 +205,6 @@ function draw(){
 	draw_dens()
 	if(checkShowVel.checked()) draw_vel()
 	if(checkObstacles.checked()) draw_obs()
-
 }
 
 function draw_obs(){
@@ -209,8 +226,11 @@ function draw_dens(){
 	if(checkColor.checked()) colorMode(HSB, 255)
 	else colorMode(RGB)
 	let sum = 0
-	for(let i = 0; i < N; i++){
-	    for(let j = 0; j < N; j++){
+	fill(0)
+	rect(0,0,WIDTH,HEIGHT)
+	translate(-tamCell/2, -tamCell/2)
+	for(let i = 1; i < N; i++){
+	    for(let j = 1; j < N; j++){
 	    	let den = map(dens[IX(i, j)], 0, 1, 0, 255)
 	    	sum += dens[IX(i, j)]
 	        if(checkColor.checked()) fill(den, 255, 255)
@@ -227,8 +247,9 @@ function draw_vel(){
 	push()
 	strokeWeight(1.5)
 	colorMode(RGB)
-	for(let i = 0; i < N; i++){
-	    for(let j = 0; j < N; j++){
+	translate(-tamCell/2, -tamCell/2)
+	for(let i = 1; i < N; i++){
+	    for(let j = 1; j < N; j++){
 	    	let speed = createVector(u[IX(i,j)], v[IX(i,j)])
 	    	let speedMag = speed.mag()
 	    	speedMag = map(constrain(speedMag, 0, 2), 0, 2, 0, 1)
@@ -256,7 +277,6 @@ function add_source(N, x, s, dt) {
     }
 }
 
-
 function diffuse(N, b, x, x0, diff, dt) {
     let a = dt * diff * N * N;
     for (let k = 0; k < 20; k++) {
@@ -268,7 +288,6 @@ function diffuse(N, b, x, x0, diff, dt) {
         set_bnd(N, b, x);
     }
 }
-
 
 function advect(N, b, d, d0, u, v, dt) {
     let i, j, i0, j0, i1, j1;
@@ -296,7 +315,6 @@ function advect(N, b, d, d0, u, v, dt) {
     }
     set_bnd(N, b, d);
 }
-
 
 function dens_step (N, x, x0, u, v, diff, dt){
 	add_source (N, x, x0, dt);
