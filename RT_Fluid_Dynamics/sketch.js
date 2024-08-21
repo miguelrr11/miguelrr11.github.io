@@ -284,7 +284,7 @@ function draw_vel(){
 			speedMag *= 0.5;
 			let red = 255 * (1 - speedMag);
 			let green = 255 * speedMag;
-	    	stroke(red, green, 0, speedMag*1000)
+	    	stroke(green, red, 0, speedMag*1000)
 	        let x0 = i*tamCell + tamCell/2
 	        let y0 = j*tamCell + tamCell/2
 	        let angle = atan2(v[IX(i,j)], u[IX(i,j)])
