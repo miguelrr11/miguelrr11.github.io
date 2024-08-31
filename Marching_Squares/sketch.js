@@ -102,10 +102,10 @@ function drawLineInterpolated(marchingCase, i, j) {
 
     // interpolation
 
-    let a_val = round(grid[i][j], 5);
-    let b_val = round(grid[i + 1][j], 5);
-    let c_val = round(grid[i + 1][j + 1], 5);
-    let d_val = round(grid[i][j + 1], 5);
+    let a_val = round(grid[i][j], 20);
+    let b_val = round(grid[i + 1][j], 20);
+    let c_val = round(grid[i + 1][j + 1], 20);
+    let d_val = round(grid[i][j + 1], 20);
 
     let a = createVector();
     let amt = (0.5 - a_val) / (b_val - a_val);
