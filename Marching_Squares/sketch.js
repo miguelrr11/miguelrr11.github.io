@@ -1,4 +1,4 @@
-//Marching Squares
+//Marching Squares (Interpolated)
 //Miguel Rodríguez
 //30-08-2024
 
@@ -12,6 +12,8 @@ let grid = []
 let noiseSlider
 let oldSlider = 10
 
+let interCheck
+
 
 function setup(){
     createCanvas(WIDTH, HEIGHT, P2D)
@@ -24,7 +26,9 @@ function setup(){
         }
     }
 
-    noiseSlider = createSlider(1, 50, 25, 0.5)
+    noiseSlider = createSlider(1, 50, 35, 0.5)
+    interCheck = createCheckbox("Interpolation")
+    interCheck.checked(true)
 }
 
 function mouseDragged(){
@@ -51,6 +55,7 @@ function mouseDragged(){
 
 function draw(){
     oldSlider = noiseSlider.value()
+
     for(let i = 0; i < N; i++){
         for(let j = 0; j < N; j++){ 
             let x = (i - mouseX/2)/oldSlider
@@ -59,25 +64,23 @@ function draw(){
         }
     }
     
-
-
-    //translate(-spacing/2, -spacing/2)
     drawRects()
-    //drawPoints()
     
     translate(spacing/2, spacing/2)
+    let inter = interCheck.checked()
     for(let i = 0; i < N-1; i++){
         for(let j = 0; j < N-1; j++){
             let marchingCase = evaluate(i, j)
-            drawLine(marchingCase, i, j)
+            if(!inter) drawLine(marchingCase, i, j)
+            else drawLineInterpolated(marchingCase, i, j)
         }
     }
 }
 
 function drawGrid(){
-  strokeWeight(2)
-  stroke(200)
-  for (var x = 0; x < spacing*(N); x += spacing) {
+    strokeWeight(2)
+    stroke(200)
+    for (var x = 0; x < spacing*(N); x += spacing) {
         for (var y = 0; y < spacing*(N); y += spacing) {
             line(x, 0, x, height-spacing);
             line(0, y, width-spacing, y);
@@ -85,6 +88,96 @@ function drawGrid(){
     }
 }
 
+
+
+function drawSegmentInterpolated(a, b){
+    line(a.x, a.y, b.x, b.y)
+}
+
+function drawLineInterpolated(marchingCase, i, j) {
+    let rez = spacing;
+    
+    let x = i * rez;
+    let y = j * rez;
+
+    // interpolation
+
+    let a_val = round(grid[i][j], 5);
+    let b_val = round(grid[i + 1][j], 5);
+    let c_val = round(grid[i + 1][j + 1], 5);
+    let d_val = round(grid[i][j + 1], 5);
+
+    let a = createVector();
+    let amt = (0.5 - a_val) / (b_val - a_val);
+    a.x = lerp(x, x + rez, amt);
+    a.y = y;
+
+
+    let b = createVector();
+    amt = (0.5 - b_val) / (c_val - b_val);
+    b.x = x + rez;
+    b.y = lerp(y, y + rez, amt);
+
+    let c = createVector();
+    amt = (0.5 - d_val) / (c_val - d_val);
+    c.x = lerp(x, x + rez, amt);
+    c.y = y + rez;
+
+    let d = createVector();
+    amt = (0.5 - a_val) / (d_val - a_val);
+    d.x = x;
+    d.y = lerp(y, y + rez, amt);
+
+    stroke(255);
+    strokeWeight(2);
+
+    switch (marchingCase) {
+        case 1: 
+            drawSegmentInterpolated(c, d);
+            break;
+        case 2:
+            drawSegmentInterpolated(b, c);
+            break;
+        case 3:
+            drawSegmentInterpolated(b, d);
+            break;
+        case 4:
+            drawSegmentInterpolated(a, b);
+            break;
+        case 5:
+            drawSegmentInterpolated(a, d);
+            drawSegmentInterpolated(b, c);
+            break;
+        case 6:
+            drawSegmentInterpolated(a, c);
+            break;
+        case 7:
+            drawSegmentInterpolated(a, d);
+            break;
+        case 8:
+            drawSegmentInterpolated(a, d);
+            break;
+        case 9:
+            drawSegmentInterpolated(a, c);
+            break;
+        case 10:
+            drawSegmentInterpolated(a, b);
+            drawSegmentInterpolated(c, d);
+            break;
+        case 11:
+            drawSegmentInterpolated(a, b);
+            break;
+        case 12:
+            drawSegmentInterpolated(b, d);
+            break;
+        case 13:
+            drawSegmentInterpolated(b, c);
+            break;
+        case 14:
+            drawSegmentInterpolated(c, d);
+            break;
+    }
+}
 
 function drawSegment(i, j, from, to){
     push()
