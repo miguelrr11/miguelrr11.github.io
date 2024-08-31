@@ -10,9 +10,12 @@ const spacing = WIDTH/N
 let grid = []
 
 let noiseSlider
-let oldSlider = 10
+let threshSlider
+let threshVal
 
 let interCheck
+
+let a, b, c, d
 
 
 function setup(){
@@ -20,47 +23,32 @@ function setup(){
     for(let i = 0; i < N; i++){
         grid[i] = []
         for(let j = 0; j < N; j++){ 
-            let x = (i - (WIDTH/2)/10)/oldSlider
-            let y = (j - (HEIGHT/2)/10)/oldSlider
+            let x = (i - (WIDTH/2)/10)/35
+            let y = (j - (HEIGHT/2)/10)/35
             grid[i][j] = noise(x+2000, y-1000, frameCount)
         }
     }
+    a = createVector()
+    b = createVector()
+    c = createVector()
+    d = createVector()
 
     noiseSlider = createSlider(1, 50, 35, 0.5)
+    threshSlider = createSlider(0, 1, 0.5, 0.01)
     interCheck = createCheckbox("Interpolation")
     interCheck.checked(true)
 }
 
-function mouseDragged(){
-    let tamSpawner = 5
-    let x = floor(mouseX/spacing)
-    let y = floor(mouseY/spacing)
-    for(let i = x-tamSpawner; i < x+tamSpawner+1; i++){
-        for(let j = y-tamSpawner; j < y+tamSpawner+1; j++){
-            if(i >= 0 && j >= 0 && i < N && j < N){
-                if(!keyIsPressed){
-                    grid[i][j] += random(0.03, 0.1)
-                    grid[i][j] = constrain(grid[i][j], 0, 1)
-                }
-                else{
-                    grid[i][j] -= random(0.03, 0.1)
-                    grid[i][j] = constrain(grid[i][j], 0, 1)
-                }
-            }
-        }
-    }
-}
-
-
 
 function draw(){
-    oldSlider = noiseSlider.value()
+    tamval = noiseSlider.value()
+    threshVal = threshSlider.value()
 
     for(let i = 0; i < N; i++){
         for(let j = 0; j < N; j++){ 
-            let x = (i - mouseX/2)/oldSlider
-            let y = (j - mouseY/2)/oldSlider
-            grid[i][j] = noise(x+2000, y-1000, frameCount/150)
+            let x = (i - mouseX/2)/tamval
+            let y = (j - mouseY/2)/tamval
+            grid[i][j] = noise(x+2000, y-1000, frameCount/200)
         }
     }
     
@@ -70,7 +58,7 @@ function draw(){
     let inter = interCheck.checked()
     for(let i = 0; i < N-1; i++){
         for(let j = 0; j < N-1; j++){
-            let marchingCase = evaluate(i, j)
+            let marchingCase = evaluate(i, j, threshVal)
             if(!inter) drawLine(marchingCase, i, j)
             else drawLineInterpolated(marchingCase, i, j)
         }
@@ -107,24 +95,20 @@ function drawLineInterpolated(marchingCase, i, j) {
     let c_val = round(grid[i + 1][j + 1], 20);
     let d_val = round(grid[i][j + 1], 20);
 
-    let a = createVector();
-    let amt = (0.5 - a_val) / (b_val - a_val);
+    let amt = (threshVal - a_val) / (b_val - a_val);
     a.x = lerp(x, x + rez, amt);
     a.y = y;
 
 
-    let b = createVector();
-    amt = (0.5 - b_val) / (c_val - b_val);
+    amt = (threshVal - b_val) / (c_val - b_val);
     b.x = x + rez;
     b.y = lerp(y, y + rez, amt);
 
-    let c = createVector();
-    amt = (0.5 - d_val) / (c_val - d_val);
+    amt = (threshVal - d_val) / (c_val - d_val);
     c.x = lerp(x, x + rez, amt);
     c.y = y + rez;
 
-    let d = createVector();
-    amt = (0.5 - a_val) / (d_val - a_val);
+    amt = (threshVal - a_val) / (d_val - a_val);
     d.x = x;
     d.y = lerp(y, y + rez, amt);
 
@@ -253,11 +237,11 @@ function drawLine(marchingCase, i, j){
     }
 }
 
-function evaluate(i, j){
-    let b = Math.round(grid[i+1][j])
-    let c = Math.round(grid[i+1][j+1])
-    let d = Math.round(grid[i][j+1])
-    let a = Math.round(grid[i][j])
+function evaluate(i, j, threshold){
+    let a = grid[i][j] > threshold ? 1 : 0
+    let b = grid[i+1][j] > threshold ? 1 : 0
+    let c = grid[i+1][j+1] > threshold ? 1 : 0
+    let d = grid[i][j+1] > threshold ? 1 : 0
     let comb = `${a}${b}${c}${d}`
     return parseInt(comb, 2)
 }
