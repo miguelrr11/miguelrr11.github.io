@@ -1,4 +1,4 @@
-//Marching Squares (Interpolated)
+//Marching Squares
 //Miguel Rodríguez
 //30-08-2024
 
@@ -7,6 +7,7 @@ const HEIGHT = 800
 
 const N = 100
 const spacing = WIDTH/N
+const half_spacing = spacing/2
 let grid = []
 
 let noiseSlider
@@ -15,7 +16,11 @@ let threshVal
 
 let interCheck
 
-let a, b, c, d
+//variables for interpolation
+let a, b, c, d, amt
+
+//variables for non-interpolation
+let p, q
 
 
 function setup(){
@@ -33,6 +38,9 @@ function setup(){
     c = createVector()
     d = createVector()
 
+    p = createVector()
+    q = createVector()
+
     noiseSlider = createSlider(1, 50, 35, 0.5)
     threshSlider = createSlider(0, 1, 0.5, 0.01)
     interCheck = createCheckbox("Interpolation")
@@ -44,11 +52,12 @@ function draw(){
     tamval = noiseSlider.value()
     threshVal = threshSlider.value()
 
+    let z = frameCount/200
     for(let i = 0; i < N; i++){
         for(let j = 0; j < N; j++){ 
             let x = (i - mouseX/2)/tamval
             let y = (j - mouseY/2)/tamval
-            grid[i][j] = noise(x+2000, y-1000, frameCount/200)
+            grid[i][j] = noise(x+2000, y-1000, z)
         }
     }
     
@@ -56,6 +65,8 @@ function draw(){
     
     translate(spacing/2, spacing/2)
     let inter = interCheck.checked()
+    stroke(255);
+    strokeWeight(2);
     for(let i = 0; i < N-1; i++){
         for(let j = 0; j < N-1; j++){
             let marchingCase = evaluate(i, j, threshVal)
@@ -88,32 +99,29 @@ function drawLineInterpolated(marchingCase, i, j) {
     let x = i * rez;
     let y = j * rez;
 
-    // interpolation
+    let a_val = grid[i][j]
+    let b_val = grid[i + 1][j]
+    let c_val = grid[i + 1][j + 1]
+    let d_val = grid[i][j + 1]
 
-    let a_val = round(grid[i][j], 20);
-    let b_val = round(grid[i + 1][j], 20);
-    let c_val = round(grid[i + 1][j + 1], 20);
-    let d_val = round(grid[i][j + 1], 20);
-
-    let amt = (threshVal - a_val) / (b_val - a_val);
-    a.x = lerp(x, x + rez, amt);
+    amt = (threshVal - a_val) / (b_val - a_val);
+    a.x = customLerp(x, x + rez, amt);
     a.y = y;
 
 
     amt = (threshVal - b_val) / (c_val - b_val);
     b.x = x + rez;
-    b.y = lerp(y, y + rez, amt);
+    b.y = customLerp(y, y + rez, amt);
 
     amt = (threshVal - d_val) / (c_val - d_val);
-    c.x = lerp(x, x + rez, amt);
+    c.x = customLerp(x, x + rez, amt);
     c.y = y + rez;
 
     amt = (threshVal - a_val) / (d_val - a_val);
     d.x = x;
-    d.y = lerp(y, y + rez, amt);
+    d.y = customLerp(y, y + rez, amt);
 
-    stroke(255);
-    strokeWeight(2);
+    
 
     switch (marchingCase) {
         case 1: 
@@ -166,24 +174,23 @@ function drawLineInterpolated(marchingCase, i, j) {
 function drawSegment(i, j, from, to){
     push()
     translate(i*spacing, j*spacing)
-    let a, b
-    if(from == "w") a = createVector(0, spacing/2)
-    else if(from == "n") a = createVector(spacing/2, 0)
-    else if(from == "e") a = createVector(spacing, spacing/2)
-    else if(from == "s") a = createVector(spacing/2, spacing)
 
-    if(to == "w") b = createVector(0, spacing/2)
-    else if(to == "n") b = createVector(spacing/2, 0)
-    else if(to == "e") b = createVector(spacing, spacing/2)
-    else if(to == "s") b = createVector(spacing/2, spacing)
+    if(from == "w") {p.x = 0; p.y = half_spacing}
+    else if(from == "n") {p.x = half_spacing; p.y = 0}
+    else if(from == "e") {p.x = spacing; p.y = half_spacing}
+    else if(from == "s") {p.x = half_spacing; p.y = spacing}
 
-    line(a.x, a.y, b.x, b.y)
+    if(to == "w") {q.x = 0; q.y = half_spacing}
+    else if(to == "n") {q.x = half_spacing; q.y = 0}
+    else if(to == "e") {q.x = spacing; q.y = half_spacing}
+    else if(to == "s") {q.x = half_spacing; q.y = spacing}
+
+    line(p.x, p.y, q.x, q.y)
     pop()
 }
 
 function drawLine(marchingCase, i, j){
-    stroke(255)
-    strokeWeight(1.5)
+    
     switch(marchingCase) {
         case 0:
             break;
@@ -242,8 +249,7 @@ function evaluate(i, j, threshold){
     let b = grid[i+1][j] > threshold ? 1 : 0
     let c = grid[i+1][j+1] > threshold ? 1 : 0
     let d = grid[i][j+1] > threshold ? 1 : 0
-    let comb = `${a}${b}${c}${d}`
-    return parseInt(comb, 2)
+    return a*8 + b*4 + c*2 + d*1
 }
 
 function drawRects(){
@@ -266,4 +272,8 @@ function drawPoints(){
         }
     }
     pop()
+}
+
+function customLerp(a, b, amt){
+    return (1-amt)*a + amt*b
 }
