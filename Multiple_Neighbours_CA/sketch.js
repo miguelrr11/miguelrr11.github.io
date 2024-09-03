@@ -207,7 +207,7 @@ function clearGrid(){
 }
 
 function draw(){
-    background("#090044")
+    if(frameCount % 2 == 0) background("#090044")
     noStroke()
     fill(colCell)
 
@@ -220,13 +220,16 @@ function draw(){
     }
 
     //Dibujar grid
-    loadPixels()
-    for(let i = 0; i < N; i++){ 
-        for(let j = 0; j < N; j++){ 
-            if(grid[i][j] == 1) drawFastRect(i * spacing, j * spacing, spacing, spacing, 111, 255, 147)
+    if(frameCount % 2 == 0){
+        loadPixels()
+        for(let i = 0; i < N; i++){ 
+            for(let j = 0; j < N; j++){ 
+                if(grid[i][j] == 1) drawFastRect(i * spacing, j * spacing, spacing, spacing, 111, 255, 147)
+            }
         }
+        updatePixels() 
     }
-    updatePixels()
+    
 
     //Actualizar grid segun reglas
     let bool = false
