@@ -204,7 +204,7 @@ function setup(){
 
     regenerateRulesButton = createButton("Regenerate Rules")
     regenerateRulesButton.mousePressed(newCode)
-    pickRandomPresetButton = createButton("Pick Random Preset")
+    pickRandomPresetButton = createButton("Load Random Preset")
     pickRandomPresetButton.mousePressed(pickRandomCode)
     populateGridButton = createButton("Populate Grid")
     populateGridButton.mousePressed(populateGrid)
@@ -310,7 +310,7 @@ function draw(){
     //Dibujar reglas
     fill(colCell)
     translate(20, (WIDTH/10)*9+5)
-    rect(-20, -20, WIDTH, (WIDTH/10)*9-25)
+    rect(-20, -25, WIDTH, (WIDTH/10)*9-25)
     stroke("#090044")
     strokeWeight(2.5)
 
@@ -322,7 +322,7 @@ function draw(){
         drawRule()
         noStroke()
         fill("#090044")
-        text(round(codes[i].mult, 1), 20, -6)
+        text(round(codes[i].mult, 1), 20, -8)
         translate((WIDTH/10)+25, 0)
     }
     
