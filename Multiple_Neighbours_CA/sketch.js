@@ -21,7 +21,7 @@ let next_grid = []
 let spacing = WIDTH/N
 
 let codeGrid = []
-let spacingCodeGrid = (WIDTH/10)/5
+let spacingCodeGrid = (WIDTH/15)/5
 
 let p
 
@@ -29,6 +29,18 @@ let regenerateRulesButton
 let clearButton
 let pickRandomPresetButton
 let populateGridButton
+let skipFramesButton
+
+let nNeihP
+let nNeihSlider
+
+let minMultP
+let minMultSlider
+
+let maxMultP
+let maxMultSlider
+
+let skipFrames = 0
 
 const coords = [
     [[-2, -2], [2, -2], [2, 2], [-2, 2]], 
@@ -72,6 +84,12 @@ function pickRandomCode(){
     clearGrid()
     let index = floor(random(presets.length))
     codes = presets[index]
+    Ncodes = 3
+    minMult = -10
+    maxMult = 10
+    nNeihSlider.value(3)
+    minMultSlider.value(-10)
+    maxMultSlider.value(10)
     populateGrid()
 }
 
@@ -184,7 +202,6 @@ function setup(){
         codesBin.push(binCode)
     }
 
-    p = createP()
     regenerateRulesButton = createButton("Regenerate Rules")
     regenerateRulesButton.mousePressed(newCode)
     pickRandomPresetButton = createButton("Pick Random Preset")
@@ -193,6 +210,31 @@ function setup(){
     populateGridButton.mousePressed(populateGrid)
     clearButton = createButton("Clear Grid")
     clearButton.mousePressed(clearGrid)
+    skipFramesButton = createButton("Skip Even Frames")
+    skipFramesButton.mousePressed(toggleSkipFrames)
+    nNeihP = createP("Neighbourhoods")
+    nNeihSlider = createSlider(1, 7, 3, 1)
+    minMultP = createP("Min Mult: ")
+    minMultP.position(145, HEIGHT + 33)
+    minMultSlider = createSlider(-10, 0, -5, 1)
+    maxMultP = createP("Max Mult: ")
+    maxMultP.position(145*2-15, HEIGHT + 33)
+    maxMultSlider = createSlider(0, 10, 5, 1)
+
+    textAlign(CENTER)
+    textSize(15)
+    textFont("Gill Sans")
+}
+
+function toggleSkipFrames(){
+    if(skipFrames == 0){ 
+        skipFrames = 1
+        skipFramesButton.elt.innerHTML ="Skip Odd Frames"
+    }
+    else if(skipFrames == 1){ 
+        skipFrames = 0
+        skipFramesButton.elt.innerHTML = "Skip Even Frames"
+    }
 }
 
 function clearGrid(){
@@ -207,7 +249,21 @@ function clearGrid(){
 }
 
 function draw(){
-    if(frameCount % 2 == 0) background("#090044")
+    if(frameCount % 2 == skipFrames) background("#090044")
+
+    if(nNeihSlider.value() != Ncodes){
+        Ncodes = nNeihSlider.value()
+        newCode()
+    }
+    if(minMultSlider.value() != minMult){
+        minMult = minMultSlider.value()
+        newCode()
+    }
+    if(maxMultSlider.value() != maxMult){
+        maxMult = maxMultSlider.value()
+        newCode()
+    }
+
     noStroke()
     fill(colCell)
 
@@ -220,7 +276,7 @@ function draw(){
     }
 
     //Dibujar grid
-    if(frameCount % 2 == 0){
+    if(frameCount % 2 == skipFrames){
         loadPixels()
         for(let i = 0; i < N; i++){ 
             for(let j = 0; j < N; j++){ 
@@ -246,22 +302,30 @@ function draw(){
             grid[i][j] = next_grid[i][j]
         }
     }
-    p.html("")
-    p.html("neighbour types: " + codes[0].code + ", "  + codes[1].code + ", "  + codes[2].code + " fps: " + floor(frameRate()))
+
+    nNeihP.html("Neighbourhoods: " + Ncodes)
+    minMultP.html("Min Mult: " + minMult)
+    maxMultP.html("Max Mult: " + maxMult)
 
     //Dibujar reglas
     fill(colCell)
+    translate(20, (WIDTH/10)*9+5)
+    rect(-20, -20, WIDTH, (WIDTH/10)*9-25)
     stroke("#090044")
-    strokeWeight(3)
-    translate(15, (WIDTH/10)*9-15)
-    setRule(codes[0].code)
-    drawRule()
-    translate((WIDTH/10)+50, 0)
-    setRule(codes[1].code)
-    drawRule()
-    translate((WIDTH/10)+50, 0)
-    setRule(codes[2].code)
-    drawRule()
+    strokeWeight(2.5)
+
+    for(let i = 0; i < Ncodes; i++){
+        setRule(codes[i].code)
+        fill(colCell)
+        stroke("#090044")
+        strokeWeight(2.5)
+        drawRule()
+        noStroke()
+        fill("#090044")
+        text(round(codes[i].mult, 1), 20, -6)
+        translate((WIDTH/10)+25, 0)
+    }
+    
 }
 
 function drawRule(){
