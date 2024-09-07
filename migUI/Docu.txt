@@ -1,7 +1,7 @@
 elements in [] are optional arguments
 
 PANEL
-let panel = new Panel(x, y, w, h, [title = ""], [darkCol = [0,0,0]], [lightCol = [255,255,255]])
+let panel = new Panel(x, y, w, h, [title = ""], [darkCol = [0,0,0]], [lightCol = [255,255,255]]) //darkCol and lightCol can be RGB arrays or HEX strings
 panel.update() //updates all elements
 panel.show()
 
@@ -11,7 +11,7 @@ let bool = panel.isChecked(i*)
 
 SLIDER
 panel.addSlider(min, max, origin, [title = ""], [showValue = false])
-let val = panel.value(i*) 
+let val = panel.getValue(i*) 
 
 TEXT
 panel.addText([text = ""], [isTitle = false])  //isTitle will aument the text size
