@@ -13,16 +13,21 @@ function mapp(value, start1, stop1, start2, stop2, withinBounds = false) {
 }
 
 function drawFastRect(x, y, w, h, r, g, b, a = 255) {
-    for (let i = 0; i < w; i++) {
-        for (let j = 0; j < h; j++) {
+    let density = pixelDensity(); // Get the pixel density (e.g., 2 on Retina displays)
+    let adjustedWidth = WIDTH * density; // Adjust width for pixel density
 
-            let index = (4 * ((y + j) * WIDTH + (x + i)));
+    for (let i = 0; i < w * density; i++) {
+        for (let j = 0; j < h * density; j++) {
             
-            pixels[index] = r;     
-            pixels[index + 1] = g; 
-            pixels[index + 2] = b;
-            pixels[index + 3] = a; 
+            // Adjust the index to account for pixel density
+            let index = 4 * (((y * density) + j) * adjustedWidth + ((x * density) + i));
+
+            pixels[index] = r;     // Red
+            pixels[index + 1] = g; // Green
+            pixels[index + 2] = b; // Blue
+            pixels[index + 3] = a; // Alpha
         }
     }
 }
+
 

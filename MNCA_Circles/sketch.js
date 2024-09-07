@@ -2,18 +2,19 @@
 //Miguel Rodríguez
 //03-09-2024
 
-const WIDTH = 600
-const HEIGHT = 600
+const WIDTH = 800
+const HEIGHT = 800
 const colCell = "#ff632a"
 const colBack = "#ffbf00"
-let N = 150
+let N = 200
 
 let grid = []
 let next_grid = []
 
 let spacing = WIDTH/N
 
-let p
+
+let panel
 
 let clearButton
 let populateGridButton
@@ -55,6 +56,10 @@ const coords2 = [
 let randomVal = []
 
 let sumAllNeigh = 0
+
+function preload(){
+    text_Font = loadFont("dogicapixel.ttf")
+}
 
 
 function populateGrid(){
@@ -145,12 +150,21 @@ function decideOutput(NEIGHBORHOOD_AVG, REFERENCE_VAL, func){
 function setRandomVal(){
     clearGrid()
     populateGrid()
-    for(let i = 0; i < 16; i++) randomVal[i] = random()
+    for(let i = 0; i < 16; i++){ 
+        randomVal[i] = random()
+        panel.sliders[i].setValue(randomVal[i])
+    }
 }
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
-    pixelDensity(1)
+    panel = new Panel(WIDTH-200, 0, 200, HEIGHT, "MNCA\nCircular\nNeighbours", [255, 191, 0], [255, 99, 42])
+    for(let i = 0; i < 16; i++) panel.addSlider(0, 1, 0.5)
+    panel.addButton("Populate", populateGrid)
+    panel.addButton("Clear", clearGrid)
+    panel.addButton("Skip Even", toggleSkipFrames)
+    panel.addButton("Randomize", setRandomVal)
+    panel.addText()
     //frameRate(1)
     //noLoop()
 
@@ -163,30 +177,16 @@ function setup(){
 
     setRandomVal()
 
-    populateGridButton = createButton("Populate Grid")
-    populateGridButton.mousePressed(populateGrid)
-    clearButton = createButton("Clear Grid")
-    clearButton.mousePressed(clearGrid)
-    skipFramesButton = createButton("Skip Even Frames")
-    skipFramesButton.mousePressed(toggleSkipFrames)
-    resetRandomValButton = createButton("Reset Random")
-    resetRandomValButton.mousePressed(setRandomVal)
-
-    textAlign(CENTER)
-    textSize(15)
-    textFont("Gill Sans")
-
-    p = createP()
 }
 
 function toggleSkipFrames(){
     if(skipFrames == 0){ 
         skipFrames = 1
-        skipFramesButton.elt.innerHTML ="Skip Odd Frames"
+        panel.changeText(2, "Skip Odd")
     }
     else if(skipFrames == 1){ 
         skipFrames = 0
-        skipFramesButton.elt.innerHTML = "Skip Even Frames"
+        panel.changeText(2, "Skip Even")
     }
 }
 
@@ -206,6 +206,11 @@ function clearGrid(){
 
 function draw(){
     if(frameCount % 2 == skipFrames) background(colCell)
+    
+    for(let i = 0; i < 16; i++){
+        randomVal[i] = panel.value(i)
+    }
+    panel.setText(0, "FPS: " + round(frameRate()))
 
     noStroke()
     fill(colCell)
@@ -247,7 +252,9 @@ function draw(){
         }
     }
 
-    p.html(round(frameRate()))
+    panel.show()
+    panel.update()
+
 }
 
 
