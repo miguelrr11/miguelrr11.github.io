@@ -1,6 +1,6 @@
-//
+//Ant Sim
 //Miguel Rodríguez
-//
+//08-09-2024
 
 p5.disableFriendlyErrors = true
 const WIDTH = 800
@@ -8,14 +8,18 @@ const HEIGHT = 800
 
 let maxAngle = 0.05
 
+let dt = 1
+
 let ants = []
 let food = []
 let homePhero = []
 let foodPhero = []
+let foodInHome = []
 
 let qtreeH, rangeH, boundaryH
 let qtreeF, rangeF, boundaryF
-let N = 32
+let qtreeFood, rangeFood, boundaryFood
+let N = 8
 
 let home
 
@@ -70,6 +74,7 @@ function reset(){
     food = []
     homePhero = []
     foodPhero = []
+    foodInHome = []
     noiseFood()
     blobFood()
     
@@ -80,6 +85,10 @@ function reset(){
     rangeF = new Rectangle(0, 0, 0, 0);
     boundaryF = new Rectangle(WIDTH/2, WIDTH/2, WIDTH/2, WIDTH/2);
     qtreeF = new QuadTree(boundaryF, N);
+
+    rangeFood = new Rectangle(0, 0, 0, 0);
+    boundaryFood = new Rectangle(WIDTH/2, WIDTH/2, WIDTH/2, WIDTH/2);
+    qtreeFood = new QuadTree(boundaryFood, N);
 }
 
 function setup(){
@@ -90,6 +99,7 @@ function setup(){
     panel.addSlider(0, 100, 45, "Range", true)
     panel.addSlider(0, 5, 1, "Speed", true)
     panel.addSlider(0, 0.5, 0.05, "Steering", true)
+    panel.addSlider(0, 3, 1, "dt", true)
     panel.addButton("Reset Params", resetOptions)
     panel.addButton("Show Tracing", toggleBoolTrace)
     panel.addButton("Random food", noiseFood)
@@ -128,6 +138,10 @@ function setup(){
     boundaryF = new Rectangle(WIDTH/2, WIDTH/2, WIDTH/2, WIDTH/2);
     qtreeF = new QuadTree(boundaryF, N);
 
+    rangeFood = new Rectangle(0, 0, 0, 0);
+    boundaryFood = new Rectangle(WIDTH/2, WIDTH/2, WIDTH/2, WIDTH/2);
+    qtreeFood = new QuadTree(boundaryFood, N);
+
     p1 = createP()
     p2 = createP()
 
@@ -142,14 +156,16 @@ function resetOptions(){
     speedMag = 1
     half_fov_rad = fovRad/2
     maxAngle = 0.05
+    dt = 1
     panel.setValue("FOV", fov)
     panel.setValue("Range", range)
     panel.setValue("Speed", speedMag)
     panel.setValue("Steering", maxAngle)
+    panel.setValue("dt", dt)
 }
 
 function draw(){
-    if(!boolTrace) background(0)
+    if(!boolTrace) background(20)
 
     fov = panel.getValue("FOV")
     fovRad = radians(fov)
@@ -159,17 +175,9 @@ function draw(){
     half_fov_rad = fovRad/2
     maxAngle = panel.getValue("Steering") 
     panel.setText(0, "FPS: " + round(frameRate()))
+    dt = panel.getValue("dt")
 
-    
-    // loadPixels()
-    // for(let i = 0; i < WIDTH; i++){
-    //     for(let j = 0; j < HEIGHT; j++){
-    //         if(ants[0].isPointInFOV(createVector(i, j))) set(i, j, color(255, 0, 0))
-    //         if(ants[0].isPointInFOV(createVector(i, j), "left")) set(i, j, color(0, 255, 0))
-    //         if(ants[0].isPointInFOV(createVector(i, j), "right")) set(i, j, color(0, 0, 255))
-    //     }
-    // }
-    // updatePixels()
+
     if(food.length == 0){
         let x = random(WIDTH)
         let y = random(HEIGHT)
@@ -181,13 +189,13 @@ function draw(){
         stroke(255, 10)
     }
 
-    if(!boolTrace){
-        for(let f of food){
-            f.show()
-        }
+
+    qtreeFood = new QuadTree(boundaryFood, N)
+    for(let i = 0; i < food.length; i++){
+        if(!boolTrace) food[i].show()
+        qtreeFood.insert(food[i])
     }
     
-
     qtreeH = new QuadTree(boundaryH, N);
     for(let i = 0; i < homePhero.length; i++){
         let p = homePhero[i]
@@ -212,11 +220,15 @@ function draw(){
         if(boolTrace) line(a.pos.x, a.pos.y, a.oldPos.x, a.oldPos.y)
     }
 
+    
+
    
 
     if(!boolTrace){ 
+        for(let f of foodInHome) f.show()
         noFill()
-        stroke(255)
+        stroke(255, 100)
+        strokeWeight(3)
         ellipse(home.x, home.y, 100, 100)
         noStroke()
     }
@@ -226,6 +238,23 @@ function draw(){
 
     panel.update()
     panel.show()
+}
+
+function countAnts(){
+    let sum = 0
+    for(let a of ants){
+        if(a.pos.x < WIDTH && a.pos.x > 0 
+           && a.pos.y > 0 && a.pos.y < HEIGHT) sum++
+    }
+    return sum
+
+}
+
+function depositFood(){
+    if(random() > 0.1 || foodInHome.length > 350) return
+    let f = new Particle(WIDTH/2 + random(-10, 10), (HEIGHT/2 + random(-10, 10)), "foodInHome")
+    f.r = random(15, 45)
+    foodInHome.push(f)
 }
 
 function squaredDistance(x1, y1, x2, y2) {

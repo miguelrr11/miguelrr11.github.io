@@ -12,11 +12,11 @@ class Ant{
 		this.frameEatenFood = 0
 		this.frameExitHome = 0
 
-		this.frameTime = floor(random(25, 65))
+		this.frameTime = floor(random(25, 45))
 
 	}
 
-	isPointInFOV(point, orientation = "straight") {
+	isPointInFOV(point, orientation = "straight", range = rangesq) {
 	    // Precompute FOV direction only if necessary
 	    let fovDirection;
 	    if (orientation === "left") {
@@ -73,15 +73,15 @@ class Ant{
 	}
 
 	goTheOtherDirection(){
-		this.angle -= PI
+		this.angle -= HALF_PI
 		this.speed = p5.Vector.fromAngle(this.angle)
 		this.speed.setMag(speedMag)
 	}
 
-	updateFOVS(straight, left, right, pos, val){
-		straight = this.isPointInFOV(pos) ? straight + val : straight
-		left = this.isPointInFOV(pos, "left") ? left + val : left
-		right = this.isPointInFOV(pos, "right") ? right + val : right
+	updateFOVS(straight, left, right, pos, val, range = rangesq){
+		straight = this.isPointInFOV(pos, "straight", range) ? straight + val : straight
+		left = this.isPointInFOV(pos, "left", range) ? left + val : left
+		right = this.isPointInFOV(pos, "right", range) ? right + val : right
 		return [straight, left, right]
 	}
 
@@ -92,7 +92,8 @@ class Ant{
 	}
 
 	update(){
-		this.pos.add(this.speed)
+		let speed = this.speed.copy().mult(dt)
+		this.pos.add(speed)
 
 		if(!this.goingHome && this.frameExitHome < 15 && frameCount % this.frameTime == 15){ 
 			this.pushHome()
@@ -109,6 +110,7 @@ class Ant{
 		let right = 0
 		let fewFood = []
 		let fewHome = []
+		let fewFoodToEat = []
 		if(!this.goingHome){
             rangeF.x = this.pos.x
             rangeF.y = this.pos.y
@@ -116,11 +118,17 @@ class Ant{
             rangeF.h = range
             fewFood = qtreeF.query(rangeF);
             if(fewFood == undefined) fewFood = []
-            for(let f of food){
-				[straight, left, right] = this.updateFOVS(straight, left, right, f.pos, 100)
-			}
 			for(let f of fewFood){
 				[straight, left, right] = this.updateFOVS(straight, left, right, f.pos, 1)
+			}
+			rangeFood.x = this.pos.x
+            rangeFood.y = this.pos.y
+            rangeFood.w = range
+            rangeFood.h = range
+            fewFoodToEat = qtreeFood.query(rangeFood);
+            if(fewFoodToEat == undefined) fewFoodToEat = []
+			for(let f of fewFoodToEat){
+				[straight, left, right] = this.updateFOVS(straight, left, right, f.pos, 100)
 			}
 		}
 
@@ -134,7 +142,7 @@ class Ant{
             for(let f of fewHome){
 				[straight, left, right] = this.updateFOVS(straight, left, right, f.pos, 1)
 			}
-			[straight, left, right] = this.updateFOVS(straight, left, right, home, 100)     
+			[straight, left, right] = this.updateFOVS(straight, left, right, home, 1000, 4000)     
 		}
 
 
@@ -147,6 +155,7 @@ class Ant{
 			if(this.goingHome){
 				this.goingHome = false
 				this.goTheOtherDirection()
+				depositFood()
 			}
 			this.frameExitHome = 0
 		}
@@ -160,6 +169,10 @@ class Ant{
 	edges() {
 	    if(this.pos.x < 0 || this.pos.x > WIDTH ||
 	       this.pos.y < 0 || this.pos.y > HEIGHT) this.goTheOtherDirection()
+	    if(this.pos.x < 0) this.pos.x = 0
+	    if(this.pos.x > WIDTH) this.pos.x = WIDTH
+	    if(this.pos.y < 0) this.pos.y = 0
+	    if(this.pos.y > HEIGHT) this.pos.y = HEIGHT
 	}
 
 
@@ -176,7 +189,7 @@ class Ant{
 	}
 
 	show(){
-		fill(255, 100)
+		fill(255, 120)
 		ellipse(this.pos.x, this.pos.y, 7, 7)
 		if(this.goingHome){
 			fill(0, 255, 0)

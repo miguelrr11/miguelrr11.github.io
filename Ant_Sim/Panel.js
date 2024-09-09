@@ -4,11 +4,12 @@
 
 let bordeMIGUI = 1.75
 let text_FontMIGUI = ""
-let text_SizeMIGUI = 15
+let text_SizeMIGUI = 13
+let element_text_SizeMIGUI = 12
 let title_SizeMIGUI = 19
 let width_elementsMIGUI = 158
 let clipping_length_normalMIGUI = 13
-let clipping_length_titleMIGUI = 11
+let clipping_length_titleMIGUI = 12
 
 class Panel{
 	constructor(x, y, w, h, title = "", darkC = [0,0,0], lightC = [255,255,255]){
@@ -146,6 +147,7 @@ class Panel{
 		let button = new Button(this.lastElementPos.x,
 							  this.lastElementPos.y, words, func,
 							  this.lightCol, this.darkCol, this.transCol)
+		
 		this.lastElementPos.y += 35
 		this.buttons.push(button)
 		this.lastElementAdded = button
@@ -545,7 +547,7 @@ class Select{
 		strokeWeight(bordeMIGUI)
 		stroke(this.lightCol)
 		fill(this.darkCol)
-		textSize(text_SizeMIGUI-2)
+		textSize(element_text_SizeMIGUI)
 		for(let i = 0; i < this.options.length; i++){
 			let o = this.options[i]
 			this.isHovering(i) ? fill(this.transCol) : noFill()
@@ -625,7 +627,7 @@ class Input{
 
 		noStroke()
 		fill(this.lightCol)
-		textSize(text_SizeMIGUI-2)
+		textSize(element_text_SizeMIGUI)
 		if(this.sentence.length != 0) text(this.sentence, this.pos.x + bordeMIGUI + 3, this.pos.y + this.h*0.7)
 		else text(this.placeholder, this.pos.x + bordeMIGUI + 3, this.pos.y + this.h*0.7)
 		pop()
@@ -645,7 +647,7 @@ class Button{
 		this.beingPressed = false
 
 		this.func = func
-		this.w = text.length * 12.5
+		this.w = text.length * 11.4
 		this.w = constrain(this.w, 20, width_elementsMIGUI)
 		this.h = 25
 	}
@@ -691,7 +693,7 @@ class Button{
 		noStroke()
 		fill(this.lightCol)
 		if(this.beingHovered && mouseIsPressed) fill(this.darkCol)
-		textSize(text_SizeMIGUI-2)
+		textSize(element_text_SizeMIGUI)
 		text(this.text, this.pos.x + bordeMIGUI+3, this.pos.y + this.h*0.7)
 		pop()
 	}
