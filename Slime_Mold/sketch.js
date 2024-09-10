@@ -3,11 +3,11 @@
 //09-09-2024
 
 p5.disableFriendlyErrors = true
-const WIDTH = 700
-const HEIGHT = 700
+const WIDTH = 600
+const HEIGHT = 600
 const N = WIDTH //OBLIGATORIO
 let c1 = [hexToRgb("#1d3557"), hexToRgb("#457b9d"), hexToRgb("#e63946")]
-let c2 = [hexToRgb("#393e41"), hexToRgb("#f4d35e"), hexToRgb("#fff8f0")]
+let c2 = [hexToRgb("#393e41"), hexToRgb("#fff8f0"), hexToRgb("#f4d35e")]
 let c3 = [hexToRgb("#fbf5f3"), hexToRgb("#e28413"), hexToRgb("#000022")]
 let c4 = [hexToRgb("#092327"), hexToRgb("#0b5351"), hexToRgb("#17B1AD")]
 let activeCol
@@ -114,9 +114,11 @@ function draw(){
     else if(selected == "Rusty") activeCol = c3
     else if(selected == "Techno") activeCol = c4
     panel.changeCols(activeCol[0], activeCol[2])
+
+    
     
     let sum, ni, nj
-    if (panel.isChecked(0) && frameCount % 3 == 0) {
+    if (panel.isChecked(0) && frameCount % 2 == 0) {
         for (let i = 0; i < N; i++) {
             for (let j = 0; j < N; j++) {
                 sum = 0;
@@ -136,7 +138,6 @@ function draw(){
         SWAP(grid, new_grid)
     }
 
-    
     let i, j
     for (let t = 0; t < dt; t++) {
         for (let a of agents) {
@@ -146,6 +147,7 @@ function draw(){
             grid[i][j] = 1
         }
     }
+    
     
     
     loadPixels()
