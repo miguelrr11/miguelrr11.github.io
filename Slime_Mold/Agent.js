@@ -5,33 +5,37 @@ class Agent{
 		if(facingAway) this.angle = atan2(y-HEIGHT/2, x-WIDTH/2)
 		this.speed = p5.Vector.fromAngle(this.angle)
 
-		this.maxAngle = radians(25) //25
+		this.maxAngle = radians(25)
 
-
-		this.range = 9  //35
+		this.range = 9
 		this.neigh = [[0, 0]]
-		// this.neigh = [[-1, -1], [0, -1], [1, -1],
-		// 			  [-1, 0], [0, 0], [1, 0],
-		// 			  [-1, 1], [0, 1], [1, 1]]
-		this.fov = radians(35) //30
+		this.fov = radians(35)
 	}
 
-	see(angle){
-		let sx = Math.cos(this.angle+angle)*this.range + this.pos.x
-		let sy = Math.sin(this.angle+angle)*this.range + this.pos.y
-		let i = Math.floor(sx / spacing)
-        let j = Math.floor(sy / spacing)
-		if(i < 0 || i > N-1 || j < 0 || j > N-1) return 0
-		if(grid[i][j] < 0.5) return 0
-		return grid[i][j]
+	see(angle) {
+	    let normalizedAngle = (this.angle + angle) % TWO_PI
+	    if (normalizedAngle < 0) normalizedAngle += TWO_PI
+
+	    let index = Math.floor(normalizedAngle * 1000) % 6282
+
+	    let sx = coss[index] * this.range + this.pos.x
+	    let sy = sins[index] * this.range + this.pos.y
+
+	    let i = Math.max(0, Math.min(Math.floor(sx), N - 1));
+    	let j = Math.max(0, Math.min(Math.floor(sy), N - 1));
+
+	    return grid[i][j]
 	}
+
 
 	goLeft(){
 		this.angle -= angle
+		this.angle = this.angle % TWO_PI
 	}
 
 	goRight(){
 		this.angle += angle
+		this.angle = this.angle % TWO_PI
 	}
 
 	update(){

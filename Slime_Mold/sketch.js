@@ -5,6 +5,7 @@
 p5.disableFriendlyErrors = true
 const WIDTH = 700
 const HEIGHT = 700
+const N = WIDTH //OBLIGATORIO
 let c1 = [hexToRgb("#1d3557"), hexToRgb("#457b9d"), hexToRgb("#e63946")]
 let c2 = [hexToRgb("#393e41"), hexToRgb("#f4d35e"), hexToRgb("#fff8f0")]
 let c3 = [hexToRgb("#fbf5f3"), hexToRgb("#e28413"), hexToRgb("#000022")]
@@ -12,18 +13,18 @@ let c4 = [hexToRgb("#092327"), hexToRgb("#0b5351"), hexToRgb("#17B1AD")]
 let activeCol
 
 let dt = 5
-const N = WIDTH
+
 const spacing = WIDTH/N
 let grid = []
 let new_grid = []
+
+let coss = []
+let sins = []
 
 let agents = []
 let nAgents = 2000
 
 let neigh = [[-1, 0], [1, 0], [0, 1], [0, -1], [0, 0]]
-// let neigh = [[-1, -1], [0, -1], [1, -1],
-//                    [-1, 0], [0, 0], [1, 0],
-//                    [-1, 1], [0, 1], [1, 1]]
 
 let panel
 let fov
@@ -68,12 +69,17 @@ function reset(){
 function setup(){
     createCanvas(WIDTH+200, HEIGHT)
     
-    
     for(let i = 0; i < N; i++){
         grid[i] = []
         new_grid[i] = []
         for(let j = 0; j < N; j++) grid[i][j] = 0
     }
+    
+    for(let i = 0; i < 6282; i++){
+        coss[i] = Math.cos(i/1000)
+        sins[i] = Math.sin(i/1000)
+    }
+
     noStroke()
     panel = new Panel(WIDTH, 0, 200, HEIGHT, "SLIME MOLD", undefined, undefined, false)
     panel.addSlider(0, 120, 25, "Agent FOV", true)
@@ -92,15 +98,14 @@ function setup(){
 
 function draw(){
     //background(dark_col_rgb)
-    
     fpsSum += frameRate()
-    if(frameCount % 30 == 0){
-        fps = fpsSum/30
+    if(frameCount % 60 == 0){
+        fps = fpsSum/60
         fpsSum = 0
     }
 
-    fov = radians(panel.getValue("Agent FOV"))
-    angle = radians(panel.getValue("Agent Steering"))
+    fov = degreesToRadians(panel.getValue("Agent FOV"))
+    angle = degreesToRadians(panel.getValue("Agent Steering"))
     dt = Math.floor(panel.getValue("dt"))
     panel.setText(2, "FPS: " + Math.floor(fps))
     let selected = panel.getSelected(0)
@@ -110,55 +115,57 @@ function draw(){
     else if(selected == "Techno") activeCol = c4
     panel.changeCols(activeCol[0], activeCol[2])
     
-    if(panel.isChecked(0)){
-        for(let i = 0; i < N; i++){
-            for(let j = 0; j < N; j++){
-                let sum = 0
-                for(let n of neigh){ 
-                    if(i + n[0] < 0 || i + n[0] > N-1 || j + n[1] < 0 || j + n[1] > N-1) continue
-                    sum += grid[i + n[0]][j + n[1]]
-                }
-                new_grid[i][j] = sum/5
-            }
-        }
-        
-        for(let i = 0; i < N; i++){
-            for(let j = 0; j < N; j++){
-                grid[i][j] = new_grid[i][j]
-            }
-        }
-    }
-    
+    let sum, ni, nj
+    if (panel.isChecked(0)) {
+        for (let i = 0; i < N; i++) {
+            for (let j = 0; j < N; j++) {
+                sum = 0;
+                for (let n of neigh) {
+                    ni = i + n[0]
+                    nj = j + n[1]
 
-    for(let i = 0; i < dt; i++){
-        for(let a of agents){
-            a.update()
-            let i = constrain(floor(a.pos.x / spacing), 0, N-1)
-            let j = constrain(floor(a.pos.y / spacing), 0, N-1)
+                    if (ni >= 0 && ni < N && nj >= 0 && nj < N) {
+                        sum += grid[ni][nj];
+                    }
+                }
+
+                new_grid[i][j] = sum / 5
+            }
+        }
+
+        SWAP(grid, new_grid)
+    }
+
+    
+    let i, j
+    for (let t = 0; t < dt; t++) {
+        for (let a of agents) {
+            a.update();
+            i = Math.max(0, Math.min(Math.floor(a.pos.x / spacing), N - 1))
+            j = Math.max(0, Math.min(Math.floor(a.pos.y / spacing), N - 1))
             grid[i][j] = 1
         }
     }
     
     
     loadPixels()
-    let factorNoBlur = 0.006*dt*0.2
-    let factorBlur = 0.006*dt*0.05
-    let bool = panel.isChecked(0)
+    let factor = panel.isChecked(0) ? 0.006 * dt * 0.05 : 0.006 * dt * 0.2;
+    let r, g, b, val, gridVal
     for(let i = 0; i < N; i++){
         for(let j = 0; j < N; j++){
-            new_grid[i] = []
-            if(!bool) grid[i][j] -= factorNoBlur
-            else grid[i][j] -= factorBlur
+            grid[i][j] -= factor
+
             if(grid[i][j] < 0) grid[i][j] = 0
-            let r, g, b
-            if(grid[i][j] > 0.35){
-                let val = mapp(grid[i][j], 0.35, 1, 0, 1)
+
+            gridVal = grid[i][j]
+            if(gridVal > 0.35){
+                val = (gridVal - 0.35) * 1.54
                 r = customLerp(activeCol[1][0], activeCol[2][0], val)
                 g = customLerp(activeCol[1][1], activeCol[2][1], val)
                 b = customLerp(activeCol[1][2], activeCol[2][2], val)
             }
             else{
-                let val = mapp(grid[i][j], 0, 0.35, 0, 1)
+                val = gridVal * 2.85
                 r = customLerp(activeCol[0][0], activeCol[1][0], val)
                 g = customLerp(activeCol[0][1], activeCol[1][1], val)
                 b = customLerp(activeCol[0][2], activeCol[1][2], val)
@@ -174,7 +181,14 @@ function draw(){
 
     // noLoop()
     //for(let a of agents) a.showDebug()
+}
 
+function SWAP(x0, x) {
+    let temp = x0.slice();  // Copy contents of x0
+    x0.length = 0;          // Clear x0
+    x0.push(...x);          // Copy contents of x to x0
+    x.length = 0;           // Clear x
+    x.push(...temp);        // Copy contents of temp (old x0) to x
 }
 
 function hexToRgb(hex) {
@@ -188,4 +202,8 @@ function hexToRgb(hex) {
 
 function customLerp(a, b, amt){
     return (1-amt)*a + amt*b
+}
+
+function degreesToRadians(degrees) {
+    return degrees * 0.017453292519943295; // Precomputed constant (Math.PI / 180)
 }
