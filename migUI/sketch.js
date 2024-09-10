@@ -12,9 +12,9 @@ let back = 100
 function setup(){
     createCanvas(WIDTH+200, HEIGHT)
     panel = new Panel(WIDTH, 0, 200, HEIGHT, "COLOR \nCONTROLS", "#000000", "#ffffff")
-    panel.addCheckbox(false, "RED")
-    panel.addCheckbox(false, "Green")
-    panel.addCheckbox(false, "Blue!")
+    panel.addCheckbox("RED", false)
+    panel.addCheckbox("Green", false)
+    panel.addCheckbox("Blue!", false)
 
     panel.addSlider(0, 255, 100, "R", true)
     panel.addSlider(0, 255, 0, "G", true)

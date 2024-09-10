@@ -636,7 +636,6 @@ class Input{
 		return this.sentence
 	}
 
-
 	evaluate(){
 		this.isHovering = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
 
