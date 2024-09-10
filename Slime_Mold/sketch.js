@@ -116,7 +116,7 @@ function draw(){
     panel.changeCols(activeCol[0], activeCol[2])
     
     let sum, ni, nj
-    if (panel.isChecked(0)) {
+    if (panel.isChecked(0) && frameCount % 3 == 0) {
         for (let i = 0; i < N; i++) {
             for (let j = 0; j < N; j++) {
                 sum = 0;
