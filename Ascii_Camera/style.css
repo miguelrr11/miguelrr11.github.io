@@ -4,8 +4,8 @@ html, body {
   background-color: #000;
   font-family: 'Courier';
   color: #FFF;
-  font-size: 7px;
-  line-height: 4pt;
+  font-size: 8px;
+  line-height: 5pt;
 }
 
 canvas {
