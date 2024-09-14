@@ -34,12 +34,15 @@ function setup() {
 
   salida = board[n - 1][n - 1];
   salida.e = false
-
-  //noLoop()
 }
 
-function keyPressed() {
-  redraw();
+function drawCurrent(){
+  push()
+  noStroke()
+  fill(255, 255, 0)
+  translate(wn/2, wn/2)
+  ellipse(current.i*wn, current.j*wn, wn/2, wn/2)
+  pop()
 }
 
 function draw() {
@@ -69,6 +72,7 @@ function draw() {
   else if (!terminado) {
     drawMaze()
     prev = current;
+    drawCurrent()
     current = current.move();
     
     if (current === undefined) {
@@ -107,7 +111,6 @@ function drawCamino(){
 }
 
 function drawMaze() {
-  background(0)
   for (let i = 0; i < n; i++) {
     for (let j = 0; j < n; j++) {
       board[i][j].show();
