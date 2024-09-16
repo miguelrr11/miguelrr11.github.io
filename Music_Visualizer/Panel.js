@@ -608,7 +608,7 @@ class Select{
 			if(i == this.selected){ 
 				fill(this.darkCol)
 			}
-			text(o, this.pos.x + bordeMIGUI, this.pos.y + this.singleH*0.7)
+			text(o, this.pos.x + bordeMIGUI + 3, this.pos.y + this.singleH*0.7)
 			translate(0, this.singleH)
 		}
 		pop()

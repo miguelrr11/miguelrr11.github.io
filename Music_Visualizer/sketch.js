@@ -15,6 +15,7 @@ let backImg
 let inactivityTimer
 const INACTIVITY_TIME = 3000
 let showing = false
+let mic
 
 let selectedFile
 
@@ -33,7 +34,7 @@ function mouseMoved() {
 function preload(){
     soundFormats('mp3');
     songs[0] = loadSound("songs/AmIDreaming.mp3")
-    songs[1] = loadSound("songs/HitEmUp.mp3")
+    songs[1] = loadSound("songs/RevaliBOTW.mp3")
     songs[2] = loadSound("songs/InTheCity.mp3")
     songs[3] = loadSound("songs/TheUnforgiven.mp3")
     songs[4] = loadSound("songs/WhenTheSunGoesDown.mp3")
@@ -44,6 +45,10 @@ function preload(){
 function toggleFullScreen(){
     fullscreen(!fs)
     fs = !fs
+    if(fs){
+        panel.changeText(3, "Exit Fullscreen")
+    }
+    else panel.changeText(3, "Enter Fullscreen")
 }
 
 function windowResized() {
@@ -67,6 +72,11 @@ function openFile(){
 }
 
 function togglePlay(bool = playing){
+    if(curSong == "Mic Audio"){
+        playing = false
+        panel.changeText(0, "Play")
+        return
+    }
     if(!bool){ 
         song.play()
         playing = true
@@ -104,20 +114,23 @@ function setup(){
     HEIGHT = windowHeight
 
     fft128 = new p5.FFT(0.95, 128)
-    fft256 = new p5.FFT(0.95, 512)
+    fft256 = new p5.FFT(0.95, 1024) //1024
     fftSmall = new p5.FFT(0.999, 1024)
     angleMode(DEGREES)
     noFill()
 
-    panel = new Panel(0, 0, 195, 340, "", undefined, undefined, true)
-    panel.addSelect(["Am I Dreaming", "Hit Em Up", "In The City", "The Unforgiven", "When The Sun Goes Down"], "Am I Dreaming")
+    panel = new Panel(0, 0, 195, 380, "", undefined, undefined, true)
+    panel.addSelect(["Am I Dreaming", "Revali BOTW", "In The City", "The Unforgiven", "When The Sun Goes Down", "Mic Audio"], "Am I Dreaming")
     panel.addButton("Play", togglePlay)
     panel.addButton("Open file", openFile)
     panel.addButton("Play file", playFile)
     panel.addButton("Enter Fullscreen", toggleFullScreen)
 
-    noCursor(); // Hide cursor initially
-    resetInactivityTimer(); // Start the inactivity timer
+    mic = new p5.AudioIn()
+    mic.start()
+
+    noCursor()
+    resetInactivityTimer()
 }
 
 function resetInactivityTimer() {
@@ -131,12 +144,13 @@ function resetInactivityTimer() {
     }, INACTIVITY_TIME);
 }
 
-function drawRing(spectrum, width, col){
+function drawRing(spectrum, width, col, bool = curSong == "Mic Audio"){
     strokeWeight(width)
     stroke(col)
+    let mult = bool ? 2 : 1
     for(let t = -1; t <= 1; t += 2){
         beginShape()
-        for(let i = 0; i <= 180; i += 0.5){
+        for(let i = 0; i <= 180; i += 0.25){
             let index = floor(map(i, 0, 180, 0, spectrum.length - 1))
             let r = map(spectrum[index], -1, 1, 140, 350)
             let x = r * sin(i) * t 
@@ -153,23 +167,31 @@ function draw(){
     if(curSong != panel.getSelected(0)){
         song.stop()
         curSong = panel.getSelected(0)
-        console.log(curSong)
         if(curSong == "Am I Dreaming") song = songs[0]
-        if(curSong == "Hit Em Up") song = songs[1]
+        if(curSong == "Revali BOTW") song = songs[1]
         if(curSong == "In The City") song = songs[2]
         if(curSong == "The Unforgiven") song = songs[3]
         if(curSong == "When The Sun Goes Down") song = songs[4]
+        if(curSong == "Mic Audio"){
+            fft128.setInput(mic)
+            fft256.setInput(mic)
+            fftSmall.setInput(mic)
+            togglePlay()
+        }
+        if(curSong != "Mic Audio"){
+            fft128 = new p5.FFT(0.95, 128)
+            fft256 = new p5.FFT(0.95, 1024)
+            fftSmall = new p5.FFT(0.999, 1024)
+        }
         if(playing) song.play()
     }
+
     spectrum128 = fft128.waveform()
     spectrum256 = fft256.waveform()
     spectrumSmall = fftSmall.waveform()
 
     fft256.analyze()
     amp = fft256.getEnergy(20, 200)
-
-
-
 
     push()
     translate(WIDTH / 2, HEIGHT / 2)
@@ -182,7 +204,6 @@ function draw(){
     let scaledWidth = imgWidth * scaleFactor
     let scaledHeight = imgHeight * scaleFactor
 
-
     if (amp > 250) {
         rotate(random(-0.5, 0.5))
     }
@@ -192,6 +213,17 @@ function draw(){
     pop()
 
     if(amp > 0) particles.push(new Particle())
+    if(amp > 230){ 
+        particles.push(new Particle())
+        particles.push(new Particle())
+    }
+    if(amp > 253){
+        particles.push(new Particle())
+        particles.push(new Particle())
+        particles.push(new Particle())
+        particles.push(new Particle())
+    }
+
 
     fill(0, map(amp, 0, 255, 200, 50))
     rect(0, 0, WIDTH, HEIGHT)
@@ -199,24 +231,6 @@ function draw(){
 
     push()
     translate(WIDTH/2, HEIGHT/2)
-    drawRing(spectrum128, 10, color(100, 100))
-    drawRing(spectrum256, 5, color(100))
-    drawRing(spectrum256, 1.5, color(255))
-
-    // stroke(255)
-    // noFill()
-    // //fill(255, 100)
-    // for(let t = -1; t <= 1; t += 2){
-    //     beginShape()
-    //     for(let i = 0; i <= 180; i += 0.01){
-    //         let index = floor(map(i, 0, 180, 0, spectrumSmall.length - 1))
-    //         let r = map(spectrumSmall[index], -1, 1, 0, 100)
-    //         let x = r * sin(i) * t 
-    //         let y = r * cos(i)
-    //         vertex(x, y)
-    //     }
-    //     endShape()
-    // }
 
     for(let i = 0; i < particles.length; i++) {
         let p = particles[i]
@@ -229,6 +243,11 @@ function draw(){
             i--
         }
     }
+
+    drawRing(spectrum128, 10, color(100, 100))
+    drawRing(spectrum256, 5, color(100))
+    drawRing(spectrum256, map(amp, 0, 255, 1.5, 2.5), color(255))
+
     pop()
 
     if(showing){
