@@ -9,13 +9,14 @@ let songs = []
 let fft128, spectrum128
 let fft256, spectrum256
 let fftSmall, spectrumSmall
-let amp
+let amp, ampT
 let playing = false
 let backImg
 let inactivityTimer
 const INACTIVITY_TIME = 3000
 let showing = false
 let mic
+let particleStartOffset
 
 let selectedFile
 
@@ -119,12 +120,17 @@ function setup(){
     angleMode(DEGREES)
     noFill()
 
-    panel = new Panel(0, 0, 195, 380, "", undefined, undefined, true)
+    panel = new Panel(0, 0, 195, 420, "", undefined, undefined, true)
     panel.addSelect(["Am I Dreaming", "Revali BOTW", "In The City", "The Unforgiven", "When The Sun Goes Down", "Mic Audio"], "Am I Dreaming")
     panel.addButton("Play", togglePlay)
     panel.addButton("Open file", openFile)
     panel.addButton("Play file", playFile)
     panel.addButton("Enter Fullscreen", toggleFullScreen)
+
+    panel.addText()
+    panel.addText()
+
+    panel.addSlider(6, 8, 7, "", true)
 
     mic = new p5.AudioIn()
     mic.start()
@@ -144,15 +150,46 @@ function resetInactivityTimer() {
     }, INACTIVITY_TIME);
 }
 
-function drawRing(spectrum, width, col, bool = curSong == "Mic Audio"){
-    strokeWeight(width)
-    stroke(col)
+function gaussianBell(x, a1, a2) {
+  const a = 2;    // peak value
+  const mu = (a1+a2)/2;  // center of the bell
+  const sigma = 6; // width of the bell
+
+  // Gaussian function
+  return a * Math.exp(-Math.pow(x - mu, 2) / (2 * Math.pow(sigma, 2)));
+}
+
+
+function drawRingGauss(spectrum, width, col, amp, bool = curSong == "Mic Audio"){
+    fill(255)
+    noStroke()
     let mult = bool ? 2 : 1
+    let off = map(amp, 0, 255, -40, 40)
+    let offG = map(amp, 120, 255, 0, 50, true)
+    let minR = 140 + off
+    let maxR = 350 + off
+    let max = 0
     for(let t = -1; t <= 1; t += 2){
         beginShape()
         for(let i = 0; i <= 180; i += 0.25){
             let index = floor(map(i, 0, 180, 0, spectrum.length - 1))
-            let r = map(spectrum[index], -1, 1, 140, 350)
+
+            //let r = map(spectrum[index], -1, 1, minR, maxR)
+            r = 75
+            if(r > max) max = r
+
+            //if(abs(i-90) <= 45 && abs(i-90) >= 25) r += 50
+            let absI = i - 90
+            let a1 = 50  
+            let a2 = 10
+            if(absI <= a1 && absI >= a2){
+                let gauss = gaussianBell(absI, a1, a2) 
+                console.log(gauss)
+                r += gauss*offG
+            }
+
+            
+            
             let x = r * sin(i) * t 
             let y = r * cos(i)
             vertex(x, y)
@@ -161,9 +198,37 @@ function drawRing(spectrum, width, col, bool = curSong == "Mic Audio"){
     }
 }
 
+function drawRing(spectrum, width, col, amp, bool = curSong == "Mic Audio"){
+    strokeWeight(width)
+    stroke(col)
+    let mult = bool ? 2 : 1
+    let off = map(amp, 0, 255, -40, 40)
+    let offG = map(amp, 120, 255, 0, 50, true)
+    let minR = 140 + off
+    let maxR = 350 + off
+    let max = 0
+    for(let t = -1; t <= 1; t += 2){
+        beginShape()
+        for(let i = 0; i <= 180; i += 0.25){
+            let index = floor(map(i, 0, 180, 0, spectrum.length - 1))
+
+            let r = map(spectrum[index], -1, 1, minR, maxR)
+            if(r > max) max = r
+
+            let x = r * sin(i) * t 
+            let y = r * cos(i)
+            vertex(x, y)
+        }
+        endShape()
+    }
+    particleStartOffset = max
+}
+
 function draw(){
     background(0)
 
+    panel.setText(0, "amp bass: " + Math.round(amp))
+    panel.setText(1, "amp treb: " + Math.round(ampT))
     if(curSong != panel.getSelected(0)){
         song.stop()
         curSong = panel.getSelected(0)
@@ -191,12 +256,13 @@ function draw(){
     spectrumSmall = fftSmall.waveform()
 
     fft256.analyze()
-    amp = fft256.getEnergy(20, 200)
+    amp = fft256.getEnergy("bass")
+    ampT = fft256.getEnergy("treble")
 
     push()
     translate(WIDTH / 2, HEIGHT / 2)
 
-    let offset = map(amp, 0, 255, 10, 15)
+    let offset = map(amp, 0, 255, 10, 20)
     let scaleFactor = 1 + offset / 100
 
     let imgWidth = WIDTH+100
@@ -212,20 +278,11 @@ function draw(){
     image(backImg, -scaledWidth / 2, -scaledHeight / 2, scaledWidth, scaledHeight);
     pop()
 
-    if(amp > 0) particles.push(new Particle())
-    if(amp > 230){ 
-        particles.push(new Particle())
-        particles.push(new Particle())
-    }
-    if(amp > 253){
-        particles.push(new Particle())
-        particles.push(new Particle())
-        particles.push(new Particle())
-        particles.push(new Particle())
-    }
+    let nPart = map(amp, 80, 255, 0, 0.75)
+    while(random() < nPart) particles.push(new Particle())
 
 
-    fill(0, map(amp, 0, 255, 200, 50))
+    fill(0, map(amp, 0, 225, 200, 50))
     rect(0, 0, WIDTH, HEIGHT)
     noFill()
 
@@ -235,8 +292,8 @@ function draw(){
     for(let i = 0; i < particles.length; i++) {
         let p = particles[i]
         if(p.edges()){
-            p.update(amp > 230)
-            p.show()
+            p.update(amp > 240, amp < 50)
+            p.show(amp < 50)
         }
         else{ 
             particles.splice(i, 1)
@@ -244,13 +301,15 @@ function draw(){
         }
     }
 
-    drawRing(spectrum128, 10, color(100, 100))
-    drawRing(spectrum256, 5, color(100))
-    drawRing(spectrum256, map(amp, 0, 255, 1.5, 2.5), color(255))
+    let col = map(amp, 0, 100, 0, 255)
+    drawRing(spectrum128, 10, color(100, col/4), amp)
+    drawRing(spectrum256, 5, color(100, col), amp)
+    drawRing(spectrum256, map(amp, 0, 255, 1, 2.5), color(255, col), amp)
+    drawRingGauss(spectrum256, 0, 0, amp)
 
     pop()
 
-    if(showing){
+    if(true){  //showing
         panel.update()
         panel.show()  
     }
