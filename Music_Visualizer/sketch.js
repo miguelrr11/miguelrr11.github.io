@@ -130,7 +130,7 @@ function setup(){
     panel.addText()
     panel.addText()
 
-    panel.addSlider(6, 8, 7, "", true)
+    //panel.addSlider(6, 8, 7, "", true)
 
     mic = new p5.AudioIn()
     mic.start()
@@ -183,12 +183,9 @@ function drawRingGauss(spectrum, width, col, amp, bool = curSong == "Mic Audio")
             let a1 = 50  
             let a2 = 10
             if(absI <= a1 && absI >= a2){
-                let gauss = gaussianBell(absI, a1, a2) 
-                console.log(gauss)
+                let gauss = gaussianBell(absI, a1, a2)
                 r += gauss*offG
             }
-
-            
             
             let x = r * sin(i) * t 
             let y = r * cos(i)
@@ -305,11 +302,11 @@ function draw(){
     drawRing(spectrum128, 10, color(100, col/4), amp)
     drawRing(spectrum256, 5, color(100, col), amp)
     drawRing(spectrum256, map(amp, 0, 255, 1, 2.5), color(255, col), amp)
-    drawRingGauss(spectrum256, 0, 0, amp)
+    //drawRingGauss(spectrum256, 0, 0, amp)
 
     pop()
 
-    if(true){  //showing
+    if(showing){  //showing
         panel.update()
         panel.show()  
     }
