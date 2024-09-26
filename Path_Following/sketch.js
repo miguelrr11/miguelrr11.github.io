@@ -9,7 +9,7 @@ const HEIGHT = 600
 let path
 let nPath = 200
 let agents = []
-let nAgents = 300
+let nAgents = 150
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
