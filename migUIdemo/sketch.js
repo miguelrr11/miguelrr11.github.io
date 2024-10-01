@@ -11,10 +11,18 @@ let back = 100
 
 function setup(){
     createCanvas(WIDTH+200, HEIGHT)
-    panel = new Panel(WIDTH, 0, 200, HEIGHT, "COLOR CONTROLS", "#000000", "#ffffff", true)
+    let properties = {
+        retractable: true,
+        theme: "blossom",
+        automaticHeight: true
+    }
+    panel = new Panel(properties)
+
     panel.addCheckbox("RED", false)
     panel.addCheckbox("Green", false)
     panel.addCheckbox("Blue!", false)
+
+    panel.addColorPicker("color pick me")
 
     panel.addSlider(0, 255, 100, "R", true)
     panel.addSlider(0, 255, 0, "G", true)
@@ -26,10 +34,10 @@ function setup(){
     panel.addSelect(["OPTION 1", "option 2", "option 3"], "option 2")  
 
     
-    panel.addInput("Enter value", setval)
+    panel.addInput("Enter value fasdfasdfasdfasdf", setval)
     panel.addText("Enter value below\nand press enter")
 
-    panel.addButton("GGGGGGrsdgtsdr", hola)
+    panel.addButton("GGGGGGrsdgtsdgfsagsdfgfsdgsdfgsdgsdfr", hola)
 }
 
 
@@ -52,10 +60,10 @@ function adios(){
 
 function draw(){
     background(back)
+    
     panel.update()
-    push()
+    
     panel.show()
-    pop()
 
     //bordeMIGUI = panel.getValue(3)
 
@@ -77,8 +85,15 @@ function draw(){
     let b = panel.getValue(2)
     fill(r, g, b)
     ellipse(WIDTH/2, HEIGHT/2, 100, 100)
-    fill(255)
-    ellipse(panel.lastElementPos.x, panel.lastElementPos.y, 10, 10)
+
+    let col = panel.getColor(0)
+    fill(col) 
+    ellipse(WIDTH*0.66, HEIGHT*0.66, 100, 100)
+
+    //panel.changeColors(col, "#ffffff")
+
+    // fill(255)
+    // ellipse(panel.lastElementPos.x, panel.lastElementPos.y, 10, 10)
 
 
 }
