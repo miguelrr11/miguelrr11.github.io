@@ -1,10 +1,38 @@
 elements in [] are optional arguments
 
 PANEL
-let panel = new Panel(x, y, w, h, [title = ""], [darkCol = [0,0,0]], [lightCol = [255,255,255]], retractable = false) //darkCol and lightCol can be RGB arrays or HEX strings
+let properties = {
+        x: 400, 						//default: WIDTH-200
+        y: 50,							//default: 0
+        w: 200,							//default: 200
+        h: HEIGHT,						//default: HEIGHT
+        title: "COLOR CONTROLS",		//default: ""
+        darkCol: "#fa0505",				//default: [0,0,0]
+        lightCol: [255, 76, 0],			//default: [255,255,255]
+        retractable: true,				//default: false
+        theme: "blossom",				//default: undefined
+        automaticHeight: true 			//default: true (height of panel will be adjusted automatically)
+    }
+panel = new Panel(properties) // any undefined element in properties will be set with a default value
 panel.update() //updates all elements
 panel.show()
-panel.changeCols(darkCol, lightCol) //changes colors for the panel and its elements
+panel.changeColors(darkCol, lightCol) //changes colors for the panel and its elements, accepts a hex string or an array of 3 values
+panel.setTheme(theme) //changes colors for the panel based on a preexisting theme
+Themes:
+	- mono
+	- light
+	- dark
+	- red
+	- blue
+	- green
+	- yellow
+	- spiderman
+	- slime
+	- clean
+	- techno
+	- sublime
+	- sunset
+	- blossom
 
 CHECKBOX
 panel.addCheckbox([title = ""], [state = false])
@@ -31,9 +59,13 @@ panel.addButton([title = ""], [func = undefined])
 panel.changeText(i, [text = ""])
 panel.changeFunc(i, [func = undefined])
 
+COLOR PICKER
+panel.addColorPicker([title = ""])
+panel.getColor(i*) //returns an array of 3 integers (r, g, b)
+
 NOTES
 - i is the index of the element in its array in the panel
-- i* is the index of the element in its array in the panel or its title
+- i* is the index of the element in its array in the panel or its title, name or sentence
 - The elements are positioned in the order that they are created
 - The indices of the elements are dependant of their type:
 	addButton (i = 0)
@@ -42,3 +74,41 @@ NOTES
 	addButton (i = 2)
 	addSlider (i = 1)
 	addText   (i = 0)
+
+EXAMPLE OF USE
+setup(){
+	let properties = {
+		x: 0,
+		y: 0,
+        retractable: true,
+        theme: "blossom",
+        automaticHeight: true
+    }
+    panel = new Panel(properties)
+	panel.addCheckbox("RED", false)
+	panel.addSlider(0, 255, 100, "R", true)
+	panel.addText("COOL TITLE", true)
+	panel.addSelect(["OPTION 1", "option 2", "option 3"], "option 2")  
+	panel.addInput("Enter value", setval)
+	panel.addButton("Press to ???", buttonPressed)
+}
+
+draw(){
+	panel.update()
+    panel.show()
+
+    let r1 = panel.isChecked(0)
+    let r2 = panel.getValue("R")
+    let op = panel.getSelected(0)
+}
+
+function setval(){
+	return 
+}
+
+function buttonPressed(){
+	return
+}
+
+
+
