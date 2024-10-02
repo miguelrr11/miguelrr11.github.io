@@ -36,14 +36,17 @@ Themes:
 	- random
 
 CHECKBOX
+A checkbox is either on or off
 panel.addCheckbox([title = ""], [state = false])
 let bool = panel.isChecked(i*) 
 
 SLIDER
+A slider holds a value between a given range
 panel.addSlider(min, max, origin, [title = ""], [showValue = false])
 let val = panel.getValue(i*) 
 
 TEXT
+The text will be formatted into a paragraph
 panel.addText([text = ""], [isTitle = false])  //isTitle will aument the text size
 panel.setText(i, [text = ""])
 
@@ -51,8 +54,9 @@ SELECT
 panel.addSelect([options = [""]], [selected = undefined]) //options is an array of strings
 panel.getSelected(i) 
 
-INPUT
-panel.addInput([placeholder = ""], [func = undefined]) //if pressed INTRO, func will be executed with the sentence entered as argument
+INPUT (text)
+Accepts any ascii character
+panel.addInput([placeholder = ""], [func = undefined]) //if pressed ENTER, func will be executed with the sentence entered as argument
 panel.getInput(i)
 
 BUTTON
@@ -61,8 +65,9 @@ panel.changeText(i, [text = ""])
 panel.changeFunc(i, [func = undefined])
 
 COLOR PICKER
+It has 3 sliders: hue, saturation and transparency
 panel.addColorPicker([title = ""])
-panel.getColor(i*) //returns an array of 3 integers (r, g, b)
+panel.getColor(i*) //returns an array of 4 integers (r, g, b, a)
 
 NOTES
 - i is the index of the element in its array in the panel
@@ -75,6 +80,7 @@ NOTES
 	addButton (i = 2)
 	addSlider (i = 1)
 	addText   (i = 0)
+- checkboxes and buttons will be stacked horizontally if possible, the rest of elements will be added vertically
 
 EXAMPLE OF USE
 setup(){

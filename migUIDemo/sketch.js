@@ -13,7 +13,8 @@ function setup(){
     createCanvas(WIDTH+200, HEIGHT)
     let properties = {
         retractable: true,
-        theme: "techno"
+        theme: "techno",
+        title: "MIGUI DEMO"
     }
     panel = new Panel(properties)
 
@@ -32,14 +33,13 @@ function setup(){
 
     panel.addSelect(["COOL", "AMAZING", "FABULOUS"], "COOL")  
 
-    
+    panel.addText("Enter number between 0 and 255 below and press enter")
     panel.addInput("Enter value ", setval)
-    panel.addText("Enter value below\nand press enter")
 
-    panel.addButton("Black", f => back = 0)
-    panel.addButton("Grey", f => back = 125)
-    panel.addButton("White", f => back = 255)
-    panel.addButton("Random", f => back = random(255))
+    panel.addButton("BLACK", f => back = 0)
+    panel.addButton("GREY", f => back = 125)
+    panel.addButton("WHITE", f => back = 255)
+    panel.addButton("RANDOM", f => back = random(255))
 }
 
 
@@ -62,7 +62,7 @@ function adios(){
 
 function draw(){
     background(back)
-    
+    noStroke()
     
     //bordeMIGUI = panel.getValue(3)
     panel.setText(0, panel.getSelected(0) + " TITLE")
@@ -92,18 +92,20 @@ function draw(){
 
     //panel.changeColors(col, "#ffffff")
 
-    
-
     panel.update()
     panel.show()
 
-    fill(255, 150)
-    noStroke()
-    ellipse(panel.lastElementPos.x, panel.lastElementPos.y, 5)
-    fill(0, 150)
-    ellipse(panel.lastElementAdded.pos.x, panel.lastElementAdded.pos.y, 10)
-    fill(255, 0, 0, 150)
-    if(panel.lastCB) ellipse(panel.lastCB.pos.x, panel.lastCB.pos.y, 5)
+    // fill(255, 150)
+    // noStroke()
+    // ellipse(panel.lastElementPos.x, panel.lastElementPos.y, 5)
+    // fill(0, 150)
+    // ellipse(panel.lastElementAdded.pos.x, panel.lastElementAdded.pos.y, 10)
+    // fill(255, 0, 0, 150)
+    // if(panel.lastCB) ellipse(panel.lastCB.pos.x, panel.lastCB.pos.y, 5)
+    // fill(0, 255, 0, 150)
+    // if(panel.lastBU) ellipse(panel.lastBU.pos.x, panel.lastBU.pos.y, 5)
 
 
 }
+
+

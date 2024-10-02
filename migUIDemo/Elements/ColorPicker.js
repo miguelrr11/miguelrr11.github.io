@@ -89,10 +89,8 @@ class ColorPicker{
 				this.alphaPos.x = constrain(this.alphaPos.x, this.poscp.x + 5, this.poscp.x + 5 + this.cpw - 10)
 				this.alpha = map(mouseX, this.poscp.x + 5, this.poscp.x + 5 + this.cpw - 10, 0, 255)
 			}
-			this.finalCol[0] = this.saturation[0]
-			this.finalCol[1] = this.saturation[1]
-			this.finalCol[2] = this.saturation[2]
-			this.finalCol[3] = this.alpha
+
+			this.finalCol = [...this.saturation.slice(0, 3), this.alpha];
 		}
 		if(!mouseIsPressed){ 
 			this.beingPressed = false
@@ -143,13 +141,16 @@ class ColorPicker{
 			// drawGradient2col(this.poscp.x + 5, this.poscp.y + this.cph * 0.33 + 2.5, this.cpw - 10, this.cph * 0.33 - 7.5, this.hue)
 			// drawGradient2col(this.poscp.x + 5, this.poscp.y + this.cph * 0.66 + 2.5, this.cpw - 10, this.cph * 0.33 - 7.5, this.hue)
 
-
 			fill(this.hue)
 			ellipse(this.huePos.x, this.huePos.y, 10)
 			fill(this.saturation)
 			ellipse(this.saturationPos.x, this.saturationPos.y, 10)
 			fill(this.finalCol)
 			ellipse(this.alphaPos.x, this.alphaPos.y, 10)
+
+			fill(255)
+			noStroke()
+			ellipse(this.poscp.x + this.cpw / 2, this.saturationPos.y, 5)
 		}
 		
 

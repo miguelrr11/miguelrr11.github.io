@@ -89,7 +89,7 @@ class Panel{
 	adjustElementPositionForTitle() {
 	    if (this.title) {
 	        const newlines = this.title.split('\n').length;
-	        this.lastElementPos.y += newlines * 20;
+	        this.lastElementPos.y += newlines * 20 - 10;
 	    } else {
 	        this.lastElementPos.y -= 15;
 	    }
@@ -132,10 +132,11 @@ class Panel{
 	        const lastCBLength = this.lastCB.length + 20 
 	        newX = this.lastCB.pos.x + lastCBLength
 
+	        let l = getPixelLength(title, text_SizeMIGUI) + 60
 
-	        if (this.pos.x + this.w - newX < lastCBLength) {
+	        if (this.lastCB.pos.x + this.lastCB.length + l > this.pos.x + this.w) {
 	            needsNewLine = true;
-	        } 
+	        }
 	        else {
 	            newY = this.lastCB.pos.y;
 	        }
@@ -173,8 +174,8 @@ class Panel{
 								posSlider.x, posSlider.y,
 								min, max, origin, title, showValue,
 								this.lightCol, this.darkCol, this.transCol)
-		if(title == "" && !showValue) this.lastElementPos.y += 30
-		else this.lastElementPos.y += 45
+		if(title == "" && !showValue) this.lastElementPos.y += 25
+		else this.lastElementPos.y += 40
 		this.sliders.push(slider)
 		this.lastElementAdded = slider
 	}
@@ -182,13 +183,14 @@ class Panel{
 	addText(words = "", isTitle = false){
 		if(this.lastElementAdded.constructor.name != "Sentence") this.lastElementPos.y += 5
 		if(isTitle) this.lastElementPos.y += 5
+		let spacedWords = wrapText(words, this.w)
 		let sentence = new Sentence(this.lastElementPos.x,
 									this.lastElementPos.y,
-									words, isTitle,
+									spacedWords, isTitle,
 									this.lightCol, this.darkCol, this.transCol)
 		
-		let newlines = words.split('\n').length;
-		this.lastElementPos.y += newlines*20
+		let newlines = spacedWords.split('\n').length;
+		this.lastElementPos.y += newlines*15
 		
 		this.sentences.push(sentence)
 		this.lastElementAdded = sentence
@@ -225,9 +227,10 @@ class Panel{
 	    if (this.lastBU) {
 	        const lastCBLength = this.lastBU.length + 10 
 	        newX = this.lastBU.pos.x + lastCBLength
+	        
+	        let l = getPixelLength(sentence, text_SizeMIGUI)
 
-
-	        if (this.pos.x + this.w - newX < lastCBLength) {
+	        if (this.lastBU.pos.x + this.lastBU.length + l > this.pos.x + this.w) {
 	            needsNewLine = true;
 	        } 
 	        else {
@@ -433,6 +436,11 @@ class Panel{
 	}
 
 	update(){
+		if(mouseIsPressed){
+			for(let i of this.inputs){
+				if(mouseIsPressed && i.evaluate()) this.isInteracting = i
+			}
+		}
 		push()
 		if(this.activeCP && !this.isRetracted){ 
 			this.activeCP.show()
@@ -467,6 +475,7 @@ class Panel{
 			this.isInteracting = b
 			return
 		}
+		
 		for(let s of this.sliders) if(s.evaluate()) {
 			this.isInteracting = s
 			return
@@ -476,11 +485,7 @@ class Panel{
 			return
 		}
 
-		if(mouseIsPressed){
-			for(let i of this.inputs){
-				if(mouseIsPressed && i.evaluate()) this.isInteracting = i
-			}
-		}
+		
 		// for(let i of this.inputs) {
 		// 	if(mouseIsPressed && i.evaluate()) {
 		// 		this.isInteracting = i
@@ -619,4 +624,28 @@ function keyCodeToCharMIGUI(keyc = keyCode){
 function isPrintableKey(char) {
     // Check if the length of the key is 1 and the character is within the normal ASCII range
     return char.length === 1 && char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126;
+}
+
+function wrapText(text, maxWidth = 100) {
+  const words = text.split(' ');
+  let currentLine = '';
+  let wrappedText = '';
+
+  words.forEach((word) => {
+    const lineWithWord = currentLine + (currentLine ? ' ' : '') + word;
+    
+    // Check the length of the line with the new word
+    if (getPixelLength(lineWithWord, text_SizeMIGUI) <= maxWidth) {
+      currentLine = lineWithWord;
+    } else {
+      // Add the current line to the wrapped text and start a new one
+      wrappedText += currentLine + '\n';
+      currentLine = word; // Start new line with the current word
+    }
+  });
+
+  // Append any remaining text
+  wrappedText += currentLine;
+
+  return wrappedText;
 }

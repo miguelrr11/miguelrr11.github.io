@@ -15,7 +15,7 @@ class Slider{
 		this.title = getClippedTextMIGUI(title, clipping_length_titleMIGUI)
 
 		this.w = width_elementsMIGUI
-		this.h = 16
+		this.h = 14
 
 		this.value = origin
 		this.setValue(origin)
@@ -102,7 +102,7 @@ class Slider{
 		else aux = " ("
 		if(this.showValue) textToShow += aux + getRoundedValueMIGUI(this.value) + ")"
 		textSize(text_SizeMIGUI)
-		text(textToShow, this.pos.x - bordeMIGUI, this.pos.y + this.h*0.5)
+		text(textToShow, this.pos.x - bordeMIGUI, this.pos.y + this.h*0.75)
 
 		pop()
 	}

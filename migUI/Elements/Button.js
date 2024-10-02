@@ -11,7 +11,7 @@ class Button{
 		this.beingPressed = false
 
 		this.func = func
-		this.w = this.text.length * 8.4 + 2
+		this.w = getPixelLength(this.text, text_SizeMIGUI) + 2
 		this.w = constrain(this.w, 20, width_elementsMIGUI)
 		this.h = 20
 

@@ -29,7 +29,7 @@ class Sentence{
 		else{
 			noStroke()
 			fill(this.lightCol)
-			textSize(text_SizeMIGUI)
+			textSize(text_SizeMIGUI-3)
 			text(this.words, this.pos.x - bordeMIGUI, this.pos.y + 10)
 		}
 		pop()
