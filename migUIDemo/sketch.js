@@ -13,8 +13,7 @@ function setup(){
     createCanvas(WIDTH+200, HEIGHT)
     let properties = {
         retractable: true,
-        theme: "blossom",
-        automaticHeight: true
+        theme: "techno"
     }
     panel = new Panel(properties)
 
@@ -31,13 +30,15 @@ function setup(){
 
     panel.addText("COOL TITLE", true)
 
-    panel.addSelect(["OPTION 1", "option 2", "option 3"], "option 2")  
+    panel.addSelect(["COOL", "AMAZING", "FABULOUS"], "COOL")  
 
     
-    panel.addInput("Enter value fasdfasdfasdfasdf", setval)
+    panel.addInput("Enter value ", setval)
+    panel.addInput("Enter value ", setval)
     panel.addText("Enter value below\nand press enter")
 
-    panel.addButton("GGGGGGrsdgtsdgfsagsdfgfsdgsdfgsdgsdfr", hola)
+    panel.addButton("Press to change background", hola)
+    
 }
 
 
@@ -61,11 +62,9 @@ function adios(){
 function draw(){
     background(back)
     
-    panel.update()
     
-    panel.show()
-
     //bordeMIGUI = panel.getValue(3)
+    panel.setText(0, panel.getSelected(0) + " TITLE")
 
     // fill(0, 255, 0)
     // ellipse(panel.sliders[1].sliderPos.x, panel.sliders[1].sliderPos.y, 10, 10)
@@ -92,8 +91,18 @@ function draw(){
 
     //panel.changeColors(col, "#ffffff")
 
-    // fill(255)
-    // ellipse(panel.lastElementPos.x, panel.lastElementPos.y, 10, 10)
+    
+
+    panel.update()
+    panel.show()
+
+    fill(255, 150)
+    noStroke()
+    ellipse(panel.lastElementPos.x, panel.lastElementPos.y, 5)
+    fill(0, 150)
+    ellipse(panel.lastElementAdded.pos.x, panel.lastElementAdded.pos.y, 10)
+    fill(255, 0, 0, 150)
+    if(panel.lastCB) ellipse(panel.lastCB.pos.x, panel.lastCB.pos.y, 5)
 
 
 }

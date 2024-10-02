@@ -2,16 +2,16 @@ elements in [] are optional arguments
 
 PANEL
 let properties = {
-        x: 400, 						//default: WIDTH-200
-        y: 50,							//default: 0
-        w: 200,							//default: 200
-        h: HEIGHT,						//default: HEIGHT
-        title: "COLOR CONTROLS",		//default: ""
-        darkCol: "#fa0505",				//default: [0,0,0]
-        lightCol: [255, 76, 0],			//default: [255,255,255]
-        retractable: true,				//default: false
-        theme: "blossom",				//default: undefined
-        automaticHeight: true 			//default: true (height of panel will be adjusted automatically)
+        x: 400, 					//default: WIDTH-200
+        y: 50,						//default: 0
+        w: 200,						//default: 200
+        h: HEIGHT,					//default: HEIGHT
+        title: "COLOR CONTROLS",	//default: ""
+        darkCol: "#fa0505",			//default: [0,0,0]
+        lightCol: [255, 76, 0],		//default: [255,255,255]
+        retractable: true,			//default: false
+        theme: "blossom",			//default: undefined
+        automaticHeight: true 		//default: true (height of panel will be adjusted automatically)
     }
 panel = new Panel(properties) // any undefined element in properties will be set with a default value
 panel.update() //updates all elements
@@ -33,6 +33,7 @@ Themes:
 	- sublime
 	- sunset
 	- blossom
+	- random
 
 CHECKBOX
 panel.addCheckbox([title = ""], [state = false])
@@ -81,8 +82,7 @@ setup(){
 		x: 0,
 		y: 0,
         retractable: true,
-        theme: "blossom",
-        automaticHeight: true
+        theme: "blossom"
     }
     panel = new Panel(properties)
 	panel.addCheckbox("RED", false)

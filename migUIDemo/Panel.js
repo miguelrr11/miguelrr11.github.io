@@ -68,6 +68,9 @@ class Panel{
 	    if (theme) this.setTheme(theme);
 	    this.automaticHeight = automaticHeight;
 	    if (this.automaticHeight) this.h = this.lastElementPos.y + 10;
+
+	    this.lastCB = undefined
+	    this.lastBU = undefined
 	}
 
 	initializeUIElements() {
@@ -121,15 +124,47 @@ class Panel{
 	}
 
 
-	addCheckbox(title = "", state = false){
-		if(this.lastElementAdded.constructor.name != "Checkbox") this.lastElementPos.y += 5
-		let checkbox = new Checkbox(this.lastElementPos.x, 
-								this.lastElementPos.y,
-								title, state, this.lightCol, this.darkCol, this.transCol)
-		this.lastElementPos.y += 25
-		this.checkboxes.push(checkbox)
-		this.lastElementAdded = checkbox
+	addCheckbox(title = "", state = false) {
+	    const titleLength = getPixelLength(getClippedTextMIGUI(title, clipping_length_normalMIGUI), text_SizeMIGUI);
+	    const padding = 10;
+	    const checkboxWidth = 16 + 17; 
+	    const totalLength = checkboxWidth + padding + titleLength;
+
+	    let newX, newY;
+	    let needsNewLine = false;
+
+	    if (this.lastCB) {
+	        const lastCBLength = getPixelLength(this.lastCB.title, text_SizeMIGUI) + this.lastCB.w + 20;
+	        newX = this.lastCB.pos.x + lastCBLength + padding;
+
+
+	        if (this.pos.x + this.w - newX < totalLength) {
+	            needsNewLine = true;
+	        } 
+	        else {
+	            newY = this.lastCB.pos.y;
+	        }
+	    } 
+	    else {
+	        needsNewLine = true;
+	    }
+
+	    if (needsNewLine) {
+	        if (this.lastElementAdded.constructor.name !== "Checkbox") {
+	            this.lastElementPos.y += 5;
+	        }
+	        newX = this.lastElementPos.x;
+	        newY = this.lastElementPos.y;
+	        this.lastElementPos.y += 25; 
+	    }
+
+	    // Create and store the new checkbox
+	    const checkbox = new Checkbox(newX, newY, title, state, this.lightCol, this.darkCol, this.transCol);
+	    this.checkboxes.push(checkbox);
+	    this.lastElementAdded = checkbox;
+	    this.lastCB = checkbox;
 	}
+
 
 	addSlider(min, max, origin, title = "", showValue = false){
 		let posSlider = this.lastElementPos.copy()
@@ -371,6 +406,10 @@ class Panel{
 		else if(theme == "blossom"){
 			this.changeColors("#c78283", "#f3d9dc")
 		}
+		else if(theme == "random"){
+			this.changeColors([floor(random(256)), floor(random(256)), floor(random(256))], 
+							  [floor(random(256)), floor(random(256)), floor(random(256))])
+		}
 		else console.log(`Theme \"${theme}\" doesn't exist`)
 
 	}
@@ -394,6 +433,7 @@ class Panel{
 			}
 		}
 		pop()
+		
 		if(this.isRetracted){
 			this.retractButton.evaluate()
 			return
@@ -417,13 +457,19 @@ class Panel{
 			this.isInteracting = c
 			return
 		}
-		for(let i of this.inputs) {
-			if(mouseIsPressed) i.setState()
-			if(i.evaluate()) {
-				this.isInteracting = i
-				return
+
+		if(mouseIsPressed){
+			for(let i of this.inputs){
+				if(mouseIsPressed && i.evaluate()) this.isInteracting = i
 			}
 		}
+		// for(let i of this.inputs) {
+		// 	if(mouseIsPressed && i.evaluate()) {
+		// 		this.isInteracting = i
+		// 		return
+		// 	}
+		// }
+
 		for(let b of this.buttons) if(b.evaluate()) {
 			this.isInteracting = b
 			return
@@ -471,558 +517,15 @@ class Panel{
 	}
 }
 
-class Checkbox{
-	constructor(x, y, title, state, lightCol, darkCol, transCol){
-		this.darkCol = darkCol
-		this.lightCol = lightCol
-		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
-		this.state = state
-		this.name = title
-		this.title = getClippedTextMIGUI(title, clipping_length_normalMIGUI)
-
-		this.beingPressed = false
-
-		this.beingHovered = false
-
-		this.w = 16
-		this.h = 16
-	}
-
-	checked(){
-		return this.state
-	}
-
-	toggle(){
-		this.state = !this.state
-	}
-
-	evaluate(){
-		let inB = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w+bordeMIGUI, this.h+bordeMIGUI)
-		if(inB) this.beingHovered = true
-		else this.beingHovered = false
-		if(inB && mouseIsPressed && !this.beingPressed){ 
-			this.toggle()
-			this.beingPressed = true
-			return true
-		}
-		if(!mouseIsPressed){ 
-			this.beingPressed = false
-		}
-		return false
-	}
-
-	show(){
-		push()
-		!this.state ? fill(this.darkCol) : fill(this.lightCol)
-		if(!this.state && this.beingHovered) fill(this.transCol)
-		stroke(this.lightCol)
-		strokeWeight(bordeMIGUI)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
-
-		noStroke()
-		fill(this.lightCol)
-		textSize(text_SizeMIGUI)
-		text(this.title, this.pos.x + this.w + 10, this.pos.y + this.h*0.85)
-
-		pop()
-	}
-}
-
-class Slider{
-	constructor(x, y, sx, sy, min, max, origin, title, showValue = false, lightCol, darkCol, transCol){
-		this.darkCol = darkCol
-		this.lightCol = lightCol
-		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
-		this.sliderPos = createVector(sx, sy)
-		this.showValue = showValue
-		//if(title != "" || showValue) this.sliderPos.y += 17
-		this.min = min
-		this.max = max
-		this.origin = origin
-		if(origin > max || origin < min) this.origin = ((this.max - this.min) / 2) + this.min
-		this.name = title
-		this.title = getClippedTextMIGUI(title, clipping_length_titleMIGUI)
-
-		this.w = width_elementsMIGUI
-		this.h = 16
-
-		this.value = origin
-		this.setValue(origin)
-
-		this.beingHovered = false
-
-		this.beingPressed = false
-
-		
-	}
-
-	setValue(value){
-		this.value = value
-		this.value = constrain(this.value, this.min, this.max)
-		this.valuePosX = mappMIGUI(this.value, this.min, this.max, this.pos.x, this.pos.x + this.w)
-	}
-
-	getValue(){
-		return this.value
-	}
-
-	getBound(){
-		let value, valuePosX
-		if(mouseX > this.pos.x + this.w){
-			value = this.max
-			valuePosX = this.pos.x + this.w
-		}
-		else if(mouseX < this.pos.x){
-			value = this.min
-			valuePosX = this.pos.x
-		}
-		else{
-			valuePosX = mouseX
-			value = mappMIGUI(this.valuePosX, this.pos.x, this.pos.x+this.w, this.min, this.max)
-		}
-		return [value, valuePosX]
-	}
-
-	evaluate(){
-		this.beingHovered = inBoundsMIGUI(mouseX, mouseY, this.sliderPos.x, this.sliderPos.y, this.w+bordeMIGUI, this.h+bordeMIGUI)
-		if(!mouseIsPressed){
-			this.beingPressed = false
-			return false
-		}
-		if(!this.beingPressed && this.beingHovered && mouseIsPressed){
-			this.beingPressed = true
-		}
-		if(this.beingPressed && mouseIsPressed) {
-			[this.value, this.valuePosX] = this.getBound()
-			return true
-		}
-		return false
-	}
-
-	show(){
-		push()
-		//bordeMIGUIs
-		fill(this.darkCol)
-		stroke(this.lightCol)
-		strokeWeight(bordeMIGUI)
-		rect(this.sliderPos.x, this.sliderPos.y, this.w, this.h)
-
-		//relleno hovering
-		if(this.beingHovered){
-			push()
-			fill(this.transCol)
-			noStroke()
-			let x = this.getBound()[1]
-			rect(this.sliderPos.x, this.sliderPos.y, x-this.sliderPos.x, this.h)
-			pop()
-		}
-
-		//relleno slider
-		fill(this.lightCol)
-		rect(this.sliderPos.x, this.sliderPos.y, this.valuePosX-this.sliderPos.x, this.h)
-
-
-		//texto
-		noStroke()
-		fill(this.lightCol)
-		let textToShow = this.title
-		let aux
-		if(this.title == "") aux = "("
-		else aux = " ("
-		if(this.showValue) textToShow += aux + getRoundedValueMIGUI(this.value) + ")"
-		textSize(text_SizeMIGUI)
-		text(textToShow, this.pos.x - bordeMIGUI, this.pos.y + this.h*0.5)
-
-		pop()
-	}
-}
-
-class Sentence{
-	constructor(x, y, words, isTitle, lightCol, darkCol, transCol){
-		this.darkCol = darkCol
-		this.lightCol = lightCol
-		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
-		this.name = words
-		this.words = words
-		this.isTitle = isTitle
-	}
-
-	setText(words){
-		this.words = words
-	}
-
-	show(){
-		push()
-		if(this.isTitle){
-			push()
-			fill(this.lightCol)
-			stroke(this.transCol)
-			strokeWeight(1)
-			textSize(title_SizeMIGUI)
-			text(this.words, this.pos.x - bordeMIGUI, this.pos.y + 10)
-			fill(this.transCol)
-			text(this.words, this.pos.x - bordeMIGUI + 3, this.pos.y + 13)
-			pop()
-		}
-		else{
-			noStroke()
-			fill(this.lightCol)
-			textSize(text_SizeMIGUI)
-			text(this.words, this.pos.x - bordeMIGUI, this.pos.y + 10)
-		}
-		pop()
-	}
-}
-
-class Select{
-	constructor(x, y, options, selected, lightCol, darkCol, transCol){
-		this.darkCol = darkCol
-		this.lightCol = lightCol
-		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
-
-		this.options = []
-		for(let i = 0; i < options.length; i++){
-			this.options[i] = options[i]
-		}
-		this.optionsText = []
-		for(let i = 0; i < options.length; i++){
-			this.optionsText[i] = getClippedTextMIGUI(options[i], clipping_length_normalMIGUI)
-		}
-		this.selected = selected
-
-		this.beingPressed = false
-
-		this.w = width_elementsMIGUI
-		this.singleH = 20
-		this.h = this.singleH * options.length
-	}
-
-	getSelected(){
-		if(this.selected == undefined) return undefined
-		return this.options[this.selected]
-	}
-
-	evaluate(){
-		let inB = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
-
-		if(inB && mouseIsPressed && !this.beingPressed){ 
-			for(let i = 0; i < this.options.length; i++){
-				if(this.isHovering(i)){
-					if(this.selected == undefined) this.selected = i
-					else if(i == this.selected) return
-					else{
-						this.selected =  i
-					}
-					this.beingPressed = true
-					return true
-				}
-			}
-			
-		}
-		if(!mouseIsPressed){ 
-			this.beingPressed = false
-		}
-		return false
-	}
-
-	isHovering(index){
-		let x = this.pos.x
-		let y = this.pos.y + (index * this.singleH)
-		return inBoundsMIGUI(mouseX, mouseY, x, y, this.w, this.singleH)
-	}
-
-	show(){
-		push()
-		strokeWeight(bordeMIGUI)
-		stroke(this.lightCol)
-		noFill()
-		rect(this.pos.x, this.pos.y, this.w, this.h)
-		fill(this.darkCol)
-		textSize(text_SizeMIGUI-2)
-		for(let i = 0; i < this.optionsText.length; i++){
-			let o = this.optionsText[i]
-			this.isHovering(i) ? fill(this.transCol) : noFill()
-			if(i == this.selected){ 
-				fill(this.lightCol)
-			}
-			noStroke()
-			rect(this.pos.x, this.pos.y, this.w, this.singleH)
-
-			noStroke()
-			fill(this.lightCol)
-			if(i == this.selected){ 
-				fill(this.darkCol)
-			}
-			text(o, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.singleH*0.8)
-			translate(0, this.singleH)
-		}
-		pop()
-	}
-}
-
-class Input{
-	constructor(x, y, placeholder, func, lightCol, darkCol, transCol){
-		this.darkCol = darkCol
-		this.lightCol = lightCol
-		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
-		this.placeholder = getClippedTextMIGUI(placeholder, clipping_length_normalMIGUI)
-		this.func = func
-
-		this.beingHovered = false
-		this.beingPressed = false
-		this.sentence = ""
-		this.active = false
-
-		this.w = width_elementsMIGUI
-		this.h = 20
-	}
-
-	setText(text){
-		this.sentence = text
-	}
-
-	setState(){
-		this.active = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
-	}
-
-	getText(){
-		return this.sentence
-	}
-
-
-	evaluate(){
-		this.isHovering = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
-
-		if(keyIsPressed && this.active){ 
-	        if(!this.beingPressed && keyCode == 8){ //Backspace
-	            this.sentence = this.sentence.slice(0, -1)
-	        }
-	        else if(!this.beingPressed && keyCode == 13){ //Intro
-	        	this.func(this.sentence)
-	           	this.sentence = ""
-	        }
-	        else if(keyCode != 8 && keyCode != 13){
-	            let c = keyCodeToCharMIGUI()
-	            if(c != this.sentence[this.sentence.length-1]) this.sentence += c
-	            else if(!this.beingPressed) this.sentence += c
-	        }
-	    
-	        this.beingPressed = true
-	    }
-	    //this.sentence = getClippedTextMIGUI(this.sentence, clipping_length_normalMIGUI)
-	    if(!keyIsPressed) this.beingPressed = false
-	}
-
-	show(){
-		push()
-		strokeWeight(bordeMIGUI)
-		stroke(this.lightCol)
-		this.active ? fill(this.transCol) : fill(this.darkCol)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
-
-		noStroke()
-		fill(this.lightCol)
-		textSize(text_SizeMIGUI-2)
-		let clippedSentence = getClippedTextMIGUI(this.sentence, clipping_length_normalMIGUI)
-		if(this.sentence.length != 0) text(clippedSentence, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.h*0.7)
-		else text(this.placeholder, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.h*0.75)
-		pop()
-	}
-}
-
-class Button{
-	constructor(x, y, text, func, lightCol, darkCol, transCol){
-		this.darkCol = darkCol
-		this.lightCol = lightCol
-		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
-		if(func.name != "retractMenu") this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
-		else this.text = text
-
-		this.beingHovered = false
-		this.beingPressed = false
-
-		this.func = func
-		this.w = this.text.length * 8.4
-		this.w = constrain(this.w, 20, width_elementsMIGUI)
-		this.h = 20
-	}
-
-	setText(text){
-		this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
-		this.w = this.text.length * 11.5
-		this.w = constrain(this.w, 20, 160)
-	}
-
-	setFunc(func){
-		this.func = func
-	}
-
-	execute(){
-		if(this.func != undefined) this.func()
-	}
-
-	evaluate(){
-		this.beingHovered = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
-		let inB = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
-		if(inB) this.beingHovered = true
-		else this.beingHovered = false
-		if(inB && mouseIsPressed && !this.beingPressed){ 
-			this.execute()
-			this.beingPressed = true
-			return true
-		}
-		if(!mouseIsPressed){ 
-			this.beingPressed = false
-		}
-		return false
-	}
-
-	show(){
-		push()
-		strokeWeight(bordeMIGUI)
-		stroke(this.lightCol)
-		fill(this.darkCol)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
-		this.beingHovered ? fill(this.transCol) : fill(this.darkCol)
-		if(this.beingHovered && mouseIsPressed) fill(this.lightCol)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
-
-		noStroke()
-		fill(this.lightCol)
-		if(this.beingHovered && mouseIsPressed) fill(this.darkCol)
-		textSize(text_SizeMIGUI-2)
-		text(this.text, this.pos.x + bordeMIGUI+text_offset_xMIGUI, this.pos.y + this.h*0.75)
-		pop()
-	}
-}
-
-class ColorPicker{
-	constructor(x, y, title, lightCol, darkCol, transCol){
-		this.darkCol = darkCol
-		this.lightCol = lightCol
-		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
-		this.name = title
-		this.title = getClippedTextMIGUI(title, clipping_length_normalMIGUI)
-		this.isChoosing = false 
-
-		this.isChoosingHue = false
-		this.isChoosingSaturation = false
-
-		this.beingPressed = false
-
-		this.beingHovered = false
-
-		this.w = 16
-		this.h = 16
-
-		this.cpw = 185
-		this.cph = 30
-		this.poscp = createVector(constrain(this.pos.x - 10, 0, width - this.cpw - 10), constrain(this.pos.y + this.h * 2, 0, height - this.cph - 10))
-		
-		this.hue = [0, 0, 0]
-		this.saturation = this.transCol
-
-		this.huePos = createVector(this.poscp.x + this.cpw / 2, this.poscp.y + this.cph * 0.25)
-		this.saturationPos = createVector(this.poscp.x + this.cpw / 2, this.poscp.y + this.cph * 0.75)
-	}
-
-	getColor(){
-		return this.saturation
-	}
-
-	toggle(){
-		this.isChoosing = !this.isChoosing
-	}
-
-	evaluate(){
-		if(!mouseIsPressed){
-			this.isChoosingHue = false
-			this.isChoosingSaturation = false
-		}
-		let inB_cb = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w+bordeMIGUI, this.h+bordeMIGUI)
-		if(inB_cb) this.beingHovered = true
-		else{ 
-			this.beingHovered = false
-		}
-		let inB_cp = inBoundsMIGUI(mouseX, mouseY, this.poscp.x, this.poscp.y, this.cpw, this.cph)
-		
-		if(inB_cb && mouseIsPressed && !this.beingPressed){
-			this.toggle()
-			this.beingPressed = true
-			return true
-		}
-		if(this.isChoosing && mouseIsPressed){
-			drawGradientRainbow(this.poscp.x + 5, this.poscp.y + 5, this.cpw - 10, this.cph * 0.5 - 7.5)
-			drawGradient2col(this.poscp.x + 5, this.poscp.y + this.cph * 0.5 + 2.5, this.cpw - 10, this.cph * 0.5 - 7.5, this.hue)
-
-			//hue
-			if(inBoundsMIGUI(mouseX, mouseY, this.poscp.x + 5, this.poscp.y + 5, this.cpw - 10, this.cph * 0.5 - 7.5) || this.isChoosingHue){
-				this.isChoosingHue = true
-				this.huePos.x = mouseX
-				this.huePos.x = constrain(this.huePos.x, this.poscp.x + 5, this.poscp.x + 5 + this.cpw - 10)
-				this.hue = get(this.huePos.x, this.huePos.y)
-				this.saturation = get(this.saturationPos.x, this.saturationPos.y)
-				
-			}
-			//saturation
-			else if(inBoundsMIGUI(mouseX, mouseY, this.poscp.x + 5, this.poscp.y + this.cph * 0.5 + 2.5, this.cpw - 10, this.cph * 0.5 - 7.5) || this.isChoosingSaturation){
-				this.isChoosingSaturation = true
-				this.saturationPos.x = mouseX
-				this.saturationPos.x = constrain(this.saturationPos.x, this.poscp.x + 5, this.poscp.x + 5 + this.cpw - 10)
-				this.saturation = get(this.saturationPos.x, this.saturationPos.y)
-				
-			}
-		}
-		if(!mouseIsPressed){ 
-			this.beingPressed = false
-		}
-		if(!inB_cp && !inB_cb && this.isChoosing && mouseIsPressed && !this.isChoosingSaturation && !this.isChoosingHue){
-			this.beingPressed = false
-			this.beingHovered = false
-			this.isChoosing = false
-			return false
-		}
-		return this.isChoosing
-	}
-
-	show(){
-		push()
-		fill(this.saturation)
-		stroke(this.lightCol)
-		this.isChoosing ? strokeWeight(bordeMIGUI + 1.5) : strokeWeight(bordeMIGUI)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
-
-		noStroke()
-		fill(this.lightCol)
-		text(this.title, this.pos.x + this.w + 10, this.pos.y + this.h*0.85)
-
-		//show picker
-		if(this.isChoosing){
-			fill(this.darkCol)
-			stroke(this.lightCol)
-			strokeWeight(bordeMIGUI)
-			rect(this.poscp.x, this.poscp.y, this.cpw, this.cph)
-
-			drawGradientRainbow(this.poscp.x + 5, this.poscp.y + 5, this.cpw - 10, this.cph * 0.5 - 7.5)
-			drawGradient2col(this.poscp.x + 5, this.poscp.y + this.cph * 0.5 + 2.5, this.cpw - 10, this.cph * 0.5 - 7.5, this.hue)
-
-
-			fill(this.hue)
-			ellipse(this.huePos.x, this.huePos.y, 10)
-			fill(this.saturation)
-			ellipse(this.saturationPos.x, this.saturationPos.y, 10)
-		}
-		
-
-		pop()
-	}
+function drawGradientAlpha(x, y, w, h, col){
+	let ctx = drawingContext;
+
+	let gradient = ctx.createLinearGradient(x, y, x + w, y);
+
+	gradient.addColorStop(0, `rgb(${col[0]}, ${col[1]}, ${col[2]}, 0)`);
+	gradient.addColorStop(1, `rgb(${col[0]}, ${col[1]}, ${col[2]}, 255)`);
+	ctx.fillStyle = gradient;
+	ctx.fillRect(x, y, w, h);
 }
 
 function drawGradient2col(x, y, w, h, col){
@@ -1062,6 +565,10 @@ function hexToRgbMIGUI(hex) {
   ] : null;
 }
 
+function getPixelLength(word, size){
+	return word.length * size * 0.58
+}
+
 function getClippedTextMIGUI(text, length){
 	return text.slice(0, length)
 }
@@ -1087,6 +594,11 @@ function findIndexMIGUI(name, arr){
 	return -1
 }
 
-function keyCodeToCharMIGUI(){
-    return String.fromCharCode(keyCode);
+function keyCodeToCharMIGUI(keyc = keyCode){
+    return String.fromCharCode(keyc);
+}
+
+function isPrintableKey(char) {
+    // Check if the length of the key is 1 and the character is within the normal ASCII range
+    return char.length === 1 && char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126;
 }
