@@ -125,20 +125,15 @@ class Panel{
 
 
 	addCheckbox(title = "", state = false) {
-	    const titleLength = getPixelLength(getClippedTextMIGUI(title, clipping_length_normalMIGUI), text_SizeMIGUI);
-	    const padding = 10;
-	    const checkboxWidth = 16 + 17; 
-	    const totalLength = checkboxWidth + padding + titleLength;
-
 	    let newX, newY;
 	    let needsNewLine = false;
 
 	    if (this.lastCB) {
-	        const lastCBLength = getPixelLength(this.lastCB.title, text_SizeMIGUI) + this.lastCB.w + 20;
-	        newX = this.lastCB.pos.x + lastCBLength + padding;
+	        const lastCBLength = this.lastCB.length + 20 
+	        newX = this.lastCB.pos.x + lastCBLength
 
 
-	        if (this.pos.x + this.w - newX < totalLength) {
+	        if (this.pos.x + this.w - newX < lastCBLength) {
 	            needsNewLine = true;
 	        } 
 	        else {
@@ -224,13 +219,36 @@ class Panel{
 	}
 
 	addButton(sentence = "", func = undefined){
-		if(this.lastElementAdded.constructor.name != "Button") this.lastElementPos.y += 5
-		let button = new Button(this.lastElementPos.x,
-							  this.lastElementPos.y, sentence, func,
-							  this.lightCol, this.darkCol, this.transCol)
-		this.lastElementPos.y += 30
+		let newX, newY;
+	    let needsNewLine = false;
+
+	    if (this.lastBU) {
+	        const lastCBLength = this.lastBU.length + 10 
+	        newX = this.lastBU.pos.x + lastCBLength
+
+
+	        if (this.pos.x + this.w - newX < lastCBLength) {
+	            needsNewLine = true;
+	        } 
+	        else {
+	            newY = this.lastBU.pos.y;
+	        }
+	    } 
+	    else {
+	        needsNewLine = true;
+	    }
+	    if(needsNewLine){
+	    	if (this.lastElementAdded.constructor.name !== "Button") {
+	            this.lastElementPos.y += 5;
+	        }
+	        newX = this.lastElementPos.x;
+	        newY = this.lastElementPos.y;
+	        this.lastElementPos.y += 30; 
+	    }
+		let button = new Button(newX, newY, sentence, func, this.lightCol, this.darkCol, this.transCol)
 		this.buttons.push(button)
 		this.lastElementAdded = button
+		this.lastBU = button
 	}
 
 	addColorPicker(sentence = []){

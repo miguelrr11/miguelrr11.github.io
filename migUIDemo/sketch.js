@@ -34,11 +34,12 @@ function setup(){
 
     
     panel.addInput("Enter value ", setval)
-    panel.addInput("Enter value ", setval)
     panel.addText("Enter value below\nand press enter")
 
-    panel.addButton("Press to change background", hola)
-    
+    panel.addButton("Black", f => back = 0)
+    panel.addButton("Grey", f => back = 125)
+    panel.addButton("White", f => back = 255)
+    panel.addButton("Random", f => back = random(255))
 }
 
 

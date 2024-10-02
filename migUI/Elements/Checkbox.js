@@ -14,6 +14,8 @@ class Checkbox{
 
 		this.w = 16
 		this.h = 16
+
+		this.length = getPixelLength(this.title, text_SizeMIGUI) + this.w + 10
 	}
 
 	checked(){
