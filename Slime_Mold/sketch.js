@@ -3,8 +3,8 @@
 //09-09-2024
 
 p5.disableFriendlyErrors = true
-const WIDTH = 600
-const HEIGHT = 600
+const WIDTH = 700
+const HEIGHT = WIDTH
 const N = WIDTH //OBLIGATORIO
 let c1 = [hexToRgb("#1d3557"), hexToRgb("#457b9d"), hexToRgb("#e63946")]
 let c2 = [hexToRgb("#393e41"), hexToRgb("#fff8f0"), hexToRgb("#f4d35e")]
@@ -13,6 +13,7 @@ let c4 = [hexToRgb("#092327"), hexToRgb("#0b5351"), hexToRgb("#17B1AD")]
 let activeCol
 
 let dt = 5
+
 
 const spacing = WIDTH/N
 let grid = []
@@ -81,10 +82,20 @@ function setup(){
     }
 
     noStroke()
-    panel = new Panel(WIDTH, 0, 200, HEIGHT, "SLIME MOLD", undefined, undefined, false)
+    let properties = {
+        x: WIDTH,                   //default: WIDTH-200
+        y: 0,                       //default: 0
+        w: 200,                     //default: 200
+        h: HEIGHT,                  //default: HEIGHT
+        title: "Slime Mold",
+        retractable: false,          //default: undefined
+        automaticHeight: false,      //default: true (height of panel will be adjusted automatically)
+
+    }
+    panel = new Panel(properties)
     panel.addSlider(0, 120, 25, "Agent FOV", true)
     panel.addSlider(0, 90, 35, "Agent Steering", true)
-    panel.addSlider(0, 15, 5, "dt", true)
+    panel.addSlider(0, 25, 5, "dt", true)
     panel.addText("Themes:")
     panel.addSelect(["Spiderman", "Slime", "Rusty", "Techno"], "Spiderman")
     panel.addText("Starting state:")
@@ -92,6 +103,8 @@ function setup(){
     panel.addCheckbox("Blurring", false)
     panel.addButton("Reset", reset)
     panel.addText()
+    panel.addText()
+    panel.addText("In this simulation, agents use their field of view (FOV) to sense pheromone trails and adjust direction with the steering variable, enabling them to explore and form efficient networks.")
 
     for(let i = 0; i < nAgents; i++) agents.push(new Agent(WIDTH/2, HEIGHT/2))
 }
@@ -113,7 +126,7 @@ function draw(){
     else if(selected == "Slime") activeCol = c2
     else if(selected == "Rusty") activeCol = c3
     else if(selected == "Techno") activeCol = c4
-    panel.changeCols(activeCol[0], activeCol[2])
+    panel.changeColors(activeCol[0], activeCol[2])
 
     
     
@@ -151,7 +164,8 @@ function draw(){
     
     
     loadPixels()
-    let factor = panel.isChecked(0) ? 0.006 * dt * 0.05 : 0.006 * dt * 0.2;
+    //let factor = panel.isChecked(0) ? 0.006 * dt * 0.2 : 0.006 * dt * 0.2;
+    let factor = 0.006 * dt * 0.2
     let r, g, b, val, gridVal
     for(let i = 0; i < N; i++){
         for(let j = 0; j < N; j++){
