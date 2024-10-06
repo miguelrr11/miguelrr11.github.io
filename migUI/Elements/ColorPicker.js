@@ -1,5 +1,5 @@
 class ColorPicker{
-	constructor(x, y, title, lightCol, darkCol, transCol){
+	constructor(x, y, title, func, lightCol, darkCol, transCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -7,6 +7,7 @@ class ColorPicker{
 		this.name = title
 		this.title = getClippedTextMIGUI(title, clipping_length_normalMIGUI)
 		this.isChoosing = false 
+		this.func = func
 
 		this.isChoosingHue = false
 		this.isChoosingSaturation = false
@@ -24,9 +25,9 @@ class ColorPicker{
 		this.poscp = createVector(constrain(this.pos.x - 10, 0, width - this.cpw - 10), constrain(this.pos.y + this.h * 2, 0, height - this.cph - 10))
 		
 		this.hue = [0, 0, 0, 255]
-		this.saturation = this.transCol
+		this.saturation = this.lightCol
 		this.alpha = 255
-		this.finalCol = this.transCol
+		this.finalCol = this.lightCol
 
 		let posY = this.poscp.y + 5
 		this.hBand = this.cph * 0.33 * 0.5
@@ -91,6 +92,8 @@ class ColorPicker{
 			}
 
 			this.finalCol = [...this.saturation.slice(0, 3), this.alpha];
+
+			if(this.func) this.func()
 		}
 		if(!mouseIsPressed){ 
 			this.beingPressed = false

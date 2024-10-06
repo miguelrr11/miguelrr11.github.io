@@ -40,7 +40,7 @@ class Panel{
 	    this.retractable = retractable;
 	    
 	    width_elementsMIGUI = this.w - 35;
-	    clipping_length_normalMIGUI = 0.12 * this.w - 4;
+	    clipping_length_normalMIGUI = Math.floor(0.125 * this.w - 4);
 
 	    this.darkCol = typeof darkCol === "string" ? hexToRgbMIGUI(darkCol) : darkCol;
 	    if (!this.darkCol) throw new Error("Invalid HEX string for darkCol");
@@ -124,7 +124,7 @@ class Panel{
 	}
 
 
-	addCheckbox(title = "", state = false) {
+	createCheckbox(title = "", state = false) {
 	    let newX, newY;
 	    let needsNewLine = false;
 
@@ -158,11 +158,14 @@ class Panel{
 	    const checkbox = new Checkbox(newX, newY, title, state, this.lightCol, this.darkCol, this.transCol);
 	    this.checkboxes.push(checkbox);
 	    this.lastElementAdded = checkbox;
+
 	    this.lastCB = checkbox;
+	    this.lastBU = undefined
+
+	    return checkbox
 	}
 
-
-	addSlider(min, max, origin, title = "", showValue = false){
+	createSlider(min, max, origin, title = "", showValue = false, func = undefined){
 		let posSlider = this.lastElementPos.copy()
 		if(title != "" || showValue) posSlider.y += 15
 		if(this.lastElementAdded.constructor.name != "Slider"){
@@ -172,15 +175,20 @@ class Panel{
 		let slider = new Slider(this.lastElementPos.x,
 								this.lastElementPos.y,
 								posSlider.x, posSlider.y,
-								min, max, origin, title, showValue,
+								min, max, origin, title, showValue, func,
 								this.lightCol, this.darkCol, this.transCol)
-		if(title == "" && !showValue) this.lastElementPos.y += 25
-		else this.lastElementPos.y += 40
+		if(title == "" && !showValue) this.lastElementPos.y += 22
+		else this.lastElementPos.y += 37
 		this.sliders.push(slider)
 		this.lastElementAdded = slider
+
+		this.lastBU = undefined
+		this.lastCB = undefined
+
+		return slider
 	}
 
-	addText(words = "", isTitle = false){
+	createText(words = "", isTitle = false){
 		if(this.lastElementAdded.constructor.name != "Sentence") this.lastElementPos.y += 5
 		if(isTitle) this.lastElementPos.y += 5
 		let spacedWords = wrapText(words, this.w)
@@ -190,37 +198,52 @@ class Panel{
 									this.lightCol, this.darkCol, this.transCol)
 		
 		let newlines = spacedWords.split('\n').length;
-		this.lastElementPos.y += newlines*15
+		this.lastElementPos.y += newlines*14
 		
 		this.sentences.push(sentence)
 		this.lastElementAdded = sentence
+
+		this.lastBU = undefined
+		this.lastCB = undefined
+
+		return sentence
 	}
 
-	addSelect(options = [""], selected = undefined){
+	createSelect(options = [""], selected = undefined, func = undefined){
 		if(options.length == 0) return
 		if(this.lastElementAdded.constructor.name != "Select") this.lastElementPos.y += 5
 		let selectedFinal = selected
 		if(selected != undefined) selectedFinal = findIndexMIGUI(selected, options)
 		let select = new Select(this.lastElementPos.x,
 								this.lastElementPos.y,
-								options, selectedFinal,
+								options, selectedFinal, func,
 								this.lightCol, this.darkCol, this.transCol)
 		this.lastElementPos.y += (select.options.length*20) + 10
 		this.selects.push(select)
 		this.lastElementAdded = select
+
+		this.lastBU = undefined
+		this.lastCB = undefined
+
+		return select
 	}
 
-	addInput(placeholder = "", func = undefined){
+	createInput(placeholder = "", func = undefined){
 		if(this.lastElementAdded.constructor.name != "Input") this.lastElementPos.y += 5
 		let input = new Input(this.lastElementPos.x,
-							  this.lastElementPos.y, placeholder, func,
+							  this.lastElementPos.y, placeholder, func, 
 							  this.lightCol, this.darkCol, this.transCol)
 		this.lastElementPos.y += 30
 		this.inputs.push(input)
 		this.lastElementAdded = input
+
+		this.lastBU = undefined
+		this.lastCB = undefined
+
+		return input
 	}
 
-	addButton(sentence = "", func = undefined){
+	createButton(sentence = "", func = undefined){
 		let newX, newY;
 	    let needsNewLine = false;
 
@@ -251,108 +274,132 @@ class Panel{
 		let button = new Button(newX, newY, sentence, func, this.lightCol, this.darkCol, this.transCol)
 		this.buttons.push(button)
 		this.lastElementAdded = button
+
 		this.lastBU = button
+		this.lastCB = undefined
+
+		return button
 	}
 
-	addColorPicker(sentence = []){
+	createColorPicker(sentence = [], func = undefined){
 		if(this.lastElementAdded.constructor.name != "ColorPicker") this.lastElementPos.y += 5
 		let colorPicker = new ColorPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
-										  sentence, this.lightCol, this.darkCol, this.transCol)
+										  sentence, func, this.lightCol, this.darkCol, this.transCol)
 		this.lastElementPos.y += 25
 		this.colorPickers.push(colorPicker)
 		this.lastElementAdded = colorPicker
+
+		this.lastBU = undefined
+		this.lastCB = undefined
+
+		return colorPicker
 	}
 
-	setText(pos, sentence = ""){
-	    if (typeof pos == "number" && pos >= this.sentences.length) {
-	        throw new Error("Text " + pos + " doesn't exist")
-	    }
-	    this.sentences[pos].setText(sentence)
-	}
+	// setText(pos, sentence = ""){
+	//     if (typeof pos == "number" && pos >= this.sentences.length) {
+	//         throw new Error("Text " + pos + " doesn't exist")
+	//     }
+	//     this.sentences[pos].setText(sentence)
+	// }
 
-	//get selected of selected[pos]
-	getSelected(pos){
-		let index = typeof pos == "string" ? findIndexMIGUI(pos, this.selects) : pos
+	// setInputText(pos, sentence){
+	// 	if(pos >= this.inputs.length) throw new Error("Input " + pos + " doesn't exist")
+	// 	this.inputs[pos].setText(sentence)
+	// }
+
+	// setSliderValue(pos, value){
+	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.sliders) : pos
     
-	    if (index == -1 || (typeof index == "number" && index >= this.selects.length)) {
-	        throw new Error("Select " + pos + " doesn't exist")
-	    }
+	//     if (index == -1 || (typeof index == "number" && index >= this.sliders.length)) {
+	//         throw new Error("Slider " + pos + " doesn't exist")
+	//     }
 
-	    return this.selects[index].getSelected()
-	}
+	//     this.sliders[index].setValue(value)
+	// }
 
-	//get value of sliders[pos]
-	getValue(pos) {
-    	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.sliders) : pos
+	// //get selected of selected[pos]
+	// getSelected(pos){
+	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.selects) : pos
     
-	    if (index == -1 || (typeof index == "number" && index >= this.sliders.length)) {
-	        throw new Error("Slider " + pos + " doesn't exist")
-	    }
+	//     if (index == -1 || (typeof index == "number" && index >= this.selects.length)) {
+	//         throw new Error("Select " + pos + " doesn't exist")
+	//     }
 
-	    return this.sliders[index].getValue()
-	}
+	//     return this.selects[index].getSelected()
+	// }
 
-	//set value of sliders[pos]
-	setValue(pos, value){
-		let index = typeof pos == "string" ? findIndexMIGUI(pos, this.sliders) : pos
+	// //get value of sliders[pos]
+	// getValue(pos) {
+    // 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.sliders) : pos
     
-	    if (index == -1 || (typeof index == "number" && index >= this.sliders.length)) {
-	        throw new Error("Slider " + pos + " doesn't exist")
-	    }
+	//     if (index == -1 || (typeof index == "number" && index >= this.sliders.length)) {
+	//         throw new Error("Slider " + pos + " doesn't exist")
+	//     }
 
-	    this.sliders[index].setValue(value)
-	}
+	//     return this.sliders[index].getValue()
+	// }
 
-	//getChecked of checkboxes[pos]
-	isChecked(pos){
-		let index = typeof pos == "string" ? findIndexMIGUI(pos, this.checkboxes) : pos
-
-		if (index == -1 || (typeof index == "number" && index >= this.checkboxes.length)) {
-	        throw new Error("Checkbox " + pos + " doesn't exist")
-	        return false
-	    }
-
-	    return this.checkboxes[index].checked()
-	}
-
-	//getText of inputs[pos]
-	getInput(pos){	
-		if(pos >= this.inputs.length || pos < 0){
-			throw new Error("Input " + pos + " doesn't exist")
-	        return false
-		}
-		return this.inputs[pos].getText()
-	}
-
-	getColor(pos){
-		let index = typeof pos == "string" ? findIndexMIGUI(pos, this.colorPickers) : pos
+	// //set value of sliders[pos]
+	// setValue(pos, value){
+	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.sliders) : pos
     
-	    if (index == -1 || (typeof index == "number" && index >= this.colorPickers.length)) {
-	        throw new Error("Color picker " + pos + " doesn't exist")
-	    }
+	//     if (index == -1 || (typeof index == "number" && index >= this.sliders.length)) {
+	//         throw new Error("Slider " + pos + " doesn't exist")
+	//     }
 
-	    return this.colorPickers[pos].getColor()
-	}
+	//     this.sliders[index].setValue(value)
+	// }
 
-	//change text of buttons[pos]
-	changeText(pos, text = ""){
-		let offset = this.retractable ? 1 : 0
-		if(pos >= this.buttons.length + offset || pos < 0){
-			throw new Error("Button " + pos + " doesn't exist")
-	        return false
-		}
-		this.buttons[pos + offset].setText(text)
-	}
+	// //getChecked of checkboxes[pos]
+	// isChecked(pos){
+	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.checkboxes) : pos
 
-	//change function of buttons[pos]
-	changeFunc(pos, func = undefined){
-		if(pos >= this.buttons.length + 1 || pos < 0){
-			throw new Error("Button " + pos + " doesn't exist")
-	        return false
-		}
-		this.buttons[pos + 1].setFunc(func)
-	}
+	// 	if (index == -1 || (typeof index == "number" && index >= this.checkboxes.length)) {
+	//         throw new Error("Checkbox " + pos + " doesn't exist")
+	//         return false
+	//     }
+
+	//     return this.checkboxes[index].isChecked()
+	// }
+
+	// //getText of inputs[pos]
+	// getInput(pos){	
+	// 	if(pos >= this.inputs.length || pos < 0){
+	// 		throw new Error("Input " + pos + " doesn't exist")
+	//         return false
+	// 	}
+	// 	return this.inputs[pos].getText()
+	// }
+
+	// getColor(pos){
+	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.colorPickers) : pos
+    
+	//     if (index == -1 || (typeof index == "number" && index >= this.colorPickers.length)) {
+	//         throw new Error("Color picker " + pos + " doesn't exist")
+	//     }
+
+	//     return this.colorPickers[pos].getColor()
+	// }
+
+	// //change text of buttons[pos]
+	// changeText(pos, text = ""){
+	// 	let offset = this.retractable ? 1 : 0
+	// 	if(pos >= this.buttons.length + offset || pos < 0){
+	// 		throw new Error("Button " + pos + " doesn't exist")
+	//         return false
+	// 	}
+	// 	this.buttons[pos + offset].setText(text)
+	// }
+
+	// //change function of buttons[pos]
+	// changeFunc(pos, func = undefined){
+	// 	if(pos >= this.buttons.length + 1 || pos < 0){
+	// 		throw new Error("Button " + pos + " doesn't exist")
+	//         return false
+	// 	}
+	// 	this.buttons[pos + 1].setFunc(func)
+	// }
 
 	changeColors(dark, light){
 		if(typeof dark === "string"){
@@ -436,10 +483,9 @@ class Panel{
 	}
 
 	update(){
-		if(mouseIsPressed){
-			for(let i of this.inputs){
-				if(mouseIsPressed && i.evaluate()) this.isInteracting = i
-			}
+		for(let i of this.inputs){
+			if(mouseIsPressed && i.evaluate()) this.isInteracting = i
+			i.update()
 		}
 		push()
 		if(this.activeCP && !this.isRetracted){ 
@@ -589,10 +635,19 @@ function hexToRgbMIGUI(hex) {
 }
 
 function getPixelLength(word, size){
-	return word.length * size * 0.58
+	return word.length * size * 0.585
 }
 
-function getClippedTextMIGUI(text, length){
+function getPixelLengthFromLength(length, size){
+	return length * size * 0.585
+}
+
+function getClippedTextSEMIGUI(text, start, end){
+	return text.slice(start, end);
+}
+
+function getClippedTextMIGUI(text, length, toEnd = false){
+	if(toEnd) return text.slice(-length)
 	return text.slice(0, length)
 }
 
@@ -605,8 +660,8 @@ function mappMIGUI(value, start1, stop1, start2, stop2){
 }
 
 function getRoundedValueMIGUI(value){
-	if(value < 1) return round(value, 2)
-	if(value < 10) return round(value, 1)
+	if(Math.abs(value) < 1) return round(value, 2)
+	if(Math.abs(value) < 10) return round(value, 1)
 	return round(value)
 }
 

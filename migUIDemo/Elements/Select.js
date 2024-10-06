@@ -1,5 +1,5 @@
 class Select{
-	constructor(x, y, options, selected, lightCol, darkCol, transCol){
+	constructor(x, y, options, selected, func, lightCol, darkCol, transCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -14,12 +14,18 @@ class Select{
 			this.optionsText[i] = getClippedTextMIGUI(options[i], clipping_length_normalMIGUI)
 		}
 		this.selected = selected
+		this.func = func
 
 		this.beingPressed = false
 
 		this.w = width_elementsMIGUI
 		this.singleH = 20
 		this.h = this.singleH * options.length
+	}
+
+	execute(){
+		console.log(this.getSelected())
+		if(this.func) this.func()
 	}
 
 	getSelected(){
@@ -39,6 +45,7 @@ class Select{
 						this.selected =  i
 					}
 					this.beingPressed = true
+					this.execute()
 					return true
 				}
 			}

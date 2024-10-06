@@ -4,6 +4,7 @@ class Button{
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
 		this.pos = createVector(x, y)
+		this.textSize = text_SizeMIGUI-2
 		if(func.name != "retractMenu") this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
 		else this.text = text
 
@@ -11,7 +12,7 @@ class Button{
 		this.beingPressed = false
 
 		this.func = func
-		this.w = getPixelLength(this.text, text_SizeMIGUI) + 2
+		this.w = getPixelLength(this.text, this.textSize) + 8
 		this.w = constrain(this.w, 20, width_elementsMIGUI)
 		this.h = 20
 
@@ -61,7 +62,7 @@ class Button{
 		noStroke()
 		fill(this.lightCol)
 		if(this.beingHovered && mouseIsPressed) fill(this.darkCol)
-		textSize(text_SizeMIGUI-2)
+		textSize(this.textSize)
 		text(this.text, this.pos.x + bordeMIGUI+text_offset_xMIGUI, this.pos.y + this.h*0.75)
 		pop()
 	}

@@ -1,21 +1,21 @@
 class Slider{
-	constructor(x, y, sx, sy, min, max, origin, title, showValue = false, lightCol, darkCol, transCol){
+	constructor(x, y, sx, sy, min, max, origin, title, showValue, func, lightCol, darkCol, transCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
 		this.pos = createVector(x, y)
 		this.sliderPos = createVector(sx, sy)
 		this.showValue = showValue
-		//if(title != "" || showValue) this.sliderPos.y += 17
 		this.min = min
 		this.max = max
 		this.origin = origin
 		if(origin > max || origin < min) this.origin = ((this.max - this.min) / 2) + this.min
 		this.name = title
 		this.title = getClippedTextMIGUI(title, clipping_length_titleMIGUI)
+		this.func = func
 
 		this.w = width_elementsMIGUI
-		this.h = 14
+		this.h = 12
 
 		this.value = origin
 		this.setValue(origin)
@@ -65,6 +65,7 @@ class Slider{
 		}
 		if(this.beingPressed && mouseIsPressed) {
 			[this.value, this.valuePosX] = this.getBound()
+			if(this.func) this.func()
 			return true
 		}
 		return false
@@ -101,7 +102,7 @@ class Slider{
 		if(this.title == "") aux = "("
 		else aux = " ("
 		if(this.showValue) textToShow += aux + getRoundedValueMIGUI(this.value) + ")"
-		textSize(text_SizeMIGUI)
+		textSize(text_SizeMIGUI-2)
 		text(textToShow, this.pos.x - bordeMIGUI, this.pos.y + this.h*0.75)
 
 		pop()

@@ -18,7 +18,7 @@ class Checkbox{
 		this.length = getPixelLength(this.title, text_SizeMIGUI) + this.w + 10
 	}
 
-	checked(){
+	isChecked(){
 		return this.state
 	}
 
