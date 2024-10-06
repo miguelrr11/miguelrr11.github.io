@@ -9,13 +9,13 @@ class Checkbox{
 		this.title = getClippedTextMIGUI(title, clipping_length_normalMIGUI)
 
 		this.beingPressed = false
-
 		this.beingHovered = false
 
 		this.w = 16
 		this.h = 16
 
 		this.length = getPixelLength(this.title, text_SizeMIGUI) + this.w + 10
+		this.height = this.h
 	}
 
 	isChecked(){
@@ -46,13 +46,17 @@ class Checkbox{
 		!this.state ? fill(this.darkCol) : fill(this.lightCol)
 		if(!this.state && this.beingHovered) fill(this.transCol)
 		stroke(this.lightCol)
-		strokeWeight(bordeMIGUI)
+		this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		rect(this.pos.x, this.pos.y, this.w, this.h)
 
 		noStroke()
 		fill(this.lightCol)
 		textSize(text_SizeMIGUI)
 		text(this.title, this.pos.x + this.w + 10, this.pos.y + this.h*0.85)
+
+		// fill(255, 0, 0)
+		// ellipse(this.pos.x, this.pos.y, 5)
+		// ellipse(this.pos.x, this.pos.y + this.height, 5)
 
 		pop()
 	}

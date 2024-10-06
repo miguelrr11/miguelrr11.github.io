@@ -48,7 +48,7 @@ class Panel{
 	    this.lightCol = typeof lightCol === "string" ? hexToRgbMIGUI(lightCol) : lightCol;
 	    if (!this.lightCol) throw new Error("Invalid HEX string for lightCol");
 
-	    this.transCol = [...this.lightCol, 100];
+	    this.transCol = [...this.lightCol, 90];
 
 	    this.initializeUIElements();
 
@@ -68,6 +68,8 @@ class Panel{
 	    if (theme) this.setTheme(theme);
 	    this.automaticHeight = automaticHeight;
 	    if (this.automaticHeight) this.h = this.lastElementPos.y + 10;
+
+	    this.padding = 10
 
 	    this.lastCB = undefined
 	    this.lastBU = undefined
@@ -123,6 +125,9 @@ class Panel{
 	    textAlign(LEFT);
 	}
 
+	updateLastPos(){
+
+	}
 
 	createCheckbox(title = "", state = false) {
 	    let newX, newY;
@@ -151,13 +156,13 @@ class Panel{
 	        }
 	        newX = this.lastElementPos.x;
 	        newY = this.lastElementPos.y;
-	        this.lastElementPos.y += 25; 
+	       
 	    }
 
-	    // Create and store the new checkbox
 	    const checkbox = new Checkbox(newX, newY, title, state, this.lightCol, this.darkCol, this.transCol);
 	    this.checkboxes.push(checkbox);
 	    this.lastElementAdded = checkbox;
+	    if(needsNewLine) this.lastElementPos.y += checkbox.height + this.padding
 
 	    this.lastCB = checkbox;
 	    this.lastBU = undefined
@@ -169,16 +174,17 @@ class Panel{
 		let posSlider = this.lastElementPos.copy()
 		if(title != "" || showValue) posSlider.y += 15
 		if(this.lastElementAdded.constructor.name != "Slider"){
-			posSlider.y += 5
-			this.lastElementPos.y += 5
+			// posSlider.y += 5
+			// this.lastElementPos.y += 5
 		}
 		let slider = new Slider(this.lastElementPos.x,
 								this.lastElementPos.y,
 								posSlider.x, posSlider.y,
 								min, max, origin, title, showValue, func,
 								this.lightCol, this.darkCol, this.transCol)
-		if(title == "" && !showValue) this.lastElementPos.y += 22
-		else this.lastElementPos.y += 37
+		// if(title == "" && !showValue) this.lastElementPos.y += 22
+		// else this.lastElementPos.y += 37
+		this.lastElementPos.y += slider.height + this.padding
 		this.sliders.push(slider)
 		this.lastElementAdded = slider
 
@@ -189,16 +195,17 @@ class Panel{
 	}
 
 	createText(words = "", isTitle = false){
-		if(this.lastElementAdded.constructor.name != "Sentence") this.lastElementPos.y += 5
-		if(isTitle) this.lastElementPos.y += 5
-		let spacedWords = wrapText(words, this.w)
+		//if(this.lastElementAdded.constructor.name != "Sentence") this.lastElementPos.y += 5
+		//if(isTitle) this.lastElementPos.y += 5
+		let spacedWords = wrapText(words, this.w, isTitle ? text_SizeMIGUI : title_SizeMIGUI)
 		let sentence = new Sentence(this.lastElementPos.x,
 									this.lastElementPos.y,
 									spacedWords, isTitle,
 									this.lightCol, this.darkCol, this.transCol)
 		
 		let newlines = spacedWords.split('\n').length;
-		this.lastElementPos.y += newlines*14
+		//this.lastElementPos.y += newlines*15
+		this.lastElementPos.y += sentence.height + this.padding
 		
 		this.sentences.push(sentence)
 		this.lastElementAdded = sentence
@@ -211,14 +218,16 @@ class Panel{
 
 	createSelect(options = [""], selected = undefined, func = undefined){
 		if(options.length == 0) return
-		if(this.lastElementAdded.constructor.name != "Select") this.lastElementPos.y += 5
+		//if(this.lastElementAdded.constructor.name != "Select") this.lastElementPos.y += 5
 		let selectedFinal = selected
 		if(selected != undefined) selectedFinal = findIndexMIGUI(selected, options)
 		let select = new Select(this.lastElementPos.x,
 								this.lastElementPos.y,
 								options, selectedFinal, func,
 								this.lightCol, this.darkCol, this.transCol)
-		this.lastElementPos.y += (select.options.length*20) + 10
+		//this.lastElementPos.y += (select.options.length*20) + 10
+		this.lastElementPos.y += select.height + this.padding
+
 		this.selects.push(select)
 		this.lastElementAdded = select
 
@@ -229,11 +238,13 @@ class Panel{
 	}
 
 	createInput(placeholder = "", func = undefined){
-		if(this.lastElementAdded.constructor.name != "Input") this.lastElementPos.y += 5
+		//if(this.lastElementAdded.constructor.name != "Input") this.lastElementPos.y += 5
 		let input = new Input(this.lastElementPos.x,
 							  this.lastElementPos.y, placeholder, func, 
 							  this.lightCol, this.darkCol, this.transCol)
-		this.lastElementPos.y += 30
+		//this.lastElementPos.y += 30
+		this.lastElementPos.y += input.height + this.padding
+
 		this.inputs.push(input)
 		this.lastElementAdded = input
 
@@ -265,13 +276,14 @@ class Panel{
 	    }
 	    if(needsNewLine){
 	    	if (this.lastElementAdded.constructor.name !== "Button") {
-	            this.lastElementPos.y += 5;
+	            //this.lastElementPos.y += 5;
 	        }
 	        newX = this.lastElementPos.x;
 	        newY = this.lastElementPos.y;
-	        this.lastElementPos.y += 30; 
+	        
 	    }
 		let button = new Button(newX, newY, sentence, func, this.lightCol, this.darkCol, this.transCol)
+		if(needsNewLine) this.lastElementPos.y += button.height + this.padding
 		this.buttons.push(button)
 		this.lastElementAdded = button
 
@@ -282,11 +294,12 @@ class Panel{
 	}
 
 	createColorPicker(sentence = [], func = undefined){
-		if(this.lastElementAdded.constructor.name != "ColorPicker") this.lastElementPos.y += 5
+		//if(this.lastElementAdded.constructor.name != "ColorPicker") this.lastElementPos.y += 5
 		let colorPicker = new ColorPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
 										  sentence, func, this.lightCol, this.darkCol, this.transCol)
-		this.lastElementPos.y += 25
+		//this.lastElementPos.y += 25
+		this.lastElementPos.y += colorPicker.height + this.padding
 		this.colorPickers.push(colorPicker)
 		this.lastElementAdded = colorPicker
 
@@ -681,7 +694,7 @@ function isPrintableKey(char) {
     return char.length === 1 && char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126;
 }
 
-function wrapText(text, maxWidth = 100) {
+function wrapText(text, maxWidth = this.w, textSize = text_SizeMIGUI) {
   const words = text.split(' ');
   let currentLine = '';
   let wrappedText = '';
@@ -690,7 +703,7 @@ function wrapText(text, maxWidth = 100) {
     const lineWithWord = currentLine + (currentLine ? ' ' : '') + word;
     
     // Check the length of the line with the new word
-    if (getPixelLength(lineWithWord, text_SizeMIGUI) <= maxWidth) {
+    if (getPixelLength(lineWithWord, textSize) <= maxWidth) {
       currentLine = lineWithWord;
     } else {
       // Add the current line to the wrapped text and start a new one

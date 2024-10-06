@@ -19,6 +19,7 @@ class ColorPicker{
 
 		this.w = 16
 		this.h = 16
+		this.height = this.h
 
 		this.cpw = 185
 		this.cph = 45
@@ -27,7 +28,7 @@ class ColorPicker{
 		this.hue = [0, 0, 0, 255]
 		this.saturation = this.lightCol
 		this.alpha = 255
-		this.finalCol = this.lightCol
+		this.finalCol = [0, 0, 0, 0]
 
 		let posY = this.poscp.y + 5
 		this.hBand = this.cph * 0.33 * 0.5
@@ -124,7 +125,7 @@ class ColorPicker{
 		push()
 		fill(this.finalCol)
 		stroke(this.lightCol)
-		this.isChoosing ? strokeWeight(bordeMIGUI + 1.5) : strokeWeight(bordeMIGUI)
+		this.isChoosing || this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		rect(this.pos.x, this.pos.y, this.w, this.h)
 
 		noStroke()
@@ -156,6 +157,9 @@ class ColorPicker{
 			ellipse(this.poscp.x + this.cpw / 2, this.saturationPos.y, 5)
 		}
 		
+		// fill(255, 0, 0)
+		// ellipse(this.pos.x, this.pos.y, 5)
+		// ellipse(this.pos.x, this.pos.y + this.height, 5)
 
 		pop()
 	}

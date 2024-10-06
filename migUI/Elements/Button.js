@@ -17,6 +17,7 @@ class Button{
 		this.h = 20
 
 		this.length = this.w
+		this.height = this.h
 	}
 
 	setText(text){
@@ -51,7 +52,7 @@ class Button{
 
 	show(){
 		push()
-		strokeWeight(bordeMIGUI)
+		this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		stroke(this.lightCol)
 		fill(this.darkCol)
 		rect(this.pos.x, this.pos.y, this.w, this.h)
@@ -64,6 +65,14 @@ class Button{
 		if(this.beingHovered && mouseIsPressed) fill(this.darkCol)
 		textSize(this.textSize)
 		text(this.text, this.pos.x + bordeMIGUI+text_offset_xMIGUI, this.pos.y + this.h*0.75)
+
+		// fill(255, 0, 0)
+		// ellipse(this.pos.x, this.pos.y, 5)
+		// ellipse(this.pos.x, this.pos.y + this.height, 5)
+
 		pop()
 	}
 }
+
+
+

@@ -29,10 +29,9 @@ function setup(){
 
     cp = panel.createColorPicker("color pick me")
 
-    sl1 = panel.createSlider(0, 255, 100, "R", true)
-    sl2 = panel.createSlider(0, 255, 0, "G", true)
-    sl3 = panel.createSlider(0, 255, 0, "B", true)
-
+    sl1 = panel.createSlider(0, 255, 100)
+    sl2 = panel.createSlider(0, 255, 0, "G")
+    sl3 = panel.createSlider(0, 255, 0, "", true)
 
     tt = panel.createText("COOL TITLE", true)
 
@@ -72,13 +71,8 @@ function draw(){
     background(back)
     noStroke()
     
-    //bordeMIGUI = panel.getValue(3)
-    tt.setText(ss.getSelected() + " TITLE")
+    tt.setText(ss.getSelected() + " TITLEaf jsfl;ajsdlf fjasl;d")
 
-    // fill(0, 255, 0)
-    // ellipse(panel.sliders[1].sliderPos.x, panel.sliders[1].sliderPos.y, 10, 10)
-    // fill(0, 0, 255)
-    // ellipse(panel.sliders[1].pos.x, panel.sliders[1].pos.y, 10, 10)
 
     fill(cb1.isChecked()*255, cb2.isChecked()*255, cb3.isChecked()*255)
     ellipse(WIDTH/3, HEIGHT/3, 100, 100)
@@ -92,7 +86,6 @@ function draw(){
     fill(cp.getColor()) 
     ellipse(WIDTH*0.66, HEIGHT*0.66, 100, 100)
 
-    //panel.changeColors(col, "#ffffff")
 
     panel.update()
     panel.show()

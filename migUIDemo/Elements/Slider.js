@@ -17,14 +17,14 @@ class Slider{
 		this.w = width_elementsMIGUI
 		this.h = 12
 
+		this.height = this.h + 1
+		this.height += (this.showValue || this.title) != "" ? 17 : 0
+
 		this.value = origin
 		this.setValue(origin)
 
 		this.beingHovered = false
-
-		this.beingPressed = false
-
-		
+		this.beingPressed = false		
 	}
 
 	setValue(value){
@@ -76,7 +76,7 @@ class Slider{
 		//bordeMIGUIs
 		fill(this.darkCol)
 		stroke(this.lightCol)
-		strokeWeight(bordeMIGUI)
+		this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		rect(this.sliderPos.x, this.sliderPos.y, this.w, this.h)
 
 		//relleno hovering
@@ -104,6 +104,11 @@ class Slider{
 		if(this.showValue) textToShow += aux + getRoundedValueMIGUI(this.value) + ")"
 		textSize(text_SizeMIGUI-2)
 		text(textToShow, this.pos.x - bordeMIGUI, this.pos.y + this.h*0.75)
+
+		// fill(255, 0, 0)
+		// noStroke()
+		// ellipse(this.pos.x, this.pos.y, 4)
+		// ellipse(this.pos.x, this.pos.y + this.height, 4)
 
 		pop()
 	}

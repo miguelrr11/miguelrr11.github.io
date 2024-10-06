@@ -21,6 +21,7 @@ class Select{
 		this.w = width_elementsMIGUI
 		this.singleH = 20
 		this.h = this.singleH * options.length
+		this.height = this.h
 	}
 
 	execute(){
@@ -35,6 +36,7 @@ class Select{
 
 	evaluate(){
 		let inB = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
+		this.beingHovered = inB
 
 		if(inB && mouseIsPressed && !this.beingPressed){ 
 			for(let i = 0; i < this.options.length; i++){
@@ -65,7 +67,7 @@ class Select{
 
 	show(){
 		push()
-		strokeWeight(bordeMIGUI)
+		this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		stroke(this.lightCol)
 		noFill()
 		rect(this.pos.x, this.pos.y, this.w, this.h)
@@ -88,6 +90,15 @@ class Select{
 			text(o, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.singleH*0.8)
 			translate(0, this.singleH)
 		}
+
 		pop()
+
+		// push()
+		// noStroke()
+		// fill(255, 0, 0)
+		// ellipse(this.pos.x, this.pos.y, 5)
+		// ellipse(this.pos.x, this.pos.y + this.height, 5)
+
+		// pop()
 	}
 }

@@ -16,6 +16,7 @@ class Input{
 
 		this.w = width_elementsMIGUI
 		this.h = 20
+		this.height = this.h
 
 		this.cursorPos = 0
 		this.relCursorPos = 0
@@ -147,6 +148,9 @@ class Input{
 			if(keyCode === 39) this.arrowRight()
 			if(keyCode === 37) this.arrowLeft()
 		}
+
+		if(inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)) this.beingHovered = true
+		else this.beingHovered = false
 	}
 
 	evaluate(){
@@ -156,7 +160,7 @@ class Input{
 
 	show(){
 		push()
-		strokeWeight(bordeMIGUI)
+		this.beingHovered || this.active ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		stroke(this.lightCol)
 		this.active ? fill(this.transCol) : fill(this.darkCol)
 		rect(this.pos.x, this.pos.y, this.w, this.h)
@@ -176,6 +180,11 @@ class Input{
 			let y = this.pos.y + 3
 			line(x, y, x, y + this.h - 6)
 		}
+
+		// fill(255, 0, 0)
+		// ellipse(this.pos.x, this.pos.y, 5)
+		// ellipse(this.pos.x, this.pos.y + this.height, 5)
+		
 		pop()
 	}
 }
