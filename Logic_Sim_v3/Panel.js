@@ -264,9 +264,9 @@ class Panel{
 	        
 	        let l = getPixelLength(sentence, text_SizeMIGUI)
 
-	        if (this.lastBU.pos.x + this.lastBU.length + l > this.pos.x + this.w) {
+	        if (this.lastBU.pos.x + this.lastBU.length + l + 30 > this.pos.x + this.w) {
 	            needsNewLine = true;
-	        } 
+	        }
 	        else {
 	            newY = this.lastBU.pos.y;
 	        }

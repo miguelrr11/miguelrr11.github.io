@@ -13,7 +13,7 @@ class Button{
 
 		this.func = func
 		this.w = getPixelLength(this.text, this.textSize) + 8
-		this.w = constrain(this.w, 20, width_elementsMIGUI)
+		this.w = constrain(this.w, 10, width_elementsMIGUI)
 		this.h = 20
 
 		this.length = this.w

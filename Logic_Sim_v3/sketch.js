@@ -9,26 +9,36 @@ let chip;
 //let chipRegistry = []; // Global registry for chips
 //let savedChips = [];
 let selectCustom;
+
 let draggingConnection = false;
 let dragStart = null;
 let dragStartIndex = null;
 let dragStartComponent = null;
+let dragPath = []
+
 let movingComp = {comp: null, offx: 0, offy: 0}
 let compNames = 0;
 let panel, panel_input, panel_remove, panel_display, panel_clock
+//let dinPanel
 let selectedComp = null
 
 const tamBasicNodes = 30
 const tamCompNodes = 18
 const colorOn = [255, 0, 0]
 const colorOff = [130, 0, 0]
-const strokeOff = 3
-const strokeOn = 4
+const strokeOff = 5
+const strokeOn = 5
 const controlDist = 100
+
+const inputX = 30 + tamBasicNodes - tamCompNodes
+const outputX = WIDTH - 60
+const inputToggleX = 0
+const outputToggleX = WIDTH - 30
 
 
 function setup() {
     createCanvas(WIDTH+300, HEIGHT);
+    strokeJoin(ROUND);
     panel = new Panel({
         x: WIDTH,
         w: 300,
@@ -36,6 +46,9 @@ function setup() {
         theme: 'mono',
         title: 'LOGIC SIM'
     })
+    panel.createText("")
+    panel.createText("Click on an input to start a connection")
+    panel.createText("Press Z to undo a segment")
 
     panel.createText("")
     panel.createText("Spawn basic Gates:")
@@ -110,6 +123,11 @@ function setup() {
             panel_remove.setText("Remove: ")
         }
     })
+    panel.createButton("Remove ALL components", (f) => {
+        chip.components = []
+        chip.chips = []
+        chip.connections = []
+    })
 
     panel.createText("")
     panel.createText("Create Chip:")
@@ -119,6 +137,7 @@ function setup() {
         console.log(chip.externalName)
         let chipString = JSON.stringify(chip)
         savedChips.push(chipString);
+        console.log(chip)
         chipRegistry.push(chip);
         let name = chip.name
 
@@ -141,9 +160,6 @@ function setup() {
     panel.createText("")
     panel.createText("Add Saved Chips:")
 
-
-
-
     chip = new Chip('chip' + compNames, 2, 1);
     compNames++;
     chipRegistry.push(chip);
@@ -153,18 +169,22 @@ function setup() {
 }
 
 function draw() {
-    background(45);
-
-    if(!mouseIsPressed) movingComp = {comp: null, offx: 0, offy: 0}
+    background(60);
 
     if (draggingConnection && dragStart) {
         stroke(colorOff);
         strokeWeight(strokeOff) 
         noFill()
-        bezier(dragStart.x, dragStart.y, dragStart.x + controlDist, dragStart.y, mouseX - controlDist, mouseY, mouseX, mouseY);
+        beginShape()
+        vertex(dragStart.x, dragStart.y)
+        for(let p of dragPath) vertex(p.x, p.y)
+        let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
+        let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
+        let [x, y] = [dx > dy ? mouseX : prev.x, dx > dy ? prev.y : mouseY ]
+        vertex(x, y)
+        endShape()
+        //drawConnection(dragPath, dragStart.x, dragStart.y, mouseX, mouseY)
     }
-
-
 
     chip.simulate();
     chip.show();
@@ -174,216 +194,116 @@ function draw() {
 }
 
 function mousePressed() {
-    // Check if clicking on a chip input
-    for (let i = 0; i < chip.inputs.length; i++) {
-        let inputPos = chip.getInputPosition(i);
-        if (
-            mouseX >= inputPos.x && mouseX <= inputPos.x + tamBasicNodes &&
-            mouseY >= inputPos.y && mouseY <= inputPos.y + tamBasicNodes
-        ) {
-            draggingConnection = true;
-            dragStart = { x: inputPos.x + tamBasicNodes/2, y: inputPos.y + tamBasicNodes/2 };
-            dragStartIndex = i;
-            dragStartComponent = 'INPUTS';
-        }
-    }
+    if(mouseX > WIDTH) return
+    // Check if clicking on a chip input or output
+    if (!draggingConnection) {
+        let mousePos = { x: mouseX, y: mouseY };
 
-    // Check if clicking on a component output
-    for (let component of chip.components) {
-        for (let i = 0; i < component.outputs.length; i++) {
-            let outputPos = component.getOutputPosition(i);
-            if (
-                mouseX >= outputPos.x && mouseX <= outputPos.x + tamCompNodes &&
-                mouseY >= outputPos.y && mouseY <= outputPos.y + tamCompNodes
-            ) {
-                draggingConnection = true;
-                dragStart = { x: outputPos.x + tamCompNodes / 2, y: outputPos.y + tamCompNodes / 2};
-                dragStartIndex = i;
-                dragStartComponent = component.name;
+        // Check inputs
+        for (let i = 0; i < chip.inputs.length; i++) {
+            let inputPos = chip.getInputPosition(i);
+            if (isWithinBounds(mousePos, inputPos, tamCompNodes)) {
+                startDragging(inputPos, i, 'INPUTS', tamCompNodes);
+                break;
             }
         }
-    }
 
-    // Check if clicking on a subChip output
-    for (let subChip of chip.chips) {
-        for (let i = 0; i < subChip.outputs.length; i++) {
-            let outputPos = subChip.getOutputPositionSC(i);
-            if (
-                mouseX >= outputPos.x && mouseX <= outputPos.x + tamCompNodes &&
-                mouseY >= outputPos.y && mouseY <= outputPos.y + tamCompNodes
-            ) {
-                draggingConnection = true;
-                dragStart = { x: outputPos.x + tamCompNodes / 2, y: outputPos.y + tamCompNodes / 2};
-                dragStartIndex = i;
-                dragStartComponent = subChip.name;
-            }
+        // Check outputs
+        let result = checkClickOnComponentInput(mousePos, chip.components, tamCompNodes, true) ||
+                     checkClickOnComponentInput(mousePos, chip.chips, tamCompNodes, true);
+        if (result) {
+            startDragging(result.component.isSub ? result.component.getOutputPositionSC(result.index) : 
+            result.component.getOutputPosition(result.index), result.index, result.component.name, tamCompNodes);
         }
-    }
 
-    if(!draggingConnection){
-        // cut connections of components inputs
-        chip.components.forEach(component => {
-            component.inputs.forEach((_, i) => {
-                let inputPos = component.getInputPosition(i);
-                if (
-                    mouseX >= inputPos.x && mouseX <= inputPos.x + tamCompNodes &&
-                    mouseY >= inputPos.y && mouseY <= inputPos.y + tamCompNodes
-                ) {
-                    // Find and remove the connection
-                    let index = chip.connections.findIndex(conn =>
-                        conn.toComponent === component.name && conn.toIndex === i
-                    );
-                    if (index !== -1) {
-                        chip.connections.splice(index, 1);
-                        component.inputs[i] = 0;
-                    }
-                }
-            });
-        });
+        // Cut connections
+        cutConnections(mousePos, chip.components, chip.connections, tamCompNodes);
+        cutConnections(mousePos, chip.chips, chip.connections, tamCompNodes);
 
-        // cut connecetions of chips inputs
-        chip.chips.forEach(subChip => {
-            subChip.inputs.forEach((_, i) => {
-                let inputPos = subChip.getInputPositionSC(i);
-                if (
-                    mouseX >= inputPos.x && mouseX <= inputPos.x + tamCompNodes &&
-                    mouseY >= inputPos.y && mouseY <= inputPos.y + tamCompNodes
-                ) {
-                    // Find and remove the connection
-                    let index = chip.connections.findIndex(conn => 
-                        conn.toComponent === subChip.name && conn.toIndex === i
-                    );
-                    if (index !== -1) {
-                        chip.connections.splice(index, 1);
-                        subChip.inputs[i] = 0;
-                    }
-                }
-            });
-        });
-
-        // cut connections of components inputs
+        // Cutting connections for chip outputs
         for (let i = 0; i < chip.outputs.length; i++) {
             let outputPos = chip.getOutputPosition(i);
-            if (
-                mouseX >= outputPos.x && mouseX <= outputPos.x + tamBasicNodes &&
-                mouseY >= outputPos.y && mouseY <= outputPos.y + tamBasicNodes
-            ) {
-                for(let j = 0; chip.connections.length; j++){
-                    let conn = chip.connections[j]
-                    if(conn.toComponent == 'OUTPUTS' && conn.toIndex == i){
-                        chip.connections.splice(j, 1)
-                        chip.outputs[i] = 0
-                        break
+            if (isWithinBounds(mousePos, outputPos, tamBasicNodes)) {
+                for (let j = 0; j < chip.connections.length; j++) {
+                    let conn = chip.connections[j];
+                    if (conn.toComponent === 'OUTPUTS' && conn.toIndex === i) {
+                        chip.connections.splice(j, 1);
+                        chip.outputs[i] = 0;
+                        break;
                     }
                 }
             }
         }
-
-    }
-
-    if(mouseX < WIDTH) selectedComp = undefined
-    for (let c of chip.components) {
-        if (c.inBounds(mouseX, mouseY)){
-            selectedComp = c
-            break
+    } 
+    else {
+        // Releasing a connection
+        let mousePos = { x: mouseX, y: mouseY };
+        let result = checkClickOnComponentInput(mousePos, chip.components, tamCompNodes) ||
+                     checkClickOnComponentInput(mousePos, chip.chips, tamCompNodes) ||
+                     (chip.outputs.some((_, i) => isWithinBounds(mousePos, chip.getOutputPosition(i), tamBasicNodes)) ?
+                         { component: { name: 'OUTPUTS' }, index: chip.outputs.findIndex((_, i) =>
+                            isWithinBounds(mousePos, chip.getOutputPosition(i), tamBasicNodes)) } : null);
+        if (result) {
+            let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
+            let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
+            dragPath.push({ x: dx > dy ? mouseX : prev.x, y: dx > dy ? prev.y : mouseY });
+            chip.connect(dragStartComponent, dragStartIndex, result.component.name, result.index, dragPath);
+            draggingConnection = false;
+            dragStart = null;
+            dragStartIndex = null;
+            dragStartComponent = null;
+            dragPath = [];
+        } else {
+            //right angles segments
+            let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
+            let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
+            dragPath.push({ x: dx > dy ? mouseX : prev.x, y: dx > dy ? prev.y : mouseY });
         }
     }
-    for (let c of chip.chips) {
-        if (c.inBounds(mouseX, mouseY)){
-            selectedComp = c
-            break
+
+    // Selecting components
+    selectedComp = undefined;
+    let mousePos = { x: mouseX, y: mouseY };
+    for (let c of chip.components.concat(chip.chips)) {
+        if (c.inBounds(mousePos.x, mousePos.y)) {
+            selectedComp = c;
+            break;
         }
     }
-    if(selectedComp){ 
-        let name = selectedComp.isSub ? selectedComp.externalName : selectedComp.type
-        panel_remove.setText("Remove: " + name)
+
+    if (selectedComp) {
+        let name = selectedComp.isSub ? selectedComp.externalName : selectedComp.type;
+        panel_remove.setText("Remove: " + name);
+    } else {
+        panel_remove.setText("Remove: ");
     }
-    else panel_remove.setText("Remove: ")
 }
 
 function mouseReleased() {
-    if (draggingConnection) {
-        // Check if releasing on a component input
-        for (let component of chip.components) {
-            for (let i = 0; i < component.inputs.length; i++) {
-                let inputPos = component.getInputPosition(i);
-                if (
-                    mouseX >= inputPos.x && mouseX <= inputPos.x + tamCompNodes &&
-                    mouseY >= inputPos.y && mouseY <= inputPos.y + tamCompNodes
-                ) {
-                    chip.connect(dragStartComponent, dragStartIndex, component.name, i);
-                    draggingConnection = false;
-                    dragStart = null;
-                    dragStartIndex = null;
-                    dragStartComponent = null;
-                    return;
-                }
-            }
-        }
-
-        // Check if releasing on a chip input or output
-        for (let c of chip.chips) {
-            for (let i = 0; i < c.inputs.length; i++) {
-                let inputPos = c.getInputPositionSC(i);
-
-                if (
-                    mouseX >= inputPos.x && mouseX <= inputPos.x + tamCompNodes &&
-                    mouseY >= inputPos.y && mouseY <= inputPos.y + tamCompNodes
-                ) {
-                    chip.connect(dragStartComponent, dragStartIndex, c.name, i);
-                    draggingConnection = false;
-                    dragStart = null;
-                    dragStartIndex = null;
-                    dragStartComponent = null;
-                    return;
-                }
-            }
-        }
-        
-        // releasing on the outputs
-        for (let i = 0; i < chip.outputs.length; i++) {
-            let outputPos = chip.getOutputPosition(i);
-            if (
-                mouseX >= outputPos.x && mouseX <= outputPos.x + tamBasicNodes &&
-                mouseY >= outputPos.y && mouseY <= outputPos.y + tamBasicNodes
-            ) {
-                chip.connect(dragStartComponent, dragStartIndex, 'OUTPUTS', i);
-                draggingConnection = false;
-                dragStart = null;
-                dragStartIndex = null;
-                dragStartComponent = null;
-                return;
-            }
-        }
-    }
-
-    // Reset dragging state
-    draggingConnection = false;
-    dragStart = null;
-    dragStartIndex = null;
-    dragStartComponent = null;
+    movingComp = {comp: null, offx: 0, offy: 0}
 }
 
 function mouseClicked() {
     // Click chip inputs to toggle them
-    for (let i = 0; i < chip.inputs.length; i++) {
-        let inputPos = chip.getInputPosition(i);
-        if (
-            mouseX >= inputPos.x && mouseX <= inputPos.x + tamBasicNodes &&
-            mouseY >= inputPos.y && mouseY <= inputPos.y + tamBasicNodes
-        ) {
-            chip.setInput(i, chip.inputs[i] === 0 ? 1 : 0);
-        }
-    }
+    let inp = chip.getInBoundsInputToggle()
+    if(inp != undefined) chip.toggleInput(inp)
 
     for(let c of chip.components){
         if(c instanceof Display){
             if(c.inBoundsSign()) c.toggleSign()
         }
-    }
-
-            
+    }  
 }
+
+function keyPressed(){
+    //press z
+    if(keyCode == 90){
+        if(!draggingConnection) return
+        if(dragPath.length == 0) draggingConnection = false
+        else dragPath.pop()
+    }
+}
+
 
 function mouseDragged(){
     if (!draggingConnection) {
@@ -456,7 +376,6 @@ function fitTextToRect(text, rectWidth, rectHeight, lineHeight) {
 function createFromSaved(){
     for(let i = 0; i < savedChips.length; i++){
         let newChip = JSON.parse(savedChips[i]);
-        console.log(newChip.externalName)
         panel.createButton(newChip.externalName, (f) => {
             chip.addComponent(newChip.name, 'CHIP', newChip.externalName);
             compNames++
@@ -465,3 +384,98 @@ function createFromSaved(){
     }
 }
 
+function isWithinBounds(point, rectStart, rectSize) {
+    return (
+        point.x >= rectStart.x && point.x <= rectStart.x + rectSize &&
+        point.y >= rectStart.y && point.y <= rectStart.y + rectSize
+    );
+}
+
+function startDragging(inputPos, index, componentName, size) {
+    draggingConnection = true;
+    dragStart = { x: inputPos.x + size / 2, y: inputPos.y + size / 2 };
+    dragStartIndex = index;
+    dragStartComponent = componentName;
+}
+
+function checkClickOnComponentInput(point, componentList, size, output = false) {
+    for (let component of componentList) {
+        for (let i = 0; i < (output ? component.outputs.length : component.inputs.length); i++) {
+            let position
+            if(component.isSub && output) position = component.getOutputPositionSC(i)
+            if(component.isSub && !output) position = component.getInputPositionSC(i)
+            if(!component.isSub && output) position = component.getOutputPosition(i)
+            if(!component.isSub && !output) position = component.getInputPosition(i)
+            if (isWithinBounds(point, position, size)) {
+                return { component, index: i };
+            }
+        }
+    }
+    return null;
+}
+
+function cutConnections(point, componentList, connections, size) {
+    for (let component of componentList) {
+        for (let i = 0; i < component.inputs.length; i++) {
+            let inputPos = component.isSub ? component.getInputPositionSC(i) : component.getInputPosition(i);
+            if (isWithinBounds(point, inputPos, size)) {
+                let index = connections.findIndex(conn =>
+                    conn.toComponent === component.name && conn.toIndex === i
+                );
+                if (index !== -1) {
+                    connections.splice(index, 1);
+                    component.inputs[i] = 0;
+                }
+            }
+        }
+    }
+}
+
+function drawConnection(path, x1, y1, x2, y2) {
+    beginShape();
+    vertex(x1, y1);
+
+    // Iterate through the connection path points and add curves
+    for (let i = 0; i < path.length; i++) {
+        let p = path[i];
+
+        // Determine the previous point (starting point or previous path point)
+        let prev = i == 0 ? {x: x1, y: y1} : path[i - 1];
+        
+        // Determine the next point (next path point or ending point)
+        let next = i == path.length - 1 ? {x: x2, y: y2} : path[i + 1];
+
+        // Calculate control points for bezier curve with subtle offset in the direction of the line
+        let controlDist = 30; // Adjust this value to control curve size
+
+        // Calculate direction vectors
+        let dx1 = (p.x - prev.x);
+        let dy1 = (p.y - prev.y);
+        let length1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
+        dx1 /= length1;
+        dy1 /= length1;
+
+        let cp1 = {
+            x: p.x - dx1 * controlDist,
+            y: p.y - dy1 * controlDist
+        };
+
+        let dx2 = (next.x - p.x);
+        let dy2 = (next.y - p.y);
+        let length2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
+        dx2 /= length2;
+        dy2 /= length2;
+
+        let cp2 = {
+            x: p.x - dx2 * controlDist,
+            y: p.y - dy2 * controlDist
+        };
+
+        // Draw the curve between previous point and current point
+        bezierVertex(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y);
+    }
+
+    // Draw the last segment to the ending point
+    vertex(x2, y2);
+    endShape();
+}

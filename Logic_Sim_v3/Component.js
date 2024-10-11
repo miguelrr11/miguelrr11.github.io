@@ -14,6 +14,10 @@ class Component {
         if (this.type === 'AND') this.outputs[0] = this.inputs[0] && this.inputs[1];
         else if (this.type === 'OR') this.outputs[0] = this.inputs[0] || this.inputs[1];
         else if (this.type === 'NOT') this.outputs[0] = this.inputs[0] ? 0 : 1;
+        else if(this.type === 'CLOCK'){
+            let state = Math.floor(frameCount / 30) % 2 === 0;
+            this.outputs = new Array(this.outputs.length).fill(state ? 1 : 0);
+        }
     }
 
     show() {
@@ -151,11 +155,6 @@ class Clock extends Component {
         this.height = this.outputs.length * (tamCompNodes + 4) + tamCompNodes;
         this.width = 30
 
-    }
-
-    simulate(){
-        let state = Math.floor(frameCount / 30) % 2 === 0;
-        this.outputs = new Array(this.outputs.length).fill(state ? 1 : 0);
     }
 
     show() {

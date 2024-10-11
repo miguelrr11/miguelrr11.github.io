@@ -40,17 +40,20 @@ class Chip{
 
     _cloneChipRecursively(chip) {
         const newChip = new Chip(chip.name, chip.inputs.length, chip.outputs.length);
+        newChip.inputs = chip.inputs
+        newChip.x = chip.x
+        newChip.y = chip.y
         newChip.components = chip.components.map(comp => new Component(comp.name, comp.type));
         newChip.chips = chip.chips.map(subChip => this._cloneChipRecursively(subChip));
         newChip.connections = chip.connections.map(conn => ({ ...conn }));
         return newChip;
     }
 
-    connect(fromComponent, fromIndex, toComponent, toIndex) {
+    connect(fromComponent, fromIndex, toComponent, toIndex, path) {
         this.connections = this.connections.filter(
             connection => !(connection.toComponent === toComponent && connection.toIndex === toIndex)
         );
-        this.connections.push({ fromComponent, fromIndex, toComponent, toIndex });
+        this.connections.push({ fromComponent, fromIndex, toComponent, toIndex, path});
     }
 
     simulate() {
@@ -114,10 +117,10 @@ class Chip{
                 if(from.isSub){
                     fromPos = from === this ? this.getInputPosition(connection.fromIndex) : from.getOutputPositionSC(connection.fromIndex);
                 }
-                if(connection.fromComponent == 'INPUTS'){fromPos.x += tamBasicNodes / 2; fromPos.y += tamBasicNodes / 2;}
-                else{fromPos.x += tamCompNodes / 2; fromPos.y += tamCompNodes / 2;}
-                if(connection.toComponent == 'OUTPUTS'){toPos.x += tamBasicNodes / 2; toPos.y += tamBasicNodes / 2;}
-                else{toPos.x += tamCompNodes / 2; toPos.y += tamCompNodes / 2;}
+                fromPos.x += tamCompNodes / 2;
+                fromPos.y += tamCompNodes / 2;
+                toPos.x += tamCompNodes / 2;
+                toPos.y += tamCompNodes / 2;
 
                 state ? stroke(colorOn) : stroke(colorOff)
                 state ? strokeWeight(strokeOn) : strokeWeight(strokeOff)
@@ -128,12 +131,20 @@ class Chip{
                 let x2 = toPos.x
                 let y2 = toPos.y
 
-                let controlX1 = x1 + controlDist;
-                let controlY1 = y1
+                beginShape()
+                vertex(x1, y1)
+                for(let p of connection.path) vertex(p.x, p.y)
+                vertex(x2, y2)
+                endShape()
 
-                let controlX2 = x2 - controlDist;
-                let controlY2 = y2
-                bezier(x1, y1, controlX1, controlY1, controlX2, controlY2, x2, y2);
+                //drawConnection(connection.path, x1, y1, x2, y2)
+
+                // let controlX1 = x1 + controlDist;
+                // let controlY1 = y1
+
+                // let controlX2 = x2 - controlDist;
+                // let controlY2 = y2
+                // bezier(x1, y1, controlX1, controlY1, controlX2, controlY2, x2, y2);
             }
         }
         pop()
@@ -145,16 +156,18 @@ class Chip{
         let off = multIn / 2 + 100
         for (let i = 0; i < this.inputs.length; i++) {
             fill(this.inputs[i] === 0 ? colorOff : colorOn);
-            line(0, off + i * multIn + tamBasicNodes / 2, tamBasicNodes, off + i * multIn + tamBasicNodes / 2)
-            rect(20, off + i * multIn, tamBasicNodes, tamBasicNodes);
+            line(0, off + i * multIn + tamCompNodes / 2, inputX, off + i * multIn + tamCompNodes / 2)
+            rect(inputX, off + i * multIn, tamCompNodes, tamCompNodes);
+            rect(inputToggleX, off + i * multIn - tamBasicNodes/5, tamBasicNodes, tamBasicNodes);
         }
 
         let multOut = (HEIGHT - 200) /  this.outputs.length
         off = multOut / 2 + 100
         for (let i = 0; i < this.outputs.length; i++) {
             fill(this.outputs[i] === 0 ? colorOff : colorOn);
-            line(WIDTH - 50, off + i * multOut + tamBasicNodes / 2, WIDTH, off + i * multOut + tamBasicNodes / 2)
-            rect(WIDTH - 50, off + i * multOut, tamBasicNodes, tamBasicNodes);
+            line(outputX, off + i * multOut + tamCompNodes / 2, WIDTH, off + i * multOut + tamCompNodes / 2)
+            rect(outputX, off + i * multOut, tamCompNodes, tamCompNodes);
+            rect(outputToggleX, off + i * multOut - tamBasicNodes/5, tamBasicNodes, tamBasicNodes);
         }   
 
         //draw components
@@ -189,10 +202,12 @@ class Chip{
             stroke(0)
             strokeWeight(.5)
             textAlign(CENTER, CENTER)
-            let spacedWords = wrapText(chip.externalName, chip.w, 14)
+            let spacedWords
+            if(chip.externalName) spacedWords = wrapText(chip.externalName, chip.w, 14)
+            else spacedWords = wrapText(chip.name, chip.w, 14)
             const fittedText = fitTextToRect(spacedWords, chip.width - tamCompNodes, chip.height, 18);
             textSize(14)
-            if(chip.externalName.length < 8) textSize(17)
+            if(chip.externalName && chip.externalName.length < 8) textSize(17)
             text(fittedText, chip.x + chip.width / 2, chip.y + chip.height / 2 - 10);
             pop()
         }
@@ -209,6 +224,10 @@ class Chip{
         return foundCo || foundCh
     }
 
+    toggleInput(index){
+        this.setInput(index, this.inputs[index] === 0 ? 1 : 0);
+    }
+
     setInput(index, value) {
         this.inputs[index] = value;
     }
@@ -221,12 +240,23 @@ class Chip{
     getInputPosition(index) {
         let multIn = (HEIGHT - 200) /  this.inputs.length
         let off = multIn / 2 + 100
-        return { x: 20, y: off + index * multIn};
+        return { x: inputX, y: off + index * multIn};
     }
     getOutputPosition(index) {
         let multOut = (HEIGHT - 200) /  this.outputs.length
         let off = multOut / 2 + 100
-        return { x: WIDTH - 50, y: off + index * multOut};
+        return { x: outputX, y: off + index * multOut};
+    }
+
+    getInputTogglePosition(index) {
+        let multIn = (HEIGHT - 200) /  this.inputs.length
+        let off = multIn / 2 + 100
+        return { x: inputToggleX, y: off + index * multIn};
+    }
+    getOutputTogglePosition(index) {
+        let multOut = (HEIGHT - 200) /  this.outputs.length
+        let off = multOut / 2 + 100
+        return { x: outputToggleX, y: off + index * multOut};
     }
 
     //SUB-CHIP
@@ -249,4 +279,19 @@ class Chip{
         this.x = x + offx;
         this.y = y + offy;
     }
+
+    getInBoundsInputToggle(){
+        for (let i = 0; i < this.inputs.length; i++) {
+            let inputPos = this.getInputTogglePosition(i);
+            if (
+                mouseX >= inputPos.x && mouseX <= inputPos.x + tamBasicNodes &&
+                mouseY >= inputPos.y && mouseY <= inputPos.y + tamBasicNodes
+            ) {
+                return i
+            }
+        }
+    }
+
 }
+
+
