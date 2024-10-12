@@ -40,7 +40,7 @@ class Chip{
 
     _cloneChipRecursively(chip) {
         const newChip = new Chip(chip.name, chip.inputs.length, chip.outputs.length);
-        newChip.inputs = chip.inputs
+        newChip.inputs = chip.inputs.slice()
         newChip.x = chip.x
         newChip.y = chip.y
         newChip.components = chip.components.map(comp => new Component(comp.name, comp.type));
@@ -133,7 +133,7 @@ class Chip{
 
                 beginShape()
                 vertex(x1, y1)
-                for(let p of connection.path) vertex(p.x, p.y)
+                if(connection.path) for(let p of connection.path) vertex(p.x, p.y)
                 vertex(x2, y2)
                 endShape()
 

@@ -5,10 +5,10 @@
 const WIDTH = 1100
 const HEIGHT = 800
 
-let chip;
-//let chipRegistry = []; // Global registry for chips
-//let savedChips = [];
-let selectCustom;
+let chip
+//let chipRegistry = []
+//let savedChips = []
+let selectCustom
 
 let draggingConnection = false;
 let dragStart = null;
@@ -26,15 +26,14 @@ const tamBasicNodes = 30
 const tamCompNodes = 18
 const colorOn = [255, 0, 0]
 const colorOff = [130, 0, 0]
-const strokeOff = 5
-const strokeOn = 5
+const strokeOff = 4
+const strokeOn = 4.5
 const controlDist = 100
 
 const inputX = 30 + tamBasicNodes - tamCompNodes
 const outputX = WIDTH - 60
 const inputToggleX = 0
 const outputToggleX = WIDTH - 30
-
 
 
 
@@ -135,13 +134,14 @@ function setup() {
     panel.createText("Create Chip:")
     panel_input = panel.createInput("Enter the name of the chip", (f) => {
         let newName = panel_input.getText()
+        let name = chip.name + compNames
+        compNames++
         chip.externalName = newName
-        console.log(chip.externalName)
+        chip.name = name
         let chipString = JSON.stringify(chip)
         savedChips.push(chipString);
-        console.log(chip)
         chipRegistry.push(chip);
-        let name = chip.name
+
 
         panel.createButton(newName, (f) => {
             let selectedName = name
@@ -156,7 +156,7 @@ function setup() {
         })
 
         chip = new Chip('chip' + compNames, 2, 1);
-        compNames++;
+        compNames += 1;
     })
     
     panel.createText("")
@@ -167,13 +167,16 @@ function setup() {
     chipRegistry.push(chip);
 
     createFromSaved()
-    chip.name = 'baseChip'
 }
 
 function draw() {
     background(60);
 
     if (draggingConnection && dragStart) {
+        stroke(75)
+        strokeWeight(.9)
+        line(mouseX, 0, mouseX, height)
+        line(0, mouseY, width, mouseY)
         stroke(colorOff);
         strokeWeight(strokeOff) 
         noFill()
@@ -188,7 +191,7 @@ function draw() {
         //drawConnection(dragPath, dragStart.x, dragStart.y, mouseX, mouseY)
     }
 
-    chip.simulate();
+    if(frameCount % 3 == 0) chip.simulate();
     chip.show();
 
     panel.update()
