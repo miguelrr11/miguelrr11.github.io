@@ -35,13 +35,7 @@ const outputX = WIDTH - 60
 const inputToggleX = 0
 const outputToggleX = WIDTH - 30
 
-function preload() {
-  fetch('data.js')
-    .then(response => response.text())
-    .then(data => {
-      eval(data); // This will evaluate the 'let a = [...]' and 'let b = [...]' in data.js
-    });
-}
+
 
 
 function setup() {
