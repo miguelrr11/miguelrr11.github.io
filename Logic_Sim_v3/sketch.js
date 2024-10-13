@@ -2,8 +2,10 @@
 //Miguel Rodriguez
 //09-10-2024
 
-const WIDTH = 1100
+const widthPanel = 250
+const WIDTH = 1400 - widthPanel
 const HEIGHT = 800
+
 
 let chip
 //let chipRegistry = []
@@ -21,13 +23,30 @@ let compNames = 0;
 let panel, panel_input, panel_remove, panel_display, panel_clock
 //let dinPanel
 let selectedComp = null
+let hoveredNode = null
 
 const tamBasicNodes = 30
 const tamCompNodes = 18
-const colorOn = [255, 0, 0]
-const colorOff = [130, 0, 0]
+
+const colorBack = "#0E212E"
+const colorOn = "#1FF451"
+const colorOff = "#14663F"
+const colorDisconnected = "#102838"
+//const colorComp = "#C7F9CC"
+const colorComp = Math.random() * 150
+const colorSelected = "#1FF451"
+
+const colsComps = [Math.random() * 150,
+                   Math.random() * 150,
+                   Math.random() * 150,
+                   Math.random() * 150,
+                   Math.random() * 150]
+
+
 const strokeOff = 4
 const strokeOn = 4.5
+const strokeLight = 2.5
+const strokeSelected = 3
 const controlDist = 100
 
 const inputX = 30 + tamBasicNodes - tamCompNodes
@@ -38,13 +57,14 @@ const outputToggleX = WIDTH - 30
 
 
 function setup() {
-    createCanvas(WIDTH+300, HEIGHT);
+    createCanvas(WIDTH+widthPanel, HEIGHT);
     strokeJoin(ROUND);
     panel = new Panel({
         x: WIDTH,
-        w: 300,
+        w: widthPanel,
         automaticHeight: false,
-        theme: 'mono',
+        lightCol: colorOn,
+        darkCol: colorBack,
         title: 'LOGIC SIM'
     })
     panel.createText("")
@@ -95,44 +115,22 @@ function setup() {
     })
 
     panel.createText("")
-    panel.createText("Create Display:")
+    panel.createText("Add DISPLAY:")
     panel_display = panel.createInput("Enter number of inputs", (f) => {
         chip.addComponent("DISPLAY" + compNames, "DISPLAY", "", constrain(parseInt(panel_display.getText()), 1, 10));
         compNames++;
     })
 
     panel.createText("")
-    panel.createText("Create Clock:")
+    panel.createText("Add CLOCK:")
     panel_clock = panel.createInput("Enter number of outputs", (f) => {
         chip.addComponent("CLOCK" + compNames, "CLOCK", "", constrain(parseInt(panel_clock.getText()), 1, 10));
         compNames++;
     })
 
     panel.createText("")
-    panel.createText("Remove selected component:")
-    panel_remove = panel.createButton("Remove: ", (f) => {
-        if(selectedComp){
-            if(selectedComp.isSub){
-                chip.chips = chip.chips.filter(chipItem => chipItem.name !== selectedComp.name);
-                chip.connections = chip.connections.filter(conn => conn.toComponent !== selectedComp.name && conn.fromComponent !== selectedComp.name);
-            }
-            else{
-                chip.components = chip.components.filter(chipItem => chipItem.name !== selectedComp.name);
-                chip.connections = chip.connections.filter(conn => conn.toComponent !== selectedComp.name && conn.fromComponent !== selectedComp.name);
-            }
-            selectedComp = null
-            panel_remove.setText("Remove: ")
-        }
-    })
-    panel.createButton("Remove ALL components", (f) => {
-        chip.components = []
-        chip.chips = []
-        chip.connections = []
-    })
-
-    panel.createText("")
-    panel.createText("Create Chip:")
-    panel_input = panel.createInput("Enter the name of the chip", (f) => {
+    panel.createText("Create CHIP:")
+    panel_input = panel.createInput("Enter name", (f) => {
         let newName = panel_input.getText()
         let name = chip.name + compNames
         compNames++
@@ -158,6 +156,27 @@ function setup() {
         chip = new Chip('chip' + compNames, 2, 1);
         compNames += 1;
     })
+
+    panel.createText("")
+    panel_remove = panel.createButton("REMOVE: ", (f) => {
+        if(selectedComp){
+            if(selectedComp.isSub){
+                chip.chips = chip.chips.filter(chipItem => chipItem.name !== selectedComp.name);
+                chip.connections = chip.connections.filter(conn => conn.toComponent !== selectedComp.name && conn.fromComponent !== selectedComp.name);
+            }
+            else{
+                chip.components = chip.components.filter(chipItem => chipItem.name !== selectedComp.name);
+                chip.connections = chip.connections.filter(conn => conn.toComponent !== selectedComp.name && conn.fromComponent !== selectedComp.name);
+            }
+            selectedComp = null
+            panel_remove.setText("REMOVE: ")
+        }
+    })
+    panel.createButton("REMOVE ALL components", (f) => {
+        chip.components = []
+        chip.chips = []
+        chip.connections = []
+    })
     
     panel.createText("")
     panel.createText("Add Saved Chips:")
@@ -170,7 +189,11 @@ function setup() {
 }
 
 function draw() {
-    background(60);
+    background(colorBack);
+
+    if(!mouseIsPressed){
+        setHoveredNode()
+    }
 
     if (draggingConnection && dragStart) {
         stroke(75)
@@ -191,7 +214,7 @@ function draw() {
         //drawConnection(dragPath, dragStart.x, dragStart.y, mouseX, mouseY)
     }
 
-    if(frameCount % 3 == 0) chip.simulate();
+    if(frameCount % 1 == 0) chip.simulate();
     chip.show();
 
     panel.update()
@@ -278,9 +301,9 @@ function mousePressed() {
 
     if (selectedComp) {
         let name = selectedComp.isSub ? selectedComp.externalName : selectedComp.type;
-        panel_remove.setText("Remove: " + name);
+        panel_remove.setText("REMOVE: " + name);
     } else {
-        panel_remove.setText("Remove: ");
+        panel_remove.setText("REMOVE: ");
     }
 }
 
@@ -308,7 +331,6 @@ function keyPressed(){
         else dragPath.pop()
     }
 }
-
 
 function mouseDragged(){
     if (!draggingConnection) {
@@ -352,7 +374,6 @@ function getLongestLineLength(inputString) {
 
     return [maxLength, lines.length];
 }
-
 
 function fitTextToRect(text, rectWidth, rectHeight, lineHeight) {
   // Split text into lines
@@ -484,3 +505,65 @@ function drawConnection(path, x1, y1, x2, y2) {
     vertex(x2, y2);
     endShape();
 }
+
+function isInputConnectedToMainChip(component, index, output, isMain = false){
+    for(let c of chip.connections){
+        if(!isMain && !output && c.toComponent == component.name && c.toIndex == index) return true
+        if(!isMain && output && c.fromComponent == component.name && c.fromIndex == index) return true
+        if(isMain && !output && c.fromComponent == 'INPUTS' && c.fromIndex == index) return true
+        if(isMain && output && c.toComponent == 'OUTPUTS' && c.toIndex == index) return true
+    }
+    return false
+}
+
+function setHoveredNode(){
+    //inputs chip
+    let inp = chip.getInBoundsInputToggle()
+    if(inp != undefined){
+        hoveredNode = {comp: 'INPUTS', index: inp}
+        return
+    }
+    inp = chip.getInBoundsInput()
+    if(inp != undefined){
+        hoveredNode = {comp: 'INPUTS', index: inp}
+        return
+    }
+    //outputs chip
+    inp = chip.getInBoundsOutputToggle()
+    if(inp != undefined){
+        hoveredNode = {comp: 'OUTPUTS', index: inp}
+        return
+    }
+    inp = chip.getInBoundsOutput()
+    if(inp != undefined){
+        hoveredNode = {comp: 'OUTPUTS', index: inp}
+        return
+    }
+
+    //components and chips inputs
+    inp = checkClickOnComponentInput({x: mouseX, y: mouseY}, chip.components, tamCompNodes, false) ||
+          checkClickOnComponentInput({x: mouseX, y: mouseY}, chip.chips, tamCompNodes, false)
+    if(inp != undefined){
+        hoveredNode = {comp: inp.component, index: inp.index, side: 'input'}
+        return
+    }
+
+    //components and chips outputs
+    inp = checkClickOnComponentInput({x: mouseX, y: mouseY}, chip.components, tamCompNodes, true) ||
+          checkClickOnComponentInput({x: mouseX, y: mouseY}, chip.chips, tamCompNodes, true)
+    if(inp != undefined){
+        hoveredNode = {comp: inp.component, index: inp.index, side: 'output'}
+        return
+    }
+
+
+    else hoveredNode = null
+}
+
+
+
+
+
+
+
+

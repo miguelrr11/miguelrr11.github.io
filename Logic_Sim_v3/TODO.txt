@@ -1,0 +1,28 @@
+-> sacar conexion de segmento
+- rediseñar el panel
+- editar chip dentro de chip (TOCHO)
+
+DONE add disconnected color
+DONE highlight hovered node
+DONE pensar colores
+
+
+
+
+
+
+
+
+
+
+
+
+
+//drawConnection(this.path, x1, y1, x2, y2)
+
+// let controlX1 = x1 + controlDist;
+// let controlY1 = y1
+
+// let controlX2 = x2 - controlDist;
+// let controlY2 = y2
+// bezier(x1, y1, controlX1, controlY1, controlX2, controlY2, x2, y2);

@@ -14,6 +14,8 @@ class Chip{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (tamCompNodes+4) + tamCompNodes;
 
         this.isSub = false
+
+        this.col = Math.random() * 150
     }
 
      addComponent(name, type, externalName = "", inP = 2) {
@@ -24,6 +26,7 @@ class Chip{
                 newChip.isSub = true
                 newChip.name += compNames
                 newChip.externalName = externalName
+                newChip.col = chip.col
                 compNames++
                 chipRegistry.push(newChip)
                 this.chips.push(newChip);
@@ -53,7 +56,8 @@ class Chip{
         this.connections = this.connections.filter(
             connection => !(connection.toComponent === toComponent && connection.toIndex === toIndex)
         );
-        this.connections.push({ fromComponent, fromIndex, toComponent, toIndex, path});
+        let newConn = new Connection(fromComponent, fromIndex, toComponent, toIndex, path)
+        this.connections.push(newConn);
     }
 
     simulate() {
@@ -84,7 +88,8 @@ class Chip{
             if (from && to && from !== this && to !== this) {
                 if (to instanceof Chip) {
                     to.setInput(connection.toIndex, from.getOutput(connection.fromIndex));
-                } else {
+                } 
+                else {
                     to.setInput(connection.toIndex, from.getOutput(connection.fromIndex));
                 }
             }
@@ -151,22 +156,50 @@ class Chip{
 
         //draw inputs and outputs
         stroke(0)
-        strokeWeight(strokeOff)
+        strokeWeight(strokeLight)
         let multIn = (HEIGHT - 200) /  this.inputs.length
         let off = multIn / 2 + 100
         for (let i = 0; i < this.inputs.length; i++) {
-            fill(this.inputs[i] === 0 ? colorOff : colorOn);
+            let connInp = isInputConnectedToMainChip(this, i, false, true)
+            if(!connInp) fill(colorDisconnected)
+            else fill(this.inputs[i] === 0 ? colorOff : colorOn);
+
+            if(hoveredNode && hoveredNode.comp == 'INPUTS' && hoveredNode.index == i){
+                stroke(colorSelected)
+                strokeWeight(strokeSelected)
+            }
+            else{
+                stroke(0)
+                strokeWeight(strokeLight)
+            }
+
             line(0, off + i * multIn + tamCompNodes / 2, inputX, off + i * multIn + tamCompNodes / 2)
             rect(inputX, off + i * multIn, tamCompNodes, tamCompNodes);
+            fill(this.inputs[i] === 0 ? colorOff : colorOn);
             rect(inputToggleX, off + i * multIn - tamBasicNodes/5, tamBasicNodes, tamBasicNodes);
         }
 
+        stroke(0)
+        strokeWeight(strokeLight)
         let multOut = (HEIGHT - 200) /  this.outputs.length
         off = multOut / 2 + 100
         for (let i = 0; i < this.outputs.length; i++) {
-            fill(this.outputs[i] === 0 ? colorOff : colorOn);
+            let connOut = isInputConnectedToMainChip(this, i, true, true)
+            if(!connOut) fill(colorDisconnected)
+            else fill(this.outputs[i] === 0 ? colorOff : colorOn);
+
+            if(hoveredNode && hoveredNode.comp == 'OUTPUTS' && hoveredNode.index == i){
+                stroke(colorSelected)
+                strokeWeight(strokeSelected)
+            }
+            else{
+                stroke(0)
+                strokeWeight(strokeLight)
+            }
+
             line(outputX, off + i * multOut + tamCompNodes / 2, WIDTH, off + i * multOut + tamCompNodes / 2)
             rect(outputX, off + i * multOut, tamCompNodes, tamCompNodes);
+            fill(this.outputs[i] === 0 ? colorOff : colorOn);
             rect(outputToggleX, off + i * multOut - tamBasicNodes/5, tamBasicNodes, tamBasicNodes);
         }   
 
@@ -178,28 +211,56 @@ class Chip{
         //draw chips
         for (let chip of this.chips) {
             push()
-            fill(200);
-            chip == selectedComp ? stroke(220) : stroke(0)
-            strokeWeight(2)
+            if(chip.col) fill(chip.col);
+            else fill(100)
+            chip == selectedComp ? stroke(colorSelected) : stroke(0);
+            strokeWeight(strokeLight)
             rect(chip.x, chip.y, chip.width, chip.height);
 
             let multIn = (chip.height - tamCompNodes) /  chip.inputs.length
             let off = multIn / 2
             for (let i = 0; i < chip.inputs.length; i++) {
-                fill(chip.inputs[i] === 0 ? colorOff : colorOn);
+                let connInp = isInputConnectedToMainChip(chip, i, false)
+                if(!connInp) fill(colorDisconnected)
+                else fill(chip.inputs[i] === 0 ? colorOff : colorOn);
+
+                if(hoveredNode && hoveredNode.comp == chip && hoveredNode.index == i && hoveredNode.side == 'input'){
+                    stroke(colorSelected)
+                    strokeWeight(strokeSelected)
+                }
+                else{
+                    stroke(0)
+                    strokeWeight(strokeLight)
+                }
+                if(chip == selectedComp) stroke(colorSelected)
+
                 rect(chip.x - tamCompNodes / 2, chip.y + i * multIn + off, tamCompNodes, tamCompNodes);
             }
 
             let multOut = (chip.height - tamCompNodes) /  chip.outputs.length
             off = multOut / 2
             for (let i = 0; i < chip.outputs.length; i++) {
+                let connOut = isInputConnectedToMainChip(chip, i, true)
+                if(!connOut) fill(colorDisconnected)
+                else fill(chip.outputs[i] === 0 ? colorOff : colorOn);
+
+                if(hoveredNode && hoveredNode.comp == chip && hoveredNode.index == i && hoveredNode.side == 'output'){
+                    stroke(colorSelected)
+                    strokeWeight(strokeSelected)
+                }
+                else{
+                    stroke(0)
+                    strokeWeight(strokeLight)
+                }
+                if(chip == selectedComp) stroke(colorSelected)
+
                 fill(chip.outputs[i] === 0 ? colorOff : colorOn);
                 rect(chip.x + chip.width - tamCompNodes / 2, chip.y + i * multOut + off, tamCompNodes, tamCompNodes);
             }
 
 
-            fill(0)
-            stroke(0)
+            fill(colorOn);
+            stroke(colorOff)
             strokeWeight(.5)
             textAlign(CENTER, CENTER)
             let spacedWords
@@ -250,7 +311,7 @@ class Chip{
 
     getInputTogglePosition(index) {
         let multIn = (HEIGHT - 200) /  this.inputs.length
-        let off = multIn / 2 + 100
+        let off = multIn / 2 + 100 - tamBasicNodes / 4
         return { x: inputToggleX, y: off + index * multIn};
     }
     getOutputTogglePosition(index) {
@@ -286,6 +347,42 @@ class Chip{
             if (
                 mouseX >= inputPos.x && mouseX <= inputPos.x + tamBasicNodes &&
                 mouseY >= inputPos.y && mouseY <= inputPos.y + tamBasicNodes
+            ) {
+                return i
+            }
+        }
+    }
+
+    getInBoundsOutputToggle(){
+        for (let i = 0; i < this.outputs.length; i++) {
+            let inputPos = this.getOutputTogglePosition(i);
+            if (
+                mouseX >= inputPos.x && mouseX <= inputPos.x + tamBasicNodes &&
+                mouseY >= inputPos.y && mouseY <= inputPos.y + tamBasicNodes
+            ) {
+                return i
+            }
+        }
+    }
+
+    getInBoundsInput(){
+        for (let i = 0; i < this.inputs.length; i++) {
+            let inputPos = this.getInputPosition(i);
+            if (
+                mouseX >= inputPos.x && mouseX <= inputPos.x + tamCompNodes &&
+                mouseY >= inputPos.y && mouseY <= inputPos.y + tamCompNodes
+            ) {
+                return i
+            }
+        }
+    }
+
+    getInBoundsOutput(){
+        for (let i = 0; i < this.outputs.length; i++) {
+            let inputPos = this.getOutputPosition(i);
+            if (
+                mouseX >= inputPos.x && mouseX <= inputPos.x + tamCompNodes &&
+                mouseY >= inputPos.y && mouseY <= inputPos.y + tamCompNodes
             ) {
                 return i
             }

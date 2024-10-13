@@ -8,6 +8,14 @@ class Component {
         this.y = random(100, HEIGHT - 100);
         this.width = 80;
         this.height = Math.max(this.inputs.length, this.outputs.length) * (tamCompNodes + 4) + tamCompNodes;
+
+        switch(type){
+        case 'NOT' :        {this.col = colsComps[0]; break}
+        case 'AND' :        {this.col = colsComps[1]; break}
+        case 'OR' :         {this.col = colsComps[2]; break}
+        case 'CLOCK' :      {this.col = colsComps[3]; break}
+        case 'DISPLAY' :    {this.col = colsComps[4]; break}
+        }
     }
 
     simulate() {
@@ -22,27 +30,56 @@ class Component {
 
     show() {
         push();
-        fill(200);
-        this == selectedComp ? stroke(220) : stroke(0);
-        strokeWeight(2);
+        fill(this.col);
+        strokeWeight(strokeLight);
+        if(this == selectedComp) stroke(colorSelected)
         rect(this.x, this.y, this.width, this.height);
 
         let multIn = (this.height - tamCompNodes) / this.inputs.length;
         let off = multIn / 2;
         for (let i = 0; i < this.inputs.length; i++) {
-            fill(this.inputs[i] === 0 ? colorOff : colorOn);
+            let connInp = isInputConnectedToMainChip(this, i, false)
+            if(!connInp) fill(colorDisconnected)
+            else fill(this.inputs[i] === 0 ? colorOff : colorOn);
+
+            if(hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'input'){
+                stroke(colorSelected)
+                strokeWeight(strokeSelected)
+            }
+            else{
+                this == selectedComp ? stroke(colorSelected) : stroke(0);
+                strokeWeight(strokeLight)
+            }
+            
+
             rect(this.x - tamCompNodes / 2, this.y + i * multIn + off, tamCompNodes, tamCompNodes);
         }
 
         let multOut = (this.height - tamCompNodes) / this.outputs.length;
         off = multOut / 2;
         for (let i = 0; i < this.outputs.length; i++) {
+            let connOut = isInputConnectedToMainChip(this, i, true)
+            if(!connOut) fill(colorDisconnected)
+            else fill(this.outputs[i] === 0 ? colorOff : colorOn);
+
+            if(hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'output'){
+                stroke(colorSelected)
+                strokeWeight(strokeSelected)
+            }
+            else{
+                stroke(0)
+                strokeWeight(strokeLight)
+            }
+
+            this == selectedComp ? stroke(colorSelected) : stroke(0);
             fill(this.outputs[i] === 0 ? colorOff : colorOn);
             rect(this.x + this.width - tamCompNodes / 2, this.y + i * multOut + off, tamCompNodes, tamCompNodes);
         }
 
         fill(0);
         stroke(0)
+        fill(colorOn);
+        stroke(colorOff)
         strokeWeight(.75)
         textSize(20);
         textAlign(CENTER, CENTER);
@@ -106,8 +143,8 @@ class Display extends Component {
 
     show() {
         push();
-        fill(20);
-        this == selectedComp ? stroke(220) : stroke(0);
+        fill(this.col);
+        this == selectedComp ? stroke(colorSelected) : stroke(0);
         strokeWeight(2);
         rect(this.x, this.y, this.width, this.height);
 
@@ -115,6 +152,17 @@ class Display extends Component {
         let off = multIn / 2;
         for (let i = 0; i < this.inputs.length; i++) {
             fill(this.inputs[i] === 0 ? colorOff : colorOn);
+            
+
+            if(hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'input'){
+                stroke(colorSelected)
+                strokeWeight(strokeSelected)
+            }
+            else{
+                this == selectedComp ? stroke(colorSelected) : stroke(0);
+                strokeWeight(strokeLight)
+            }
+
             rect(this.x - tamCompNodes / 2, this.y + i * multIn + off, tamCompNodes, tamCompNodes);
         }
 
@@ -154,13 +202,12 @@ class Clock extends Component {
         this.outputs = new Array(nOut).fill(0);
         this.height = this.outputs.length * (tamCompNodes + 4) + tamCompNodes;
         this.width = 30
-
     }
 
     show() {
         push();
-        fill(20);
-        this == selectedComp ? stroke(220) : stroke(0);
+        fill(this.col);
+        this == selectedComp ? stroke(colorSelected) : stroke(0);
         strokeWeight(2);
         rect(this.x, this.y, this.width, this.height);
 
@@ -168,6 +215,17 @@ class Clock extends Component {
         let off = multOut / 2;
         for (let i = 0; i < this.outputs.length; i++) {
             fill(this.outputs[i] === 0 ? colorOff : colorOn);
+
+            if(hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'input'){
+                stroke(colorSelected)
+                strokeWeight(strokeSelected)
+            }
+            else{
+                this == selectedComp ? stroke(colorSelected) : stroke(0);
+                strokeWeight(strokeLight)
+            }
+
+            this == selectedComp ? stroke(colorSelected) : stroke(0);
             rect(this.x + this.width - tamCompNodes / 2, this.y + i * multOut + off, tamCompNodes, tamCompNodes);
         }
 
