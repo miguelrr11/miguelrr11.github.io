@@ -17,6 +17,7 @@ let dragStart = null;
 let dragStartIndex = null;
 let dragStartComponent = null;
 let dragPath = []
+let draggingFromConn = false
 
 let movingComp = {comp: null, offx: 0, offy: 0}
 let compNames = 0;
@@ -53,6 +54,8 @@ const inputX = 30 + tamBasicNodes - tamCompNodes
 const outputX = WIDTH - 60
 const inputToggleX = 0
 const outputToggleX = WIDTH - 30
+
+const tamCollConn = 8
 
 
 
@@ -232,7 +235,7 @@ function mousePressed() {
             let inputPos = chip.getInputPosition(i);
             if (isWithinBounds(mousePos, inputPos, tamCompNodes)) {
                 startDragging(inputPos, i, 'INPUTS', tamCompNodes);
-                break;
+                return
             }
         }
 
@@ -242,6 +245,7 @@ function mousePressed() {
         if (result) {
             startDragging(result.component.isSub ? result.component.getOutputPositionSC(result.index) : 
             result.component.getOutputPosition(result.index), result.index, result.component.name, tamCompNodes);
+            return
         }
 
         // Cut connections
@@ -255,14 +259,35 @@ function mousePressed() {
                 for (let j = 0; j < chip.connections.length; j++) {
                     let conn = chip.connections[j];
                     if (conn.toComponent === 'OUTPUTS' && conn.toIndex === i) {
+                        for(let j = 0; j < chip.connections.length; j++){
+                            let other = chip.connections[j]
+                            if(conn.fromComp == other.fromComp &&
+                               conn.fromIndex == other.fromIndex &&
+                               other.fromConnPos) {
+                                chip.connections.splice(j, 1)
+                                break
+                            }
+                        }
                         chip.connections.splice(j, 1);
                         chip.outputs[i] = 0;
-                        break;
+                        return
                     }
                 }
             }
         }
+
+        //connection from existing connection
+        for(let i = 0; i < chip.connections.length; i++){
+            let conn = chip.connections[i]
+            let seg = conn.inBoundConn()
+            if(seg){
+                draggingFromConn = true
+                startDragging({x: seg.x, y: seg.y}, conn.fromIndex, conn.fromComponent, 0, true)
+                break
+            }
+        }
     } 
+
     else {
         // Releasing a connection
         let mousePos = { x: mouseX, y: mouseY };
@@ -275,12 +300,14 @@ function mousePressed() {
             let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
             let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
             dragPath.push({ x: dx > dy ? mouseX : prev.x, y: dx > dy ? prev.y : mouseY });
-            chip.connect(dragStartComponent, dragStartIndex, result.component.name, result.index, dragPath);
+            if(!draggingFromConn) chip.connect(dragStartComponent, dragStartIndex, result.component.name, result.index, dragPath);
+            else chip.connect(dragStartComponent, dragStartIndex, result.component.name, result.index, dragPath, dragStart);
             draggingConnection = false;
             dragStart = null;
             dragStartIndex = null;
             dragStartComponent = null;
             dragPath = [];
+            draggingFromConn = false
         } else {
             //right angles segments
             let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
@@ -360,6 +387,14 @@ function mouseDragged(){
     }
 }
 
+function startDragging(inputPos, index, componentName, size, isFromConn = false) {
+    draggingConnection = true;
+    if(!isFromConn) dragStart = { x: inputPos.x + size / 2, y: inputPos.y + size / 2 };
+    if(isFromConn) dragStart = {x: inputPos.x, y: inputPos.y};
+    dragStartIndex = index;
+    dragStartComponent = componentName;
+}
+
 function getLongestLineLength(inputString) {
     // Split the string by newline characters into an array of lines
     const lines = inputString.split('\n');
@@ -417,12 +452,7 @@ function isWithinBounds(point, rectStart, rectSize) {
     );
 }
 
-function startDragging(inputPos, index, componentName, size) {
-    draggingConnection = true;
-    dragStart = { x: inputPos.x + size / 2, y: inputPos.y + size / 2 };
-    dragStartIndex = index;
-    dragStartComponent = componentName;
-}
+
 
 function checkClickOnComponentInput(point, componentList, size, output = false) {
     for (let component of componentList) {
@@ -449,6 +479,16 @@ function cutConnections(point, componentList, connections, size) {
                     conn.toComponent === component.name && conn.toIndex === i
                 );
                 if (index !== -1) {
+                    let conn = connections[index]
+                    for(let j = 0; j < chip.connections.length; j++){
+                        let other = chip.connections[j]
+                        if(conn.fromComp == other.fromComp &&
+                           conn.fromIndex == other.fromIndex &&
+                           other.fromConnPos) {
+                            chip.connections.splice(j, 1)
+                            break
+                        }
+                    }
                     connections.splice(index, 1);
                     component.inputs[i] = 0;
                 }
@@ -456,6 +496,7 @@ function cutConnections(point, componentList, connections, size) {
         }
     }
 }
+
 
 function drawConnection(path, x1, y1, x2, y2) {
     beginShape();

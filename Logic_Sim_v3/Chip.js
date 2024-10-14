@@ -52,11 +52,12 @@ class Chip{
         return newChip;
     }
 
-    connect(fromComponent, fromIndex, toComponent, toIndex, path) {
+    connect(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos = undefined) {
         this.connections = this.connections.filter(
             connection => !(connection.toComponent === toComponent && connection.toIndex === toIndex)
         );
-        let newConn = new Connection(fromComponent, fromIndex, toComponent, toIndex, path)
+        let newConn = new Connection(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos)
+        console.log(newConn)
         this.connections.push(newConn);
     }
 
@@ -106,52 +107,7 @@ class Chip{
     show() {
         push()
         //draw connections
-        for (let i = 0; i < this.connections.length; i++) {
-            let connection = this.connections[i]
-            const from = this._getComponentOrChip(connection.fromComponent);
-            const to = this._getComponentOrChip(connection.toComponent);
-
-            if (from && to) {
-                let fromPos, toPos
-                fromPos = from === this ? this.getInputPosition(connection.fromIndex) : from.getOutputPosition(connection.fromIndex);
-                toPos = to === this ? this.getOutputPosition(connection.toIndex) : to.getInputPosition(connection.toIndex);
-                let state = connection.fromComponent == 'INPUTS' ? from.inputs[connection.fromIndex] : from.outputs[connection.fromIndex]
-                if(to.isSub){
-                    toPos = to === this ? this.getOutputPosition(connection.toIndex) : to.getInputPositionSC(connection.toIndex);
-                }
-                if(from.isSub){
-                    fromPos = from === this ? this.getInputPosition(connection.fromIndex) : from.getOutputPositionSC(connection.fromIndex);
-                }
-                fromPos.x += tamCompNodes / 2;
-                fromPos.y += tamCompNodes / 2;
-                toPos.x += tamCompNodes / 2;
-                toPos.y += tamCompNodes / 2;
-
-                state ? stroke(colorOn) : stroke(colorOff)
-                state ? strokeWeight(strokeOn) : strokeWeight(strokeOff)
-
-                noFill()
-                let x1 = fromPos.x
-                let y1 = fromPos.y
-                let x2 = toPos.x
-                let y2 = toPos.y
-
-                beginShape()
-                vertex(x1, y1)
-                if(connection.path) for(let p of connection.path) vertex(p.x, p.y)
-                vertex(x2, y2)
-                endShape()
-
-                //drawConnection(connection.path, x1, y1, x2, y2)
-
-                // let controlX1 = x1 + controlDist;
-                // let controlY1 = y1
-
-                // let controlX2 = x2 - controlDist;
-                // let controlY2 = y2
-                // bezier(x1, y1, controlX1, controlY1, controlX2, controlY2, x2, y2);
-            }
-        }
+        for(let c of this.connections) c.show(this)
         pop()
 
         //draw inputs and outputs
