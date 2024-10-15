@@ -43,7 +43,14 @@ class Input{
 	}
 
 	execute(){
-		if(this.func) this.func()
+		if(this.func){ 
+			this.func()
+			this.sentence = ""
+			this.clippedSentence = ""
+			this.cursorPos = 0
+			this.relCursorPos = 0
+			this.firstCursor = 0
+		}
 	}
 
 	evaluateKey(event) {

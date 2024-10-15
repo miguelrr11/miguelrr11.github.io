@@ -40,7 +40,7 @@ class Panel{
 	    this.retractable = retractable;
 	    
 	    width_elementsMIGUI = this.w - 35;
-	    clipping_length_normalMIGUI = Math.floor(0.125 * this.w - 4);
+	    clipping_length_normalMIGUI = Math.ceil(0.125 * this.w - 4);
 
 	    this.darkCol = typeof darkCol === "string" ? hexToRgbMIGUI(darkCol) : darkCol;
 	    if (!this.darkCol) throw new Error("Invalid HEX string for darkCol");
@@ -52,7 +52,7 @@ class Panel{
 
 	    this.initializeUIElements();
 
-	    this.lastElementPos = createVector(x + 17, y + 25);
+	    this.lastElementPos = createVector(x + 17, y + 30);
 	    if (this.retractable) this.lastElementPos.y += 20;
 
 	    this.titlePos = createVector(this.lastElementPos.x - 3, this.lastElementPos.y);
@@ -70,22 +70,24 @@ class Panel{
 	    if (this.automaticHeight) this.h = this.lastElementPos.y + 10;
 
 	    this.padding = 10
+	    this.paddingSeparator = 15
 
 	    this.lastCB = undefined
 	    this.lastBU = undefined
 	}
 
 	initializeUIElements() {
-	    this.checkboxes = [];
-	    this.sliders = [];
-	    this.sentences = [];
-	    this.selects = [];
-	    this.inputs = [];
-	    this.buttons = [];
-	    this.colorPickers = [];
-	    this.activeCP = undefined;
-	    this.lastElementAdded = "";
-	    this.isInteracting = undefined;
+	    this.checkboxes = []
+	    this.sliders = []
+	    this.sentences = []
+	    this.selects = []
+	    this.inputs = []
+	    this.buttons = []
+	    this.colorPickers = []
+	    this.separators = []
+	    this.activeCP = undefined
+	    this.lastElementAdded = ""
+	    this.isInteracting = undefined
 	}
 
 	adjustElementPositionForTitle() {
@@ -181,7 +183,7 @@ class Panel{
 								this.lastElementPos.y,
 								posSlider.x, posSlider.y,
 								min, max, origin, title, showValue, func,
-								this.lightCol, this.darkCol, this.transCol)
+								this.lightCol, this.darkCol, this.transCol) //<= === 
 		// if(title == "" && !showValue) this.lastElementPos.y += 22
 		// else this.lastElementPos.y += 37
 		this.lastElementPos.y += slider.height + this.padding
@@ -197,7 +199,7 @@ class Panel{
 	createText(words = "", isTitle = false){
 		//if(this.lastElementAdded.constructor.name != "Sentence") this.lastElementPos.y += 5
 		//if(isTitle) this.lastElementPos.y += 5
-		let spacedWords = wrapText(words, this.w, isTitle ? text_SizeMIGUI : title_SizeMIGUI)
+		let spacedWords = wrapText(words, this.w, isTitle ? title_SizeMIGUI : text_SizeMIGUI)
 		let sentence = new Sentence(this.lastElementPos.x,
 									this.lastElementPos.y,
 									spacedWords, isTitle,
@@ -264,9 +266,9 @@ class Panel{
 	        
 	        let l = getPixelLength(sentence, text_SizeMIGUI)
 
-	        if (this.lastBU.pos.x + this.lastBU.length + l > this.pos.x + this.w) {
+	        if (this.lastBU.pos.x + this.lastBU.length + l + 30 > this.pos.x + this.w) {
 	            needsNewLine = true;
-	        } 
+	        }
 	        else {
 	            newY = this.lastBU.pos.y;
 	        }
@@ -307,6 +309,20 @@ class Panel{
 		this.lastCB = undefined
 
 		return colorPicker
+	}
+
+	createSeparator(){
+		this.separators.push(this.lastElementPos.y + this.paddingSeparator - this.padding)
+		this.lastElementPos.y = this.lastElementPos.y + this.paddingSeparator*2 - this.padding
+		this.lastCB = undefined
+	    this.lastBU = undefined
+	    this.lastElementAdded = 'separator'
+	}
+
+	separate(){
+		this.lastCB = undefined
+	    this.lastBU = undefined
+	    this.lastElementAdded = 'separator'
 	}
 
 	// setText(pos, sentence = ""){
@@ -594,6 +610,13 @@ class Panel{
 			p.show()
 			if(p.isChoosing) this.activeCP = p
 		}
+		push()
+		stroke(this.transCol)
+		strokeWeight(1)
+		for(let s of this.separators){
+			line(this.pos.x, s, this.pos.x + this.w, s)
+		}
+		pop()
 		if(this.activeCP) this.activeCP.show()
 		pop()
 	}

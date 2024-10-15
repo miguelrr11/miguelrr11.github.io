@@ -5,7 +5,7 @@ class Button{
 		this.transCol = [...lightCol, 100]
 		this.pos = createVector(x, y)
 		this.textSize = text_SizeMIGUI-2
-		if(func.name != "retractMenu") this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
+		if(func && func.name != "retractMenu") this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
 		else this.text = text
 
 		this.beingHovered = false
@@ -13,7 +13,7 @@ class Button{
 
 		this.func = func
 		this.w = getPixelLength(this.text, this.textSize) + 8
-		this.w = constrain(this.w, 20, width_elementsMIGUI)
+		this.w = constrain(this.w, 10, width_elementsMIGUI)
 		this.h = 20
 
 		this.length = this.w
@@ -22,8 +22,8 @@ class Button{
 
 	setText(text){
 		this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
-		this.w = this.text.length * 11.5
-		this.w = constrain(this.w, 20, 160)
+		this.w = getPixelLength(this.text, this.textSize) + 8
+		this.w = constrain(this.w, 20, width_elementsMIGUI)
 	}
 
 	setFunc(func){
