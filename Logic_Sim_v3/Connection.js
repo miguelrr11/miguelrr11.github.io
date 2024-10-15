@@ -1,28 +1,29 @@
 class Connection{
-	constructor(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos = undefined){
+	constructor(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos = undefined, isSub = undefined, pathColls = undefined){
 		this.fromComponent = fromComponent
 		this.fromIndex = fromIndex
 		this.toComponent = toComponent
 		this.toIndex = toIndex
 		this.path = path
-		let from = chip._getComponentOrChip(this.fromComponent);
-        let to = chip._getComponentOrChip(this.toComponent);
+        let from, to
+		from = isSub ? isSub._getComponentOrChip(this.fromComponent) : chip._getComponentOrChip(this.fromComponent);
+        to = isSub ? isSub._getComponentOrChip(this.toComponent) : chip._getComponentOrChip(this.toComponent);
         if(fromConnPos) this.fromConnPos = fromConnPos
-        this.fromPos = fromConnPos ? fromConnPos : (from === chip ? chip.getInputPosition(this.fromIndex) : from.getOutputPosition(this.fromIndex));
+        this.fromPos = fromConnPos ? fromConnPos : (from === chip ? chip.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true));
         this.toPos = to === chip ? chip.getOutputPosition(this.toIndex) : to.getInputPosition(this.toIndex);
-        if(!fromConnPos){
-            this.fromPos.x += tamCompNodes / 2;
-            this.fromPos.y += tamCompNodes / 2;
-            this.toPos.x += tamCompNodes / 2;
-            this.toPos.y += tamCompNodes / 2;
-        }
+        // if(!fromConnPos){
+        //     this.fromPos.x += tamCompNodes / 2;
+        //     this.fromPos.y += tamCompNodes / 2;
+        //     this.toPos.x += tamCompNodes / 2;
+        //     this.toPos.y += tamCompNodes / 2;
+        // }
 
-        this.pathColls = this.setCollsPath()
+        this.pathColls = pathColls ? pathColls : this.setCollsPath()
+
+        //connections that are attached to this one {}
+        this.subConnections = []
 	}
 
-    /*
-    FIX: from subchip to subchip and from subchip to output
-    */
 	setCollsPath(){
 		let pathColls = []
         let x1 = this.fromPos.x
@@ -36,8 +37,8 @@ class Connection{
             let y2 = i == this.path.length - 1 ? this.toPos.y : this.path[i + 1].y
             let x = Math.min(x1, x2) - tamCollConn / 2
             let y = Math.min(y1, y2) - tamCollConn / 2
-            let w = x1 == x2 ? tamCollConn : Math.abs(x1 - x2)
-            let h = y1 == y2 ? tamCollConn : Math.abs(y1 - y2)
+            let w = x1 == x2 ? tamCollConn : Math.abs(x1 - x2) + tamCollConn
+            let h = y1 == y2 ? tamCollConn : Math.abs(y1 - y2) + tamCollConn
             pathColls.push({x, y, w, h})
         }
         return pathColls
@@ -61,23 +62,32 @@ class Connection{
                     x = mouseX
                     y = p.y + tamCollConn / 2
                 }
-                return {x, y}
+                return {x, y, conn: this}
             }
         }
         return undefined
     }
 
 	show(comp){
-		let from = chip._getComponentOrChip(this.fromComponent);
-        let to = chip._getComponentOrChip(this.toComponent);
+        let from, to
+		from = this.isSub ? isSub._getComponentOrChip(this.fromComponent) : chip._getComponentOrChip(this.fromComponent);
+        to = this.isSub ? isSub._getComponentOrChip(this.toComponent) : chip._getComponentOrChip(this.toComponent);
         let state = this.fromComponent == 'INPUTS' ? from.inputs[this.fromIndex] : from.outputs[this.fromIndex]
 
         if (from && to) {
             if(to.isSub){
-                this.toPos = to === comp ? comp.getOutputPosition(this.toIndex) : to.getInputPositionSC(this.toIndex);
+                this.toPos = to === comp ? comp.getOutputPosition(this.toIndex, true) : to.getInputPositionSC(this.toIndex, true);
             }
-            if(from.isSub){
-                this.fromPos = from === comp ? comp.getInputPosition(this.fromIndex) : from.getOutputPositionSC(this.fromIndex);
+            else {
+                this.toPos = this.isSub ? (to === this.isSub ? this.isSub.getOutputPosition(this.toIndex, true) : to.getInputPosition(this.toIndex, true)) :
+                                          (to === chip ? chip.getOutputPosition(this.toIndex, true) : to.getInputPosition(this.toIndex, true))
+            }
+            if(from.isSub && !this.fromConnPos){
+                this.fromPos = from === comp ? comp.getInputPosition(this.fromIndex, true) : from.getOutputPositionSC(this.fromIndex, true);
+            }
+            else{ 
+                this.fromPos = this.isSub ? (this.fromConnPos ? this.fromConnPos : (from === this.isSub ? this.isSub.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true))) :
+                                            (this.fromConnPos ? this.fromConnPos : (from === chip ? chip.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true)))
             }
 
             state ? stroke(colorOn) : stroke(colorOff)
@@ -91,13 +101,18 @@ class Connection{
             vertex(this.toPos.x, this.toPos.y)
             endShape()
 
-            stroke(255, 0, 0)
-            strokeWeight(1)
+            state ? fill(colorOn) : fill(colorOff)
+            noStroke()
             for(let p of this.pathColls){ 
                 if(this.inBound(p)){
-                    fill(255, 0, 0)
+                    if(p.w == tamCollConn) rect(p.x, p.y + tamCollConn/4, p.w, p.h - tamCollConn/2)
+                    else rect(p.x + tamCollConn/4, p.y, p.w - tamCollConn/2, p.h)
+                    return
                 }
-                else noFill()
+                //debug colls conns
+                strokeWeight(1)
+                stroke(255, 0, 0)
+                noFill()
                 rect(p.x, p.y, p.w, p.h)
             }
         }

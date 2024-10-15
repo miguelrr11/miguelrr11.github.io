@@ -70,6 +70,10 @@ It has 3 sliders: hue, saturation and transparency
 let cp = panel.createColorPicker([title = ""], [func = undefined]) //the function func will be executed when the color picker is interacted with
 cp.getColor() //returns an array of 4 integers (r, g, b, a)
 
+SEPARATOR
+Draws a line between elements to separate them visually
+panel.createSeparator()
+
 NOTES
 - checkboxes and buttons will be stacked horizontally if possible, the rest of the elements will be added vertically
 

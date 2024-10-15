@@ -1,10 +1,10 @@
--> sacar conexion de segmento
 - rediseñar el panel
 - editar chip dentro de chip (TOCHO)
 
 DONE add disconnected color
 DONE highlight hovered node
 DONE pensar colores
+DONE sacar conexion de segmento
 
 
 

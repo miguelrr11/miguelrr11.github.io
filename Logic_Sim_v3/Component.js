@@ -1,11 +1,11 @@
 class Component {
-    constructor(name, type) {
+    constructor(name, type, x = undefined, y = undefined) {
         this.name = name;
         this.type = type;
         this.inputs = type === 'NOT' ? [0] : [0, 0];
         this.outputs = [0];
-        this.x = random(100, WIDTH - 100);
-        this.y = random(100, HEIGHT - 100);
+        this.x = x ? x : random(100, WIDTH - 100);
+        this.y = y ? y : random(100, HEIGHT - 100);
         this.width = 80;
         this.height = Math.max(this.inputs.length, this.outputs.length) * (tamCompNodes + 4) + tamCompNodes;
 
@@ -33,6 +33,7 @@ class Component {
         fill(this.col);
         strokeWeight(strokeLight);
         if(this == selectedComp) stroke(colorSelected)
+        else stroke(0)
         rect(this.x, this.y, this.width, this.height);
 
         let multIn = (this.height - tamCompNodes) / this.inputs.length;
@@ -51,7 +52,7 @@ class Component {
                 strokeWeight(strokeLight)
             }
             
-
+            //noFill()////////////////////
             rect(this.x - tamCompNodes / 2, this.y + i * multIn + off, tamCompNodes, tamCompNodes);
         }
 
@@ -67,12 +68,11 @@ class Component {
                 strokeWeight(strokeSelected)
             }
             else{
-                stroke(0)
+                this == selectedComp ? stroke(colorSelected) : stroke(0);
                 strokeWeight(strokeLight)
             }
 
-            this == selectedComp ? stroke(colorSelected) : stroke(0);
-            fill(this.outputs[i] === 0 ? colorOff : colorOn);
+            //noFill()////////////////////
             rect(this.x + this.width - tamCompNodes / 2, this.y + i * multOut + off, tamCompNodes, tamCompNodes);
         }
 
@@ -95,16 +95,18 @@ class Component {
         return this.outputs[index];
     }
 
-    getInputPosition(index) {
+    getInputPosition(index, centered = false) {
         let multIn = (this.height - tamCompNodes) / this.inputs.length;
         let off = multIn / 2;
-        return { x: this.x - tamCompNodes / 2, y: this.y + index * multIn + off };
+        let center = centered ? tamCompNodes / 2 : 0
+        return { x: this.x - tamCompNodes / 2 + center, y: this.y + index * multIn + off + center};
     }
 
-    getOutputPosition(index) {
+    getOutputPosition(index, centered = false) {
         let multOut = (this.height - tamCompNodes) / this.outputs.length;
         let off = multOut / 2;
-        return { x: this.x + this.width - tamCompNodes / 2, y: this.y + index * multOut + off };
+        let center = centered ? tamCompNodes / 2 : 0
+        return { x: this.x + this.width - tamCompNodes / 2, y: this.y + index * multOut + off + center};
     }
 
     inBounds(x, y) {

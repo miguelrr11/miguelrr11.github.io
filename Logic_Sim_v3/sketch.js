@@ -8,8 +8,8 @@ const HEIGHT = 800
 
 
 let chip
-//let chipRegistry = []
-//let savedChips = []
+let chipRegistry = []
+let savedChips = []
 let selectCustom
 
 let draggingConnection = false;
@@ -17,11 +17,11 @@ let dragStart = null;
 let dragStartIndex = null;
 let dragStartComponent = null;
 let dragPath = []
-let draggingFromConn = false
+let draggingFromConn = undefined
 
 let movingComp = {comp: null, offx: 0, offy: 0}
 let compNames = 0;
-let panel, panel_input, panel_remove, panel_display, panel_clock
+let panel, panel_input, panel_remove, panel_display, panel_clock, panel_edit, panel_goBack
 //let dinPanel
 let selectedComp = null
 let hoveredNode = null
@@ -57,7 +57,7 @@ const outputToggleX = WIDTH - 30
 
 const tamCollConn = 8
 
-
+let chipStack = []
 
 function setup() {
     createCanvas(WIDTH+widthPanel, HEIGHT);
@@ -70,26 +70,13 @@ function setup() {
         darkCol: colorBack,
         title: 'LOGIC SIM'
     })
-    panel.createText("")
+    panel.createSeparator()
     panel.createText("Click on an input to start a connection")
     panel.createText("Press Z to undo a segment")
 
-    panel.createText("")
-    panel.createText("Spawn basic Gates:")
-    panel.createButton("AND", (f) => {
-        chip.addComponent("AND" + compNames, "AND");
-        compNames++;
-    })
-    panel.createButton("OR", (f) => {
-        chip.addComponent("OR" + compNames, "OR");
-        compNames++;
-    })
-    panel.createButton("NOT", (f) => {
-        chip.addComponent("NOT" + compNames, "NOT");
-        compNames++;
-    })
-    panel.createText("")
-    panel.createText("Modify current chip I/O:")
+    
+    panel.createSeparator()
+    panel.createText("Modify chip I/O:")
     panel.createButton("+ In", (f) => {
         chip.inputs.push(0)
     })
@@ -117,21 +104,36 @@ function setup() {
         }
     })
 
-    panel.createText("")
+    panel.createSeparator()
+    panel.createText("Add basic gates:")
+    panel.createButton("AND", (f) => {
+        chip.addComponent("AND" + compNames, "AND");
+        compNames++;
+    })
+    panel.createButton("OR", (f) => {
+        chip.addComponent("OR" + compNames, "OR");
+        compNames++;
+    })
+    panel.createButton("NOT", (f) => {
+        chip.addComponent("NOT" + compNames, "NOT");
+        compNames++;
+    })
+
+    panel.createSeparator()
     panel.createText("Add DISPLAY:")
     panel_display = panel.createInput("Enter number of inputs", (f) => {
         chip.addComponent("DISPLAY" + compNames, "DISPLAY", "", constrain(parseInt(panel_display.getText()), 1, 10));
         compNames++;
     })
 
-    panel.createText("")
+    panel.createSeparator()
     panel.createText("Add CLOCK:")
     panel_clock = panel.createInput("Enter number of outputs", (f) => {
         chip.addComponent("CLOCK" + compNames, "CLOCK", "", constrain(parseInt(panel_clock.getText()), 1, 10));
         compNames++;
     })
 
-    panel.createText("")
+    panel.createSeparator()
     panel.createText("Create CHIP:")
     panel_input = panel.createInput("Enter name", (f) => {
         let newName = panel_input.getText()
@@ -160,7 +162,7 @@ function setup() {
         compNames += 1;
     })
 
-    panel.createText("")
+    panel.createSeparator()
     panel_remove = panel.createButton("REMOVE: ", (f) => {
         if(selectedComp){
             if(selectedComp.isSub){
@@ -180,15 +182,32 @@ function setup() {
         chip.chips = []
         chip.connections = []
     })
+
+    panel.createSeparator()
+    panel_edit = panel.createButton("EDIT: ", (f) => {
+        if(selectedComp){
+            if(selectedComp.isSub){
+                chipStack.push(chip)
+                chip = selectedComp
+                panel_remove.setText("REMOVE: ");
+                panel_edit.setText("EDIT: ")
+            }
+            //selectedComp = null
+            //panel_remove.setText("EDIT: ")
+        }
+    })
+    panel_goBack = panel.createButton("Go back", (f) => {
+        if(chipStack.length > 0) chip = chipStack.pop()
+    })
     
-    panel.createText("")
+    panel.createSeparator()
     panel.createText("Add Saved Chips:")
 
     chip = new Chip('chip' + compNames, 2, 1);
     compNames++;
     chipRegistry.push(chip);
 
-    createFromSaved()
+    //createFromSaved()
 }
 
 function draw() {
@@ -244,7 +263,7 @@ function mousePressed() {
                      checkClickOnComponentInput(mousePos, chip.chips, tamCompNodes, true);
         if (result) {
             startDragging(result.component.isSub ? result.component.getOutputPositionSC(result.index) : 
-            result.component.getOutputPosition(result.index), result.index, result.component.name, tamCompNodes);
+                result.component.getOutputPosition(result.index), result.index, result.component.name, tamCompNodes);
             return
         }
 
@@ -259,15 +278,7 @@ function mousePressed() {
                 for (let j = 0; j < chip.connections.length; j++) {
                     let conn = chip.connections[j];
                     if (conn.toComponent === 'OUTPUTS' && conn.toIndex === i) {
-                        for(let j = 0; j < chip.connections.length; j++){
-                            let other = chip.connections[j]
-                            if(conn.fromComp == other.fromComp &&
-                               conn.fromIndex == other.fromIndex &&
-                               other.fromConnPos) {
-                                chip.connections.splice(j, 1)
-                                break
-                            }
-                        }
+                        cutSubConnections(conn)
                         chip.connections.splice(j, 1);
                         chip.outputs[i] = 0;
                         return
@@ -281,7 +292,7 @@ function mousePressed() {
             let conn = chip.connections[i]
             let seg = conn.inBoundConn()
             if(seg){
-                draggingFromConn = true
+                draggingFromConn = seg.conn
                 startDragging({x: seg.x, y: seg.y}, conn.fromIndex, conn.fromComponent, 0, true)
                 break
             }
@@ -300,14 +311,14 @@ function mousePressed() {
             let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
             let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
             dragPath.push({ x: dx > dy ? mouseX : prev.x, y: dx > dy ? prev.y : mouseY });
-            if(!draggingFromConn) chip.connect(dragStartComponent, dragStartIndex, result.component.name, result.index, dragPath);
-            else chip.connect(dragStartComponent, dragStartIndex, result.component.name, result.index, dragPath, dragStart);
+            if(draggingFromConn == undefined) chip.connect(dragStartComponent, dragStartIndex, result.component.name, result.index, dragPath);
+            else chip.connect(dragStartComponent, dragStartIndex, result.component.name, result.index, dragPath, dragStart, draggingFromConn);
             draggingConnection = false;
             dragStart = null;
             dragStartIndex = null;
             dragStartComponent = null;
             dragPath = [];
-            draggingFromConn = false
+            draggingFromConn = undefined
         } else {
             //right angles segments
             let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
@@ -317,7 +328,8 @@ function mousePressed() {
     }
 
     // Selecting components
-    selectedComp = undefined;
+
+    selectedComp = undefined; /////////////////////////////////////////
     let mousePos = { x: mouseX, y: mouseY };
     for (let c of chip.components.concat(chip.chips)) {
         if (c.inBounds(mousePos.x, mousePos.y)) {
@@ -329,8 +341,10 @@ function mousePressed() {
     if (selectedComp) {
         let name = selectedComp.isSub ? selectedComp.externalName : selectedComp.type;
         panel_remove.setText("REMOVE: " + name);
+        if(selectedComp.isSub) panel_edit.setText("EDIT: " + name)
     } else {
         panel_remove.setText("REMOVE: ");
+        panel_edit.setText("EDIT: ")
     }
 }
 
@@ -356,6 +370,21 @@ function keyPressed(){
         if(!draggingConnection) return
         if(dragPath.length == 0) draggingConnection = false
         else dragPath.pop()
+    }
+    //press backspace
+    if(keyCode == 8){
+        if(selectedComp){
+            if(selectedComp.isSub){
+                chip.chips = chip.chips.filter(chipItem => chipItem.name !== selectedComp.name);
+                chip.connections = chip.connections.filter(conn => conn.toComponent !== selectedComp.name && conn.fromComponent !== selectedComp.name);
+            }
+            else{
+                chip.components = chip.components.filter(chipItem => chipItem.name !== selectedComp.name);
+                chip.connections = chip.connections.filter(conn => conn.toComponent !== selectedComp.name && conn.fromComponent !== selectedComp.name);
+            }
+            selectedComp = null
+            panel_remove.setText("REMOVE: ")
+        }
     }
 }
 
@@ -474,27 +503,76 @@ function cutConnections(point, componentList, connections, size) {
     for (let component of componentList) {
         for (let i = 0; i < component.inputs.length; i++) {
             let inputPos = component.isSub ? component.getInputPositionSC(i) : component.getInputPosition(i);
-            if (isWithinBounds(point, inputPos, size)) {
-                let index = connections.findIndex(conn =>
-                    conn.toComponent === component.name && conn.toIndex === i
-                );
-                if (index !== -1) {
-                    let conn = connections[index]
-                    for(let j = 0; j < chip.connections.length; j++){
-                        let other = chip.connections[j]
-                        if(conn.fromComp == other.fromComp &&
-                           conn.fromIndex == other.fromIndex &&
-                           other.fromConnPos) {
-                            chip.connections.splice(j, 1)
-                            break
-                        }
-                    }
-                    connections.splice(index, 1);
-                    component.inputs[i] = 0;
-                }
+            if (!isWithinBounds(point, inputPos, size)) continue;
+
+            let index = connections.findIndex(conn =>
+                conn.toComponent === component.name && conn.toIndex === i
+            );
+            if (index === -1) continue;
+
+            let conn = connections[index];
+            cutSubConnections(conn);
+            
+            let fromConn = chip.getConnection(conn);
+            removeSubConnection(conn);
+
+            connections.splice(index, 1);
+            component.inputs[i] = 0;
+        }
+    }
+}
+
+function removeSubConnection(conn) {
+    for (let auxConn of chip.connections) {
+        let subIndex = auxConn.subConnections.findIndex(auxConnSC => 
+            conn.fromComponent === auxConnSC.fromComponent &&
+            conn.toComponent === auxConnSC.toComponent &&
+            conn.fromIndex === auxConnSC.fromIndex &&
+            conn.toIndex === auxConnSC.toIndex
+        );
+
+        if (subIndex !== -1) {
+
+            auxConn.subConnections.splice(subIndex, 1);
+            break;
+        }
+    }
+}
+
+
+function cutSubConnections(conn){
+    for(let sc of conn.subConnections){
+        for(let i = 0; i < chip.connections.length; i++){
+            let auxConn = chip.connections[i]
+            if(auxConn == conn) continue
+            if(auxConn.fromComponent == sc.fromComponent &&
+               auxConn.toComponent == sc.toComponent &&
+               auxConn.fromIndex == sc.fromIndex &&
+               auxConn.toIndex == sc.toIndex){
+
+                //apagar inputs que son desconectados
+                let comp = chip._getComponentOrChip(auxConn.toComponent)
+                comp.setInput(auxConn.toIndex, 0)
+
+                //desconectar recursivamente
+                cutSubConnections(auxConn)
+                chip.connections.splice(i, 1)
+                i--
             }
         }
     }
+
+
+    // for(let j = 0; j < chip.connections.length; j++){
+    //     let other = chip.connections[j]
+    //     if(conn == other) continue
+    //     if(conn.fromComp == other.fromComp &&
+    //        conn.fromIndex == other.fromIndex &&
+    //        other.fromConnPos) {
+    //         chip.connections.splice(j, 1)
+    //         j--
+    //     }
+    // }
 }
 
 

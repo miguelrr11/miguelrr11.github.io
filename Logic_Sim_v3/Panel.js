@@ -52,7 +52,7 @@ class Panel{
 
 	    this.initializeUIElements();
 
-	    this.lastElementPos = createVector(x + 17, y + 25);
+	    this.lastElementPos = createVector(x + 17, y + 30);
 	    if (this.retractable) this.lastElementPos.y += 20;
 
 	    this.titlePos = createVector(this.lastElementPos.x - 3, this.lastElementPos.y);
@@ -70,22 +70,24 @@ class Panel{
 	    if (this.automaticHeight) this.h = this.lastElementPos.y + 10;
 
 	    this.padding = 10
+	    this.paddingSeparator = 15
 
 	    this.lastCB = undefined
 	    this.lastBU = undefined
 	}
 
 	initializeUIElements() {
-	    this.checkboxes = [];
-	    this.sliders = [];
-	    this.sentences = [];
-	    this.selects = [];
-	    this.inputs = [];
-	    this.buttons = [];
-	    this.colorPickers = [];
-	    this.activeCP = undefined;
-	    this.lastElementAdded = "";
-	    this.isInteracting = undefined;
+	    this.checkboxes = []
+	    this.sliders = []
+	    this.sentences = []
+	    this.selects = []
+	    this.inputs = []
+	    this.buttons = []
+	    this.colorPickers = []
+	    this.separators = []
+	    this.activeCP = undefined
+	    this.lastElementAdded = ""
+	    this.isInteracting = undefined
 	}
 
 	adjustElementPositionForTitle() {
@@ -307,6 +309,14 @@ class Panel{
 		this.lastCB = undefined
 
 		return colorPicker
+	}
+
+	createSeparator(){
+		this.separators.push(this.lastElementPos.y + this.paddingSeparator - this.padding)
+		this.lastElementPos.y = this.lastElementPos.y + this.paddingSeparator*2 - this.padding
+		this.lastCB = undefined
+	    this.lastBU = undefined
+	    this.lastElementAdded = 'separator'
 	}
 
 	// setText(pos, sentence = ""){
@@ -594,6 +604,13 @@ class Panel{
 			p.show()
 			if(p.isChoosing) this.activeCP = p
 		}
+		push()
+		stroke(this.transCol)
+		strokeWeight(1)
+		for(let s of this.separators){
+			line(this.pos.x, s, this.pos.x + this.w, s)
+		}
+		pop()
 		if(this.activeCP) this.activeCP.show()
 		pop()
 	}

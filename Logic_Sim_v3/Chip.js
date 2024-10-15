@@ -18,7 +18,7 @@ class Chip{
         this.col = Math.random() * 150
     }
 
-     addComponent(name, type, externalName = "", inP = 2) {
+    addComponent(name, type, externalName = "", inP = 2) {
         if (type === 'CHIP') {
             const chip = chipRegistry.find(chip => chip.name === name);
             if (chip) {
@@ -46,18 +46,27 @@ class Chip{
         newChip.inputs = chip.inputs.slice()
         newChip.x = chip.x
         newChip.y = chip.y
-        newChip.components = chip.components.map(comp => new Component(comp.name, comp.type));
+        newChip.components = chip.components.map(comp => new Component(comp.name, comp.type, comp.x, comp.y));
         newChip.chips = chip.chips.map(subChip => this._cloneChipRecursively(subChip));
-        newChip.connections = chip.connections.map(conn => ({ ...conn }));
+        //newChip.connections = chip.connections.map(conn => ({ ...conn }));
+        newChip.connections = chip.connections.map(conn => new Connection(conn.fromComponent + "", conn.fromIndex, 
+                                                                          conn.toComponent + "", conn.toIndex,
+                                                                          conn.path.slice(), conn.fromConnPos, 
+                                                                          newChip, conn.pathColls.map(pathColl => ({ ...pathColl }))) );
         return newChip;
     }
 
-    connect(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos = undefined) {
+    connect(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos = undefined, draggingFromConn = undefined) {
         this.connections = this.connections.filter(
             connection => !(connection.toComponent === toComponent && connection.toIndex === toIndex)
         );
+        if(draggingFromConn){
+            draggingFromConn.subConnections.push({fromComponent, 
+                                                  toComponent,
+                                                  fromIndex,
+                                                  toIndex})
+        }
         let newConn = new Connection(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos)
-        console.log(newConn)
         this.connections.push(newConn);
     }
 
@@ -107,7 +116,9 @@ class Chip{
     show() {
         push()
         //draw connections
-        for(let c of this.connections) c.show(this)
+        for(let c of chip.connections){ 
+                c.show(chip) 
+        }
         pop()
 
         //draw inputs and outputs
@@ -129,6 +140,7 @@ class Chip{
                 strokeWeight(strokeLight)
             }
 
+            //noFill() /////////////////////
             line(0, off + i * multIn + tamCompNodes / 2, inputX, off + i * multIn + tamCompNodes / 2)
             rect(inputX, off + i * multIn, tamCompNodes, tamCompNodes);
             fill(this.inputs[i] === 0 ? colorOff : colorOn);
@@ -153,6 +165,7 @@ class Chip{
                 strokeWeight(strokeLight)
             }
 
+            //noFill() /////////////////////
             line(outputX, off + i * multOut + tamCompNodes / 2, WIDTH, off + i * multOut + tamCompNodes / 2)
             rect(outputX, off + i * multOut, tamCompNodes, tamCompNodes);
             fill(this.outputs[i] === 0 ? colorOff : colorOn);
@@ -254,15 +267,17 @@ class Chip{
     }
 
     //CHIP
-    getInputPosition(index) {
+    getInputPosition(index, centered = false) {
         let multIn = (HEIGHT - 200) /  this.inputs.length
         let off = multIn / 2 + 100
-        return { x: inputX, y: off + index * multIn};
+        let center = centered ? tamCompNodes / 2 : 0
+        return { x: inputX + center, y: off + index * multIn + center};
     }
-    getOutputPosition(index) {
+    getOutputPosition(index, centered = false) {
         let multOut = (HEIGHT - 200) /  this.outputs.length
         let off = multOut / 2 + 100
-        return { x: outputX, y: off + index * multOut};
+        let center = centered ? tamCompNodes / 2 : 0
+        return { x: outputX + center, y: off + index * multOut + center};
     }
 
     getInputTogglePosition(index) {
@@ -277,15 +292,17 @@ class Chip{
     }
 
     //SUB-CHIP
-    getInputPositionSC(index) {
+    getInputPositionSC(index, centered = false) {
         let multIn = (this.height - tamCompNodes) /  this.inputs.length
         let off = multIn / 2
-        return { x: this.x - tamCompNodes / 2, y: this.y + index * multIn + off};
+        let center = centered ? tamCompNodes / 2 : 0
+        return { x: this.x - tamCompNodes / 2, y: this.y + index * multIn + off + center};
     }
-    getOutputPositionSC(index) {
+    getOutputPositionSC(index, centered = false) {
         let multOut = (this.height - tamCompNodes) /  this.outputs.length
         let off = multOut / 2
-        return { x: this.x + this.width - tamCompNodes / 2, y: this.y + index * multOut + off};
+        let center = centered ? tamCompNodes / 2 : 0
+        return { x: this.x + this.width - tamCompNodes / 2, y: this.y + index * multOut + off + center};
     }
 
     inBounds(x, y) {
@@ -341,6 +358,18 @@ class Chip{
                 mouseY >= inputPos.y && mouseY <= inputPos.y + tamCompNodes
             ) {
                 return i
+            }
+        }
+    }
+
+    getConnection(fromC, fromI, toC, toI){
+        for(let i = 0; i < this.connections.length; i++){
+            let auxConn = this.connections[i]
+            if(auxConn.fromComponent == fromC &&
+               auxConn.toComponent == toC &&
+               auxConn.fromIndex == fromI &&
+               auxConn.toIndex == toI){
+                return auxConn
             }
         }
     }
