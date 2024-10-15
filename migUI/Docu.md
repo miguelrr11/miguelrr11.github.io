@@ -2,7 +2,7 @@
 (documentación escrita por chatGPT)
 
 ## Overview
-The Panel UI library provides a simple and customizable user interface for p5js projects, allowing you to create interactive panels, sliders, checkboxes, and more. The panel can be easily configured and used to manage various UI components in a consistent manner.
+The MIGUI library provides a simple and customizable user interface for p5js projects, allowing you to create interactive panels, sliders, checkboxes, and more. The panel can be easily configured and used to manage various UI components in a consistent manner.
 
 ## Panel
 The `Panel` class allows you to create and manage a control panel.
