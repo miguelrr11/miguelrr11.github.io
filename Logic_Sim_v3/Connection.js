@@ -9,8 +9,8 @@ class Connection{
 		from = isSub ? isSub._getComponentOrChip(this.fromComponent) : chip._getComponentOrChip(this.fromComponent);
         to = isSub ? isSub._getComponentOrChip(this.toComponent) : chip._getComponentOrChip(this.toComponent);
         if(fromConnPos) this.fromConnPos = fromConnPos
-        this.fromPos = fromConnPos ? fromConnPos : (from === chip ? chip.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true));
-        this.toPos = to === chip ? chip.getOutputPosition(this.toIndex) : to.getInputPosition(this.toIndex);
+        this.fromPos = fromConnPos ? fromConnPos : (from === chip ? chip.getInputPosition(this.fromIndex, true) : (from.isSub ? from.getOutputPositionSC(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true)));
+        this.toPos = to === chip ? chip.getOutputPosition(this.toIndex, true) : (to.isSub ? to.getInputPositionSC(this.toIndex, true) : to.getInputPosition(this.toIndex, true));
         // if(!fromConnPos){
         //     this.fromPos.x += tamCompNodes / 2;
         //     this.fromPos.y += tamCompNodes / 2;
@@ -39,6 +39,14 @@ class Connection{
             let y = Math.min(y1, y2) - tamCollConn / 2
             let w = x1 == x2 ? tamCollConn : Math.abs(x1 - x2) + tamCollConn
             let h = y1 == y2 ? tamCollConn : Math.abs(y1 - y2) + tamCollConn
+            if(y1 == y2){
+                x += radCurveConn
+                w -= radCurveConn*2
+            }
+            if(x1 == x2){
+                y += radCurveConn
+                h -= radCurveConn*2
+            }
             pathColls.push({x, y, w, h})
         }
         return pathColls
@@ -92,29 +100,36 @@ class Connection{
 
             state ? stroke(colorOn) : stroke(colorOff)
             state ? strokeWeight(strokeOn) : strokeWeight(strokeOff)
-
             noFill()
 
-            beginShape()
-            vertex(this.fromPos.x, this.fromPos.y)
-            if(this.path) for(let p of this.path) vertex(p.x, p.y)
-            vertex(this.toPos.x, this.toPos.y)
-            endShape()
-
-            state ? fill(colorOn) : fill(colorOff)
-            noStroke()
+            let inB = false
             for(let p of this.pathColls){ 
                 if(this.inBound(p)){
-                    if(p.w == tamCollConn) rect(p.x, p.y + tamCollConn/4, p.w, p.h - tamCollConn/2)
-                    else rect(p.x + tamCollConn/4, p.y, p.w - tamCollConn/2, p.h)
-                    return
+                    inB = true
+                    break
                 }
-                //debug colls conns
-                strokeWeight(1)
-                stroke(255, 0, 0)
-                noFill()
-                rect(p.x, p.y, p.w, p.h)
             }
+
+            if(inB) strokeWeight(6.5)
+            let drawPath = []
+            drawPath.push(createVector(this.fromPos.x, this.fromPos.y))
+            for(let p of this.path) drawPath.push(createVector(p.x, p.y))
+            drawPath.push(createVector(this.toPos.x, this.toPos.y))
+            drawBezierPath(drawPath)
+
+            // beginShape()
+            // vertex(this.fromPos.x, this.fromPos.y)
+            // if(this.path) for(let p of this.path) vertex(p.x, p.y)
+            // vertex(this.toPos.x, this.toPos.y)
+            // endShape()
+
+            ////debug colls
+            // for(let p of this.pathColls){
+            //     strokeWeight(1)
+            //     stroke(255, 0, 0)
+            //     noFill()
+            //     rect(p.x, p.y, p.w, p.h)
+            // }
         }
 	}
 }

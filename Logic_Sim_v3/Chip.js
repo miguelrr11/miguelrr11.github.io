@@ -43,6 +43,8 @@ class Chip{
 
     _cloneChipRecursively(chip) {
         const newChip = new Chip(chip.name, chip.inputs.length, chip.outputs.length);
+        newChip.externalName = chip.externalName
+        newChip.isSub = chip.isSub
         newChip.inputs = chip.inputs.slice()
         newChip.x = chip.x
         newChip.y = chip.y

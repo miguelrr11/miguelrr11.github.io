@@ -14,6 +14,10 @@ class Sentence{
 		if(this.isTitle) this.height *= 2
 	}
 
+	getText(){
+		return this.words
+	}
+
 	setText(words){
 		this.words = words
 		//this.words = wrapText(words, undefined, this.isTitle ? text_SizeMIGUI : title_SizeMIGUI)

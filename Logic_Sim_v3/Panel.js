@@ -319,6 +319,12 @@ class Panel{
 	    this.lastElementAdded = 'separator'
 	}
 
+	separate(){
+		this.lastCB = undefined
+	    this.lastBU = undefined
+	    this.lastElementAdded = 'separator'
+	}
+
 	// setText(pos, sentence = ""){
 	//     if (typeof pos == "number" && pos >= this.sentences.length) {
 	//         throw new Error("Text " + pos + " doesn't exist")

@@ -4,7 +4,7 @@
 
 const widthPanel = 250
 const WIDTH = 1400 - widthPanel
-const HEIGHT = 800
+const HEIGHT = 880
 
 
 let chip
@@ -22,6 +22,8 @@ let draggingFromConn = undefined
 let movingComp = {comp: null, offx: 0, offy: 0}
 let compNames = 0;
 let panel, panel_input, panel_remove, panel_display, panel_clock, panel_edit, panel_goBack
+let panel_route
+let route = []
 //let dinPanel
 let selectedComp = null
 let hoveredNode = null
@@ -57,10 +59,16 @@ const outputToggleX = WIDTH - 30
 
 const tamCollConn = 8
 
+const radCurveConn = 15
+
 let chipStack = []
+let canvas
 
 function setup() {
-    createCanvas(WIDTH+widthPanel, HEIGHT);
+    canvas = createCanvas(WIDTH+widthPanel, HEIGHT);
+    let x = (windowWidth - width) / 2;
+    let y = (windowHeight - height) / 2;
+    canvas.position(x, y);
     strokeJoin(ROUND);
     panel = new Panel({
         x: WIDTH,
@@ -191,14 +199,23 @@ function setup() {
                 chip = selectedComp
                 panel_remove.setText("REMOVE: ");
                 panel_edit.setText("EDIT: ")
+                //panel_route.setText(panel_route.getText() + " > " + selectedComp.externalName)
+                route.push(selectedComp.externalName)
+                setPanelRouteText()
             }
             //selectedComp = null
             //panel_remove.setText("EDIT: ")
         }
     })
+    panel.separate()
     panel_goBack = panel.createButton("Go back", (f) => {
-        if(chipStack.length > 0) chip = chipStack.pop()
+        if(chipStack.length > 0){ 
+            chip = chipStack.pop()
+            route.pop()
+            setPanelRouteText()
+        }
     })
+    panel_route = panel.createText("chip")
     
     panel.createSeparator()
     panel.createText("Add Saved Chips:")
@@ -212,12 +229,16 @@ function setup() {
 
 function draw() {
     background(colorBack);
+    let x = (windowWidth - width) / 2;
+    let y = (windowHeight - height) / 2;
+    canvas.position(x, y);
 
     if(!mouseIsPressed){
         setHoveredNode()
     }
 
     if (draggingConnection && dragStart) {
+        push()
         stroke(75)
         strokeWeight(.9)
         line(mouseX, 0, mouseX, height)
@@ -225,14 +246,26 @@ function draw() {
         stroke(colorOff);
         strokeWeight(strokeOff) 
         noFill()
-        beginShape()
-        vertex(dragStart.x, dragStart.y)
-        for(let p of dragPath) vertex(p.x, p.y)
+        let drawPath = []
+        drawPath.push(createVector(dragStart.x, dragStart.y))
+        for(let p of dragPath) drawPath.push(createVector(p.x, p.y))
         let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
         let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
         let [x, y] = [dx > dy ? mouseX : prev.x, dx > dy ? prev.y : mouseY ]
-        vertex(x, y)
-        endShape()
+        drawPath.push(createVector(x, y))
+        drawBezierPath(drawPath)
+        strokeWeight(10)
+        point(dragStart.x, dragStart.y)
+        pop()
+
+        // beginShape()
+        // vertex(dragStart.x, dragStart.y)
+        // for(let p of dragPath) vertex(p.x, p.y)
+        // let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
+        // let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
+        // let [x, y] = [dx > dy ? mouseX : prev.x, dx > dy ? prev.y : mouseY ]
+        // vertex(x, y)
+        // endShape()
         //drawConnection(dragPath, dragStart.x, dragStart.y, mouseX, mouseY)
     }
 
@@ -561,68 +594,51 @@ function cutSubConnections(conn){
             }
         }
     }
-
-
-    // for(let j = 0; j < chip.connections.length; j++){
-    //     let other = chip.connections[j]
-    //     if(conn == other) continue
-    //     if(conn.fromComp == other.fromComp &&
-    //        conn.fromIndex == other.fromIndex &&
-    //        other.fromConnPos) {
-    //         chip.connections.splice(j, 1)
-    //         j--
-    //     }
-    // }
 }
 
+function drawBezierPath(points, curveSize = radCurveConn, resolution = 10) {
+  if (points.length < 1) return
+  if (points.length < 3) {
+    line(points[0].x, points[0].y, points[1].x, points[1].y)
+    //console.error("Need at least 3 points to draw a Bezier curve");
+    return;
+  }
 
-function drawConnection(path, x1, y1, x2, y2) {
-    beginShape();
-    vertex(x1, y1);
+  let drawPoints = [];
+  drawPoints.push(points[0]);
 
-    // Iterate through the connection path points and add curves
-    for (let i = 0; i < path.length; i++) {
-        let p = path[i];
+  for (let i = 1; i < points.length - 1; i++) {
+    let targetPoint = points[i];
+    let targetDir = p5.Vector.sub(points[i], points[i - 1]).normalize();
+    let dstToTarget = p5.Vector.dist(points[i], points[i - 1]);
+    let dstToCurveStart = Math.max(dstToTarget - curveSize, dstToTarget / 2);
 
-        // Determine the previous point (starting point or previous path point)
-        let prev = i == 0 ? {x: x1, y: y1} : path[i - 1];
-        
-        // Determine the next point (next path point or ending point)
-        let next = i == path.length - 1 ? {x: x2, y: y2} : path[i + 1];
+    let nextTarget = points[i + 1];
+    let nextTargetDir = p5.Vector.sub(points[i + 1], points[i]).normalize();
+    let nextLineLength = p5.Vector.dist(points[i + 1], points[i]);
 
-        // Calculate control points for bezier curve with subtle offset in the direction of the line
-        let controlDist = 30; // Adjust this value to control curve size
+    let curveStartPoint = p5.Vector.add(points[i - 1], targetDir.mult(dstToCurveStart));
+    let curveEndPoint = p5.Vector.add(targetPoint, nextTargetDir.mult(Math.min(curveSize, nextLineLength / 2)));
 
-        // Calculate direction vectors
-        let dx1 = (p.x - prev.x);
-        let dy1 = (p.y - prev.y);
-        let length1 = Math.sqrt(dx1 * dx1 + dy1 * dy1);
-        dx1 /= length1;
-        dy1 /= length1;
+    for (let j = 0; j < resolution; j++) {
+      let t = j / (resolution - 1);
+      let a = p5.Vector.lerp(curveStartPoint, targetPoint, t);
+      let b = p5.Vector.lerp(targetPoint, curveEndPoint, t);
+      let p = p5.Vector.lerp(a, b, t);
 
-        let cp1 = {
-            x: p.x - dx1 * controlDist,
-            y: p.y - dy1 * controlDist
-        };
-
-        let dx2 = (next.x - p.x);
-        let dy2 = (next.y - p.y);
-        let length2 = Math.sqrt(dx2 * dx2 + dy2 * dy2);
-        dx2 /= length2;
-        dy2 /= length2;
-
-        let cp2 = {
-            x: p.x - dx2 * controlDist,
-            y: p.y - dy2 * controlDist
-        };
-
-        // Draw the curve between previous point and current point
-        bezierVertex(cp1.x, cp1.y, cp2.x, cp2.y, p.x, p.y);
+      if (drawPoints.length === 0 || p.dist(drawPoints[drawPoints.length - 1]) > 0.001) {
+        drawPoints.push(p);
+      }
     }
+  }
+  drawPoints.push(points[points.length - 1]);
 
-    // Draw the last segment to the ending point
-    vertex(x2, y2);
-    endShape();
+
+  beginShape();
+  for (let p of drawPoints) {
+    vertex(p.x, p.y);
+  }
+  endShape();
 }
 
 function isInputConnectedToMainChip(component, index, output, isMain = false){
@@ -678,6 +694,19 @@ function setHoveredNode(){
 
     else hoveredNode = null
 }
+
+function setPanelRouteText(){
+    let string = 'chip'
+    for(let c of route){
+        string += " > " + c
+    }
+    panel_route.setText(string)
+}
+
+
+
+
+
 
 
 
