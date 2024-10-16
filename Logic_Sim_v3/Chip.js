@@ -4,18 +4,49 @@ class Chip{
         this.externalName = undefined
         this.inputs = Array(inputs).fill(0);
         this.outputs = Array(outputs).fill(0);
+
         this.components = [];
         this.chips = []; // Array of nested chips
         this.connections = [];
-
+        this.inputsPos = []
+        this.outputsPos = []
         this.x = random(100, WIDTH - 100);
         this.y = random(100, HEIGHT - 100);
         this.width = 80;
         this.height = Math.max(this.inputs.length, this.outputs.length) * (tamCompNodes+4) + tamCompNodes;
-
         this.isSub = false
-
         this.col = Math.random() * 150
+        this.setIOpos(true, true)
+    }
+
+    setIOpos(inputs, outputs){
+        if(inputs){
+            let yValues = this.centerComponents(this.inputs.length)
+            for (let i = 0; i < this.inputs.length; i++) {
+                this.inputsPos[i] = { x: inputX, y: yValues[i]}
+            }
+        }
+        if(outputs){
+            let yValues = this.centerComponents(this.outputs.length)
+            for (let i = 0; i < this.outputs.length; i++) {
+                this.outputsPos[i] = { x: outputX , y: yValues[i]}
+            }
+        }
+    }
+
+    centerComponents(numComponents, totalHeight = HEIGHT, componentHeight = this.height) {
+        const spacing = map(numComponents, 0, 20, tamBasicNodes, -20)
+        const totalSpacing = (numComponents - 1) * spacing;
+        const totalComponentsHeight = numComponents * componentHeight + totalSpacing;
+        const startY = (totalHeight - totalComponentsHeight) / 2;
+
+        let yValues = [];
+        for (let i = 0; i < numComponents; i++) {
+            let y = startY + i * (componentHeight + spacing);
+            yValues.push(y + tamBasicNodes/2);
+        }
+
+        return yValues;
     }
 
     addComponent(name, type, externalName = "", inP = 2) {
@@ -50,6 +81,8 @@ class Chip{
         newChip.y = chip.y
         newChip.components = chip.components.map(comp => new Component(comp.name, comp.type, comp.x, comp.y));
         newChip.chips = chip.chips.map(subChip => this._cloneChipRecursively(subChip));
+        newChip.inputsPos = chip.inputsPos.slice()
+        newChip.outputsPos = chip.outputsPos.slice()
         //newChip.connections = chip.connections.map(conn => ({ ...conn }));
         newChip.connections = chip.connections.map(conn => new Connection(conn.fromComponent + "", conn.fromIndex, 
                                                                           conn.toComponent + "", conn.toIndex,
@@ -126,8 +159,6 @@ class Chip{
         //draw inputs and outputs
         stroke(0)
         strokeWeight(strokeLight)
-        let multIn = (HEIGHT - 200) /  this.inputs.length
-        let off = multIn / 2 + 100
         for (let i = 0; i < this.inputs.length; i++) {
             let connInp = isInputConnectedToMainChip(this, i, false, true)
             if(!connInp) fill(colorDisconnected)
@@ -143,16 +174,14 @@ class Chip{
             }
 
             //noFill() /////////////////////
-            line(0, off + i * multIn + tamCompNodes / 2, inputX, off + i * multIn + tamCompNodes / 2)
-            rect(inputX, off + i * multIn, tamCompNodes, tamCompNodes);
+            line(0, this.inputsPos[i].y + tamCompNodes / 2, inputX, this.inputsPos[i].y + tamCompNodes / 2)
+            rect(inputX, this.inputsPos[i].y, tamCompNodes, tamCompNodes)
             fill(this.inputs[i] === 0 ? colorOff : colorOn);
-            rect(inputToggleX, off + i * multIn - tamBasicNodes/5, tamBasicNodes, tamBasicNodes);
+            rect(inputToggleX, this.inputsPos[i].y - tamBasicNodes/5, tamBasicNodes, tamBasicNodes)
         }
 
         stroke(0)
         strokeWeight(strokeLight)
-        let multOut = (HEIGHT - 200) /  this.outputs.length
-        off = multOut / 2 + 100
         for (let i = 0; i < this.outputs.length; i++) {
             let connOut = isInputConnectedToMainChip(this, i, true, true)
             if(!connOut) fill(colorDisconnected)
@@ -168,10 +197,10 @@ class Chip{
             }
 
             //noFill() /////////////////////
-            line(outputX, off + i * multOut + tamCompNodes / 2, WIDTH, off + i * multOut + tamCompNodes / 2)
-            rect(outputX, off + i * multOut, tamCompNodes, tamCompNodes);
+            line(outputX, this.outputsPos[i].y + tamCompNodes / 2, WIDTH, this.outputsPos[i].y + tamCompNodes / 2)
+            rect(outputX, this.outputsPos[i].y, tamCompNodes, tamCompNodes)
             fill(this.outputs[i] === 0 ? colorOff : colorOn);
-            rect(outputToggleX, off + i * multOut - tamBasicNodes/5, tamBasicNodes, tamBasicNodes);
+            rect(outputToggleX, this.outputsPos[i].y - tamBasicNodes/5, tamBasicNodes, tamBasicNodes)
         }   
 
         //draw components
@@ -243,8 +272,6 @@ class Chip{
             text(fittedText, chip.x + chip.width / 2, chip.y + chip.height / 2 - 10);
             pop()
         }
-
-
     }
 
     _getComponentOrChip(name) {
@@ -268,29 +295,47 @@ class Chip{
         return this.outputs[index];
     }
 
+    addInput(){
+        if(this.inputs.length > maxIO) return false
+        this.inputs.push(0)
+        this.setIOpos(true, false)
+    }
+
+    removeInput(){
+        this.inputs.pop()
+        this.setIOpos(true, false)
+    }
+
+    addOutput(){
+        if(this.outputs.length > maxIO) return false
+        this.outputs.push(0)
+        this.setIOpos(false, true)
+    }
+
+    removeOutput(){
+        this.outputs.pop()
+        this.setIOpos(false, true)
+    }
+
     //CHIP
     getInputPosition(index, centered = false) {
-        let multIn = (HEIGHT - 200) /  this.inputs.length
-        let off = multIn / 2 + 100
+        let pos = this.inputsPos[index]
         let center = centered ? tamCompNodes / 2 : 0
-        return { x: inputX + center, y: off + index * multIn + center};
+        return {x: pos.x + center, y: pos.y + center}
     }
     getOutputPosition(index, centered = false) {
-        let multOut = (HEIGHT - 200) /  this.outputs.length
-        let off = multOut / 2 + 100
+        let pos = this.outputsPos[index]
         let center = centered ? tamCompNodes / 2 : 0
-        return { x: outputX + center, y: off + index * multOut + center};
+        return {x: pos.x + center, y: pos.y + center}
     }
 
     getInputTogglePosition(index) {
-        let multIn = (HEIGHT - 200) /  this.inputs.length
-        let off = multIn / 2 + 100 - tamBasicNodes / 4
-        return { x: inputToggleX, y: off + index * multIn};
+        let pos = this.inputsPos[index]
+        return {x: inputToggleX, y: pos.y - tamBasicNodes / 4}
     }
     getOutputTogglePosition(index) {
-        let multOut = (HEIGHT - 200) /  this.outputs.length
-        let off = multOut / 2 + 100
-        return { x: outputToggleX, y: off + index * multOut};
+        let pos = this.outputsPos[index]
+        return {x: outputToggleX, y: pos.y - tamBasicNodes / 4}
     }
 
     //SUB-CHIP

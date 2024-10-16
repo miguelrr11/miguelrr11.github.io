@@ -92,6 +92,7 @@ class Select{
 		}
 
 		pop()
+		return this.beingHovered
 
 		// push()
 		// noStroke()

@@ -106,6 +106,7 @@ class Connection{
             for(let p of this.pathColls){ 
                 if(this.inBound(p)){
                     inB = true
+                    beingHoveredGlobal = true
                     break
                 }
             }

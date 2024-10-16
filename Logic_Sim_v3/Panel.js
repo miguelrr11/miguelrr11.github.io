@@ -577,6 +577,9 @@ class Panel{
 	}
 
 	show(){
+		this.beingHoveredHand = false
+		this.beingHoveredText = false
+
 		push()
 		if(this.automaticHeight) this.h = this.lastElementPos.y + 10
 		translate(bordeMIGUI*0.5, bordeMIGUI*0.5)
@@ -588,6 +591,7 @@ class Panel{
 		if(this.isRetracted && this.retractable){
 			this.retractButton.show()
 			pop()
+			cursor(ARROW)
 			return
 		}
 		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI)
@@ -600,25 +604,29 @@ class Panel{
 		stroke(this.darkCol)
 		text(this.title, this.titlePos.x, this.titlePos.y)
 
-		for(let b of this.checkboxes) b.show()
-		for(let s of this.sliders) s.show()
-		for(let w of this.sentences) w.show()
-		for(let c of this.selects) c.show()
-		for(let i of this.inputs) i.show()
-		for(let t of this.buttons) t.show()
-		for(let p of this.colorPickers){ 
-			p.show()
-			if(p.isChoosing) this.activeCP = p
+		for(let b of this.checkboxes) this.beingHoveredHand = b.show() || this.beingHoveredHand
+		for(let b of this.sliders) this.beingHoveredHand = b.show() || this.beingHoveredHand 
+		for(let b of this.sentences) b.show()
+		for(let b of this.selects) this.beingHoveredHand = b.show() || this.beingHoveredHand
+		for(let b of this.inputs) this.beingHoveredText = b.show() || this.beingHoveredText
+		for(let b of this.buttons) this.beingHoveredHand = b.show() || this.beingHoveredHand
+		for(let b of this.colorPickers){ 
+			this.beingHoveredHand = b.show() || this.beingHoveredHand
+			if(b.isChoosing) this.activeCP = b
 		}
 		push()
 		stroke(this.transCol)
 		strokeWeight(1)
-		for(let s of this.separators){
-			line(this.pos.x, s, this.pos.x + this.w, s)
+		for(let b of this.separators){
+			line(this.pos.x, b, this.pos.x + this.w, b)
 		}
 		pop()
 		if(this.activeCP) this.activeCP.show()
 		pop()
+
+		if(this.beingHoveredHand) cursor(HAND)
+		else if(this.beingHoveredText) cursor(TEXT)
+		else cursor(ARROW)
 	}
 }
 

@@ -111,5 +111,6 @@ class Slider{
 		// ellipse(this.pos.x, this.pos.y + this.height, 4)
 
 		pop()
+		return this.beingHovered
 	}
 }

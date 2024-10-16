@@ -1,11 +1,12 @@
-- rediseñar el panel
-- editar chip dentro de chip (TOCHO)
+- poder mover inputs y outputs
 
+DONE editar chip dentro de chip (TOCHO)
 DONE add disconnected color
 DONE highlight hovered node
 DONE pensar colores
 DONE sacar conexion de segmento
-
+DONE rediseñar el panel
+DONE Marco en todo el sketch
 
 
 

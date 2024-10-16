@@ -20,6 +20,8 @@ let dragPath = []
 let draggingFromConn = undefined
 
 let movingComp = {comp: null, offx: 0, offy: 0}
+let movingInput = undefined
+let movingOutput = undefined
 let compNames = 0;
 let panel, panel_input, panel_remove, panel_display, panel_clock, panel_edit, panel_goBack
 let panel_route
@@ -60,9 +62,13 @@ const outputToggleX = WIDTH - 30
 const tamCollConn = 8
 
 const radCurveConn = 15
+const maxIO = 20
 
 let chipStack = []
 let canvas
+
+let beingHoveredGlobal = false
+let currentCursorStyle
 
 function setup() {
     canvas = createCanvas(WIDTH+widthPanel, HEIGHT);
@@ -86,11 +92,13 @@ function setup() {
     panel.createSeparator()
     panel.createText("Modify chip I/O:")
     panel.createButton("+ In", (f) => {
-        chip.inputs.push(0)
+        chip.addInput()
+        // chip.inputs.push(0)
     })
     panel.createButton("- In", (f) => {
        let indexToDelete = chip.inputs.length - 1
-        chip.inputs.pop()
+       chip.removeInput()
+        // chip.inputs.pop()
         let index = chip.connections.findIndex(c => c.fromComponent === 'INPUTS' && c.fromIndex === indexToDelete);
         if (index !== -1){
             let compName = chip.connections[index].toComponent
@@ -101,11 +109,11 @@ function setup() {
         }
     })
     panel.createButton("+ Out", (f) => {
-        chip.outputs.push(0)
+        chip.addOutput()
     })
     panel.createButton("- Out", (f) => {
        let indexToDelete = chip.outputs.length - 1
-        chip.outputs.pop()
+        chip.removeOutput()
         let index = chip.connections.findIndex(c => c.toComponent === 'OUTPUTS' && c.toIndex === indexToDelete);
         if (index !== -1){
             chip.connections.splice(index, 1);
@@ -228,10 +236,25 @@ function setup() {
 }
 
 function draw() {
-    background(colorBack);
+    background(colorOff);
+
+    noFill()
+    strokeWeight(70)
+    stroke(colorOn)
+    rect(45, 45, WIDTH - 90, HEIGHT - 90)
+
+    stroke(colorBack)
+    strokeWeight(70)
+    fill(colorBack)
+    rect(50, 50, WIDTH - 100, HEIGHT - 100)
+
     let x = (windowWidth - width) / 2;
     let y = (windowHeight - height) / 2;
     canvas.position(x, y);
+
+
+
+    beingHoveredGlobal = false
 
     if(!mouseIsPressed){
         setHoveredNode()
@@ -274,6 +297,8 @@ function draw() {
 
     panel.update()
     panel.show()
+
+    if(panel.beingHoveredHand || beingHoveredGlobal || draggingConnection || hoveredNode) cursor(HAND)
 }
 
 function mousePressed() {
@@ -383,6 +408,8 @@ function mousePressed() {
 
 function mouseReleased() {
     movingComp = {comp: null, offx: 0, offy: 0}
+    movingInput = undefined
+    movingOutput = undefined
 }
 
 function mouseClicked() {
@@ -446,6 +473,21 @@ function mouseDragged(){
                 }
             }   
         }
+
+        if(movingInput != undefined) chip.inputsPos[movingInput].y = mouseY
+        if(movingOutput != undefined) chip.outputsPos[movingOutput].y = mouseY
+        else{
+            let index = chip.getInBoundsInputToggle()
+            if(index != undefined){
+                chip.inputsPos[index].y = mouseY
+                movingInput = index
+            }
+            index = chip.getInBoundsOutputToggle()
+            if(index != undefined){
+                chip.outputs[index].y = mouseY
+                movingOutput = index
+            }
+        }  
     }
 }
 
@@ -702,6 +744,12 @@ function setPanelRouteText(){
     }
     panel_route.setText(string)
 }
+
+// document.addEventListener("mousemove", function(event) {
+//     const element = document.elementFromPoint(event.clientX, event.clientY);
+//     currentCursorStyle = window.getComputedStyle(element).cursor;
+//     console.log(currentCursorStyle);
+// });
 
 
 

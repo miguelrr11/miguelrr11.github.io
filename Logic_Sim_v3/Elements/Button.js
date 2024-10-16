@@ -71,6 +71,7 @@ class Button{
 		// ellipse(this.pos.x, this.pos.y + this.height, 5)
 
 		pop()
+		return this.beingHovered
 	}
 }
 
