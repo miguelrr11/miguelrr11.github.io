@@ -2,11 +2,6 @@
 //Miguel Rodriguez
 //09-10-2024
 
-const widthPanel = 250
-const WIDTH = 1400 - widthPanel
-const HEIGHT = 880
-
-
 let chip
 let chipRegistry = []
 let savedChips = []
@@ -20,55 +15,26 @@ let dragPath = []
 let draggingFromConn = undefined
 
 let movingComp = {comp: null, offx: 0, offy: 0}
-let movingInput = undefined
-let movingOutput = undefined
-let compNames = 0;
-let panel, panel_input, panel_remove, panel_display, panel_clock, panel_edit, panel_goBack
+
+let movingInput = {node: undefined, off: 0}
+let movingOutput = {node: undefined, off: 0}
+
+let compNames = 0
+let idConn = 0
+
+let panel, panel_input, panel_remove, panel_display, 
+    panel_clock, panel_edit, panel_goBack, panel_fps
 let panel_route
 let route = []
-//let dinPanel
 let selectedComp = null
-let hoveredNode = null
-
-const tamBasicNodes = 30
-const tamCompNodes = 18
-
-const colorBack = "#0E212E"
-const colorOn = "#1FF451"
-const colorOff = "#14663F"
-const colorDisconnected = "#102838"
-//const colorComp = "#C7F9CC"
-const colorComp = Math.random() * 150
-const colorSelected = "#1FF451"
-
-const colsComps = [Math.random() * 150,
-                   Math.random() * 150,
-                   Math.random() * 150,
-                   Math.random() * 150,
-                   Math.random() * 150]
-
-
-const strokeOff = 4
-const strokeOn = 4.5
-const strokeLight = 2.5
-const strokeSelected = 3
-const controlDist = 100
-
-const inputX = 30 + tamBasicNodes - tamCompNodes
-const outputX = WIDTH - 60
-const inputToggleX = 0
-const outputToggleX = WIDTH - 30
-
-const tamCollConn = 8
-
-const radCurveConn = 15
-const maxIO = 20
+let hoveredNode = {comp: null, index: -1}
+let hoveredComp = null
 
 let chipStack = []
 let canvas
-
 let beingHoveredGlobal = false
 let currentCursorStyle
+let fps = 60
 
 function setup() {
     canvas = createCanvas(WIDTH+widthPanel, HEIGHT);
@@ -85,8 +51,10 @@ function setup() {
         title: 'LOGIC SIM'
     })
     panel.createSeparator()
+    panel_fps = panel.createText()
     panel.createText("Click on an input to start a connection")
     panel.createText("Press Z to undo a segment")
+    
 
     
     panel.createSeparator()
@@ -237,27 +205,15 @@ function setup() {
 
 function draw() {
     background(colorOff);
-
-    noFill()
-    strokeWeight(70)
-    stroke(colorOn)
-    rect(45, 45, WIDTH - 90, HEIGHT - 90)
-
-    stroke(colorBack)
-    strokeWeight(70)
-    fill(colorBack)
-    rect(50, 50, WIDTH - 100, HEIGHT - 100)
-
-    let x = (windowWidth - width) / 2;
-    let y = (windowHeight - height) / 2;
-    canvas.position(x, y);
-
-
+    if(frameCount % 60 == 0) fps = Math.floor(frameRate())
+    panel_fps.setText("FPS: " + fps)
+    
+    drawMargin()
 
     beingHoveredGlobal = false
-
     if(!mouseIsPressed){
         setHoveredNode()
+        setHoveredComp()
     }
 
     if (draggingConnection && dragStart) {
@@ -270,26 +226,16 @@ function draw() {
         strokeWeight(strokeOff) 
         noFill()
         let drawPath = []
-        drawPath.push(createVector(dragStart.x, dragStart.y))
-        for(let p of dragPath) drawPath.push(createVector(p.x, p.y))
+        drawPath.push(createVector(roundNum(dragStart.x), roundNum(dragStart.y)))
+        for(let p of dragPath) drawPath.push(createVector(roundNum(p.x), roundNum(p.y)))
         let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
         let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
         let [x, y] = [dx > dy ? mouseX : prev.x, dx > dy ? prev.y : mouseY ]
-        drawPath.push(createVector(x, y))
+        drawPath.push(createVector(roundNum(x), roundNum(y)))
         drawBezierPath(drawPath)
         strokeWeight(10)
         point(dragStart.x, dragStart.y)
         pop()
-
-        // beginShape()
-        // vertex(dragStart.x, dragStart.y)
-        // for(let p of dragPath) vertex(p.x, p.y)
-        // let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
-        // let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
-        // let [x, y] = [dx > dy ? mouseX : prev.x, dx > dy ? prev.y : mouseY ]
-        // vertex(x, y)
-        // endShape()
-        //drawConnection(dragPath, dragStart.x, dragStart.y, mouseX, mouseY)
     }
 
     if(frameCount % 1 == 0) chip.simulate();
@@ -301,8 +247,27 @@ function draw() {
     if(panel.beingHoveredHand || beingHoveredGlobal || draggingConnection || hoveredNode) cursor(HAND)
 }
 
+function drawMargin(){
+    noFill()
+    strokeWeight(70)
+    stroke(colorOn)
+    rect(45, 45, WIDTH - 90, HEIGHT - 90)
+
+    stroke(colorBack)
+    strokeWeight(70)
+    fill(colorBack)
+    rect(47, 47, WIDTH - 94, HEIGHT - 94)
+
+    let x = (windowWidth - width) / 2;
+    let y = (windowHeight - height) / 2;
+    canvas.position(x, y);
+}
+
 function mousePressed() {
-    if(mouseX > WIDTH) return
+    if(mouseX > WIDTH){
+        //selectedComp = null
+        return
+    }
     // Check if clicking on a chip input or output
     if (!draggingConnection) {
         let mousePos = { x: mouseX, y: mouseY };
@@ -316,7 +281,7 @@ function mousePressed() {
             }
         }
 
-        // Check outputs
+        // Check comps and subchips
         let result = checkClickOnComponentInput(mousePos, chip.components, tamCompNodes, true) ||
                      checkClickOnComponentInput(mousePos, chip.chips, tamCompNodes, true);
         if (result) {
@@ -345,16 +310,19 @@ function mousePressed() {
             }
         }
 
-        //connection from existing connection
-        for(let i = 0; i < chip.connections.length; i++){
-            let conn = chip.connections[i]
-            let seg = conn.inBoundConn()
-            if(seg){
-                draggingFromConn = seg.conn
-                startDragging({x: seg.x, y: seg.y}, conn.fromIndex, conn.fromComponent, 0, true)
-                break
+        //connection from existing connection if the connection is not covered
+        if(hoveredNode.comp == null && hoveredComp == null){
+            for(let i = 0; i < chip.connections.length; i++){
+                let conn = chip.connections[i]
+                let seg = conn.inBoundConn()
+                if(seg){
+                    draggingFromConn = seg.conn
+                    startDragging({x: seg.x, y: seg.y, i: seg.i}, conn.fromIndex, conn.fromComponent, 0, true)
+                    break
+                }
             }
         }
+        
     } 
 
     else {
@@ -407,16 +375,18 @@ function mousePressed() {
 }
 
 function mouseReleased() {
+    // Click chip inputs to toggle them
+    if(movingInput.node == undefined){
+        let inp = chip.getInBoundsInputToggle()
+        if(inp != undefined) chip.toggleInput(inp)
+    }
+    
     movingComp = {comp: null, offx: 0, offy: 0}
-    movingInput = undefined
-    movingOutput = undefined
+    movingInput = {node: undefined, off: 0}
+    movingOutput = {node: undefined, off: 0}
 }
 
 function mouseClicked() {
-    // Click chip inputs to toggle them
-    let inp = chip.getInBoundsInputToggle()
-    if(inp != undefined) chip.toggleInput(inp)
-
     for(let c of chip.components){
         if(c instanceof Display){
             if(c.inBoundsSign()) c.toggleSign()
@@ -450,6 +420,8 @@ function keyPressed(){
 
 function mouseDragged(){
     if (!draggingConnection) {
+
+        //move comps and chips
         if(movingComp.comp) movingComp.comp.move(mouseX, mouseY, movingComp.offx, movingComp.offy)
         else{
             for (let c of chip.components) {
@@ -474,18 +446,23 @@ function mouseDragged(){
             }   
         }
 
-        if(movingInput != undefined) chip.inputsPos[movingInput].y = mouseY
-        if(movingOutput != undefined) chip.outputsPos[movingOutput].y = mouseY
+        //move inputs and outputs
+        if(movingInput.node != undefined) chip.inputsPos[movingInput.node].y = chip.inputsPos[movingInput.node].y = mouseY + movingInput.off
+        if(movingOutput.node  != undefined) chip.outputsPos[movingOutput.node].y = chip.outputsPos[movingOutput.node].y = mouseY + movingOutput.off
         else{
             let index = chip.getInBoundsInputToggle()
             if(index != undefined){
-                chip.inputsPos[index].y = mouseY
-                movingInput = index
+                let off = chip.inputsPos[index].y - mouseY
+                chip.inputsPos[index].y = mouseY + off
+                movingInput.off = off
+                movingInput.node = index
             }
             index = chip.getInBoundsOutputToggle()
             if(index != undefined){
-                chip.outputs[index].y = mouseY
-                movingOutput = index
+                let off = chip.outputsPos[index].y - mouseY
+                chip.outputsPos[index].y = mouseY + off
+                movingOutput.off = off
+                movingOutput.node = index
             }
         }  
     }
@@ -734,7 +711,23 @@ function setHoveredNode(){
     }
 
 
-    else hoveredNode = null
+    else hoveredNode = {comp: null, index: -1}
+}
+
+function setHoveredComp(){
+    for(let c of chip.components){
+        if(c.inBounds(mouseX, mouseY)){
+            hoveredComp = c.name
+            return
+        }
+    }   
+    for(let c of chip.chips){
+        if(c.inBounds(mouseX, mouseY)){
+            hoveredComp = c.name
+            return
+        }
+    }
+    hoveredComp = null
 }
 
 function setPanelRouteText(){
@@ -745,11 +738,11 @@ function setPanelRouteText(){
     panel_route.setText(string)
 }
 
-// document.addEventListener("mousemove", function(event) {
-//     const element = document.elementFromPoint(event.clientX, event.clientY);
-//     currentCursorStyle = window.getComputedStyle(element).cursor;
-//     console.log(currentCursorStyle);
-// });
+
+function roundNum(number, decimals = 0) {
+    const factor = Math.pow(10, decimals);
+    return Math.round(number * factor) / factor;
+}
 
 
 

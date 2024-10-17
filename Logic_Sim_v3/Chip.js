@@ -10,12 +10,12 @@ class Chip{
         this.connections = [];
         this.inputsPos = []
         this.outputsPos = []
-        this.x = random(100, WIDTH - 100);
-        this.y = random(100, HEIGHT - 100);
+        this.x = roundNum(random(100, WIDTH - 100));
+        this.y = roundNum(random(100, HEIGHT - 100));
         this.width = 80;
         this.height = Math.max(this.inputs.length, this.outputs.length) * (tamCompNodes+4) + tamCompNodes;
         this.isSub = false
-        this.col = Math.random() * 150
+        this.col = roundNum(Math.random() * 150)
         this.setIOpos(true, true)
     }
 
@@ -23,13 +23,13 @@ class Chip{
         if(inputs){
             let yValues = this.centerComponents(this.inputs.length)
             for (let i = 0; i < this.inputs.length; i++) {
-                this.inputsPos[i] = { x: inputX, y: yValues[i]}
+                this.inputsPos[i] = { x: inputX, y: roundNum(yValues[i])}
             }
         }
         if(outputs){
             let yValues = this.centerComponents(this.outputs.length)
             for (let i = 0; i < this.outputs.length; i++) {
-                this.outputsPos[i] = { x: outputX , y: yValues[i]}
+                this.outputsPos[i] = { x: outputX , y: roundNum(yValues[i])}
             }
         }
     }
@@ -75,11 +75,11 @@ class Chip{
     _cloneChipRecursively(chip) {
         const newChip = new Chip(chip.name, chip.inputs.length, chip.outputs.length);
         newChip.externalName = chip.externalName
-        newChip.isSub = chip.isSub
+        newChip.isSub = true
         newChip.inputs = chip.inputs.slice()
-        newChip.x = chip.x
-        newChip.y = chip.y
-        newChip.components = chip.components.map(comp => new Component(comp.name, comp.type, comp.x, comp.y));
+        newChip.x = roundNum(chip.x)
+        newChip.y = roundNum(chip.y)
+        newChip.components = chip.components.map(comp => new Component(comp.name, comp.type, roundNum(comp.x), roundNum(comp.y)));
         newChip.chips = chip.chips.map(subChip => this._cloneChipRecursively(subChip));
         newChip.inputsPos = chip.inputsPos.slice()
         newChip.outputsPos = chip.outputsPos.slice()
@@ -87,7 +87,7 @@ class Chip{
         newChip.connections = chip.connections.map(conn => new Connection(conn.fromComponent + "", conn.fromIndex, 
                                                                           conn.toComponent + "", conn.toIndex,
                                                                           conn.path.slice(), conn.fromConnPos, 
-                                                                          newChip, conn.pathColls.map(pathColl => ({ ...pathColl }))) );
+                                                                          newChip, conn.pathColls.map(pathColl => ({ ...pathColl })), conn.id));
         return newChip;
     }
 
@@ -102,6 +102,8 @@ class Chip{
                                                   toIndex})
         }
         let newConn = new Connection(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos)
+        newConn.id = idConn
+        idConn++
         this.connections.push(newConn);
     }
 
@@ -343,13 +345,13 @@ class Chip{
         let multIn = (this.height - tamCompNodes) /  this.inputs.length
         let off = multIn / 2
         let center = centered ? tamCompNodes / 2 : 0
-        return { x: this.x - tamCompNodes / 2, y: this.y + index * multIn + off + center};
+        return { x: roundNum(this.x - tamCompNodes / 2), y: roundNum(this.y + index * multIn + off + center)};
     }
     getOutputPositionSC(index, centered = false) {
         let multOut = (this.height - tamCompNodes) /  this.outputs.length
         let off = multOut / 2
         let center = centered ? tamCompNodes / 2 : 0
-        return { x: this.x + this.width - tamCompNodes / 2, y: this.y + index * multOut + off + center};
+        return { x: roundNum(this.x + this.width - tamCompNodes / 2), y: roundNum(this.y + index * multOut + off + center)};
     }
 
     inBounds(x, y) {
@@ -357,8 +359,8 @@ class Chip{
     }
 
     move(x, y, offx, offy) {
-        this.x = x + offx;
-        this.y = y + offy;
+        this.x = roundNum(x + offx);
+        this.y = roundNum(y + offy);
     }
 
     getInBoundsInputToggle(){

@@ -10,11 +10,11 @@ class Component {
         this.height = Math.max(this.inputs.length, this.outputs.length) * (tamCompNodes + 4) + tamCompNodes;
 
         switch(type){
-        case 'NOT' :        {this.col = colsComps[0]; break}
-        case 'AND' :        {this.col = colsComps[1]; break}
-        case 'OR' :         {this.col = colsComps[2]; break}
-        case 'CLOCK' :      {this.col = colsComps[3]; break}
-        case 'DISPLAY' :    {this.col = colsComps[4]; break}
+            case 'NOT' :        {this.col = colsComps[0]; break}
+            case 'AND' :        {this.col = colsComps[1]; break}
+            case 'OR' :         {this.col = colsComps[2]; break}
+            case 'CLOCK' :      {this.col = colsComps[3]; break}
+            case 'DISPLAY' :    {this.col = colsComps[4]; break}
         }
     }
 
@@ -32,7 +32,10 @@ class Component {
         push();
         fill(this.col);
         strokeWeight(strokeLight);
-        if(this == selectedComp) stroke(colorSelected)
+        if(this == selectedComp){ 
+            stroke(colorSelected)
+            //strokeWeight(strokeSelected)
+        }
         else stroke(0)
         rect(this.x, this.y, this.width, this.height);
 
@@ -99,14 +102,14 @@ class Component {
         let multIn = (this.height - tamCompNodes) / this.inputs.length;
         let off = multIn / 2;
         let center = centered ? tamCompNodes / 2 : 0
-        return { x: this.x - tamCompNodes / 2 + center, y: this.y + index * multIn + off + center};
+        return { x: roundNum(this.x - tamCompNodes / 2 + center), y: roundNum(this.y + index * multIn + off + center)};
     }
 
     getOutputPosition(index, centered = false) {
         let multOut = (this.height - tamCompNodes) / this.outputs.length;
         let off = multOut / 2;
         let center = centered ? tamCompNodes / 2 : 0
-        return { x: this.x + this.width - tamCompNodes / 2, y: this.y + index * multOut + off + center};
+        return { x: roundNum(this.x + this.width - tamCompNodes / 2), y: roundNum(this.y + index * multOut + off + center)};
     }
 
     inBounds(x, y) {
@@ -114,8 +117,8 @@ class Component {
     }
 
     move(x, y, offx, offy) {
-        this.x = x + offx;
-        this.y = y + offy;
+        this.x = roundNum(x + offx);
+        this.y = roundNum(y + offy);
     }
 }
 
@@ -234,3 +237,6 @@ class Clock extends Component {
         pop();
     }
 }
+
+
+

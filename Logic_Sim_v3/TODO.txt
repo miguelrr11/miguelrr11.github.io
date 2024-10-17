@@ -1,5 +1,14 @@
-- poder mover inputs y outputs
+- Solo poder seleccionar UN elemento a la vez (nodo y connecetion a la vez NO)
+- Priorizar seleccion del componente mas adelante en pantalla
+- Optimizar:
+	- Quitar componente de ChipRegistry si se elimina del chip
+- guardar un chip q esta dentro de otro chip (funciona pero rarete)
 
+
+DONE primero comps, luego conns
+DONE Guardar floats con menos precision
+DONE FPS viewer
+DONE poder mover inputs y outputs
 DONE editar chip dentro de chip (TOCHO)
 DONE add disconnected color
 DONE highlight hovered node
@@ -7,23 +16,3 @@ DONE pensar colores
 DONE sacar conexion de segmento
 DONE rediseñar el panel
 DONE Marco en todo el sketch
-
-
-
-
-
-
-
-
-
-
-
-
-//drawConnection(this.path, x1, y1, x2, y2)
-
-// let controlX1 = x1 + controlDist;
-// let controlY1 = y1
-
-// let controlX2 = x2 - controlDist;
-// let controlY2 = y2
-// bezier(x1, y1, controlX1, controlY1, controlX2, controlY2, x2, y2);

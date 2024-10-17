@@ -1,28 +1,56 @@
 class Connection{
-	constructor(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos = undefined, isSub = undefined, pathColls = undefined){
-		this.fromComponent = fromComponent
-		this.fromIndex = fromIndex
-		this.toComponent = toComponent
-		this.toIndex = toIndex
-		this.path = path
+
+    constructor(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos = undefined, isSub = undefined, pathColls = undefined, idConn = undefined){
+        if(idConn != undefined) this.id = idConn
+        this.fromComponent = fromComponent
+        this.fromIndex = fromIndex
+        this.toComponent = toComponent
+        this.toIndex = toIndex
+        this.path = path
         let from, to
-		from = isSub ? isSub._getComponentOrChip(this.fromComponent) : chip._getComponentOrChip(this.fromComponent);
+        from = isSub ? isSub._getComponentOrChip(this.fromComponent) : chip._getComponentOrChip(this.fromComponent);
         to = isSub ? isSub._getComponentOrChip(this.toComponent) : chip._getComponentOrChip(this.toComponent);
         if(fromConnPos) this.fromConnPos = fromConnPos
-        this.fromPos = fromConnPos ? fromConnPos : (from === chip ? chip.getInputPosition(this.fromIndex, true) : (from.isSub ? from.getOutputPositionSC(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true)));
-        this.toPos = to === chip ? chip.getOutputPosition(this.toIndex, true) : (to.isSub ? to.getInputPositionSC(this.toIndex, true) : to.getInputPosition(this.toIndex, true));
-        // if(!fromConnPos){
-        //     this.fromPos.x += tamCompNodes / 2;
-        //     this.fromPos.y += tamCompNodes / 2;
-        //     this.toPos.x += tamCompNodes / 2;
-        //     this.toPos.y += tamCompNodes / 2;
-        // }
-
+        this.fromPos = fromConnPos ? fromConnPos : 
+                                     (from === chip ? chip.getInputPosition(this.fromIndex, true) : 
+                                                      (from.isSub ? from.getOutputPositionSC(this.fromIndex, true) : 
+                                                                    from.getOutputPosition(this.fromIndex, true)));
+        this.toPos = to === chip ? chip.getOutputPosition(this.toIndex, true) : 
+                                   (to.isSub ? to.getInputPositionSC(this.toIndex, true) : 
+                                               to.getInputPosition(this.toIndex, true));
         this.pathColls = pathColls ? pathColls : this.setCollsPath()
 
         //connections that are attached to this one {}
         this.subConnections = []
-	}
+    }
+
+    //constructor(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos = undefined, isSub = undefined, pathColls = undefined){
+    //  this.fromComponent = fromComponent
+    //  this.fromIndex = fromIndex
+    //  this.toComponent = toComponent
+    //  this.toIndex = toIndex
+    //  this.path = path
+    //     let from, to
+    //  from = isSub ? isSub._getComponentOrChip(this.fromComponent) : chip._getComponentOrChip(this.fromComponent);
+    //     to = isSub ? isSub._getComponentOrChip(this.toComponent) : chip._getComponentOrChip(this.toComponent);
+    //     if(fromConnPos){
+    //         let fromPos = (from === chip ? chip.getInputPosition(this.fromIndex, true) : 
+    //                                     (from.isSub ? from.getOutputPositionSC(this.fromIndex, true) : 
+    //                                                 from.getOutputPosition(this.fromIndex, true)));
+    //         this.path.unshift({ x: fromConnPos.x, y: fromConnPos.y })
+    //         //this.fromConnPos = fromConnPos
+    //     }
+    //     this.fromPos = (from === chip ? chip.getInputPosition(this.fromIndex, true) : 
+    //                                     (from.isSub ? from.getOutputPositionSC(this.fromIndex, true) : 
+    //                                                 from.getOutputPosition(this.fromIndex, true)));
+    //     this.toPos = to === chip ? chip.getOutputPosition(this.toIndex, true) : 
+    //                                (to.isSub ? to.getInputPositionSC(this.toIndex, true) : 
+    //                                            to.getInputPosition(this.toIndex, true));
+    //     this.pathColls = pathColls ? pathColls : this.setCollsPath()
+
+    //     //connections that are attached to this one {}
+    //     this.subConnections = []
+    // }
 
 	setCollsPath(){
 		let pathColls = []
@@ -47,6 +75,10 @@ class Connection{
                 y += radCurveConn
                 h -= radCurveConn*2
             }
+            x = roundNum(x)
+            y = roundNum(y)
+            w = roundNum(w)
+            h = roundNum(h)
             pathColls.push({x, y, w, h})
         }
         return pathColls
@@ -70,7 +102,7 @@ class Connection{
                     x = mouseX
                     y = p.y + tamCollConn / 2
                 }
-                return {x, y, conn: this}
+                return {x, y, conn: this, i}
             }
         }
         return undefined
@@ -81,35 +113,54 @@ class Connection{
 		from = this.isSub ? isSub._getComponentOrChip(this.fromComponent) : chip._getComponentOrChip(this.fromComponent);
         to = this.isSub ? isSub._getComponentOrChip(this.toComponent) : chip._getComponentOrChip(this.toComponent);
         let state = this.fromComponent == 'INPUTS' ? from.inputs[this.fromIndex] : from.outputs[this.fromIndex]
+        if(to.isSub){
+            this.toPos = to === comp ? comp.getOutputPosition(this.toIndex, true) : to.getInputPositionSC(this.toIndex, true);
+        }
+        else {
+            this.toPos = this.isSub ? (to === this.isSub ? this.isSub.getOutputPosition(this.toIndex, true) : to.getInputPosition(this.toIndex, true)) :
+                                      (to === chip ? chip.getOutputPosition(this.toIndex, true) : to.getInputPosition(this.toIndex, true))
+        }
+        if(from.isSub && !this.fromConnPos){
+            this.fromPos = from === comp ? comp.getInputPosition(this.fromIndex, true) : from.getOutputPositionSC(this.fromIndex, true);
+        }
+        else{ 
+            this.fromPos = this.isSub ? (this.fromConnPos ? this.fromConnPos : (from === this.isSub ? this.isSub.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true))) :
+                                        (this.fromConnPos ? this.fromConnPos : (from === chip ? chip.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true)))
+        }
 
-        if (from && to) {
-            if(to.isSub){
-                this.toPos = to === comp ? comp.getOutputPosition(this.toIndex, true) : to.getInputPositionSC(this.toIndex, true);
-            }
-            else {
-                this.toPos = this.isSub ? (to === this.isSub ? this.isSub.getOutputPosition(this.toIndex, true) : to.getInputPosition(this.toIndex, true)) :
-                                          (to === chip ? chip.getOutputPosition(this.toIndex, true) : to.getInputPosition(this.toIndex, true))
-            }
-            if(from.isSub && !this.fromConnPos){
-                this.fromPos = from === comp ? comp.getInputPosition(this.fromIndex, true) : from.getOutputPositionSC(this.fromIndex, true);
-            }
-            else{ 
-                this.fromPos = this.isSub ? (this.fromConnPos ? this.fromConnPos : (from === this.isSub ? this.isSub.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true))) :
-                                            (this.fromConnPos ? this.fromConnPos : (from === chip ? chip.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true)))
-            }
+        // if (from && to) {
+        //     if(to.isSub){
+        //         this.toPos = to === comp ? comp.getOutputPosition(this.toIndex, true) : to.getInputPositionSC(this.toIndex, true);
+        //     }
+        //     else {
+        //         this.toPos = this.isSub ? (to === this.isSub ? this.isSub.getOutputPosition(this.toIndex, true) : to.getInputPosition(this.toIndex, true)) :
+        //                                   (to === chip ? chip.getOutputPosition(this.toIndex, true) : to.getInputPosition(this.toIndex, true))
+        //     }
+        //     if(from.isSub){
+        //         this.fromPos = from === comp ? comp.getInputPosition(this.fromIndex, true) : from.getOutputPositionSC(this.fromIndex, true);
+        //     }
+        //     else{ 
+        //         this.fromPos = this.isSub ? ((from === this.isSub ? this.isSub.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true))) :
+        //                                     ((from === chip ? chip.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true)))
+        //     }
+
+            
 
             state ? stroke(colorOn) : stroke(colorOff)
             state ? strokeWeight(strokeOn) : strokeWeight(strokeOff)
             noFill()
 
             let inB = false
-            for(let p of this.pathColls){ 
-                if(this.inBound(p)){
-                    inB = true
-                    beingHoveredGlobal = true
-                    break
+            if(hoveredNode.comp == null && hoveredComp == null){
+                for(let p of this.pathColls){ 
+                    if(this.inBound(p)){
+                        inB = true
+                        beingHoveredGlobal = true
+                        break
+                    }
                 }
             }
+            
 
             if(inB) strokeWeight(6.5)
             let drawPath = []
@@ -133,7 +184,7 @@ class Connection{
             // }
         }
 	}
-}
+
 
 
 
