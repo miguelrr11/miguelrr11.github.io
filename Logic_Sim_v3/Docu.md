@@ -103,6 +103,8 @@ A button that triggers a function when clicked.
 
 - **`bt.setText([text])`**: Updates the button text.
 - **`bt.setFunc([func])`**: Updates the function executed on click.
+- **`bt.disable()`**: Disables the button. (Enabled by default)
+- **`bt.enable()`**: Enables the button.
 
 ### Color Picker
 A color picker with sliders for hue, saturation, and transparency.

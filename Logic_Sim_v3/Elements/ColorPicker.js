@@ -1,5 +1,5 @@
 class ColorPicker{
-	constructor(x, y, title, func, lightCol, darkCol, transCol){
+	constructor(x, y, title, func, def, lightCol, darkCol, transCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -29,6 +29,8 @@ class ColorPicker{
 		this.alpha = 255
 		this.finalCol = [0, 0, 0, 0]
 
+		this.interacted = false
+
 		let posY = this.poscp.y + 5
 		this.hBand = this.cph * 0.33 * 0.5
 		this.huePos = createVector(this.poscp.x + this.cpw / 2, posY + this.hBand * 0.5)
@@ -36,6 +38,8 @@ class ColorPicker{
 		this.saturationPos = createVector(this.poscp.x + this.cpw / 2, posY + this.hBand * 0.5)
 		posY += this.hBand + 5 + 2.5 * 0.5
 		this.alphaPos = createVector(this.poscp.x + this.cpw - 5, posY + this.hBand * 0.5)
+
+		this.defaultCol = def ? def : this.finalCol
 	}
 
 	getColor(){
@@ -62,6 +66,7 @@ class ColorPicker{
 		if(inB_cb && mouseIsPressed && !this.beingPressed){
 			this.toggle()
 			this.beingPressed = true
+			this.interacted = true
 			return true
 		}
 		if(this.isChoosing && mouseIsPressed){
@@ -122,14 +127,14 @@ class ColorPicker{
 
 	show(){
 		push()
-		fill(this.finalCol)
+		this.interacted ? fill(this.finalCol) : fill(this.defaultCol)
 		stroke(this.lightCol)
 		this.isChoosing || this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		rect(this.pos.x, this.pos.y, this.w, this.h)
 
 		noStroke()
 		fill(this.lightCol)
-		textSize(text_SizeMIGUI)
+		textSize(text_SizeMIGUI-2)
 		text(this.title, this.pos.x + this.w + 10, this.pos.y + this.h*0.85)
 
 		//show picker

@@ -23,7 +23,7 @@ class Component {
         else if (this.type === 'OR') this.outputs[0] = this.inputs[0] || this.inputs[1];
         else if (this.type === 'NOT') this.outputs[0] = this.inputs[0] ? 0 : 1;
         else if(this.type === 'CLOCK'){
-            let state = Math.floor(frameCount / 30) % 2 === 0;
+            let state = Math.floor(frameCount / 10) % 2 === 0;
             this.outputs = new Array(this.outputs.length).fill(state ? 1 : 0);
         }
     }
@@ -32,11 +32,7 @@ class Component {
         push();
         fill(this.col);
         strokeWeight(strokeLight);
-        if(this == selectedComp){ 
-            stroke(colorSelected)
-            //strokeWeight(strokeSelected)
-        }
-        else stroke(0)
+        this == selectedComp ? stroke(colorSelected) : stroke(darkenColor(this.col));
         rect(this.x, this.y, this.width, this.height);
 
         let multIn = (this.height - tamCompNodes) / this.inputs.length;
@@ -62,9 +58,10 @@ class Component {
         let multOut = (this.height - tamCompNodes) / this.outputs.length;
         off = multOut / 2;
         for (let i = 0; i < this.outputs.length; i++) {
-            let connOut = isInputConnectedToMainChip(this, i, true)
-            if(!connOut) fill(colorDisconnected)
-            else fill(this.outputs[i] === 0 ? colorOff : colorOn);
+            // let connOut = isInputConnectedToMainChip(this, i, true)
+            // if(!connOut) fill(colorDisconnected)
+            // else fill(this.outputs[i] === 0 ? colorOff : colorOn);
+            fill(this.outputs[i] === 0 ? colorOff : colorOn);
 
             if(hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'output'){
                 stroke(colorSelected)
@@ -79,11 +76,8 @@ class Component {
             rect(this.x + this.width - tamCompNodes / 2, this.y + i * multOut + off, tamCompNodes, tamCompNodes);
         }
 
-        fill(0);
-        stroke(0)
-        fill(colorOn);
-        stroke(colorOff)
-        strokeWeight(.75)
+        fill(getTextColor(this.col))
+        noStroke()
         textSize(20);
         textAlign(CENTER, CENTER);
         text(this.type, this.x + this.width / 2, this.y + this.height / 2);
@@ -149,7 +143,7 @@ class Display extends Component {
     show() {
         push();
         fill(this.col);
-        this == selectedComp ? stroke(colorSelected) : stroke(0);
+        this == selectedComp ? stroke(colorSelected) : stroke(darkenColor(this.col));
         strokeWeight(2);
         rect(this.x, this.y, this.width, this.height);
 
@@ -212,7 +206,7 @@ class Clock extends Component {
     show() {
         push();
         fill(this.col);
-        this == selectedComp ? stroke(colorSelected) : stroke(0);
+        this == selectedComp ? stroke(colorSelected) : stroke(darkenColor(this.col));
         strokeWeight(2);
         rect(this.x, this.y, this.width, this.height);
 

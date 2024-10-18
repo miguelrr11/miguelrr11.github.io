@@ -18,6 +18,16 @@ class Button{
 
 		this.length = this.w
 		this.height = this.h
+
+		this.disabled = false
+	}
+
+	disable(){
+		this.disabled = true
+	}
+
+	enable(){
+		this.disabled = false
 	}
 
 	setText(text){
@@ -36,6 +46,7 @@ class Button{
 
 	evaluate(){
 		this.beingHovered = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
+		if(this.disabled) return false
 		let inB = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
 		if(inB) this.beingHovered = true
 		else this.beingHovered = false
@@ -50,18 +61,20 @@ class Button{
 		return false
 	}
 
+
 	show(){
 		push()
-		this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
-		stroke(this.lightCol)
+		this.beingHovered && !this.disabled ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
+		this.disabled ? stroke(this.transCol) : stroke(this.lightCol)
 		fill(this.darkCol)
 		rect(this.pos.x, this.pos.y, this.w, this.h)
 		this.beingHovered ? fill(this.transCol) : fill(this.darkCol)
 		if(this.beingHovered && mouseIsPressed) fill(this.lightCol)
+		if(this.disabled) fill(this.darkCol)
 		rect(this.pos.x, this.pos.y, this.w, this.h)
 
 		noStroke()
-		fill(this.lightCol)
+		this.disabled ? fill(this.transCol) : fill(this.lightCol)
 		if(this.beingHovered && mouseIsPressed) fill(this.darkCol)
 		textSize(this.textSize)
 		text(this.text, this.pos.x + bordeMIGUI+text_offset_xMIGUI, this.pos.y + this.h*0.75)

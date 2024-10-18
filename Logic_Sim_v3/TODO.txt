@@ -1,10 +1,13 @@
-- Solo poder seleccionar UN elemento a la vez (nodo y connecetion a la vez NO)
-- Priorizar seleccion del componente mas adelante en pantalla
-- Optimizar:
-	- Quitar componente de ChipRegistry si se elimina del chip
 - guardar un chip q esta dentro de otro chip (funciona pero rarete)
+- nombre a inputs
 
-
+DONE seleccion multiple de comps
+DONE darle a ESC es como darle a go back
+DONE doble click para editar chip
+DONE preview del nodo de addingIO
+DONE Solo poder seleccionar UN elemento a la vez (nodo y connecetion a la vez NO)
+DONE Priorizar seleccion del componente mas adelante en pantalla
+DONE refactorizar colision connection
 DONE primero comps, luego conns
 DONE Guardar floats con menos precision
 DONE FPS viewer

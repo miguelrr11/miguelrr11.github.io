@@ -295,11 +295,12 @@ class Panel{
 		return button
 	}
 
-	createColorPicker(sentence = [], func = undefined){
+	createColorPicker(sentence = [], func = undefined, def = undefined){
 		//if(this.lastElementAdded.constructor.name != "ColorPicker") this.lastElementPos.y += 5
 		let colorPicker = new ColorPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
-										  sentence, func, this.lightCol, this.darkCol, this.transCol)
+										  sentence, func, def, 
+										  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 25
 		this.lastElementPos.y += colorPicker.height + this.padding
 		this.colorPickers.push(colorPicker)
@@ -512,10 +513,7 @@ class Panel{
 	}
 
 	update(){
-		for(let i of this.inputs){
-			if(mouseIsPressed && i.evaluate()) this.isInteracting = i
-			i.update()
-		}
+		
 		push()
 		if(this.activeCP && !this.isRetracted){ 
 			this.activeCP.show()
@@ -538,6 +536,10 @@ class Panel{
 		if(this.isRetracted){
 			this.retractButton.evaluate()
 			return
+		}
+		for(let i of this.inputs){
+			if(mouseIsPressed && i.evaluate()) this.isInteracting = i
+			i.update()
 		}
 		if(this.isInteracting != undefined){
 			let bool = this.isInteracting.evaluate()
@@ -660,7 +662,7 @@ function drawGradientRainbow(x, y, w, h){
 
 	let numStops = 360; // Adjust this value for smoother gradients
 	for (let i = 0; i <= numStops; i++) {
-		let hue = map(i, 0, numStops, 0, 255);
+		let hue = map(i, 0, numStops, 0, 360);
 		let color = `hsl(${hue}, 100%, 50%)`;
 
 		gradient.addColorStop(i / numStops, color);
