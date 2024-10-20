@@ -1,5 +1,16 @@
 - guardar un chip q esta dentro de otro chip (funciona pero rarete)
 - nombre a inputs
+- sacar conexiones de inputs de comps
+- ordenar outputs e inputs al añadirlos
+
+- Buses:
+	DONE Tri State Buffer
+	DONE "floating" state
+	DONE sacar outputs de bus
+	- inputs a bus
+
+- cloneRecursively: crear comps segun su tipo (en vez de new Comp para todo, distingir para clock, display y bus)
+
 
 DONE seleccion multiple de comps
 DONE darle a ESC es como darle a go back

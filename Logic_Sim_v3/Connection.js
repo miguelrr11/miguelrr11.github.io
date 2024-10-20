@@ -8,12 +8,23 @@ class Connection{
         let from, to
         from = isSub ? isSub._getComponentOrChip(this.fromComponent) : chip._getComponentOrChip(this.fromComponent);
         to = isSub ? isSub._getComponentOrChip(this.toComponent) : chip._getComponentOrChip(this.toComponent);
-        this.fromPos = (from === chip ? chip.getInputPosition(this.fromIndex, true) : 
+        if(from.type != "BUS"){
+            this.fromPos = (from === chip ? chip.getInputPosition(this.fromIndex, true) : 
                                         (from.isSub ? from.getOutputPositionSC(this.fromIndex, true) : 
                                                     from.getOutputPosition(this.fromIndex, true)));
-        this.toPos = to === chip ? chip.getOutputPosition(this.toIndex, true) : 
+        }
+        else{
+            this.fromPos = path[0]
+        }
+        if(to.type != "BUS"){
+            this.toPos = to === chip ? chip.getOutputPosition(this.toIndex, true) : 
                                    (to.isSub ? to.getInputPositionSC(this.toIndex, true) : 
                                                to.getInputPosition(this.toIndex, true));
+        }
+        else{
+            this.toPos = this.path[this.path.length - 1]
+        }
+        
         //connections that are attached to this one {}
         this.subConnections = []
     }
@@ -35,27 +46,32 @@ class Connection{
         let from, to
 		from = this.isSub ? isSub._getComponentOrChip(this.fromComponent) : chip._getComponentOrChip(this.fromComponent);
         to = this.isSub ? isSub._getComponentOrChip(this.toComponent) : chip._getComponentOrChip(this.toComponent);
-        let state = this.fromComponent == 'INPUTS' ? from.inputs[this.fromIndex] : from.outputs[this.fromIndex]
+        let state = this.fromComponent == 'INPUTS' ? from.inputs[this.fromIndex] : (from.type != 'BUS' ? from.outputs[this.fromIndex] : from.state)
 
         if (from && to) {
             if(to.isSub){
                 this.toPos = to === comp ? comp.getOutputPosition(this.toIndex, true) : to.getInputPositionSC(this.toIndex, true);
             }
-            else {
+            else if(to.type != 'BUS'){
                 this.toPos = this.isSub ? (to === this.isSub ? this.isSub.getOutputPosition(this.toIndex, true) : to.getInputPosition(this.toIndex, true)) :
                                           (to === chip ? chip.getOutputPosition(this.toIndex, true) : to.getInputPosition(this.toIndex, true))
             }
             if(from.isSub){
                 this.fromPos = from === comp ? comp.getInputPosition(this.fromIndex, true) : from.getOutputPositionSC(this.fromIndex, true);
             }
-            else{ 
+            else if(from.type != 'BUS'){
                 this.fromPos = this.isSub ? ((from === this.isSub ? this.isSub.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true))) :
                                             ((from === chip ? chip.getInputPosition(this.fromIndex, true) : from.getOutputPosition(this.fromIndex, true)))
             }
         }
 
+        //if(from.type == "BUS") this.fromPos = from.path[0]
+        //if(to.type == "BUS") this.toPos = to.path[0]
+        if(from.type == "BUS") this.fromPos = this.path[0]
+        if(to.type == "BUS") this.toPos = this.path[this.path.length-1]
     
-        state ? stroke(colorOn) : stroke(colorOff)
+        //state ? stroke(colorOn) : stroke(colorOff)
+        stroke(state === 0 ? colorOff : (state === 1 ? colorOn : colorFloating));
         state ? strokeWeight(strokeOn) : strokeWeight(strokeOff)
         noFill()
 

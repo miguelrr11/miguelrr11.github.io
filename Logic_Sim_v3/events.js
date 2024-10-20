@@ -74,15 +74,55 @@ function mousePressed() {
             }
         }
 
+        //sacar conexion de bus
+        if(hoveredNode.comp == null && hoveredComp == null){
+            for(let i = 0; i < chip.components.length; i++){
+                let bus = chip.components[i]
+                if(bus.type != "BUS") continue
+                let seg = bus.inBoundConn()
+                if(seg != undefined && !bus.inBounds()){
+                    // draggingFromConn = seg.conn
+                    // startDragging({x: seg.x, y: seg.y, i: seg.i}, 0, bus.name, 0, false)
+                    draggingFromConn = seg.conn
+                    startDragging({x: seg.bus.path[0].x, y:  seg.bus.path[0].y, i: seg.i}, 0, bus.name, 0, false)
+                    // for(let i = 0; i < seg.i + 1; i++){
+                    //     dragPath.push({x: seg.bus.path[i].x, y: seg.bus.path[i].y})
+                    // }
+                    dragPath.push({x: seg.x, y: seg.y})
+                    draggingFromBus = true
+                    break
+                }
+            }
+        }
+
         //adding input or output
         setAddingIO()
         if(addingInput != null){
             chip.addInput(addingInput)
             addingInput = null
+            return
         }
         else if(addingOutput != null){
             chip.addOutput(addingOutput)
             addingOutput = null
+            return
+        }
+
+        //adding bus
+        if(creatingBus){
+            if(pathBus == null){
+                pathBus = [{x: mouseX, y: mouseY}]
+            }
+            else if(!keyIsPressed){
+                pathBus.push({x: mouseX, y: mouseY})
+                chip.addComponent("BUS" + compNames, "BUS", undefined, undefined, pathBus);
+                compNames++;
+                pathBus = null
+                creatingBus = false
+            }
+            else{
+                pathBus.push({x: mouseX, y: mouseY})
+            }
         }
         
     } 
@@ -97,6 +137,7 @@ function mousePressed() {
     else{
         for (let i = components.length - 1; i >= 0; i--) {
             let c = components[i];
+            if(!c.isSub && c.type == 'BUS') continue
             if (c.inBounds(mousePos.x, mousePos.y)) {
                 selectedComp = c;
                 frontComp = c
@@ -106,21 +147,6 @@ function mousePressed() {
     }
     
 
-
-    if (selectedComp) {
-        let name = selectedComp.isSub ? selectedComp.externalName : selectedComp.type;
-        //panel_remove.setText("REMOVE: " + name);
-        if(selectedComp.isSub){ 
-            //panel_edit.setText("EDIT: " + name)
-            //panel_edit.enable()
-        }
-    } 
-    else {
-        //panel_remove.setText("REMOVE: ");
-        //panel_edit.setText("EDIT")
-        //panel_edit.disable()
-    }
-
     if(draggingConnection){
         // Releasing a connection
         let mousePos = { x: mouseX, y: mouseY };
@@ -129,10 +155,14 @@ function mousePressed() {
                      (chip.outputs.some((_, i) => isWithinBounds(mousePos, chip.getOutputPosition(i), tamBasicNodes)) ?
                          { component: { name: 'OUTPUTS' }, index: chip.outputs.findIndex((_, i) =>
                             isWithinBounds(mousePos, chip.getOutputPosition(i), tamBasicNodes)) } : null);
+        // releasing a conn in comp inputs or chip outputs
         if (result) {
-            let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
-            let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
-            dragPath.push({ x: dx > dy ? mouseX : prev.x, y: dx > dy ? prev.y : mouseY });
+            if(result.component.type != 'BUS'){
+                let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
+                let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
+                dragPath.push({ x: dx > dy ? mouseX : prev.x, y: dx > dy ? prev.y : mouseY });
+            }
+            
 
             if(draggingFromConn == undefined) chip.connect(dragStartComponent, dragStartIndex, result.component.name, result.index, dragPath);
             else chip.connect(dragStartComponent, dragStartIndex, result.component.name, result.index, dragPath, dragStart, draggingFromConn);
@@ -143,16 +173,35 @@ function mousePressed() {
             dragStartComponent = null;
             dragPath = [];
             draggingFromConn = undefined
-        } else {
+        }
+        //connect TO bus
+        let collBus = checkClickOnBus()
+        if(collBus && !draggingFromBus){
+            let x = collBus.x
+            let y = collBus.y
+            let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
+            let [dx, dy] = [Math.abs(prev.x - x), Math.abs(prev.y - y)];
+            dragPath.push({ x: dx > dy ? x : prev.x, y: dx > dy ? prev.y : y });
+            // for(let i = collBus.i; i >= 0; i--){
+            //     dragPath.push({x: collBus.bus.path[i].x, y: collBus.bus.path[i].y})
+            // }
+            //dragPath.push({x: mouseX, y: mouseY})
+            chip.connect(dragStartComponent, dragStartIndex, collBus.bus.name, 0, dragPath);
+            draggingConnection = false;
+            dragStart = null;
+            dragStartIndex = null;
+            dragStartComponent = null;
+            dragPath = [];
+            draggingFromConn = undefined
+        }
+        if(!result && (!collBus || (collBus && draggingFromBus))) {
             //right angles segments
             let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
             let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
             dragPath.push({ x: dx > dy ? mouseX : prev.x, y: dx > dy ? prev.y : mouseY });
         }
+        draggingFromBus = false
     }
-
-    
-
 }
 
 function mouseDragged(){
@@ -298,6 +347,10 @@ function mouseClicked() {
 }
 
 function doubleClicked(){
+    if(mouseX > WIDTH){
+        //selectedComp = null
+        return
+    }
     let mousePos = { x: mouseX, y: mouseY };
     let components = chip.components.concat(chip.chips);
     if(frontComp && frontComp.inBounds(mousePos.x, mousePos.y)){
@@ -329,9 +382,15 @@ function doubleClicked(){
 function keyPressed(){
     //press z
     if(keyCode == 90){
-        if(!draggingConnection) return
-        if(dragPath.length == 0) draggingConnection = false
-        else dragPath.pop()
+        if(draggingConnection){
+            if(dragPath.length == 0) draggingConnection = false
+            else dragPath.pop()
+        }
+        
+        if(creatingBus){
+            if(pathBus == null) creatingBus = false
+            else pathBus = null
+        }
     }
     //press ESC
     if(keyCode == 27){
@@ -348,6 +407,12 @@ function keyPressed(){
     }
     //press backspace
     if(keyCode == 8){
+        //eliminar connection
+        if(hoveredConn != null){
+            chip.connections = chip.connections.filter(conn => conn != hoveredConn)
+            hoveredConn = null;
+        }
+
         //eliminar comps
         if(selectedComp){
             if(selectedComp.isSub){
@@ -361,8 +426,10 @@ function keyPressed(){
             selectedComp = null
             frontComp = null
             restartMultiSelection()
+            return
         }
 
+        //eliminar comps de multiselection
         if(multiSelectionComps){
             for(let selectedComp of multiSelectionComps){
                 if(selectedComp.isSub){
@@ -377,6 +444,7 @@ function keyPressed(){
             selectedComp = null
             frontComp = null
             restartMultiSelection()
+            return
         }
 
         //eliminar IO
@@ -394,6 +462,24 @@ function keyPressed(){
                     chip.connections.splice(index, 1);
                 }
             }
+            return
+        }
+
+        //eliminar bus
+        if(hoveredBus != null){
+            for(let i = 0; i < chip.components.length; i++){
+                if(chip.components[i] == hoveredBus) {chip.components.splice(i, 1); break}
+            }
+            chip.connections = chip.connections.filter(conn => conn.toComponent !== hoveredBus.name && conn.fromComponent !== hoveredBus.name);
+            if(hoveredBus == frontComp) frontComp = null
+            hoveredBus = null
         }
     }
 }
+
+
+
+
+
+
+

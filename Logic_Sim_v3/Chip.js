@@ -43,13 +43,13 @@ class Chip{
         let yValues = []
         for (let i = 0; i < numComponents; i++) {
             let y = startY + i * (componentHeight + spacing)
-            yValues.push(y + tamBasicNodes/2)
+            yValues.push(y)
         }
 
         return yValues
     }
 
-    addComponent(name, type, externalName = "", inP = 2) {
+    addComponent(name, type, externalName = "", aux = 2, path = undefined) {
         if (type === 'CHIP') {
             const chip = chipRegistry.find(chip => chip.name === name);
             if (chip) {
@@ -66,8 +66,9 @@ class Chip{
                 console.error(`Chip with name ${name} not found in registry`);
             }
         } else {
-            if(type == 'DISPLAY') this.components.push(new Display(name, inP));
-            else if(type == 'CLOCK') this.components.push(new Clock(name, inP));
+            if(type == 'DISPLAY') this.components.push(new Display(name, aux));
+            else if(type == 'CLOCK') this.components.push(new Clock(name, aux));
+            else if(type == 'BUS') this.components.push(new Bus(name, path));
             else this.components.push(new Component(name, type));
         }
     }
@@ -79,7 +80,30 @@ class Chip{
         newChip.inputs = chip.inputs.slice()
         newChip.x = roundNum(chip.x)
         newChip.y = roundNum(chip.y)
-        newChip.components = chip.components.map(comp => new Component(comp.name, comp.type, roundNum(comp.x), roundNum(comp.y)));
+        let newComponents = []
+        for(let comp of chip.components){
+            switch(comp.type){
+                case 'DISPLAY':
+                    let disp = new Display(comp.name, comp.inputs.length)
+                    disp.x = roundNum(comp.x)
+                    disp.y = roundNum(comp.y)
+                    newComponents.push(disp)
+                    break
+                case 'CLOCK':
+                    let cloc = new Clock(comp.name, comp.outputs.length)
+                    cloc.x = roundNum(comp.x)
+                    cloc.y = roundNum(comp.y)
+                    newComponents.push(cloc)
+                    break
+                case 'BUS':
+                    newComponents.push(new Bus(comp.name, comp.path.slice(), roundNum(comp.x), roundNum(comp.y)))
+                    break
+                default:
+                    newComponents.push(new Component(comp.name, comp.type, roundNum(comp.x), roundNum(comp.y)))
+            }
+        }
+        newChip.components = newComponents
+        //newChip.components = chip.components.map(comp => new Component(comp.name, comp.type, roundNum(comp.x), roundNum(comp.y)));
         newChip.chips = chip.chips.map(subChip => this._cloneChipRecursively(subChip));
         newChip.inputsPos = chip.inputsPos.slice()
         newChip.outputsPos = chip.outputsPos.slice()
@@ -93,7 +117,8 @@ class Chip{
 
     connect(fromComponent, fromIndex, toComponent, toIndex, path, fromConnPos = undefined, draggingFromConn = undefined) {
         this.connections = this.connections.filter(
-            connection => !(connection.toComponent === toComponent && connection.toIndex === toIndex)
+            connection => !(connection.toComponent === toComponent && connection.toIndex === toIndex 
+                        && this._getComponentOrChip(connection.toComponent).type !== "BUS")
         );
         if(draggingFromConn){
             draggingFromConn.subConnections.push({fromComponent, 
@@ -108,14 +133,36 @@ class Chip{
     }
 
     simulate() {
+        //set states of buses
+        for (let comp of this.components) {
+            if(comp.type != "BUS") continue
+            let connectedValues = []
+            for(let conn of this.connections){
+                if(conn.toComponent == comp.name){
+                    let connectedComp = this._getComponentOrChip(conn.fromComponent)
+                    if(connectedComp){
+                        if(connectedComp == this) connectedValues.push(this.inputs[conn.fromIndex])
+                        else if(connectedComp == comp) connectedValues.push(comp.state)
+                        else connectedValues.push(connectedComp.outputs[conn.fromIndex])
+                        
+                    }
+                }
+            }
+            comp.state = calculateBusState(connectedValues)
+        }
+
         for (let connection of this.connections) {
             const from = this._getComponentOrChip(connection.fromComponent);
             const to = this._getComponentOrChip(connection.toComponent);
 
             if (from && to && from === this) {
                 if (to instanceof Chip) {
-                    to.setInput(connection.toIndex, this.inputs[connection.fromIndex]);
-                } else {
+                    if(to == this){
+                        this.outputs[connection.toIndex] = from.inputs[connection.fromIndex]
+                    }
+                    else to.setInput(connection.toIndex, this.inputs[connection.fromIndex]);
+                } 
+                else {
                     to.setInput(connection.toIndex, this.inputs[connection.fromIndex]);
                 }
             }
@@ -129,23 +176,27 @@ class Chip{
             chip.simulate();
         }
 
-        for (let connection of this.connections) {
-            const from = this._getComponentOrChip(connection.fromComponent);
-            const to = this._getComponentOrChip(connection.toComponent);
+        for (let conn of this.connections) {
+            const from = this._getComponentOrChip(conn.fromComponent);
+            const to = this._getComponentOrChip(conn.toComponent);
             if (from && to && from !== this && to !== this) {
                 if (to instanceof Chip) {
-                    to.setInput(connection.toIndex, from.getOutput(connection.fromIndex));
+                    to.setInput(conn.toIndex, from.getOutput(conn.fromIndex));
                 } 
-                else {
-                    to.setInput(connection.toIndex, from.getOutput(connection.fromIndex));
+                else if(from.type != 'BUS'){
+                    to.setInput(conn.toIndex, from.getOutput(conn.fromIndex));
+                }
+                else{
+                    to.setInput(conn.toIndex, from.state);
                 }
             }
         }
 
-        for (let connection of this.connections) {
-            if (connection.toComponent === 'OUTPUTS') {
-                const from = this._getComponentOrChip(connection.fromComponent);
-                this.outputs[connection.toIndex] = from.getOutput(connection.fromIndex);
+        for (let conn of this.connections) {
+            if (conn.toComponent === 'OUTPUTS') {
+                const from = this._getComponentOrChip(conn.fromComponent);
+                if((from instanceof Chip) || (from instanceof Component && from.type != 'BUS')) this.outputs[conn.toIndex] = from.getOutput(conn.fromIndex);
+                else this.outputs[conn.toIndex] = from.state
             }
         }
     }
@@ -158,6 +209,23 @@ class Chip{
                 c.show(chip) 
         }
         pop()
+
+        //draw components
+        for (let component of this.components) {
+            component.show();
+        }
+
+        //draw chips
+        for (let chip of this.chips) {
+            this.showSC(chip)
+        }
+
+        //draw comp/chip in front
+        if(frontComp){ 
+            frontComp.isSub ? this.showSC(frontComp) : frontComp.show()
+        } 
+
+        
 
         //draw inputs and outputs
         stroke(0)
@@ -180,7 +248,7 @@ class Chip{
             line(0, this.inputsPos[i].y + tamCompNodes / 2, inputX, this.inputsPos[i].y + tamCompNodes / 2)
             rect(inputX, this.inputsPos[i].y, tamCompNodes, tamCompNodes)
             fill(this.inputs[i] === 0 ? colorOff : colorOn);
-            rect(inputToggleX, this.inputsPos[i].y - tamBasicNodes/5, tamBasicNodes, tamBasicNodes)
+            rect(inputToggleX, this.inputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes)
         }
 
         stroke(0)
@@ -188,7 +256,7 @@ class Chip{
         for (let i = 0; i < this.outputs.length; i++) {
             let connOut = isInputConnectedToMainChip(this, i, true, true)
             if(!connOut) fill(colorDisconnected)
-            else fill(this.outputs[i] === 0 ? colorOff : colorOn);
+            else fill(this.outputs[i] === 0 || this.outputs[i] === 2 ? colorOff : colorOn);
 
             if(hoveredNode && hoveredNode.comp == 'OUTPUTS' && hoveredNode.index == i){
                 stroke(colorSelected)
@@ -202,40 +270,27 @@ class Chip{
             //noFill() /////////////////////
             line(outputX, this.outputsPos[i].y + tamCompNodes / 2, WIDTH, this.outputsPos[i].y + tamCompNodes / 2)
             rect(outputX, this.outputsPos[i].y, tamCompNodes, tamCompNodes)
-            fill(this.outputs[i] === 0 ? colorOff : colorOn);
-            rect(outputToggleX, this.outputsPos[i].y - tamBasicNodes/5, tamBasicNodes, tamBasicNodes)
+            fill(this.outputs[i] === 0 ? colorOff : (this.outputs[i] === 1 ? colorOn : colorFloating));
+            rect(outputToggleX, this.outputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes)
         }
 
         this.showPrevIO()
 
-        //draw components
-        for (let component of this.components) {
-            component.show();
-        }
-
-        //draw chips
-        for (let chip of this.chips) {
-            this.showSC(chip)
-        }
-
-        //draw comp/chip in front
-        if(frontComp){ 
-            frontComp.isSub ? this.showSC(frontComp) : frontComp.show()
-        } 
+        
     }
 
     showPrevIO(){
         if(addingInput != null){
             fill(255, 100)
             line(tamBasicNodes, addingInput, inputX, addingInput)
-            rect(inputX, addingInput - tamCompNodes/2, tamCompNodes, tamCompNodes)
-            rect(inputToggleX, addingInput - tamBasicNodes/5 - tamCompNodes/2, tamBasicNodes, tamBasicNodes)
+            rect(inputX, addingInput - tamCompNodes / 2, tamCompNodes, tamCompNodes)
+            rect(inputToggleX, addingInput - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes)
         }
         if(addingOutput != null){
             fill(255, 100)
             line(outputX + tamCompNodes, addingOutput, WIDTH - tamBasicNodes, addingOutput)
             rect(outputX, addingOutput - tamCompNodes/2, tamCompNodes, tamCompNodes)
-            rect(outputToggleX, addingOutput - tamBasicNodes/5 - tamCompNodes/2, tamBasicNodes, tamBasicNodes)
+            rect(outputToggleX, addingOutput - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes)
         }   
     }
 

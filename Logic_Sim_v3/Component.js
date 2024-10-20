@@ -15,16 +15,42 @@ class Component {
             case 'OR' :         {this.col = colsComps[2]; break}
             case 'CLOCK' :      {this.col = colsComps[3]; break}
             case 'DISPLAY' :    {this.col = colsComps[4]; break}
+            case 'TRI' :        {this.col = colsComps[5]; break}
         }
     }
 
     simulate() {
-        if (this.type === 'AND') this.outputs[0] = this.inputs[0] && this.inputs[1];
-        else if (this.type === 'OR') this.outputs[0] = this.inputs[0] || this.inputs[1];
-        else if (this.type === 'NOT') this.outputs[0] = this.inputs[0] ? 0 : 1;
+        if (this.type === 'AND'){ 
+            this.outputs[0] = (this.inputs[0] == 1 && this.inputs[1] == 1) ? 1 : 0
+        }
+        else if (this.type === 'OR'){
+            this.outputs[0] = (this.inputs[0] == 1 || this.inputs[1] == 1) ? 1 : 0
+        }
+        else if (this.type === 'NOT'){ 
+            this.outputs[0] = this.inputs[0] == 1 ? 0 : (this.inputs[0] == 0 ? 1 : 1)
+        }
         else if(this.type === 'CLOCK'){
             let state = Math.floor(frameCount / 10) % 2 === 0;
             this.outputs = new Array(this.outputs.length).fill(state ? 1 : 0);
+        }
+        else if(this.type === "TRI"){
+            this.outputs[0] = this.inputs[1] === 1 ? this.inputs[0] : 2 //output es input[0] si input[1] == 1, si no, output = 2 (estado floating)
+        }
+        else if(this.type === "BUS"){
+            //iterar sobre todos los inputs del bus:
+                // - todos los outputs de los comps conectados al bus
+                // - si hay algun desigual: state = undefined
+                // - si todos los valores son iguales: state = ese valor
+                // - el valor 2 (floating) no cuenta
+                /*
+                    - (0,0,0) : 0
+                    - (0,1,0) : undefined
+                    - (0,1,2) : undefined
+                    - (2,2,1) : 1
+                    - (2,2,2) : 2
+                */
+            
+            this.outputs[0] = this.state
         }
     }
 
@@ -40,7 +66,7 @@ class Component {
         for (let i = 0; i < this.inputs.length; i++) {
             let connInp = isInputConnectedToMainChip(this, i, false)
             if(!connInp) fill(colorDisconnected)
-            else fill(this.inputs[i] === 0 ? colorOff : colorOn);
+            else fill(this.inputs[i] === 0 ? colorOff : (this.inputs[i] === 1 ? colorOn : colorFloating));
 
             if(hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'input'){
                 stroke(colorSelected)
@@ -61,7 +87,7 @@ class Component {
             // let connOut = isInputConnectedToMainChip(this, i, true)
             // if(!connOut) fill(colorDisconnected)
             // else fill(this.outputs[i] === 0 ? colorOff : colorOn);
-            fill(this.outputs[i] === 0 ? colorOff : colorOn);
+            fill(this.outputs[i] === 0 ? colorOff : (this.outputs[i] === 1 ? colorOn : colorFloating));
 
             if(hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'output'){
                 stroke(colorSelected)
@@ -93,6 +119,10 @@ class Component {
     }
 
     getInputPosition(index, centered = false) {
+        // if(this.type == 'BUS') {
+        //     console.log("esto no deberia de pasar")
+        //     return -1
+        // }
         let multIn = (this.height - tamCompNodes) / this.inputs.length;
         let off = multIn / 2;
         let center = centered ? tamCompNodes / 2 : 0
@@ -100,6 +130,10 @@ class Component {
     }
 
     getOutputPosition(index, centered = false) {
+        // if(this.type == 'BUS') {
+        //     console.log("esto no deberia de pasar")
+        //     return -1
+        // }
         let multOut = (this.height - tamCompNodes) / this.outputs.length;
         let off = multOut / 2;
         let center = centered ? tamCompNodes / 2 : 0
@@ -119,6 +153,7 @@ class Component {
 class Display extends Component {
     constructor(name, nIn) {
         super(name, 'DISPLAY')
+        this.pos = 
         this.inputs = new Array(nIn).fill(0);
         this.outputs = []
         this.height = constrain(this.inputs.length * (tamCompNodes + 4) + tamCompNodes, 84, Infinity)
@@ -231,6 +266,93 @@ class Clock extends Component {
         pop();
     }
 }
+
+class Bus extends Component {
+    constructor(name, path){
+        super(name, 'BUS')
+        this.state = 2      //el bus empieza con valor floating
+        this.path = path
+        this.col
+        this.inputs = [2]
+        this.x = path[0].x
+        this.y = path[0].y
+        this.width = 12
+        this.height = 12
+    }
+
+    move(x, y, offx, offy) {
+        this.path[0].x = roundNum(x + offx);
+        this.path[0].y = roundNum(y + offy);
+        this.x = this.path[0].x
+        this.y = this.path[0].y
+    }
+
+    inBoundConn(){
+        let res = isMouseTouchingLine(this.path, tamCollConn);
+        if(res) return {x: res.x, y: res.y, bus: this, i: res.i}
+        return undefined
+    }
+
+    setCol(){
+        switch(this.state){
+        case 0:
+            this.col = colorOff
+            break
+        case 1:
+            this.col = colorOn
+            break
+        case 2:
+            this.col = colorFloating
+            break
+        case undefined:
+            this.col = Math.random() > 0.5 ? colorOff : colorOn
+            break
+        }
+    }
+
+    show(){
+        push()
+        this.setCol()
+        stroke(this.col);
+        this.state ? strokeWeight(strokeOn) : strokeWeight(strokeOff)
+        noFill()
+
+        let inB = false
+        if(hoveredNode.comp == null && hoveredComp == null){
+            let res = this.inBoundConn()
+            if(res) inB = true
+        }
+        
+        //dibujar path
+        if(inB) strokeWeight(6.5)
+        let drawPath = []
+        for(let p of this.path) drawPath.push(createVector(p.x, p.y))
+        drawBezierPath(drawPath)
+
+        //dibujar extremos
+        fill(0)
+        noStroke()
+        rectMode(CENTER)
+        //if(this.inBounds(mouseX, mouseY)) fill(colorOff)
+        rect(this.path[0].x, this.path[0].y, 12)
+        rect(this.path[this.path.length-1].x, this.path[this.path.length-1].y, 12)
+        pop()
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

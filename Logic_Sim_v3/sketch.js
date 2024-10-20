@@ -15,6 +15,7 @@ let dragStartIndex = null;
 let dragStartComponent = null;
 let dragPath = []
 let draggingFromConn = undefined
+let draggingFromBus = false
 
 //moving comps and IO
 let movingComp = {comp: null, offx: 0, offy: 0}
@@ -37,9 +38,11 @@ let route = []
 let selectedComp = null
 let hoveredNode = {comp: null, index: -1}
 let hoveredComp = null
+let hoveredConn = null
 let frontComp = null
 let addingInput = null
 let addingOutput = null
+let hoveredBus = null
 
 //selection of multiple comps
 let multiSelectionWindow = null
@@ -47,6 +50,10 @@ let multiSelectionComps = null
 let multiSelectionCompsWindow = null
 let multiSelectionCompsWindowOff = null
 let multiSelectionOffsets = null
+
+//creacion Bus
+let pathBus = null
+let creatingBus = false
 
 //miscellaneous
 let canvas
@@ -65,7 +72,7 @@ function setup() {
         w: widthPanel,
         automaticHeight: false,
         lightCol: colorOn,
-        darkCol: colorBack,
+        darkCol: colorBackMenu,
         title: 'LOGIC SIM'
     })
     panel.createSeparator()
@@ -88,6 +95,17 @@ function setup() {
         chip.addComponent("NOT" + compNames, "NOT");
         compNames++;
     })
+    panel.createButton("BUS", (f) => {
+        //empezar creacion bus
+        creatingBus = true
+        // chip.addComponent("BUS" + compNames, "BUS");
+        // compNames++;
+    })
+    panel.createButton("TRI-STATE BUFFER", (f) => {
+        chip.addComponent("TRI" + compNames, "TRI");
+        compNames++;
+    })
+
 
     panel.createSeparator()
     panel.createText("Add DISPLAY:")
@@ -198,7 +216,8 @@ function setup() {
 }
 
 function draw() {
-    background(colorOff);
+    background(colorOff)
+
     if(frameCount % 60 == 0) fps = Math.floor(frameRate())
     panel_fps.setText("FPS: " + fps)
     
@@ -215,6 +234,8 @@ function draw() {
         setHoveredNode()
         setHoveredComp()
         setAddingIO()
+        setHoveredConnection()
+        setHoveredBus()
     }
 
     if (draggingConnection && dragStart) {
@@ -239,9 +260,15 @@ function draw() {
         pop()
     }
 
+    if(creatingBus){
+        showBus()
+    }
+
     showMultiSelection()
 
-    if(frameCount % 1 == 0) chip.simulate();
+    if(frameCount % 1 == 0){ 
+        chipStack.length == 0 ? chip.simulate() : chipStack[0].simulate()
+    }
     chip.show();
 
     panel.update()
@@ -267,6 +294,7 @@ function drawMargin(){
 }
 
 function showMultiSelection(){
+    if(movingOutput.node != null || movingInput.node != null || movingComp.comp != null) return
     if(multiSelectionWindow){
         push()
         strokeWeight(1.5)
@@ -291,6 +319,7 @@ function setMultiSelectionComps(){
     if(multiSelectionWindow != null){
         multiSelectionComps = []
         for(let comp of chip.components.concat(chip.chips)){
+            if(!comp.isSub && comp.type == "BUS") continue
             if(getMultiSelectionComps(multiSelectionWindow, comp)) multiSelectionComps.push(comp)
         } 
     }
@@ -383,9 +412,9 @@ function checkClickOnComponentInput(point, componentList, size, output = false) 
             let position
             if(component.isSub && output) position = component.getOutputPositionSC(i)
             if(component.isSub && !output) position = component.getInputPositionSC(i)
-            if(!component.isSub && output) position = component.getOutputPosition(i)
-            if(!component.isSub && !output) position = component.getInputPosition(i)
-            if (isWithinBounds(point, position, size)) {
+            if(!component.isSub && output && component.type != "BUS") position = component.getOutputPosition(i)
+            if(!component.isSub && !output && component.type != "BUS") position = component.getInputPosition(i)
+            if (position && isWithinBounds(point, position, size)) {
                 return { component, index: i };
             }
         }
@@ -393,8 +422,18 @@ function checkClickOnComponentInput(point, componentList, size, output = false) 
     return null;
 }
 
+function checkClickOnBus(){
+    for(let bus of chip.components){
+        if(bus.type != "BUS") continue
+        let collide = bus.inBoundConn()
+        if(collide) return collide
+    }
+    return undefined
+}
+
 function cutConnections(point, componentList, connections, size) {
     for (let component of componentList) {
+        if(component.type == 'BUS') continue
         for (let i = 0; i < component.inputs.length; i++) {
             let inputPos = component.isSub ? component.getInputPositionSC(i) : component.getInputPosition(i);
             if (!isWithinBounds(point, inputPos, size)) continue;
@@ -486,6 +525,26 @@ function setHoveredComp(){
     hoveredComp = null
 }
 
+function setHoveredConnection(){
+    for(let conn of chip.connections){
+        if(conn.inBoundConn()){
+            hoveredConn = conn
+            return
+        }
+    }
+    hoveredConn = null
+}
+
+function setHoveredBus(){
+    for(let bus of chip.components){
+        if(bus.type == 'BUS' && bus.inBoundConn()){
+            hoveredBus = bus
+            return
+        }
+    }
+    hoveredBus = null
+}
+
 function setAddingIO(){
     if(draggingConnection){
         addingInput = null
@@ -541,6 +600,58 @@ function restartMultiSelection(){
     multiSelectionOffsets = null
 }
 
+function showBus(){
+    fill(0)
+    noStroke()
+    if(pathBus == null){
+        push()
+        rectMode(CENTER)
+        rect(mouseX, mouseY, 12)
+        pop()
+    }
+    else{
+        push()
+        rectMode(CENTER)
+        rect(pathBus[0].x, pathBus[0].y, 12)
+        rect(mouseX, mouseY, 12)
+        stroke(0)
+        strokeWeight(5)
+        noFill()
+
+        let drawPath = []
+        for(let p of pathBus) drawPath.push(createVector(p.x, p.y))
+        drawPath.push(createVector(mouseX, mouseY))
+        drawBezierPath(drawPath)
+
+        pop()
+    }
+}
+
+function calculateBusState(connectedComponents) {
+    let firstValue = null
+    let isUniform = true
+    
+    for (let val of connectedComponents) {
+        if (val === 2) {
+            continue
+        }
+        if (firstValue === null) {
+            firstValue = val;
+        } 
+        else if (val !== firstValue) {
+            isUniform = false;
+            break
+        }
+    }
+    
+    if (firstValue === null) {
+        return 2
+    }
+    
+    return isUniform ? firstValue : undefined;
+}
+
+
 function debug(){
     console.log("debug")
     console.log(multiSelectionWindow)
@@ -549,3 +660,6 @@ function debug(){
     console.log(multiSelectionCompsWindowOff)
     console.log(multiSelectionOffsets)
 }
+
+
+
