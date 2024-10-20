@@ -405,6 +405,10 @@ function keyPressed(){
             restartMultiSelection()
         }
     }
+    //press T
+    if(keyCode == 84){
+        showingTags = !showingTags
+    }
     //press backspace
     if(keyCode == 8){
         //eliminar connection

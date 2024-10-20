@@ -33,6 +33,7 @@ let panel_input, panel_remove, panel_display,
 let panel_addIn, panel_addOut, panel_removeIn, panel_removeOut
 let panel_route
 let route = []
+let showingTags = false
 
 //selection managing
 let selectedComp = null
@@ -79,6 +80,7 @@ function setup() {
     panel_fps = panel.createText()
     panel.createText("Click on an input to start a connection")
     panel.createText("Press Z to undo a segment")
+    panel.createText("Press T to toggle IO tags")
     panel.createText("Double click on chip to edit it")
 
     panel.createSeparator()
@@ -130,6 +132,8 @@ function setup() {
         multiSelectionComps = null
         multiSelectionCompsWindow = null
         let newName = panel_input.getText()
+        newName = newName.trimStart()
+        newName = newName.trimEnd()
         let name = chip.name + compNames
         compNames++
         chip.externalName = newName

@@ -2,7 +2,7 @@ const widthPanel = 250
 const WIDTH = 1400 - widthPanel
 const HEIGHT = 880
 
-const tamBasicNodes = 30
+const tamBasicNodes = 25
 const tamCompNodes = 13.5
 
 const colorBackMenu = "#0E212E"
@@ -14,6 +14,8 @@ const colorDisconnected = "#262F36"
 //const colorComp = "#C7F9CC"
 const colorComp = Math.random() * 150
 const colorSelected = "#1FF451"
+
+const textSizeIO = 12
 
 const colsComps = [roundNum(Math.random() * 150),
                    roundNum(Math.random() * 150),

@@ -144,7 +144,6 @@ class Chip{
                         if(connectedComp == this) connectedValues.push(this.inputs[conn.fromIndex])
                         else if(connectedComp == comp) connectedValues.push(comp.state)
                         else connectedValues.push(connectedComp.outputs[conn.fromIndex])
-                        
                     }
                 }
             }
@@ -168,12 +167,16 @@ class Chip{
             }
         }
 
+        //this.propagate(this)
+
         for (let component of this.components) {
             component.simulate();
+            //this.propagate(component)
         }
 
         for (let chip of this.chips) {
             chip.simulate();
+            //this.propagate(chip)
         }
 
         for (let conn of this.connections) {
@@ -201,12 +204,23 @@ class Chip{
         }
     }
 
+    propagate(comp){
+        for(let i = 0; i < this.connections.length; i++){
+            let conn = this.connections[i]
+            let propagateTo = this._getComponentOrChip(conn.toComponent)
+            if(comp == this) propagateTo.setInput(conn.toIndex, this.inputs[conn.fromIndex])
+            else if(conn.fromComponent == comp.name){
+                propagateTo.setInput(conn.toIndex, comp.outputs[conn.fromIndex])
+            }
+        }
+    }
+
     show() {
         this.height = Math.max(this.inputs.length, this.outputs.length) * (tamCompNodes+4) + tamCompNodes;
         push()
         //draw connections
         for(let c of chip.connections){ 
-                c.show(chip) 
+            c.show(chip) 
         }
         pop()
 
@@ -225,7 +239,7 @@ class Chip{
             frontComp.isSub ? this.showSC(frontComp) : frontComp.show()
         } 
 
-        
+
 
         //draw inputs and outputs
         stroke(0)
@@ -273,10 +287,7 @@ class Chip{
             fill(this.outputs[i] === 0 ? colorOff : (this.outputs[i] === 1 ? colorOn : colorFloating));
             rect(outputToggleX, this.outputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes)
         }
-
         this.showPrevIO()
-
-        
     }
 
     showPrevIO(){
@@ -310,7 +321,8 @@ class Chip{
             if(!connInp) fill(colorDisconnected)
             else fill(chip.inputs[i] === 0 ? colorOff : colorOn);
 
-            if(hoveredNode && hoveredNode.comp == chip && hoveredNode.index == i && hoveredNode.side == 'input'){
+            let hovered = hoveredNode && hoveredNode.comp == chip && hoveredNode.index == i && hoveredNode.side == 'input'
+            if(hovered){
                 stroke(colorSelected)
                 strokeWeight(strokeSelected)
             }
@@ -321,6 +333,8 @@ class Chip{
             if(chip == selectedComp) stroke(colorSelected)
 
             rect(chip.x - tamCompNodes / 2, chip.y + i * multIn + off, tamCompNodes, tamCompNodes);
+
+            if(hovered || showingTags) chip.showInputTag(i)
         }
 
         //outputs
@@ -332,7 +346,8 @@ class Chip{
             // else fill(chip.outputs[i] === 0 ? colorOff : colorOn);
             fill(chip.outputs[i] === 0 ? colorOff : colorOn);
 
-            if(hoveredNode && hoveredNode.comp == chip && hoveredNode.index == i && hoveredNode.side == 'output'){
+            let hovered = hoveredNode && hoveredNode.comp == chip && hoveredNode.index == i && hoveredNode.side == 'output'
+            if(hovered){
                 stroke(colorSelected)
                 strokeWeight(strokeSelected)
             }
@@ -344,6 +359,8 @@ class Chip{
 
             fill(chip.outputs[i] === 0 ? colorOff : colorOn);
             rect(chip.x + chip.width - tamCompNodes / 2, chip.y + i * multOut + off, tamCompNodes, tamCompNodes);
+
+            if(hovered || showingTags) chip.showOutputTag(i)
         }
 
 
@@ -358,7 +375,7 @@ class Chip{
         const fittedText = fitTextToRect(spacedWords, chip.width - tamCompNodes, chip.height, 18);
         textSize(14)
         if(chip.externalName && chip.externalName.length < 8) textSize(17)
-        text(fittedText, chip.x + chip.width / 2, chip.y + chip.height / 2 - 10);
+        text(fittedText, chip.x + chip.width / 2, chip.y + chip.height / 2);
         pop()
     }
 
@@ -442,6 +459,37 @@ class Chip{
         let off = multOut / 2
         let center = centered ? tamCompNodes / 2 : 0
         return { x: roundNum(this.x + this.width - tamCompNodes / 2), y: roundNum(this.y + index * multOut + off + center)};
+    }
+
+    showInputTag(index){
+        push()
+        let pos = this.getInputPositionSC(index)
+        pos.x -= 7
+        let tx = this.inputs.length > 1 ? "In " + index : "In"
+        let widthTx = getPixelLength(tx, textSizeIO) + 8
+        fill(0)
+        noStroke()
+        rect(pos.x - widthTx, pos.y, widthTx, tamCompNodes)
+        fill(255)
+        textSize(textSizeIO)
+        textAlign(RIGHT, TOP)
+        text(tx, pos.x - 4, pos.y + 1)
+        pop()
+    }
+    showOutputTag(index){
+        push()
+        let pos = this.getOutputPositionSC(index)
+        pos.x += 7 + tamCompNodes   
+        let tx = this.outputs.length > 1 ? ("Out " + index) : "Out"
+        let widthTx = getPixelLength(tx, textSizeIO) + 8
+        fill(0)
+        noStroke()
+        rect(pos.x, pos.y, widthTx, tamCompNodes)
+        fill(255)
+        textSize(textSizeIO)
+        textAlign(LEFT, TOP)
+        text(tx, pos.x + 4, pos.y + 1)
+        pop()
     }
 
     inBounds(x, y) {

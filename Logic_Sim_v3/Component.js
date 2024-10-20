@@ -52,6 +52,7 @@ class Component {
             
             this.outputs[0] = this.state
         }
+        
     }
 
     show() {
@@ -68,7 +69,9 @@ class Component {
             if(!connInp) fill(colorDisconnected)
             else fill(this.inputs[i] === 0 ? colorOff : (this.inputs[i] === 1 ? colorOn : colorFloating));
 
-            if(hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'input'){
+            let hovered = hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'input'
+
+            if(hovered){
                 stroke(colorSelected)
                 strokeWeight(strokeSelected)
             }
@@ -79,6 +82,8 @@ class Component {
             
             //noFill()////////////////////
             rect(this.x - tamCompNodes / 2, this.y + i * multIn + off, tamCompNodes, tamCompNodes);
+
+            if(hovered || showingTags) this.showInputTag(i)
         }
 
         let multOut = (this.height - tamCompNodes) / this.outputs.length;
@@ -89,7 +94,9 @@ class Component {
             // else fill(this.outputs[i] === 0 ? colorOff : colorOn);
             fill(this.outputs[i] === 0 ? colorOff : (this.outputs[i] === 1 ? colorOn : colorFloating));
 
-            if(hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'output'){
+            let hovered = hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'output'
+
+            if(hovered){
                 stroke(colorSelected)
                 strokeWeight(strokeSelected)
             }
@@ -100,6 +107,8 @@ class Component {
 
             //noFill()////////////////////
             rect(this.x + this.width - tamCompNodes / 2, this.y + i * multOut + off, tamCompNodes, tamCompNodes);
+
+            if(hovered || showingTags) this.showOutputTag(i)
         }
 
         fill(getTextColor(this.col))
@@ -108,6 +117,38 @@ class Component {
         textAlign(CENTER, CENTER);
         text(this.type, this.x + this.width / 2, this.y + this.height / 2);
         pop();
+    }
+
+    showInputTag(index){
+        push()
+        let pos = this.getInputPosition(index)
+        pos.x -= 7
+        let tx = this.type == 'TRI' ? (index == 0 ? "Data" : "Enable") : (this.inputs.length > 1 ? "In " + index : "In")
+        let widthTx = getPixelLength(tx, textSizeIO) + 8
+        fill(0)
+        noStroke()
+        rect(pos.x - widthTx, pos.y, widthTx, tamCompNodes)
+        fill(255)
+        textSize(textSizeIO)
+        textAlign(RIGHT, TOP)
+        text(tx, pos.x - 4, pos.y + 1)
+        pop()
+    }
+
+    showOutputTag(index){
+        push()
+        let pos = this.getOutputPosition(index)
+        pos.x += 7 + tamCompNodes   
+        let tx = "Out"
+        let widthTx = getPixelLength(tx, textSizeIO) + 8
+        fill(0)
+        noStroke()
+        rect(pos.x, pos.y, widthTx, tamCompNodes)
+        fill(255)
+        textSize(textSizeIO)
+        textAlign(LEFT, TOP)
+        text(tx, pos.x + 4, pos.y + 1)
+        pop()
     }
 
     setInput(index, value) {

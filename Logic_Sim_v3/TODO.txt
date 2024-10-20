@@ -10,6 +10,8 @@
 	- inputs a bus
 
 - cloneRecursively: crear comps segun su tipo (en vez de new Comp para todo, distingir para clock, display y bus)
+- ignorar keyPressed si se esta escribiendo en input
+- al añadir un comp, frontComp = copm
 
 
 DONE seleccion multiple de comps

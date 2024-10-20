@@ -174,6 +174,9 @@ function getLongestLineLength(inputString) {
 function fitTextToRect(text, rectWidth, rectHeight, lineHeight) {
   // Split text into lines
   let lines = text.split('\n');
+  lines = lines.filter(line => line != '')
+  lines[0] = lines[0].trimStart()
+  lines[lines.length-1] = lines[lines.length-1].trimEnd()
   
   // Shorten lines that exceed the rectangle width
   for (let i = 0; i < lines.length; i++) {
@@ -186,6 +189,8 @@ function fitTextToRect(text, rectWidth, rectHeight, lineHeight) {
       }
     }
   }
+
+
 
   // Check total height and splice lines if necessary
   while (lines.length * lineHeight > rectHeight) {
