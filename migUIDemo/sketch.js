@@ -4,7 +4,7 @@
 
 p5.disableFriendlyErrors = true
 const WIDTH = 600
-const HEIGHT = 600
+const HEIGHT = 700
 
 let panel
 let back = 100
@@ -13,6 +13,7 @@ let cb1, cb2, cb3
 let sl1, sl2, sl3
 let tt, ss, ip, bt, cp
 let th
+let np1, np2
 
 function setup(){
     createCanvas(WIDTH+200, HEIGHT)
@@ -29,16 +30,20 @@ function setup(){
 
     cp = panel.createColorPicker("color pick me")
 
-    sl1 = panel.createSlider(0, 255, 100)
-    sl2 = panel.createSlider(0, 255, 0, "G")
-    sl3 = panel.createSlider(0, 255, 0, "", true)
+    sl1 = panel.createSlider(0, 255, 100, "R", true)
+    sl2 = panel.createSlider(0, 255, 0, "G", true)
+    sl3 = panel.createSlider(0, 255, 0, "B", true)
 
     tt = panel.createText("COOL TITLE", true)
 
     ss = panel.createSelect(["COOL", "AMAZING", "FABULOUS"], "COOL")  
 
+    panel.createSeparator()
+
     panel.createText("Enter number between 0 and 255 below and press enter")
     ip = panel.createInput("Enter value ", setval)
+
+    panel.createSeparator()
 
     bt = panel.createButton("BLACK", f => back = 0)
     panel.createButton("GREY", f => back = 125)
@@ -47,6 +52,16 @@ function setup(){
     th = panel.createSelect(["spiderman", "sublime", "blossom", "techno"], "techno", (f) => {
         panel.setTheme(th.getSelected())
     })
+
+    np1 = panel.createNumberPicker("Add circle", 0, 22, 1, npMinus, npPlus)
+}
+
+function npPlus(){
+    console.log("plus")
+}
+
+function npMinus(){
+    console.log("minus")
 }
 
 
@@ -70,8 +85,11 @@ function adios(){
 function draw(){
     background(back)
     noStroke()
+
+    fill(140)
+    for(let i = 0; i < np1.getValue(); i++) ellipse(30, i*30+35, 22)
     
-    tt.setText(ss.getSelected() + " TITLEaf jsfl;ajsdlf fjasl;d")
+    tt.setText(ss.getSelected() + " TITLE")
 
 
     fill(cb1.isChecked()*255, cb2.isChecked()*255, cb3.isChecked()*255)
