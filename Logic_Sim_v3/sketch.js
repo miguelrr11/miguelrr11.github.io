@@ -4,8 +4,8 @@
 
 //chips data
 let chip
-let chipRegistry = []
-let savedChips = []
+//let chipRegistry = []
+//let savedChips = []
 let chipStack = []
 
 //connection logic
@@ -28,12 +28,16 @@ let idConn = 0
 
 //ui elements
 let panel
-let panel_input, panel_remove, panel_display, 
-    panel_clock, panel_edit, panel_goBack, panel_fps, panel_color
+let panel_input, panel_remove, panel_edit, 
+    panel_goBack, panel_fps, panel_color
 let panel_addIn, panel_addOut, panel_removeIn, panel_removeOut
+let panel_display_np, panel_display_bt
+let panel_clock_np, panel_clock_bt
 let panel_route
 let route = []
 let showingTags = false
+
+
 
 //selection managing
 let selectedComp = null
@@ -78,10 +82,10 @@ function setup() {
     })
     panel.createSeparator()
     panel_fps = panel.createText()
-    panel.createText("Click on an input to start a connection")
-    panel.createText("Press Z to undo a segment")
-    panel.createText("Press T to toggle IO tags")
-    panel.createText("Double click on chip to edit it")
+    panel.createText("- Click on an input to start a connection")
+    panel.createText("- Press Z to undo a segment")
+    panel.createText("- Press T to toggle IO tags")
+    panel.createText("- Double click on chip to edit it")
 
     panel.createSeparator()
     panel.createText("Add basic gates:")
@@ -110,16 +114,18 @@ function setup() {
 
 
     panel.createSeparator()
-    panel.createText("Add DISPLAY:")
-    panel_display = panel.createInput("Enter number of inputs", (f) => {
-        chip.addComponent("DISPLAY" + compNames, "DISPLAY", "", constrain(parseInt(panel_display.getText()), 1, 10));
+    //panel.createText("Add DISPLAY:")
+    panel_display_np = panel.createNumberPicker("Inputs", 1, 10)
+    panel_display_bt = panel.createButton("CREATE DISPLAY", (f) => {
+        chip.addComponent("DISPLAY" + compNames, "DISPLAY", "", panel_display_np.getValue());
         compNames++;
     })
 
-    //panel.createSeparator()
-    panel.createText("Add CLOCK:")
-    panel_clock = panel.createInput("Enter number of outputs", (f) => {
-        chip.addComponent("CLOCK" + compNames, "CLOCK", "", constrain(parseInt(panel_clock.getText()), 1, 10));
+    panel.createSeparator()
+    //panel.createText("Add CLOCK:")
+    panel_clock_np = panel.createNumberPicker("Outputs", 1, 10)
+    panel_clock_bt = panel.createButton("CREATE CLOCK", (f) => {
+        chip.addComponent("CLOCK" + compNames, "CLOCK", "", panel_clock_np.getValue());
         compNames++;
     })
 
@@ -216,7 +222,7 @@ function setup() {
     compNames++;
     chipRegistry.push(chip);
 
-    //createFromSaved()
+    createFromSaved()
 }
 
 function draw() {
@@ -270,9 +276,7 @@ function draw() {
 
     showMultiSelection()
 
-    if(frameCount % 1 == 0){ 
-        chipStack.length == 0 ? chip.simulate() : chipStack[0].simulate()
-    }
+    if(frameCount % 1 == 0) chipStack.length == 0 ? chip.simulate() : chipStack[0].simulate()
     chip.show();
 
     panel.update()

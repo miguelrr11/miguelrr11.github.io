@@ -61,6 +61,7 @@ class Chip{
                 compNames++
                 chipRegistry.push(newChip)
                 this.chips.push(newChip);
+                frontComp = newChip
             } 
             else {
                 console.error(`Chip with name ${name} not found in registry`);
@@ -70,6 +71,7 @@ class Chip{
             else if(type == 'CLOCK') this.components.push(new Clock(name, aux));
             else if(type == 'BUS') this.components.push(new Bus(name, path));
             else this.components.push(new Component(name, type));
+            frontComp = this.components[this.components.length-1]
         }
     }
 
@@ -78,6 +80,8 @@ class Chip{
         newChip.externalName = chip.externalName
         newChip.isSub = true
         newChip.inputs = chip.inputs.slice()
+        newChip.outputs = chip.outputs.slice()
+
         newChip.x = roundNum(chip.x)
         newChip.y = roundNum(chip.y)
         let newComponents = []
@@ -99,7 +103,10 @@ class Chip{
                     newComponents.push(new Bus(comp.name, comp.path.slice(), roundNum(comp.x), roundNum(comp.y)))
                     break
                 default:
-                    newComponents.push(new Component(comp.name, comp.type, roundNum(comp.x), roundNum(comp.y)))
+                    let newComp = new Component(comp.name, comp.type, roundNum(comp.x), roundNum(comp.y))
+                    newComp.inputs = comp.inputs.slice()
+                    newComp.outputs = comp.outputs.slice()
+                    newComponents.push(newComp)
             }
         }
         newChip.components = newComponents
@@ -150,6 +157,7 @@ class Chip{
             comp.state = calculateBusState(connectedValues)
         }
 
+        //propagate chip inputs to comps
         for (let connection of this.connections) {
             const from = this._getComponentOrChip(connection.fromComponent);
             const to = this._getComponentOrChip(connection.toComponent);
@@ -159,24 +167,41 @@ class Chip{
                     if(to == this){
                         this.outputs[connection.toIndex] = from.inputs[connection.fromIndex]
                     }
-                    else to.setInput(connection.toIndex, this.inputs[connection.fromIndex]);
+                    else{ 
+                        to.setInput(connection.toIndex, this.inputs[connection.fromIndex]);
+                        to.simulate()
+                    }
                 } 
                 else {
                     to.setInput(connection.toIndex, this.inputs[connection.fromIndex]);
+                    to.simulate()
                 }
             }
         }
 
-        //this.propagate(this)
 
-        for (let component of this.components) {
-            component.simulate();
-            //this.propagate(component)
-        }
-
-        for (let chip of this.chips) {
-            chip.simulate();
-            //this.propagate(chip)
+        let orderedComps = this.topologicalSort(this.components.concat(this.chips, {name: 'INPUTS'}), this.connections);
+        //console.log(orderedComps)
+        for(let comp of orderedComps){
+            if(comp == 'INPUTS') continue
+            for (let conn of this.connections) {
+                const from = this._getComponentOrChip(conn.fromComponent);
+                const to = this._getComponentOrChip(conn.toComponent);
+                if (from.name == comp && from && to && from !== this && to !== this) {
+                    if (to instanceof Chip) {
+                        to.setInput(conn.toIndex, from.getOutput(conn.fromIndex));
+                        to.simulate()
+                    } 
+                    else if(from.type != 'BUS'){
+                        to.setInput(conn.toIndex, from.getOutput(conn.fromIndex));
+                        to.simulate()
+                    }
+                    else{
+                        to.setInput(conn.toIndex, from.state);
+                        to.simulate()
+                    }
+                }
+            }
         }
 
         for (let conn of this.connections) {
@@ -195,6 +220,20 @@ class Chip{
             }
         }
 
+        //this.propagate(this)
+
+        for (let component of this.components) {
+            component.simulate();
+            //this.propagate(component)
+        }
+
+        for (let chip of this.chips) {
+            chip.simulate();
+            //this.propagate(chip)
+        }
+
+        
+
         for (let conn of this.connections) {
             if (conn.toComponent === 'OUTPUTS') {
                 const from = this._getComponentOrChip(conn.fromComponent);
@@ -204,12 +243,13 @@ class Chip{
         }
     }
 
+    //mal
     propagate(comp){
         for(let i = 0; i < this.connections.length; i++){
             let conn = this.connections[i]
-            let propagateTo = this._getComponentOrChip(conn.toComponent)
             if(comp == this) propagateTo.setInput(conn.toIndex, this.inputs[conn.fromIndex])
             else if(conn.fromComponent == comp.name){
+                let propagateTo = this._getComponentOrChip(conn.toComponent)
                 propagateTo.setInput(conn.toIndex, comp.outputs[conn.fromIndex])
             }
         }
@@ -287,7 +327,10 @@ class Chip{
             fill(this.outputs[i] === 0 ? colorOff : (this.outputs[i] === 1 ? colorOn : colorFloating));
             rect(outputToggleX, this.outputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes)
         }
+
         this.showPrevIO()
+
+        
     }
 
     showPrevIO(){
@@ -561,8 +604,60 @@ class Chip{
         }
     }
 
+    topologicalSort(components, connections) {
+        let inDegree = new Map();
+        components.forEach(component => inDegree.set(component.name, 0));
 
+        // Calculate in-degrees for each component
+        connections.forEach(connection => {
+            inDegree.set(connection.toComponent, inDegree.get(connection.toComponent) + 1);
+        });
 
+        // Initialize queue with components with in-degree 0 (no inputs)
+        let queue = [];
+        components.forEach(component => {
+            if (inDegree.get(component.name) === 0) {
+                queue.push(component.name);
+            }
+        });
+        //console.log(queue)
+
+        let topologicalOrder = [];
+
+        // Perform topological sort
+        while (queue.length > 0) {
+            let currentComponent = queue.shift();
+            topologicalOrder.push(currentComponent);
+
+            connections.forEach(connection => {
+                if (connection.fromComponent === currentComponent) {
+                    inDegree.set(connection.toComponent, inDegree.get(connection.toComponent) - 1);
+                    if (inDegree.get(connection.toComponent) === 0) {
+                        queue.push(connection.toComponent);
+                    }
+                }
+            });
+        }
+
+        return topologicalOrder;
+    }
+
+    simulateComponents() {
+        let orderedComponents = this.topologicalSort(this.components.concat({name: 'INPUTS'}), this.connections);
+        console.log(orderedComponents)
+
+        connections.forEach(connection => {
+            let fromComponent = this._getComponentOrChip(connection.fromComponent)
+            let toComponent = this._getComponentOrChip(connection.toComponent)
+            if(toComponent == this) this.outputs[connection.toIndex] = fromComponent[connection.fromIndex];
+            else toComponent.inputs[connection.toIndex] = fromComponent.outputs[connection.fromIndex];
+        });
+
+        orderedComponents.forEach(component => {
+            let comp = this._getComponentOrChip(component)
+            if(comp != this) comp.simulate()
+        });
+    }
 }
 
 

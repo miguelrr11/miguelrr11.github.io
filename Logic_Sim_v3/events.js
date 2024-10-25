@@ -380,6 +380,7 @@ function doubleClicked(){
 }
 
 function keyPressed(){
+    if(panel.areInputsActive()) return
     //press z
     if(keyCode == 90){
         if(draggingConnection){
