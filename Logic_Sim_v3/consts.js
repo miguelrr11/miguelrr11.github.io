@@ -33,11 +33,12 @@ const strokeLight = 1.5
 const strokeSelected = 2.2
 const controlDist = 100
 
+const marginWidth = 20
 const lineLength = 25
-const inputX = lineLength + tamBasicNodes - tamCompNodes
-const outputX = WIDTH - tamBasicNodes - lineLength
-const inputToggleX = 0
-const outputToggleX = WIDTH - tamBasicNodes
+const inputX = lineLength + tamBasicNodes - tamCompNodes + marginWidth
+const outputX = WIDTH - tamBasicNodes - lineLength - marginWidth
+const inputToggleX = 0 + marginWidth
+const outputToggleX = WIDTH - tamBasicNodes - marginWidth
 
 const tamCollConn = strokeOn * 2
 

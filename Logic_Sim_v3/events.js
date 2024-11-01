@@ -5,6 +5,28 @@ function mousePressed() {
         return
     }
 
+    if(input_text_In && changing_name_in != undefined){
+        if(!input_text_In.evaluate()){
+            changing_name_in = undefined
+        }
+        else input_text_In.active = true
+    }
+
+    if(input_text_Out && changing_name_out != undefined){
+        if(!input_text_Out.evaluate()){
+            changing_name_out = undefined
+        }
+        else input_text_Out.active = true
+    }
+
+    if(multiSelectionCompsWindow 
+    && inBounds(multiSelectionCompsWindow.x, multiSelectionCompsWindow.y, 
+                multiSelectionCompsWindow.w, multiSelectionCompsWindow.h)){
+        return
+    }
+
+
+
     //erase all multiselection 
     if(multiSelectionCompsWindow && !inBounds(multiSelectionCompsWindow.x, multiSelectionCompsWindow.y, 
                                              multiSelectionCompsWindow.w, multiSelectionCompsWindow.h)
@@ -15,6 +37,8 @@ function mousePressed() {
         multiSelectionCompsWindowOff = null
         multiSelectionOffsets = null
     }
+
+    
 
     // Check if clicking on a chip input or output
     if (!draggingConnection) {
@@ -29,7 +53,7 @@ function mousePressed() {
             }
         }
 
-        // Check comps and subchips
+        // Check comps and subchips OUTPUTS
         let result = checkClickOnComponentInput(mousePos, chip.components, tamCompNodes, true) ||
                      checkClickOnComponentInput(mousePos, chip.chips, tamCompNodes, true);
         if (result) {
@@ -37,6 +61,15 @@ function mousePressed() {
                 result.component.getOutputPosition(result.index), result.index, result.component.name, tamCompNodes);
             return
         }
+
+        // Check comps and subchips INPUTS
+        // result = checkClickOnComponentInput(mousePos, chip.components, tamCompNodes) ||
+        //              checkClickOnComponentInput(mousePos, chip.chips, tamCompNodes);
+        // if (result) {
+        //     startDragging(result.component.isSub ? result.component.getInputPositionSC(result.index) : 
+        //         result.component.getInputPosition(result.index), result.index, result.component.name, tamCompNodes);
+        //     return
+        // }
 
         // Cut connections
         cutConnections(mousePos, chip.components, chip.connections, tamCompNodes);
@@ -59,7 +92,7 @@ function mousePressed() {
         }
 
         //connection from existing connection if the connection is not covered (copies the subPath)
-        if(hoveredNode.comp == null && hoveredComp == null){
+        if(hoveredComp == null){
             for(let i = 0; i < chip.connections.length; i++){
                 let conn = chip.connections[i]
                 let seg = conn.inBoundConn()
@@ -75,7 +108,7 @@ function mousePressed() {
         }
 
         //sacar conexion de bus
-        if(hoveredNode.comp == null && hoveredComp == null){
+        if(hoveredComp == null){
             for(let i = 0; i < chip.components.length; i++){
                 let bus = chip.components[i]
                 if(bus.type != "BUS") continue
@@ -84,7 +117,8 @@ function mousePressed() {
                     // draggingFromConn = seg.conn
                     // startDragging({x: seg.x, y: seg.y, i: seg.i}, 0, bus.name, 0, false)
                     draggingFromConn = seg.conn
-                    startDragging({x: seg.bus.path[0].x, y:  seg.bus.path[0].y, i: seg.i}, 0, bus.name, 0, false)
+                    //startDragging({x: seg.bus.path[0].x, y:  seg.bus.path[0].y, i: seg.i}, 0, bus.name, 0, false)
+                    startDragging({x: seg.x, y:  seg.y, i: seg.i}, 0, bus.name, 0, false)
                     // for(let i = 0; i < seg.i + 1; i++){
                     //     dragPath.push({x: seg.bus.path[i].x, y: seg.bus.path[i].y})
                     // }
@@ -124,6 +158,7 @@ function mousePressed() {
                 pathBus.push({x: mouseX, y: mouseY})
             }
         }
+
         
     } 
 
@@ -146,9 +181,8 @@ function mousePressed() {
         }
     }
     
-
+    // Releasing a connection
     if(draggingConnection){
-        // Releasing a connection
         let mousePos = { x: mouseX, y: mouseY };
         let result = checkClickOnComponentInput(mousePos, chip.components, tamCompNodes) ||
                      checkClickOnComponentInput(mousePos, chip.chips, tamCompNodes) ||
@@ -174,6 +208,30 @@ function mousePressed() {
             dragPath = [];
             draggingFromConn = undefined
         }
+        // else{
+        //     result = null
+        //     for (let i = 0; i < chip.inputs.length; i++) {
+        //         let inputPos = chip.getInputPosition(i);
+        //         if (isWithinBounds(mousePos, inputPos, tamCompNodes)) {
+        //             result = {component: chip, index: i}
+        //         }
+        //     }
+        //     // releasing a conn in comp inputs or chip outputs
+        //     if (result) {
+                
+                
+
+        //         if(draggingFromConn == undefined) chip.connect('INPUTS', result.index, dragStartComponent, dragStartIndex, dragPath);
+        //         else chip.connect('INPUTS', result.index, dragStartComponent, dragStartIndex, dragPath, dragStart, draggingFromConn);
+
+        //         draggingConnection = false;
+        //         dragStart = null;
+        //         dragStartIndex = null;
+        //         dragStartComponent = null;
+        //         dragPath = [];
+        //         draggingFromConn = undefined
+        //     }
+        // }
         //connect TO bus
         let collBus = checkClickOnBus()
         if(collBus && !draggingFromBus){
@@ -208,7 +266,7 @@ function mouseDragged(){
     if (!draggingConnection) {
 
         //move comps and chips
-        if(multiSelectionWindow == null){
+        if(multiSelectionCompsWindow == null && multiSelectionWindow == null){
             if(movingComp.comp){ 
                 movingComp.comp.move(mouseX, mouseY, movingComp.offx, movingComp.offy)
                 return
@@ -278,6 +336,7 @@ function mouseDragged(){
                     multiSelectionCompsWindow.x = mouseX + multiSelectionCompsWindowOff.offx
                     multiSelectionCompsWindow.y = mouseY + multiSelectionCompsWindowOff.offy
                 }
+                return
             }
         }
 
@@ -286,14 +345,14 @@ function mouseDragged(){
         if(movingInput.node != undefined) chip.inputsPos[movingInput.node].y = chip.inputsPos[movingInput.node].y = mouseY + movingInput.off
         if(movingOutput.node  != undefined) chip.outputsPos[movingOutput.node].y = chip.outputsPos[movingOutput.node].y = mouseY + movingOutput.off
         else{
-            let index = chip.getInBoundsInputToggle()
+            let index = chip.getInBoundsDragInputAll()
             if(index != undefined){
                 let off = chip.inputsPos[index].y - mouseY
                 chip.inputsPos[index].y = mouseY + off
                 movingInput.off = off
                 movingInput.node = index
             }
-            index = chip.getInBoundsOutputToggle()
+            index = chip.getInBoundsDragOutputAll()
             if(index != undefined){
                 let off = chip.outputsPos[index].y - mouseY
                 chip.outputsPos[index].y = mouseY + off
@@ -343,6 +402,35 @@ function mouseClicked() {
         }
     }
 
+    //changing name of inputs
+    let index = chip.getInBoundsDragInputAll()
+    if(index != undefined){
+        let x = chip.inputsPos[index].x + tamCompNodes + 10
+        let y = chip.inputsPos[index].y - 3
+        changing_name_in = index
+        input_text_In = undefined
+        input_text_In = new Input(x, y, "Enter name of pin", () => {
+            if(changing_name_in != undefined) chip.inputsPos[changing_name_in].tag = input_text_In.getText()
+            changing_name_in = undefined
+        }, 
+        colorOn, colorBackMenu, colorBackMenu)
+        input_text_In.active = true
+    }
+
+    //changing name of outputs
+    index = chip.getInBoundsDragOutputAll()
+    if(index != undefined){
+        let x = chip.outputsPos[index].x - 200 - tamCompNodes - 10
+        let y = chip.outputsPos[index].y - 3
+        changing_name_out = index
+        input_text_Out = undefined
+        input_text_Out = new Input(x, y, "Enter name of pin", () => {
+            if(changing_name_out != undefined) chip.outputsPos[changing_name_out].tag = input_text_Out.getText()
+            changing_name_out = undefined
+        }, 
+        colorOn, colorBackMenu, colorBackMenu)
+        input_text_Out.active = true
+    }
 
 }
 
@@ -381,6 +469,8 @@ function doubleClicked(){
 
 function keyPressed(){
     if(panel.areInputsActive()) return
+    if(changing_name_in != undefined) return
+    if(changing_name_out != undefined) return
     //press z
     if(keyCode == 90){
         if(draggingConnection){
@@ -400,7 +490,7 @@ function keyPressed(){
             route.pop()
             setPanelRouteText()
             selectedComp = null
-            hoveredNode = {comp: null, index: -1}
+            hoveredNode = null
             hoveredComp = null
             frontComp = null
             restartMultiSelection()
@@ -453,7 +543,7 @@ function keyPressed(){
         }
 
         //eliminar IO
-        if(hoveredNode.comp != null && chipStack.length == 0){
+        if(hoveredNode != null && chipStack.length == 0){
             if(hoveredNode.comp == 'INPUTS'){
                 chip.removeInput(hoveredNode.index)
                 let indexToDelete = hoveredNode.index

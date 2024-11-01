@@ -167,6 +167,8 @@ class Input{
 
 	show(){
 		push()
+		fill(this.darkCol)
+		rect(this.pos.x, this.pos.y, this.w, this.h)
 		this.beingHovered || this.active ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		stroke(this.lightCol)
 		this.active ? fill(this.transCol) : fill(this.darkCol)

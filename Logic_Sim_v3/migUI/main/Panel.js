@@ -11,13 +11,6 @@ let width_elementsMIGUI = 158
 let clipping_length_normalMIGUI = 20
 let clipping_length_titleMIGUI = 11
 
-/*
-200 - 20
-150 - 14
-100 - 8
-x = width - 200, y = 0, w = 200, h = height, title = "", darkC = [0,0,0], lightC = [255,255,255], retractable = false, theme = undefined
-*/
-
 class Panel{
 	constructor(properties = {}) {
 	    const {
@@ -52,6 +45,9 @@ class Panel{
 
 	    this.initializeUIElements();
 
+	    this.padding = 10
+	    this.paddingSeparator = 15
+
 	    this.lastElementPos = createVector(x + 17, y + 30);
 	    if (this.retractable) this.lastElementPos.y += 20;
 
@@ -67,10 +63,7 @@ class Panel{
 
 	    if (theme) this.setTheme(theme);
 	    this.automaticHeight = automaticHeight;
-	    if (this.automaticHeight) this.h = this.lastElementPos.y + 10;
-
-	    this.padding = 10
-	    this.paddingSeparator = 15
+	    if (this.automaticHeight) this.h = this.lastElementPos.y + 10 - this.pos.y
 
 	    this.lastCB = undefined
 	    this.lastBU = undefined
@@ -123,7 +116,9 @@ class Panel{
 
 	setFontSettings() {
 	    text_FontMIGUI = loadFont("migUI/main/mono.ttf");
-	    textFont(text_FontMIGUI);
+	    if(textFont() != text_FontMIGUI){
+	    	textFont(text_FontMIGUI);
+	    }
 	    textSize(text_SizeMIGUI);
 	    textAlign(LEFT);
 	}
@@ -613,7 +608,7 @@ class Panel{
 		this.beingHoveredText = false
 
 		push()
-		if(this.automaticHeight) this.h = this.lastElementPos.y + 10
+		if(this.automaticHeight) this.h = this.lastElementPos.y - this.pos.y + this.padding
 		translate(bordeMIGUI*0.5, bordeMIGUI*0.5)
 
 		//fondo
@@ -627,6 +622,7 @@ class Panel{
 			return
 		}
 		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI)
+		
 		//Titulo
 		noStroke()
 		textSize(title_SizeMIGUI)

@@ -17,19 +17,26 @@ class Chip{
         this.isSub = false
         this.col = roundNum(Math.random() * 150)
         this.setIOpos(true, true)
+
+        this.orderedComps = undefined
+        this.oldConnLength = 0
+
+        this.orderComps()
     }
 
     setIOpos(inputs, outputs){
         if(inputs){
             let yValues = this.centerComponents(this.inputs.length)
             for (let i = 0; i < this.inputs.length; i++) {
-                this.inputsPos[i] = { x: inputX, y: roundNum(yValues[i])}
+                let tx = this.inputs.length > 1 ? "In " + i : "In"
+                this.inputsPos[i] = { x: inputX, y: roundNum(yValues[i]), tag: tx}
             }
         }
         if(outputs){
             let yValues = this.centerComponents(this.outputs.length)
             for (let i = 0; i < this.outputs.length; i++) {
-                this.outputsPos[i] = { x: outputX , y: roundNum(yValues[i])}
+                let tx = this.outputs.length > 1 ? "Out " + i : "Out"
+                this.outputsPos[i] = { x: outputX , y: roundNum(yValues[i]), tag: tx}
             }
         }
     }
@@ -81,6 +88,7 @@ class Chip{
         newChip.isSub = true
         newChip.inputs = chip.inputs.slice()
         newChip.outputs = chip.outputs.slice()
+        newChip.col = chip.col
 
         newChip.x = roundNum(chip.x)
         newChip.y = roundNum(chip.y)
@@ -139,108 +147,81 @@ class Chip{
         this.connections.push(newConn);
     }
 
+    orderComps(){
+        this.orderedComps = this.topologicalSort(this.components.concat(this.chips, {name: 'INPUTS'}), this.connections);
+    }
+
     simulate() {
-        //set states of buses
+        // Set states of buses
         for (let comp of this.components) {
-            if(comp.type != "BUS") continue
-            let connectedValues = []
-            for(let conn of this.connections){
-                if(conn.toComponent == comp.name){
-                    let connectedComp = this._getComponentOrChip(conn.fromComponent)
-                    if(connectedComp){
-                        if(connectedComp == this) connectedValues.push(this.inputs[conn.fromIndex])
-                        else if(connectedComp == comp) connectedValues.push(comp.state)
-                        else connectedValues.push(connectedComp.outputs[conn.fromIndex])
+            if (comp.type !== "BUS") continue;
+            let connectedValues = this.connections
+                .filter(conn => conn.toComponent === comp.name)
+                .map(conn => {
+                    let connectedComp = this._getComponentOrChip(conn.fromComponent);
+                    if (connectedComp) {
+                        return connectedComp === this ? this.inputs[conn.fromIndex] : connectedComp.outputs[conn.fromIndex];
                     }
-                }
-            }
-            comp.state = calculateBusState(connectedValues)
+                    return null;
+                })
+                .filter(value => value !== null);
+            comp.state = calculateBusState(connectedValues);
         }
 
-        //propagate chip inputs to comps
+        // Propagate chip inputs to components
         for (let connection of this.connections) {
             const from = this._getComponentOrChip(connection.fromComponent);
             const to = this._getComponentOrChip(connection.toComponent);
 
-            if (from && to && from === this) {
-                if (to instanceof Chip) {
-                    if(to == this){
-                        this.outputs[connection.toIndex] = from.inputs[connection.fromIndex]
-                    }
-                    else{ 
-                        to.setInput(connection.toIndex, this.inputs[connection.fromIndex]);
-                        to.simulate()
-                    }
-                } 
-                else {
-                    to.setInput(connection.toIndex, this.inputs[connection.fromIndex]);
-                    to.simulate()
-                }
+            if (from && to && from === this && to != this) {
+                to.setInput(connection.toIndex, this.inputs[connection.fromIndex]);
+                to.simulate();
             }
         }
 
+        // Order components if connections have changed
+        if (this.connections.length !== this.oldConnLength) {
+            this.oldConnLength = this.connections.length;
+            this.orderComps();
+        }
 
-        let orderedComps = this.topologicalSort(this.components.concat(this.chips, {name: 'INPUTS'}), this.connections);
-        //console.log(orderedComps)
-        for(let comp of orderedComps){
-            if(comp == 'INPUTS') continue
-            for (let conn of this.connections) {
+        
+        //let allComps = [...this.components, ...this.chips].map(comp => comp.name);
+
+        // Propagate signals in topological order
+        for (let comp of this.orderedComps) {
+            if (comp === 'INPUTS') continue;
+            for (let conn of this.connections.filter(conn => this._getComponentOrChip(conn.fromComponent).name === comp)) {
                 const from = this._getComponentOrChip(conn.fromComponent);
                 const to = this._getComponentOrChip(conn.toComponent);
-                if (from.name == comp && from && to && from !== this && to !== this) {
-                    if (to instanceof Chip) {
-                        to.setInput(conn.toIndex, from.getOutput(conn.fromIndex));
-                        to.simulate()
-                    } 
-                    else if(from.type != 'BUS'){
-                        to.setInput(conn.toIndex, from.getOutput(conn.fromIndex));
-                        to.simulate()
-                    }
-                    else{
-                        to.setInput(conn.toIndex, from.state);
-                        to.simulate()
-                    }
+                if (from && to && from !== this && to !== this) {
+                    to.setInput(conn.toIndex, from.type === 'BUS' ? from.state : from.getOutput(conn.fromIndex));
+                    //allComps.filter(comp => comp != to.name)
+                    //to.simulate();
                 }
             }
         }
 
+        // Final propagation of outputs
         for (let conn of this.connections) {
             const from = this._getComponentOrChip(conn.fromComponent);
             const to = this._getComponentOrChip(conn.toComponent);
             if (from && to && from !== this && to !== this) {
-                if (to instanceof Chip) {
-                    to.setInput(conn.toIndex, from.getOutput(conn.fromIndex));
-                } 
-                else if(from.type != 'BUS'){
-                    to.setInput(conn.toIndex, from.getOutput(conn.fromIndex));
-                }
-                else{
-                    to.setInput(conn.toIndex, from.state);
-                }
+                to.setInput(conn.toIndex, from.type === 'BUS' ? from.state : from.getOutput(conn.fromIndex));
             }
         }
 
-        //this.propagate(this)
+        // Simulate all components and chips
+        [...this.components, ...this.chips].forEach(comp => comp.simulate());
 
-        for (let component of this.components) {
-            component.simulate();
-            //this.propagate(component)
+        // Set outputs
+        for (let conn of this.connections.filter(conn => conn.toComponent === 'OUTPUTS')) {
+            const from = this._getComponentOrChip(conn.fromComponent);
+            this.outputs[conn.toIndex] = (from instanceof Chip || (from instanceof Component && from.type !== 'BUS'))
+                ? from.getOutput(conn.fromIndex)
+                : from.state;
         }
 
-        for (let chip of this.chips) {
-            chip.simulate();
-            //this.propagate(chip)
-        }
-
-        
-
-        for (let conn of this.connections) {
-            if (conn.toComponent === 'OUTPUTS') {
-                const from = this._getComponentOrChip(conn.fromComponent);
-                if((from instanceof Chip) || (from instanceof Component && from.type != 'BUS')) this.outputs[conn.toIndex] = from.getOutput(conn.fromIndex);
-                else this.outputs[conn.toIndex] = from.state
-            }
-        }
     }
 
     //mal
@@ -287,7 +268,7 @@ class Chip{
         for (let i = 0; i < this.inputs.length; i++) {
             let connInp = isInputConnectedToMainChip(this, i, false, true)
             if(!connInp) fill(colorDisconnected)
-            else fill(this.inputs[i] === 0 ? colorOff : colorOn);
+            else fill(this.inputs[i] === 0 ? colorOff : (this.inputs[i] === 1 ? colorOn : colorFloating));
 
             if(hoveredNode && hoveredNode.comp == 'INPUTS' && hoveredNode.index == i){
                 stroke(colorSelected)
@@ -298,11 +279,21 @@ class Chip{
                 strokeWeight(strokeLight)
             }
 
-            //noFill() /////////////////////
-            line(0, this.inputsPos[i].y + tamCompNodes / 2, inputX, this.inputsPos[i].y + tamCompNodes / 2)
+            //connecting node
+            line(inputToggleX, this.inputsPos[i].y + tamCompNodes / 2, inputX, this.inputsPos[i].y + tamCompNodes / 2)
             rect(inputX, this.inputsPos[i].y, tamCompNodes, tamCompNodes)
+            //toggle node
             fill(this.inputs[i] === 0 ? colorOff : colorOn);
             rect(inputToggleX, this.inputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes)
+            //drag node
+            fill(125)
+            noStroke()
+            let inB = this.getInBoundsDragInput(i)
+            if(inB) fill (200)
+            rect(5, this.inputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, inputToggleX - 10, tamBasicNodes)
+
+            let hovered = hoveredNode && hoveredNode.comp == 'INPUTS' && hoveredNode.index == i
+            if(hovered || showingTags) this.showInputTag(i, true)
         }
 
         stroke(0)
@@ -310,7 +301,9 @@ class Chip{
         for (let i = 0; i < this.outputs.length; i++) {
             let connOut = isInputConnectedToMainChip(this, i, true, true)
             if(!connOut) fill(colorDisconnected)
-            else fill(this.outputs[i] === 0 || this.outputs[i] === 2 ? colorOff : colorOn);
+            else fill(this.outputs[i] === 0 ? colorOff : colorOn);
+
+            //fill(this.outputs[i] === 0 ? colorOff : (this.outputs[i] === 1 ? colorOn : colorFloating));
 
             if(hoveredNode && hoveredNode.comp == 'OUTPUTS' && hoveredNode.index == i){
                 stroke(colorSelected)
@@ -321,16 +314,24 @@ class Chip{
                 strokeWeight(strokeLight)
             }
 
-            //noFill() /////////////////////
-            line(outputX, this.outputsPos[i].y + tamCompNodes / 2, WIDTH, this.outputsPos[i].y + tamCompNodes / 2)
+            //connecting node
+            line(outputX, this.outputsPos[i].y + tamCompNodes / 2, outputToggleX, this.outputsPos[i].y + tamCompNodes / 2)
             rect(outputX, this.outputsPos[i].y, tamCompNodes, tamCompNodes)
+            //toggle node
             fill(this.outputs[i] === 0 ? colorOff : (this.outputs[i] === 1 ? colorOn : colorFloating));
             rect(outputToggleX, this.outputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes)
+            //drag node
+            fill(125)
+            noStroke()
+            let inB = this.getInBoundsDragOutput(i)
+            if(inB) fill (200)
+            rect(outputToggleX + tamBasicNodes + 5, this.outputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, inputToggleX - 10, tamBasicNodes)
+
+            let hovered = hoveredNode && hoveredNode.comp == 'OUTPUTS' && hoveredNode.index == i
+            if(hovered || showingTags) this.showOutputTag(i, true)
         }
 
         this.showPrevIO()
-
-        
     }
 
     showPrevIO(){
@@ -362,7 +363,7 @@ class Chip{
         for (let i = 0; i < chip.inputs.length; i++) {
             let connInp = isInputConnectedToMainChip(chip, i, false)
             if(!connInp) fill(colorDisconnected)
-            else fill(chip.inputs[i] === 0 ? colorOff : colorOn);
+            else fill(chip.inputs[i] === 0 ? colorOff : (chip.inputs[i] === 1 ? colorOn : colorFloating));
 
             let hovered = hoveredNode && hoveredNode.comp == chip && hoveredNode.index == i && hoveredNode.side == 'input'
             if(hovered){
@@ -447,7 +448,7 @@ class Chip{
         if(this.inputs.length > maxIO) return false
         this.inputs.push(0)
         //this.setIOpos(true, false)
-        this.inputsPos.push({x: inputX, y: y - tamCompNodes/2})
+        this.inputsPos.push({x: inputX, y: y - tamCompNodes/2, tag: "In " + (this.inputs.length - 1) })
     }
 
     removeInput(index = undefined){
@@ -460,7 +461,7 @@ class Chip{
         if(this.outputs.length > maxIO) return false
         this.outputs.push(0)
         //this.setIOpos(false, true)
-        this.outputsPos.push({x: outputX, y: y - tamCompNodes/2})
+        this.outputsPos.push({x: outputX, y: y - tamCompNodes/2, tag: "Out " + (this.outputs.length - 1)})
     }
 
     removeOutput(index = undefined){
@@ -504,34 +505,36 @@ class Chip{
         return { x: roundNum(this.x + this.width - tamCompNodes / 2), y: roundNum(this.y + index * multOut + off + center)};
     }
 
-    showInputTag(index){
+    showInputTag(index, isMain = false){
         push()
-        let pos = this.getInputPositionSC(index)
-        pos.x -= 7
-        let tx = this.inputs.length > 1 ? "In " + index : "In"
+        let pos = isMain ? this.getInputPosition(index) : this.getInputPositionSC(index)
+        pos.x = isMain ? pos.x + tamBasicNodes : pos.x - 7
+        let tx = this.inputsPos[index].tag ? this.inputsPos[index].tag : ""
         let widthTx = getPixelLength(tx, textSizeIO) + 8
         fill(0)
         noStroke()
-        rect(pos.x - widthTx, pos.y, widthTx, tamCompNodes)
+        isMain ? rect(pos.x, pos.y, widthTx, tamCompNodes) : 
+                 rect(pos.x - widthTx, pos.y, widthTx, tamCompNodes)
         fill(255)
         textSize(textSizeIO)
-        textAlign(RIGHT, TOP)
-        text(tx, pos.x - 4, pos.y + 1)
+        isMain ? textAlign(LEFT, TOP) : textAlign(RIGHT, TOP)
+        isMain ? text(tx, pos.x + 4, pos.y + 1) : text(tx, pos.x - 4, pos.y + 1)
         pop()
     }
-    showOutputTag(index){
+    showOutputTag(index, isMain = false){
         push()
-        let pos = this.getOutputPositionSC(index)
-        pos.x += 7 + tamCompNodes   
-        let tx = this.outputs.length > 1 ? ("Out " + index) : "Out"
+        let pos = isMain ? this.getOutputPosition(index) : this.getOutputPositionSC(index)
+        pos.x = isMain ? pos.x - tamCompNodes : pos.x + 7 + tamCompNodes 
+        let tx = this.outputsPos[index].tag ? this.outputsPos[index].tag : ""
         let widthTx = getPixelLength(tx, textSizeIO) + 8
         fill(0)
         noStroke()
-        rect(pos.x, pos.y, widthTx, tamCompNodes)
+        isMain ? rect(pos.x - widthTx, pos.y, widthTx, tamCompNodes) : 
+                 rect(pos.x, pos.y, widthTx, tamCompNodes)
         fill(255)
         textSize(textSizeIO)
-        textAlign(LEFT, TOP)
-        text(tx, pos.x + 4, pos.y + 1)
+        isMain ? textAlign(RIGHT, TOP) : textAlign(LEFT, TOP)
+        isMain ? text(tx, pos.x - 4, pos.y + 1) : text(tx, pos.x + 4, pos.y + 1)
         pop()
     }
 
@@ -590,6 +593,41 @@ class Chip{
                 return i
             }
         }
+    }
+
+    getInBoundsDragInput(i){
+        let pos = {x: 5, y: this.inputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2}
+        if (
+            mouseX >= pos.x && mouseX <= pos.x + inputToggleX - 10 &&
+            mouseY >= pos.y && mouseY <= pos.y + tamBasicNodes
+        ) return true   
+        return false
+    }
+
+    getInBoundsDragOutput(i){
+        let pos = {x: outputToggleX + tamBasicNodes + 5, 
+                   y: this.outputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2}
+        if (
+            mouseX >= pos.x && mouseX <= pos.x + inputToggleX - 10 &&
+            mouseY >= pos.y && mouseY <= pos.y + tamBasicNodes
+        ) return true   
+        return false
+    }
+
+    getInBoundsDragInputAll(){
+        for(let i = 0; i < this.inputs.length; i++){
+            let res = this.getInBoundsDragInput(i)
+            if(res) return i
+        }
+        return undefined
+    }
+
+    getInBoundsDragOutputAll(){
+        for(let i = 0; i < this.outputs.length; i++){
+            let res = this.getInBoundsDragOutput(i)
+            if(res) return i
+        }
+        return undefined
     }
 
     getConnection(fromC, fromI, toC, toI){

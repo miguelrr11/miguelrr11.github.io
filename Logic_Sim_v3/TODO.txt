@@ -1,15 +1,15 @@
 - guardar un chip q esta dentro de otro chip (funciona pero rarete)
-- nombre a inputs
+
 - sacar conexiones de inputs de comps
 - ordenar outputs e inputs al añadirlos
 
-- bug: sacar conexion de bus con mas de un segmento, sale del principio
-- bug: nodos en colorOn cuando deberia ser colorFloating
-- opt: topologicalSort() solo si se han modificado las conexiones (muy lento)
+7 4b counters -> 7 fps -> 22 fps -> 28 fps
 
-7 4b counters -> 7 fps
-1 4b counter -> 47 fps
-
+DONE bug: loop infinito si se coneceta directamente chip In con chip Out
+DONE nombre a inputs
+DONE bug: sacar conexion de bus con mas de un segmento, sale del principio
+DONE bug: nodos en colorOn cuando deberia ser colorFloating
+DONE opt: topologicalSort() solo si se han modificado las conexiones (muy lento)
 DONE rework simulacion (orden simular connections)
 DONE ignorar keyPressed si se esta escribiendo en input
 DONE al añadir un comp, frontComp = comp
@@ -37,63 +37,3 @@ DONE pensar colores
 DONE sacar conexion de segmento
 DONE rediseñar el panel
 DONE Marco en todo el sketch
-
-
-        //set states of buses
-        for (let comp of this.components) {
-            if(comp.type != "BUS") continue
-            let connectedValues = []
-            for(let conn of this.connections){
-                if(conn.toComponent == comp.name){
-                    let connectedComp = this._getComponentOrChip(conn.fromComponent)
-                    if(connectedComp){
-                        if(connectedComp == this) connectedValues.push(this.inputs[conn.fromIndex])
-                        else if(connectedComp == comp) connectedValues.push(comp.state)
-                        else connectedValues.push(connectedComp.outputs[conn.fromIndex])
-                    }
-                }
-            }
-            comp.state = calculateBusState(connectedValues)
-        }
-
-        //propagate chip inputs to comps
-        for (let connection of this.connections) {
-            const from = this._getComponentOrChip(connection.fromComponent);
-            const to = this._getComponentOrChip(connection.toComponent);
-
-            if (from && to && from === this) {
-                if (to instanceof Chip) {
-                    if(to == this){
-                        this.outputs[connection.toIndex] = from.inputs[connection.fromIndex]
-                    }
-                    else to.setInput(connection.toIndex, this.inputs[connection.fromIndex]);
-                } 
-                else {
-                    to.setInput(connection.toIndex, this.inputs[connection.fromIndex]);
-                }
-            }
-        }
-
-
-        for (let conn of this.connections) {
-            const from = this._getComponentOrChip(conn.fromComponent);
-            const to = this._getComponentOrChip(conn.toComponent);
-            if (from && to && from !== this && to !== this) {
-                if (to instanceof Chip) {
-                    to.setInput(conn.toIndex, from.getOutput(conn.fromIndex));
-                } 
-                else if(from.type != 'BUS'){
-                    to.setInput(conn.toIndex, from.getOutput(conn.fromIndex));
-                }
-                else{
-                    to.setInput(conn.toIndex, from.state);
-                }
-            }
-        }
-
-        //this.propagate(this)
-
-        for (let component of this.components) {
-            component.simulate();
-            //this.propagate(component)
-        }

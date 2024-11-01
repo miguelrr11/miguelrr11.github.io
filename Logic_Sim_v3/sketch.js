@@ -37,11 +37,16 @@ let panel_route
 let route = []
 let showingTags = false
 
+let input_text_In
+let input_text_Out
+let changing_name_in = undefined
+let changing_name_out = undefined
+
 
 
 //selection managing
 let selectedComp = null
-let hoveredNode = {comp: null, index: -1}
+let hoveredNode = null
 let hoveredComp = null
 let hoveredConn = null
 let frontComp = null
@@ -207,7 +212,7 @@ function setup() {
             route.pop()
             setPanelRouteText()
             selectedComp = null
-            hoveredNode = {comp: null, index: -1}
+            hoveredNode = null
             hoveredComp = null
             frontComp = null
         }
@@ -249,26 +254,10 @@ function draw() {
     }
 
     if (draggingConnection && dragStart) {
-        push()
-        stroke(75)
-        strokeWeight(.9)
-        line(mouseX, 0, mouseX, height)
-        line(0, mouseY, width, mouseY)
-        stroke(colorOff);
-        strokeWeight(strokeOff) 
-        noFill()
-        let drawPath = []
-        drawPath.push(createVector(roundNum(dragStart.x), roundNum(dragStart.y)))
-        for(let p of dragPath) drawPath.push(createVector(roundNum(p.x), roundNum(p.y)))
-        let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
-        let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
-        let [x, y] = [dx > dy ? mouseX : prev.x, dx > dy ? prev.y : mouseY ]
-        drawPath.push(createVector(roundNum(x), roundNum(y)))
-        drawBezierPath(drawPath)
-        strokeWeight(10)
-        point(dragStart.x, dragStart.y)
-        pop()
+        drawCurrentConnection()
     }
+
+    if(hoveredNode)
 
     if(creatingBus){
         showBus()
@@ -282,19 +271,31 @@ function draw() {
     panel.update()
     panel.show()
 
-    if(panel.beingHoveredHand || beingHoveredGlobal || draggingConnection || hoveredNode.comp != undefined) cursor(HAND)
+    if(panel.beingHoveredHand || beingHoveredGlobal || draggingConnection || hoveredNode != null) cursor(HAND)
+
+    if(input_text_In && changing_name_in != undefined){
+        input_text_In.update()
+        input_text_In.show()
+    }
+    if(input_text_Out && changing_name_out != undefined){
+        input_text_Out.update()
+        input_text_Out.show()
+    }
+
 }
 
 function drawMargin(){
+    const offy = 45
+    const offx = 45 + marginWidth
     noFill()
     strokeWeight(70)
     stroke(colorOn)
-    rect(45, 45, WIDTH - 90, HEIGHT - 90)
+    rect(offx, offy, WIDTH - offx*2, HEIGHT - offy*2)
 
     stroke(colorBack)
     strokeWeight(70)
     fill(colorBack)
-    rect(47, 47, WIDTH - 94, HEIGHT - 94)
+    rect(offx+2, offy+2, WIDTH - (offx+2)*2, HEIGHT - (offy+2)*2)
 
     let x = (windowWidth - width) / 2;
     let y = (windowHeight - height) / 2;
@@ -514,7 +515,7 @@ function setHoveredNode(){
     }
 
 
-    else hoveredNode = {comp: null, index: -1}
+    else hoveredNode = null
 }
 
 function setHoveredComp(){
@@ -560,7 +561,7 @@ function setAddingIO(){
         return
     }
     if((hoveredNode && hoveredNode.comp != 'INPUTS') || hoveredNode == null){
-        let inBoundsInputs = inBounds(0, 50, 20, height-100)
+        let inBoundsInputs = inBounds(0, 50, marginWidth*2, height-100)
         if(inBoundsInputs){
             addingInput = mouseY
         }
@@ -569,13 +570,27 @@ function setAddingIO(){
     else addingInput = null
 
     if((hoveredNode && hoveredNode.comp != 'OUTPUTS') || hoveredNode == null){
-        let inBoundsOutputs = inBounds(WIDTH-20, 50, 20, height-100)
+        let inBoundsOutputs = inBounds(WIDTH-marginWidth*2, 50, marginWidth*2, height-100)
         if(inBoundsOutputs){
             addingOutput = mouseY
         }
         else addingOutput = null
     }
     else addingOutput = null
+
+    for(let inp of chip.inputsPos){
+        if(mouseY >= inp.y - 15 && mouseY <= inp.y + tamBasicNodes + 5){
+            addingInput = null
+            break
+        }
+    }
+
+    for(let inp of chip.outputsPos){
+        if(mouseY >= inp.y - 15 && mouseY <= inp.y + tamBasicNodes + 5){
+            addingOutput = null
+            break
+        }
+    }
 }
 
 function setPanelRouteText(){
@@ -657,6 +672,34 @@ function calculateBusState(connectedComponents) {
     }
     
     return isUniform ? firstValue : undefined;
+}
+
+function drawCurrentConnection(){
+    drawCrosshair()
+    push()
+    stroke(colorFloating);
+    strokeWeight(strokeOff) 
+    noFill()
+    let drawPath = []
+    drawPath.push(createVector(roundNum(dragStart.x), roundNum(dragStart.y)))
+    for(let p of dragPath) drawPath.push(createVector(roundNum(p.x), roundNum(p.y)))
+    let prev = dragPath.length ? dragPath[dragPath.length - 1] : dragStart;
+    let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
+    let [x, y] = [dx > dy ? mouseX : prev.x, dx > dy ? prev.y : mouseY ]
+    drawPath.push(createVector(roundNum(x), roundNum(y)))
+    drawBezierPath(drawPath)
+    strokeWeight(10)
+    point(dragStart.x, dragStart.y)
+    pop()
+}
+
+function drawCrosshair(){
+    push()
+    stroke(80)
+    strokeWeight(.9)
+    line(mouseX, 0, mouseX, height)
+    line(0, mouseY, width, mouseY)
+    pop()
 }
 
 

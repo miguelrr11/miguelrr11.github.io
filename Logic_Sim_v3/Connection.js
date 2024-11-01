@@ -76,7 +76,7 @@ class Connection{
         noFill()
 
         let inB = false
-        if(hoveredNode.comp == null && hoveredComp == null){
+        if(hoveredComp == null){
             let res = this.inBoundConn()
             if(res) inB = true
         }
