@@ -4,7 +4,7 @@ const REST_DISTANCE = 100
 let G, R, W
 
 class Neuron{
-    constructor(bias, activation, id, isInput = false, isOutput = false){
+    constructor(bias = 0, activation = undefined, id = -1, isInput = false, isOutput = false){
         this.bias = bias
         this.activation = activation
         this.id = id
@@ -15,7 +15,7 @@ class Neuron{
 }
 
 class Connection{
-    constructor(from, to, weight){
+    constructor(from, to, weight = 0){
         this.from = from
         this.to = to
         this.weight = weight
@@ -23,7 +23,7 @@ class Connection{
 }
 
 class NN{
-    constructor(n_in, n_out, func_hidden, func_out, softmax = true){
+    constructor(n_in, n_out, func_hidden, func_out, softmax = true, x = 0, y = 0, w = width, h = height){
         G = color(17, 242, 103)
         R = color(242, 17, 58)
         W = color(242, 229, 203)
@@ -37,12 +37,19 @@ class NN{
         this.func_hidden = func_hidden
         this.func_out = func_out
         this.softmax = softmax
+
+        this.x = x
+        this.y = y
+        this.w = w
+        this.h = h
+
         this.fitness = 0
+        this.species = undefined
+
         this.initNN(n_in, n_out)
         this.initViz()
     }
 
-    // conecta n_in con n_out (solo UN output)
     initNN(n_in, n_out){
         //input layer
         for(let i = 0; i < n_in; i++){ 
@@ -61,7 +68,7 @@ class NN{
         for (let inp of this.inputs) {
             for (let out of this.outputs) {
                 if (Math.random() < 0.15) {
-                    this.connections.push(new Connection(inp.id, out.id, random(-1, 1)));
+                    this.connections.push(new Connection(inp.id, out.id, getGaussianWeight()));
                     connectionMade = true
                 }
             }
@@ -69,32 +76,31 @@ class NN{
         if(!connectionMade){
             let randomInput = this.inputs[Math.floor(Math.random() * this.inputs.length)];
             let randomOutput = this.outputs[Math.floor(Math.random() * this.outputs.length)];
-            this.connections.push(new Connection(randomInput.id, randomOutput.id, random(-1, 1)));
+            this.connections.push(new Connection(randomInput.id, randomOutput.id, getGaussianWeight()));
         }
     }
-//map(Math.random(), 0, 1, -0.01, 0.01)
-
 
     initViz() {
     	this.particles = []
         this.constraints = []
 
-        let multIn = HEIGHT/  this.inputs.length
-        let multOffIn = multIn / 2
+        let multIn = this.h / this.inputs.length
+        let multOffIn = multIn / 2 + this.y
 
-        let multOut = HEIGHT/  this.outputs.length
-        let multOffOut = multOut / 2
+        let multOut = this.h / this.outputs.length
+        let multOffOut = multOut / 2 + this.y
 
-        let off = 50
+        let off = 50 
 		for(let i = 0; i < this.inputs.length; i++){
-			this.particles.push(new Particle(off, i * multIn + multOffIn, true, this.inputs[i].id))
+			this.particles.push(new Particle(off + this.x, i * multIn + multOffIn, true, this.inputs[i].id))
 		}
 		for(let i = 0; i < this.outputs.length; i++){
-			this.particles.push(new Particle(WIDTH - off, i * multOut + multOffOut, true, this.outputs[i].id))
+			this.particles.push(new Particle(this.w - off + this.x, i * multOut + multOffOut, true, this.outputs[i].id))
 		}
-		for(let i = 0; i < this.hidden.length; i++){
-			this.particles.push(new Particle(HEIGHT / 2, WIDTH / 2, false, this.hidden[i].id))
-		}
+		for(let h of this.hidden){
+            let particle = new Particle(random(this.x + this.w), random(this.y + this.h), false, h.id)
+            this.particles.push(particle)
+        }
 
 		let neuronMap = this.getNeuronMap()
         let particleMap = this.getParticleMap()
@@ -105,6 +111,12 @@ class NN{
 	        this.constraints.push(new Constraint(particleMap.get(from.id), particleMap.get(to.id)))
 		}
 	}
+
+    setTopology(hidden, connections){
+        this.hidden = hidden
+        this.connections = connections
+        this.initViz()
+    }
 
     update() {
         //debug
@@ -137,11 +149,9 @@ class NN{
         }
     }
 
-    //returns the index of the output with largest value
     getOutput() {
 	    return this.outputs.reduce((maxIndex, out, i) => out.value > this.outputs[maxIndex].value ? i : maxIndex, 0);
 	}
-
 
     applySoftmax(arr = this.outputs) {
         const values = arr.map(obj => obj.value);
@@ -153,6 +163,22 @@ class NN{
         arr.forEach((obj, index) => {
             obj.value = softmaxValues[index];
         });
+    }
+
+    createParticlesHidden(){
+        for(let h of this.hidden){
+            let particle = new Particle(random(this.x + this.w), random(this.y + this.h), false, h.id)
+            this.particles.push(particle)
+        }
+    }
+
+    createConstraintsHidden(){
+        let particleMap = this.getParticleMap()
+        for(let conn of this.connections){
+            let fromPart = particleMap.get(conn.from)
+            let toPart = particleMap.get(conn.to)
+            this.constraints.push(new Constraint(fromPart, toPart))
+        }
     }
 
     createRandomHidden(){
@@ -178,8 +204,8 @@ class NN{
         this.particles.push(particle)
 
         //nuevas conexiones con weight = 1
-    	this.connections.push(new Connection(fromNeuron.id, hidden.id, 1))
-    	this.connections.push(new Connection(hidden.id, toNeuron.id, 1))
+    	this.connections.push(new Connection(fromNeuron.id, hidden.id, getGaussianWeight()))
+    	this.connections.push(new Connection(hidden.id, toNeuron.id, getGaussianWeight()))
 
         this.constraints.push(new Constraint(fromPart, particle, ds))
         this.constraints.push(new Constraint(particle, toPart, ds))
@@ -219,7 +245,7 @@ class NN{
 	    const index = Math.floor(Math.random() * possibleConnections.length);
 	    const newConnection = possibleConnections[index];
 
-	    this.connections.push(new Connection(newConnection.from, newConnection.to, random(-1,1)));
+	    this.connections.push(new Connection(newConnection.from, newConnection.to, getGaussianWeight()));
 
         let fromPart = particleMap.get(possibleConnections[index].from)
         let toPart = particleMap.get(possibleConnections[index].to)
@@ -235,7 +261,6 @@ class NN{
             inp.value = inputs[index];
         });
     }
-
 
     show(){
     	let neurons = this.getNeuronMap()
@@ -265,6 +290,10 @@ class NN{
 	    	let out = neuron.isOutput ? (largestOutput.id == p.id ? true : false) : false
 	    	p.show(round(neuron.value, 1), out)
 	    }
+        noFill()
+        stroke(150)
+        strokeWeight(1)
+        rect(this.x + .5, this.y + .5, this.w - 1, this.h - 1)
 	    pop()
     }
 
@@ -311,11 +340,6 @@ class NN{
         return executionOrder
     }
 
-    activationFunction(x) {
-        // Using a sigmoid activation function
-        return 1 / (1 + Math.exp(-x))
-    }
-
     getNeuronMap(){
     	let neuronMap = new Map()
     	for (let neuron of [...this.inputs, ...this.outputs, ...this.hidden]) {
@@ -337,6 +361,10 @@ class NN{
     		if(o == to) return false
     		else if(o == from) return true
     	}
+    }
+
+    setFitness(fitness){
+        this.fitness = fitness
     }
 }
 
@@ -360,6 +388,75 @@ class Population{
         }
     }
 
+    evolvePopulation(){
+        //calcular fitness
+        //calcular especies
+        //seleccion de NNs
+        //crossover
+        //mutation
+        //asignar especie a hijos
+        //reemplazar population
+
+        //fitness
+        for(let nn of this.NNs) nn.setFitness(Math.random() * 300)
+
+        //calcular especies - TODO
+        this.setSpecies()
+
+        //seleccion NNs
+        let newNNs = this.selectNNs()
+    }
+
+    setSpecies(){
+
+    }
+
+    selectNNs(){
+        //normalization
+        let maxFit = 0
+        for(let nn of this.NNs){
+            if(nn.fitness > maxFit) maxFit = nn.fitness
+        }
+        for(let nn of this.NNs){
+            nn.fitness /= maxFit
+        }
+        //sorting
+        this.NNs.sort((a, b) => b.fitness - a.fitness)
+        //elites - 3%
+        let indexElites = Math.floor(this.size * 0.03)
+        //elites array and NNs array without the elites
+        let elites = this.NNs.splice(0, indexElites)
+        //selection via tournament
+        let newNNs = []
+        for(let i = 0; i < this.NNs.length; i++){
+            let winner = this.tournament()
+            newNNs.push(winner)
+        }
+        newNNs = newNNs.concat(elites)
+    }
+
+    tournament(){
+        //tournamentSize of 15% of the pop size
+        let tournamentSize = Math.floor(this.size * 0.15)
+        let tournamentParticipants = [];
+
+        for (let i = 0; i < tournamentSize; i++) {
+            const randomIndex = Math.floor(Math.random() * this.NNs.length);
+            tournamentParticipants.push(this.NNs[randomIndex]);
+        }
+
+        // Find the participant with the highest fitness
+        let winner = tournamentParticipants[0];
+
+        for (let i = 1; i < tournamentParticipants.length; i++) {
+            if (tournamentParticipants[i].fitness > winner.fitness) {
+                winner = tournamentParticipants[i];
+            }
+        }
+
+        return winner;
+    }
+
     update(){
         for(let nn of this.NNs) nn.update()
     }
@@ -376,4 +473,12 @@ function getRandomElement(arr) {
 function getSmallBias(){
     return Math.random() * 0.01
 }
+
+function getGaussianWeight() {
+    let u = 0, v = 0;
+    while (u === 0) u = Math.random(); // Convert [0,1) to (0,1)
+    while (v === 0) v = Math.random();
+    return Math.sqrt(-2.0 * Math.log(u)) * Math.cos(2.0 * Math.PI * v) * 0.1; // Generates a weight using Box-Muller transform with std dev of 0.1
+}
+
 

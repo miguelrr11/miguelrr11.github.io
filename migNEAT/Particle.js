@@ -58,12 +58,16 @@ class Particle{
 		if(bool) stroke(G)
 		fill(255)
 		strokeWeight(3)
-		ellipse(this.pos.x, this.pos.y, 30)
+		//ellipse(this.pos.x, this.pos.y, 30)
+		rectMode(CENTER)
+		rect(this.pos.x, this.pos.y, 20, 20)
 
 		//colorMode(HSB)
 		fill(G)
 		noStroke()
-		ellipse(this.pos.x, this.pos.y, map(value, 0, 1, 0, 30, true))
+		//ellipse(this.pos.x, this.pos.y, map(value, 0, 1, 0, 30, true))
+		let val = map(value, 0, 1, 0, 20, true)
+		rect(this.pos.x, this.pos.y, val, val)
 
 		// fill(255)
 		// noStroke()
