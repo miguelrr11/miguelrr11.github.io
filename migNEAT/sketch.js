@@ -3,153 +3,86 @@
 //
 
 p5.disableFriendlyErrors = true
-const WIDTH = 600
+const WIDTH = 600 + 300
 const HEIGHT = 600
 
 let nns
-let nn1, nn2, nn3
+let size = 500
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
 
-    // nns = new Population(100, 3, 5, 
-    //             (value, bias) => {return Math.max(0, value + bias)}, 
-    //             (value, bias) => {return value + bias})
+    nns = new Population(size, 2, 1, 
+                (value, bias) => {return Math.tanh(value + bias)}, 
+                (value, bias) => {return Math.tanh(value + bias)}, false)
 
-    nn1 = new NN(3, 5, 
-                 (value, bias) => {return Math.max(0, value + bias)}, 
-                 (value, bias) => {return value + bias}, true, 0, 0, 300, 300)
-    nn2 = new NN(3, 5, 
-                 (value, bias) => {return Math.max(0, value + bias)}, 
-                 (value, bias) => {return value + bias}, true, 0, 300, 300, 300)
-    // nn3 = new NN(3, 5, 
-    //              (value, bias) => {return Math.max(0, value + bias)}, 
-    //              (value, bias) => {return value + bias}, true, 300, 150, 300, 300)
-
-    nn3 = crossoverNN(nn1, nn2)
-
-    // let connections = []
-    // let hidden = []
-    // let id = 8
-    // hidden.push(new Neuron(0, (value, bias) => {return Math.max(0, value + bias)}, id++))
-    // hidden.push(new Neuron(0, (value, bias) => {return Math.max(0, value + bias)}, id++))
-    // connections.push(new Connection(nn3.inputs[0].id, hidden[0].id, 0))
-    // connections.push(new Connection(hidden[0].id, nn3.outputs[0].id, 0))
-    // connections.push(new Connection(hidden[0].id, nn3.outputs[1].id, 0))
-    // connections.push(new Connection(hidden[0].id, nn3.outputs[2].id, 0))
-    // connections.push(new Connection(nn3.inputs[2].id, hidden[1].id, 0))
-    // connections.push(new Connection(hidden[1].id, hidden[0].id, 0))
-    // connections.push(new Connection(hidden[1].id, nn3.outputs[2].id, 0))
-
-    // nn3.setTopology(hidden, connections)
+     // nns = new Population(size, 2, 1, 
+     //            (value, bias) => {return 1 / (1 + Math.exp(-(value + bias)))}, 
+     //            (value, bias) => {return 1 / (1 + Math.exp(-(value + bias)))}, false)
 }
 
-function crossoverNN(parent1, parent2) {
-    // Create a new neural network instance
-    const child = new NN(
-        parent1.inputs.length,
-        parent1.outputs.length,
-        parent1.func_hidden,
-        parent1.func_out,
-        parent1.softmax,
-        300, 150, 300, 300
-    );
-    child.inputs = []
-    child.hidden = []
-    child.outputs = []
-    child.particles = []
-    child.constraints = []
-    child.connections = []
 
-    // Copy neurons from both parents, avoiding duplicate IDs
-    const uniqueNeurons = new Map();
+let fitness = []
 
-    function addUniqueNeuron(neuron) {
-        if (!uniqueNeurons.has(neuron.id)) {
-            uniqueNeurons.set(neuron.id, new Neuron(
-                neuron.bias,
-                neuron.activation,
-                neuron.id,
-                neuron.isInput,
-                neuron.isOutput
-            ));
+function xor(){
+    let i = 0;
+    for(let nn of nns.NNs){
+        let totalError = 0;
+        for(let values of [[0,0],[0,1],[1,0],[1,1]]){
+            nn.setInputs(values);
+            nn.update();
+
+            let a = values[0];
+            let b = values[1];
+            let expectedOutput = a !== b ? 1 : 0; // XOR expected output
+            let outputValue = nn.outputs[0].value; // Raw output value
+
+            let error = Math.pow(expectedOutput - outputValue, 2); // Squared error
+            totalError += error;
         }
+        fitness[i] = (4 - totalError); // Max fitness is 4 when error is 0
+        i++;
     }
-
-    parent1.inputs.forEach(addUniqueNeuron);
-    parent2.inputs.forEach(addUniqueNeuron);
-    parent1.hidden.forEach(addUniqueNeuron);
-    parent2.hidden.forEach(addUniqueNeuron);
-    parent1.outputs.forEach(addUniqueNeuron);
-    parent2.outputs.forEach(addUniqueNeuron);
-
-    // Assign neurons to the child network
-    uniqueNeurons.forEach((neuron) => {
-        if (neuron.isInput) child.inputs.push(neuron);
-        else if (neuron.isOutput) child.outputs.push(neuron);
-        else child.hidden.push(neuron);
-    });
-
-
-    // Create new connections for the child from parent connections, avoiding cycles
-    const allConnections = [...parent1.connections, ...parent2.connections];
-    const uniqueConnections = new Map();
-
-    allConnections.forEach((conn) => {
-        const key = `${conn.from}-${conn.to}`;
-        if (!uniqueConnections.has(key)) {
-            // Randomly choose the weight from one of the parents
-            const weight = Math.random() < 0.5 ? conn.weight : conn.weight;
-            uniqueConnections.set(key, new Connection(conn.from, conn.to, weight));
-        }
-    });
-
-    // Assign connections to the child network
-    uniqueConnections.forEach((conn) => {
-        child.connections.push(conn);
-    });
-
-  
-
-    child.initViz()
-
-    return child;
 }
 
 
+let solFound = false
 
+function run(){
+    fitness = []
+    for(let i = 0; i < size; i++) fitness[i] = 0
 
+    xor()
 
+    let sum = fitness.reduce((acc, obj) => acc + obj, 0);
+    if(sum / (size * 4) > 0.99){ 
+        solFound = true
+        console.log("sol found in " + nns.gen + " gens")
+    }
+    console.log("total fitness: " + sum / (size * 4));
+
+    nns.setFitness(fitness)
+    nns.evolvePopulation()
+}
+
+let index = 0
+function mousePressed(){
+    index++
+    nns.selectedNN = nns.NNs[index%size]
+}   
 
 function keyPressed(){
-    //nns.selectRandomNN()
-    if(mouseX > width || mouseY > height) return
-    nn1.createRandomConnection()
-    nn1.createRandomHidden()
-    nn2.createRandomConnection()
-    nn2.createRandomHidden()
-
-    nn3 = crossoverNN(nn1, nn2)
+    run()
 }
-
-function mousePressed(){
-    if(mouseX > width || mouseY > height) return
-    for(let inp of nn1.inputs) inp.value = Math.random()
-    for(let inp of nn2.inputs) inp.value = Math.random()
-    for(let inp of nn3.inputs) inp.value = Math.random()
-}   
 
 
 function draw(){
     background(255)
 
-    // nns.update()
-    // nns.show()
+    //nns.setRandomValues()
+    if(!solFound) run()
+    nns.update()
+    nns.show()
 
-    nn1.update()
-    nn1.show()
-    nn2.update()
-    nn2.show()
-    nn3.update()
-    nn3.show()
 }
+

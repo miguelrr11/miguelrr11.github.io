@@ -41,6 +41,10 @@ class Constraint{
 			strokeWeight(map(value, 0, 1, 1, 8))
 		}
 		line(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y)
+		// fill(255, 0, 0)
+		// let x = lerp(this.p1.pos.x, this.p2.pos.x, 0.9)
+		// let y = lerp(this.p1.pos.y, this.p2.pos.y, 0.9)
+		// ellipse(x, y, 10)
 		pop()
 	}
 }

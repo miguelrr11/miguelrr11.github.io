@@ -52,28 +52,35 @@ class Particle{
 		if(this.pos.y > HEIGHT) this.pos.y = HEIGHT
 	}
 
-	show(value, bool = false){
+	show(value, bias, bool = false){
 		push()
 		stroke(0)
 		if(bool) stroke(G)
 		fill(255)
-		strokeWeight(3)
+		strokeWeight(map(abs(bias), 0, 1, 1, 4))
 		//ellipse(this.pos.x, this.pos.y, 30)
 		rectMode(CENTER)
 		rect(this.pos.x, this.pos.y, 20, 20)
 
 		//colorMode(HSB)
-		fill(G)
+		if(value < 0){
+			fill(lerpColor(W, R, Math.abs(value)))
+			strokeWeight(map(value, -1, 0, 8, 1))
+		}
+		else{
+			fill(lerpColor(W, G, value))
+			strokeWeight(map(value, 0, 1, 1, 8))
+		}
 		noStroke()
 		//ellipse(this.pos.x, this.pos.y, map(value, 0, 1, 0, 30, true))
-		let val = map(value, 0, 1, 0, 20, true)
+		let val = map(abs(value), 0, 1, 0, 15, true)
 		rect(this.pos.x, this.pos.y, val, val)
 
-		// fill(255)
+		// fill(0)
 		// noStroke()
 		// textAlign(CENTER, CENTER)
 		// textSize(15)
-		// text(value, this.pos.x, this.pos.y)
+		// text(this.id, this.pos.x, this.pos.y)
 		pop()
 	}
 }
