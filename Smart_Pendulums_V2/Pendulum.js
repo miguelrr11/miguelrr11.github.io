@@ -20,6 +20,8 @@ class Pendulum {
     	this.pointsInd = 0
     	this.alive = true
 
+    	this.path = []
+
     	let [x1, y1, x2, y2] = this.getNewPos()
     	let length = rod_length
 
@@ -57,6 +59,7 @@ class Pendulum {
 
 		// mouseColl only collides with p2
 		this.mouseColl = Bodies.circle(0, 0, 30, {
+			isStatic: true,
 		    collisionFilter: {
 		        category: categoryD,
 		        mask: categoryB // Collides only with p2
@@ -133,6 +136,8 @@ class Pendulum {
 	}
 
     move(speed) {
+    	this.path.push(createVector(this.p2.position.x, this.p2.position.y))
+    	if(this.path.length > 30) this.path.shift()
         // let newX = this.p1.position.x + speed
         // if(newX < track_start) newX = track_start
         // else if(newX > track_start + track_length) newX = track_start + track_length
@@ -141,7 +146,7 @@ class Pendulum {
     	Body.applyForce(this.p2, this.p2.position, force);
     	this.angleInd += speed*50
 
-    	if(this == showing && panel_interact.isChecked()) Body.setPosition(this.mouseColl, {x: mouseX-15, y: mouseY-15})
+    	if(this == showing && panel_interact.isChecked()) Body.setPosition(this.mouseColl, {x: mouseX, y: mouseY})
     	else Body.setPosition(this.mouseColl, {x: 0, y: 0})
 
         let isUp = this.p2.position.y < this.p1.position.y - rod_length * 0.95
@@ -156,7 +161,7 @@ class Pendulum {
         		// let normalizedAngularVelocity = 1 - avg / maxAngVel;
         		// this.points += normalizedAngularVelocity
         		let d = this.p1.position.y - this.p2.position.y
-        		console.log("d: " + round(d, 3) + " points added: " + round(mapp(d, 0, rod_length*0.9, 1, 0.1), 3))
+        		//console.log("d: " + round(d, 3) + " points added: " + round(mapp(d, 0, rod_length*0.9, 1, 0.1), 3))
         		this.points += mapp(d, 0, rod_length*0.9, 0.01, 1)
         		if(this.points > timeG) this.points = timeG
         		this.pointsInd = 1
@@ -190,6 +195,22 @@ class Pendulum {
 
     show() {
         push()
+
+        noFill()
+        let c2_C = color(c3)
+        let c5_C = color(c5)
+		strokeWeight(4)
+		if (!keyIsPressed) {
+			for (let i = 0; i < this.path.length - 1; i++) {
+				let p1 = this.path[i];
+				let p2 = this.path[i + 1];
+				let col = lerpColor(c5_C, c2_C, i/this.path.length)
+				stroke(col);         // Apply stroke color with alpha
+				line(p1.x, p1.y, p2.x, p2.y); // Draw individual segment
+		}
+		}
+
+
         strokeWeight(5)
 		stroke(c2)
 		if(keyIsPressed) stroke(0, 27)
@@ -236,7 +257,8 @@ class Pendulum {
 			ellipse(mouseX, mouseY, this.mouseColl.circleRadius*2)
 			pop()
 		}
-		
+
+
 
 		// push()
 		// stroke(0);

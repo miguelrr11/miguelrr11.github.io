@@ -9,9 +9,23 @@ class Sentence{
 		this.isTitle = isTitle
 
 		let newlines = words.split('\n').length
-		let lines = newlines
-		this.height = newlines * 7 + (newlines-1) * 9.6
+		if(newlines > 1) this.height = newlines * this.getTotalHeight() 
+		else this.height = 7
 		if(this.isTitle) this.height *= 2
+	}
+
+	getTotalHeight(){
+		push()
+		if(this.isTitle){
+			textSize(title_SizeMIGUI)
+			strokeWeight(1)
+		}
+		else{
+			textSize(text_SizeMIGUI-2)
+		}
+		let res = textAscent() + textDescent()
+		pop()
+		return res
 	}
 
 	getText(){
