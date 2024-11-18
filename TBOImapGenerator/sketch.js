@@ -32,7 +32,7 @@ function setup(){
     createCanvas(WIDTH, HEIGHT)
     map = new TBOImap()
     map.generate()
-    frameRate(5)
+    frameRate(10)
 }
 
 function draw(){
