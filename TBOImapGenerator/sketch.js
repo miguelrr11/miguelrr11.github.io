@@ -1,0 +1,42 @@
+//Proceduran TBOI map generator
+//Miguel Rodríguez
+//18-11-2024
+
+p5.disableFriendlyErrors = true
+const WIDTH = 500
+const HEIGHT = 500
+
+const nRooms = 10
+const tamRoom = WIDTH/nRooms
+const roomLimit = nRooms * 10
+let map
+
+let images = new Map()
+
+function preload(){
+    images.set('1x1', loadImage('1x1.png'))
+    images.set('shop', loadImage('Shop.png'))
+    images.set('boss', loadImage('Boss.png'))
+    images.set('treasure', loadImage('Treasure.png'))
+    images.set('2x2', loadImage('2x2.png'))
+    images.set('secret', loadImage('secret.png'))
+    images.set('superSecret', loadImage('superSecret.png'))
+    images.set('curse', loadImage('curse.png'))
+    images.set('sacrifice', loadImage('sacrifice.png'))
+    images.set('library', loadImage('library.png'))
+    images.set('challenge', loadImage('challenge.png'))
+    images.set('planetarium', loadImage('planetarium.png'))
+}
+
+function setup(){
+    createCanvas(WIDTH, HEIGHT)
+    map = new TBOImap()
+    map.generate()
+    frameRate(5)
+}
+
+function draw(){
+    background("#693C31")
+    map.generateRooms()
+    map.show()
+}
