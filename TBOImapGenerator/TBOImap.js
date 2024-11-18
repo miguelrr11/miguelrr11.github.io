@@ -24,7 +24,7 @@ class TBOImap{
 		two_doors = mapp(this.rooms, 0, roomLimit, 0.1, 0.05)
 		if(this.rooms < roomLimit * 0.1) two_doors = 1
 		three_doors = mapp(this.rooms, 0, roomLimit, 0.05, 0.08)
-		//four_doors = mapp(this.rooms, 0, roomLimit, 0.05, 0.025)
+		//four_doors = mapp(this.rooms, 0, roomLimit, 0.01, 0.025)
 	}
 
 	getAdyacentRooms(i, j){
@@ -146,7 +146,7 @@ class TBOImap{
 			for(let j = 0; j < nRooms-1; j++){
 				if(this.map[i][j] && this.map[i+1][j] && this.map[i+1][j+1] && this.map[i][j+1] &&
 				this.notSpecialType(i, j) && this.notSpecialType(i+1, j) && this.notSpecialType(i, j+1) && this.notSpecialType(i+1, j+1) &&
-				Math.random() < 0.75){
+				Math.random() < 0.85){
 					this.map[i][j].type     = '2x2p'
 					this.map[i][j+1].type   = '2x2'
 					this.map[i+1][j+1].type = '2x2'

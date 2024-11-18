@@ -6,7 +6,7 @@ p5.disableFriendlyErrors = true
 const WIDTH = 500
 const HEIGHT = 500
 
-const nRooms = 10
+const nRooms = 15
 const tamRoom = WIDTH/nRooms
 const roomLimit = nRooms * 10
 let map
@@ -26,6 +26,10 @@ function preload(){
     images.set('library', loadImage('Library.png'))
     images.set('challenge', loadImage('Challenge.png'))
     images.set('planetarium', loadImage('Planetarium.png'))
+}
+
+function mouseClicked(){
+    map.generate()
 }
 
 function setup(){
