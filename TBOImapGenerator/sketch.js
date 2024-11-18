@@ -19,13 +19,13 @@ function preload(){
     images.set('boss', loadImage('Boss.png'))
     images.set('treasure', loadImage('Treasure.png'))
     images.set('2x2', loadImage('2x2.png'))
-    images.set('secret', loadImage('secret.png'))
-    images.set('superSecret', loadImage('superSecret.png'))
-    images.set('curse', loadImage('curse.png'))
-    images.set('sacrifice', loadImage('sacrifice.png'))
-    images.set('library', loadImage('library.png'))
-    images.set('challenge', loadImage('challenge.png'))
-    images.set('planetarium', loadImage('planetarium.png'))
+    images.set('secret', loadImage('Secret.png'))
+    images.set('superSecret', loadImage('SuperSecret.png'))
+    images.set('curse', loadImage('Curse.png'))
+    images.set('sacrifice', loadImage('Sacrifice.png'))
+    images.set('library', loadImage('Library.png'))
+    images.set('challenge', loadImage('Challenge.png'))
+    images.set('planetarium', loadImage('Planetarium.png'))
 }
 
 function setup(){
