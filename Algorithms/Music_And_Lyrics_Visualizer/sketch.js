@@ -33,7 +33,7 @@ let curSong = "Mic Audio"
 let lyricsFont 
 
 const clientId = 'e9257a56fba243b9b9317afcbf39156b';
-const redirectUri = 'http://127.0.0.1:8080';
+const redirectUri = 'https://miguelrr11.github.io/Physics_Simulations/Music_And_Lyrics_Visualizer';
 let accessToken = '';
 let lyricsArray = null;
 
