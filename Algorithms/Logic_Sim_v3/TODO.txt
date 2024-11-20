@@ -1,0 +1,39 @@
+- guardar un chip q esta dentro de otro chip (funciona pero rarete)
+
+- sacar conexiones de inputs de comps
+- ordenar outputs e inputs al añadirlos
+
+7 4b counters -> 7 fps -> 22 fps -> 28 fps
+
+DONE bug: loop infinito si se coneceta directamente chip In con chip Out
+DONE nombre a inputs
+DONE bug: sacar conexion de bus con mas de un segmento, sale del principio
+DONE bug: nodos en colorOn cuando deberia ser colorFloating
+DONE opt: topologicalSort() solo si se han modificado las conexiones (muy lento)
+DONE rework simulacion (orden simular connections)
+DONE ignorar keyPressed si se esta escribiendo en input
+DONE al añadir un comp, frontComp = comp
+DONE cloneRecursively: crear comps segun su tipo (en vez de new Comp para todo, distingir para clock, display y bus)
+DONE Buses
+DONE Tri State Buffer
+DONE "floating" state
+DONE sacar outputs de bus
+DONE inputs a bus
+DONE seleccion multiple de comps
+DONE darle a ESC es como darle a go back
+DONE doble click para editar chip
+DONE preview del nodo de addingIO
+DONE Solo poder seleccionar UN elemento a la vez (nodo y connecetion a la vez NO)
+DONE Priorizar seleccion del componente mas adelante en pantalla
+DONE refactorizar colision connection
+DONE primero comps, luego conns
+DONE Guardar floats con menos precision
+DONE FPS viewer
+DONE poder mover inputs y outputs
+DONE editar chip dentro de chip (TOCHO)
+DONE add disconnected color
+DONE highlight hovered node
+DONE pensar colores
+DONE sacar conexion de segmento
+DONE rediseñar el panel
+DONE Marco en todo el sketch
