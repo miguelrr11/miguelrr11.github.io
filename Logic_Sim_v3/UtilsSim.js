@@ -143,8 +143,6 @@ function isWithinBounds(point, rectStart, rectSize) {
     );
 }
 
-
-
 function createFromSaved(){
     for(let i = 0; i < savedChips.length; i++){
         let newChip = JSON.parse(savedChips[i]);
