@@ -225,15 +225,15 @@ class Pendulum {
         push()
         strokeWeight(5)
 		stroke(dark_brown)
-		if(keyIsPressed) stroke(0, 27)
+		// if(keyIsPressed) stroke(0, 27)
 		line(this.p1.position.x, this.p1.position.y, this.p2.position.x, this.p2.position.y)
 		stroke(0)
 		strokeWeight(5)
 		fill(255)
-		if(keyIsPressed){ 
-			fill(255, 27)
-			stroke(0, 27)
-		}
+		// if(keyIsPressed){ 
+		// 	fill(255, 27)
+		// 	stroke(0, 27)
+		// }
 		let length = 30
 		rectMode(CENTER)
 		rect(this.p1.position.x, this.p1.position.y, length * 2, 15)
@@ -247,13 +247,13 @@ class Pendulum {
 		// if(this.pointsInd < 0) this.pointsInd += 0.1
 		// if(this.pointsInd > 0) this.pointsInd -= 0.1
 		// if(this.pointsInd == 0) fill(255)
-		if(keyIsPressed) fill(255, 27)
+		// if(keyIsPressed) fill(255, 27)
 		ellipse(this.p2.position.x, this.p2.position.y, length)
-		if(keyIsPressed){
-			stroke(0, 0, 200)
-			fill(0, 0, 255)
-			ellipse(avgPosBob.x, avgPosBob.y, length)
-		}
+		// if(keyIsPressed){
+		// 	stroke(0, 0, 200)
+		// 	fill(0, 0, 255)
+		// 	ellipse(avgPosBob.x, avgPosBob.y, length)
+		// }
 
 		if(this == showing && panel_interact.isChecked()) {
 			push()

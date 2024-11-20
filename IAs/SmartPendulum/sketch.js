@@ -393,7 +393,7 @@ function draw(){
     drawTrack()
 
     showing.show()
-    if(keyIsPressed) for(let p of pendulums) {if(!p.alive) continue; p.show()}
+    //if(keyIsPressed) for(let p of pendulums) {if(!p.alive) continue; p.show()}
     nns.showIndex(showing.id)
     drawTags()
 
