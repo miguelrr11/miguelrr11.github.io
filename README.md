@@ -31,11 +31,3 @@ Digital Logic Simulator inspired by (Sebastian Lague)[https://www.youtube.com/@S
 ![NEAT Pendulums](assets/NeatPendulums.png)
 
 ---
-
-### [Smart Cars](IAs/Smart_Cars%20v2/)
-Genetic algoritms learn to drive cars in a circuit.
-
-![Smart Cars](assets/SmartCars.png)
-
----
-
