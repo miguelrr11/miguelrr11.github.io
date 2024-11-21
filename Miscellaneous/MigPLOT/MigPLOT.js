@@ -1,18 +1,18 @@
 class MigPLOT{
-    constructor(x, y, w, h, data = []){
+    constructor(x, y, w, h, data = [], tagX = "", tagY = ""){
         this.x = x
         this.y = y
         this.h = h
         this.w = w
-        this.backCol = "#fdf0d5"
-        this.darkCol = "#003049"
-        this.midCol = "#669bbc"
-        this.lightCol = "#c1121f"
+        this.backCol = "#274c77"
+        this.axisCol = "#6096ba"
+        this.graphCol = "#e7ecef"
+        this.textCol = "#a3cef1"
         this.font = loadFont("mono.ttf")
         this.data = data
 
         this.marginX = 40
-        this.marginY = 30
+        this.marginY = 35
 
         this.dataX = []
         this.dataY = []
@@ -22,9 +22,13 @@ class MigPLOT{
         this.lastGuide = {y: undefined, data: undefined}
         this.steps = 4
 
+        this.tagX = tagX
+        this.tagY = tagY
+
         this.nData = this.data.length
 
         this.showX = false
+        this.type = 'hist'
 
         //(0,0)
         this.p00 = createVector(this.x + this.marginX, this.y + this.h - this.marginY)
@@ -70,6 +74,25 @@ class MigPLOT{
         this.lastGuide.data = getRoundedValueMIGUI(this.data[this.nData-1])
     }
 
+    drawPlot(){
+        if(this.type == 'hist'){
+            noFill()
+            stroke(this.graphCol)
+            beginShape()
+            this.data.forEach((_, i) => vertex(this.dataX[i], this.dataY[i]));
+            endShape()
+        }
+        else if(this.type == 'bar'){
+            fill(this.graphCol)
+            stroke(this.graphCol)
+            let sp = (this.w - this.marginX * 2) / this.nData
+            this.data.forEach((_, i) => line(this.dataX[i], this.dataY[i], 
+                                             this.dataX[i], this.p00.y));
+            // this.data.forEach((_, i) => rect(this.dataX[i], this.dataY[i], 
+            //                                  sp, this.p00.y-this.dataY[i]));
+        }
+    }
+
     show(){
         push()
         textFont(this.font)
@@ -81,11 +104,11 @@ class MigPLOT{
         //horizontal guides
         strokeWeight(1)
         stroke(180)
-        fill(this.midCol)
+        fill(this.textCol)
         textAlign(RIGHT, CENTER)
         for(let i = 0; i < this.guidesY.length; i++){
             let y = this.guidesY[i].y
-            stroke(180)
+            stroke(this.axisCol)
             line(this.p00.x, y, this.p10.x, y)
             noStroke()
             text(this.guidesY[i].data, this.p00.x - 5, y)
@@ -93,26 +116,26 @@ class MigPLOT{
         }
         //horizontal guide for the last data
         strokeWeight(1.5)
-        stroke(180)
+        stroke(this.axisCol)
         let y = this.lastGuide.y
         line(this.p00.x, y, this.p10.x, y)
         noStroke()
         text(this.lastGuide.data, this.p00.x - 5, y)
 
+        //tags
+        textAlign(CENTER, BOTTOM)
+        text(this.tagX, this.p00.x, this.p01.y - 10)
+        textAlign(CENTER, TOP)
+        text(this.tagY, this.p10.x, this.p00.y + 10)
+
         //axis
-        stroke(this.midCol)
+        stroke(this.axisCol)
         strokeWeight(3)
         line(this.p00.x, this.p00.y, this.p01.x, this.p01.y)
         line(this.p00.x, this.p00.y, this.p10.x, this.p10.y)
 
         //plot
-        noFill()
-        stroke(this.lightCol)
-        beginShape()
-        this.data.forEach((_, i) => vertex(this.dataX[i], this.dataY[i]));
-        endShape()
-
-        
+        this.drawPlot()
 
         pop()
     }

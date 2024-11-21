@@ -6,15 +6,18 @@ p5.disableFriendlyErrors = true
 const WIDTH = 600
 const HEIGHT = 600
 
-let plot
+let plotSin, plotCos
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
-    plot = new MigPLOT(0, 0, 600, 600)
+    plotSin = new MigPLOT(0, 0, 600, 600, [], 'Fitness', 'Generation')
+    plotCos = new MigPLOT(0, 0, 600, 600, [], 'Fitness', 'Generation')
 }
 
 function draw(){
     background(0)
-    plot.feed(noise(frameCount/100) * 50)
-    plot.show()
+    plotSin.feed(sin(frameCount/150) * 50)
+    plotSin.show()
+    // plotCos.feed(cos(frameCount/150) * 50)
+    // plotCos.show()
 }
