@@ -2,7 +2,6 @@
 //Miguel Rodríguez
 //13-10-2024
 
-//http-server /Users/miguelrodriguezmbp/Desktop/p5js/Algorithms/Music_And_Lyrics_Visualizer
 //cd /Users/miguelrodriguezmbp/Desktop/p5js/Algorithms/Music_And_Lyrics_Visualizer
 //NODE_TLS_REJECT_UNAUTHORIZED=0 node proxy-server.js
 
