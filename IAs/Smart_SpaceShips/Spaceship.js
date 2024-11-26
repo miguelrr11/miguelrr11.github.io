@@ -1,5 +1,5 @@
 class Spaceship {
-    constructor(x, y, w, h) {
+    constructor(x, y, w, h, id) {
         this.engine = Engine.create();
         this.world = this.engine.world;
         this.w = w
@@ -10,15 +10,19 @@ class Spaceship {
             mass: 3
         });
 
-        this.floor = Bodies.rectangle(width/2, height, width*2, 30, { isStatic: true });  
+        this.floor = Bodies.rectangle(WIDTH/2, HEIGHT, WIDTH*2, 30, { isStatic: true });  
+
+        this.target = createVector(random(WIDTH), random(HEIGHT))
+        this.points = 0
+        this.id = id
 
         this.PEfloor = new ParticleEmitter(15)
         this.PEdcha = new ParticleEmitter(10)
         this.PEizda = new ParticleEmitter(10)
 
-        let ceiling = Bodies.rectangle(width/2, 0, width*2, 30, { isStatic: true });  
-        let pared1 = Bodies.rectangle(0, height/2, 30, height, { isStatic: true });
-        let pared2 = Bodies.rectangle(width, height/2, 30, height, { isStatic: true });  
+        let ceiling = Bodies.rectangle(WIDTH/2, 0, WIDTH*2, 30, { isStatic: true });  
+        let pared1 = Bodies.rectangle(0, HEIGHT/2, 30, HEIGHT, { isStatic: true });
+        let pared2 = Bodies.rectangle(WIDTH, HEIGHT/2, 30, HEIGHT, { isStatic: true });  
 
         World.add(this.engine.world, this.body);
         World.add(this.engine.world, this.floor);
@@ -55,7 +59,7 @@ class Spaceship {
         };
         Body.applyForce(this.body, thrustPos, forceVector);
 
-        this.PEfloor.shoot(thrustPos, this.body.angle + HALF_PI)
+        if(indexShowing == this.id) this.PEfloor.shoot(thrustPos, this.body.angle + HALF_PI)
     }
 
    //Enciendo el thrust de la derecha para ir a la izquierda
@@ -68,7 +72,7 @@ class Spaceship {
         };
         Body.applyForce(this.body, thrustPos, forceVector);
 
-        this.PEdcha.shoot(thrustPos, this.body.angle - TWO_PI)
+        if(indexShowing == this.id) this.PEdcha.shoot(thrustPos, this.body.angle - TWO_PI)
     }
 
     // Method to add rightward force at the top of the spaceship to steer
@@ -81,7 +85,7 @@ class Spaceship {
         };
         Body.applyForce(this.body, thrustPos, forceVector);
 
-        this.PEizda.shoot(thrustPos, this.body.angle - PI)
+        if(indexShowing == this.id) this.PEizda.shoot(thrustPos, this.body.angle - PI)
     }
 
     getThrustPos(){
@@ -99,8 +103,18 @@ class Spaceship {
                 y: lerp(this.body.vertices[0].y, this.body.vertices[3].y, 0.2)}
     }
 
-    update(){
-        Engine.update(this.engine)
+    move(choice){
+        if(choice == 0) this.addThrust(VER_THRUST_FORCE)
+        if(choice == 1) this.steerLeft(VER_THRUST_FORCE)
+        if(choice == 2) this.steerRight(VER_THRUST_FORCE)
+        if(choice == 3) return
+    }
+
+    checkTarget(){
+        if(dist(this.body.position.x, this.body.position.y, this.target.x, this.target.y) < 60){
+            this.target = createVector(random(WIDTH), random(HEIGHT))
+            this.points++
+        }
     }
 
     showVectors(){
@@ -142,6 +156,20 @@ class Spaceship {
         this.PEizda.show()
     }
 
+    showTarget(){
+        push()
+        noStroke()
+        fill(255, 150, 0, 110)
+        ellipse(this.target.x, this.target.y, 40)
+        fill(255, 155, 0, 110)
+        ellipse(this.target.x, this.target.y, 35)
+        fill(255, 160, 0, 110)
+        ellipse(this.target.x, this.target.y, 30)
+        fill(255, 165, 0, 110)
+        ellipse(this.target.x, this.target.y, 25)
+        pop()
+    }
+
     show() {
         let pos = this.body.position;
         let angle = this.body.angle;
@@ -164,7 +192,7 @@ class Spaceship {
         strokeWeight(1);
         stroke(255)
         fill(127);
-        rect(0, 0, 1000, 30);
+        rect(0, 0, 1600, 30);
         pop();
 
         // push()
@@ -177,5 +205,6 @@ class Spaceship {
         // pop()
         //this.showVectors()
         this.showParticles()
+        this.showTarget()
     }
 }
