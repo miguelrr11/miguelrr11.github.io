@@ -46,13 +46,14 @@ const maxAngVel = 0.2
 let debug = false
 let best, showing
 
+let plotFitness
 
 function preload(){
     font = loadFont('mono.ttf')
 }
 
 function setup(){
-    createCanvas(WIDTH, HEIGHT)
+    createCanvas(WIDTH, HEIGHT+200)
     textFont(font)
     init()
 
@@ -87,6 +88,19 @@ function setup(){
                           "  - Id: -")
     panel.createSeparator()
     panel_fitnessLog = panel.createText("Fitness across generations:\n")
+
+    plotFitness = new MigPLOT(0, HEIGHT-100, 350, 250, [], 'Fitness', 'Generation')
+    plotFitness.backCol = c5
+    plotFitness.axisCol = c1
+    plotFitness.graphCol = c2
+    plotFitness.textCol = c3
+    plotFitness.minGlobal = 0
+    plotFitness.maxGlobal = 100
+    plotFitness.feed(2)
+    plotFitness.feed(12)
+    plotFitness.feed(34)
+    plotFitness.feed(50)
+    plotFitness.feed(65)
 }
 
 function init(){
@@ -271,6 +285,8 @@ function draw(){
     background(c5)
     setT()
 
+    plotFitness.show()
+
     best = getBestPendulum()
     showing = pendulums[indexShowing]
     if(automaticallyBest){ 
@@ -283,9 +299,11 @@ function draw(){
     if(timeGen <= 0 || best.points >= 100){
         timeGen = timeG
         if(best.points > bestScore) bestScore = best.points
+        let overAllFitness = round((pendulums.filter(element => element.points > 0).length)/size*100, 1)
         panel_fitnessLog.setText(panel_fitnessLog.getText() + "Gen #" + nns.gen + 
-                                ": " + round((pendulums.filter(element => element.points > 0).length)/size*100, 1)
+                                ": " + overAllFitness
                                  + "%\n")
+        plotFitness.feed(overAllFitness);
         setFitness()
         nns.evolvePopulation()
         restartPendulums()
