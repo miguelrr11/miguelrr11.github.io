@@ -6,22 +6,49 @@ Necesidades:
 - Hambre
 - Reproducirse
 Las necesidades van aumentando con el tiempo, la oveja actua segun la necesidad con el valor más grande
-La sed la sacia acercandose a algun cuerpo de agua
-El hambre la sacia acercandose a parches de pasto
+La sed la sacia acercandose a algun cuerpo de agua y bebiendo (toma tiempo)
+El hambre la sacia acercandose a parches de pasto (toma tiempo)
 La reproduccion la sacia si encuentra una oveja del genero contrario que tambien busca reproducirse
 Si encuentra a mas de una oveja que quiere reproducirse, se reproduce con la oveja más bella
-Al reproducirse, pawnean n ovejas con genes mezclados de los padres
+Al reproducirse, spawnean n ovejas con genes mezclados de los padres
 Si el hambre o la sed llegan al limite de necesidad, la oveja muere. Donde muere, spawnea un parche de pasto
 Genes:
 - Velocidad
 - Belleza
 - Radio sensorial (para encontrar comida, agua y otras ovejas)
-
+Se mueven en saltitos (no de manera continua, sino steps)
+Clase Oveja:
+- Genes
+- Posicion
+- Estado:
+    - Buscando:
+        - Agua
+        - Pasto
+        - Partner
+    - Caminando hacia:
+        - Agua
+        - Pasto
+        - Partner
+    - Haciendo:
+        - Bebiendo
+        - Comiendo
+        - Reproduciendo
 
 
 LOBO
-Necesidades:
+- TODO
 
 
 ENVIROMENT:
-El pasto tiene una probabilidad de spawnear
+Grid que contiene varios tipos de celdas:
+- Suelo
+- Agua (no se puede cruzar)
+- Pasto:
+    - Tiene inicialmente un valor de 5
+    - Cada vez que es comido se decrementa el valor
+    - Spawnea periodicamente
+    - Spawnea al morir un animal
+Diferenciado con perlin noise
+Las celdas tienen esta estructura:
+- Tipo (suelo o agua)
+- Pasto: valor numerico que indica cuanto pasto contiene esa celda
