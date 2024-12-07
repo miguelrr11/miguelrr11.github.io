@@ -53,7 +53,7 @@ function preload(){
 }
 
 function setup(){
-    createCanvas(WIDTH, HEIGHT+200)
+    createCanvas(WIDTH, HEIGHT+250)
     textFont(font)
     init()
 
@@ -89,7 +89,7 @@ function setup(){
     panel.createSeparator()
     panel_fitnessLog = panel.createText("Fitness across generations:\n")
 
-    plotFitness = new MigPLOT(0, HEIGHT-100, 350, 250, [], 'Fitness', 'Generation')
+    plotFitness = new MigPLOT(0, HEIGHT-50, 350, 300, [], 'Fitness', 'Generation')
     plotFitness.backCol = c5
     plotFitness.axisCol = c1
     plotFitness.graphCol = c2
@@ -98,14 +98,14 @@ function setup(){
     plotFitness.maxGlobal = 100
     plotFitness.feed(0)
 
-    plotSpecies = new MigPLOT(360, HEIGHT-100, 350, 250, [], 'Species', 'Generation')
+    plotSpecies = new MigPLOT(380, HEIGHT-50, 350, 300, [], 'Species', 'Generation')
     plotSpecies.backCol = c5
     plotSpecies.axisCol = c1
     plotSpecies.graphCol = c2
     plotSpecies.textCol = c3
     plotSpecies.feed(0)
 
-    plotAvg = new MigPLOT(720, HEIGHT-100, 350, 250, [], 'Avg Height', 'Step')
+    plotAvg = new MigPLOT(760, HEIGHT-50, 350, 300, [], 'Avg Height', 'Step')
     plotAvg.backCol = c5
     plotAvg.axisCol = c1
     plotAvg.graphCol = c2
