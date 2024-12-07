@@ -572,6 +572,7 @@ class Population{
 
         this.totalFitness = 0
 
+        this.compatibilityThreshold = 0.8
         
     }
 
@@ -811,7 +812,7 @@ class Population{
                      ]
     */
 
-    assignSpecies(compatibilityThreshold = 3) {
+    assignSpecies(compatibilityThreshold = this.compatibilityThreshold) {
         //this.species = new Map();
         this.clearNNsFromSpecies()
 

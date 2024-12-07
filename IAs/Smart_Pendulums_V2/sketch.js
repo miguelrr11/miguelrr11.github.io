@@ -46,7 +46,7 @@ const maxAngVel = 0.2
 let debug = false
 let best, showing
 
-let plotFitness
+let plotFitness, plotSpecies
 
 function preload(){
     font = loadFont('mono.ttf')
@@ -96,11 +96,14 @@ function setup(){
     plotFitness.textCol = c3
     plotFitness.minGlobal = 0
     plotFitness.maxGlobal = 100
-    plotFitness.feed(2)
-    plotFitness.feed(12)
-    plotFitness.feed(34)
-    plotFitness.feed(50)
-    plotFitness.feed(65)
+    plotFitness.feed(0)
+
+    plotSpecies = new MigPLOT(360, HEIGHT-100, 350, 250, [], 'Species', 'Generation')
+    plotSpecies.backCol = c5
+    plotSpecies.axisCol = c1
+    plotSpecies.graphCol = c2
+    plotSpecies.textCol = c3
+    plotSpecies.feed(0)
 }
 
 function init(){
@@ -286,6 +289,7 @@ function draw(){
     setT()
 
     plotFitness.show()
+    plotSpecies.show()
 
     best = getBestPendulum()
     showing = pendulums[indexShowing]
@@ -304,6 +308,7 @@ function draw(){
                                 ": " + overAllFitness
                                  + "%\n")
         plotFitness.feed(overAllFitness);
+        plotSpecies.feed(nns.species.size)
         setFitness()
         nns.evolvePopulation()
         restartPendulums()
