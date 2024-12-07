@@ -46,7 +46,7 @@ const maxAngVel = 0.2
 let debug = false
 let best, showing
 
-let plotFitness, plotSpecies
+let plotFitness, plotSpecies, plotAvg
 
 function preload(){
     font = loadFont('mono.ttf')
@@ -104,6 +104,13 @@ function setup(){
     plotSpecies.graphCol = c2
     plotSpecies.textCol = c3
     plotSpecies.feed(0)
+
+    plotAvg = new MigPLOT(720, HEIGHT-100, 350, 250, [], 'Avg Height', 'Step')
+    plotAvg.backCol = c5
+    plotAvg.axisCol = c1
+    plotAvg.graphCol = c2
+    plotAvg.textCol = c3
+    plotAvg.feed(0)
 }
 
 function init(){
@@ -215,6 +222,7 @@ function getBestPendulum(){
         avgPosBob.y += pend.p2.position.y
     }
     avgPosBob.div(size)
+    plotAvg.feed(Math.round(mapp(avgPosBob.y, HEIGHT/2 + rod_length, HEIGHT/2 - rod_length, 0, 100)))
     return max
 }
 
@@ -290,6 +298,7 @@ function draw(){
 
     plotFitness.show()
     plotSpecies.show()
+    plotAvg.show()
 
     best = getBestPendulum()
     showing = pendulums[indexShowing]
@@ -309,6 +318,7 @@ function draw(){
                                  + "%\n")
         plotFitness.feed(overAllFitness);
         plotSpecies.feed(nns.species.size)
+        plotAvg.clear()
         setFitness()
         nns.evolvePopulation()
         restartPendulums()

@@ -39,6 +39,7 @@ class MigPLOT{
 
         this.maxGlobal = undefined
         this.minGlobal = undefined
+        this.dataLimit = 500
 
         this.update()
     }
@@ -48,9 +49,32 @@ class MigPLOT{
         this.update()
     }
 
+    clear(){
+        this.data = []
+        this.dataX = []
+        this.dataY = []
+        this.guidesY = []
+        this.guidesX = []
+        this.lastGuide = {y: undefined, data: undefined}
+    }
+
+    compressData(){
+        let compressedData = []
+        const max = Math.max(...this.data)
+        const min = Math.min(...this.data)
+        for(let i = 0; i < this.data.length-1; i += 2){
+            let avg = (this.data[i] + this.data[i+1]) * 0.5
+            if(this.data[i] == max || this.data[i+1] == max) avg = max
+            if(this.data[i] == min || this.data[i+1] == min) avg = min
+            compressedData.push(avg)
+        }
+        this.data = compressedData
+    }
+
 
     //calcula coordenadas para dibujar
     update(){
+        if(this.data.length > this.dataLimit) this.compressData()
         this.nData = this.data.length
         const max = this.maxGlobal ? this.maxGlobal : Math.max(...this.data)
         const min = this.minGlobal ? this.minGlobal : Math.min(...this.data)
@@ -97,6 +121,8 @@ class MigPLOT{
     }
 
     show(){
+        
+
         push()
         textFont(this.font)
 
