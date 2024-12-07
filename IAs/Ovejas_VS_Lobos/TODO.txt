@@ -1,0 +1,27 @@
+SIMULACION OVEJAS VS LOBOS
+
+OVEJA
+Necesidades:
+- Sed
+- Hambre
+- Reproducirse
+Las necesidades van aumentando con el tiempo, la oveja actua segun la necesidad con el valor más grande
+La sed la sacia acercandose a algun cuerpo de agua
+El hambre la sacia acercandose a parches de pasto
+La reproduccion la sacia si encuentra una oveja del genero contrario que tambien busca reproducirse
+Si encuentra a mas de una oveja que quiere reproducirse, se reproduce con la oveja más bella
+Al reproducirse, pawnean n ovejas con genes mezclados de los padres
+Si el hambre o la sed llegan al limite de necesidad, la oveja muere. Donde muere, spawnea un parche de pasto
+Genes:
+- Velocidad
+- Belleza
+- Radio sensorial (para encontrar comida, agua y otras ovejas)
+
+
+
+LOBO
+Necesidades:
+
+
+ENVIROMENT:
+El pasto tiene una probabilidad de spawnear
