@@ -11,7 +11,7 @@ class Entorno{
             for(let j = 0; j < GRID_SIZE; j++){
                 let valor = noise(i/10, j/10)
                 let finalVal = valor > bound ? mapp(valor, bound, 1, 0, 1) : mapp(valor, 0, bound, 0, 1)
-                let isFood = Math.random() < 0.03 && valor < bound
+                let isFood = Math.random() < FOOD_CHANCE && valor < bound
                 this.grid[i][j] = {
                     type: valor > bound ? 'water' : 'grass',
                     val: finalVal,
@@ -21,6 +21,22 @@ class Entorno{
                 }
             }
         }
+    }
+
+    regenerateFood(){
+        for(let x = 0; x < GRID_SIZE; x++){
+            let i = Math.floor(Math.random() * GRID_SIZE)
+            let j = Math.floor(Math.random() * GRID_SIZE)
+            if(this.grid[i][j].type == 'grass' && 
+                this.grid[i][j].food < 5 && 
+                this.grid[i][j].food > 0){ 
+                    this.grid[i][j].food++
+                    return
+                }
+        }
+        let i = Math.floor(Math.random() * GRID_SIZE)
+        let j = Math.floor(Math.random() * GRID_SIZE)
+        if(this.grid[i][j].type == 'grass' && this.grid[i][j].food < 5) this.grid[i][j].food++
     }
 
     //BFS
@@ -58,7 +74,7 @@ class Entorno{
     
             if ((type == 'water' && grid[x][y].type == type) ||
                 (type == 'food' && grid[x][y].food > 0)) {
-                return createVector(x*TAM_CELL, y*TAM_CELL)
+                return createVector(x*TAM_CELL + TAM_CELL/2, y*TAM_CELL + TAM_CELL/2)
             }
     
             for (const [dx, dy] of directions) {
@@ -89,14 +105,20 @@ class Entorno{
         let i = Math.floor(realPos.x / TAM_CELL)
         let j = Math.floor(realPos.y / TAM_CELL)
         this.grid[i][j].food--
+        this.regenerateFood()
     }
 
+    growFood(realPos){
+        let i = Math.floor(realPos.x / TAM_CELL)
+        let j = Math.floor(realPos.y / TAM_CELL)
+        if(this.grid[i][j].food < 5) this.grid[i][j].food++
+    }
 
     drawFood(i, j, food){
         push()
         translate(i*TAM_CELL, j*TAM_CELL)
         stroke(COL_FOOD)
-        strokeWeight(3)
+        strokeWeight(TAM_CELL*0.2)
         for(let i = 0; i < food; i++){ 
             let pos = FOOD_POS[i]
             point(pos.x*TAM_CELL, pos.y*TAM_CELL)

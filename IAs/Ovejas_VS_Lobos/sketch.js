@@ -7,7 +7,7 @@ p5.disableFriendlyErrors = true
 let sim
 
 function setup(){
-    createCanvas(WIDTH, HEIGHT)
+    createCanvas(WIDTH + 500, HEIGHT)
     fill(255)
 
     sim = new Simulation()

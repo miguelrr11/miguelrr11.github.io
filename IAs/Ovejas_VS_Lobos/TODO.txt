@@ -8,9 +8,8 @@ Necesidades:
 Las necesidades van aumentando con el tiempo, la oveja actua segun la necesidad con el valor más grande
 La sed la sacia acercandose a algun cuerpo de agua y bebiendo (toma tiempo)
 El hambre la sacia acercandose a parches de pasto (toma tiempo)
-La reproduccion la sacia si encuentra una oveja del genero contrario que tambien busca reproducirse
-Si encuentra a mas de una oveja que quiere reproducirse, se reproduce con la oveja más bella
-Al reproducirse, spawnean n ovejas con genes mezclados de los padres
+La reproduccion se sacia si encuentra a una oveja de diferente genero y de mas de 100 segundos de edad
+Las ovejas con menos de 100 segundos de edad no tienen necesidad de reproducirse
 Si el hambre o la sed llegan al limite de necesidad, la oveja muere. Donde muere, spawnea un parche de pasto
 Genes:
 - Velocidad (speed)
@@ -27,10 +26,6 @@ Clase Oveja:
         - Pasto
         - Partner
     - Walking: (ha encontrado)
-        - Agua
-        - Pasto
-        - Partner
-    - Doing: (ha llegado)
         - Agua
         - Pasto
         - Partner

@@ -1,5 +1,15 @@
-function mapp(value, start1, stop1, start2, stop2){
-    return start2 + ( (value - start1) / (stop1 - start1) ) * (stop2 - start2); 
+function mapp(value, start1, stop1, start2, stop2, withinBounds = false) {
+    let mappedValue = start2 + ( (value - start1) / (stop1 - start1) ) * (stop2 - start2);
+    
+    if (withinBounds) {
+        if (start2 < stop2) {
+            mappedValue = Math.max(Math.min(mappedValue, stop2), start2);
+        } else {
+            mappedValue = Math.max(Math.min(mappedValue, start2), stop2);
+        }
+    }
+
+    return mappedValue;
 }
 
 function drawFastRect(x, y, w, h, r, g, b, a = 255) {
