@@ -1,10 +1,11 @@
 const WIDTH  = 800
 const HEIGHT = 800
 
-const GRID_SIZE = 100
+const GRID_SIZE = 50       //cells per row
 const TAM_CELL = WIDTH / GRID_SIZE
-const N_OVEJAS = 500
+const N_OVEJAS = 300
 const FOOD_CHANCE = .01
+const STARTING_AGE = 50     //age of primordials
 
 const COL_DARK_GREEN = "#679436"
 const COL_LIGHT_GREEN = "#ADC417"
@@ -24,9 +25,11 @@ const SPEED_OVEJA = TAM_CELL
 const SPEED_MULT = 60
 const TIME_UNTIL_DEAD = 3
 
-const DELTA_HUNGER = .05
-const DELTA_THIRST = .03
-const DELTA_LUST = .01
+const AGE_FACTOR = 5    //age per second
+
+const DELTA_HUNGER = .035
+const DELTA_THIRST = .02
+const DELTA_LUST = .0085
 
 const INITIAL_SPEED = 3
 const INITIAL_RADIUS = 40

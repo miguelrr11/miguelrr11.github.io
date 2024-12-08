@@ -67,3 +67,6 @@ function randomm(min, max) {
     return Math.random() * (max - min) + min;
 }
 
+function clamp(val, min, max){
+    return Math.max(Math.min(val, max), min)
+}

@@ -3,7 +3,7 @@ class Simulation{
         this.entorno = new Entorno()
         this.init()
         
-        this.plotPop = new MigPLOT(WIDTH, 0, 250, 250, [N_OVEJAS], 'Population', '')
+        this.plotPop = new MigPLOT(WIDTH, 0, 250, 250, [0], 'Population', '')
         this.plotPop.minGlobal = 0
 
         this.plotAvgSpeed = new MigPLOT(WIDTH+250, 0, 250, 250, [0], 'Avg Movement Cooldown', '')
@@ -18,13 +18,17 @@ class Simulation{
         this.plotAvgRadius.minGlobal = 0
         this.plotAvgRadius.maxGlobal = 50
 
+        this.plotAvgAge = new MigPLOT(WIDTH, 500, 250, 250, [0], 'Avg Age', '')
+        this.plotAvgAge.minGlobal = 0
+        this.plotAvgAge.maxGlobal = 300
+
     }
 
     init(){
         this.ovejas = []
         for(let i = 0; i < N_OVEJAS; i++){
             let o = new Oveja(this.entorno, this)
-            o.age = 150
+            o.age = STARTING_AGE    
             this.ovejas.push(o)
         }
     }
@@ -50,13 +54,15 @@ class Simulation{
         let sumSpeed = 0
         let sumBeauty = 0
         let sumRadius = 0
+        let sumAge = 0
         for(let o of this.ovejas){
             sumSpeed += o.speed
             sumBeauty += o.beauty
             sumRadius += o.radius
+            sumAge += o.age
         }
         let n = this.ovejas.length
-        return [sumSpeed/n, sumBeauty/n, sumRadius/n]
+        return [sumSpeed/n, sumBeauty/n, sumRadius/n, sumAge/n]
     }
 
     updatePlots(){
@@ -65,6 +71,7 @@ class Simulation{
         this.plotAvgSpeed.feed(avgs[0])
         this.plotAvgBeauty.feed(avgs[1])
         this.plotAvgRadius.feed(avgs[2])
+        this.plotAvgAge.feed(avgs[3])
     }
 
     update(){
@@ -78,23 +85,30 @@ class Simulation{
             }
         }
         //if(Math.random() < FOOD_REGEN) this.entorno.regenerateFood()
-        if(frameCount % 120 == 0) this.updatePlots()
+        if(frameCount % 60 == 0) this.updatePlots()
     }
 
     show(){
         background(100)
         push()
         if(mouseIsPressed){
-            //translate(mouseX, mouseY)
+            translate(-WIDTH/2, -HEIGHT/2)
             scale(2)
+            let zoomCenterx = mouseX - WIDTH / 2
+            let zoomCentery = mouseY - HEIGHT / 2
+            translate(-zoomCenterx, -zoomCentery)
         }
         this.entorno.show()
         for(let o of this.ovejas) o.show()
         pop()
 
+        noStroke()
+        fill(100)
+        rect(WIDTH, 0, 500, HEIGHT)
         this.plotPop.show()
         this.plotAvgSpeed.show()
         this.plotAvgBeauty.show()
         this.plotAvgRadius.show()
+        this.plotAvgAge.show()
     }
 }

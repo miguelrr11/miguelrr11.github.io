@@ -17,7 +17,6 @@ class Oveja{
         this.state = {action: 'searching', 
                       goal: 'food',
                       posGoal: undefined,   //para el estado walking
-                      coolDown: 0,           //para el estado doing (doing toma tiempo)
                       partner: undefined,
                       dying: false,
                       timeUntilDeath: 0
@@ -38,35 +37,23 @@ class Oveja{
         this.vel = p5.Vector.fromAngle(newAngle)
     }
 
-    move(){
-        let vel = this.vel.copy()
+    move(goal = undefined){
+        let vel
+        if(goal) vel = p5.Vector.sub(goal, this.pos).normalize()
+        else vel = this.vel.copy()
         vel.mult(SPEED_OVEJA)
         let newPos = this.pos.copy().add(vel)
-        if(newPos.x < 0) {newPos.x = 0; this.vel.x *= -1}
+        if(newPos.x < 0) {newPos.x = 1; this.vel.x *= -1}
         if(newPos.x > WIDTH) {newPos.x = WIDTH-1; this.vel.x *= -1}
-        if(newPos.y < 0) {newPos.y = 0; this.vel.y *= -1}
+        if(newPos.y < 0) {newPos.y = 1; this.vel.y *= -1}
         if(newPos.y > HEIGHT) {newPos.y = HEIGHT-1; this.vel.y *= -1}
         if(!this.entorno.isWater(newPos)){
             //this.pos = newPos
-            this.newPos = newPos
+            this.newPos = newPos.copy()
             this.coolDown = this.speed
         }
     }
 
-    moveTowards(goal){
-        let vel = p5.Vector.sub(goal, this.pos).normalize()
-        vel.mult(SPEED_OVEJA)
-        let newPos = this.pos.copy().add(vel)
-        if(newPos.x < 0) {newPos.x = 0; this.vel.x *= -1}
-        if(newPos.x > WIDTH) {newPos.x = WIDTH-1; this.vel.x *= -1}
-        if(newPos.y < 0) {newPos.y = 0; this.vel.y *= -1}
-        if(newPos.y > HEIGHT) {newPos.y = HEIGHT-1; this.vel.y *= -1}
-        if(!this.entorno.isWater(newPos)){
-            //this.pos = newPos
-            this.newPos = newPos
-            this.coolDown = this.speed
-        }
-    }
 
     getPrioritizedGoal(){
         let largest = Math.max(this.hunger, Math.max(this.thirst, this.lust))
@@ -80,14 +67,13 @@ class Oveja{
         this.state.goal = this.getPrioritizedGoal()
         this.state.posGoal = undefined
         this.state.partner = undefined
-        this.state.coolDown = 0
     }
 
     checkGoal(){
         if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < RADIUS_GOAL){
             if(this.state.goal == 'food'){ 
                 this.entorno.eat(this.state.posGoal)
-                this.hunger = Math.max(this.hunger - 0.5, 0)
+                this.hunger = Math.max(this.hunger - 0.25, 0)
             }
             if(this.state.goal == 'water'){
                 this.thirst = Math.max(this.thirst - 0.5, 0)
@@ -104,13 +90,14 @@ class Oveja{
         }
     }
 
-    //se reproduce con el mas guapo de su rango y diferente genero y de edad mas de 100s
+    //se reproduce con el mas guapo de su rango y diferente genero y de edad mas de 100s y algo de lust
     findPartner(){
         let possible = []
         for(let other of sim.ovejas){
             if(other == this) continue
             //if(other.state.goal != 'partner') continue
             if(other.age < 100) continue
+            if(other.lust < .15) continue
             if(other.genre == this.genre) continue
             if(dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < RADIUS_GOAL)
                 possible.push(other)
@@ -125,7 +112,7 @@ class Oveja{
         this.hunger = Math.min(this.hunger + DELTA_HUNGER, 1)
         this.thirst = Math.min(this.thirst + DELTA_THIRST, 1)
         if(this.age >= 100) this.lust = Math.min(this.lust + DELTA_LUST, 1)
-        this.age++
+        this.age += AGE_FACTOR
         if((this.hunger >= 1 || this.thirst >= 1 || this.lust >= 1) && !this.state.dying){
             this.state.dying = true
             this.timeUntilDeath = TIME_UNTIL_DEAD     //seconds
@@ -177,7 +164,7 @@ class Oveja{
         //se mueve hacia el objetivo
         else if(this.state.action == 'walking'){
             this.checkPartner()
-            this.moveTowards(this.state.posGoal)
+            this.move(this.state.posGoal)
         }
         //esta quieto realizando la accion
         else if(this.state.action == 'doing'){
@@ -187,32 +174,37 @@ class Oveja{
 
     randomPos(){
         while(true){
-            let i = Math.floor(Math.random() * GRID_SIZE)
-            let j = Math.floor(Math.random() * GRID_SIZE)
+            let i = clamp(Math.floor(Math.random() * GRID_SIZE), 1, GRID_SIZE-1)
+            let j = clamp(Math.floor(Math.random() * GRID_SIZE), 1, GRID_SIZE-1)
             if(this.entorno.validSpawnOveja(i, j)) return createVector(i*TAM_CELL, j*TAM_CELL)
         }
     }
 
     randomSpeed(){
-        return 1 / (randomGaussian(0.5, 0.15) * INITIAL_SPEED) * SPEED_MULT;
+        return 1 / (randomGaussian(0.5, 0.2) * INITIAL_SPEED) * SPEED_MULT;
     }
 
     randomBeauty(){
-        return randomGaussian(0.5, 0.3)
+        return clamp(randomGaussian(0.5, 0.3), 0, 1)
     }
 
     randomRadius(){
-        return randomGaussian(0.5, 0.3) * INITIAL_RADIUS;
+        return clamp(randomGaussian(0.5, 0.3) * INITIAL_RADIUS, 10, 60)
     }
 
     show(){
+        // console.log("posX " + this.pos.x)
+        // console.log("newposX " + this.newPos.x)
         push()
         rectMode(CENTER)
         noStroke()
         let size = mapp(this.age, 0, 300, TAM_OVEJA*0.5, TAM_OVEJA, true)
         let pos = createVector()
-        pos.x = lerp(this.newPos.x, this.pos.x, 1 / (this.speed - this.coolDown))
-        pos.y = lerp(this.newPos.y, this.pos.y, 1 / (this.speed - this.coolDown))
+        let off = this.coolDown == this.speed ? 1 : 1 / (this.speed - this.coolDown)
+        pos.x = lerp(this.newPos.x, this.pos.x, off)
+        pos.y = lerp(this.newPos.y, this.pos.y, off)
+        if(!pos.x) console.log(this.newPos.x, this.pos.x)
+        if(!pos.y) console.log(this.newPos.y, this.pos.y)
         translate(pos.x, pos.y)
         rotate(Math.atan2(this.vel.y, this.vel.x))
         let mult = 0

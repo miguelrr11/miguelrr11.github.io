@@ -24,7 +24,7 @@ class Entorno{
     }
 
     regenerateFood(){
-        for(let x = 0; x < GRID_SIZE; x++){
+        for(let x = 0; x < 10; x++){
             let i = Math.floor(Math.random() * GRID_SIZE)
             let j = Math.floor(Math.random() * GRID_SIZE)
             if(this.grid[i][j].type == 'grass' && 
