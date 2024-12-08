@@ -75,6 +75,16 @@ class Entorno{
         return null;
     }
 
+    isWater(realPos){
+        let i = Math.floor(realPos.x / TAM_CELL)
+        let j = Math.floor(realPos.y / TAM_CELL)
+        return this.grid[i][j].type == 'water'
+    }
+
+    validSpawnOveja(i, j){
+        return this.grid[i][j].type == 'grass'
+    }
+
     eat(realPos){
         let i = Math.floor(realPos.x / TAM_CELL)
         let j = Math.floor(realPos.y / TAM_CELL)

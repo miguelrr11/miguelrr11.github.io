@@ -3,6 +3,7 @@ const HEIGHT = 800
 
 const GRID_SIZE = 50
 const TAM_CELL = WIDTH / GRID_SIZE
+const N_OVEJAS = 1
 
 const COL_DARK_GREEN = "#679436"
 const COL_LIGHT_GREEN = "#ADC417"
@@ -10,6 +11,15 @@ const COL_DARK_BLUE = "#055D80"
 const COL_LIGHT_BLUE = "#427AA1"
 
 const COL_FOOD = "#3E5A20"
+
+const COL_OVEJA_LEAST_BEAUTY = "#ede0d4"
+const COL_OVEJA_MOST_BEAUTY = "#7f5539"
+const TAM_OVEJA = TAM_CELL * 0.55
+const SPEED_OVEJA = TAM_CELL
+const SPEED_MULT = 60
+
+const INITIAL_SPEED = 3
+const INITIAL_RADIUS = 40
 
 let FOOD_POS = 
 [

@@ -3,17 +3,18 @@
 //
 
 p5.disableFriendlyErrors = true
-let entorno
-let found
-let pos
+
+let sim
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
-    entorno = new Entorno()
     fill(255)
+
+    sim = new Simulation()
+    console.log(sim)
 }
 
-function mouseClicked(){
+function zzz(){
     found = entorno.findClosest(createVector(mouseX, mouseY), 50, 'food')
     if(found) entorno.eat(found)
     pos = createVector(mouseX, mouseY)
@@ -21,8 +22,6 @@ function mouseClicked(){
 
 function draw(){
     background(0)
-    entorno.show()
-    if(found) ellipse(found.x + TAM_CELL*0.5, found.y + TAM_CELL*0.5, 10)
-    noFill()
-    if(pos) ellipse(pos.x, pos.y, 100)
+    sim.update()
+    sim.show()
 }

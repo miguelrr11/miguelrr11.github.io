@@ -13,26 +13,27 @@ Si encuentra a mas de una oveja que quiere reproducirse, se reproduce con la ove
 Al reproducirse, spawnean n ovejas con genes mezclados de los padres
 Si el hambre o la sed llegan al limite de necesidad, la oveja muere. Donde muere, spawnea un parche de pasto
 Genes:
-- Velocidad
+- Velocidad (speed)
 - Belleza
 - Radio sensorial (para encontrar comida, agua y otras ovejas)
 Se mueven en saltitos (no de manera continua, sino steps)
 Clase Oveja:
 - Genes
 - Posicion
+- Direccion (vel)
 - Estado:
-    - Buscando:
+    - Searching: (no encuentra)
         - Agua
         - Pasto
         - Partner
-    - Caminando hacia:
+    - Walking: (ha encontrado)
         - Agua
         - Pasto
         - Partner
-    - Haciendo:
-        - Bebiendo
-        - Comiendo
-        - Reproduciendo
+    - Doing: (ha llegado)
+        - Agua
+        - Pasto
+        - Partner
 
 
 LOBO
