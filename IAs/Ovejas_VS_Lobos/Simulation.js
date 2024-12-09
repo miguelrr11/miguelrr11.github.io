@@ -28,7 +28,7 @@ class Simulation{
         this.ovejas = []
         for(let i = 0; i < N_OVEJAS; i++){
             let o = new Oveja(this.entorno, this)
-            o.age = Math.floor(randomGaussian(STARTING_AGE, 5))
+            o.age = Math.max(Math.floor(randomGaussian(STARTING_AGE, 5)), 0)
             o.state.goal = STARTING_STATE
             if(STARTING_STATE == 'food') o.hunger = .15
             if(STARTING_STATE == 'water') o.thirst = .15
@@ -39,18 +39,26 @@ class Simulation{
         }
     }
 
-    reproduce(o1, o2){
-        if(!o1 || !o2) return
-        let nOffsprings = Math.max(randomGaussian(3, .35), 1)
+    reproduce(mother, father){
+        if(!mother || !father) return
+        let nOffsprings = Math.max(randomGaussian(2.5, .35), 1)
         for(let i = 0; i < nOffsprings; i++){
-            let mutSpeed  = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 5
-            let mutBeauty = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 0.3
-            let mutRadius = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 10
+            let mutSpeed  = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 4
+            let mutBeauty = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 0.25
+            let mutRadius = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 8
+            //sin mezcla
+            let prog = Math.random() < .5 ? mother : father
             let offspring = new Oveja(this.entorno, this, 
-                                      o1.pos.copy(),
-                                      Math.max((o1.speed + o2.speed) * .5 + mutSpeed, 0),
-                                      Math.max((o1.beauty + o2.beauty) * .5 + mutBeauty, 0),
-                                      Math.max((o1.radius + o2.radius) * .5 + mutRadius, 0))
+                                        prog.pos.copy(),
+                                        Math.max(prog.speed + mutSpeed, 0),
+                                        Math.max(prog.beauty + mutBeauty, 0),
+                                        Math.max(prog.radius + mutRadius, 0))
+            //mezcla de genes
+            // let offspring = new Oveja(this.entorno, this, 
+            //                           mother.pos.copy(),
+            //                           Math.max((mother.speed + father.speed) * .5 + mutSpeed, 0),
+            //                           Math.max((mother.beauty + father.beauty) * .5 + mutBeauty, 0),
+            //                           Math.max((mother.radius + father.radius) * .5 + mutRadius, 0))
             this.ovejas.push(offspring)
             //console.log(mutSpeed, mutBeauty, mutRadius)
         }
@@ -90,7 +98,7 @@ class Simulation{
                 this.entorno.growFood(o.pos)
             }
         }
-        //if(Math.random() < FOOD_REGEN) this.entorno.regenerateFood()
+        if(Math.random() < FOOD_REGEN) this.entorno.regenerateFood()
         if(frameCount % 60 == 0) this.updatePlots()
     }
 

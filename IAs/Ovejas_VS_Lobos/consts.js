@@ -4,16 +4,17 @@ const HEIGHT = 800
 const GRID_SIZE = 40       //cells per row
 const TAM_CELL = WIDTH / GRID_SIZE
 const N_OVEJAS = GRID_SIZE*2
-const FOOD_CHANCE = .03
-const FOOD_REGEN = .15 
+const FOOD_CHANCE = .02     //starting food
+const FOOD_REGEN = .015      //natural regeneration
 
 //state of primordials
 const STARTING_AGE = 100            
 const STARTING_STATE = 'food'
 
-const MUT_FACTOR = .75
-const AGE_LIMIT_REPRODUCE = 50
+const MUT_FACTOR = .5
+const AGE_LIMIT_REPRODUCE = 70
 const AGE_LIMIT = 400
+const MIN_LUST = .45
 
 const COL_DARK_GREEN = "#679436"
 const COL_LIGHT_GREEN = "#ADC417"

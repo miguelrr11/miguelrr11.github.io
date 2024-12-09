@@ -4,7 +4,7 @@ class Entorno{
     }
 
     init(){
-        let bound = 0.6
+        let bound = 0.55
         this.grid = []
         for(let i = 0; i < GRID_SIZE; i++){
             this.grid[i] = []

@@ -48,3 +48,17 @@ Diferenciado con perlin noise
 Las celdas tienen esta estructura:
 - Tipo (suelo o agua)
 - Pasto: valor numerico que indica cuanto pasto contiene esa celda
+
+
+ideas fumada
+- meteorito:
+    - mata todo lo que toca
+    - donde cae destruye la hierba y la transforma en tierra
+    - si hay agua en contacto con la tierra, esta la llena como una piscina,
+    aumentando asi el agua
+
+- ciclo dia / noche 
+    - en la noche duermen
+
+TODO
+cooldown de reproduccion

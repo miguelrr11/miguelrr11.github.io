@@ -4,7 +4,7 @@ class Oveja{
         this.sim = sim
         this.pos = pos ? pos : this.randomPos()
         this.speed = speed ? speed : this.randomSpeed()
-        this.beauty = beauty ? beauty : this.randomBeauty()     //0-1
+        this.beauty = beauty ? clamp(beauty, 0, 1) : this.randomBeauty()     //0-1
         this.radius = radius ? radius : this.randomRadius()
         this.vel = p5.Vector.fromAngle(random(TWO_PI))
         this.genre = Math.random() < 0.5 ? 'male' : 'female'
@@ -61,6 +61,19 @@ class Oveja{
         }
         else{
             this.randomChangeVelocity()
+            vel = this.vel.copy()
+            vel.mult(SPEED_OVEJA)
+            let newPos = this.pos.copy().add(vel)
+            if(newPos.x < 0) {newPos.x = 1; this.vel.x *= -1}
+            if(newPos.x > WIDTH) {newPos.x = WIDTH-1; this.vel.x *= -1}
+            if(newPos.y < 0) {newPos.y = 1; this.vel.y *= -1}
+            if(newPos.y > HEIGHT) {newPos.y = HEIGHT-1; this.vel.y *= -1}
+            if(!this.entorno.isWater(newPos)){
+                //this.pos = newPos
+                this.newPos = newPos.copy()
+                if(goal) this.checkIfClose(goal)
+                this.coolDown = this.speed
+            }
         }
     }
 
@@ -108,7 +121,7 @@ class Oveja{
     //se reproduce si encuentra alguien que:
     /*
     - sea diferente genero
-    - no esta buscando pero tiene un lust mas de .35
+    - no esta buscando pero tiene un lust mas de MIN_LUST
     - este buscando partner
     - tenga edad mas de 100
     - si encuentra a varios, escoge el mas guapo
@@ -120,7 +133,7 @@ class Oveja{
             //if(other.state.goal != 'partner') continue
             if(other.age < AGE_LIMIT_REPRODUCE) continue
             if(other.genre == this.genre) continue
-            if((other.state.goal == 'partner' || (other.state.goal != 'partner' && other.lust > .35)) &&
+            if((other.state.goal == 'partner' || (other.state.goal != 'partner' && other.lust > MIN_LUST)) &&
                  dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < this.radius)
                 possible.push(other)
         }
@@ -135,7 +148,7 @@ class Oveja{
         this.thirst = Math.min(this.thirst + DELTA_THIRST, 1)
         if(this.age >= AGE_LIMIT_REPRODUCE) this.lust = Math.min(this.lust + DELTA_LUST, 1)
         this.age += AGE_FACTOR
-        if((this.hunger >= 1 || this.thirst >= 1 || this.lust >= 1) && !this.state.dying){
+        if((this.hunger >= 1 || this.thirst >= 1) && !this.state.dying){
             this.state.dying = true
             this.timeUntilDeath = TIME_UNTIL_DEAD     //seconds
         }
