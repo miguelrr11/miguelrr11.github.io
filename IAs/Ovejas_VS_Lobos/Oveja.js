@@ -281,10 +281,10 @@ class Oveja{
             if(this.state.posGoal) ellipse(this.state.posGoal.x, this.state.posGoal.y, TAM_CELL*0.5)
             ellipse(pos.x, pos.y, this.radius*2)
 
-            fill(0)
-            noStroke()
-            textSize(10)
-            text(this.state.action, pos.x, pos.y)
+            // fill(0)
+            // noStroke()
+            // textSize(10)
+            // text(this.state.action, pos.x, pos.y)
             pop()
         }
         
