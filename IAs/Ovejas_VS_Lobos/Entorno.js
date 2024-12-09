@@ -4,7 +4,7 @@ class Entorno{
     }
 
     init(){
-        let bound = 0.55
+        let bound = 0.6
         this.grid = []
         for(let i = 0; i < GRID_SIZE; i++){
             this.grid[i] = []
@@ -24,7 +24,7 @@ class Entorno{
     }
 
     regenerateFood(){
-        for(let x = 0; x < 10; x++){
+        for(let x = 0; x < 20; x++){
             let i = Math.floor(Math.random() * GRID_SIZE)
             let j = Math.floor(Math.random() * GRID_SIZE)
             if(this.grid[i][j].type == 'grass' && 
@@ -34,9 +34,18 @@ class Entorno{
                     return
                 }
         }
-        let i = Math.floor(Math.random() * GRID_SIZE)
-        let j = Math.floor(Math.random() * GRID_SIZE)
-        if(this.grid[i][j].type == 'grass' && this.grid[i][j].food < 5) this.grid[i][j].food++
+        let maxIter = GRID_SIZE*GRID_SIZE*0.25
+        let iter = 0
+        while(iter < maxIter){
+            let i = Math.floor(Math.random() * GRID_SIZE)
+            let j = Math.floor(Math.random() * GRID_SIZE)
+            if(this.grid[i][j].type == 'grass' && this.grid[i][j].food < 5){ 
+                this.grid[i][j].food++
+                break
+            }
+            iter++
+        }
+        
     }
 
     //BFS
@@ -101,11 +110,19 @@ class Entorno{
         return this.grid[i][j].type == 'grass'
     }
 
+    isFood(realPos){
+        let i = Math.floor(realPos.x / TAM_CELL)
+        let j = Math.floor(realPos.y / TAM_CELL)
+        return this.grid[i][j].food > 0
+    }
+
     eat(realPos){
         let i = Math.floor(realPos.x / TAM_CELL)
         let j = Math.floor(realPos.y / TAM_CELL)
+        if( this.grid[i][j].food <= 0) return false
         this.grid[i][j].food--
-        if(Math.random() < FOOD_REGEN) this.regenerateFood()
+        return true
+        //if(Math.random() < FOOD_REGEN) this.regenerateFood()
     }
 
     growFood(realPos){

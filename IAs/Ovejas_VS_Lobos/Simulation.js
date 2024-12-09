@@ -41,11 +41,11 @@ class Simulation{
 
     reproduce(mother, father){
         if(!mother || !father) return
-        let nOffsprings = Math.max(randomGaussian(2.5, .35), 1)
+        let nOffsprings = Math.round(randomGaussian(2, .35), 1)
         for(let i = 0; i < nOffsprings; i++){
-            let mutSpeed  = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 4
-            let mutBeauty = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 0.25
-            let mutRadius = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 8
+            let mutSpeed  = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.3) * 4
+            let mutBeauty = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.3) * 0.25
+            let mutRadius = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.3) * 8
             //sin mezcla
             let prog = Math.random() < .5 ? mother : father
             let offspring = new Oveja(this.entorno, this, 
@@ -95,7 +95,7 @@ class Simulation{
             if(!o.alive){
                 this.ovejas.splice(i, 1)
                 i--
-                this.entorno.growFood(o.pos)
+                //this.entorno.growFood(o.pos)
             }
         }
         if(Math.random() < FOOD_REGEN) this.entorno.regenerateFood()

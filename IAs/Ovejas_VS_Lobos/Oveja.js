@@ -99,11 +99,14 @@ class Oveja{
         if(this.state.goal == 'partner') rad_goal = RADIUS_GOAL_PARTNER
         if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < rad_goal){
             if(this.state.goal == 'food'){ 
-                this.entorno.eat(this.state.posGoal)
-                this.hunger = Math.max(this.hunger - 0.25, 0)
+                let eaten = this.entorno.eat(this.state.posGoal)
+                // this.hunger = Math.max(this.hunger - 0.25, 0)
+                if(eaten) this.hunger = 0
+                else this.checkFood()
             }
             if(this.state.goal == 'water'){
-                this.thirst = Math.max(this.thirst - 0.5, 0)
+                // this.thirst = Math.max(this.thirst - 0.5, 0)
+                this.thirst = 0
             }
             if(this.state.goal == 'partner' && this.state.partner){
                 this.lust = 0
@@ -162,9 +165,18 @@ class Oveja{
 
     //check if partner is still alive
     checkPartner(){
-        if(this.state.action == 'walking' && this.state.goal == 'partner' && !this.state.partner.alive){
+        if(!this.state.partner.alive){
             this.state.action = 'searching'
             this.state.partner = undefined
+        }
+    }
+
+    //check if the food located is still there
+    checkFood(){
+        let isThere = this.entorno.isFood(this.state.posGoal)
+        if(!isThere){ 
+            this.state.action = 'searching'
+            this.goalPos = undefined
         }
     }
 
@@ -178,7 +190,7 @@ class Oveja{
         }
         else{ 
             this.pos = this.newPos.copy()
-            if(this.state.posGoal) this.checkGoal()
+            if(this.state.posGoal && this.state.action == 'walking') this.checkGoal()
             this.coolDown = 0
         }
         //se mueve random y busca su objetivo
@@ -199,7 +211,8 @@ class Oveja{
         }
         //se mueve hacia el objetivo
         else if(this.state.action == 'walking'){
-            this.checkPartner()
+            if(this.state.goal == 'food') this.checkFood()
+            if(this.state.goal == 'partner') this.checkPartner()
             if(this.state.goal == 'partner' && this.state.partner) this.state.posGoal = this.state.partner.pos.copy()
             this.move(this.state.posGoal)
             

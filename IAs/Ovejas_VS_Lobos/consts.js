@@ -1,14 +1,14 @@
 const WIDTH  = 800
 const HEIGHT = 800
 
-const GRID_SIZE = 40       //cells per row
+const GRID_SIZE = 20       //cells per row
 const TAM_CELL = WIDTH / GRID_SIZE
 const N_OVEJAS = GRID_SIZE*2
-const FOOD_CHANCE = .02     //starting food
-const FOOD_REGEN = .015      //natural regeneration
+const FOOD_CHANCE = .035     //starting food
+const FOOD_REGEN = .1      //natural regeneration
 
 //state of primordials
-const STARTING_AGE = 100            
+const STARTING_AGE = 0            
 const STARTING_STATE = 'food'
 
 const MUT_FACTOR = .5
@@ -37,8 +37,8 @@ const TIME_UNTIL_DEAD = 5
 
 const AGE_FACTOR = 3    //age per second
 
-const DELTA_HUNGER = .015
-const DELTA_THIRST = .015
+const DELTA_HUNGER = .03
+const DELTA_THIRST = .03
 const DELTA_LUST = .005
 
 const INITIAL_SPEED = 3
