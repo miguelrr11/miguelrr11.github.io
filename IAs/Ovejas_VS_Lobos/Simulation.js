@@ -16,11 +16,11 @@ class Simulation{
 
         this.plotAvgRadius = new MigPLOT(WIDTH+250, 250, 250, 250, [0], 'Avg Radius', '')
         this.plotAvgRadius.minGlobal = 0
-        this.plotAvgRadius.maxGlobal = TAM_CELL
+        this.plotAvgRadius.maxGlobal = 5
 
         this.plotAvgAge = new MigPLOT(WIDTH, 500, 250, 250, [0], 'Avg Age', '')
         this.plotAvgAge.minGlobal = 0
-        this.plotAvgAge.maxGlobal = 300
+        this.plotAvgAge.maxGlobal = 400
 
     }
 
@@ -28,7 +28,7 @@ class Simulation{
         this.ovejas = []
         for(let i = 0; i < N_OVEJAS; i++){
             let o = new Oveja(this.entorno, this)
-            o.age = STARTING_AGE    
+            o.age = Math.floor(randomGaussian(STARTING_AGE, 5))
             o.state.goal = STARTING_STATE
             if(STARTING_STATE == 'food') o.hunger = .15
             if(STARTING_STATE == 'water') o.thirst = .15
@@ -41,11 +41,11 @@ class Simulation{
 
     reproduce(o1, o2){
         if(!o1 || !o2) return
-        let nOffsprings = Math.max(randomGaussian(3, .5), 1)
+        let nOffsprings = Math.max(randomGaussian(3, .35), 1)
         for(let i = 0; i < nOffsprings; i++){
-            let mutSpeed  = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 2
+            let mutSpeed  = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 5
             let mutBeauty = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 0.3
-            let mutRadius = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 1
+            let mutRadius = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.5) * 10
             let offspring = new Oveja(this.entorno, this, 
                                       o1.pos.copy(),
                                       Math.max((o1.speed + o2.speed) * .5 + mutSpeed, 0),

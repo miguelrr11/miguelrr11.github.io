@@ -38,6 +38,11 @@ class Oveja{
         this.vel = p5.Vector.fromAngle(newAngle)
     }
 
+    //if moving towards something and really close, just go there instead of overshooting
+    checkIfClose(goal){
+        if(dist(goal.x, goal.y, this.pos.x, this.pos.y) < SPEED_OVEJA) this.newPos = goal.copy()
+    }
+
     move(goal = undefined){
         let vel
         if(goal) vel = p5.Vector.sub(goal, this.pos).normalize()
@@ -51,6 +56,7 @@ class Oveja{
         if(!this.entorno.isWater(newPos)){
             //this.pos = newPos
             this.newPos = newPos.copy()
+            if(goal) this.checkIfClose(goal)
             this.coolDown = this.speed
         }
         else{
@@ -74,7 +80,11 @@ class Oveja{
     }
 
     checkGoal(){
-        if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < RADIUS_GOAL){
+        let rad_goal = 0
+        if(this.state.goal == 'food') rad_goal = RADIUS_GOAL_FOOD
+        if(this.state.goal == 'water') rad_goal = RADIUS_GOAL_WATER
+        if(this.state.goal == 'partner') rad_goal = RADIUS_GOAL_PARTNER
+        if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < rad_goal){
             if(this.state.goal == 'food'){ 
                 this.entorno.eat(this.state.posGoal)
                 this.hunger = Math.max(this.hunger - 0.25, 0)
@@ -133,6 +143,7 @@ class Oveja{
             this.timeUntilDeath--
             if(this.timeUntilDeath <= 0) this.alive = false
         }
+        if(this.age > AGE_LIMIT) this.alive = false
         
     }
 

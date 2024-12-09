@@ -105,7 +105,7 @@ class Entorno{
         let i = Math.floor(realPos.x / TAM_CELL)
         let j = Math.floor(realPos.y / TAM_CELL)
         this.grid[i][j].food--
-        this.regenerateFood()
+        if(Math.random() < FOOD_REGEN) this.regenerateFood()
     }
 
     growFood(realPos){
