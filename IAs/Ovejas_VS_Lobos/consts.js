@@ -3,9 +3,12 @@ const HEIGHT = 800
 
 const GRID_SIZE = 50       //cells per row
 const TAM_CELL = WIDTH / GRID_SIZE
-const N_OVEJAS = 300
-const FOOD_CHANCE = .01
-const STARTING_AGE = 50     //age of primordials
+const N_OVEJAS = GRID_SIZE*2
+const FOOD_CHANCE = .03
+const STARTING_AGE = 100            //age of primordials
+const STARTING_STATE = 'food'
+const MUT_FACTOR = .5
+const AGE_LIMIT_REPRODUCE = 50
 
 const COL_DARK_GREEN = "#679436"
 const COL_LIGHT_GREEN = "#ADC417"
@@ -14,7 +17,8 @@ const COL_LIGHT_BLUE = "#427AA1"
 
 const COL_HUNGER = "#9bc53d"
 const COL_THIRST = "#5bc0eb"
-const COL_LUST = "#e55934"
+const COL_LUST_MALE = "#dd2d4a"
+const COL_LUST_FEMALE = "#f26a8d"
 
 const COL_FOOD = "#3E5A20"
 
@@ -27,13 +31,13 @@ const TIME_UNTIL_DEAD = 3
 
 const AGE_FACTOR = 5    //age per second
 
-const DELTA_HUNGER = .035
-const DELTA_THIRST = .02
-const DELTA_LUST = .0085
+const DELTA_HUNGER = .015
+const DELTA_THIRST = .015
+const DELTA_LUST = .005
 
 const INITIAL_SPEED = 3
 const INITIAL_RADIUS = 40
-const RADIUS_GOAL = TAM_CELL*2
+const RADIUS_GOAL = TAM_CELL*1.5
 
 let FOOD_POS = 
 [
@@ -57,4 +61,4 @@ let FOOD_POS =
         "x": 0.7435748290167452,
         "y": 0.3770344332884303
     }
-]
+]    

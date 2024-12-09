@@ -11,7 +11,7 @@ class Oveja{
         this.age = 0
         
         //0-1
-        this.hunger = .1
+        this.hunger = 0
         this.thirst = 0
         this.lust = 0
         this.state = {action: 'searching', 
@@ -21,6 +21,7 @@ class Oveja{
                       dying: false,
                       timeUntilDeath: 0
         }
+        this.newState()
         this.alive = true
 
         this.col = lerppColor(COL_OVEJA_MOST_BEAUTY, COL_OVEJA_LEAST_BEAUTY, this.beauty)
@@ -52,6 +53,9 @@ class Oveja{
             this.newPos = newPos.copy()
             this.coolDown = this.speed
         }
+        else{
+            this.randomChangeVelocity()
+        }
     }
 
 
@@ -78,10 +82,11 @@ class Oveja{
             if(this.state.goal == 'water'){
                 this.thirst = Math.max(this.thirst - 0.5, 0)
             }
-            if(this.state.goal == 'partner'){
+            if(this.state.goal == 'partner' && this.state.partner){
                 this.lust = 0
                 this.sim.reproduce(this, this.state.partner)
-                //this.state.partner.newState()
+                this.state.partner.lust = 0
+                this.state.partner.newState()
             }
             this.newState()
         }
@@ -90,28 +95,35 @@ class Oveja{
         }
     }
 
-    //se reproduce con el mas guapo de su rango y diferente genero y de edad mas de 100s y algo de lust
+    //se reproduce si encuentra alguien que:
+    /*
+    - sea diferente genero
+    - no esta buscando pero tiene un lust mas de .35
+    - este buscando partner
+    - tenga edad mas de 100
+    - si encuentra a varios, escoge el mas guapo
+    */
     findPartner(){
         let possible = []
         for(let other of sim.ovejas){
             if(other == this) continue
             //if(other.state.goal != 'partner') continue
-            if(other.age < 100) continue
-            if(other.lust < .15) continue
+            if(other.age < AGE_LIMIT_REPRODUCE) continue
             if(other.genre == this.genre) continue
-            if(dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < RADIUS_GOAL)
+            if((other.state.goal == 'partner' || (other.state.goal != 'partner' && other.lust > .35)) &&
+                 dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < this.radius)
                 possible.push(other)
         }
         if(possible.length == 0) return undefined
-        possible.sort((a, b) => a.beauty - b.beauty)
+        possible.sort((a, b) => b.beauty - a.beauty)
         this.state.partner = possible[0]
-        return possible[0].pos
+        return possible[0].newPos
     }
     
     updateNecessites(){
         this.hunger = Math.min(this.hunger + DELTA_HUNGER, 1)
         this.thirst = Math.min(this.thirst + DELTA_THIRST, 1)
-        if(this.age >= 100) this.lust = Math.min(this.lust + DELTA_LUST, 1)
+        if(this.age >= AGE_LIMIT_REPRODUCE) this.lust = Math.min(this.lust + DELTA_LUST, 1)
         this.age += AGE_FACTOR
         if((this.hunger >= 1 || this.thirst >= 1 || this.lust >= 1) && !this.state.dying){
             this.state.dying = true
@@ -147,8 +159,6 @@ class Oveja{
         }
         //se mueve random y busca su objetivo
         if(this.state.action == 'searching'){
-            this.randomChangeVelocity()
-            this.move()
             if(this.state.goal == 'food'){
                 this.state.posGoal = this.entorno.findClosest(this.pos, this.radius, this.state.goal)
                 //console.log(this.state.posGoal)
@@ -160,11 +170,15 @@ class Oveja{
                 this.state.posGoal = this.findPartner()
             }
             if(this.state.posGoal) this.state.action = 'walking'
+            this.randomChangeVelocity()
+            this.move()
         }
         //se mueve hacia el objetivo
         else if(this.state.action == 'walking'){
             this.checkPartner()
+            if(this.state.goal == 'partner' && this.state.partner) this.state.posGoal = this.state.partner.pos.copy()
             this.move(this.state.posGoal)
+            
         }
         //esta quieto realizando la accion
         else if(this.state.action == 'doing'){
@@ -181,7 +195,7 @@ class Oveja{
     }
 
     randomSpeed(){
-        return 1 / (randomGaussian(0.5, 0.2) * INITIAL_SPEED) * SPEED_MULT;
+        return 1 / clamp((randomGaussian(0.5, 0.2) * INITIAL_SPEED), 0.1, 100) * SPEED_MULT;
     }
 
     randomBeauty(){
@@ -189,7 +203,7 @@ class Oveja{
     }
 
     randomRadius(){
-        return clamp(randomGaussian(0.5, 0.3) * INITIAL_RADIUS, 10, 60)
+        return clamp(randomGaussian(1, 0.5) * INITIAL_RADIUS, 10, 80) * TAM_CELL * 0.05
     }
 
     show(){
@@ -210,7 +224,10 @@ class Oveja{
         let mult = 0
         if(this.state.goal == 'food') {fill(COL_HUNGER); mult = mapp(this.hunger, 0, 1, 1.25, 1.5)}
         if(this.state.goal == 'water') {fill(COL_THIRST); mult = mapp(this.thirst, 0, 1, 1.25, 1.5)}
-        if(this.state.goal == 'partner') {fill(COL_LUST); mult = mapp(this.lust, 0, 1, 1.25, 1.5)}
+        if(this.state.goal == 'partner') {
+            this.genre == 'male' ? fill(COL_LUST_MALE) : fill(COL_LUST_FEMALE); 
+            mult = mapp(this.lust, 0, 1, 1.25, 1.5)
+        }
         if(!this.state.dying) rect(0, 0, size*mult, size*mult)
         else if(this.state.dying && Math.floor(frameCount / 15) % 2 == 0) rect(0, 0, size*mult, size*mult)
         fill(this.col)
@@ -220,12 +237,20 @@ class Oveja{
         pop()
 
         //debug
-        // push()
-        // noFill()
-        // stroke(0)
-        // if(this.state.posGoal) ellipse(this.state.posGoal.x, this.state.posGoal.y, 10)
-        // ellipse(pos.x, pos.y, this.radius*2)
-        // pop()
+        if(keyIsPressed){
+            push()
+            noFill()
+            stroke(0)
+            if(this.state.posGoal) ellipse(this.state.posGoal.x, this.state.posGoal.y, TAM_CELL*0.5)
+            ellipse(pos.x, pos.y, this.radius*2)
+
+            fill(0)
+            noStroke()
+            textSize(10)
+            text(this.state.action, pos.x, pos.y)
+            pop()
+        }
+        
     }
 
     printNec(){
