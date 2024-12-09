@@ -1,13 +1,13 @@
 const WIDTH  = 800
 const HEIGHT = 800
 
-const GRID_SIZE = 25       //cells per row
+const GRID_SIZE = 80       //cells per row
 const SQ_GRID_SIZE = GRID_SIZE * GRID_SIZE
 const TAM_CELL = WIDTH / GRID_SIZE
 const N_OVEJAS = SQ_GRID_SIZE*0.1
 const FOOD_CHANCE = .035        //starting food
-const FOOD_FACTOR_REGEN = 15    //factor que importa
-const FOOD_REGEN = (SQ_GRID_SIZE / (SQ_GRID_SIZE + SQ_GRID_SIZE * FOOD_FACTOR_REGEN))    //natural regeneration
+const FOOD_FACTOR_REGEN = 150    //factor que importa (cuanto mas alto, menos comida spawnea)
+const FOOD_REGEN = (SQ_GRID_SIZE / (SQ_GRID_SIZE + GRID_SIZE * FOOD_FACTOR_REGEN))    //natural regeneration
 
 //state of primordials
 const STARTING_AGE = 100
