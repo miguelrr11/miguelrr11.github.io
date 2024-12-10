@@ -42,6 +42,7 @@ class MigPLOT{
         this.dataLimit = 500
 
         this.update()
+        
     }
 
     feed(x){
@@ -128,6 +129,7 @@ class MigPLOT{
 
         push()
         textFont(this.font)
+        textSize(12)
 
         //background
         fill(this.backCol)

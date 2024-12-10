@@ -14,12 +14,6 @@ function setup(){
     console.log(sim)
 }
 
-function zzz(){
-    found = entorno.findClosest(createVector(mouseX, mouseY), 50, 'food')
-    if(found) entorno.eat(found)
-    pos = createVector(mouseX, mouseY)
-}
-
 function draw(){
     background(0)
     sim.update()

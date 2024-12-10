@@ -5,11 +5,12 @@ class Entorno{
 
     init(){
         let bound = LAND
+        let randomOffset = Math.random() * 1000
         this.grid = []
         for(let i = 0; i < GRID_SIZE; i++){
             this.grid[i] = []
             for(let j = 0; j < GRID_SIZE; j++){
-                let valor = noise(i/10, j/10)
+                let valor = noise(i/10 + randomOffset, j/10 + randomOffset)
                 let finalVal = valor > bound ? mapp(valor, bound, 1, 0, 1) : mapp(valor, 0, bound, 0, 1)
                 let isFood = Math.random() < FOOD_CHANCE && valor < bound
                 this.grid[i][j] = {

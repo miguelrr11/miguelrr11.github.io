@@ -2,6 +2,7 @@ class Oveja{
     constructor(entorno, sim, pos, speed, beauty, radius){
         this.entorno = entorno
         this.sim = sim
+        this.alive = true
         this.pos = pos ? pos : this.randomPos()
         this.speed = speed ? speed : this.randomSpeed()
         this.beauty = beauty ? clamp(beauty, 0, 1) : this.randomBeauty()     //0-1
@@ -22,13 +23,13 @@ class Oveja{
                       timeUntilDeath: 0
         }
         this.newState()
-        this.alive = true
+        
 
         this.col = lerppColor(COL_OVEJA_MOST_BEAUTY, COL_OVEJA_LEAST_BEAUTY, this.beauty)
 
         //movement
         this.coolDown = 0
-        this.newPos = this.pos.copy()
+        if(this.pos) this.newPos = this.pos.copy()
     }
 
     //cambia la direccion de movimiento aleatoriamente
@@ -224,11 +225,17 @@ class Oveja{
     }
 
     randomPos(){
-        while(true){
+        let maxIter = GRID_SIZE*GRID_SIZE
+        let iter = 0
+        while(iter < maxIter){
             let i = clamp(Math.floor(Math.random() * GRID_SIZE), 1, GRID_SIZE-1)
             let j = clamp(Math.floor(Math.random() * GRID_SIZE), 1, GRID_SIZE-1)
             if(this.entorno.validSpawnOveja(i, j)) return createVector(i*TAM_CELL, j*TAM_CELL)
+            iter++
         }
+        //unable to place it
+        this.alive = false
+        return null
     }
 
     randomSpeed(){
@@ -244,6 +251,7 @@ class Oveja{
     }
 
     show(){
+        if(!this.alive) return
         // console.log("posX " + this.pos.x)
         // console.log("newposX " + this.newPos.x)
         push()

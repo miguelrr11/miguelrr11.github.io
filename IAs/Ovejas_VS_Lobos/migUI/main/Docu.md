@@ -124,6 +124,7 @@ A number picker allows to change a number with 2 buttons (- and +)
   - `title` (`string`, optional): Label for the number picker.
   - `min` (`number`, optional): Minimum value for the picker.
   - `max` (`number`, optional): Maximum value for the picker.
+  - `delta` (`number`, optional): Value that determines the change, defaults to 1.
   - `default` (`number`, optional): Default value for the picker.
   - `funcMinus` (`function`, optional): Function executed when the value is decreased.
   - `funcPlus` (`function`, optional): Function executed when the value is increased.

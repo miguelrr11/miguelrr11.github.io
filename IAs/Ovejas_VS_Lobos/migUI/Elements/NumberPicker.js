@@ -1,13 +1,11 @@
 class NumberPicker{
-	constructor(x, y, text, min, max, def, funcMinus, funcPlus, lightCol, darkCol, transCol){
+	constructor(x, y, text, min, max, delta, def, funcMinus, funcPlus, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
 		this.pos = createVector(x, y)
 		this.textSize = text_SizeMIGUI-2
 		this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
-
-		
 
 		this.beingHoveredPlus = false
 		this.beingHoveredMinus = false
@@ -19,6 +17,7 @@ class NumberPicker{
 		this.min = min != undefined ? min : -Infinity
 		this.max = max != undefined ? max : Infinity
 		this.value = def != undefined ? constrain(def, this.min, this.max) : 0
+		this.delta = delta ? delta : 1
 
 		this.w = 75
 		this.h = 17
@@ -62,13 +61,15 @@ class NumberPicker{
 		if((this.beingHoveredMinus || this.beingHoveredPlus) && mouseIsPressed && !this.beingPressed){ 
 			//ver donde se ha presionado, si en el + o en el -
 			if(this.beingHoveredMinus){
-				this.value--
+				this.value -= this.delta
+				this.value = round(this.value, 2)
 				if(this.funcMinus && this.value >= this.min) this.funcMinus()
 				this.value = constrain(this.value, this.min, this.max)
 				
 			}
 			if(this.beingHoveredPlus){
-				this.value++
+				this.value += this.delta
+				this.value = round(this.value, 2)
 				if(this.funcPlus && this.value <= this.max) this.funcPlus()
 				this.value = constrain(this.value, this.min, this.max)
 			}

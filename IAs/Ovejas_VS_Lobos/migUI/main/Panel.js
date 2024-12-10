@@ -313,11 +313,11 @@ class Panel{
 		return colorPicker
 	}
 
-	createNumberPicker(sentence = "", min = undefined, max = undefined, 
+	createNumberPicker(sentence = "", min = undefined, max = undefined, delta = 1,
 					   def = undefined, funcMinus = undefined, funcPlus = undefined){
 		let numberPicker = new NumberPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
-										  sentence, min, max, def, funcMinus, funcPlus,
+										  sentence, min, max, delta, def, funcMinus, funcPlus,
 										  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 25
 		this.lastElementPos.y += numberPicker.height + this.padding
