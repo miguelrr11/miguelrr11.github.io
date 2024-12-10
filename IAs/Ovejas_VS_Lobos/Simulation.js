@@ -1,9 +1,12 @@
+let FRAME = 0
+
 class Simulation{
     constructor(){
         //this.init()
         this.initPlots()
         this.initUI()
         this.started = false
+        this.sim_speed = 1
     }
 
     initUI(){
@@ -19,16 +22,57 @@ class Simulation{
         
         this.panel.createSeparator()
         this.panel.createText('VARIABLES', true)
-        this.panel_GRID_SIZE = this.panel.createNumberPicker('Grid Size', 5, 120, 5, 85)
-        this.panel_LAND = this.panel.createNumberPicker('% of land vs water', 0, 1, 0.1, 0.5)
+        this.panel.separate()
+        this.panel_GRID_SIZE = this.panel.createNumberPicker('Grid Size', 5, 120, 5, 50)
+        this.panel_LAND = this.panel.createNumberPicker('% of Land vs Water', 0, 1, 0.1, 0.5)
         this.panel_STARTING_AGE = this.panel.createNumberPicker('Starting Age', 0, 300, 10, 100)
-
+        this.panel_STARTING_STATE = this.panel.createOptionPicker('Starting State', ['food', 'water', 'partner'])
+        this.panel_STARTING_SPEED = this.panel.createNumberPicker('Starting Speed', 5, 100, 5, 60)
+        this.panel_STARTING_RADIUS = this.panel.createNumberPicker('Starting Radius', 5, 200, 10, 40)
+        this.panel_AGE_LIMIT = this.panel.createNumberPicker('Maximum Age', 0, 1000, 25, 400)
+        this.panel_AGE_LIMIT_REPRODUCE = this.panel.createNumberPicker('Minimum Age to Reproduce', 0, 1000, 25, 75)
+        this.panel_MIN_LUST = this.panel.createNumberPicker('Minimum Lust to Reproduce', 0, 1, .1, .4)
+        this.panel_MUT_FACTOR = this.panel.createNumberPicker('Mutation Probability', 0, 1, .1, .5)
+        this.panel_DELTA_HUNGER = this.panel.createNumberPicker('Hunger Rate', 0, 0.3, 0.01, 0.03)
+        this.panel_DELTA_THIRST = this.panel.createNumberPicker('Thirst Rate', 0, 0.3, 0.01, 0.03)
+        this.panel_DELTA_LUST   = this.panel.createNumberPicker('Reproductive Urge Rate', 0, 0.3, 0.01, 0.01)
 
         this.panel.createSeparator()
         this.panel.createButton('Start Simulation', () => {
             this.initConfig()
             this.init()
             this.initPlots()
+            this.panel_pause.enable()
+        })
+        this.panel_pause = this.panel.createButton('Pause', () => {
+            if(!this.started){
+                this.panel_pause.setText('Pause')
+                this.started = !this.started
+            }
+            else{
+                this.panel_pause.setText('Play')
+                this.started = !this.started
+            }
+        })
+        this.panel_pause.disable()
+        this.panel_sim_speed = this.panel.createOptionPicker('Simulation speed', ['1x', '2x', '5x', '10x', '60x'], () => {
+            switch(this.panel_sim_speed.getSelected()){
+                case '1x':
+                    this.sim_speed = 1
+                    break
+                case '2x':
+                    this.sim_speed = 2
+                    break
+                case '5x':
+                    this.sim_speed = 5
+                    break
+                case '10x':
+                    this.sim_speed = 10
+                    break
+                case '60x':
+                    this.sim_speed = 60
+                    break
+            }
         })
     }
 
@@ -36,7 +80,16 @@ class Simulation{
         GRID_SIZE = this.panel_GRID_SIZE.getValue()
         LAND = this.panel_LAND.getValue()
         STARTING_AGE = this.panel_STARTING_AGE.getValue()
-
+        AGE_LIMIT = this.panel_AGE_LIMIT.getValue()
+        AGE_LIMIT_REPRODUCE = this.panel_AGE_LIMIT_REPRODUCE.getValue()
+        STARTING_STATE = this.panel_STARTING_STATE.getSelected()
+        MIN_LUST = this.panel_MIN_LUST.getValue()
+        MUT_FACTOR = this.panel_MUT_FACTOR.getValue()
+        DELTA_HUNGER = this.panel_DELTA_HUNGER.getValue()
+        DELTA_THIRST = this.panel_DELTA_THIRST.getValue()
+        DELTA_LUST = this.panel_DELTA_LUST.getValue()
+        SPEED_MULT = this.panel_STARTING_SPEED.getValue()
+        INITIAL_RADIUS = this.panel_STARTING_RADIUS.getValue()
 
         SQ_GRID_SIZE = GRID_SIZE * GRID_SIZE
         TAM_CELL = WIDTH / GRID_SIZE
@@ -58,7 +111,7 @@ class Simulation{
 
         this.plotAvgSpeed = new MigPLOT(x, sizePlot, sizePlot, sizePlot, [0], 'Avg Movement Cooldown', '')
         this.plotAvgSpeed.minGlobal = 0
-        this.plotAvgSpeed.maxGlobal = 100
+        this.plotAvgSpeed.maxGlobal = 50
 
         this.plotAvgBeauty = new MigPLOT(x, sizePlot*2, sizePlot, sizePlot, [0], 'Avg Beauty', '')
         this.plotAvgBeauty.minGlobal = 0
@@ -79,7 +132,6 @@ class Simulation{
         for(let i = 0; i < N_OVEJAS; i++){
             let o = new Oveja(this.entorno, this)
             o.age = Math.max(Math.floor(randomGaussian(STARTING_AGE, 5)), 0)
-            o.state.goal = STARTING_STATE
             if(STARTING_STATE == 'food') o.hunger = .15
             if(STARTING_STATE == 'water') o.thirst = .15
             if(STARTING_STATE == 'partner') o.lust = .15
@@ -140,25 +192,39 @@ class Simulation{
     }
 
     update(){
-        if(this.started){
-            for(let i = 0; i < this.ovejas.length; i++){ 
-                let o = this.ovejas[i]
-                if(o.alive) o.update()
-                else{
-                    this.ovejas.splice(i, 1)
-                    i--
-                    //this.entorno.growFood(o.pos)
+        for(let j = 0; j < this.sim_speed; j++){
+            if(this.started){
+                FRAME += 1
+                for(let i = 0; i < this.ovejas.length; i++){ 
+                    let o = this.ovejas[i]
+                    if(o.alive) o.update()
+                    else{
+                        this.ovejas.splice(i, 1)
+                        i--
+                        //this.entorno.growFood(o.pos)
+                    }
                 }
+                if(Math.random() < FOOD_REGEN) this.entorno.regenerateFood()
+                if(frameCount % 20 == 0) this.updatePlots()
             }
-            if(Math.random() < FOOD_REGEN) this.entorno.regenerateFood()
-            if(frameCount % 60 == 0) this.updatePlots()
         }
+        
         this.panel.update()
+    }
+
+    showPlots(){
+        push()
+        this.plotPop.show()
+        this.plotAvgSpeed.show()
+        this.plotAvgBeauty.show()
+        this.plotAvgRadius.show()
+        this.plotAvgAge.show()
+        pop()
     }
 
     show(){
         background(100)
-        if(this.started){
+        if(this.entorno){
             push()
             if(mouseIsPressed && mouseX < WIDTH){
                 translate(-WIDTH/2, -HEIGHT/2)
@@ -176,18 +242,8 @@ class Simulation{
             rect(0, 0, WIDTH, WIDTH)
         }
 
-        push()
-        noStroke()
-        fill(100)
-        rect(WIDTH, 0, 500, HEIGHT)
-        this.plotPop.show()
-        this.plotAvgSpeed.show()
-        this.plotAvgBeauty.show()
-        this.plotAvgRadius.show()
-        this.plotAvgAge.show()
-        pop()
-        push()
+        this.showPlots()
+       
         this.panel.show()
-        pop()
     }
 }

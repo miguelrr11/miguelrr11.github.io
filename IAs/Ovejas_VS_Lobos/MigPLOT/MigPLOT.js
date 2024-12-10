@@ -83,7 +83,7 @@ class MigPLOT{
             let x, y
             let digit = this.data[i]
             y = mapp(digit, min, max, this.p00.y, this.p01.y)
-            x = mapp(i, 0, this.data.length, this.p00.x, this.p10.x)
+            x = mapp(i, 0, this.data.length-1, this.p00.x, this.p10.x)
             this.dataX[i] = x
             this.dataY[i] = y
         }
@@ -133,7 +133,9 @@ class MigPLOT{
 
         //background
         fill(this.backCol)
-        noStroke()
+        //noStroke()
+        strokeWeight(2)
+        stroke(this.graphCol)
         rect(this.x, this.y, this.w, this.h)
 
         //horizontal guides
@@ -150,6 +152,7 @@ class MigPLOT{
             if(this.showX) text(this.guidesX[i].data, this.guidesX[i].x, this.p00.y + 10)
         }
         //horizontal guide for the last data
+        textAlign(LEFT, CENTER)
         strokeWeight(1.5)
         stroke(this.axisCol)
         let y = this.lastGuide.y
@@ -157,10 +160,11 @@ class MigPLOT{
         noStroke()
         stroke(this.graphCol)
         strokeWeight(.5)
-        text(this.lastGuide.data, this.p00.x - 5, y)
+        text(this.lastGuide.data, this.p10.x + 5, y)
         noStroke()
 
         //tags
+        fill(this.graphCol)
         textAlign(CENTER, BOTTOM)
         text(this.tagX, this.x + this.w*.5, this.p01.y - 10)
         textAlign(CENTER, TOP)

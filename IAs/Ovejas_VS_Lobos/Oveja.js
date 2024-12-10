@@ -183,7 +183,7 @@ class Oveja{
 
     //update based on state
     update(){
-        if(frameCount % 60 == 0) this.updateNecessites()
+        if(FRAME % 60 == 0) this.updateNecessites()
         //se esta moviendo
         if(this.coolDown > 0){
             this.coolDown--
@@ -247,7 +247,7 @@ class Oveja{
     }
 
     randomRadius(){
-        return clamp(randomGaussian(1, 0.5) * INITIAL_RADIUS, 10, 80) * TAM_CELL * 0.05
+        return clamp(randomGaussian(1, 0.5) * INITIAL_RADIUS, 10, 1000) * TAM_CELL * 0.05
     }
 
     show(){
@@ -274,7 +274,7 @@ class Oveja{
             mult = mapp(this.lust, 0, 1, 1.25, 1.5)
         }
         if(!this.state.dying) rect(0, 0, size*mult, size*mult)
-        else if(this.state.dying && Math.floor(frameCount / 15) % 2 == 0) rect(0, 0, size*mult, size*mult)
+        else if(this.state.dying && Math.floor(FRAME / 15) % 2 == 0) rect(0, 0, size*mult, size*mult)
         fill(this.col)
         rect(0, 0, size, size)
         //fill(0)

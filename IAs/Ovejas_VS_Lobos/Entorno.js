@@ -146,18 +146,18 @@ class Entorno{
     }
 
     show(){
-        let fr = frameCount*0.005
+        let fr = FRAME*0.005
         push()
         noStroke()
         for(let i = 0; i < GRID_SIZE; i++){
             for(let j = 0; j < GRID_SIZE; j++){
                 let cell = this.grid[i][j]
                 fill(cell.col)
-                rect(i*TAM_CELL, j*TAM_CELL, TAM_CELL, TAM_CELL)
+                rect(i*TAM_CELL, j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
                 if(cell.food > 0) this.drawFood(i, j, cell.food)
                 if(cell.type == 'water'){
                     fill(255, mapp(Math.sin(cell.rnd + fr), -1, 1, 0, 10))
-                    rect(i*TAM_CELL, j*TAM_CELL, TAM_CELL, TAM_CELL)
+                    rect(i*TAM_CELL, j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
                 }
             }
         }

@@ -80,7 +80,7 @@ TODO
 colores de agua cambian suavemente
 cuanto mas speed, mas rapido crece el hunger y thirst
 capear speed
-opciones de visualizacion:
+opciones de visualizacion ovejas:
 - estandar (necesidades)
 - age
 - radius
@@ -88,4 +88,7 @@ opciones de visualizacion:
 - walking o searching 
 - necesidades (en vez de solo el borde, todo, para que se vean mas claramente)
 - utilizar colores como el del theme sublime de migui ??
+opciones de visualizacion mapa:
+- ver que celdas han sido mas comidas
+- ver que celdas han muerto mas ovejas
 

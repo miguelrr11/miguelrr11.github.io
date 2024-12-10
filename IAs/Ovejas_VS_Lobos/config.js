@@ -36,8 +36,7 @@ let COL_FOOD = "#3E5A20"
 let COL_OVEJA_LEAST_BEAUTY = "#ede0d4"  
 let COL_OVEJA_MOST_BEAUTY = "#7f5539"
 let TAM_OVEJA = TAM_CELL * 0.55
-let SPEED_OVEJA = TAM_CELL
-let SPEED_MULT = 60
+
 let TIME_UNTIL_DEAD = 5
 
 let AGE_FACTOR = 3    //age per second
@@ -46,7 +45,9 @@ let DELTA_HUNGER = .03
 let DELTA_THIRST = .03
 let DELTA_LUST = .005
 
-let INITIAL_SPEED = 3
+let SPEED_OVEJA = TAM_CELL    //distancia del brinco: CONSTANTE
+let SPEED_MULT = 60             //valor que importa
+const INITIAL_SPEED = 3           //no tocar
 let INITIAL_RADIUS = 40
 
 let RADIUS_GOAL_FOOD = TAM_CELL

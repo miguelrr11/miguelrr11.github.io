@@ -10,6 +10,7 @@ let title_SizeMIGUI = 20
 let width_elementsMIGUI = 158
 let clipping_length_normalMIGUI = 20
 let clipping_length_titleMIGUI = 11
+let picker_width = 100
 
 /*
 200 - 20
@@ -86,6 +87,7 @@ class Panel{
 	    this.colorPickers = []
 	    this.separators = []
 	    this.numberPickers = []
+		this.optionPickers = []
 	    this.activeCP = undefined
 	    this.lastElementAdded = ""
 	    this.isInteracting = undefined
@@ -330,6 +332,22 @@ class Panel{
 		return numberPicker
 	}
 
+	createOptionPicker(sentence = "", options = [], func = undefined){
+		let optionPicker = new OptionPicker(this.lastElementPos.x, 
+								this.lastElementPos.y,
+								sentence, options, func,
+								this.lightCol, this.darkCol, this.transCol)
+		//this.lastElementPos.y += 25
+		this.lastElementPos.y += optionPicker.height + this.padding
+		this.optionPickers.push(optionPicker)
+		this.lastElementAdded = optionPicker
+
+		this.lastBU = undefined
+		this.lastCB = undefined
+
+		return optionPicker
+	}
+
 	createSeparator(){
 		this.separators.push(this.lastElementPos.y + this.paddingSeparator - this.padding)
 		this.lastElementPos.y = this.lastElementPos.y + this.paddingSeparator*2 - this.padding
@@ -344,110 +362,6 @@ class Panel{
 	    this.lastElementAdded = 'separator'
 	}
 
-	// setText(pos, sentence = ""){
-	//     if (typeof pos == "number" && pos >= this.sentences.length) {
-	//         throw new Error("Text " + pos + " doesn't exist")
-	//     }
-	//     this.sentences[pos].setText(sentence)
-	// }
-
-	// setInputText(pos, sentence){
-	// 	if(pos >= this.inputs.length) throw new Error("Input " + pos + " doesn't exist")
-	// 	this.inputs[pos].setText(sentence)
-	// }
-
-	// setSliderValue(pos, value){
-	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.sliders) : pos
-    
-	//     if (index == -1 || (typeof index == "number" && index >= this.sliders.length)) {
-	//         throw new Error("Slider " + pos + " doesn't exist")
-	//     }
-
-	//     this.sliders[index].setValue(value)
-	// }
-
-	// //get selected of selected[pos]
-	// getSelected(pos){
-	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.selects) : pos
-    
-	//     if (index == -1 || (typeof index == "number" && index >= this.selects.length)) {
-	//         throw new Error("Select " + pos + " doesn't exist")
-	//     }
-
-	//     return this.selects[index].getSelected()
-	// }
-
-	// //get value of sliders[pos]
-	// getValue(pos) {
-    // 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.sliders) : pos
-    
-	//     if (index == -1 || (typeof index == "number" && index >= this.sliders.length)) {
-	//         throw new Error("Slider " + pos + " doesn't exist")
-	//     }
-
-	//     return this.sliders[index].getValue()
-	// }
-
-	// //set value of sliders[pos]
-	// setValue(pos, value){
-	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.sliders) : pos
-    
-	//     if (index == -1 || (typeof index == "number" && index >= this.sliders.length)) {
-	//         throw new Error("Slider " + pos + " doesn't exist")
-	//     }
-
-	//     this.sliders[index].setValue(value)
-	// }
-
-	// //getChecked of checkboxes[pos]
-	// isChecked(pos){
-	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.checkboxes) : pos
-
-	// 	if (index == -1 || (typeof index == "number" && index >= this.checkboxes.length)) {
-	//         throw new Error("Checkbox " + pos + " doesn't exist")
-	//         return false
-	//     }
-
-	//     return this.checkboxes[index].isChecked()
-	// }
-
-	// //getText of inputs[pos]
-	// getInput(pos){	
-	// 	if(pos >= this.inputs.length || pos < 0){
-	// 		throw new Error("Input " + pos + " doesn't exist")
-	//         return false
-	// 	}
-	// 	return this.inputs[pos].getText()
-	// }
-
-	// getColor(pos){
-	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.colorPickers) : pos
-    
-	//     if (index == -1 || (typeof index == "number" && index >= this.colorPickers.length)) {
-	//         throw new Error("Color picker " + pos + " doesn't exist")
-	//     }
-
-	//     return this.colorPickers[pos].getColor()
-	// }
-
-	// //change text of buttons[pos]
-	// changeText(pos, text = ""){
-	// 	let offset = this.retractable ? 1 : 0
-	// 	if(pos >= this.buttons.length + offset || pos < 0){
-	// 		throw new Error("Button " + pos + " doesn't exist")
-	//         return false
-	// 	}
-	// 	this.buttons[pos + offset].setText(text)
-	// }
-
-	// //change function of buttons[pos]
-	// changeFunc(pos, func = undefined){
-	// 	if(pos >= this.buttons.length + 1 || pos < 0){
-	// 		throw new Error("Button " + pos + " doesn't exist")
-	//         return false
-	// 	}
-	// 	this.buttons[pos + 1].setFunc(func)
-	// }
 
 	changeColors(dark, light){
 		if(typeof dark === "string"){
@@ -473,12 +387,8 @@ class Panel{
 		for(let b of this.buttons)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
 		for(let b of this.colorPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol; b.saturation = this.transCol}
 		for(let b of this.numberPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
+		for(let b of this.optionPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
 	}
-
-// let c1 = [hexToRgb("#1d3557"), hexToRgb("#457b9d"), hexToRgb("#e63946")]
-// let c2 = [hexToRgb("#393e41"), hexToRgb("#fff8f0"), hexToRgb("#f4d35e")]
-// let c3 = [hexToRgb("#fbf5f3"), hexToRgb("#e28413"), hexToRgb("#000022")]
-// let c4 = [hexToRgb("#092327"), hexToRgb("#0b5351"), hexToRgb("#17B1AD")]
 
 	setTheme(theme){
 		if(theme == "mono"){
@@ -591,6 +501,10 @@ class Panel{
 			this.isInteracting = c
 			return
 		}
+		for(let c of this.optionPickers) if(c.evaluate()) {
+			this.isInteracting = c
+			return
+		}
 
 		
 		// for(let i of this.inputs) {
@@ -609,6 +523,8 @@ class Panel{
 	}
 
 	show(){
+		push()
+
 		this.beingHoveredHand = false
 		this.beingHoveredText = false
 
@@ -643,6 +559,7 @@ class Panel{
 		for(let b of this.inputs) this.beingHoveredText = b.show() || this.beingHoveredText
 		for(let b of this.buttons) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.numberPickers) this.beingHoveredHand = b.show() || this.beingHoveredHand
+		for(let b of this.optionPickers) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.colorPickers){ 
 			this.beingHoveredHand = b.show() || this.beingHoveredHand
 			if(b.isChoosing) this.activeCP = b
@@ -660,6 +577,8 @@ class Panel{
 		if(this.beingHoveredHand) cursor(HAND)
 		else if(this.beingHoveredText) cursor(TEXT)
 		else cursor(ARROW)
+
+		pop()
 	}
 }
 

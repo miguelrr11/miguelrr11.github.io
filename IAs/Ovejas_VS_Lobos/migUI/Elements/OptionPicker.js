@@ -1,5 +1,5 @@
-class NumberPicker{
-	constructor(x, y, text, min, max, delta, def, funcMinus, funcPlus, lightCol, darkCol){
+class OptionPicker{
+	constructor(x, y, text, options, func, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -11,16 +11,13 @@ class NumberPicker{
 		this.beingHoveredMinus = false
 		this.beingPressed = false
 
-		this.funcMinus = funcMinus
-		this.funcPlus = funcPlus
-
-		this.min = min != undefined ? min : -Infinity
-		this.max = max != undefined ? max : Infinity
-		this.value = def != undefined ? constrain(def, this.min, this.max) : 0
-		this.delta = delta ? delta : 1
+		this.func = func
 
 		this.w = picker_width
 		this.h = 17
+
+        this.options = options
+        this.selectedIndex = 0
 
 		this.sectionW = 20
 
@@ -30,8 +27,8 @@ class NumberPicker{
 		this.disabled = false
 	}
 
-	getValue(){
-		return this.value
+	getSelected(){
+		return this.options[this.selectedIndex%this.options.length]
 	}
 
 	disable(){
@@ -59,19 +56,15 @@ class NumberPicker{
 		if(this.disabled) return false
 
 		if((this.beingHoveredMinus || this.beingHoveredPlus) && mouseIsPressed && !this.beingPressed){ 
-			//ver donde se ha presionado, si en el + o en el -
+			//ver donde se ha presionado, si en el < o en el >
 			if(this.beingHoveredMinus){
-				this.value -= this.delta
-				this.value = round(this.value, 2)
-				if(this.funcMinus && this.value >= this.min) this.funcMinus()
-				this.value = constrain(this.value, this.min, this.max)
-				
+				this.selectedIndex--
+				if(this.selectedIndex < 0) this.selectedIndex = this.options.length-1
+				if(this.func) this.func()
 			}
 			if(this.beingHoveredPlus){
-				this.value += this.delta
-				this.value = round(this.value, 2)
-				if(this.funcPlus && this.value <= this.max) this.funcPlus()
-				this.value = constrain(this.value, this.min, this.max)
+				this.selectedIndex++
+				if(this.func) this.func()
 			}
 			this.beingPressed = true
 			return true
@@ -96,9 +89,7 @@ class NumberPicker{
 		textSize(this.textSize+1)
 		if(bool && mouseIsPressed) fill(this.darkCol)
 		this.disabled ? fill(this.transCol) : fill(this.lightCol)
-		
 	}
-
 
 	show(){
 		push()
@@ -109,20 +100,21 @@ class NumberPicker{
 		fill(this.darkCol)
 		rect(this.pos.x, this.pos.y, this.w, this.h)
 		this.setSFtext(false)
-		text(this.value, this.pos.x + this.w * 0.5, this.pos.y + this.h / 2 - 1)
+        let option = getClippedTextMIGUI(this.options[this.selectedIndex%this.options.length], 10)
+		text(option, this.pos.x + this.w * 0.5, this.pos.y + this.h / 2 - 1)
 
 		//rect con -
 		this.setSF(this.beingHoveredMinus)
 		rect(this.pos.x, this.pos.y, this.sectionW, this.h)
 		this.setSFtext(this.beingHoveredMinus)
-		text('-', this.pos.x + this.sectionW / 2, this.pos.y + this.h / 2 - 1)
+		text('<', this.pos.x + this.sectionW / 2, this.pos.y + this.h / 2 - 1)
 
 
 		//rect con +
 		this.setSF(this.beingHoveredPlus)
 		rect(this.pos.x+this.w-this.sectionW, this.pos.y, this.sectionW, this.h)
 		this.setSFtext(this.beingHoveredPlus)
-		text('+', this.pos.x+this.w-this.sectionW/2, this.pos.y + this.h / 2 - 1)
+		text('>', this.pos.x+this.w-this.sectionW/2, this.pos.y + this.h / 2 - 1)
 
 		noStroke()
 		this.setSFtext(false)

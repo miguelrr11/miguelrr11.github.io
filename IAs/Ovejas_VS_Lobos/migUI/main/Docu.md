@@ -132,6 +132,17 @@ A number picker allows to change a number with 2 buttons (- and +)
 
 - **`np.getValue()`**: Returns the value of the picker
 
+### Option Picker
+Similar to the Number Picker, this allows to select text options.
+
+- **`panel.createOptionPicker([title], [options], [func])`**: Creates an option picker.
+  - `title` (`string`, optional): Label for the option picker.
+  - `options` (`array`, optional): Options (array of strings).
+  - `func` (`function`, optional): Function executed when the option is changed.
+  - **Returns**: `OptionPicker` instance.
+
+- **`op.getSelected()`**: Returns the option selected
+
 ### Separator
 Creates a visual separator between elements.
 
