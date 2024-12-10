@@ -4,7 +4,7 @@ class Entorno{
     }
 
     init(){
-        let bound = 0.6
+        let bound = LAND
         this.grid = []
         for(let i = 0; i < GRID_SIZE; i++){
             this.grid[i] = []
@@ -17,7 +17,8 @@ class Entorno{
                     val: finalVal,
                     col: valor > bound ? lerppColor(COL_LIGHT_BLUE, COL_DARK_BLUE, finalVal) :
                                          lerppColor(COL_LIGHT_GREEN, COL_DARK_GREEN, finalVal),
-                    food: isFood ? 5 : 0
+                    food: isFood ? 5 : 0,
+                    rnd: finalVal + random(-1, 1)
                 }
             }
         }
@@ -144,6 +145,7 @@ class Entorno{
     }
 
     show(){
+        let fr = frameCount*0.005
         push()
         noStroke()
         for(let i = 0; i < GRID_SIZE; i++){
@@ -152,6 +154,10 @@ class Entorno{
                 fill(cell.col)
                 rect(i*TAM_CELL, j*TAM_CELL, TAM_CELL, TAM_CELL)
                 if(cell.food > 0) this.drawFood(i, j, cell.food)
+                if(cell.type == 'water'){
+                    fill(255, mapp(Math.sin(cell.rnd + fr), -1, 1, 0, 10))
+                    rect(i*TAM_CELL, j*TAM_CELL, TAM_CELL, TAM_CELL)
+                }
             }
         }
         pop()

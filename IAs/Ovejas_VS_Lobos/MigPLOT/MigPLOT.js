@@ -11,8 +11,8 @@ class MigPLOT{
         this.font = loadFont("MigPLOT/mono.ttf")
         this.data = data
 
-        this.marginX = 40
-        this.marginY = 35
+        this.marginX = 35
+        this.marginY = 30
 
         this.dataX = []
         this.dataY = []
@@ -160,7 +160,7 @@ class MigPLOT{
 
         //tags
         textAlign(CENTER, BOTTOM)
-        text(this.tagX, this.p00.x, this.p01.y - 10)
+        text(this.tagX, this.x + this.w*.5, this.p01.y - 10)
         textAlign(CENTER, TOP)
         text(this.tagY, this.p10.x, this.p00.y + 10)
 

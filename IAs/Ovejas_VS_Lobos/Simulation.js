@@ -2,23 +2,26 @@ class Simulation{
     constructor(){
         this.entorno = new Entorno()
         this.init()
+
+        let sizePlot = HEIGHT*.2
+        let x = WIDTH + WIDTH_UI - sizePlot
         
-        this.plotPop = new MigPLOT(WIDTH, 0, 250, 250, [0], 'Population', '')
+        this.plotPop = new MigPLOT(x, 0, sizePlot, sizePlot, [0], 'Population', '')
         this.plotPop.minGlobal = 0
 
-        this.plotAvgSpeed = new MigPLOT(WIDTH+250, 0, 250, 250, [0], 'Avg Movement Cooldown', '')
+        this.plotAvgSpeed = new MigPLOT(x, sizePlot, sizePlot, sizePlot, [0], 'Avg Movement Cooldown', '')
         this.plotAvgSpeed.minGlobal = 0
         this.plotAvgSpeed.maxGlobal = 100
 
-        this.plotAvgBeauty = new MigPLOT(WIDTH, 250, 250, 250, [0], 'Avg Beauty', '')
+        this.plotAvgBeauty = new MigPLOT(x, sizePlot*2, sizePlot, sizePlot, [0], 'Avg Beauty', '')
         this.plotAvgBeauty.minGlobal = 0
         this.plotAvgBeauty.maxGlobal = 1
 
-        this.plotAvgRadius = new MigPLOT(WIDTH+250, 250, 250, 250, [0], 'Avg Radius', '')
+        this.plotAvgRadius = new MigPLOT(x, sizePlot*3, sizePlot, sizePlot, [0], 'Avg Radius', '')
         this.plotAvgRadius.minGlobal = 0
         this.plotAvgRadius.maxGlobal = 5
 
-        this.plotAvgAge = new MigPLOT(WIDTH, 500, 250, 250, [0], 'Avg Age', '')
+        this.plotAvgAge = new MigPLOT(x, sizePlot*4, sizePlot, sizePlot, [0], 'Avg Age', '')
         this.plotAvgAge.minGlobal = 0
         this.plotAvgAge.maxGlobal = 400
 

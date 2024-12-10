@@ -61,4 +61,14 @@ ideas fumada
     - en la noche duermen
 
 TODO
-cooldown de reproduccion
+colores de agua cambian suavemente
+cuanto mas speed, mas rapido crece el hunger y thirst
+capear speed
+opciones de visualizacion:
+- estandar (necesidades)
+- age
+- radius
+- speed
+- walking o searching 
+- necesidades (en vez de solo el borde, todo, para que se vean mas claramente)
+

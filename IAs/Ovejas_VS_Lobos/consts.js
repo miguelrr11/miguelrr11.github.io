@@ -1,9 +1,11 @@
-const WIDTH  = 800
-const HEIGHT = 800
+const WIDTH  = 850
+const HEIGHT = 850
+const WIDTH_UI = 600
 
-const GRID_SIZE = 80       //cells per row
+const GRID_SIZE = 85       //cells per row / column
 const SQ_GRID_SIZE = GRID_SIZE * GRID_SIZE
 const TAM_CELL = WIDTH / GRID_SIZE
+const LAND = 0.5              //% of the grid that is land (the other is water)
 const N_OVEJAS = SQ_GRID_SIZE*0.1
 const FOOD_CHANCE = .035        //starting food
 const FOOD_FACTOR_REGEN = 150    //factor que importa (cuanto mas alto, menos comida spawnea)
