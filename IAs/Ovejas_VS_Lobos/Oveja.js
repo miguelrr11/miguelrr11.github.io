@@ -158,10 +158,15 @@ class Oveja{
         }
         else if(this.state.dying){
             this.timeUntilDeath--
-            if(this.timeUntilDeath <= 0) this.alive = false
+            if(this.timeUntilDeath <= 0) this.die()
         }
-        if(this.age > AGE_LIMIT) this.alive = false
+        if(this.age > AGE_LIMIT) this.die()
         
+    }
+
+    die(){
+        this.alive = false
+        this.entorno.deathAt(this.pos)
     }
 
     //check if partner is still alive
@@ -250,14 +255,14 @@ class Oveja{
         return clamp(randomGaussian(1, 0.5) * INITIAL_RADIUS, 10, 1000) * TAM_CELL * 0.05
     }
 
-    show(){
+    show(option, showNec){
         if(!this.alive) return
         // console.log("posX " + this.pos.x)
         // console.log("newposX " + this.newPos.x)
         push()
         rectMode(CENTER)
         noStroke()
-        let size = mapp(this.age, 0, 300, TAM_OVEJA*0.5, TAM_OVEJA, true)
+        let size = mapp(this.age, 0, AGE_LIMIT, TAM_OVEJA*0.5, TAM_OVEJA, true)
         let pos = createVector()
         let off = this.coolDown == this.speed ? 1 : 1 / (this.speed - this.coolDown)
         pos.x = lerp(this.newPos.x, this.pos.x, off)
@@ -266,35 +271,44 @@ class Oveja{
         if(!pos.y) console.log(this.newPos.y, this.pos.y)
         translate(pos.x, pos.y)
         rotate(Math.atan2(this.vel.y, this.vel.x))
-        let mult = 0
-        if(this.state.goal == 'food') {fill(COL_HUNGER); mult = mapp(this.hunger, 0, 1, 1.25, 1.5)}
-        if(this.state.goal == 'water') {fill(COL_THIRST); mult = mapp(this.thirst, 0, 1, 1.25, 1.5)}
-        if(this.state.goal == 'partner') {
-            this.genre == 'male' ? fill(COL_LUST_MALE) : fill(COL_LUST_FEMALE); 
-            mult = mapp(this.lust, 0, 1, 1.25, 1.5)
+        if(showNec){
+            let mult = 0
+            if(this.state.goal == 'food') {fill(COL_HUNGER); mult = mapp(this.hunger, 0, 1, 1.25, 1.5)}
+            if(this.state.goal == 'water') {fill(COL_THIRST); mult = mapp(this.thirst, 0, 1, 1.25, 1.5)}
+            if(this.state.goal == 'partner') {
+                this.genre == 'male' ? fill(COL_LUST_MALE) : fill(COL_LUST_FEMALE); 
+                mult = mapp(this.lust, 0, 1, 1.25, 1.5)
+            }
+            rect(0, 0, size*mult, size*mult)
         }
-        if(!this.state.dying) rect(0, 0, size*mult, size*mult)
-        else if(this.state.dying && Math.floor(FRAME / 15) % 2 == 0) rect(0, 0, size*mult, size*mult)
-        fill(this.col)
-        rect(0, 0, size, size)
-        //fill(0)
-        //if(this.genre == 'male') ellipse(0, 0, 5)
-        pop()
-
-        //debug
-        if(keyIsPressed){
+        
+        if(option == 'beauty'){
+            fill(this.col)
+        }
+        else if(option == 'age'){
+            fill(mapp(this.age, 0, AGE_LIMIT, 0, 255, true))
+        }
+        else if(option == 'radius'){
+            fill(this.col)
             push()
             noFill()
-            stroke(0)
-            if(this.state.posGoal) ellipse(this.state.posGoal.x, this.state.posGoal.y, TAM_CELL*0.5)
-            ellipse(pos.x, pos.y, this.radius*2)
-
-            // fill(0)
-            // noStroke()
-            // textSize(10)
-            // text(this.state.action, pos.x, pos.y)
+            stroke(0, 100)
+            strokeWeight(.5)
+            ellipse(0, 0, this.radius*2)
             pop()
         }
+        else if(option == 'speed'){
+            let col = lerppColor("#ffd9da", "#89023e", clamp(this.speed / SPEED_MULT, 0, 1))
+            fill(col)
+        }
+        else if(option == 'state'){
+            if(this.state.action == 'searching') fill("#f7b538")
+            else if(this.state.action == 'walking') fill("#780116")
+        }
+        else if(option == 'none') fill(0, 0)
+        if(!this.state.dying) rect(0, 0, size, size)
+        else if(this.state.dying && Math.floor(FRAME / 15) % 2 == 0) rect(0, 0, size, size)
+        pop()
         
     }
 

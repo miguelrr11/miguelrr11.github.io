@@ -60,6 +60,14 @@ ideas fumada
 - ciclo dia / noche 
     - en la noche duermen
 
+- COEVOLUCION:
+- por ejemplo: 
+    - la comida puede mutar y volverse venenosa
+    - las ovejas tienen resistencia al veneno que tambien mutar
+    - entonces se entra en un ciclo donde la comida evoluciona para volverse mas venenosa,
+    y las ovejas tambien para poder comerse la comida venenosa
+    - tambien podria hacerse con los lobos
+
 VARIABLES MODIFICABLES POR USUARIO
 - tamaño grid
 - porcentaje land vs water

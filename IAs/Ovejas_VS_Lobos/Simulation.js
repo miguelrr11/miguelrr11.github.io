@@ -21,13 +21,14 @@ class Simulation{
         this.panel.createText('Ecosystem Simulation')
         
         this.panel.createSeparator()
+
         this.panel.createText('VARIABLES', true)
         this.panel.separate()
         this.panel_GRID_SIZE = this.panel.createNumberPicker('Grid Size', 5, 120, 5, 50)
         this.panel_LAND = this.panel.createNumberPicker('% of Land vs Water', 0, 1, 0.1, 0.5)
         this.panel_STARTING_AGE = this.panel.createNumberPicker('Starting Age', 0, 300, 10, 100)
         this.panel_STARTING_STATE = this.panel.createOptionPicker('Starting State', ['food', 'water', 'partner'])
-        this.panel_STARTING_SPEED = this.panel.createNumberPicker('Starting Speed', 5, 100, 5, 60)
+        this.panel_STARTING_SPEED = this.panel.createNumberPicker('Starting Movement Cooldown', 5, 200, 10, 60)
         this.panel_STARTING_RADIUS = this.panel.createNumberPicker('Starting Radius', 5, 200, 10, 40)
         this.panel_AGE_LIMIT = this.panel.createNumberPicker('Maximum Age', 0, 1000, 25, 400)
         this.panel_AGE_LIMIT_REPRODUCE = this.panel.createNumberPicker('Minimum Age to Reproduce', 0, 1000, 25, 75)
@@ -38,6 +39,7 @@ class Simulation{
         this.panel_DELTA_LUST   = this.panel.createNumberPicker('Reproductive Urge Rate', 0, 0.3, 0.01, 0.01)
 
         this.panel.createSeparator()
+
         this.panel.createButton('Start Simulation', () => {
             this.initConfig()
             this.init()
@@ -74,6 +76,14 @@ class Simulation{
                     break
             }
         })
+
+        this.panel.createSeparator()
+
+        this.panel_select_view_entorno = this.panel.createOptionPicker('Enviroment view options', 
+            ['normal', 'deaths'])
+        this.panel_select_view_ovejas = this.panel.createOptionPicker('Sheep view options', 
+            ['beauty', 'age', 'radius', 'speed', 'state', 'none'])
+        this.panel_show_necessities = this.panel.createCheckbox('Show necessities', true)
     }
 
     initConfig(){
@@ -111,7 +121,6 @@ class Simulation{
 
         this.plotAvgSpeed = new MigPLOT(x, sizePlot, sizePlot, sizePlot, [0], 'Avg Movement Cooldown', '')
         this.plotAvgSpeed.minGlobal = 0
-        this.plotAvgSpeed.maxGlobal = 50
 
         this.plotAvgBeauty = new MigPLOT(x, sizePlot*2, sizePlot, sizePlot, [0], 'Avg Beauty', '')
         this.plotAvgBeauty.minGlobal = 0
@@ -123,7 +132,7 @@ class Simulation{
 
         this.plotAvgAge = new MigPLOT(x, sizePlot*4, sizePlot, sizePlot, [0], 'Avg Age', '')
         this.plotAvgAge.minGlobal = 0
-        this.plotAvgAge.maxGlobal = 400
+        this.plotAvgAge.maxGlobal = AGE_LIMIT
     }
 
     init(){
@@ -233,8 +242,9 @@ class Simulation{
                 let zoomCentery = mouseY - HEIGHT / 2
                 translate(-zoomCenterx, -zoomCentery)
             }
-            this.entorno.show()
-            for(let o of this.ovejas) o.show()
+            this.entorno.show(this.panel_select_view_entorno.getSelected())
+            for(let o of this.ovejas) o.show(this.panel_select_view_ovejas.getSelected(),
+                                             this.panel_show_necessities.isChecked())
             pop()
         }
         else{

@@ -82,21 +82,20 @@ class MigPLOT{
         for(let i = 0; i < this.data.length; i++){
             let x, y
             let digit = this.data[i]
-            y = mapp(digit, min, max, this.p00.y, this.p01.y)
-            x = mapp(i, 0, this.data.length-1, this.p00.x, this.p10.x)
+            y = mapp_PLOT(digit, min, max, this.p00.y, this.p01.y, true)
+            x = mapp_PLOT(i, 0, this.data.length-1, this.p00.x, this.p10.x, true)
             this.dataX[i] = x
             this.dataY[i] = y
         }
-        let step = 1
         for(let i = 0; i < this.steps+1; i++){
-            let y = mapp(i*step, 0, step*this.steps, this.p00.y, this.p01.y)
+            let y = mapp_PLOT(i, 0, this.steps, this.p00.y, this.p01.y, true)
             this.guidesY[i] = {y:0, data:0}
             this.guidesY[i].y = y
-            this.guidesY[i].data = getRoundedValueMIGUI(mapp(y, this.p00.y, this.p01.y, min, max))
-            let x = mapp(i*step, 0, step*this.steps, this.p00.x, this.p10.x)
+            this.guidesY[i].data = getRoundedValueMIGUI(mapp_PLOT(y, this.p00.y, this.p01.y, min, max, true))
+            let x = mapp_PLOT(i, 0, this.steps, this.p00.x, this.p10.x, true)
             this.guidesX[i] = {x:0, data:0}
             this.guidesX[i].x = x
-            this.guidesX[i].data = getRoundedValueMIGUI(mapp(x, this.p00.x, this.p10.x, 0, this.nData))
+            this.guidesX[i].data = getRoundedValueMIGUI(mapp_PLOT(x, this.p00.x, this.p10.x, 0, this.nData, true))
         }
         this.lastGuide.y = this.dataY[this.nData-1]
         this.lastGuide.data = getRoundedValueMIGUI(this.data[this.nData-1])
@@ -187,4 +186,18 @@ function getRoundedValueMIGUI(value){
 	if(Math.abs(value) < 1) return round(value, 2)
 	if(Math.abs(value) < 10) return round(value, 1)
 	return round(value)
+}
+
+function mapp_PLOT(value, start1, stop1, start2, stop2, withinBounds = false) {
+    let mappedValue = start2 + ( (value - start1) / (stop1 - start1) ) * (stop2 - start2);
+    
+    if (withinBounds) {
+        if (start2 < stop2) {
+            mappedValue = Math.max(Math.min(mappedValue, stop2), start2);
+        } else {
+            mappedValue = Math.max(Math.min(mappedValue, start2), stop2);
+        }
+    }
+
+    return mappedValue;
 }

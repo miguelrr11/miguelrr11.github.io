@@ -14,15 +14,19 @@ class Entorno{
                 let finalVal = valor > bound ? mapp(valor, bound, 1, 0, 1) : mapp(valor, 0, bound, 0, 1)
                 let isFood = Math.random() < FOOD_CHANCE && valor < bound
                 this.grid[i][j] = {
+                    i: i,
+                    j: j,
                     type: valor > bound ? 'water' : 'grass',
                     val: finalVal,
                     col: valor > bound ? lerppColor(COL_LIGHT_BLUE, COL_DARK_BLUE, finalVal) :
                                          lerppColor(COL_LIGHT_GREEN, COL_DARK_GREEN, finalVal),
                     food: isFood ? 5 : 0,
-                    rnd: finalVal + random(-1, 1)
+                    rnd: finalVal + random(-1, 1),
+                    deaths: 0
                 }
             }
         }
+        this.maxDeaths = 0
     }
 
     regenerateFood(){
@@ -145,20 +149,46 @@ class Entorno{
         pop()
     }
 
-    show(){
+    deathAt(realPos){
+        let i = Math.floor(realPos.x / TAM_CELL)
+        let j = Math.floor(realPos.y / TAM_CELL)
+        this.grid[i][j].deaths++
+    }
+
+    showNormal(cell){
         let fr = FRAME*0.005
+        fill(cell.col)
+        rect(cell.i*TAM_CELL, cell.j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
+        if(cell.food > 0) this.drawFood(cell.i, cell.j, cell.food)
+        if(cell.type == 'water'){
+            fill(255, mapp(Math.sin(cell.rnd + fr), -1, 1, 0, 10))
+            rect(cell.i*TAM_CELL, cell.j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
+        }
+    }
+
+    showDeaths(cell){
+        let fr = FRAME*0.005
+        if(cell.type == 'water'){
+            fill(COL_SIMPLE_BLUE)
+            rect(cell.i*TAM_CELL, cell.j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
+            return
+        }
+        if(this.maxDeaths == 0) fill("#6c757d")
+        else fill(lerppColor("#6c757d", "#dd2d4a", clamp(cell.deaths / this.maxDeaths, 0, 1)))
+        rect(cell.i*TAM_CELL, cell.j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
+        
+    }
+
+
+    show(option){
         push()
         noStroke()
         for(let i = 0; i < GRID_SIZE; i++){
             for(let j = 0; j < GRID_SIZE; j++){
                 let cell = this.grid[i][j]
-                fill(cell.col)
-                rect(i*TAM_CELL, j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
-                if(cell.food > 0) this.drawFood(i, j, cell.food)
-                if(cell.type == 'water'){
-                    fill(255, mapp(Math.sin(cell.rnd + fr), -1, 1, 0, 10))
-                    rect(i*TAM_CELL, j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
-                }
+                if(cell.deaths > this.maxDeaths) this.maxDeaths = cell.deaths
+                if(option == 'normal') this.showNormal(cell)
+                else if(option == 'deaths') this.showDeaths(cell)
             }
         }
         pop()
