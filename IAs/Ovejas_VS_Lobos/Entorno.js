@@ -22,11 +22,13 @@ class Entorno{
                                          lerppColor(COL_LIGHT_GREEN, COL_DARK_GREEN, finalVal),
                     food: isFood ? 5 : 0,
                     rnd: finalVal + random(-1, 1),
-                    deaths: 0
+                    deaths: 0,
+                    eaten: 0
                 }
             }
         }
         this.maxDeaths = 0
+        this.maxEaten = 0
     }
 
     regenerateFood(){
@@ -127,8 +129,8 @@ class Entorno{
         let j = Math.floor(realPos.y / TAM_CELL)
         if( this.grid[i][j].food <= 0) return false
         this.grid[i][j].food--
+        this.grid[i][j].eaten++
         return true
-        //if(Math.random() < FOOD_REGEN) this.regenerateFood()
     }
 
     growFood(realPos){
@@ -167,16 +169,25 @@ class Entorno{
     }
 
     showDeaths(cell){
-        let fr = FRAME*0.005
         if(cell.type == 'water'){
             fill(COL_SIMPLE_BLUE)
             rect(cell.i*TAM_CELL, cell.j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
             return
         }
         if(this.maxDeaths == 0) fill("#6c757d")
-        else fill(lerppColor("#6c757d", "#dd2d4a", clamp(cell.deaths / this.maxDeaths, 0, 1)))
+        else fill(lerppColor("#6c757d", "#dd2d4a", Math.pow(clamp(cell.deaths / this.maxDeaths, 0, 1), 0.8)))
         rect(cell.i*TAM_CELL, cell.j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
-        
+    }
+
+    showEaten(cell){
+        if(cell.type == 'water'){
+            fill(COL_SIMPLE_BLUE)
+            rect(cell.i*TAM_CELL, cell.j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
+            return
+        }
+        if(this.maxEaten == 0) fill(COL_DARK_GREEN)
+        else fill(lerppColor(COL_DARK_GREEN, COL_LIGHT_GREEN, Math.pow(clamp(cell.eaten / this.maxEaten, 0, 1), 0.8)))
+        rect(cell.i*TAM_CELL, cell.j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
     }
 
 
@@ -187,8 +198,10 @@ class Entorno{
             for(let j = 0; j < GRID_SIZE; j++){
                 let cell = this.grid[i][j]
                 if(cell.deaths > this.maxDeaths) this.maxDeaths = cell.deaths
+                if(cell.eaten > this.maxEaten) this.maxEaten = cell.eaten
                 if(option == 'normal') this.showNormal(cell)
                 else if(option == 'deaths') this.showDeaths(cell)
+                else if(option == 'eaten') this.showEaten(cell)
             }
         }
         pop()

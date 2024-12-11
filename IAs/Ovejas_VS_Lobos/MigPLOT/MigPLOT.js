@@ -11,7 +11,7 @@ class MigPLOT{
         this.font = loadFont("MigPLOT/mono.ttf")
         this.data = data
 
-        this.marginX = 35
+        this.marginX = 37
         this.marginY = 30
 
         this.dataX = []
@@ -123,12 +123,23 @@ class MigPLOT{
         pop()
     }
 
+    resize(string){
+        if(textWidth(string) > this.marginX){
+            for(let i = 11; i > 0; i--){
+                textSize(i)
+                let w = textWidth(string)
+                if(w < (this.marginX-10)) break
+            }
+        }
+    }
+
     show(){
         
 
         push()
         textFont(this.font)
         textSize(12)
+        
 
         //background
         fill(this.backCol)
@@ -147,8 +158,11 @@ class MigPLOT{
             stroke(this.textCol)
             line(this.p00.x, y, this.p10.x, y)
             noStroke()
-            text(this.guidesY[i].data, this.p00.x - 5, y)
-            if(this.showX) text(this.guidesX[i].data, this.guidesX[i].x, this.p00.y + 10)
+            //this.resize(this.guidesY[i].data)
+            let tx = formatLargeNumber(this.guidesY[i].data)
+            this.resize(tx)
+            text(tx, this.p00.x - 5, y)
+            if(this.showX) text(tx, this.guidesX[i].x, this.p00.y + 10)
         }
         //horizontal guide for the last data
         textAlign(LEFT, CENTER)
@@ -159,10 +173,13 @@ class MigPLOT{
         noStroke()
         stroke(this.graphCol)
         strokeWeight(.5)
-        text(this.lastGuide.data, this.p10.x + 5, y)
+        let tx = formatLargeNumber(this.lastGuide.data)
+        this.resize(tx)
+        text(tx, this.p10.x + 5, y)
         noStroke()
 
         //tags
+        textSize(12)
         fill(this.graphCol)
         textAlign(CENTER, BOTTOM)
         text(this.tagX, this.x + this.w*.5, this.p01.y - 10)
@@ -201,3 +218,10 @@ function mapp_PLOT(value, start1, stop1, start2, stop2, withinBounds = false) {
 
     return mappedValue;
 }
+
+function formatLargeNumber(value) {
+    if (value >= 1000) {
+      return (value / 1000).toFixed(1) + "K";
+    }
+    return value.toString();
+  }

@@ -26,6 +26,7 @@ class Simulation{
         this.panel.separate()
         this.panel_GRID_SIZE = this.panel.createNumberPicker('Grid Size', 5, 120, 5, 50)
         this.panel_LAND = this.panel.createNumberPicker('% of Land vs Water', 0, 1, 0.1, 0.5)
+        this.panel_FOOD_FACTOR_REGEN = this.panel.createNumberPicker('Food regen cooldwon', 0, 200, 5, 100)
         this.panel_STARTING_AGE = this.panel.createNumberPicker('Starting Age', 0, 300, 10, 100)
         this.panel_STARTING_STATE = this.panel.createOptionPicker('Starting State', ['food', 'water', 'partner'])
         this.panel_STARTING_SPEED = this.panel.createNumberPicker('Starting Movement Cooldown', 5, 200, 10, 60)
@@ -80,14 +81,21 @@ class Simulation{
         this.panel.createSeparator()
 
         this.panel_select_view_entorno = this.panel.createOptionPicker('Enviroment view options', 
-            ['normal', 'deaths'])
+            ['normal', 'deaths', 'eaten'])
         this.panel_select_view_ovejas = this.panel.createOptionPicker('Sheep view options', 
             ['beauty', 'age', 'radius', 'speed', 'state', 'none'])
         this.panel_show_necessities = this.panel.createCheckbox('Show necessities', true)
+
+        this.panel.createSeparator()
+
+        this.panel.createOptionPicker('Play God', 
+            ['food'])
     }
 
     initConfig(){
         GRID_SIZE = this.panel_GRID_SIZE.getValue()
+        FOOD_FACTOR_REGEN = this.panel_FOOD_FACTOR_REGEN.getValue()
+        FOOD_REGEN = (SQ_GRID_SIZE / (SQ_GRID_SIZE + GRID_SIZE * FOOD_FACTOR_REGEN))
         LAND = this.panel_LAND.getValue()
         STARTING_AGE = this.panel_STARTING_AGE.getValue()
         AGE_LIMIT = this.panel_AGE_LIMIT.getValue()
@@ -156,7 +164,7 @@ class Simulation{
         let nOffsprings = Math.round(randomGaussian(2, .35), 1)
         for(let i = 0; i < nOffsprings; i++){
             let mutSpeed  = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.3) * 4
-            let mutBeauty = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.3) * 0.25
+            let mutBeauty = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.3) * 0.15
             let mutRadius = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.3) * 8
             //sin mezcla
             let prog = Math.random() < .5 ? mother : father

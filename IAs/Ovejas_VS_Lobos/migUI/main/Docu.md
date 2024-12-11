@@ -120,7 +120,7 @@ A color picker with sliders for hue, saturation, and transparency.
 ### Number Picker
 A number picker allows to change a number with 2 buttons (- and +)
 
-- **`panel.createNumberPicker([title], [min], [max], [default], [funcMinus], [funcPlus])`**: Creates a number picker.
+- **`panel.createNumberPicker([title], [min], [max], [delta], [default], [funcMinus], [funcPlus])`**: Creates a number picker.
   - `title` (`string`, optional): Label for the number picker.
   - `min` (`number`, optional): Minimum value for the picker.
   - `max` (`number`, optional): Maximum value for the picker.
