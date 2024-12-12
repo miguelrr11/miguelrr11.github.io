@@ -1,4 +1,4 @@
-class Oveja{
+class Fox{
     constructor(entorno, sim, pos, speed, beauty, radius){
         this.entorno = entorno
         this.sim = sim
@@ -25,7 +25,7 @@ class Oveja{
         this.newState()
         
 
-        this.col = lerppColor(COL_OVEJA_MOST_BEAUTY, COL_OVEJA_LEAST_BEAUTY, this.beauty)
+        this.col = lerppColor(COL_FOX_MOST_BEAUTY, COL_FOX_LEAST_BEAUTY, this.beauty)
 
         //movement
         this.coolDown = 0
@@ -41,14 +41,14 @@ class Oveja{
 
     //if moving towards something and really close, just go there instead of overshooting
     checkIfClose(goal){
-        if(dist(goal.x, goal.y, this.pos.x, this.pos.y) < SPEED_OVEJA) this.newPos = goal.copy()
+        if(dist(goal.x, goal.y, this.pos.x, this.pos.y) < SPEED_FOX) this.newPos = goal.copy()
     }
 
     move(goal = undefined){
         let vel
         if(goal) vel = p5.Vector.sub(goal, this.pos).normalize()
         else vel = this.vel.copy()
-        vel.mult(SPEED_OVEJA)
+        vel.mult(SPEED_FOX)
         let newPos = this.pos.copy().add(vel)
         if(newPos.x < 0) {newPos.x = 1; this.vel.x *= -1}
         if(newPos.x > WIDTH) {newPos.x = WIDTH-1; this.vel.x *= -1}
@@ -100,7 +100,7 @@ class Oveja{
         if(this.state.goal == 'partner') rad_goal = RADIUS_GOAL_PARTNER
         if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < rad_goal){
             if(this.state.goal == 'food'){ 
-                let eaten = this.entorno.eat(this.state.posGoal)
+                let eaten = this.entorno.eat(this.state.posGoal) //cambiar a comer ovejas
                 // this.hunger = Math.max(this.hunger - 0.25, 0)
                 if(eaten) this.hunger = 0
                 else this.checkFood()
@@ -132,7 +132,7 @@ class Oveja{
     */
     findPartner(){
         let possible = []
-        for(let other of sim.ovejas){
+        for(let other of sim.foxes){
             if(other == this) continue
             //if(other.state.goal != 'partner') continue
             if(other.age < AGE_LIMIT_REPRODUCE) continue
@@ -178,6 +178,7 @@ class Oveja{
     }
 
     //check if the food located is still there
+    //cambairlo a check if food is still alive
     checkFood(){
         let isThere = this.entorno.isFood(this.state.posGoal)
         if(!isThere){ 
@@ -225,7 +226,7 @@ class Oveja{
         }
         //esta quieto realizando la accion
         else if(this.state.action == 'doing'){
-
+            //todo
         }
     }
 
@@ -255,6 +256,7 @@ class Oveja{
         return clamp(randomGaussian(1, 0.5) * INITIAL_RADIUS, 10, 1000) * TAM_CELL * 0.05
     }
 
+    //todo triangulo
     show(option, showNec){
         if(!this.alive) return
         // console.log("posX " + this.pos.x)

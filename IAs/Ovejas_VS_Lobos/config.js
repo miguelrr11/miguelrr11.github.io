@@ -8,6 +8,7 @@ let SQ_GRID_SIZE = GRID_SIZE * GRID_SIZE
 let TAM_CELL = WIDTH / GRID_SIZE
 let LAND = 0.5              //% of the grid that is land (the other is water)
 let N_OVEJAS = SQ_GRID_SIZE*0.1
+let N_FOXES = Math.max(SQ_GRID_SIZE*0.01, 1)
 let FOOD_CHANCE = .035        //starting food
 let FOOD_FACTOR_REGEN = 150    //factor que importa (cuanto mas alto, menos comida spawnea)
 let FOOD_REGEN = (SQ_GRID_SIZE / (SQ_GRID_SIZE + GRID_SIZE * FOOD_FACTOR_REGEN))    //natural regeneration
@@ -38,6 +39,9 @@ let COL_OVEJA_LEAST_BEAUTY = "#ede0d4"
 let COL_OVEJA_MOST_BEAUTY = "#7f5539"
 let TAM_OVEJA = TAM_CELL * 0.55
 
+let COL_FOX_LEAST_BEAUTY = "#fcbf49"  
+let COL_FOX_MOST_BEAUTY = "#E75414"
+
 let TIME_UNTIL_DEAD = 5
 
 let AGE_FACTOR = 3    //age per second
@@ -46,7 +50,8 @@ let DELTA_HUNGER = .03
 let DELTA_THIRST = .03
 let DELTA_LUST = .005
 
-let SPEED_OVEJA = TAM_CELL    //distancia del brinco: CONSTANTE
+let SPEED_OVEJA = TAM_CELL      //distancia del brinco: CONSTANTE
+let SPEED_FOX = TAM_CELL * 3    //por defecto los foxes se mueven mas distancia
 let SPEED_MULT = 60             //valor que importa
 const INITIAL_SPEED = 3           //no tocar
 let INITIAL_RADIUS = 40

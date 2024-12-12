@@ -8,6 +8,7 @@ class Simulation{
         this.started = false
         this.sim_speed = 1
         this.interacting = undefined
+        this.type = undefined
     }
 
     initUI(){
@@ -15,7 +16,7 @@ class Simulation{
             x: WIDTH,
             w: WIDTH_UI - WIDTH_PLOTS,
             automaticHeight: false,
-            title: 'SHEEP VS WOLVES',
+            title: 'SHEEP VS FOXES',
             darkCol: "#274c77",
             lightCol: "#e7ecef"
         })
@@ -25,9 +26,14 @@ class Simulation{
 
         this.panel.createText('VARIABLES', true)
         this.panel.separate()
+        //variables para ovjeas y foxes
         this.panel_GRID_SIZE = this.panel.createNumberPicker('Grid Size', 5, 120, 5, 50)
         this.panel_LAND = this.panel.createNumberPicker('% of Land vs Water', 0, 1, 0.1, 0.5)
         this.panel_FOOD_FACTOR_REGEN = this.panel.createNumberPicker('Food regen cooldwon', 0, 200, 5, 100)
+        this.panel_sim_type = this.panel.createOptionPicker('Simulation type', ['Sheep', 'Sh & Fx', 'Fox'])
+
+        this.panel.createSeparator()
+        //variables independientes para ovejas y foxes
         this.panel_STARTING_AGE = this.panel.createNumberPicker('Starting Age', 0, 300, 10, 100)
         this.panel_STARTING_STATE = this.panel.createOptionPicker('Starting State', ['food', 'water', 'partner'])
         this.panel_STARTING_SPEED = this.panel.createNumberPicker('Starting Movement Cooldown', 5, 200, 10, 60)
@@ -127,22 +133,29 @@ class Simulation{
     initPlots(){
         let sizePlot = HEIGHT*.2
         let x = WIDTH + WIDTH_UI - sizePlot
+
+        let type = this.panel_sim_type ? this.panel_sim_type.getSelected() : 'Sh & Fx'
+        let initValues = type ==  'Sh & Fx' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
         
-        this.plotPop = new MigPLOT(x, 0, sizePlot, sizePlot, [0], 'Population', '')
+        this.plotPop = new MigPLOT(x, 0, sizePlot, sizePlot, initValues, 'Population', '')
         this.plotPop.minGlobal = 0
 
-        this.plotAvgSpeed = new MigPLOT(x, sizePlot, sizePlot, sizePlot, [0], 'Avg Movement Cooldown', '')
+        initValues = type ==  'Sh & Fx' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
+        this.plotAvgSpeed = new MigPLOT(x, sizePlot, sizePlot, sizePlot, initValues, 'Avg Movement Cooldown', '')
         this.plotAvgSpeed.minGlobal = 0
 
-        this.plotAvgBeauty = new MigPLOT(x, sizePlot*2, sizePlot, sizePlot, [0], 'Avg Beauty', '')
+        initValues = type ==  'Sh & Fx' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
+        this.plotAvgBeauty = new MigPLOT(x, sizePlot*2, sizePlot, sizePlot, initValues, 'Avg Beauty', '')
         this.plotAvgBeauty.minGlobal = 0
         this.plotAvgBeauty.maxGlobal = 1
 
-        this.plotAvgRadius = new MigPLOT(x, sizePlot*3, sizePlot, sizePlot, [0], 'Avg Radius', '')
+        initValues = type ==  'Sh & Fx' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
+        this.plotAvgRadius = new MigPLOT(x, sizePlot*3, sizePlot, sizePlot, initValues, 'Avg Radius', '')
         this.plotAvgRadius.minGlobal = 0
-        this.plotAvgRadius.maxGlobal = 5
+        this.plotAvgRadius.maxGlobal = INITIAL_RADIUS
 
-        this.plotAvgAge = new MigPLOT(x, sizePlot*4, sizePlot, sizePlot, [0], 'Avg Age', '')
+        initValues = type ==  'Sh & Fx' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
+        this.plotAvgAge = new MigPLOT(x, sizePlot*4, sizePlot, sizePlot, initValues, 'Avg Age', '')
         this.plotAvgAge.minGlobal = 0
         this.plotAvgAge.maxGlobal = AGE_LIMIT
     }
@@ -150,45 +163,65 @@ class Simulation{
     init(){
         this.entorno = new Entorno()
         this.ovejas = []
-        for(let i = 0; i < N_OVEJAS; i++){
-            let o = new Oveja(this.entorno, this)
-            o.age = Math.max(Math.floor(randomGaussian(STARTING_AGE, 5)), 0)
-            if(STARTING_STATE == 'food') o.hunger = .15
-            if(STARTING_STATE == 'water') o.thirst = .15
-            if(STARTING_STATE == 'partner') o.lust = .15
-            if(i % 2 == 0) o.genre = 'male'
-            else o.genre = 'female'
-            this.ovejas.push(o)
+        this.foxes = []
+        let type = this.panel_sim_type.getSelected() 
+        if(type == 'Sheep' || type == 'Sh & Fx'){
+            for(let i = 0; i < N_OVEJAS; i++){
+                let o = new Oveja(this.entorno, this)
+                o.age = Math.max(Math.floor(randomGaussian(STARTING_AGE, 5)), 0)
+                if(STARTING_STATE == 'food') o.hunger = .15
+                if(STARTING_STATE == 'water') o.thirst = .15
+                if(STARTING_STATE == 'partner') o.lust = .15
+                if(i % 2 == 0) o.genre = 'male'
+                else o.genre = 'female'
+                this.ovejas.push(o)
+            }
         }
+        if(type == 'Fox' || type == 'Sh & Fx'){
+            for(let i = 0; i < N_FOXES; i++){
+                let o = new Fox(this.entorno, this)
+                o.age = Math.max(Math.floor(randomGaussian(STARTING_AGE, 5)), 0)
+                if(STARTING_STATE == 'food') o.hunger = .15
+                if(STARTING_STATE == 'water') o.thirst = .15
+                if(STARTING_STATE == 'partner') o.lust = .15
+                if(i % 2 == 0) o.genre = 'male'
+                else o.genre = 'female'
+                this.foxes.push(o)
+            }
+        }
+        this.type = type
+        this.initPlots()
         this.started = true
     }
 
+    //todo mutfactor independientes
     reproduce(mother, father){
         if(!mother || !father) return
         let nOffsprings = Math.round(randomGaussian(2, .35), 1)
+        let type = mother.constructor.name
+        let mutF = type == 'Oveja' ? MUT_FACTOR : MUT_FACTOR
         for(let i = 0; i < nOffsprings; i++){
-            let mutSpeed  = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.3) * 4
-            let mutBeauty = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.3) * 0.15
-            let mutRadius = Math.random() > MUT_FACTOR ? 0 : randomGaussian(0, 0.3) * 8
-            //sin mezcla
+            let mutSpeed  = Math.random() > mutF ? 0 : randomGaussian(0, 0.3) * 4
+            let mutBeauty = Math.random() > mutF ? 0 : randomGaussian(0, 0.3) * 0.15
+            let mutRadius = Math.random() > mutF ? 0 : randomGaussian(0, 0.3) * 8
             let prog = Math.random() < .5 ? mother : father
-            let offspring = new Oveja(this.entorno, this, 
+            let offspring 
+            offspring = type == 'Oveja' ? new Oveja(this.entorno, this, 
+                                        prog.pos.copy(),
+                                        Math.max(prog.speed + mutSpeed, 0),
+                                        Math.max(prog.beauty + mutBeauty, 0),
+                                        Math.max(prog.radius + mutRadius, 0)) :
+                              new Fox(this.entorno, this, 
                                         prog.pos.copy(),
                                         Math.max(prog.speed + mutSpeed, 0),
                                         Math.max(prog.beauty + mutBeauty, 0),
                                         Math.max(prog.radius + mutRadius, 0))
-            //mezcla de genes
-            // let offspring = new Oveja(this.entorno, this, 
-            //                           mother.pos.copy(),
-            //                           Math.max((mother.speed + father.speed) * .5 + mutSpeed, 0),
-            //                           Math.max((mother.beauty + father.beauty) * .5 + mutBeauty, 0),
-            //                           Math.max((mother.radius + father.radius) * .5 + mutRadius, 0))
-            this.ovejas.push(offspring)
-            //console.log(mutSpeed, mutBeauty, mutRadius)
+            type == 'Oveja' ? this.ovejas.push(offspring) : this.foxes.push(offspring)
         }
     }
 
-    getAvgs(){
+    getAvgsOveja(){
+        if(this.type == 'Foxes') return [undefined, undefined, undefined, undefined]
         let sumSpeed = 0
         let sumBeauty = 0
         let sumRadius = 0
@@ -203,17 +236,58 @@ class Simulation{
         return [sumSpeed/n, sumBeauty/n, sumRadius/n, sumAge/n]
     }
 
+    getAvgsFox(){
+        if(this.type == 'Sheep') return [undefined, undefined, undefined, undefined]
+        let sumSpeed = 0
+        let sumBeauty = 0
+        let sumRadius = 0
+        let sumAge = 0
+        for(let o of this.foxes){
+            sumSpeed += o.speed
+            sumBeauty += o.beauty
+            sumRadius += o.radius / TAM_CELL
+            sumAge += o.age
+        }
+        let n = this.foxes.length
+        return [sumSpeed/n, sumBeauty/n, sumRadius/n, sumAge/n]
+    }
+
     updatePlots(){
-        this.plotPop.feed(this.ovejas.length)
-        let avgs = this.getAvgs()
-        this.plotAvgSpeed.feed(avgs[0])
-        this.plotAvgBeauty.feed(avgs[1])
-        this.plotAvgRadius.feed(avgs[2])
-        this.plotAvgAge.feed(avgs[3])
+        let popSheep = this.ovejas.length == 0 ? undefined : this.ovejas.length
+        let popFoxes = this.foxes.length == 0 ? undefined : this.foxes.length
+        this.plotPop.feed(popSheep, popFoxes)
+        let avgsOveja = this.getAvgsOveja()
+        let avgsFox = this.getAvgsFox()
+        this.plotAvgSpeed.feed(avgsOveja[1], avgsFox[1])
+        this.plotAvgBeauty.feed(avgsOveja[1], avgsFox[1])
+        this.plotAvgRadius.feed(avgsOveja[2], avgsFox[2])
+        this.plotAvgAge.feed(avgsOveja[3], avgsFox[3])
     }
 
     inBoundsOfEntorno(x, y){
         return x < WIDTH && x > 0 && y < HEIGHT && y > 0
+    }
+
+    updateOvejas(){
+        for(let i = 0; i < this.ovejas.length; i++){ 
+            let o = this.ovejas[i]
+            if(o.alive) o.update()
+            else{
+                this.ovejas.splice(i, 1)
+                i--
+            }
+        }
+    }
+
+    updateFoxes(){
+        for(let i = 0; i < this.foxes.length; i++){ 
+            let o = this.foxes[i]
+            if(o.alive) o.update()
+            else{
+                this.foxes.splice(i, 1)
+                i--
+            }
+        }
     }
 
     update(){
@@ -227,15 +301,8 @@ class Simulation{
         for(let j = 0; j < this.sim_speed; j++){
             if(this.started){
                 FRAME += 1
-                for(let i = 0; i < this.ovejas.length; i++){ 
-                    let o = this.ovejas[i]
-                    if(o.alive) o.update()
-                    else{
-                        this.ovejas.splice(i, 1)
-                        i--
-                        //this.entorno.growFood(o.pos)
-                    }
-                }
+                this.updateOvejas()
+                this.updateFoxes()
                 if(Math.random() < FOOD_REGEN) this.entorno.regenerateFood()
                 if(frameCount % 20 == 0) this.updatePlots()
             }
@@ -267,6 +334,8 @@ class Simulation{
             }
             this.entorno.show(this.panel_select_view_entorno.getSelected(), this.interacting)
             for(let o of this.ovejas) o.show(this.panel_select_view_ovejas.getSelected(),
+                                             this.panel_show_necessities.isChecked())
+            for(let o of this.foxes) o.show(this.panel_select_view_ovejas.getSelected(),
                                              this.panel_show_necessities.isChecked())
             pop()
         }

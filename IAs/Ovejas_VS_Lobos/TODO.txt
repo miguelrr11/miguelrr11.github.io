@@ -29,6 +29,7 @@ Clase Oveja:
         - Agua
         - Pasto
         - Partner
+    - Fleeing from fox
 
 
 LOBO

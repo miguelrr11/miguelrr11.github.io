@@ -4,31 +4,49 @@ class MigPLOT{
         this.y = y
         this.h = h
         this.w = w
-        this.backCol = "#274c77"
-        this.axisCol = "#6096ba"
-        this.graphCol = "#e7ecef"
-        this.textCol = "#a3cef1"
+        this.backCol = "#343a40"
+        this.axisCol = "#ced4da"
+        this.graphCol1 = "#e5e5e5"
+        this.graphCol2 = "#fca311"
+        this.textCol = "#ced4da"
         this.font = loadFont("MigPLOT/mono.ttf")
-        this.data = data
+        //this.data = data
 
         this.marginX = 37
         this.marginY = 30
 
-        this.dataX = []
-        this.dataY = []
-
-        this.guidesY = []
-        this.guidesX = []
-        this.lastGuide = {y: undefined, data: undefined}
-        this.steps = 4
-
+        this.nData = data[0].length
         this.tagX = tagX
         this.tagY = tagY
+        this.guidesX = []
+        this.guidesY = []
 
-        this.nData = this.data.length
+        if(data[0] != undefined){
+            this.graph1 = {
+                data : data[0],
+                dataX : [],
+                dataY : [],
+                lastGuide : {y: undefined, data: undefined},
+                col: this.graphCol1
+            }
+        }
+        
+
+        if(data[1] != undefined){
+            this.graph2 = {
+                data : data[1],
+                dataX : [],
+                dataY : [],
+                lastGuide : {y: undefined, data: undefined},
+                col: this.graphCol2
+            }
+        }
+        
+
+        this.steps = 4
 
         this.showX = false
-        this.type = 'hist'
+        this.type = 'bar'
 
         //(0,0)
         this.p00 = createVector(this.x + this.marginX, this.y + this.h - this.marginY)
@@ -41,24 +59,30 @@ class MigPLOT{
         this.minGlobal = undefined
         this.dataLimit = 500
 
-        this.update()
+        this.both = this.graph2 != undefined
+
+        if(this.graph1) this.update(this.graph1)
+        if(this.graph2) this.update(this.graph2)
         
     }
 
-    feed(x){
-        this.data.push(x)
-        this.update()
+    feed(val1 = undefined, val2 = undefined){
+        if(val1) this.graph1.data.push(val1)
+        if(val2) this.graph2.data.push(val2)
+        if(this.graph1) this.update(this.graph1)
+        if(this.graph2) this.update(this.graph2)
     }
 
-    clear(){
-        this.data = []
-        this.dataX = []
-        this.dataY = []
+    clear(graph){
+        graph.data = []
+        graph.dataX = []
+        graph.dataY = []
         this.guidesY = []
         this.guidesX = []
-        this.lastGuide = {y: undefined, data: undefined}
+        graph.lastGuide = {y: undefined, data: undefined}
     }
 
+    //todo
     compressData(){
         let compressedData = []
         const max = Math.max(...this.data)
@@ -72,21 +96,40 @@ class MigPLOT{
         this.data = compressedData
     }
 
+    computeMaxBothGraphs(){
+        if(this.graph2 && this.graph1) return Math.max(Math.max(...this.graph1.data), Math.max(...this.graph2.data))
+        if(this.graph1) return Math.max(...this.graph1.data)
+        return Math.max(...this.graph2.data)
+    }
+
+    computeMinBothGraphs(){
+        if(this.graph2 && this.graph1) return Math.min(Math.min(...this.graph1.data), Math.min(...this.graph2.data))
+        if(this.graph1) return Math.min(...this.graph1.data)
+        return Math.min(...this.graph2.data)
+    }
+
 
     //calcula coordenadas para dibujar
-    update(){
-        if(this.data.length > this.dataLimit) this.compressData()
-        this.nData = this.data.length
-        const max = this.maxGlobal ? this.maxGlobal : Math.max(...this.data)
-        const min = this.minGlobal ? this.minGlobal : Math.min(...this.data)
-        for(let i = 0; i < this.data.length; i++){
+    update(graph){
+        //if(this.data.length > this.dataLimit) this.compressData()
+        if(this.graph1) this.nData = this.graph1.data.length
+        if(this.graph2) this.nData = this.graph2.data.length
+        const max = this.maxGlobal ? this.maxGlobal : this.computeMaxBothGraphs()
+        const min = this.minGlobal ? this.minGlobal : this.computeMinBothGraphs()
+        for(let i = 0; i < this.nData; i++){
             let x, y
-            let digit = this.data[i]
+            let digit =  graph.data[i]
             y = mapp_PLOT(digit, min, max, this.p00.y, this.p01.y, true)
-            x = mapp_PLOT(i, 0, this.data.length-1, this.p00.x, this.p10.x, true)
-            this.dataX[i] = x
-            this.dataY[i] = y
+            x = mapp_PLOT(i, 0, this.nData-1, this.p00.x, this.p10.x, true)
+            graph.dataX[i] = x
+            graph.dataY[i] = y
         }
+        this.updateGuides()
+    }
+
+    updateGuides(){
+        const max = this.maxGlobal ? this.maxGlobal : this.computeMaxBothGraphs()
+        const min = this.minGlobal ? this.minGlobal : this.computeMinBothGraphs()
         for(let i = 0; i < this.steps+1; i++){
             let y = mapp_PLOT(i, 0, this.steps, this.p00.y, this.p01.y, true)
             this.guidesY[i] = {y:0, data:0}
@@ -97,29 +140,24 @@ class MigPLOT{
             this.guidesX[i].x = x
             this.guidesX[i].data = getRoundedValueMIGUI(mapp_PLOT(x, this.p00.x, this.p10.x, 0, this.nData, true))
         }
-        this.lastGuide.y = this.dataY[this.nData-1]
-        this.lastGuide.data = getRoundedValueMIGUI(this.data[this.nData-1])
+        if(this.graph1){
+            this.graph1.lastGuide.y = this.graph1.dataY[this.nData-1]
+            this.graph1.lastGuide.data = getRoundedValueMIGUI(this.graph1.data[this.nData-1])
+        }
+        if(this.graph2){
+            this.graph2.lastGuide.y = this.graph2.dataY[this.nData-1]
+            this.graph2.lastGuide.data = getRoundedValueMIGUI(this.graph2.data[this.nData-1])
+        }
     }
 
-    drawPlot(){
+    drawPlot(graph){
         push()
-        if(this.type == 'hist'){
-            strokeWeight(2)
-            noFill()
-            stroke(this.graphCol)
-            beginShape()
-            this.data.forEach((_, i) => vertex(this.dataX[i], this.dataY[i]));
-            endShape()
-        }
-        else if(this.type == 'bar'){
-            fill(this.graphCol)
-            stroke(this.graphCol)
-            let sp = (this.w - this.marginX * 2) / this.nData
-            this.data.forEach((_, i) => line(this.dataX[i], this.dataY[i], 
-                                             this.dataX[i], this.p00.y));
-            // this.data.forEach((_, i) => rect(this.dataX[i], this.dataY[i], 
-            //                                  sp, this.p00.y-this.dataY[i]));
-        }
+        strokeWeight(2)
+        noFill()
+        stroke(graph.col)
+        beginShape()
+        graph.data.forEach((_, i) => vertex(graph.dataX[i], graph.dataY[i]));
+        endShape()
         pop()
     }
 
@@ -133,21 +171,22 @@ class MigPLOT{
         }
     }
 
-    show(){
-        
+    drawLastGuide(graph){
+        textAlign(LEFT, CENTER)
+        strokeWeight(1.5)
+        stroke(this.axisCol)
+        let y = graph.lastGuide.y
+        line(this.p00.x, y, this.p10.x, y)
+        noStroke()
+        stroke(graph.col)
+        strokeWeight(.5)
+        let tx = formatLargeNumber(graph.lastGuide.data)
+        this.resize(tx)
+        text(tx, this.p10.x + 5, y)
+        noStroke()
+    }
 
-        push()
-        textFont(this.font)
-        textSize(12)
-        
-
-        //background
-        fill(this.backCol)
-        //noStroke()
-        strokeWeight(2)
-        stroke(this.graphCol)
-        rect(this.x, this.y, this.w, this.h)
-
+    drawGuides(){
         //horizontal guides
         strokeWeight(1)
         stroke(180)
@@ -165,22 +204,32 @@ class MigPLOT{
             if(this.showX) text(tx, this.guidesX[i].x, this.p00.y + 10)
         }
         //horizontal guide for the last data
-        textAlign(LEFT, CENTER)
-        strokeWeight(1.5)
-        stroke(this.axisCol)
-        let y = this.lastGuide.y
-        line(this.p00.x, y, this.p10.x, y)
-        noStroke()
-        stroke(this.graphCol)
-        strokeWeight(.5)
-        let tx = formatLargeNumber(this.lastGuide.data)
-        this.resize(tx)
-        text(tx, this.p10.x + 5, y)
-        noStroke()
+        if(this.graph1) this.drawLastGuide(this.graph1)
+        if(this.graph2) this.drawLastGuide(this.graph2)
+    }
+
+    show(){
+        
+
+        push()
+        textFont(this.font)
+        textSize(12)
+        
+
+        //background
+        fill(this.backCol)
+        //noStroke()
+        strokeWeight(2)
+        stroke(this.textCol)
+        rect(this.x, this.y, this.w, this.h)
+
+        
+        this.drawGuides()
+        
 
         //tags
         textSize(12)
-        fill(this.graphCol)
+        fill(this.axisCol)
         textAlign(CENTER, BOTTOM)
         text(this.tagX, this.x + this.w*.5, this.p01.y - 10)
         textAlign(CENTER, TOP)
@@ -193,7 +242,8 @@ class MigPLOT{
         line(this.p00.x, this.p00.y, this.p10.x, this.p10.y)
 
         //plot
-        this.drawPlot()
+        if(this.graph1) this.drawPlot(this.graph1)
+        if(this.graph2) this.drawPlot(this.graph2)
 
         pop()
     }
