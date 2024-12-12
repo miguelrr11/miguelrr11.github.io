@@ -135,9 +135,9 @@ class Oveja{
         for(let other of sim.ovejas){
             if(other == this) continue
             //if(other.state.goal != 'partner') continue
-            if(other.age < AGE_LIMIT_REPRODUCE) continue
+            if(other.age < AGE_LIMIT_REPRODUCE_S) continue
             if(other.genre == this.genre) continue
-            if((other.state.goal == 'partner' || (other.state.goal != 'partner' && other.lust > MIN_LUST)) &&
+            if((other.state.goal == 'partner' || (other.state.goal != 'partner' && other.lust > MIN_LUST_S)) &&
                  dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < this.radius)
                 possible.push(other)
         }
@@ -148,9 +148,9 @@ class Oveja{
     }
     
     updateNecessites(){
-        this.hunger = Math.min(this.hunger + DELTA_HUNGER, 1)
-        this.thirst = Math.min(this.thirst + DELTA_THIRST, 1)
-        if(this.age >= AGE_LIMIT_REPRODUCE) this.lust = Math.min(this.lust + DELTA_LUST, 1)
+        this.hunger = Math.min(this.hunger + DELTA_HUNGER_S, 1)
+        this.thirst = Math.min(this.thirst + DELTA_THIRST_S, 1)
+        if(this.age >= AGE_LIMIT_REPRODUCE_S) this.lust = Math.min(this.lust + DELTA_LUST_S, 1)
         this.age += AGE_FACTOR
         if((this.hunger >= 1 || this.thirst >= 1) && !this.state.dying){
             this.state.dying = true
@@ -160,7 +160,7 @@ class Oveja{
             this.timeUntilDeath--
             if(this.timeUntilDeath <= 0) this.die()
         }
-        if(this.age > AGE_LIMIT) this.die()
+        if(this.age > AGE_LIMIT_S) this.die()
         
     }
 
@@ -244,7 +244,7 @@ class Oveja{
     }
 
     randomSpeed(){
-        return 1 / clamp((randomGaussian(0.5, 0.2) * INITIAL_SPEED), 0.1, 100) * SPEED_MULT;
+        return 1 / clamp((randomGaussian(0.5, 0.2) * INITIAL_SPEED), 0.1, 100) * SPEED_MULT_S;
     }
 
     randomBeauty(){
@@ -252,7 +252,7 @@ class Oveja{
     }
 
     randomRadius(){
-        return clamp(randomGaussian(1, 0.5) * INITIAL_RADIUS, 10, 1000) * TAM_CELL * 0.05
+        return clamp(randomGaussian(1, 0.5) * INITIAL_RADIUS_S, 10, 1000) * TAM_CELL * 0.05
     }
 
     show(option, showNec){
@@ -262,7 +262,7 @@ class Oveja{
         push()
         rectMode(CENTER)
         noStroke()
-        let size = mapp(this.age, 0, AGE_LIMIT, TAM_OVEJA*0.5, TAM_OVEJA, true)
+        let size = mapp(this.age, 0, AGE_LIMIT_S, TAM_OVEJA*0.5, TAM_OVEJA, true)
         let pos = createVector()
         let off = this.coolDown == this.speed ? 1 : 1 / (this.speed - this.coolDown)
         pos.x = lerp(this.newPos.x, this.pos.x, off)
@@ -286,7 +286,7 @@ class Oveja{
             fill(this.col)
         }
         else if(option == 'age'){
-            fill(mapp(this.age, 0, AGE_LIMIT, 0, 255, true))
+            fill(mapp(this.age, 0, AGE_LIMIT_S, 0, 255, true))
         }
         else if(option == 'radius'){
             fill(this.col)
@@ -298,7 +298,7 @@ class Oveja{
             pop()
         }
         else if(option == 'speed'){
-            let col = lerppColor("#ffd9da", "#89023e", clamp(this.speed / SPEED_MULT, 0, 1))
+            let col = lerppColor("#ffd9da", "#89023e", clamp(this.speed / SPEED_MULT_S, 0, 1))
             fill(col)
         }
         else if(option == 'state'){

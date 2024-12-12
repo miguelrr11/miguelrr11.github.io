@@ -19,6 +19,7 @@ class Fox{
                       goal: 'food',
                       posGoal: undefined,   //para el estado walking
                       partner: undefined,
+                      prey: undefined,      //oveja que tiene localizado
                       dying: false,
                       timeUntilDeath: 0
         }
@@ -81,6 +82,7 @@ class Fox{
 
     getPrioritizedGoal(){
         let largest = Math.max(this.hunger, Math.max(this.thirst, this.lust))
+        if(largest < FOX_MIN_NECESSITY) return 'wandering'
         if(largest == this.hunger) return 'food'
         if(largest == this.thirst) return 'water'
         if(largest == this.lust) return 'partner'
@@ -95,15 +97,16 @@ class Fox{
 
     checkGoal(){
         let rad_goal = 0
+        if(this.state.goal == 'wandering') return
         if(this.state.goal == 'food') rad_goal = RADIUS_GOAL_FOOD
         if(this.state.goal == 'water') rad_goal = RADIUS_GOAL_WATER
         if(this.state.goal == 'partner') rad_goal = RADIUS_GOAL_PARTNER
         if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < rad_goal){
             if(this.state.goal == 'food'){ 
-                let eaten = this.entorno.eat(this.state.posGoal) //cambiar a comer ovejas
-                // this.hunger = Math.max(this.hunger - 0.25, 0)
-                if(eaten) this.hunger = 0
-                else this.checkFood()
+                this.state.prey.alive = false
+                this.hunger = 0
+                this.goalPos = undefined
+                this.prey = undefined
             }
             if(this.state.goal == 'water'){
                 // this.thirst = Math.max(this.thirst - 0.5, 0)
@@ -135,9 +138,9 @@ class Fox{
         for(let other of sim.foxes){
             if(other == this) continue
             //if(other.state.goal != 'partner') continue
-            if(other.age < AGE_LIMIT_REPRODUCE) continue
+            if(other.age < AGE_LIMIT_REPRODUCE_F) continue
             if(other.genre == this.genre) continue
-            if((other.state.goal == 'partner' || (other.state.goal != 'partner' && other.lust > MIN_LUST)) &&
+            if((other.state.goal == 'partner' || (other.state.goal != 'partner' && other.lust > MIN_LUST_F)) &&
                  dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < this.radius)
                 possible.push(other)
         }
@@ -148,9 +151,9 @@ class Fox{
     }
     
     updateNecessites(){
-        this.hunger = Math.min(this.hunger + DELTA_HUNGER, 1)
-        this.thirst = Math.min(this.thirst + DELTA_THIRST, 1)
-        if(this.age >= AGE_LIMIT_REPRODUCE) this.lust = Math.min(this.lust + DELTA_LUST, 1)
+        this.hunger = Math.min(this.hunger + DELTA_HUNGER_F, 1)
+        this.thirst = Math.min(this.thirst + DELTA_THIRST_F, 1)
+        if(this.age >= AGE_LIMIT_REPRODUCE_F) this.lust = Math.min(this.lust + DELTA_LUST_F, 1)
         this.age += AGE_FACTOR
         if((this.hunger >= 1 || this.thirst >= 1) && !this.state.dying){
             this.state.dying = true
@@ -160,8 +163,7 @@ class Fox{
             this.timeUntilDeath--
             if(this.timeUntilDeath <= 0) this.die()
         }
-        if(this.age > AGE_LIMIT) this.die()
-        
+        if(this.age > AGE_LIMIT_F) this.die()
     }
 
     die(){
@@ -179,11 +181,12 @@ class Fox{
 
     //check if the food located is still there
     //cambairlo a check if food is still alive
-    checkFood(){
-        let isThere = this.entorno.isFood(this.state.posGoal)
+    checkPrey(){
+        let isThere = this.state.prey.alive
         if(!isThere){ 
             this.state.action = 'searching'
             this.goalPos = undefined
+            this.prey = undefined
         }
     }
 
@@ -203,8 +206,12 @@ class Fox{
         //se mueve random y busca su objetivo
         if(this.state.action == 'searching'){
             if(this.state.goal == 'food'){
-                this.state.posGoal = this.entorno.findClosest(this.pos, this.radius, this.state.goal)
-                //console.log(this.state.posGoal)
+                let prey = this.sim.findClosestPrey(this.pos, this.radius)
+                if(prey){
+                    this.state.action = 'walking'
+                    this.state.posGoal = prey.newPos.copy()
+                    this.state.prey = prey
+                }
             }
             if(this.state.goal == 'water'){
                 this.state.posGoal = this.entorno.findClosest(this.pos, this.radius, this.state.goal)
@@ -212,17 +219,19 @@ class Fox{
             if(this.state.goal == 'partner'){
                 this.state.posGoal = this.findPartner()
             }
+            else if(this.state.goal == 'wandering') this.newState()        //esta wandering
             if(this.state.posGoal) this.state.action = 'walking'
             this.randomChangeVelocity()
             this.move()
         }
         //se mueve hacia el objetivo
         else if(this.state.action == 'walking'){
-            if(this.state.goal == 'food') this.checkFood()
+            //veo si el objetivo sigue disponible, y si es asi, actualizo el posGoal
+            if(this.state.goal == 'food') this.checkPrey()
+            if(this.state.goal == 'food' && this.state.prey) this.state.posGoal = this.state.prey.pos.copy()
             if(this.state.goal == 'partner') this.checkPartner()
             if(this.state.goal == 'partner' && this.state.partner) this.state.posGoal = this.state.partner.pos.copy()
             this.move(this.state.posGoal)
-            
         }
         //esta quieto realizando la accion
         else if(this.state.action == 'doing'){
@@ -245,7 +254,7 @@ class Fox{
     }
 
     randomSpeed(){
-        return 1 / clamp((randomGaussian(0.5, 0.2) * INITIAL_SPEED), 0.1, 100) * SPEED_MULT;
+        return 1 / clamp((randomGaussian(0.5, 0.2) * INITIAL_SPEED), 0.1, 100) * SPEED_MULT_F;
     }
 
     randomBeauty(){
@@ -253,7 +262,7 @@ class Fox{
     }
 
     randomRadius(){
-        return clamp(randomGaussian(1, 0.5) * INITIAL_RADIUS, 10, 1000) * TAM_CELL * 0.05
+        return clamp(randomGaussian(1, 0.5) * INITIAL_RADIUS_F, 10, 1000) * TAM_CELL * 0.05
     }
 
     //todo triangulo
@@ -264,7 +273,7 @@ class Fox{
         push()
         rectMode(CENTER)
         noStroke()
-        let size = mapp(this.age, 0, AGE_LIMIT, TAM_OVEJA*0.5, TAM_OVEJA, true)
+        let size = mapp(this.age, 0, AGE_LIMIT_F, TAM_OVEJA*0.5, TAM_OVEJA, true)
         let pos = createVector()
         let off = this.coolDown == this.speed ? 1 : 1 / (this.speed - this.coolDown)
         pos.x = lerp(this.newPos.x, this.pos.x, off)
@@ -288,7 +297,7 @@ class Fox{
             fill(this.col)
         }
         else if(option == 'age'){
-            fill(mapp(this.age, 0, AGE_LIMIT, 0, 255, true))
+            fill(mapp(this.age, 0, AGE_LIMIT_F, 0, 255, true))
         }
         else if(option == 'radius'){
             fill(this.col)
@@ -300,18 +309,22 @@ class Fox{
             pop()
         }
         else if(option == 'speed'){
-            let col = lerppColor("#ffd9da", "#89023e", clamp(this.speed / SPEED_MULT, 0, 1))
+            let col = lerppColor("#ffd9da", "#89023e", clamp(this.speed / SPEED_MULT_F, 0, 1))
             fill(col)
         }
         else if(option == 'state'){
             if(this.state.action == 'searching') fill("#f7b538")
             else if(this.state.action == 'walking') fill("#780116")
+            else if(this.state.action == 'wandering') fill(100)
         }
         else if(option == 'none') fill(0, 0)
         if(!this.state.dying) rect(0, 0, size, size)
         else if(this.state.dying && Math.floor(FRAME / 15) % 2 == 0) rect(0, 0, size, size)
         pop()
-        
+        // push()
+        // fill(0)
+        // if(this.state.prey) ellipse(this.state.prey.pos.x, this.state.prey.pos.y, 15)
+        // pop()
     }
 
     printNec(){

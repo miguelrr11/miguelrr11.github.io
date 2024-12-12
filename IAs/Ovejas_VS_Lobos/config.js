@@ -8,19 +8,25 @@ let SQ_GRID_SIZE = GRID_SIZE * GRID_SIZE
 let TAM_CELL = WIDTH / GRID_SIZE
 let LAND = 0.5              //% of the grid that is land (the other is water)
 let N_OVEJAS = SQ_GRID_SIZE*0.1
-let N_FOXES = Math.max(SQ_GRID_SIZE*0.01, 1)
+let N_FOXES = Math.max(SQ_GRID_SIZE*0.03, 1)
 let FOOD_CHANCE = .035        //starting food
 let FOOD_FACTOR_REGEN = 150    //factor que importa (cuanto mas alto, menos comida spawnea)
 let FOOD_REGEN = (SQ_GRID_SIZE / (SQ_GRID_SIZE + GRID_SIZE * FOOD_FACTOR_REGEN))    //natural regeneration
 
 //state of primordials
-let STARTING_AGE = 100
-let STARTING_STATE = 'food'
+let STARTING_AGE_S = 100
+let STARTING_STATE_S = 'food'
+let STARTING_AGE_F = 100
+let STARTING_STATE_F = 'food'
 
-let MUT_FACTOR = .5
-let AGE_LIMIT_REPRODUCE = 70
-let AGE_LIMIT = 400
-let MIN_LUST = .45
+let MUT_FACTOR_S = .5
+let MUT_FACTOR_F = .5
+let AGE_LIMIT_REPRODUCE_S = 70
+let AGE_LIMIT_REPRODUCE_F = 70
+let AGE_LIMIT_S = 400
+let AGE_LIMIT_F = 400
+let MIN_LUST_S = .4
+let MIN_LUST_F = .4
 
 let COL_DARK_GREEN = "#679436"
 let COL_LIGHT_GREEN = "#ADC417"
@@ -46,15 +52,22 @@ let TIME_UNTIL_DEAD = 5
 
 let AGE_FACTOR = 3    //age per second
 
-let DELTA_HUNGER = .03
-let DELTA_THIRST = .03
-let DELTA_LUST = .005
+let DELTA_HUNGER_S = .05
+let DELTA_THIRST_S = .05
+let DELTA_LUST_S = .01
+
+let DELTA_HUNGER_F = .01
+let DELTA_THIRST_F = .01
+let DELTA_LUST_F = .01
+const FOX_MIN_NECESSITY = .3 //si ninguna necesisdad esta por encima, no hace nada
 
 let SPEED_OVEJA = TAM_CELL      //distancia del brinco: CONSTANTE
 let SPEED_FOX = TAM_CELL * 3    //por defecto los foxes se mueven mas distancia
-let SPEED_MULT = 60             //valor que importa
 const INITIAL_SPEED = 3           //no tocar
-let INITIAL_RADIUS = 40
+let SPEED_MULT_S = 60             //valor que importa
+let INITIAL_RADIUS_S = 40
+let SPEED_MULT_F = 60             //valor que importa
+let INITIAL_RADIUS_F = 40
 
 let RADIUS_GOAL_FOOD = TAM_CELL
 let RADIUS_GOAL_WATER = TAM_CELL * 2.5

@@ -4,7 +4,7 @@ class MigPLOT{
         this.y = y
         this.h = h
         this.w = w
-        this.backCol = "#343a40"
+        this.backCol = "#495057"
         this.axisCol = "#ced4da"
         this.graphCol1 = "#e5e5e5"
         this.graphCol2 = "#fca311"
@@ -15,7 +15,7 @@ class MigPLOT{
         this.marginX = 37
         this.marginY = 30
 
-        this.nData = data[0].length
+        this.nData = data[0] ? data[0].length : data[1].length
         this.tagX = tagX
         this.tagY = tagY
         this.guidesX = []
@@ -67,8 +67,8 @@ class MigPLOT{
     }
 
     feed(val1 = undefined, val2 = undefined){
-        if(val1) this.graph1.data.push(val1)
-        if(val2) this.graph2.data.push(val2)
+        if(val1 != undefined) this.graph1.data.push(val1)
+        if(val2 != undefined) this.graph2.data.push(val2)
         if(this.graph1) this.update(this.graph1)
         if(this.graph2) this.update(this.graph2)
     }

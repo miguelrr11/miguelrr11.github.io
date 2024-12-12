@@ -363,6 +363,12 @@ class Panel{
 	    this.lastElementAdded = 'separator'
 	}
 
+	duplicateFunctionsNumberPicker(){
+		for(let np of this.numberPickers){
+			np.funcPlus = np.funcMinus
+		}
+	}
+
 
 	changeColors(dark, light){
 		if(typeof dark === "string"){

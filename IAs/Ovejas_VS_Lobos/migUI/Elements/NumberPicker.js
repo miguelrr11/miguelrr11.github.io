@@ -30,6 +30,10 @@ class NumberPicker{
 		this.disabled = false
 	}
 
+	setValue(value){
+		this.value = value
+	}
+
 	getValue(){
 		return this.value
 	}
