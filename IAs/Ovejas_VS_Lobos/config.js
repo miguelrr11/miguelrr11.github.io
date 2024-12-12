@@ -8,10 +8,12 @@ let SQ_GRID_SIZE = GRID_SIZE * GRID_SIZE
 let TAM_CELL = WIDTH / GRID_SIZE
 let LAND = 0.5              //% of the grid that is land (the other is water)
 let N_OVEJAS = SQ_GRID_SIZE*0.1
-let N_FOXES = Math.max(SQ_GRID_SIZE*0.03, 1)
+const N_FOXES_MULT = 0.22
+let N_FOXES = Math.max(SQ_GRID_SIZE*N_FOXES_MULT, 1)
 let FOOD_CHANCE = .035        //starting food
 let FOOD_FACTOR_REGEN = 150    //factor que importa (cuanto mas alto, menos comida spawnea)
 let FOOD_REGEN = (SQ_GRID_SIZE / (SQ_GRID_SIZE + GRID_SIZE * FOOD_FACTOR_REGEN))    //natural regeneration
+const TIME_RESET_NEC = 60*2  //cada TIME_RESET_NEC frames, los animales checkean sus necesidades 
 
 //state of primordials
 let STARTING_AGE_S = 100

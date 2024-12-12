@@ -187,8 +187,9 @@ class Oveja{
     }
 
     //update based on state
+    //todo: evitar foxes
     update(){
-        if(FRAME % 60 == 0) this.updateNecessites()
+        if(FRAME % TIME_RESET_NEC == 0) this.updateNecessites()
         //se esta moviendo
         if(this.coolDown > 0){
             this.coolDown--

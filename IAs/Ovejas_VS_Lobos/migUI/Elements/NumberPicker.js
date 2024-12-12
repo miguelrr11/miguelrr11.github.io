@@ -66,14 +66,14 @@ class NumberPicker{
 			//ver donde se ha presionado, si en el + o en el -
 			if(this.beingHoveredMinus){
 				this.value -= this.delta
-				this.value = round(this.value, 2)
+				this.value = round(this.value, 3)
 				if(this.funcMinus && this.value >= this.min) this.funcMinus()
 				this.value = constrain(this.value, this.min, this.max)
 				
 			}
 			if(this.beingHoveredPlus){
 				this.value += this.delta
-				this.value = round(this.value, 2)
+				this.value = round(this.value, 3)
 				if(this.funcPlus && this.value <= this.max) this.funcPlus()
 				this.value = constrain(this.value, this.min, this.max)
 			}

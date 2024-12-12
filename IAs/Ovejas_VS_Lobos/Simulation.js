@@ -99,9 +99,7 @@ class Simulation{
         this.panel_GRID_SIZE = this.panel.createNumberPicker('Grid Size', 5, 120, 5, 50)
         this.panel_LAND = this.panel.createNumberPicker('% of Land vs Water', 0, 1, 0.1, 0.5)
         this.panel_FOOD_FACTOR_REGEN = this.panel.createNumberPicker('Food regen cooldwon', 0, 200, 5, 100)
-        this.panel_sim_type = this.panel.createOptionPicker('Simulation type', ['Sheep', 'Both', 'Foxes'], () => {
-            this.type = this.panel_sim_type.getSelected()
-        })
+        
 
         this.panel.createSeparator()
         this.panel_editing_what = this.panel.createOptionPicker('Editing variables', ['Sheep', 'Foxes'], () => {
@@ -118,12 +116,15 @@ class Simulation{
         this.createNumberPickerWithBinding('panel_AGE_LIMIT_REPRODUCE', 'Minimum Age to Reproduce', 0, 1000, 25, AGE_LIMIT_REPRODUCE_S, 'AGE_LIMIT_REPRODUCE');
         this.createNumberPickerWithBinding('panel_MIN_LUST', 'Minimum Lust to Reproduce', 0, 1, 0.1, MIN_LUST_S, 'MIN_LUST');
         this.createNumberPickerWithBinding('panel_MUT_FACTOR', 'Mutation Probability', 0, 1, 0.1, MUT_FACTOR_S, 'MUT_FACTOR');
-        this.createNumberPickerWithBinding('panel_DELTA_HUNGER', 'Hunger Rate', 0, 0.3, 0.01, DELTA_HUNGER_S, 'DELTA_HUNGER');
-        this.createNumberPickerWithBinding('panel_DELTA_THIRST', 'Thirst Rate', 0, 0.3, 0.01, DELTA_THIRST_S, 'DELTA_THIRST');
-        this.createNumberPickerWithBinding('panel_DELTA_LUST', 'Reproductive Urge Rate', 0, 0.3, 0.01, DELTA_LUST_S, 'DELTA_LUST');
+        this.createNumberPickerWithBinding('panel_DELTA_HUNGER', 'Hunger Rate', 0, 0.3, 0.005, DELTA_HUNGER_S, 'DELTA_HUNGER');
+        this.createNumberPickerWithBinding('panel_DELTA_THIRST', 'Thirst Rate', 0, 0.3, 0.005, DELTA_THIRST_S, 'DELTA_THIRST');
+        this.createNumberPickerWithBinding('panel_DELTA_LUST', 'Reproductive Urge Rate', 0, 0.3, 0.005, DELTA_LUST_S, 'DELTA_LUST');
 
         this.panel.createSeparator()
 
+        this.panel_sim_type = this.panel.createOptionPicker('Simulation type', ['Sheep', 'Both', 'Foxes'], () => {
+            this.type = this.panel_sim_type.getSelected()
+        })
         this.panel.createButton('Start Simulation', () => {
             this.initConfig()
             this.init()
@@ -243,7 +244,7 @@ class Simulation{
         SQ_GRID_SIZE = GRID_SIZE * GRID_SIZE
         TAM_CELL = WIDTH / GRID_SIZE
         N_OVEJAS = SQ_GRID_SIZE*0.1
-        N_FOXES = Math.max(SQ_GRID_SIZE*0.03, 1)
+        N_FOXES = Math.max(SQ_GRID_SIZE*N_FOXES_MULT, 1)
         RADIUS_GOAL_FOOD = TAM_CELL
         RADIUS_GOAL_WATER = TAM_CELL * 2.5
         RADIUS_GOAL_PARTNER = TAM_CELL * 0.5
@@ -260,26 +261,18 @@ class Simulation{
         let initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
         
         this.plotPop = new MigPLOT(x, 0, sizePlot, sizePlot, initValues, 'Population', '')
-        this.plotPop.minGlobal = 0
 
         initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
         this.plotAvgSpeed = new MigPLOT(x, sizePlot, sizePlot, sizePlot, initValues, 'Avg Movement Cooldown', '')
-        this.plotAvgSpeed.minGlobal = 0
 
         initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
         this.plotAvgBeauty = new MigPLOT(x, sizePlot*2, sizePlot, sizePlot, initValues, 'Avg Beauty', '')
-        this.plotAvgBeauty.minGlobal = 0
-        this.plotAvgBeauty.maxGlobal = 1
 
         initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
         this.plotAvgRadius = new MigPLOT(x, sizePlot*3, sizePlot, sizePlot, initValues, 'Avg Radius', '')
-        this.plotAvgRadius.minGlobal = 0
-        this.plotAvgRadius.maxGlobal = Math.max(INITIAL_RADIUS_S, INITIAL_RADIUS_F)
 
         initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
         this.plotAvgAge = new MigPLOT(x, sizePlot*4, sizePlot, sizePlot, initValues, 'Avg Age', '')
-        this.plotAvgAge.minGlobal = 0
-        this.plotAvgAge.maxGlobal = Math.max(AGE_LIMIT_F, AGE_LIMIT_S)
     }
 
     init(){
@@ -350,6 +343,7 @@ class Simulation{
 
     getAvgsOveja(){
         if(this.type == 'Foxes') return [undefined, undefined, undefined, undefined]
+        if(this.ovejas.length == 0) return [0, 0, 0, 0]
         let sumSpeed = 0
         let sumBeauty = 0
         let sumRadius = 0
@@ -366,6 +360,7 @@ class Simulation{
 
     getAvgsFox(){
         if(this.type == 'Sheep') return [undefined, undefined, undefined, undefined]
+        if(this.foxes.length == 0) return [0, 0, 0, 0]
         let sumSpeed = 0
         let sumBeauty = 0
         let sumRadius = 0
@@ -388,7 +383,7 @@ class Simulation{
         this.plotPop.feed(popSheep, popFoxes)
         let avgsOveja = this.getAvgsOveja()
         let avgsFox = this.getAvgsFox()
-        this.plotAvgSpeed.feed(avgsOveja[1], avgsFox[1])
+        this.plotAvgSpeed.feed(avgsOveja[0], avgsFox[0])
         this.plotAvgBeauty.feed(avgsOveja[1], avgsFox[1])
         this.plotAvgRadius.feed(avgsOveja[2], avgsFox[2])
         this.plotAvgAge.feed(avgsOveja[3], avgsFox[3])
@@ -431,7 +426,7 @@ class Simulation{
         }
         for(let j = 0; j < this.sim_speed; j++){
             if(this.started){
-                FRAME += 1
+                FRAME++
                 this.updateOvejas()
                 this.updateFoxes()
                 if(Math.random() < FOOD_REGEN) this.entorno.regenerateFood()
