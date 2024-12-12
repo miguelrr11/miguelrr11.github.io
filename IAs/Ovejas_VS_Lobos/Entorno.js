@@ -136,7 +136,8 @@ class Entorno{
     growFood(realPos){
         let i = Math.floor(realPos.x / TAM_CELL)
         let j = Math.floor(realPos.y / TAM_CELL)
-        if(this.grid[i][j].food < 5) this.grid[i][j].food++
+        if(this.grid[i][j].food < 5 && this.grid[i][j].type == 'grass') 
+            this.grid[i][j].food++
     }
 
     drawFood(i, j, food){
@@ -190,8 +191,19 @@ class Entorno{
         rect(cell.i*TAM_CELL, cell.j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
     }
 
+    showHoveredCell(){
+        let i = Math.floor(mouseX / TAM_CELL)
+        let j = Math.floor(mouseY / TAM_CELL)
+        push()
+        fill(255, 130)
+        stroke(255)
+        strokeWeight(3.5)
+        rect(i*TAM_CELL, j*TAM_CELL, TAM_CELL+1, TAM_CELL+1)
+        pop()
+    }
 
-    show(option){
+
+    show(option, hoveredCell){
         push()
         noStroke()
         for(let i = 0; i < GRID_SIZE; i++){
@@ -204,6 +216,7 @@ class Entorno{
                 else if(option == 'eaten') this.showEaten(cell)
             }
         }
+        if(hoveredCell) this.showHoveredCell()
         pop()
     }
 }

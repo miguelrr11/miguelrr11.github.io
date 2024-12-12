@@ -25,8 +25,11 @@ class Select{
 	}
 
 	execute(){
-		console.log(this.getSelected())
 		if(this.func) this.func()
+	}
+
+	deselect(){
+		this.select = undefined
 	}
 
 	getSelected(){
@@ -42,7 +45,9 @@ class Select{
 			for(let i = 0; i < this.options.length; i++){
 				if(this.isHovering(i)){
 					if(this.selected == undefined) this.selected = i
-					else if(i == this.selected) return
+					else if(i == this.selected){
+						this.selected = undefined
+					}
 					else{
 						this.selected =  i
 					}
@@ -87,7 +92,7 @@ class Select{
 			if(i == this.selected){ 
 				fill(this.darkCol)
 			}
-			text(o, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.singleH*0.8)
+			text(o, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.singleH*0.8-1)
 			translate(0, this.singleH)
 		}
 

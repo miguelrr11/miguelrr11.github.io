@@ -5,7 +5,7 @@
 let bordeMIGUI = 1.5
 let text_FontMIGUI = ""
 let text_SizeMIGUI = 15
-let text_offset_xMIGUI = 1.5
+let text_offset_xMIGUI = 2
 let title_SizeMIGUI = 20
 let width_elementsMIGUI = 158
 let clipping_length_normalMIGUI = 20
@@ -40,7 +40,7 @@ class Panel{
 	    this.h = constrain(h, 100, 1000);
 	    this.retractable = retractable;
 	    
-	    width_elementsMIGUI = this.w - 35;
+	    //width_elementsMIGUI = this.w - 35;
 	    clipping_length_normalMIGUI = Math.ceil(0.125 * this.w - 4);
 
 	    this.darkCol = typeof darkCol === "string" ? hexToRgbMIGUI(darkCol) : darkCol;
@@ -359,6 +359,7 @@ class Panel{
 	separate(){
 		this.lastCB = undefined
 	    this.lastBU = undefined
+		this.lastElementPos.y = this.lastElementPos.y + this.padding
 	    this.lastElementAdded = 'separator'
 	}
 

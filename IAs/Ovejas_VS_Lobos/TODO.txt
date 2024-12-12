@@ -50,15 +50,15 @@ Las celdas tienen esta estructura:
 - Pasto: valor numerico que indica cuanto pasto contiene esa celda
 
 
-ideas fumada
+ideas fumada:
 - meteorito:
     - mata todo lo que toca
     - donde cae destruye la hierba y la transforma en tierra
-    - si hay agua en contacto con la tierra, esta la llena como una piscina,
-    aumentando asi el agua
-
+    - si hay agua en contacto con la tierra, esta la llena como una piscina
 - ciclo dia / noche 
     - en la noche duermen
+- poder controlar a una oveja
+- un gen que permite a la oveja poder andar por el agua pero mas lento
 
 - COEVOLUCION:
 - por ejemplo: 

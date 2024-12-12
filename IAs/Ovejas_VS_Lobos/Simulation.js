@@ -7,6 +7,7 @@ class Simulation{
         this.initUI()
         this.started = false
         this.sim_speed = 1
+        this.interacting = undefined
     }
 
     initUI(){
@@ -87,9 +88,12 @@ class Simulation{
         this.panel_show_necessities = this.panel.createCheckbox('Show necessities', true)
 
         this.panel.createSeparator()
-
-        this.panel.createOptionPicker('Play God', 
-            ['food'])
+        
+        this.panel.createText('Interact with the enviroment')
+        this.panel.separate()
+        this.panel_interacting = this.panel.createSelect(['Grow food'], undefined, () => {
+            this.interacting = this.panel_interacting.getSelected()
+        })
     }
 
     initConfig(){
@@ -208,7 +212,18 @@ class Simulation{
         this.plotAvgAge.feed(avgs[3])
     }
 
+    inBoundsOfEntorno(x, y){
+        return x < WIDTH && x > 0 && y < HEIGHT && y > 0
+    }
+
     update(){
+        if(mouseIsPressed && this.inBoundsOfEntorno(mouseX, mouseY)){
+            switch(this.interacting){
+                case undefined: break
+                case 'Grow food':
+                    this.entorno.growFood(createVector(mouseX, mouseY))
+            }
+        }
         for(let j = 0; j < this.sim_speed; j++){
             if(this.started){
                 FRAME += 1
@@ -243,14 +258,14 @@ class Simulation{
         background(100)
         if(this.entorno){
             push()
-            if(mouseIsPressed && mouseX < WIDTH){
+            if(mouseIsPressed && keyIsPressed){
                 translate(-WIDTH/2, -HEIGHT/2)
                 scale(2)
                 let zoomCenterx = mouseX - WIDTH / 2
                 let zoomCentery = mouseY - HEIGHT / 2
                 translate(-zoomCenterx, -zoomCentery)
             }
-            this.entorno.show(this.panel_select_view_entorno.getSelected())
+            this.entorno.show(this.panel_select_view_entorno.getSelected(), this.interacting)
             for(let o of this.ovejas) o.show(this.panel_select_view_ovejas.getSelected(),
                                              this.panel_show_necessities.isChecked())
             pop()
