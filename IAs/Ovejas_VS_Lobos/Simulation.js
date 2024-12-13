@@ -97,7 +97,7 @@ class Simulation{
         this.panel.separate()
         //variables para ovjeas y foxes
         this.panel_GRID_SIZE = this.panel.createNumberPicker('Grid Size', 5, 120, 5, 50)
-        this.panel_LAND = this.panel.createNumberPicker('% of Land vs Water', 0, 1, 0.1, 0.5)
+        this.panel_LAND = this.panel.createNumberPicker('% of Land vs Water', 0, 1, 0.05, 0.55)
         this.panel_FOOD_FACTOR_REGEN = this.panel.createNumberPicker('Food regen cooldwon', 0, 200, 5, 100)
         
 
@@ -199,7 +199,7 @@ class Simulation{
             ['normal', 'deaths', 'eaten'])
         this.panel_select_view_ovejas = this.panel.createOptionPicker('Sheep view options', 
             ['beauty', 'age', 'radius', 'speed', 'state', 'none'])
-        this.panel_show_necessities = this.panel.createCheckbox('Show necessities', true)
+        this.panel_show_necessities = this.panel.createCheckbox('Show necessities', false)
 
         this.panel.createSeparator()
         
@@ -214,6 +214,8 @@ class Simulation{
 
     initConfig(){
         GRID_SIZE = this.panel_GRID_SIZE.getValue()
+        SQ_GRID_SIZE = GRID_SIZE * GRID_SIZE
+        TAM_CELL = WIDTH / GRID_SIZE
         FOOD_FACTOR_REGEN = this.panel_FOOD_FACTOR_REGEN.getValue()
         FOOD_REGEN = (SQ_GRID_SIZE / (SQ_GRID_SIZE + GRID_SIZE * FOOD_FACTOR_REGEN))
         LAND = this.panel_LAND.getValue()
@@ -241,10 +243,9 @@ class Simulation{
         SPEED_MULT_F = this.foxesOptions.SPEED_MULT
         INITIAL_RADIUS_F = this.foxesOptions.INITIAL_RADIUS
 
-        SQ_GRID_SIZE = GRID_SIZE * GRID_SIZE
-        TAM_CELL = WIDTH / GRID_SIZE
+        
         N_OVEJAS = SQ_GRID_SIZE*0.1
-        N_FOXES = Math.max(SQ_GRID_SIZE*N_FOXES_MULT, 1)
+        N_FOXES =  Math.max(SQ_GRID_SIZE*N_FOXES_MULT, 1)
         RADIUS_GOAL_FOOD = TAM_CELL
         RADIUS_GOAL_WATER = TAM_CELL * 2.5
         RADIUS_GOAL_PARTNER = TAM_CELL * 0.5
@@ -309,12 +310,12 @@ class Simulation{
 
     reproduce(mother, father){
         if(!mother || !father) return
-        let nOffsprings = Math.round(randomGaussian(2, .35), 1)
         let type = mother.constructor.name
+        let nOffsprings = type == 'Oveja' ? Math.round(randomGaussian(2, .5), 1) : Math.round(randomGaussian(1, .4), 1) 
         let mutF = type == 'Oveja' ? MUT_FACTOR_S : MUT_FACTOR_F
         for(let i = 0; i < nOffsprings; i++){
             let mutSpeed  = Math.random() > mutF ? 0 : randomGaussian(0, 0.3) * 4
-            let mutBeauty = Math.random() > mutF ? 0 : randomGaussian(0, 0.3) * 0.15
+            let mutBeauty = Math.random() > mutF ? 0 : randomGaussian(0, 0.3) * 0.25
             let mutRadius = Math.random() > mutF ? 0 : randomGaussian(0, 0.3) * 8
             let prog = Math.random() < .5 ? mother : father
             let offspring 
@@ -337,6 +338,15 @@ class Simulation{
         let sqRadius = radius * radius
         for(let sheep of this.ovejas){
             if(squaredDistance(sheep.pos.x, sheep.pos.y, fox.x, fox.y) < sqRadius) return sheep
+        }
+        return undefined
+    }
+
+    //return el primer zorro en su radio
+    findClosestPredator(sheep, radius){
+        let sqRadius = radius * radius
+        for(let fox of this.foxes){
+            if(squaredDistance(fox.pos.x, fox.pos.y, sheep.x, sheep.y) < sqRadius) return fox
         }
         return undefined
     }

@@ -7,13 +7,13 @@ let GRID_SIZE = 85       //cells per row / column
 let SQ_GRID_SIZE = GRID_SIZE * GRID_SIZE
 let TAM_CELL = WIDTH / GRID_SIZE
 let LAND = 0.5              //% of the grid that is land (the other is water)
-let N_OVEJAS = SQ_GRID_SIZE*0.1
-const N_FOXES_MULT = 0.22
+let N_OVEJAS = SQ_GRID_SIZE*0.1     //SQ_GRID_SIZE*0.1
+const N_FOXES_MULT = 0.02      //0.017
 let N_FOXES = Math.max(SQ_GRID_SIZE*N_FOXES_MULT, 1)
 let FOOD_CHANCE = .035        //starting food
 let FOOD_FACTOR_REGEN = 150    //factor que importa (cuanto mas alto, menos comida spawnea)
 let FOOD_REGEN = (SQ_GRID_SIZE / (SQ_GRID_SIZE + GRID_SIZE * FOOD_FACTOR_REGEN))    //natural regeneration
-const TIME_RESET_NEC = 60*2  //cada TIME_RESET_NEC frames, los animales checkean sus necesidades 
+const TIME_RESET_NEC = 60*1  //cada TIME_RESET_NEC frames, los animales updatean sus necesidades 
 
 //state of primordials
 let STARTING_AGE_S = 100
@@ -54,26 +54,26 @@ let TIME_UNTIL_DEAD = 5
 
 let AGE_FACTOR = 3    //age per second
 
-let DELTA_HUNGER_S = .05
-let DELTA_THIRST_S = .05
-let DELTA_LUST_S = .01
+let DELTA_HUNGER_S = .035
+let DELTA_THIRST_S = .035
+let DELTA_LUST_S = .025
 
-let DELTA_HUNGER_F = .01
+let DELTA_HUNGER_F = .015
 let DELTA_THIRST_F = .01
-let DELTA_LUST_F = .01
+let DELTA_LUST_F = .015
 const FOX_MIN_NECESSITY = .3 //si ninguna necesisdad esta por encima, no hace nada
 
 let SPEED_OVEJA = TAM_CELL      //distancia del brinco: CONSTANTE
-let SPEED_FOX = TAM_CELL * 3    //por defecto los foxes se mueven mas distancia
+let SPEED_FOX = TAM_CELL * 2.25    //por defecto los foxes se mueven mas distancia
 const INITIAL_SPEED = 3           //no tocar
 let SPEED_MULT_S = 60             //valor que importa
 let INITIAL_RADIUS_S = 40
-let SPEED_MULT_F = 60             //valor que importa
-let INITIAL_RADIUS_F = 40
+let SPEED_MULT_F = 40             //valor que importa
+let INITIAL_RADIUS_F = 20
 
-let RADIUS_GOAL_FOOD = TAM_CELL
+let RADIUS_GOAL_FOOD = TAM_CELL * 1.5
 let RADIUS_GOAL_WATER = TAM_CELL * 2.5
-let RADIUS_GOAL_PARTNER = TAM_CELL * 0.5
+let RADIUS_GOAL_PARTNER = TAM_CELL * 1.5
 
 let FOOD_POS = 
 [

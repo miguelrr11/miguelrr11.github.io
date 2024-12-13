@@ -42,7 +42,10 @@ class Fox{
 
     //if moving towards something and really close, just go there instead of overshooting
     checkIfClose(goal){
-        if(dist(goal.x, goal.y, this.pos.x, this.pos.y) < SPEED_FOX) this.newPos = goal.copy()
+        if(dist(goal.x, goal.y, this.pos.x, this.pos.y) < SPEED_FOX){ 
+            this.newPos = goal.copy()
+            this.vel = p5.Vector.sub(this.newPos, this.pos).normalize()
+        }
     }
 
     move(goal = undefined){
@@ -98,15 +101,15 @@ class Fox{
     checkGoal(){
         let rad_goal = 0
         if(this.state.goal == 'wandering') return
-        if(this.state.goal == 'food') rad_goal = RADIUS_GOAL_FOOD
+        if(this.state.goal == 'food') rad_goal = RADIUS_GOAL_FOOD * 2
         if(this.state.goal == 'water') rad_goal = RADIUS_GOAL_WATER
-        if(this.state.goal == 'partner') rad_goal = RADIUS_GOAL_PARTNER
+        if(this.state.goal == 'partner') rad_goal = RADIUS_GOAL_PARTNER * 2
         if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < rad_goal){
             if(this.state.goal == 'food'){ 
                 this.state.prey.alive = false
                 this.hunger = 0
-                this.goalPos = undefined
-                this.prey = undefined
+                this.state.posGoal = undefined
+                this.state.prey = undefined
             }
             if(this.state.goal == 'water'){
                 // this.thirst = Math.max(this.thirst - 0.5, 0)
@@ -157,6 +160,8 @@ class Fox{
         this.age += AGE_FACTOR
         if((this.hunger >= 1 || this.thirst >= 1) && !this.state.dying){
             this.state.dying = true
+            let r = this.hunger >= 1 ? 'hunger' : 'thirst'
+            console.log(r)
             this.timeUntilDeath = TIME_UNTIL_DEAD     //seconds
         }
         else if(this.state.dying){
@@ -179,14 +184,16 @@ class Fox{
         }
     }
 
+    // && dist(prey.x, prey.y, this.pos.x, this.pos.y) < this.radius * 1.5
     //check if the food located is still there
     //cambairlo a check if food is still alive
     checkPrey(){
-        let isThere = this.state.prey.alive
+        let prey = this.state.prey
+        let isThere = prey && prey.alive && dist(prey.x, prey.y, this.pos.x, this.pos.y) < this.radius * 1.5
         if(!isThere){ 
             this.state.action = 'searching'
-            this.goalPos = undefined
-            this.prey = undefined
+            this.state.posGoal = undefined
+            this.state.prey = undefined
         }
     }
 
@@ -228,7 +235,7 @@ class Fox{
         else if(this.state.action == 'walking'){
             //veo si el objetivo sigue disponible, y si es asi, actualizo el posGoal
             if(this.state.goal == 'food') this.checkPrey()
-            if(this.state.goal == 'food' && this.state.prey) this.state.posGoal = this.state.prey.pos.copy()
+            if(this.state.goal == 'food' && this.state.prey) this.state.posGoal = this.state.prey.newPos.copy()
             if(this.state.goal == 'partner') this.checkPartner()
             if(this.state.goal == 'partner' && this.state.partner) this.state.posGoal = this.state.partner.pos.copy()
             this.move(this.state.posGoal)
@@ -262,7 +269,16 @@ class Fox{
     }
 
     randomRadius(){
-        return clamp(randomGaussian(1, 0.5) * INITIAL_RADIUS_F, 10, 1000) * TAM_CELL * 0.05
+        return clamp(randomGaussian(1, 0.2) * INITIAL_RADIUS_F, 10, 1000) * TAM_CELL * 0.05
+    }
+
+    drawTri(pos = createVector(0, 0), size = TAM_OVEJA){
+        beginShape(TRIANGLES)
+        let midS = size * .5
+        vertex(pos.x - midS, pos.y + midS)
+        vertex(pos.x + midS, pos.y + midS)
+        vertex(pos.x, pos.y - size)
+        endShape()
     }
 
     //todo triangulo
@@ -273,24 +289,28 @@ class Fox{
         push()
         rectMode(CENTER)
         noStroke()
-        let size = mapp(this.age, 0, AGE_LIMIT_F, TAM_OVEJA*0.5, TAM_OVEJA, true)
+        let size = mapp(this.age, 0, AGE_LIMIT_S, TAM_OVEJA*0.5, TAM_OVEJA, true)
+        noFill()
         let pos = createVector()
         let off = this.coolDown == this.speed ? 1 : 1 / (this.speed - this.coolDown)
         pos.x = lerp(this.newPos.x, this.pos.x, off)
         pos.y = lerp(this.newPos.y, this.pos.y, off)
+        this.actualPos = pos.copy()
         if(!pos.x) console.log(this.newPos.x, this.pos.x)
         if(!pos.y) console.log(this.newPos.y, this.pos.y)
         translate(pos.x, pos.y)
-        rotate(Math.atan2(this.vel.y, this.vel.x))
+        rotate(Math.atan2(this.vel.y, this.vel.x) + 1.5)
         if(showNec){
             let mult = 0
-            if(this.state.goal == 'food') {fill(COL_HUNGER); mult = mapp(this.hunger, 0, 1, 1.25, 1.5)}
-            if(this.state.goal == 'water') {fill(COL_THIRST); mult = mapp(this.thirst, 0, 1, 1.25, 1.5)}
+            if(this.state.goal == 'food') {stroke(COL_HUNGER); mult = mapp(this.hunger, 0, 1, 1.1, 3.5)}
+            if(this.state.goal == 'water') {stroke(COL_THIRST); mult = mapp(this.thirst, 0, 1, 1.1, 3.5)}
             if(this.state.goal == 'partner') {
-                this.genre == 'male' ? fill(COL_LUST_MALE) : fill(COL_LUST_FEMALE); 
-                mult = mapp(this.lust, 0, 1, 1.25, 1.5)
+                this.genre == 'male' ? stroke(COL_LUST_MALE) : stroke(COL_LUST_FEMALE); 
+                mult = mapp(this.lust, 0, 1, 1.1, 1.5)
             }
-            rect(0, 0, size*mult, size*mult)
+            strokeWeight(mult * TAM_OVEJA * 0.1)
+            this.drawTri(undefined, size)
+            //rect(0, 0, size*mult, size*mult)
         }
         
         if(option == 'beauty'){
@@ -318,12 +338,25 @@ class Fox{
             else if(this.state.action == 'wandering') fill(100)
         }
         else if(option == 'none') fill(0, 0)
-        if(!this.state.dying) rect(0, 0, size, size)
-        else if(this.state.dying && Math.floor(FRAME / 15) % 2 == 0) rect(0, 0, size, size)
+        if(!this.state.dying) this.drawTri()
+        else if(this.state.dying && Math.floor(FRAME / 15) % 2 == 0) this.drawTri()
         pop()
         // push()
         // fill(0)
         // if(this.state.prey) ellipse(this.state.prey.pos.x, this.state.prey.pos.y, 15)
+        // pop()
+
+        //debug
+        // push()
+        // fill(0, 150)
+        // if(this.state.posGoal) ellipse(this.state.posGoal.x, this.state.posGoal.y, 10)
+        //     fill(this.col)
+        //     push()
+        //     noFill()
+        //     stroke(0, 100)
+        //     strokeWeight(.5)
+        //     ellipse(pos.x, pos.y, this.radius*2*0.33)
+        //     pop()
         // pop()
     }
 

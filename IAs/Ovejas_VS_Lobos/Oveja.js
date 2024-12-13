@@ -98,6 +98,7 @@ class Oveja{
         if(this.state.goal == 'food') rad_goal = RADIUS_GOAL_FOOD
         if(this.state.goal == 'water') rad_goal = RADIUS_GOAL_WATER
         if(this.state.goal == 'partner') rad_goal = RADIUS_GOAL_PARTNER
+        if(this.state.goal == 'fleeing') rad_goal = Infinity    //if fleeing and arrived to posgoal, choose new state
         if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < rad_goal){
             if(this.state.goal == 'food'){ 
                 let eaten = this.entorno.eat(this.state.posGoal)
@@ -182,7 +183,25 @@ class Oveja{
         let isThere = this.entorno.isFood(this.state.posGoal)
         if(!isThere){ 
             this.state.action = 'searching'
-            this.goalPos = undefined
+            this.state.posGoal = undefined
+        }
+    }
+
+    checkToFlee(){
+        let foxToAvoid = this.sim.findClosestPredator(this.pos, this.radius * 0.5)
+        //let foxToAvoid = {newPos: createVector(mouseX, mouseY)}
+        if(foxToAvoid){
+            this.state.action = 'walking'
+            this.state.goal = 'fleeing'
+            this.state.posGoal = p5.Vector.sub(this.pos, foxToAvoid.newPos).normalize().mult(SPEED_OVEJA)
+        }
+    }
+
+    checkIfStillAccesibleGoal(){
+        if(this.state.posGoal){
+            if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) > this.radius){
+                this.newState()
+            }
         }
     }
 
@@ -193,15 +212,19 @@ class Oveja{
         //se esta moviendo
         if(this.coolDown > 0){
             this.coolDown--
+            if(this.state.partner && this.state.partner.actualPos) this.state.posGoal = this.state.partner.actualPos.copy()
             return
         }
         else{ 
             this.pos = this.newPos.copy()
+            if(!this.state.posGoal) this.newState()
             if(this.state.posGoal && this.state.action == 'walking') this.checkGoal()
+            this.checkIfStillAccesibleGoal()
             this.coolDown = 0
         }
         //se mueve random y busca su objetivo
         if(this.state.action == 'searching'){
+            this.checkToFlee()
             if(this.state.goal == 'food'){
                 this.state.posGoal = this.entorno.findClosest(this.pos, this.radius, this.state.goal)
                 //console.log(this.state.posGoal)
@@ -220,7 +243,7 @@ class Oveja{
         else if(this.state.action == 'walking'){
             if(this.state.goal == 'food') this.checkFood()
             if(this.state.goal == 'partner') this.checkPartner()
-            if(this.state.goal == 'partner' && this.state.partner) this.state.posGoal = this.state.partner.pos.copy()
+            if(this.state.goal == 'partner' && this.state.partner) this.state.posGoal = this.state.partner.actualPos.copy()
             this.move(this.state.posGoal)
             
         }
@@ -253,7 +276,7 @@ class Oveja{
     }
 
     randomRadius(){
-        return clamp(randomGaussian(1, 0.5) * INITIAL_RADIUS_S, 10, 1000) * TAM_CELL * 0.05
+        return clamp(randomGaussian(1, 0.2) * INITIAL_RADIUS_S, 10, 1000) * TAM_CELL * 0.05
     }
 
     show(option, showNec){
@@ -261,6 +284,7 @@ class Oveja{
         // console.log("posX " + this.pos.x)
         // console.log("newposX " + this.newPos.x)
         push()
+        noFill()
         rectMode(CENTER)
         noStroke()
         let size = mapp(this.age, 0, AGE_LIMIT_S, TAM_OVEJA*0.5, TAM_OVEJA, true)
@@ -270,17 +294,19 @@ class Oveja{
         pos.y = lerp(this.newPos.y, this.pos.y, off)
         if(!pos.x) console.log(this.newPos.x, this.pos.x)
         if(!pos.y) console.log(this.newPos.y, this.pos.y)
+        this.actualPos = pos.copy()
         translate(pos.x, pos.y)
         rotate(Math.atan2(this.vel.y, this.vel.x))
         if(showNec){
             let mult = 0
-            if(this.state.goal == 'food') {fill(COL_HUNGER); mult = mapp(this.hunger, 0, 1, 1.25, 1.5)}
-            if(this.state.goal == 'water') {fill(COL_THIRST); mult = mapp(this.thirst, 0, 1, 1.25, 1.5)}
+            if(this.state.goal == 'food') {stroke(COL_HUNGER); mult = mapp(this.hunger, 0, 1, 1.1, 3.5)}
+            if(this.state.goal == 'water') {stroke(COL_THIRST); mult = mapp(this.thirst, 0, 1, 1.1, 3.5)}
             if(this.state.goal == 'partner') {
-                this.genre == 'male' ? fill(COL_LUST_MALE) : fill(COL_LUST_FEMALE); 
-                mult = mapp(this.lust, 0, 1, 1.25, 1.5)
+                this.genre == 'male' ? stroke(COL_LUST_MALE) : stroke(COL_LUST_FEMALE); 
+                mult = mapp(this.lust, 0, 1, 1.1, 1.5)
             }
-            rect(0, 0, size*mult, size*mult)
+            strokeWeight(mult * TAM_OVEJA * 0.1)
+            rect(0, 0, size, size)
         }
         
         if(option == 'beauty'){
@@ -305,11 +331,25 @@ class Oveja{
         else if(option == 'state'){
             if(this.state.action == 'searching') fill("#f7b538")
             else if(this.state.action == 'walking') fill("#780116")
+            if(this.state.goal == 'fleeing') fill("#4a4e69")
         }
-        else if(option == 'none') fill(0, 0)
+        else if(option == 'none') noFill()
         if(!this.state.dying) rect(0, 0, size, size)
         else if(this.state.dying && Math.floor(FRAME / 15) % 2 == 0) rect(0, 0, size, size)
         pop()
+
+        //debug
+        // push()
+        // fill(0, 150)
+        // if(this.state.posGoal) ellipse(this.state.posGoal.x, this.state.posGoal.y, 10)
+        //     fill(this.col)
+        //     push()
+        //     noFill()
+        //     stroke(0, 100)
+        //     strokeWeight(.5)
+        //     ellipse(pos.x, pos.y, this.radius*2*0.33)
+        //     pop()
+        // pop()
         
     }
 

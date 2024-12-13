@@ -20,7 +20,7 @@ class Entorno{
                     val: finalVal,
                     col: valor > bound ? lerppColor(COL_LIGHT_BLUE, COL_DARK_BLUE, finalVal) :
                                          lerppColor(COL_LIGHT_GREEN, COL_DARK_GREEN, finalVal),
-                    food: isFood ? 5 : 0,
+                    food: isFood ? clamp(Math.round(randomGaussian(3, .85), 1, 5), 0, 5) : 0,
                     rnd: finalVal + random(-1, 1),
                     deaths: 0,
                     eaten: 0
@@ -32,7 +32,9 @@ class Entorno{
     }
 
     regenerateFood(){
-        for(let x = 0; x < 20; x++){
+        //try to regenerate food where there is already some
+        let tries = Math.floor(SQ_GRID_SIZE * 0.1)
+        for(let x = 0; x < tries; x++){
             let i = Math.floor(Math.random() * GRID_SIZE)
             let j = Math.floor(Math.random() * GRID_SIZE)
             if(this.grid[i][j].type == 'grass' && 
@@ -42,15 +44,11 @@ class Entorno{
                     return
                 }
         }
-        let maxIter = GRID_SIZE*GRID_SIZE*0.25
+        //if it didnt, grow wherever
+        let maxIter = SQ_GRID_SIZE*0.25
         let iter = 0
         while(iter < maxIter){
-            let i = Math.floor(Math.random() * GRID_SIZE)
-            let j = Math.floor(Math.random() * GRID_SIZE)
-            if(this.grid[i][j].type == 'grass' && this.grid[i][j].food < 5){ 
-                this.grid[i][j].food++
-                break
-            }
+            if(this.growFood(undefined, true)) break
             iter++
         }
         
@@ -133,11 +131,21 @@ class Entorno{
         return true
     }
 
-    growFood(realPos){
-        let i = Math.floor(realPos.x / TAM_CELL)
-        let j = Math.floor(realPos.y / TAM_CELL)
-        if(this.grid[i][j].food < 5 && this.grid[i][j].type == 'grass') 
+    growFood(realPos = undefined, random = false){
+        let i, j
+        if(random){
+            i = Math.floor(Math.random() * GRID_SIZE)
+            j = Math.floor(Math.random() * GRID_SIZE)
+        }
+        else{
+            i = Math.floor(realPos.x / TAM_CELL)
+            j = Math.floor(realPos.y / TAM_CELL)
+        }
+        if(this.grid[i][j].food < 5 && this.grid[i][j].type == 'grass'){
             this.grid[i][j].food++
+            return true
+        }
+        return false
     }
 
     drawFood(i, j, food){
