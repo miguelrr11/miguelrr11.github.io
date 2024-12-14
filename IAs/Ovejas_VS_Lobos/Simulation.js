@@ -114,11 +114,11 @@ class Simulation{
         this.createNumberPickerWithBinding('panel_STARTING_RADIUS', 'Starting Radius', 5, 200, 10, INITIAL_RADIUS_S, 'INITIAL_RADIUS');
         this.createNumberPickerWithBinding('panel_AGE_LIMIT', 'Maximum Age', 0, 1000, 25, AGE_LIMIT_S, 'AGE_LIMIT');
         this.createNumberPickerWithBinding('panel_AGE_LIMIT_REPRODUCE', 'Minimum Age to Reproduce', 0, 1000, 25, AGE_LIMIT_REPRODUCE_S, 'AGE_LIMIT_REPRODUCE');
-        this.createNumberPickerWithBinding('panel_MIN_LUST', 'Minimum Lust to Reproduce', 0, 1, 0.1, MIN_LUST_S, 'MIN_LUST');
+        this.createNumberPickerWithBinding('panel_MIN_LUST', 'Minimum Libido to Reproduce', 0, 1, 0.1, MIN_LUST_S, 'MIN_LUST');
         this.createNumberPickerWithBinding('panel_MUT_FACTOR', 'Mutation Probability', 0, 1, 0.1, MUT_FACTOR_S, 'MUT_FACTOR');
         this.createNumberPickerWithBinding('panel_DELTA_HUNGER', 'Hunger Rate', 0, 0.3, 0.005, DELTA_HUNGER_S, 'DELTA_HUNGER');
         this.createNumberPickerWithBinding('panel_DELTA_THIRST', 'Thirst Rate', 0, 0.3, 0.005, DELTA_THIRST_S, 'DELTA_THIRST');
-        this.createNumberPickerWithBinding('panel_DELTA_LUST', 'Reproductive Urge Rate', 0, 0.3, 0.005, DELTA_LUST_S, 'DELTA_LUST');
+        this.createNumberPickerWithBinding('panel_DELTA_LUST', 'Libido Rate', 0, 0.3, 0.005, DELTA_LUST_S, 'DELTA_LUST');
 
         this.panel.createSeparator()
 
@@ -256,7 +256,8 @@ class Simulation{
 
     initPlots(){
         let sizePlot = HEIGHT*.2
-        let x = WIDTH + WIDTH_UI - sizePlot
+        let x = WIDTH + WIDTH_UI - sizePlot*2
+        let x2 = WIDTH + WIDTH_UI - sizePlot
 
         let type = this.panel_sim_type ? this.panel_sim_type.getSelected() : 'Both'
         let initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
@@ -274,6 +275,18 @@ class Simulation{
 
         initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
         this.plotAvgAge = new MigPLOT(x, sizePlot*4, sizePlot, sizePlot, initValues, 'Avg Age', '')
+
+        initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
+        this.plotAvgHunger = new MigPLOT(x2, 0, sizePlot, sizePlot, initValues, 'Avg Hunger', '')
+        this.plotAvgHunger.maxGlobal = 1
+
+        initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
+        this.plotAvgThirst = new MigPLOT(x2, sizePlot, sizePlot, sizePlot, initValues, 'Avg Thirst', '')
+        this.plotAvgThirst.maxGlobal = 1
+
+        initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
+        this.plotAvgLust = new MigPLOT(x2, sizePlot*2, sizePlot, sizePlot, initValues, 'Avg Libido', '')
+        this.plotAvgLust.maxGlobal = 1
     }
 
     init(){
@@ -358,14 +371,21 @@ class Simulation{
         let sumBeauty = 0
         let sumRadius = 0
         let sumAge = 0
+        let sumHunger = 0
+        let sumThirst = 0
+        let sumLust = 0
         for(let o of this.ovejas){
             sumSpeed += o.speed
             sumBeauty += o.beauty
             sumRadius += o.radius / TAM_CELL
             sumAge += o.age
+            sumHunger += o.hunger
+            sumThirst += o.thirst
+            sumLust += o.lust
         }
         let n = this.ovejas.length
-        return [sumSpeed/n, sumBeauty/n, sumRadius/n, sumAge/n]
+        return [sumSpeed/n, sumBeauty/n, sumRadius/n, sumAge/n,
+                sumHunger/n, sumThirst/n, sumLust/n]
     }
 
     getAvgsFox(){
@@ -375,14 +395,21 @@ class Simulation{
         let sumBeauty = 0
         let sumRadius = 0
         let sumAge = 0
+        let sumHunger = 0
+        let sumThirst = 0
+        let sumLust = 0
         for(let o of this.foxes){
             sumSpeed += o.speed
             sumBeauty += o.beauty
             sumRadius += o.radius / TAM_CELL
             sumAge += o.age
+            sumHunger += o.hunger
+            sumThirst += o.thirst
+            sumLust += o.lust
         }
         let n = this.foxes.length
-        return [sumSpeed/n, sumBeauty/n, sumRadius/n, sumAge/n]
+        return [sumSpeed/n, sumBeauty/n, sumRadius/n, sumAge/n,
+                sumHunger/n, sumThirst/n, sumLust/n]
     }
 
     updatePlots(){
@@ -397,6 +424,9 @@ class Simulation{
         this.plotAvgBeauty.feed(avgsOveja[1], avgsFox[1])
         this.plotAvgRadius.feed(avgsOveja[2], avgsFox[2])
         this.plotAvgAge.feed(avgsOveja[3], avgsFox[3])
+        this.plotAvgHunger.feed(avgsOveja[4], avgsFox[4])
+        this.plotAvgThirst.feed(avgsOveja[5], avgsFox[5])
+        this.plotAvgLust.feed(avgsOveja[6], avgsFox[6])
     }
     
 
@@ -454,6 +484,9 @@ class Simulation{
         this.plotAvgBeauty.show()
         this.plotAvgRadius.show()
         this.plotAvgAge.show()
+        this.plotAvgHunger.show()
+        this.plotAvgThirst.show()
+        this.plotAvgLust.show()
         pop()
     }
 
@@ -480,9 +513,9 @@ class Simulation{
             rect(0, 0, WIDTH, WIDTH)
         }
 
-        this.showPlots()
-       
+
         this.panel.show()
+        this.showPlots()
     }
 }
 

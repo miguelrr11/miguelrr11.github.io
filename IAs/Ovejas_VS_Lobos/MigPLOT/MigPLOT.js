@@ -57,7 +57,7 @@ class MigPLOT{
 
         this.maxGlobal = undefined
         this.minGlobal = undefined
-        this.dataLimit = 500
+        this.dataLimit = 250
 
         this.both = this.graph2 != undefined
 
@@ -83,17 +83,17 @@ class MigPLOT{
     }
 
     //todo
-    compressData(){
+    compressData(graph){
         let compressedData = []
-        const max = Math.max(...this.data)
-        const min = Math.min(...this.data)
-        for(let i = 0; i < this.data.length-1; i += 2){
-            let avg = (this.data[i] + this.data[i+1]) * 0.5
-            if(this.data[i] == max || this.data[i+1] == max) avg = max
-            if(this.data[i] == min || this.data[i+1] == min) avg = min
+        const max = Math.max(...graph.data)
+        const min = Math.min(...graph.data)
+        for(let i = 0; i < graph.data.length-1; i += 2){
+            let avg = (graph.data[i] + graph.data[i+1]) * 0.5
+            if(graph.data[i] == max || graph.data[i+1] == max) avg = max
+            if(graph.data[i] == min || graph.data[i+1] == min) avg = min
             compressedData.push(avg)
         }
-        this.data = compressedData
+        graph.data = compressedData
     }
 
     computeMaxBothGraphs(){
@@ -111,7 +111,8 @@ class MigPLOT{
 
     //calcula coordenadas para dibujar
     update(graph){
-        //if(this.data.length > this.dataLimit) this.compressData()
+        if(this.graph1.data.length > this.dataLimit) this.compressData(this.graph1)
+        if(this.graph2.data.length > this.dataLimit) this.compressData(this.graph2)
         if(this.graph1) this.nData = this.graph1.data.length
         if(this.graph2) this.nData = this.graph2.data.length
         const max = this.maxGlobal ? this.maxGlobal : this.computeMaxBothGraphs()

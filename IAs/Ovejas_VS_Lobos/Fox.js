@@ -299,7 +299,8 @@ class Fox{
         if(!pos.x) console.log(this.newPos.x, this.pos.x)
         if(!pos.y) console.log(this.newPos.y, this.pos.y)
         translate(pos.x, pos.y)
-        rotate(Math.atan2(this.vel.y, this.vel.x) + 1.5)
+        let dir = p5.Vector.sub(this.newPos, this.pos)
+        rotate(Math.atan2(dir.y, dir.x) + 1.5)
         if(showNec){
             let mult = 0
             if(this.state.goal == 'food') {stroke(COL_HUNGER); mult = mapp(this.hunger, 0, 1, 1.1, 3.5)}

@@ -1,6 +1,6 @@
 let WIDTH  = 850
 let HEIGHT = 850
-let WIDTH_UI = 600
+let WIDTH_UI = 800
 let WIDTH_PLOTS = HEIGHT * .2
 
 let GRID_SIZE = 85       //cells per row / column
