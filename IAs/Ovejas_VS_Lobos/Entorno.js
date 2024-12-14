@@ -54,20 +54,20 @@ class Entorno{
         
     }
 
-    //BFS
+    // Optimized BFS
     findClosest(realPos, realradius, type) {
-        let grid = this.grid
-        let radius = realradius / TAM_CELL
-        let i = Math.floor(realPos.x / TAM_CELL)
-        let j = Math.floor(realPos.y / TAM_CELL)
+        let grid = this.grid;
+        let radius = realradius / TAM_CELL;
+        let i = Math.floor(realPos.x / TAM_CELL);
+        let j = Math.floor(realPos.y / TAM_CELL);
         const directions = [
             [0, 1], [1, 0], [0, -1], [-1, 0], // cardinal directions
             [1, 1], [1, -1], [-1, 1], [-1, -1] // diagonal directions
         ];
-    
+
         const rows = grid.length;
         const cols = grid[0].length;
-    
+
         function isValid(x, y, visited) {
             const dist = Math.sqrt((x - i) ** 2 + (y - j) ** 2);
             return (
@@ -76,35 +76,36 @@ class Entorno{
                 x < rows &&
                 y < cols &&
                 dist <= radius &&
-                !visited[x][y]
+                !visited[x * cols + y]
             );
         }
-    
+
         const queue = [[i, j, 0]]; // [x, y, distance from origin]
-        const visited = Array.from({ length: rows }, () => Array(cols).fill(false));
-        visited[i][j] = true;
-    
+        const visited = new Uint8Array(rows * cols); // Use flat array for visited tracking
+        visited[i * cols + j] = 1;
+
         while (queue.length > 0) {
             const [x, y, dist] = queue.shift();
-    
-            if ((type == 'water' && grid[x][y].type == type) ||
-                (type == 'food' && grid[x][y].food > 0)) {
-                return createVector(x*TAM_CELL + TAM_CELL/2, y*TAM_CELL + TAM_CELL/2)
+
+            if ((type === 'water' && grid[x][y].type === type) ||
+                (type === 'food' && grid[x][y].food > 0)) {
+                return createVector(x * TAM_CELL + TAM_CELL / 2, y * TAM_CELL + TAM_CELL / 2);
             }
-    
+
             for (const [dx, dy] of directions) {
                 const newX = x + dx;
                 const newY = y + dy;
-    
+
                 if (isValid(newX, newY, visited)) {
-                    visited[newX][newY] = true;
+                    visited[newX * cols + newY] = 1;
                     queue.push([newX, newY, dist + 1]);
                 }
             }
         }
-    
+
         return null;
     }
+
 
     isWater(realPos){
         let i = Math.floor(realPos.x / TAM_CELL)
@@ -200,8 +201,8 @@ class Entorno{
     }
 
     showHoveredCell(){
-        let i = Math.floor(mouseX / TAM_CELL)
-        let j = Math.floor(mouseY / TAM_CELL)
+        let i = Math.floor((mouseX - WIDTH_PANEL) / TAM_CELL)
+        let j = Math.floor((mouseY) / TAM_CELL)
         push()
         fill(255, 130)
         stroke(255)

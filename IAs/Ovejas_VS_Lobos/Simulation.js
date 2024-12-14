@@ -1,4 +1,5 @@
 let FRAME = 0
+let fps = 60
 
 class Simulation{
     constructor(){
@@ -82,8 +83,8 @@ class Simulation{
 
     initUI(){
         this.panel = new Panel({
-            x: WIDTH,
-            w: WIDTH_UI - WIDTH_PLOTS,
+            x: 0,
+            w: WIDTH_PANEL,
             automaticHeight: false,
             title: 'SHEEP VS FOXES',
             darkCol: COL_OVEJA_LEAST_BEAUTY,
@@ -93,8 +94,8 @@ class Simulation{
         
         this.panel.createSeparator()
 
-        this.panel.createText('VARIABLES', true)
-        this.panel.separate()
+        // this.panel.createText('VARIABLES', true)
+        // this.panel.separate()
         //variables para ovjeas y foxes
         this.panel_GRID_SIZE = this.panel.createNumberPicker('Grid Size', 5, 120, 5, 50)
         this.panel_LAND = this.panel.createNumberPicker('% of Land vs Water', 0, 1, 0.05, 0.55)
@@ -334,12 +335,12 @@ class Simulation{
             let offspring 
             offspring = type == 'Oveja' ? new Oveja(this.entorno, this, 
                                         prog.pos.copy(),
-                                        Math.max(prog.speed + mutSpeed, 0),
+                                        Math.max(prog.speed + mutSpeed, MIN_SPEED),
                                         Math.max(prog.beauty + mutBeauty, 0),
                                         Math.max(prog.radius + mutRadius, 0)) :
                               new Fox(this.entorno, this, 
                                         prog.pos.copy(),
-                                        Math.max(prog.speed + mutSpeed, 0),
+                                        Math.max(prog.speed + mutSpeed, MIN_SPEED),
                                         Math.max(prog.beauty + mutBeauty, 0),
                                         Math.max(prog.radius + mutRadius, 0))
             type == 'Oveja' ? this.ovejas.push(offspring) : this.foxes.push(offspring)
@@ -457,11 +458,11 @@ class Simulation{
     }
 
     update(){
-        if(mouseIsPressed && this.inBoundsOfEntorno(mouseX, mouseY)){
+        if(mouseIsPressed && this.inBoundsOfEntorno(mouseX - WIDTH_PANEL, mouseY)){
             switch(this.interacting){
                 case undefined: break
                 case 'Grow food':
-                    this.entorno.growFood(createVector(mouseX, mouseY))
+                    this.entorno.growFood(createVector(mouseX - WIDTH_PANEL, mouseY))
             }
         }
         for(let j = 0; j < this.sim_speed; j++){
@@ -470,10 +471,10 @@ class Simulation{
                 this.updateOvejas()
                 this.updateFoxes()
                 if(Math.random() < FOOD_REGEN) this.entorno.regenerateFood()
-                if(frameCount % 20 == 0) this.updatePlots()
+                if(FRAME % 20 == 0) this.updatePlots()
             }
         }
-        
+        if(frameCount % 30 == 0) fps = getRoundedValueMIGUI(frameRate())
         this.panel.update()
     }
 
@@ -494,10 +495,11 @@ class Simulation{
         background(100)
         if(this.entorno){
             push()
+            translate(WIDTH_PANEL, 0)
             if(mouseIsPressed && keyIsPressed){
                 translate(-WIDTH/2, -HEIGHT/2)
                 scale(2)
-                let zoomCenterx = mouseX - WIDTH / 2
+                let zoomCenterx = mouseX - WIDTH / 2 - WIDTH_PANEL
                 let zoomCentery = mouseY - HEIGHT / 2
                 translate(-zoomCenterx, -zoomCentery)
             }
@@ -509,13 +511,27 @@ class Simulation{
             pop()
         }
         else{
+            push()
+            translate(WIDTH_PANEL, 0)
             fill(COL_DARK_GREEN)
             rect(0, 0, WIDTH, WIDTH)
+            pop()
         }
 
 
         this.panel.show()
         this.showPlots()
+        this.drawFPS()
+    }
+
+    drawFPS(){
+        push()
+        fill(255, 255, 0)
+        noStroke()
+        textAlign(LEFT, CENTER)
+        textSize(10)
+        text(fps, WIDTH_PANEL + WIDTH - 15, 5)
+        pop()
     }
 }
 

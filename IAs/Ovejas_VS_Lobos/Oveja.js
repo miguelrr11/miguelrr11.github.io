@@ -41,7 +41,8 @@ class Oveja{
 
     //if moving towards something and really close, just go there instead of overshooting
     checkIfClose(goal){
-        if(dist(goal.x, goal.y, this.pos.x, this.pos.y) < SPEED_OVEJA) this.newPos = goal.copy()
+        if(squaredDistance(goal.x, goal.y, this.pos.x, this.pos.y) < SPEED_OVEJA*SPEED_OVEJA) this.newPos = goal.copy()
+        // if(dist(goal.x, goal.y, this.pos.x, this.pos.y) < SPEED_OVEJA) this.newPos = goal.copy()
     }
 
     move(goal = undefined){
@@ -99,7 +100,8 @@ class Oveja{
         if(this.state.goal == 'water') rad_goal = RADIUS_GOAL_WATER
         if(this.state.goal == 'partner') rad_goal = RADIUS_GOAL_PARTNER
         if(this.state.goal == 'fleeing') rad_goal = Infinity    //if fleeing and arrived to posgoal, choose new state
-        if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < rad_goal){
+        // if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < rad_goal){
+        if(squaredDistance(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < rad_goal*rad_goal){
             if(this.state.goal == 'food'){ 
                 let eaten = this.entorno.eat(this.state.posGoal)
                 // this.hunger = Math.max(this.hunger - 0.25, 0)
@@ -139,7 +141,8 @@ class Oveja{
             if(other.age < AGE_LIMIT_REPRODUCE_S) continue
             if(other.genre == this.genre) continue
             if((other.state.goal == 'partner' || (other.state.goal != 'partner' && other.lust > MIN_LUST_S)) &&
-                 dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < this.radius)
+                 //dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < this.radius)
+                 squaredDistance(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < this.radius*this.radius)
                 possible.push(other)
         }
         if(possible.length == 0) return undefined
@@ -199,7 +202,8 @@ class Oveja{
 
     checkIfStillAccesibleGoal(){
         if(this.state.posGoal){
-            if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) > this.radius){
+            // if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) > this.radius){
+            if(squaredDistance(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) > this.radius*this.radius){
                 this.newState()
             }
         }

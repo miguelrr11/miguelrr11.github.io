@@ -57,7 +57,7 @@ class MigPLOT{
 
         this.maxGlobal = undefined
         this.minGlobal = undefined
-        this.dataLimit = 250
+        this.dataLimit = 200
 
         this.both = this.graph2 != undefined
 
@@ -67,8 +67,8 @@ class MigPLOT{
     }
 
     feed(val1 = undefined, val2 = undefined){
-        if(val1 != undefined) this.graph1.data.push(val1)
-        if(val2 != undefined) this.graph2.data.push(val2)
+        if(this.graph1) this.graph1.data.push(val1)
+        if(this.graph2) this.graph2.data.push(val2)
         if(this.graph1) this.update(this.graph1)
         if(this.graph2) this.update(this.graph2)
     }
@@ -82,19 +82,33 @@ class MigPLOT{
         graph.lastGuide = {y: undefined, data: undefined}
     }
 
-    //todo
-    compressData(graph){
-        let compressedData = []
-        const max = Math.max(...graph.data)
-        const min = Math.min(...graph.data)
-        for(let i = 0; i < graph.data.length-1; i += 2){
-            let avg = (graph.data[i] + graph.data[i+1]) * 0.5
-            if(graph.data[i] == max || graph.data[i+1] == max) avg = max
-            if(graph.data[i] == min || graph.data[i+1] == min) avg = min
-            compressedData.push(avg)
-        }
-        graph.data = compressedData
+    getNdataMax(){
+        if(!this.graph1) return this.graph2.data.length
+        if(!this.graph2) return this.graph1.data.length
+        else return Math.max(this.graph2.data.length, this.graph1.data.length)
     }
+
+    compressData(graph, factor = 2) {
+        let compressedData = [];
+        const max = Math.max(...graph.data);
+        const min = Math.min(...graph.data);
+    
+        graph.data.forEach((value, index) => {
+            if (index % factor === 0 || value === max || value === min) {
+                compressedData.push(value);
+            }
+        });
+    
+        if (!compressedData.includes(max)) {
+            compressedData.push(max);
+        }
+        if (!compressedData.includes(min)) {
+            compressedData.push(min);
+        }
+    
+        graph.data = compressedData;
+    }
+    
 
     computeMaxBothGraphs(){
         if(this.graph2 && this.graph1) return Math.max(Math.max(...this.graph1.data), Math.max(...this.graph2.data))
@@ -108,18 +122,27 @@ class MigPLOT{
         return Math.min(...this.graph2.data)
     }
 
+    compress(){
+        if(this.graph1 && this.graph1.data.length > this.dataLimit) this.compressData(this.graph1)
+        if(this.graph2 && this.graph2.data.length > this.dataLimit) this.compressData(this.graph2)
+    }
 
     //calcula coordenadas para dibujar
     update(graph){
-        if(this.graph1.data.length > this.dataLimit) this.compressData(this.graph1)
-        if(this.graph2.data.length > this.dataLimit) this.compressData(this.graph2)
-        if(this.graph1) this.nData = this.graph1.data.length
-        if(this.graph2) this.nData = this.graph2.data.length
+        this.compress()
+        this.nData = this.getNdataMax()
         const max = this.maxGlobal ? this.maxGlobal : this.computeMaxBothGraphs()
         const min = this.minGlobal ? this.minGlobal : this.computeMinBothGraphs()
+        graph.dataX = []
+        graph.dataY = []
         for(let i = 0; i < this.nData; i++){
             let x, y
             let digit =  graph.data[i]
+            if(digit == undefined){
+                graph.dataX[i] = undefined
+                graph.dataY[i] = undefined
+                continue
+            }
             y = mapp_PLOT(digit, min, max, this.p00.y, this.p01.y, true)
             x = mapp_PLOT(i, 0, this.nData-1, this.p00.x, this.p10.x, true)
             graph.dataX[i] = x
@@ -142,12 +165,16 @@ class MigPLOT{
             this.guidesX[i].data = getRoundedValueMIGUI(mapp_PLOT(x, this.p00.x, this.p10.x, 0, this.nData, true))
         }
         if(this.graph1){
-            this.graph1.lastGuide.y = this.graph1.dataY[this.nData-1]
-            this.graph1.lastGuide.data = getRoundedValueMIGUI(this.graph1.data[this.nData-1])
+            // this.graph1.lastGuide.y = this.graph1.dataY[this.nData-1]
+            // this.graph1.lastGuide.data = getRoundedValueMIGUI(this.graph1.data[this.nData-1])
+            this.graph1.lastGuide.y = getLastNonUndefinedValue(this.graph1.dataY)
+            this.graph1.lastGuide.data = getRoundedValueMIGUI(getLastNonUndefinedValue(this.graph1.data))
         }
         if(this.graph2){
-            this.graph2.lastGuide.y = this.graph2.dataY[this.nData-1]
-            this.graph2.lastGuide.data = getRoundedValueMIGUI(this.graph2.data[this.nData-1])
+            // this.graph2.lastGuide.y = this.graph2.dataY[this.nData-1]
+            // this.graph2.lastGuide.data = getRoundedValueMIGUI(this.graph2.data[this.nData-1])
+            this.graph2.lastGuide.y = getLastNonUndefinedValue(this.graph2.dataY)
+            this.graph2.lastGuide.data = getRoundedValueMIGUI(getLastNonUndefinedValue(this.graph2.data))
         }
     }
 
@@ -157,7 +184,15 @@ class MigPLOT{
         noFill()
         stroke(graph.col)
         beginShape()
-        graph.data.forEach((_, i) => vertex(graph.dataX[i], graph.dataY[i]));
+        for(let i = 0; i < graph.dataX.length; i++){
+            if(graph.dataX[i] == undefined || graph.dataY[i] == undefined){
+                endShape()
+                beginShape()
+                continue
+            }
+            vertex(graph.dataX[i], graph.dataY[i])
+        }
+        //graph.data.forEach((_, i) => vertex(graph.dataX[i], graph.dataY[i]));
         endShape()
         pop()
     }
@@ -213,6 +248,7 @@ class MigPLOT{
         
 
         push()
+        strokeJoin(ROUND);
         textFont(this.font)
         textSize(12)
         
@@ -275,4 +311,10 @@ function formatLargeNumber(value) {
       return (value / 1000).toFixed(1) + "K";
     }
     return value.toString();
+  }
+
+  function getLastNonUndefinedValue(array) {
+    return array.reduceRight((acc, value) => {
+      return acc === undefined && value !== undefined ? value : acc;
+    }, undefined);
   }

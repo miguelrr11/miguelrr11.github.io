@@ -42,7 +42,7 @@ class Fox{
 
     //if moving towards something and really close, just go there instead of overshooting
     checkIfClose(goal){
-        if(dist(goal.x, goal.y, this.pos.x, this.pos.y) < SPEED_FOX){ 
+        if(squaredDistance(goal.x, goal.y, this.pos.x, this.pos.y) < SPEED_FOX*SPEED_FOX){ 
             this.newPos = goal.copy()
             this.vel = p5.Vector.sub(this.newPos, this.pos).normalize()
         }
@@ -104,7 +104,7 @@ class Fox{
         if(this.state.goal == 'food') rad_goal = RADIUS_GOAL_FOOD * 2
         if(this.state.goal == 'water') rad_goal = RADIUS_GOAL_WATER
         if(this.state.goal == 'partner') rad_goal = RADIUS_GOAL_PARTNER * 2
-        if(dist(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < rad_goal){
+        if(squaredDistance(this.pos.x, this.pos.y, this.state.posGoal.x, this.state.posGoal.y) < rad_goal*rad_goal){
             if(this.state.goal == 'food'){ 
                 this.state.prey.alive = false
                 this.hunger = 0
@@ -144,7 +144,7 @@ class Fox{
             if(other.age < AGE_LIMIT_REPRODUCE_F) continue
             if(other.genre == this.genre) continue
             if((other.state.goal == 'partner' || (other.state.goal != 'partner' && other.lust > MIN_LUST_F)) &&
-                 dist(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < this.radius)
+                 squaredDistance(this.pos.x, this.pos.y, other.pos.x, other.pos.y) < this.radius*this.radius)
                 possible.push(other)
         }
         if(possible.length == 0) return undefined
@@ -189,7 +189,7 @@ class Fox{
     //cambairlo a check if food is still alive
     checkPrey(){
         let prey = this.state.prey
-        let isThere = prey && prey.alive && dist(prey.x, prey.y, this.pos.x, this.pos.y) < this.radius * 1.5
+        let isThere = prey && prey.alive && squaredDistance(prey.x, prey.y, this.pos.x, this.pos.y) < ((this.radius * 1.5)*(this.radius * 1.5))
         if(!isThere){ 
             this.state.action = 'searching'
             this.state.posGoal = undefined
