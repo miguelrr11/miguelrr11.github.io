@@ -14,7 +14,6 @@ let N_FOXES = Math.max(SQ_GRID_SIZE*N_FOXES_MULT, 1)
 let FOOD_CHANCE = .035        //starting food
 let FOOD_FACTOR_REGEN = 150    //factor que importa (cuanto mas alto, menos comida spawnea)
 let FOOD_REGEN = (SQ_GRID_SIZE / (SQ_GRID_SIZE + GRID_SIZE * FOOD_FACTOR_REGEN))    //natural regeneration
-const TIME_RESET_NEC = 60*1  //cada TIME_RESET_NEC frames, los animales updatean sus necesidades 
 const MIN_SPEED = 10
 
 //state of primordials

@@ -153,19 +153,20 @@ class Fox{
         return possible[0].newPos
     }
     
+    //se llama 60 veces por segundo
     updateNecessites(){
-        this.hunger = Math.min(this.hunger + DELTA_HUNGER_F, 1)
-        this.thirst = Math.min(this.thirst + DELTA_THIRST_F, 1)
-        if(this.age >= AGE_LIMIT_REPRODUCE_F) this.lust = Math.min(this.lust + DELTA_LUST_F, 1)
-        this.age += AGE_FACTOR
+        let m = 1 / 60
+        this.hunger = Math.min(this.hunger + DELTA_HUNGER_F * m, 1)
+        this.thirst = Math.min(this.thirst + DELTA_THIRST_F * m, 1)
+        if(this.age >= AGE_LIMIT_REPRODUCE_F) this.lust = Math.min(this.lust + DELTA_LUST_F * m, 1)
+        this.age += AGE_FACTOR * m
         if((this.hunger >= 1 || this.thirst >= 1) && !this.state.dying){
             this.state.dying = true
             let r = this.hunger >= 1 ? 'hunger' : 'thirst'
-            console.log(r)
             this.timeUntilDeath = TIME_UNTIL_DEAD     //seconds
         }
         else if(this.state.dying){
-            this.timeUntilDeath--
+            this.timeUntilDeath -= m
             if(this.timeUntilDeath <= 0) this.die()
         }
         if(this.age > AGE_LIMIT_F) this.die()
@@ -199,7 +200,7 @@ class Fox{
 
     //update based on state
     update(){
-        if(FRAME % TIME_RESET_NEC == 0) this.updateNecessites()
+        this.updateNecessites()
         //se esta moviendo
         if(this.coolDown > 0){
             this.coolDown--

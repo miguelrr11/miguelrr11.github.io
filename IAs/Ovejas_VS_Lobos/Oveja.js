@@ -152,20 +152,20 @@ class Oveja{
     }
     
     updateNecessites(){
-        this.hunger = Math.min(this.hunger + DELTA_HUNGER_S, 1)
-        this.thirst = Math.min(this.thirst + DELTA_THIRST_S, 1)
-        if(this.age >= AGE_LIMIT_REPRODUCE_S) this.lust = Math.min(this.lust + DELTA_LUST_S, 1)
-        this.age += AGE_FACTOR
+        let m = 1 / 60
+        this.hunger = Math.min(this.hunger + DELTA_HUNGER_S * m, 1)
+        this.thirst = Math.min(this.thirst + DELTA_THIRST_S * m, 1)
+        if(this.age >= AGE_LIMIT_REPRODUCE_S) this.lust = Math.min(this.lust + DELTA_LUST_S * m, 1)
+        this.age += AGE_FACTOR * m
         if((this.hunger >= 1 || this.thirst >= 1) && !this.state.dying){
             this.state.dying = true
             this.timeUntilDeath = TIME_UNTIL_DEAD     //seconds
         }
         else if(this.state.dying){
-            this.timeUntilDeath--
+            this.timeUntilDeath -= m
             if(this.timeUntilDeath <= 0) this.die()
         }
         if(this.age > AGE_LIMIT_S) this.die()
-        
     }
 
     die(){
@@ -212,7 +212,7 @@ class Oveja{
     //update based on state
     //todo: evitar foxes
     update(){
-        if(FRAME % TIME_RESET_NEC == 0) this.updateNecessites()
+        this.updateNecessites()
         //se esta moviendo
         if(this.coolDown > 0){
             this.coolDown--
