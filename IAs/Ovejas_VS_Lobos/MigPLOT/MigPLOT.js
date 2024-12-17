@@ -57,7 +57,7 @@ class MigPLOT{
 
         this.maxGlobal = undefined
         this.minGlobal = undefined
-        this.dataLimit = 200
+        this.dataLimit = 1000
 
         this.both = this.graph2 != undefined
 
