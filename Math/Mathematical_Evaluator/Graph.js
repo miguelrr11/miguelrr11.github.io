@@ -1,33 +1,54 @@
-const steps = 1000
+const steps = 20000
 const min = -10
 const max = 10
+
+const margin = 0
+const jump_thresh = 0.1
 
 const minRealX = 0
 const maxRealX = WIDTH
 const minRealY = HEIGHT
 const maxRealY = 0
 
+
+
 class Graph{
-    constructor(expression){
+    constructor(expression, col){
         this.expression = expression
         this.adaptedExpression = adaptToX(expression)
         this.points = []
         this.calculatePoints()
         this.realPoints = []
         this.calculateRealPoints()
-        this.col = "#ef476f"
+        this.col = col
     }
 
     calculatePoints(){
         const sizeStep = (Math.abs(min) + Math.abs(max)) / steps
+        let prevx = undefined
         for(let i = 0; i < steps; i++){
             let y = min + i*sizeStep
             let val = min + i*sizeStep
             let x = getfx(this.adaptedExpression, val)
-            if(x < min || x > max || y < min || y > max) continue
-            let sep = false
-            if(x*x + y*y > 100) sep = true
-            else this.points.push({x: y, y: x, sep})
+            if(prevx == undefined) prevx = x
+            if(x < min - margin || x > max + margin || y < min - margin || y > max + margin) this.points.push({x: y, y: x, sep: true})
+            else{ 
+                let sep = Math.abs(prevx - x) > jump_thresh
+                this.points.push({x: y, y: x, sep})
+            }
+            prevx = x
+        }
+        //this.separatePoints()
+    }
+
+    separatePoints(){
+        for(let i = 0; i < this.points.length-1; i++){
+            let p1 = this.points[i]
+            let p2 = this.points[i+1]
+            if(squaredDistance(p1.x, p1.y, p2.x, p2.y) > 100){
+                this.points[i].sep = true
+                //this.points[i+1].sep = true
+            }
         }
     }
 
@@ -35,7 +56,7 @@ class Graph{
         for(let p of this.points){
             let x = mapp(p.x, min, max, minRealX, maxRealX)
             let y = mapp(p.y, min, max, minRealY, maxRealY)
-            this.realPoints.push({x: x, y: y, sep: p.sep})
+            this.realPoints.push({x, y, sep: p.sep})
         }
     }
 
@@ -61,11 +82,19 @@ class Graph{
     show(){
         push()
         stroke(this.col)
-        strokeWeight(4)
+        strokeWeight(3)
         noFill()
         beginShape()
-        for(let p of this.realPoints) vertex(p.x, p.y)
+        for(let i = 0; i < this.realPoints.length; i++){
+            let p = this.realPoints[i] 
+            if(p.sep){
+                endShape()
+                beginShape()
+            }
+            vertex(p.x, p.y)
+        }
         endShape()
+        //for(let p of this.realPoints) ellipse(p.x, p.y, 4)
         pop()
     }
 
@@ -96,4 +125,7 @@ function showAxis(){
         text(i - stepsAxis/2, WIDTH/2 + 10, realy)
     }
     pop()
+}
+function squaredDistance(x1, y1, x2, y2) {
+    return (x2 - x1) ** 2 + (y2 - y1) ** 2
 }
