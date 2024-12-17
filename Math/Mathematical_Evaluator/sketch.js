@@ -2,6 +2,8 @@
 //Miguel Rodríguez
 //
 
+//y = f(x)
+
 p5.disableFriendlyErrors = true
 const WIDTH = 600
 const HEIGHT = 600

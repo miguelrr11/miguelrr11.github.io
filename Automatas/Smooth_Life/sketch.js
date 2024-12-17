@@ -1,6 +1,6 @@
-//
+//SmoothLife
 //Miguel Rodríguez
-//
+//17-12-2024
 
 p5.disableFriendlyErrors = true
 const WIDTH = 600

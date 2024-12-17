@@ -1,6 +1,6 @@
-//
+//Sheep VS Foxes Simulation
 //Miguel Rodríguez
-//
+//07-12-2024
 
 p5.disableFriendlyErrors = true
 
