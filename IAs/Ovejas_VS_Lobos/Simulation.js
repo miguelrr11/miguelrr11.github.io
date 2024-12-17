@@ -267,6 +267,7 @@ class Simulation{
 
         initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
         this.plotAvgSpeed = new MigPLOT(x, sizePlot, sizePlot, sizePlot, initValues, 'Avg Movement Cooldown', '')
+        this.plotAvgSpeed.minGlobal = 0
 
         initValues = type ==  'Both' ? [[0],[0]] : (type == 'Sheep' ? [[0], undefined] : [undefined, [0]])
         this.plotAvgBeauty = new MigPLOT(x, sizePlot*2, sizePlot, sizePlot, initValues, 'Avg Beauty', '')

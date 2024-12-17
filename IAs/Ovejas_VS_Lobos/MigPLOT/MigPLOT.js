@@ -88,27 +88,22 @@ class MigPLOT{
         else return Math.max(this.graph2.data.length, this.graph1.data.length)
     }
 
-    compressData(graph) {
-        let compressedData = [];
-        const max = Math.max(...graph.data);
-        const min = Math.min(...graph.data);
-        const nDataMax = graph.data.length;
-    
-        for (let i = 0; i < nDataMax - 1; i += 2) {
-            if (graph.data[i] !== undefined && graph.data[i + 1] !== undefined) {
-                let avg = (graph.data[i] + graph.data[i + 1]) * 0.5;
-    
-                if (graph.data[i] === max || graph.data[i + 1] === max) compressedData.push(max);
-                else if (graph.data[i] === min || graph.data[i + 1] === min) compressedData.push(min);
-                else compressedData.push(avg);
+    // 2 3 4 5 4 3 2 
+
+    compressData(graph){
+        let compressedData = []
+        const max = Math.max(...graph.data)
+        const min = Math.min(...graph.data)
+        const nDataMax = graph.data.length
+        for(let i = 0; i < nDataMax-1; i += 2){
+            if(graph.data[i] != undefined && graph.data[i+1] != undefined){
+                let avg = (graph.data[i] + graph.data[i+1]) * 0.5
+                if(graph.data[i] == max || graph.data[i+1] == max) avg = max
+                if(graph.data[i] == min || graph.data[i+1] == min) avg = min
+                compressedData.push(avg)
             }
         }
-    
-        if (nDataMax % 2 !== 0) {
-            compressedData.push(graph.data[nDataMax - 1]);
-        }
-    
-        graph.data = compressedData;
+        graph.data = compressedData
     }
     
 
