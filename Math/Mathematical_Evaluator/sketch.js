@@ -32,15 +32,17 @@ function setup(){
     panel.createSeparator()
     panel.createInput("y = f(x)", createGraph, true)
 
-    // createGraph("y = atan2(cos(x), sin(x))")
-    // createGraph("y = floor(x)")
-    // createGraph("y = ceil(x)")
-    // createGraph("y = sign(x)")
-    // createGraph("y = abs(x) - 1")
-    // createGraph("y = round(x)")
-    // createGraph("y = x - floor(x)")
-    // createGraph("y = sign(sin(x))")
-    // createGraph("y = tan(x)")
+    createGraph("y = atan2(cos(x), sin(x))")
+    createGraph("y = floor(x)")
+    createGraph("y = ceil(x)")
+    createGraph("y = sign(x)")
+    createGraph("y = abs(x) - 5")
+    createGraph("y = round(x)")
+    createGraph("y = x - floor(x)")
+    createGraph("y = sign(sin(x))")
+    createGraph("y = tan(x)")
+    // createGraph("y*sin(y)=x*sin(x)")
+    // createGraph("pow(y,2)=pow(x,2)*((sin(x)+y)/(sin(y)+x))")
 }
 
 function createGraph(arg){

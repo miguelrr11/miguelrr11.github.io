@@ -1,28 +1,23 @@
 function tokenize(expression) {
     const tokens = [];
-    const regex = /\s*(?:(\d+\.\d+|\d+)|([a-zA-Z_][a-zA-Z0-9_]*)\(|([,])|([+\-*/()]))\s*/g; 
+    const regex = /\s*(?:(-?\d+\.\d+|-?\d+)|([a-zA-Z_][a-zA-Z0-9_]*)\(|([,])|([+\-*/()]))\s*/g; // Updated regex to handle negative numbers
     let match;
     let lastToken = null;
 
     while ((match = regex.exec(expression)) !== null) {
         if (match[1]) {
-            if (lastToken && (lastToken.type === "NUMBER" || lastToken.type === "CLOSE_PAREN")) {
-                throw new Error(`Unexpected number after another number or closing parenthesis at position ${regex.lastIndex}`);
-            }
-            tokens.push({ type: "NUMBER", value: match[1] }); // If it's a number
+            tokens.push({ type: "NUMBER", value: match[1] }); // If it's a number (handles negative numbers)
         } else if (match[2]) {
+            if (lastToken && lastToken.type === "OPERATOR" && lastToken.value === "-") {
+                tokens.pop(); // Remove the standalone "-"
+                tokens.push({ type: "NUMBER", value: "-1" }); // Insert "-1"
+                tokens.push({ type: "OPERATOR", value: "*" }); // Insert "*"
+            }
             tokens.push({ type: "FUNCTION", value: match[2] }); // If it's a function name
             tokens.push({ type: "OPERATOR", value: "(" }); // Explicitly add '(' after function name
         } else if (match[3]) {
             tokens.push({ type: "COMMA", value: "," }); // Handle commas
         } else if (match[4]) {
-            if (match[4] === "-") {
-                if (!lastToken || lastToken.type === "OPERATOR" || lastToken.value === "(" || lastToken.type === "FUNCTION" || lastToken.type === "COMMA") {
-                    tokens.push({ type: "NUMBER", value: "-1" });
-                    tokens.push({ type: "OPERATOR", value: "*" });
-                    continue;
-                }
-            }
             tokens.push({ type: "OPERATOR", value: match[4] }); // If it's an operator or parentheses
         }
         lastToken = tokens[tokens.length - 1];
@@ -30,6 +25,7 @@ function tokenize(expression) {
 
     return tokens;
 }
+
 
 function parse(tokens) {
     let current = 0;
@@ -119,6 +115,11 @@ function evaluate(node) {
         const left = evaluate(node.left);
         const right = evaluate(node.right);
 
+        if (node.operator === '/' && right === 0) {
+            console.warn("Division by zero encountered. Returning Infinity.");
+            return Infinity;
+        }
+
         switch (node.operator) {
             case '+': return left + right;
             case '-': return left - right;
@@ -198,6 +199,10 @@ function feedX(input, value) {
     return input.replace(/(?<!\b(?:e|ma))x(?!p\b)/gi, value.toString());
 }
 
+function feedY(input, value) {
+    return input.replace(/(?<!\b(?:e|ma))y(?!p\b)/gi, value.toString());
+}
+
 //transforms things like 2x to 2*x or x (4x(1/2)) to x*(4*x*(1/2))
 function adaptToX(input) {
     input = input.replace(/(?<!\b(?:e|ma))x\s*(?=\()/g, 'x*')
@@ -215,6 +220,12 @@ function calculate(input){
 
 function getfx(adaptedX, value){
     let input = feedX(adaptedX, value)
+    let result = calculate(input)
+    return result
+}
+
+function getfy(adaptedX, value){
+    let input = feedY(adaptedX, value)
     let result = calculate(input)
     return result
 }

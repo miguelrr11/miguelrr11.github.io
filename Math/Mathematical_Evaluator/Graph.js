@@ -15,13 +15,37 @@ const maxRealY = 0
 class Graph{
     constructor(expression, col){
         this.expression = expression
-        this.adaptedExpression = adaptToX(expression)
+        // this.adaptedExpression = rearrangeEquation(adaptToX(expression))
+        this.adaptedExpression = (adaptToX(expression))
+        let [left, right] = this.adaptedExpression.split('=');
+        // this.adaptedExpression = left
+        this.adaptedExpression = right
+        console.log(this.adaptedExpression)
         this.points = []
         this.calculatePoints()
         this.realPoints = []
         this.calculateRealPoints()
         this.col = col
     }
+
+    // calculatePoints(){
+    //     const sizeStep = (Math.abs(min) + Math.abs(max)) / steps
+    //     let prevx = undefined
+    //     for(let i = 0; i < steps; i++){
+    //         let y = min + i*sizeStep
+    //         let val = min + i*sizeStep
+    //         let feededXexpr = feedX(this.adaptedExpression, val)
+    //         let x = newtonRaphson(0, feededXexpr)
+    //         if(prevx == undefined) prevx = x
+    //         if(x < min - margin || x > max + margin || y < min - margin || y > max + margin) this.points.push({x: y, y: x, sep: true})
+    //         else{ 
+    //             let sep = Math.abs(prevx - x) > jump_thresh
+    //             this.points.push({x: y, y: x, sep})
+    //         }
+    //         prevx = x
+    //     }
+    //     //this.separatePoints()
+    // }
 
     calculatePoints(){
         const sizeStep = (Math.abs(min) + Math.abs(max)) / steps
@@ -94,7 +118,7 @@ class Graph{
             vertex(p.x, p.y)
         }
         endShape()
-        //for(let p of this.realPoints) ellipse(p.x, p.y, 4)
+        //for(let p of this.realPoints) ellipse(p.x, p.y, 2)
         pop()
     }
 

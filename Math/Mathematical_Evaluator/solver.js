@@ -1,4 +1,4 @@
-function newtonRaphson(x0, expr, tol = 1e-7, maxIter = 1000) {
+function newtonRaphson(x0, expr, tol = 1e-12, maxIter = 10000) {
     let x = x0;               // Current root approximation
     let iter = 0;             // Iteration counter
     let prevFx = 0, prevx = 0; // Previous values for secant method
@@ -30,7 +30,6 @@ function newtonRaphson(x0, expr, tol = 1e-7, maxIter = 1000) {
 
         // Check for convergence
         if (Math.abs(xNext - x) < tol) {
-            console.log(`Converged in ${iter + 1} iterations.`);
             return xNext;
         }
 
@@ -47,7 +46,7 @@ function newtonRaphson(x0, expr, tol = 1e-7, maxIter = 1000) {
 
 // Helper function to evaluate the expression f(x)
 function evaluateExpr(expr, x) {
-    return getfx(expr, x)
+    return getfy(expr, x)
 }
 
 // Secant method to approximate the derivative
@@ -81,16 +80,7 @@ function rearrangeEquation(equation) {
     }
 
     // Rearrange into 'left - right = 0'
-    const rearrangedEquation = `${left.trim()} - ( ${right.trim()} ) = 0`;
+    const rearrangedEquation = `${left.trim()} - ( ${right.trim()} )`;
     
     return rearrangedEquation;
 }
-
-// Example usage
-const inputEquation = "sin(x/2) = tan(2x) / abs(x)";
-const outputEquation = rearrangeEquation(inputEquation);
-console.log(outputEquation)
-
-const root = newtonRaphson(100, outputEquation);    // Initial guess: 10
-
-console.log("Root:", root);
