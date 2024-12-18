@@ -15,7 +15,7 @@ const maxRealY = 0
 class Graph{
     constructor(expression, col){
         this.expression = expression
-        // this.adaptedExpression = rearrangeEquation(adaptToX(expression))
+        //this.adaptedExpression = rearrangeEquation(adaptToX(expression))
         this.adaptedExpression = (adaptToX(expression))
         let [left, right] = this.adaptedExpression.split('=');
         // this.adaptedExpression = left

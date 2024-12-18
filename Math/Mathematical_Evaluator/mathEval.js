@@ -1,23 +1,27 @@
 function tokenize(expression) {
     const tokens = [];
-    const regex = /\s*(?:(-?\d+\.\d+|-?\d+)|([a-zA-Z_][a-zA-Z0-9_]*)\(|([,])|([+\-*/()]))\s*/g; // Updated regex to handle negative numbers
+    const regex = /\s*(?:(\d+\.\d+|\d+)|([a-zA-Z_][a-zA-Z0-9_]*)\(|([,])|([+\-*/()]))\s*/g; // Updated regex to disallow negative numbers
     let match;
     let lastToken = null;
 
     while ((match = regex.exec(expression)) !== null) {
         if (match[1]) {
-            tokens.push({ type: "NUMBER", value: match[1] }); // If it's a number (handles negative numbers)
-        } else if (match[2]) {
-            if (lastToken && lastToken.type === "OPERATOR" && lastToken.value === "-") {
-                tokens.pop(); // Remove the standalone "-"
-                tokens.push({ type: "NUMBER", value: "-1" }); // Insert "-1"
-                tokens.push({ type: "OPERATOR", value: "*" }); // Insert "*"
+            if (lastToken && (lastToken.type === "NUMBER" || lastToken.type === "CLOSE_PAREN")) {
+                throw new Error(`Unexpected number after another number or closing parenthesis at position ${regex.lastIndex}`);
             }
+            tokens.push({ type: "NUMBER", value: match[1] }); // If it's a number
+        } else if (match[2]) {
             tokens.push({ type: "FUNCTION", value: match[2] }); // If it's a function name
             tokens.push({ type: "OPERATOR", value: "(" }); // Explicitly add '(' after function name
         } else if (match[3]) {
             tokens.push({ type: "COMMA", value: "," }); // Handle commas
         } else if (match[4]) {
+            if (match[4] === "-") {
+                // Treat '-' as an operator, insert '0 -' for negative numbers
+                if (!lastToken || lastToken.type === "OPERATOR" || lastToken.type === "OPEN_PAREN") {
+                    tokens.push({ type: "NUMBER", value: "0" }); // Insert 0 before the negative operator
+                }
+            }
             tokens.push({ type: "OPERATOR", value: match[4] }); // If it's an operator or parentheses
         }
         lastToken = tokens[tokens.length - 1];
@@ -25,7 +29,6 @@ function tokenize(expression) {
 
     return tokens;
 }
-
 
 function parse(tokens) {
     let current = 0;
