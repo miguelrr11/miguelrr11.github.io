@@ -18,7 +18,7 @@ class Graph{
         //this.adaptedExpression = rearrangeEquation(adaptToX(expression))
         this.adaptedExpression = (adaptToX(expression))
         let [left, right] = this.adaptedExpression.split('=');
-        // this.adaptedExpression = left
+        //this.adaptedExpression = left
         this.adaptedExpression = right
         console.log(this.adaptedExpression)
         this.points = []
@@ -36,6 +36,7 @@ class Graph{
     //         let val = min + i*sizeStep
     //         let feededXexpr = feedX(this.adaptedExpression, val)
     //         let x = newtonRaphson(0, feededXexpr)
+    //         if(x == null) break
     //         if(prevx == undefined) prevx = x
     //         if(x < min - margin || x > max + margin || y < min - margin || y > max + margin) this.points.push({x: y, y: x, sep: true})
     //         else{ 

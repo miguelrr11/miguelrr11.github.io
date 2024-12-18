@@ -1,10 +1,11 @@
-function newtonRaphson(x0, expr, tol = 1e-12, maxIter = 10000) {
+function newtonRaphson(x0, expr, tol = 1e-10, maxIter = 50000) {
     let x = x0;               // Current root approximation
     let iter = 0;             // Iteration counter
     let prevFx = 0, prevx = 0; // Previous values for secant method
 
     // Precompute the constant derivative for linear expressions
-    const constantDerivative = detectLinearDerivative(expr);
+    // const constantDerivative = detectLinearDerivative(expr);
+    const constantDerivative = null
 
     while (iter < maxIter) {
         let fx = evaluateExpr(expr, x); // Evaluate f(x) at current x

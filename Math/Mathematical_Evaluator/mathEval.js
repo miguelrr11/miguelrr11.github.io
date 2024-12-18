@@ -1,34 +1,49 @@
 function tokenize(expression) {
     const tokens = [];
-    const regex = /\s*(?:(\d+\.\d+|\d+)|([a-zA-Z_][a-zA-Z0-9_]*)\(|([,])|([+\-*/()]))\s*/g; // Updated regex to disallow negative numbers
+    const regex = /\s*(?:(\d+\.\d+|\d+)|([a-zA-Z_][a-zA-Z0-9_]*)\(|([,])|([+\-*/()]))\s*/g; // Updated regex to allow negative numbers and operators
     let match;
     let lastToken = null;
+    let first = true
 
     while ((match = regex.exec(expression)) !== null) {
         if (match[1]) {
             if (lastToken && (lastToken.type === "NUMBER" || lastToken.type === "CLOSE_PAREN")) {
                 throw new Error(`Unexpected number after another number or closing parenthesis at position ${regex.lastIndex}`);
             }
-            tokens.push({ type: "NUMBER", value: match[1] }); // If it's a number
+            if(lastToken && lastToken.value == '-'){  //2 * - (-1)
+                
+                tokens.splice(tokens.length-1, 1)
+                if(tokens[tokens.length-1].type == "NUMBER" || tokens[tokens.length-1].value == ")") tokens.push({ type: "OPERATOR", value: "+" });
+                tokens.push({ type: "NUMBER", value: "-" + match[1] });
+                
+            }
+            else tokens.push({ type: "NUMBER", value: match[1] }); // If it's a number
         } else if (match[2]) {
             tokens.push({ type: "FUNCTION", value: match[2] }); // If it's a function name
             tokens.push({ type: "OPERATOR", value: "(" }); // Explicitly add '(' after function name
         } else if (match[3]) {
             tokens.push({ type: "COMMA", value: "," }); // Handle commas
         } else if (match[4]) {
-            if (match[4] === "-") {
-                // Treat '-' as an operator, insert '0 -' for negative numbers
-                if (!lastToken || lastToken.type === "OPERATOR" || lastToken.type === "OPEN_PAREN") {
-                    tokens.push({ type: "NUMBER", value: "0" }); // Insert 0 before the negative operator
-                }
+            if (match[4] === "-" && first) {
+                tokens.push({ type: "NUMBER", value: "0" });
+                tokens.push({ type: "OPERATOR", value: "-" }); // Treat as a subtraction operator
+                
+            } else {
+                tokens.push({ type: "OPERATOR", value: match[4] }); // If it's an operator or parentheses
             }
-            tokens.push({ type: "OPERATOR", value: match[4] }); // If it's an operator or parentheses
         }
         lastToken = tokens[tokens.length - 1];
+        first = false
     }
 
     return tokens;
 }
+// 1-2 -> 1 + -2
+/*
+-12 -> positive operator and negative number: + -12
+-pow(1, 2) -> negative operator and function: - pow(1, 2)
+-(12 + 3) -> - negative operator and parenthesis: - (12 + 3)
+*/
 
 function parse(tokens) {
     let current = 0;
