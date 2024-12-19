@@ -13,8 +13,6 @@ const maxRealY = 0
 let variables = new Map()
 let sliders = new Map()
 
-
-
 class Graph{
     constructor(expression, col){
         this.expression = expression
@@ -100,28 +98,29 @@ class Graph{
         let maxCP = max
         const sizeStep = ((Math.abs(minCP) + Math.abs(maxCP)) / steps) 
         let prevx = undefined
+        let prevy = undefined
         for(let i = 0; i < steps; i++){
             let y = minCP + i*sizeStep
-            let val = minCP + i*sizeStep
-            let x = getfx(this.variables.size > 0 ? this.feeded : this.adaptedExpression, val)
+            let x = getfx(this.variables.size > 0 ? this.feeded : this.adaptedExpression, y)
             if(prevx == undefined) prevx = x
+            if(prevy == undefined) prevy = y
             if(x < minCP - margin || x > maxCP + margin || y < minCP - margin || y > maxCP + margin) {}
             else{ 
-                let sep = Math.abs(prevx - x) > jump_thresh
+                let sep = Math.abs(prevx - x) > jump_thresh || Math.abs(prevy - y) > jump_thresh || x == NaN
                 this.points.push({x: y, y: x, sep})
             }
             prevx = x
+            prevy = y
         }
         //this.separatePoints()
     }
 
     separatePoints(){
-        for(let i = 0; i < this.points.length-1; i++){
-            let p1 = this.points[i]
-            let p2 = this.points[i+1]
-            if(squaredDistance(p1.x, p1.y, p2.x, p2.y) > 100){
+        for(let i = 0; i < this.realPoints.length-1; i++){
+            let p1 = this.realPoints[i]
+            let p2 = this.realPoints[i+1]
+            if(squaredDistance(p1.x, p1.y, p2.x, p2.y) > jump_thresh*jump_thresh){
                 this.points[i].sep = true
-                //this.points[i+1].sep = true
             }
         }
     }
@@ -132,6 +131,7 @@ class Graph{
             let y = mapp(p.y, min, max, minRealY, maxRealY)
             this.realPoints.push({x, y, sep: p.sep})
         }
+        this.separatePoints()
     }
 
     // show(frameCount){
@@ -155,21 +155,26 @@ class Graph{
 
     show(){
         push()
+        // stroke(this.col)
+        // strokeWeight(3)
+        // noFill()
+        // strokeCap(ROUND)
+        // beginShape()
+        // for(let i = 0; i < this.realPoints.length; i++){
+        //     let p = this.realPoints[i] 
+        //     if(p.sep || (this.realPoints[i+1] && this.realPoints[i+1].sep) || (this.realPoints[i-1] && this.realPoints[i-1].sep)){
+        //         endShape()
+        //         beginShape()
+        //     }
+        //     //vertex(p.x, p.y)
+        // }
+        // endShape()
+        fill(this.col)
+        strokeWeight(2)
         stroke(this.col)
-        strokeWeight(3)
-        noFill()
-        strokeCap(ROUND)
-        beginShape()
-        for(let i = 0; i < this.realPoints.length; i++){
-            let p = this.realPoints[i] 
-            if(p.sep){
-                endShape()
-                beginShape()
-            }
-            vertex(p.x, p.y)
+        for(let p of this.realPoints){ 
+            point(p.x, p.y, 3)
         }
-        endShape()
-        //for(let p of this.realPoints) ellipse(p.x, p.y, 2)
         pop()
     }
 

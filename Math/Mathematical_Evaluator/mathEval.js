@@ -171,7 +171,7 @@ function functionCall(func, arg1, arg2){
         case 'log': return Math.log(arg1);           // Natural log
         case 'log2': return Math.log2(arg1);         // Base-2 log
         case 'log10': return Math.log10(arg1);       // Base-10 log
-        case 'log1p': return Math.log1p(arg1);       // log(1 + arg)
+        //case 'log1p': return Math.log1p(arg1);       // log(1 + arg)
 
         case 'abs': return Math.abs(arg1);           // Absolute value
         case 'sign': return Math.sign(arg1);         // Sign of the number
@@ -230,10 +230,12 @@ function feedVar(input, value, character) {
 //adds * symobols to the input string to make it compatible with the parser
 function adaptToVariable(input, variable) {
     const rules = [
-        { regex: new RegExp(`${variable}([a-z])`, 'g'), replacement: `${variable}*$1` }, // Ax -> A*x
-        { regex: new RegExp(`${variable} ([a-z])`, 'g'), replacement: `${variable}* $1` }, // A x -> A* x
-        { regex: new RegExp(`${variable}\\(`, 'g'), replacement: `${variable}*(` }, // A( -> A*(
-        { regex: new RegExp(`${variable} \\(`, 'g'), replacement: `${variable}* (` }, // A ( -> A* (
+        { regex: new RegExp(`(?<![ea])${variable}([a-z])`, 'g'), replacement: `${variable}*$1` },
+        { regex: new RegExp(`(?<![ea])${variable} ([a-z])`, 'g'), replacement: `${variable}* $1` },
+        { regex: new RegExp(`([a-z])(?<![ea])${variable}`, 'g'), replacement: `$1*${variable}` },
+        { regex: new RegExp(`([a-z]) (?<![ea])${variable}`, 'g'), replacement: `$1* ${variable}*` },
+        { regex: new RegExp(`(?<![ea])${variable}\\(`, 'g'), replacement: `${variable}*(` }, // A( -> A*(
+        { regex: new RegExp(`(?<![ea])${variable} \\(`, 'g'), replacement: `${variable}* (` }, // A ( -> A* (
         { regex: /\)([^*/+\-,)\s])/g, replacement: `)*$1` }, // )n -> )*n (excluding special chars)
         { regex: /\) ([^*/+\-,)\s])/g, replacement: `)* $1` }, // ) n -> )* n (excluding special chars)
         { regex: new RegExp(`${variable}(\\d)`, 'g'), replacement: `${variable}*$1` }, // A2 -> A*2

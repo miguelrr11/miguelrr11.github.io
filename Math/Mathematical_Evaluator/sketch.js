@@ -47,10 +47,14 @@ function setup(){
     // createGraph("y = sqrt(9-pow(x,2))")
     // createGraph("y = -sqrt(9-pow(x,2))")
     // createGraph("y = Ax")
-    createGraph("y = sin(pow(A,x))")
+    // createGraph("y = sin(pow(A,x))")
     // createGraph("y = Bx")
     //createGraph("y*sin(y)=x*sin(x)")
     //createGraph("pow(y,2)=pow(x,2)*((sin(x)+y)/(sin(y)+x))")
+
+    createGraph("y = A/x + B")
+
+
 }
 
 function updateGraphs(){
@@ -61,11 +65,11 @@ function updateGraphs(){
 
 
 function createGraph(arg){
-    console.log(arg)
     graphs.push({
         cb: panel.createCheckbox(arg, true),
         graph: new Graph(arg, colors[graphs.length%(colors.length)])
     })
+    graphs[graphs.length-1].cb.lightCol = graphs[graphs.length-1].graph.col
 }
 
 function draw(){
