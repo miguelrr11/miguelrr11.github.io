@@ -9,7 +9,7 @@ const WIDTH = 900
 const HEIGHT = 900
 let graphs = []
 let font 
-let colors = ["#ef476f", "#ffbe0b", "#06d6a0", "#118ab2", "#0C637F"]
+let colors = ["#ef476f", "#FD9E02", "#06d6a0", "#118ab2", "#0C637F"]
 let panel
 
 
@@ -30,7 +30,7 @@ function setup(){
         stackable: false
     })
     panel.createSeparator()
-    panel.createText("Enter a function in the form y = f(x) and press enter. You may introduce variables A, B, C, etc and common mathematical functions like sin, cos, tan, sqrt, etc.")
+    panel.createText("Enter a function in the form y = f(x) and press enter. You may introduce variables A, B, C, etc and common mathematical functions like sin, cos, sqrt, abs, etc.")
     panel.createSeparator()
     panel.createInput("y = f(x)", createGraph, true)
     panel.createSeparator()
@@ -52,8 +52,8 @@ function setup(){
     //createGraph("y*sin(y)=x*sin(x)")
     //createGraph("pow(y,2)=pow(x,2)*((sin(x)+y)/(sin(y)+x))")
 
-    createGraph("y = A/x + B")
-
+    // createGraph("y = 2sin(x)")
+    // createGraph("y = 1/(A+exp(x))")
 
 }
 
