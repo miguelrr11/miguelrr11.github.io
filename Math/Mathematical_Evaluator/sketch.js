@@ -5,12 +5,11 @@
 //y = f(x)
 
 p5.disableFriendlyErrors = true
-const WIDTH = 600
-const HEIGHT = 600
+const WIDTH = 900
+const HEIGHT = 900
 let graphs = []
 let font 
-let colors = ["#669900", "#006699", "#cc3399", "#ffcc00", "#06D6A0", 
-              "#99cc33", "#3399cc", "#cc3399", "#ff6600", "#ff9900"]
+let colors = ["#ef476f", "#ffbe0b", "#06d6a0", "#118ab2", "#0C637F"]
 let panel
 
 
@@ -27,35 +26,69 @@ function setup(){
         automaticHeight: false,
         lightCol: [100, 100, 100],
         darkCol: [230, 230, 230],
-        title: 'GRAPHING CALCULATOR'
+        title: 'GRAPHING CALCULATOR',
+        stackable: false
     })
     panel.createSeparator()
+    panel.createText("Enter a function in the form y = f(x) and press enter. You may introduce variables A, B, C, etc and common mathematical functions like sin, cos, tan, sqrt, etc.")
+    panel.createSeparator()
     panel.createInput("y = f(x)", createGraph, true)
+    panel.createSeparator()
 
-    createGraph("y = atan2(cos(x), sin(x))")
-    createGraph("y = floor(x)")
-    createGraph("y = ceil(x)")
-    createGraph("y = sign(x)")
-    createGraph("y = abs(x) - 7")
-    createGraph("y = round(x)")
-    createGraph("y = x - floor(x)")
-    createGraph("y = sign(sin(x))")
-    createGraph("y = tan(x)")
-    createGraph("y = sqrt(9-pow(x,2))")
-    createGraph("y = -sqrt(9-pow(x,2))")
+    // createGraph("y = atan2(cos(x), sin(x))")
+    // createGraph("y = floor(x)")
+    // createGraph("y = ceil(x)")
+    // createGraph("y = sign(x)")
+    // createGraph("y = abs(x) - 7")
+    // createGraph("y = round(x)")
+    // createGraph("y = x - floor(x)")
+    // createGraph("y = sign(sin(x))")
+    // createGraph("y = tan(x)")
+    // createGraph("y = sqrt(9-pow(x,2))")
+    // createGraph("y = -sqrt(9-pow(x,2))")
+    // createGraph("y = Ax")
+    createGraph("y = sin(pow(A,x))")
+    // createGraph("y = Bx")
     //createGraph("y*sin(y)=x*sin(x)")
     //createGraph("pow(y,2)=pow(x,2)*((sin(x)+y)/(sin(y)+x))")
 }
 
+function updateGraphs(){
+    for(let g of graphs){
+        g.graph.update()
+    }
+}
+
+
 function createGraph(arg){
     console.log(arg)
-    graphs.push(new Graph(arg, colors[graphs.length%(colors.length)]))
+    graphs.push({
+        cb: panel.createCheckbox(arg, true),
+        graph: new Graph(arg, colors[graphs.length%(colors.length)])
+    })
 }
 
 function draw(){
     background(230)
+    let val = 1
+    // if(keyIsPressed){
+    //     if(keyCode == DOWN_ARROW){
+    //         min += val
+    //         max -= val
+    //         updateGraphs()
+    //     }
+    //     if(keyCode == UP_ARROW){
+    //         min -= val
+    //         max += val
+    //         updateGraphs()
+    //     }
+    // }
+    
     showAxis()
-    for(let g of graphs) g.show(frameCount*5)
+    //textFont(font)
+    for(let g of graphs){ 
+        if(g.cb.isChecked()) g.graph.show(frameCount*5)
+    }
     panel.update()
     panel.show()
 }

@@ -29,6 +29,7 @@ class Panel{
 	        w = 200,
 	        h = height,
 	        retractable = false,
+			stackable = true,
 	        darkCol = [0, 0, 0],
 	        lightCol = [255, 255, 255],
 	        theme,
@@ -40,6 +41,7 @@ class Panel{
 	    this.w = constrain(w, 100, 1000);
 	    this.h = constrain(h, 100, 1000);
 	    this.retractable = retractable;
+		this.stackable = stackable
 		max_width_element = this.w - 17 * 2
 	    
 	    //width_elementsMIGUI = this.w - 35;
@@ -140,7 +142,7 @@ class Panel{
 	    let newX, newY;
 	    let needsNewLine = false;
 
-	    if (this.lastCB) {
+	    if (this.lastCB && this.stackable) {
 	        const lastCBLength = this.lastCB.length + 20 
 	        newX = this.lastCB.pos.x + lastCBLength
 
@@ -365,6 +367,11 @@ class Panel{
 	    this.lastElementAdded = 'separator'
 	}
 
+	unstack(){
+		this.lastCB = undefined
+	    this.lastBU = undefined
+	}
+
 	duplicateFunctionsNumberPicker(){
 		for(let np of this.numberPickers){
 			np.funcPlus = np.funcMinus
@@ -533,7 +540,7 @@ class Panel{
 
 	show(){
 		push()
-
+		textFont(text_FontMIGUI)
 		this.beingHoveredHand = false
 		this.beingHoveredText = false
 

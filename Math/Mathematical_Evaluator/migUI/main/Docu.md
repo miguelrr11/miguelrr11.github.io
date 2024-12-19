@@ -20,6 +20,7 @@ The `properties` object can be used to customize the panel's behavior and appear
 | `darkCol`         | `string/array` | `[0, 0, 0]`         | Dark color of the panel. Accepts a hex string or RGB array. |
 | `lightCol`        | `string/array` | `[255, 255, 255]`   | Light color of the panel. Accepts a hex string or RGB array. |
 | `retractable`     | `boolean`      | `false`             | Whether the panel can be collapsed. |
+| `stackable`       | `boolean`      | `true`              | Whether stackable elements will stack. |
 | `theme`           | `string`       | `undefined`         | Predefined theme for the panel. See available themes below. |
 | `automaticHeight` | `boolean`      | `true`              | Adjusts panel height automatically based on content. |
 
@@ -150,7 +151,8 @@ Creates a visual separator between elements.
 
 ### Notes
 - **Checkboxes** and **buttons** will be stacked horizontally if space allows; other elements are added vertically.
-- To disable horizontal stacking between two specific elements, call `panel.separate()` between their creation.
+- To separate elements without drawing a line, call `panel.separate()`
+- To disable horizontal stacking between two specific elements, call `panel.unstack()` between their creation.
 
 - All elements have the following functionalities:
 - **`el.disable()`**: Disables the element. (Enabled by default)

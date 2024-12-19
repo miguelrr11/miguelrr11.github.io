@@ -221,13 +221,34 @@ function feedY(input, value) {
     return input.replace(/(?<!\b(?:e|ma))y(?!p\b)/gi, value.toString());
 }
 
-//transforms things like 2x to 2*x or x (4x(1/2)) to x*(4*x*(1/2))
-function adaptToX(input) {
-    input = input.replace(/(?<!\b(?:e|ma))x\s*(?=\()/g, 'x*')
-    input = input.replace(/(?<!\b(?:e|ma))x\s*(?=\d)/g, 'x*')
-    input = input.replace(/(\d|\))\s*(?=x(?!p\b|ax\b))/g, '$1*')
-    return input;
+function feedVar(input, value, character) {
+    const escapedChar = character.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escapedChar, 'g');
+    return input.replace(regex, value.toString());
 }
+
+//adds * symobols to the input string to make it compatible with the parser
+function adaptToVariable(input, variable) {
+    const rules = [
+        { regex: new RegExp(`${variable}([a-z])`, 'g'), replacement: `${variable}*$1` }, // Ax -> A*x
+        { regex: new RegExp(`${variable} ([a-z])`, 'g'), replacement: `${variable}* $1` }, // A x -> A* x
+        { regex: new RegExp(`${variable}\\(`, 'g'), replacement: `${variable}*(` }, // A( -> A*(
+        { regex: new RegExp(`${variable} \\(`, 'g'), replacement: `${variable}* (` }, // A ( -> A* (
+        { regex: /\)([^*/+\-,)\s])/g, replacement: `)*$1` }, // )n -> )*n (excluding special chars)
+        { regex: /\) ([^*/+\-,)\s])/g, replacement: `)* $1` }, // ) n -> )* n (excluding special chars)
+        { regex: new RegExp(`${variable}(\\d)`, 'g'), replacement: `${variable}*$1` }, // A2 -> A*2
+        { regex: new RegExp(`${variable} (\\d)`, 'g'), replacement: `${variable}* $1` }, // A 2 -> A* 2
+        { regex: /(\d)([a-zA-Z])/g, replacement: '$1*$2' } // 2cos() -> 2*cos()
+    ];
+
+    let result = input;
+    rules.forEach(({ regex, replacement }) => {
+        result = result.replace(regex, replacement);
+    });
+
+    return result;
+}
+
 
 function calculate(input){
     const tokens = tokenize(input);

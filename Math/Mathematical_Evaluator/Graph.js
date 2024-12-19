@@ -1,14 +1,17 @@
-const steps = 20000
-const min = -10
-const max = 10
+let steps = 10000
+let min = -11
+let max = 11
 
 const margin = 0
-const jump_thresh = 0.1
+const jump_thresh = 0.26
 
 const minRealX = 0
 const maxRealX = WIDTH
 const minRealY = HEIGHT
 const maxRealY = 0
+
+let variables = new Map()
+let sliders = new Map()
 
 
 
@@ -16,16 +19,60 @@ class Graph{
     constructor(expression, col){
         this.expression = expression
         //this.adaptedExpression = rearrangeEquation(adaptToX(expression))
-        this.adaptedExpression = (adaptToX(expression))
+        this.adaptedExpression = (adaptToVariable(expression, 'x')) 
         let [left, right] = this.adaptedExpression.split('=');
         //this.adaptedExpression = left
         this.adaptedExpression = right
+        this.variables = setVariables(this.adaptedExpression) //this.variables are the varioables in the expression
+        if(variables.size > 0){ 
+            this.createSliders()
+            this.adaptToVariables()
+            this.feedInitialValuesToVariables()
+        }
         console.log(this.adaptedExpression)
         this.points = []
         this.calculatePoints()
         this.realPoints = []
         this.calculateRealPoints()
         this.col = col
+    }
+
+    createSliders(){
+        let i = 0
+        variables.forEach((value, key) => {
+            if (!sliders.has(key)) {
+                sliders.set(key, panel.createSlider(-10, 10, 1, key, true, () => {
+                    variables.set(key, sliders.get(key).getValue())
+                    graphs.forEach(graph => {
+                        if (graph.graph.variables.has(key)) {
+                            graph.graph.update()
+                        }
+                    })
+                }))
+            }
+            i++
+        });
+    }
+
+    feedInitialValuesToVariables(){
+        this.feeded = this.adaptedExpression
+        variables.forEach((value, key) => {
+            this.feeded = feedVar(this.feeded, value.toString(), key)
+        });
+    }
+
+    adaptToVariables(){
+        variables.forEach((value, key) => {
+            this.adaptedExpression = adaptToVariable(this.adaptedExpression, key)
+        });
+    }
+
+    update(){
+        this.feedInitialValuesToVariables()
+        this.points = []
+        this.calculatePoints()
+        this.realPoints = []
+        this.calculateRealPoints()
     }
 
     // calculatePoints(){
@@ -49,14 +96,16 @@ class Graph{
     // }
 
     calculatePoints(){
-        const sizeStep = (Math.abs(min) + Math.abs(max)) / steps
+        let minCP = min
+        let maxCP = max
+        const sizeStep = ((Math.abs(minCP) + Math.abs(maxCP)) / steps) 
         let prevx = undefined
         for(let i = 0; i < steps; i++){
-            let y = min + i*sizeStep
-            let val = min + i*sizeStep
-            let x = getfx(this.adaptedExpression, val)
+            let y = minCP + i*sizeStep
+            let val = minCP + i*sizeStep
+            let x = getfx(this.variables.size > 0 ? this.feeded : this.adaptedExpression, val)
             if(prevx == undefined) prevx = x
-            if(x < min - margin || x > max + margin || y < min - margin || y > max + margin) this.points.push({x: y, y: x, sep: true})
+            if(x < minCP - margin || x > maxCP + margin || y < minCP - margin || y > maxCP + margin) {}
             else{ 
                 let sep = Math.abs(prevx - x) > jump_thresh
                 this.points.push({x: y, y: x, sep})
@@ -109,6 +158,7 @@ class Graph{
         stroke(this.col)
         strokeWeight(3)
         noFill()
+        strokeCap(ROUND)
         beginShape()
         for(let i = 0; i < this.realPoints.length; i++){
             let p = this.realPoints[i] 
@@ -126,6 +176,7 @@ class Graph{
 }
 
 function showAxis(){
+    this.showGrid()
     push()
     strokeWeight(2)
     stroke(180)
@@ -140,10 +191,10 @@ function showAxis(){
         fill(230)
         let realx = mapp(min+i*sizeStepAxis, min, max, minRealX, maxRealX)
         let realy = mapp(min+i*sizeStepAxis, min, max, minRealY, maxRealY)
-        ellipse(realx, HEIGHT/2, 6)
-        ellipse(WIDTH/2, realy, 6)
+        ellipse(realx, HEIGHT/2, 5)
+        ellipse(WIDTH/2, realy, 5)
         noStroke()
-        fill(100)
+        fill(130)
         textAlign(CENTER, TOP)
         if(i - stepsAxis/2 != 0) text(i - stepsAxis/2, realx, HEIGHT/2 - 20)
         textAlign(LEFT, CENTER)
@@ -151,6 +202,38 @@ function showAxis(){
     }
     pop()
 }
+
+function showGrid(){
+    push()
+    strokeWeight(1)
+    stroke(210)
+    let sizeStepAxis = 1
+    let stepsAxis = (Math.abs(min) + Math.abs(max)) / sizeStepAxis
+    for(let i = 0; i < stepsAxis; i++) line(mapp(min+i*sizeStepAxis, min, max, minRealX, maxRealX), 0,
+                                            mapp(min+i*sizeStepAxis, min, max, minRealX, maxRealX), HEIGHT)
+    for(let i = 0; i < stepsAxis; i++) line(0, mapp(min+i*sizeStepAxis, min, max, minRealY, maxRealY),
+                                            WIDTH, mapp(min+i*sizeStepAxis, min, max, minRealY, maxRealY))
+    pop()
+}
+
 function squaredDistance(x1, y1, x2, y2) {
     return (x2 - x1) ** 2 + (y2 - y1) ** 2
+}
+
+function getStepSize(){
+    let distance = Math.abs(max - min)  
+    return Math.ceil(distance / 20)
+}
+
+function setVariables(input) {
+    const variableRegex = /[A-Z]/g;
+    let localVars = new Map()
+
+    let match;
+    while ((match = variableRegex.exec(input)) !== null) {
+        localVars.set(match[0], '1');
+        variables.set(match[0], '1');
+    }
+
+    return localVars;
 }
