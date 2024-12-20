@@ -232,14 +232,14 @@ function getStepSize(){
 
 function setVariables(input) {
     const variableRegex = /[A-Z]/g;
-    let localVars = new Map()
+    const localVars = new Map();
 
-    let match;
-    while ((match = variableRegex.exec(input)) !== null) {
-        if(variables.has(match[0])) localVars.set(match[0], variables.get(match[0]));
-        else{ localVars.set(match[0], '1');
-        variables.set(match[0], '1');}
-    }
+    input.match(variableRegex)?.forEach(variable => {
+        if (!variables.has(variable)) {
+            variables.set(variable, '1');
+        }
+        localVars.set(variable, variables.get(variable));
+    });
 
     return localVars;
 }

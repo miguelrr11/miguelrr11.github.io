@@ -24,11 +24,18 @@ function tokenize(expression) {
         } else if (match[3]) {
             tokens.push({ type: "COMMA", value: "," }); // Handle commas
         } else if (match[4]) {
-            if (match[4] === "-" && first) {
+            //- -> 0- also (- -> 0-(
+            if ((match[4] === "-" && first) || (match[4] === "-" && lastToken && lastToken.value == "(")) {
                 tokens.push({ type: "NUMBER", value: "0" });
                 tokens.push({ type: "OPERATOR", value: "-" }); // Treat as a subtraction operator
-                
-            } else {
+            } 
+            
+            // else if(match[4] === "-" && !first && lastToken.value == "-"){
+            //     //only add + if the last token was not a (), if it was add + and delete the -
+            //     if(tokens[tokens.length-2].value != "(") tokens.push({ type: "OPERATOR", value: "+" });
+            //     tokens.splice(tokens.length-2, 1)
+            // }
+            else {
                 tokens.push({ type: "OPERATOR", value: match[4] }); // If it's an operator or parentheses
             }
         }
@@ -197,7 +204,7 @@ function functionCall(func, arg1, arg2){
         case 'min': return Math.min(arg1, arg2);     // Minimum of args
         case 'max': return Math.max(arg1, arg2);     // Maximum of args
 
-        case 'random': return Math.random();         // Random number [0, 1)
+        case 'random': return Math.random() * arg1;         // Random number [0, 1)
 
         //no funciona por ahora
         case 'PI': return Math.PI;                   // π constant
@@ -240,7 +247,11 @@ function adaptToVariable(input, variable) {
         { regex: /\) ([^*/+\-,)\s])/g, replacement: `)* $1` }, // ) n -> )* n (excluding special chars)
         { regex: new RegExp(`${variable}(\\d)`, 'g'), replacement: `${variable}*$1` }, // A2 -> A*2
         { regex: new RegExp(`${variable} (\\d)`, 'g'), replacement: `${variable}* $1` }, // A 2 -> A* 2
-        { regex: /(\d)([a-zA-Z])/g, replacement: '$1*$2' } // 2cos() -> 2*cos()
+        { regex: /(\d)([a-zA-Z])/g, replacement: '$1*$2' }, // 2cos() -> 2*cos()
+        // regex that sustitutes a -- to nothing if the the previous character to -- is a ( or a space or a + or a - or a * or a /
+        // write the regex below
+        
+
     ];
 
     let result = input;
@@ -251,10 +262,23 @@ function adaptToVariable(input, variable) {
     return result;
 }
 
+function adaptDoubleNegativeSigns(input){
+    const rules = [{regex: /(^|\(|\s|\+|\-|\*|\/)--/g, replacement : '$1' }]
+    let result = input
+    rules.forEach(({ regex, replacement }) => {
+        result = input.replace(regex, replacement);
+    });
+    return result
+}
+
 
 function calculate(input){
-    const tokens = tokenize(input);
+    adaptedInput = adaptDoubleNegativeSigns(input)
+    //console.log(adaptedInput)
+    const tokens = tokenize(adaptedInput);
+    //console.log(tokens)
     const ast = parse(tokens);
+    //console.log(ast)
     const result = evaluate(ast);
     return result
 }
