@@ -42,7 +42,7 @@ class Graph{
                 sliders.set(key, panel.createSlider(-10, 10, 1, key, true, () => {
                     variables.set(key, sliders.get(key).getValue())
                     graphs.forEach(graph => {
-                        if (graph.graph.variables.has(key)) {
+                        if (graph.graph.variables.has(key) && graph.cb.isChecked()) {
                             graph.graph.update()
                         }
                     })
@@ -236,8 +236,9 @@ function setVariables(input) {
 
     let match;
     while ((match = variableRegex.exec(input)) !== null) {
-        localVars.set(match[0], '1');
-        variables.set(match[0], '1');
+        if(variables.has(match[0])) localVars.set(match[0], variables.get(match[0]));
+        else{ localVars.set(match[0], '1');
+        variables.set(match[0], '1');}
     }
 
     return localVars;
