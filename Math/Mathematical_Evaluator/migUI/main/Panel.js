@@ -138,7 +138,7 @@ class Panel{
 
 	}
 
-	createCheckbox(title = "", state = false) {
+	createCheckbox(title = "", state = false, func = undefined) {
 	    let newX, newY;
 	    let needsNewLine = false;
 
@@ -161,14 +161,14 @@ class Panel{
 
 	    if (needsNewLine) {
 	        if (this.lastElementAdded.constructor.name !== "Checkbox") {
-	            this.lastElementPos.y += 5;
+	            //this.lastElementPos.y += 5;
 	        }
 	        newX = this.lastElementPos.x;
 	        newY = this.lastElementPos.y;
 	       
 	    }
 
-	    const checkbox = new Checkbox(newX, newY, title, state, this.lightCol, this.darkCol, this.transCol);
+	    const checkbox = new Checkbox(newX, newY, title, state, func, this.lightCol, this.darkCol, this.transCol);
 	    this.checkboxes.push(checkbox);
 	    this.lastElementAdded = checkbox;
 	    if(needsNewLine) this.lastElementPos.y += checkbox.height + this.padding

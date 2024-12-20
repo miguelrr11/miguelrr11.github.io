@@ -4,6 +4,7 @@ let max = 11
 
 const margin = 0
 const jump_thresh = 0.26
+const jump_thresh2 = 0.008
 
 const minRealX = 0
 const maxRealX = WIDTH
@@ -97,21 +98,25 @@ class Graph{
         let minCP = min
         let maxCP = max
         const sizeStep = ((Math.abs(minCP) + Math.abs(maxCP)) / steps) 
+        let expre = this.variables.size > 0 ? this.feeded : this.adaptedExpression
         let prevx = undefined
         let prevy = undefined
         for(let i = 0; i < steps; i++){
             let y = minCP + i*sizeStep
-            let x = getfx(this.variables.size > 0 ? this.feeded : this.adaptedExpression, y)
+            let x = getfx(expre, y)
+            let diff = Math.abs(prevx - x)
             if(prevx == undefined) prevx = x
             if(prevy == undefined) prevy = y
             if(x < minCP - margin || x > maxCP + margin || y < minCP - margin || y > maxCP + margin) {}
             else{ 
-                let sep = Math.abs(prevx - x) > jump_thresh || Math.abs(prevy - y) > jump_thresh || x == NaN
+                let sep = diff > jump_thresh || x == NaN
                 this.points.push({x: y, y: x, sep})
             }
             prevx = x
             prevy = y
+            if(diff < jump_thresh2 && !animating) i += mapp(diff, 0.0001, jump_thresh2, 1, 3)
         }
+        console.log(this.points.length)
         //this.separatePoints()
     }
 
@@ -166,13 +171,15 @@ class Graph{
         //         endShape()
         //         beginShape()
         //     }
-        //     //vertex(p.x, p.y)
+        //     vertex(p.x, p.y)
         // }
         // endShape()
         fill(this.col)
         strokeWeight(2)
         stroke(this.col)
-        for(let p of this.realPoints){ 
+        let stop = animating ? (frameCount*30) % this.realPoints.length : this.realPoints.length
+        for(let i = 0; i < stop; i++){ 
+            let p = this.realPoints[i]
             point(p.x, p.y, 3)
         }
         pop()

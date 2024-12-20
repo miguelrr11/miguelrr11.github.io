@@ -1,8 +1,6 @@
-//
+//Graphing calculator and mathematical evaluator
 //Miguel Rodríguez
-//
-
-//y = f(x)
+//17-12-2024
 
 p5.disableFriendlyErrors = true
 const WIDTH = 900
@@ -11,6 +9,7 @@ let graphs = []
 let font 
 let colors = ["#ef476f", "#FD9E02", "#06d6a0", "#118ab2", "#0C637F"]
 let panel
+let animating = false
 
 
 function preload(){
@@ -32,6 +31,11 @@ function setup(){
     panel.createSeparator()
     panel.createText("Enter a function in the form y = f(x) and press enter. You may introduce variables A, B, C, etc and common mathematical functions like sin, cos, sqrt, abs, etc.")
     panel.createSeparator()
+    panel.createCheckbox("Animate", false, () => {
+        animating = !animating
+        updateGraphs()
+    })
+    panel.createSeparator()
     panel.createInput("y = f(x)", createGraph, true)
     panel.createSeparator()
 
@@ -51,6 +55,7 @@ function setup(){
     // createGraph("y = Bx")
     //createGraph("y*sin(y)=x*sin(x)")
     //createGraph("pow(y,2)=pow(x,2)*((sin(x)+y)/(sin(y)+x))")
+    //createGraph('y = exp(x)')
 
     // createGraph("y = 2sin(x)")
     // createGraph("y = 1/(A+exp(x))")

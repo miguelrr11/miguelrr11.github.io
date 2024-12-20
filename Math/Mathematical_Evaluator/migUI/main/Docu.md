@@ -42,9 +42,10 @@ The Panel UI library supports various components that can be added to the panel.
 ### Checkbox
 A checkbox is a UI element that represents a binary state (on or off).
 
-- **`panel.createCheckbox([title], [state])`**: Creates a checkbox.
+- **`panel.createCheckbox([title], [state], [func])`**: Creates a checkbox.
   - `title` (`string`, optional): Label for the checkbox.
   - `state` (`boolean`, optional): Initial state (`false` by default).
+  - `func` (`function`, optional): Function executed when the checkbox is interacted with.
   - **Returns**: `Checkbox` instance.
 
 - **`cb.isChecked()`**: Returns the current state (`true` or `false`).

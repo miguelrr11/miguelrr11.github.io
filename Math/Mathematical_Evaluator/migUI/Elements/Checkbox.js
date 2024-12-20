@@ -1,5 +1,5 @@
 class Checkbox{
-	constructor(x, y, title, state, lightCol, darkCol, transCol){
+	constructor(x, y, title, state, func, lightCol, darkCol, transCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -7,6 +7,7 @@ class Checkbox{
 		this.state = state
 		this.name = title
 		this.title = getClippedTextMIGUI(title, clipping_length_normalMIGUI)
+		this.func = func
 
 		this.beingPressed = false
 		this.beingHovered = false
@@ -26,12 +27,17 @@ class Checkbox{
 		this.state = !this.state
 	}
 
+	excute(){
+		if(this.func) this.func()
+	}
+
 	evaluate(){
 		let inB = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w+bordeMIGUI, this.h+bordeMIGUI)
 		if(inB) this.beingHovered = true
 		else this.beingHovered = false
 		if(inB && mouseIsPressed && !this.beingPressed){ 
 			this.toggle()
+			this.excute()
 			this.beingPressed = true
 			return true
 		}
