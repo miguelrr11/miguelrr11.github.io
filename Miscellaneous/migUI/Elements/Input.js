@@ -1,12 +1,13 @@
 class Input{
-	constructor(x, y, placeholder, func, lightCol, darkCol, transCol){
+	constructor(x, y, placeholder, func, arg, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
-		this.transCol = [...lightCol, 100]
+		this.transCol = [...lightCol, 60]
 		this.pos = createVector(x, y)
 		this.textSize = text_SizeMIGUI-2
 		this.placeholder = getClippedTextMIGUI(placeholder, clipping_length_normalMIGUI)
 		this.func = func
+		this.arg = arg
 
 		this.beingHovered = false
 		this.beingPressed = false
@@ -14,7 +15,7 @@ class Input{
 		this.clippedSentence = ""
 		this.active = false
 
-		this.w = width_elementsMIGUI
+		this.w = max_width_element
 		this.h = 20
 		this.height = this.h
 
@@ -44,7 +45,8 @@ class Input{
 
 	execute(){
 		if(this.func){ 
-			this.func()
+			if(this.arg) this.func(this.sentence)
+			else this.func()
 			this.sentence = ""
 			this.clippedSentence = ""
 			this.cursorPos = 0

@@ -11,6 +11,7 @@ let width_elementsMIGUI = 158
 let clipping_length_normalMIGUI = 20
 let clipping_length_titleMIGUI = 11
 let picker_width = 100
+let max_width_element = 0
 
 /*
 200 - 20
@@ -28,6 +29,7 @@ class Panel{
 	        w = 200,
 	        h = height,
 	        retractable = false,
+			stackable = true,
 	        darkCol = [0, 0, 0],
 	        lightCol = [255, 255, 255],
 	        theme,
@@ -39,6 +41,8 @@ class Panel{
 	    this.w = constrain(w, 100, 1000);
 	    this.h = constrain(h, 100, 1000);
 	    this.retractable = retractable;
+		this.stackable = stackable
+		max_width_element = this.w - 17 * 2
 	    
 	    //width_elementsMIGUI = this.w - 35;
 	    clipping_length_normalMIGUI = Math.ceil(0.125 * this.w - 4);
@@ -134,11 +138,11 @@ class Panel{
 
 	}
 
-	createCheckbox(title = "", state = false) {
+	createCheckbox(title = "", state = false, func = undefined) {
 	    let newX, newY;
 	    let needsNewLine = false;
 
-	    if (this.lastCB) {
+	    if (this.lastCB && this.stackable) {
 	        const lastCBLength = this.lastCB.length + 20 
 	        newX = this.lastCB.pos.x + lastCBLength
 
@@ -157,14 +161,14 @@ class Panel{
 
 	    if (needsNewLine) {
 	        if (this.lastElementAdded.constructor.name !== "Checkbox") {
-	            this.lastElementPos.y += 5;
+	            //this.lastElementPos.y += 5;
 	        }
 	        newX = this.lastElementPos.x;
 	        newY = this.lastElementPos.y;
 	       
 	    }
 
-	    const checkbox = new Checkbox(newX, newY, title, state, this.lightCol, this.darkCol, this.transCol);
+	    const checkbox = new Checkbox(newX, newY, title, state, func, this.lightCol, this.darkCol, this.transCol);
 	    this.checkboxes.push(checkbox);
 	    this.lastElementAdded = checkbox;
 	    if(needsNewLine) this.lastElementPos.y += checkbox.height + this.padding
@@ -242,10 +246,10 @@ class Panel{
 		return select
 	}
 
-	createInput(placeholder = "", func = undefined){
+	createInput(placeholder = "", func = undefined, arg = false){
 		//if(this.lastElementAdded.constructor.name != "Input") this.lastElementPos.y += 5
 		let input = new Input(this.lastElementPos.x,
-							  this.lastElementPos.y, placeholder, func, 
+							  this.lastElementPos.y, placeholder, func, arg,
 							  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 30
 		this.lastElementPos.y += input.height + this.padding
@@ -361,6 +365,11 @@ class Panel{
 	    this.lastBU = undefined
 		this.lastElementPos.y = this.lastElementPos.y + this.padding
 	    this.lastElementAdded = 'separator'
+	}
+
+	unstack(){
+		this.lastCB = undefined
+	    this.lastBU = undefined
 	}
 
 	duplicateFunctionsNumberPicker(){
@@ -531,7 +540,7 @@ class Panel{
 
 	show(){
 		push()
-
+		textFont(text_FontMIGUI)
 		this.beingHoveredHand = false
 		this.beingHoveredText = false
 
@@ -542,6 +551,7 @@ class Panel{
 		//fondo
 		fill(this.darkCol)
 		stroke(this.lightCol)
+		//noStroke()
 		strokeWeight(bordeMIGUI)
 		if(this.isRetracted && this.retractable){
 			this.retractButton.show()
