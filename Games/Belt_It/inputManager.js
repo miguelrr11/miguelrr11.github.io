@@ -1,12 +1,14 @@
-let gameState = 0    //0 = nothing, 1 = buildingFrom
+let gameState = 0    //0 = nothing or buildingFrom, 1 = deleting
 //state 1:
 let buildingFrom = undefined
 let prevBelt = undefined
+let firstBelt = undefined
 
 function mouseReleased(){
     if(gameState == 0){
         buildingFrom = undefined
         prevBelt = undefined
+        firstBelt = true
     }
 }
 
@@ -14,6 +16,7 @@ function mouseDragged(){
     if(gameState == 0){
         if(!buildingFrom){
             buildingFrom = getCenteredXY(mouseX, mouseY)
+            prevBelt = game.grid.getBelt(mouseX, mouseY)
         }
         let posBuildingNow = getCenteredXY(mouseX, mouseY)
         if(dist(buildingFrom.x, buildingFrom.y, posBuildingNow.x, posBuildingNow.y) > tamCell/2){
@@ -21,20 +24,12 @@ function mouseDragged(){
             let deltaX = abs(mouseX - buildingFrom.x)
             let deltaY = abs(mouseY - buildingFrom.y)
             if(deltaX > deltaY){
-                if(mouseX > buildingFrom.x){
-                    dir = 'E'
-                }
-                else{
-                    dir = 'W'
-                }
+                if(mouseX > buildingFrom.x) dir = 'E'
+                else dir = 'W'
             }
             else{
-                if(mouseY >  buildingFrom.y){
-                    dir = 'S'
-                }
-                else{
-                    dir = 'N'
-                }
+                if(mouseY >  buildingFrom.y) dir = 'S'
+                else dir = 'N'
             }
             if(prevBelt){
                 let prevDir = prevBelt.direction
@@ -51,22 +46,41 @@ function mouseDragged(){
                     prevBelt.direction = prevDir + dir
                 }
             }
-            buildingFrom = posBuildingNow.copy()
+            let susituyendo = game.grid.getBelt(mouseX, mouseY)
+            if(susituyendo) susituyendo = susituyendo.nextBelt
+            //if(susituyendo) susituyendo.direction = dir
+            // if(!firstBelt){
+            //     firstBelt = game.grid.createBelt(buildingFrom.x, buildingFrom.y, dir)
+            //     prevBelt = firstBelt
+            // }
+            // if(game.grid.getBelt(mouseX, mouseY)){
+            //     buildingFrom = getCenteredXY(mouseX, mouseY)
+            //     prevBelt = game.grid.getBelt(mouseX, mouseY)
+            //     return
+            // }
+            // if(game.grid.getBelt(buildingFrom.x, buildingFrom.y)){
+            //     prevBelt.direction = dir
+            // }
             let newBelt = game.grid.createBelt(mouseX, mouseY, dir)
-            if(prevBelt) prevBelt.nextBelt = newBelt
+            if(prevBelt){ 
+                prevBelt.nextBelt = newBelt
+                newBelt.prevBelt = prevBelt
+            }
+            if(susituyendo) newBelt.nextBelt = susituyendo
             prevBelt = newBelt
             buildingFrom = posBuildingNow
         }
         
         //game.grid.createBelt(mouseX, mouseY, dir)
     }
+    if(gameState == 1){
+        game.grid.deleteBelt(mouseX, mouseY)
+    }
 }
-/*
-pmouseX = 100
-mouseX = 300
-deltaX = 200
-pmouseY = 100
-pmouseY = 200
-deltaY = 100
-deltaX > deltaY so dir = 'E'
-*/
+
+function keyPressed(){
+    if(key == ' '){
+        gameState = (gameState + 1) % 2
+    }
+}
+
