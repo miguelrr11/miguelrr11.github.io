@@ -23,7 +23,17 @@ class Game{
         push()
         fill(0)
         textSize(20)
-        text("State: " + gameState, 10, 20)
+        switch (gameState) {
+            case 0:
+                text("State: Building", 10, 20)
+                break;
+            case 1:
+                text("State: Deleting", 10, 20)
+                break;
+            case 2:
+                text("State: Furnace", 10, 20)
+                break;
+        }
         pop()
     }
 }

@@ -1,4 +1,4 @@
-let gameState = 0    //0 = nothing or buildingFrom, 1 = deleting
+let gameState = 0    //0 = nothing or buildingFrom, 1 = deleting, 2: building furnace
 //state 1:
 let buildingFrom = undefined
 let prevBelt = undefined
@@ -9,6 +9,16 @@ function mouseReleased(){
         buildingFrom = undefined
         prevBelt = undefined
         firstBelt = true
+    }
+}
+
+function mousePressed(){
+    if(gameState == 1){
+        game.grid.deleteBelt(mouseX, mouseY)
+        game.grid.deleteTransformer(mouseX, mouseY)
+    }
+    if(gameState == 2){
+        game.grid.createFurnace(mouseX, mouseY)
     }
 }
 
@@ -75,12 +85,16 @@ function mouseDragged(){
     }
     if(gameState == 1){
         game.grid.deleteBelt(mouseX, mouseY)
+        game.grid.deleteTransformer(mouseX, mouseY)
+    }
+    if(gameState == 2){
+        game.grid.createFurnace(mouseX, mouseY)
     }
 }
 
 function keyPressed(){
     if(key == ' '){
-        gameState = (gameState + 1) % 2
+        gameState = (gameState + 1) % 3
     }
 }
 

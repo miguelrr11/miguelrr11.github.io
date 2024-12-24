@@ -7,7 +7,7 @@ class ItemSource{
     getItem(){
         if(this.cooldown <= 0){
             this.cooldown = this.initialCooldown
-            return new Item()
+            return new RawIron()
         }
         return undefined
     }

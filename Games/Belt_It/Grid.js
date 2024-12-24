@@ -1,7 +1,7 @@
 class Grid{
     constructor(){
         this.grid = [];         //grid of belts
-        this.itemsGrid = []
+        this.itemsGrid = []     //grid of item sources and furnaces
         this.init()
     }
 
@@ -24,6 +24,7 @@ class Grid{
     createBelt(x, y, dir){
         let i = floor(x / tamCell)
         let j = floor(y / tamCell)
+        if(this.itemsGrid[i][j] && this.itemsGrid[i][j].constructor.name == 'Furnace') return
         //if(this.grid[i][j] == 0){
             this.grid[i][j] = new Belt(dir)
             this.grid[i][j].pos = createVector(i, j)
@@ -41,6 +42,25 @@ class Grid{
         let i = floor(x / tamCell)
         let j = floor(y / tamCell)
         return this.grid[i][j]
+    }
+
+    createFurnace(x, y){
+        if(!this.isEmptyCell(x, y)) return
+        let i = floor(x / tamCell)
+        let j = floor(y / tamCell)
+        if(this.itemsGrid) this.itemsGrid[i][j] = new Furnace()
+    }
+
+    deleteTransformer(x, y){
+        let i = floor(x / tamCell)
+        let j = floor(y / tamCell)
+        if(this.itemsGrid[i][j] && this.itemsGrid[i][j].constructor.name == "Furnace") this.itemsGrid[i][j] = 0
+    }
+
+    isEmptyCell(x, y){
+        let i = floor(x / tamCell)
+        let j = floor(y / tamCell)
+        return this.grid[i][j] == 0 && this.itemsGrid[i][j] == 0
     }
 
     showConnecections(){
@@ -101,7 +121,6 @@ class Grid{
                         belt.addItem(item)
                     }
                 }
-                
             }
         }
     }

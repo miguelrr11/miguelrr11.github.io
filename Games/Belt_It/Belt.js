@@ -35,7 +35,7 @@ class Belt{
             if(this.items[i].pos > 1){
                 if(this.nextBelt && this.nextBelt.canAccpetItem()){
                     this.items[i].pos = 0
-                    this.nextBelt.items.push(this.items[i])
+                    this.nextBelt.addItem(this.items[i])
                     this.items.splice(i, 1)
                 }
                 else this.items[i].pos = 1
