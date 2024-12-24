@@ -94,6 +94,7 @@ class Grid{
             for(let j = 0; j < gridSize; j++){
                 if(this.grid[i][j] != 0 &&  this.itemsGrid[i][j] != 0){
                     let belt = this.grid[i][j]
+                    if(!belt.canAccpetItem()) continue
                     let item = this.itemsGrid[i][j].getItem()
                     if(item){ 
                         item.pos = .5

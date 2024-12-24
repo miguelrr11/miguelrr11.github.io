@@ -11,17 +11,29 @@ class Belt{
         this.items = []
         this.nextBelt = undefined
         this.pos = createVector(0, 0)
+        this.itemCapacity = 10
+        this.speed = 0.01 * 5
+        this.spacing = 0.1
+    }
+
+    canAccpetItem(){
+        return this.items.length < this.itemCapacity
     }
 
     addItem(item){
-        this.items.push(item)
+        if(this.items.length < this.itemCapacity) this.items.push(item)
+        return this.items.length <= this.itemCapacity
     }
 
     updateItems(){
-        for(let i = 0; i < this.items.length; i++){
-            this.items[i].pos += 0.01
+        for(let i = this.items.length-1; i >= 0; i--){
+            if(this.items[i-1] && this.items[i].pos < this.items[i-1].pos){ 
+                this.items[i].pos += this.speed
+                if(this.items[i].pos > this.items[i-1].pos - this.spacing) this.items[i].pos = this.items[i-1].pos - this.spacing
+            }
+            else if(!this.items[i-1]) this.items[i].pos += this.speed
             if(this.items[i].pos > 1){
-                if(this.nextBelt){
+                if(this.nextBelt && this.nextBelt.canAccpetItem()){
                     this.items[i].pos = 0
                     this.nextBelt.items.push(this.items[i])
                     this.items.splice(i, 1)
