@@ -157,7 +157,7 @@ class Panel{
 
 	    if (needsNewLine) {
 	        if (this.lastElementAdded.constructor.name !== "Checkbox") {
-	            this.lastElementPos.y += 5;
+	            //this.lastElementPos.y += 5;
 	        }
 	        newX = this.lastElementPos.x;
 	        newY = this.lastElementPos.y;
