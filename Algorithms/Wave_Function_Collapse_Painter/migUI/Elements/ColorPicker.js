@@ -123,6 +123,23 @@ class ColorPicker{
 		drawGradient2col(x, y, w, h, this.hue)
 		y += h + 5 + 2.5 * 0.5
 		drawGradientAlpha(x, y, w, h, this.saturation)
+		this.drawAlphaSquares(x, y, w, h)
+	}
+
+	drawAlphaSquares(x, y, w, h){
+		let nSquares = 40
+		let wSq = w / nSquares
+		let hSq = h / 2
+		push()
+		fill(255, 100)
+		noStroke()
+		translate(x, y)
+		for(let i = 0; i < nSquares; i++){
+			let off = i % 2 == 0 ? 0 : hSq
+			rect(0, off, wSq, hSq)
+			translate(wSq, 0)
+		}
+		pop()
 	}
 
 	show(){
