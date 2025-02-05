@@ -594,7 +594,7 @@ function setup(){
     panel.createText('First paint, then generate')
     panel.createSeparator()
     panel.createText('Paint', true)
-    pSelCanvSize = panel.createNumberPicker('Size of canvas', 1, 10, 1, 3, initCanvas, initCanvas)
+    pSelCanvSize = panel.createNumberPicker('Size of canvas', 1, 20, 1, 3, initCanvas, initCanvas)
     //panel.createSeparator()
     pSizeSel = panel.createSlider(0, 10, 0, 'Size of brush', true, () => {curSize = Math.floor(Math.round(pSizeSel.getValue()))})
     pColPick = panel.createColorPicker('Color of brush', () => {curColor = pColPick.getColor()})
@@ -610,10 +610,16 @@ function setup(){
     pSelGridSize = panel.createNumberPicker('Size of grid', 10, 100, 10, 30, setSizeGrid, setSizeGrid)
     pSelTileSize = panel.createNumberPicker('Tile Size', 2, 5, 1, 3, setTileSize, setTileSize)
     panel.createButton('Generate', generateWFC)
+    panel.createButton('Edit', editCanvas)
     pStatus = panel.createText('Status: not generating')
     initBrushes()
     //initCanvas()
     initCanvasDebug()
+}
+
+function editCanvas(){
+    state = 'painting'
+    pStatus.setText('Status: not generating')
 }
 
 function setTileSize(){
@@ -811,12 +817,38 @@ function extractTiles(){
                 }
             }
             img.updatePixels()
-            tiles.push(new Tile(img, tiles.length))
+            let newTile = new Tile(img, tiles.length)
+            let itExists = tileExists(newTile)
+            if(itExists) itExists.freq++
+            else tiles.push(newTile)
         }
     }
 }
 
+function tileExists(tile) {
+    tile.img.loadPixels(); // Load pixels of the input tile for faster access
+    for (let i = 0; i < tiles.length; i++) {
+        let img = tiles[i].img;
+        img.loadPixels(); // Load pixels of the current tile
+        let same = true;
+        for (let j = 0; j < img.pixels.length; j++) {
+            if (img.pixels[j] !== tile.img.pixels[j]) {
+                same = false;
+                break;
+            }
+        }
+        if (same) return tiles[i]; // Match found
+    }
+    return false; // No matching tile found
+}
+
+
 function wfc() {
+    // Calculate entropy for each cell
+    for (let cell of grid) {
+      cell.calculateEntropy();
+    }
+  
     // Find cells with the lowest entropy (simplified as fewest options left)
     // Thie refactored method to find the lowest entropy cells avoids sorting
     let minEntropy = Infinity;
@@ -824,7 +856,7 @@ function wfc() {
   
     for (let cell of grid) {
       if (!cell.collapsed) {
-        if (cell.options.length < minEntropy) {
+        if (cell.entropy < minEntropy) {
           minEntropy = cell.options.length;
           lowestEntropyCells = [cell];
         } else if (cell.options.length === minEntropy) {
@@ -832,10 +864,11 @@ function wfc() {
         }
       }
     }
-
-    if(lowestEntropyCells.length == 0){
-        state = 'done'
-        return
+  
+    // We're done if all cells are collapsed!
+    if (lowestEntropyCells.length == 0) {
+      state = 'done'
+      return;
     }
   
     // Randomly select one of the lowest entropy cells to collapse
@@ -859,10 +892,17 @@ function wfc() {
   
     // Propagate entropy reduction to neighbors
     reduceEntropy(grid, cell, 0);
-}
   
-
-function reduceEntropy(grid, cell, depth) {
+    // Collapse anything that can be!
+    for (let cell of grid) {
+      if (cell.options.length == 1) {
+        cell.collapsed = true;
+        reduceEntropy(grid, cell, 0);
+      }
+    }
+  }
+  
+  function reduceEntropy(grid, cell, depth) {
     // Stop propagation if max depth is reached or cell already checked
     if (depth > MAX_RECURSION_DEPTH || cell.checked) return;
   
@@ -905,7 +945,8 @@ function reduceEntropy(grid, cell, depth) {
         reduceEntropy(grid, upCell, depth + 1);
       }
     }
-}
+  }
+  
 
 let debugIndex = 20
 function debugRenderTiles(){

@@ -11,15 +11,14 @@ class Tile {
     this.img.loadPixels();
     this.index = i;
     
-    // Keep track of the tile's frequency (each tile is unique now!)
-    this.frequency = 1;
-    
     // An array to keep track of adjacency rules
     this.neighbors = [];
     this.neighbors[EAST] = [];
     this.neighbors[WEST] = [];
     this.neighbors[NORTH] = [];
     this.neighbors[SOUTH] = [];
+
+    this.freq = 1
   }
 
   // Calculate which tiles can be neighbors in each direction
