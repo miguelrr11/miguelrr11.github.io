@@ -21,7 +21,9 @@ let cellSize = WIDTH / numberOfCells
 let curColor
 let curSize = 0
 
-let panel, pColPick, pSizeSel, pSelCanvSize, pBucket, pEraser, pUndo
+let panel, pColPick, pSizeSel, pSelCanvSize, pBucket, pEraser, pSelGridSize, pSelTileSize, pStatus
+let cooldownStatus = 0
+let animGenerating = 300
 
 let brushes = []
 
@@ -31,8 +33,8 @@ let wfcSize = 50 //the result will be wfcSize x wfcSize
 let GRID_SIZE = wfcSize
 let grid = []
 
-const TILE_SIZE_RENDER = WIDTH/wfcSize
-const TILE_SIZE = 3
+let TILE_SIZE_RENDER = WIDTH/wfcSize
+let TILE_SIZE = 3
 let MAX_RECURSION_DEPTH = 10;
 
 function initCanvasDebug(){
@@ -591,23 +593,40 @@ function setup(){
     })
     panel.createText('First paint, then generate')
     panel.createSeparator()
-    pSelCanvSize = panel.createNumberPicker('Size of canvas', 1, 10, 1, 3, initCanvas, initCanvas) //slider para number of cells
-    panel.createSeparator()
+    panel.createText('Paint', true)
+    pSelCanvSize = panel.createNumberPicker('Size of canvas', 1, 10, 1, 3, initCanvas, initCanvas)
+    //panel.createSeparator()
+    pSizeSel = panel.createSlider(0, 10, 0, 'Size of brush', true, () => {curSize = Math.floor(Math.round(pSizeSel.getValue()))})
     pColPick = panel.createColorPicker('Color of brush', () => {curColor = pColPick.getColor()})
     pColPick.finalCol = [0, 0, 0, 255]
-    pSizeSel = panel.createSlider(0, 10, 0, 'Size of brush', true, () => {curSize = Math.floor(Math.round(pSizeSel.getValue()))})
     pBucket = panel.createCheckbox('Paint bucket', false)
     pEraser = panel.createCheckbox('Eraser', false)
-    panel.createSeparator()
+    //panel.createSeparator()
     panel.createButton('Clear', initCanvas)
     panel.createButton('Undo', undo)
     panel.createButton('Color picker', pickColor)
     panel.createSeparator()
+    panel.createText('Generate', true)
+    pSelGridSize = panel.createNumberPicker('Size of grid', 10, 100, 10, 30, setSizeGrid, setSizeGrid)
+    pSelTileSize = panel.createNumberPicker('Tile Size', 2, 5, 1, 3, setTileSize, setTileSize)
     panel.createButton('Generate', generateWFC)
-
+    pStatus = panel.createText('Status: not generating')
     initBrushes()
     //initCanvas()
     initCanvasDebug()
+}
+
+function setTileSize(){
+    if(state == 'generating') return
+    TILE_SIZE = pSelTileSize.getValue()
+    TILE_SIZE_RENDER = WIDTH/wfcSize
+}
+
+function setSizeGrid(){
+    if(state == 'generating') return
+    wfcSize = pSelGridSize.getValue()
+    GRID_SIZE = wfcSize
+    TILE_SIZE_RENDER = WIDTH/wfcSize
 }
 
 function mouseReleased(){
@@ -634,6 +653,14 @@ function draw(){
     if(state == 'generating'){
         //debugRenderTiles()
         //rendergrid()
+        cooldownStatus--
+        animGenerating += 3
+        if(cooldownStatus <= 0) pStatus.setText('Status: generating...')
+        if(cooldownStatus < 0){
+            let points = ['.', '..', '...', '....']
+            pStatus.setText('Status: generating' + points[Math.floor(animGenerating/100) % 4])
+        }
+        if(animGenerating > 300) animGenerating = 0
         for (let i = 0; i < grid.length; i++) {
             if(grid[i] == undefined) continue
             grid[i].show();
@@ -642,6 +669,7 @@ function draw(){
         wfc()
     }
     if(state == 'done'){
+        pStatus.setText('Status: done')
         for (let i = 0; i < grid.length; i++) {
             grid[i].show();
         } 
@@ -741,7 +769,11 @@ function drawCursor(){
 }
 
 function generateWFC(){
+    state = 'painting'
+    setSizeGrid()
+    setTileSize()
     state = 'generating'
+    pStatus.setText('Status: generating...')
     extractTiles()
     initializeGrid()
     calculateNeighbors()
@@ -816,6 +848,8 @@ function wfc() {
     // If there are no possible tiles that fit there!
     if (pick == undefined) {
       console.log("ran into a conflict");
+      pStatus.setText('Status: conflict, restarting...')
+      cooldownStatus = 120
       initializeGrid();
       return;
     }
@@ -988,7 +1022,7 @@ function renderCell(img, x, y, w) {
     let b = img.pixels[index + 2];
     fill(r, g, b);
     noStroke();
-    square(x, y, w);
+    square(x, y, w+1);
 }
 
 function undo(){

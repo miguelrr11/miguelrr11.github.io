@@ -47,7 +47,7 @@ class Cell {
           sumB /= this.options.length;
           fill(sumR, sumG, sumB);
           noStroke();
-          square(this.x, this.y, this.w);
+          square(this.x, this.y, this.w+1);
         }
       }
 }
