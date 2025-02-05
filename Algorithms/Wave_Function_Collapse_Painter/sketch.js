@@ -7,9 +7,11 @@ const WIDTH = 600
 const HEIGHT = 600
 
 let state = 'painting'
+let undoStack = []
 
 // A canvas is composed of NxN cells that are composed of MxM pixels
 let canvas = []         //canvas where you paint
+let prevCanvas = []
 let numberOfCells = 3   //numberOfCells x numberOfCells
 let pixelsPerCell = 3
 let canvasSize = numberOfCells * pixelsPerCell  //number of pixels
@@ -19,7 +21,7 @@ let cellSize = WIDTH / numberOfCells
 let curColor
 let curSize = 0
 
-let panel, pColPick, pSizeSel, pSelCanvSize, pBucket, pEraser
+let panel, pColPick, pSizeSel, pSelCanvSize, pBucket, pEraser, pUndo
 
 let brushes = []
 
@@ -540,6 +542,8 @@ function initCanvasDebug(){
             ]
         ]
     ]
+    prevCanvas = JSON.parse(JSON.stringify(canvas))
+    pushToUndo()
 }
 
 function initCanvas(){
@@ -558,6 +562,7 @@ function initCanvas(){
             canvas[i][j] = [0,0,0,0]
         }
     }
+    prevCanvas = JSON.parse(JSON.stringify(canvas))
 }
 
 function initBrushes(){
@@ -589,11 +594,14 @@ function setup(){
     pSelCanvSize = panel.createNumberPicker('Size of canvas', 1, 10, 1, 3, initCanvas, initCanvas) //slider para number of cells
     panel.createSeparator()
     pColPick = panel.createColorPicker('Color of brush', () => {curColor = pColPick.getColor()})
+    pColPick.finalCol = [0, 0, 0, 255]
     pSizeSel = panel.createSlider(0, 10, 0, 'Size of brush', true, () => {curSize = Math.floor(Math.round(pSizeSel.getValue()))})
     pBucket = panel.createCheckbox('Paint bucket', false)
     pEraser = panel.createCheckbox('Eraser', false)
     panel.createSeparator()
     panel.createButton('Clear', initCanvas)
+    panel.createButton('Undo', undo)
+    panel.createButton('Color picker', pickColor)
     panel.createSeparator()
     panel.createButton('Generate', generateWFC)
 
@@ -602,13 +610,17 @@ function setup(){
     initCanvasDebug()
 }
 
-function keyPressed(){
-    redraw()
+function mouseReleased(){
+    if(state == 'picking color' && mouseX < WIDTH){
+        pColPick.finalCol = get(mouseX, mouseY)
+        curColor = pColPick.getColor()
+        state = 'painting'
+    }
 }
 
 function draw(){
     background(0)
-    if(state == 'painting'){
+    if(state == 'painting' || state == 'picking color'){
         drawCanvas()
         drawPixelGrid()
         //drawGrid()
@@ -616,7 +628,7 @@ function draw(){
         if(mouseIsPressed && mouseX < WIDTH && mouseY < HEIGHT){
             let i = Math.floor(mouseX / pixelSize)
             let j = Math.floor(mouseY / pixelSize)
-            if(!panel.isInteracting) paint(i, j)
+            if(!panel.isInteracting && state == 'painting') paint(i, j)
         }
     }
     if(state == 'generating'){
@@ -641,6 +653,7 @@ function draw(){
 }
 
 function paint(i, j){
+    prevCanvas = JSON.parse(JSON.stringify(canvas))
     let col = pEraser.isChecked() ? [0,0,0,0] : curColor;
     if(!pBucket.isChecked()){
         let brush = brushes[curSize];
@@ -651,6 +664,7 @@ function paint(i, j){
             if(x >= canvasSize || y >= canvasSize || x < 0 || y < 0) continue;
             canvas[x][y] = col;
         }
+        pushToUndo()
     }
     //floodfill
     else{
@@ -670,6 +684,7 @@ function paint(i, j){
 
             for (const [dx, dy] of directions) queue.push([x + dx, y + dy]);
         }
+        pushToUndo()
     }
 }
 
@@ -724,8 +739,6 @@ function drawCursor(){
     }
     pop()
 }
-
-
 
 function generateWFC(){
     state = 'generating'
@@ -976,4 +989,31 @@ function renderCell(img, x, y, w) {
     fill(r, g, b);
     noStroke();
     square(x, y, w);
+}
+
+function undo(){
+    if(undoStack.length == 0) return
+    canvas = undoStack.pop()
+}
+
+function pushToUndo(){
+    if(sameCanvas(prevCanvas, canvas)) return
+    if(undoStack.length > 25) undoStack.shift()
+    undoStack.push(JSON.parse(JSON.stringify(canvas)))
+}
+
+function sameCanvas(can1, can2){
+    for(let i = 0; i < canvasSize; i++){
+        for(let j = 0; j < canvasSize; j++){
+            for(let k = 0; k < 4; k++){
+                if(can1[i][j][k] != can2[i][j][k]) return false
+            }
+        }
+    }
+    return true
+}
+
+function pickColor(){
+    if(state != 'painting') return
+    state = 'picking color'
 }
