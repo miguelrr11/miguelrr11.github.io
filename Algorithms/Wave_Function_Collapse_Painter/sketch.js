@@ -21,7 +21,7 @@ let cellSize = WIDTH / numberOfCells
 let curColor
 let curSize = 0
 
-let panel, pColPick, pSizeSel, pSelCanvSize, pBucket, pEraser, pSelGridSize, pSelTileSize, pStatus
+let panel, pColPick, pSizeSel, pSelCanvSize, pBucket, pEraser, pSelGridSize, pSelTileSize, pStatus, pSimmetry
 let cooldownStatus = 0
 let animGenerating = 300
 
@@ -35,7 +35,7 @@ let grid = []
 
 let TILE_SIZE_RENDER = WIDTH/wfcSize
 let TILE_SIZE = 3
-let MAX_RECURSION_DEPTH = 10;
+let MAX_RECURSION_DEPTH = 20;
 
 function initCanvasDebug(){
     canvas = [
@@ -609,6 +609,7 @@ function setup(){
     panel.createText('Generate', true)
     pSelGridSize = panel.createNumberPicker('Size of grid', 10, 100, 10, 30, setSizeGrid, setSizeGrid)
     pSelTileSize = panel.createNumberPicker('Tile Size', 2, 5, 1, 3, setTileSize, setTileSize)
+    pSimmetry = panel.createCheckbox('Simmetry', false)
     panel.createButton('Generate', generateWFC)
     panel.createButton('Edit', editCanvas)
     pStatus = panel.createText('Status: not generating')
@@ -658,7 +659,6 @@ function draw(){
     }
     if(state == 'generating'){
         //debugRenderTiles()
-        //rendergrid()
         cooldownStatus--
         animGenerating += 3
         if(cooldownStatus <= 0) pStatus.setText('Status: generating...')
@@ -821,6 +821,8 @@ function extractTiles(){
             let itExists = tileExists(newTile)
             if(itExists) itExists.freq++
             else tiles.push(newTile)
+
+            if(pSimmetry.isChecked()) simmetry(newTile)
         }
     }
 }
@@ -974,8 +976,6 @@ function debugRenderTiles(){
         noFill()
         stroke(0, 0, 255)
         strokeWeight(2)
-        if(tiles[i].neighbors[EAST].includes(debugIndex)){ strokeWeight(5); stroke(255, 255, 0)}
-        if(i == debugIndex) stroke (0, 255, 0)
         rect(x, y, TILE_SIZE_RENDER, TILE_SIZE_RENDER)
         pop()
     }
@@ -1092,3 +1092,99 @@ function pickColor(){
     if(state != 'painting') return
     state = 'picking color'
 }
+
+function simmetry(tile){
+    let modifications = getAllModifications(tile.img);
+    for (let mod of modifications) {
+        let newTile = new Tile(mod, tiles.length);
+        let itExists = tileExists(newTile);
+        if (itExists) itExists.freq++;
+        else tiles.push(newTile);
+    }
+}
+
+function getAllModifications(img) {
+    let modifications = [];
+  
+    // Helper to copy image
+    function copyImage(src) {
+      let cpy = createImage(src.width, src.height);
+      cpy.copy(src, 0, 0, src.width, src.height, 0, 0, src.width, src.height);
+      return cpy;
+    }
+  
+    // Flip Horizontal
+    function flipHorizontal(src) {
+      let result = copyImage(src);
+      result.loadPixels();
+      for (let y = 0; y < result.height; y++) {
+        for (let x = 0; x < result.width / 2; x++) {
+          let i1 = 4 * (x + y * result.width);
+          let i2 = 4 * ((result.width - 1 - x) + y * result.width);
+          for (let i = 0; i < 4; i++) {
+            [result.pixels[i1 + i], result.pixels[i2 + i]] = [result.pixels[i2 + i], result.pixels[i1 + i]];
+          }
+        }
+      }
+      result.updatePixels();
+      return result;
+    }
+  
+    // Flip Vertical
+    function flipVertical(src) {
+      let result = copyImage(src);
+      result.loadPixels();
+      for (let y = 0; y < result.height / 2; y++) {
+        for (let x = 0; x < result.width; x++) {
+          let i1 = 4 * (x + y * result.width);
+          let i2 = 4 * (x + (result.height - 1 - y) * result.width);
+          for (let i = 0; i < 4; i++) {
+            [result.pixels[i1 + i], result.pixels[i2 + i]] = [result.pixels[i2 + i], result.pixels[i1 + i]];
+          }
+        }
+      }
+      result.updatePixels();
+      return result;
+    }
+  
+    // Rotate 90 degrees clockwise
+    function rotate90(src) {
+      let result = createImage(src.height, src.width);
+      src.loadPixels();
+      result.loadPixels();
+      for (let y = 0; y < src.height; y++) {
+        for (let x = 0; x < src.width; x++) {
+          let i1 = 4 * (x + y * src.width);
+          let i2 = 4 * ((src.height - 1 - y) + x * src.height);
+          for (let i = 0; i < 4; i++) {
+            result.pixels[i2 + i] = src.pixels[i1 + i];
+          }
+        }
+      }
+      result.updatePixels();
+      return result;
+    }
+  
+    // Rotate 180 degrees (by flipping twice)
+    function rotate180(src) {
+      return flipHorizontal(flipVertical(src));
+    }
+  
+    // Rotate 270 degrees clockwise
+    function rotate270(src) {
+      return rotate90(rotate180(src));
+    }
+  
+    // Add transformations
+    //modifications.push(copyImage(img));                      // Original
+    modifications.push(flipHorizontal(img));                 // Horizontal reflection
+    modifications.push(flipVertical(img));                   // Vertical reflection
+    modifications.push(rotate90(img));                       // 90° rotation
+    modifications.push(rotate180(img));                      // 180° rotation
+    modifications.push(rotate270(img));                      // 270° rotation
+    modifications.push(flipHorizontal(rotate90(img)));       // Horizontal flip after 90° rotation
+    modifications.push(flipVertical(rotate90(img)));         // Vertical flip after 90° rotation
+  
+    return modifications;
+}
+  
