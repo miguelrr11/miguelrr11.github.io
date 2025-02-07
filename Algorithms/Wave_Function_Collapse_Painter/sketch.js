@@ -8,6 +8,7 @@ const HEIGHT = 600
 
 let state = 'painting'
 let undoStack = []
+let edited = true
 
 // A canvas is composed of NxN cells that are composed of MxM pixels
 let canvas = []         //canvas where you paint
@@ -584,7 +585,6 @@ function initBrushes(){
 function setup(){
     createCanvas(WIDTH+300, HEIGHT)
     
-    
     panel = new Panel({
         title: 'Wave Function Collapse',
         x: WIDTH,
@@ -592,27 +592,37 @@ function setup(){
         automaticHeight: false
     })
     panel.createText('First paint, then generate')
+
     panel.createSeparator()
+
     panel.createText('Paint', true)
     pSelCanvSize = panel.createNumberPicker('Size of canvas', 1, 20, 1, 3, initCanvas, initCanvas)
     //panel.createSeparator()
     pSizeSel = panel.createSlider(0, 10, 0, 'Size of brush', true, () => {curSize = Math.floor(Math.round(pSizeSel.getValue()))})
     pColPick = panel.createColorPicker('Color of brush', () => {curColor = pColPick.getColor()})
     pColPick.finalCol = [0, 0, 0, 255]
+    curColor = pColPick.getColor()
     pBucket = panel.createCheckbox('Paint bucket', false)
     pEraser = panel.createCheckbox('Eraser', false)
     //panel.createSeparator()
     panel.createButton('Clear', initCanvas)
     panel.createButton('Undo', undo)
     panel.createButton('Color picker', pickColor)
+
     panel.createSeparator()
+
     panel.createText('Generate', true)
     pSelGridSize = panel.createNumberPicker('Size of grid', 10, 100, 10, 30, setSizeGrid, setSizeGrid)
     pSelTileSize = panel.createNumberPicker('Tile Size', 2, 5, 1, 3, setTileSize, setTileSize)
-    pSimmetry = panel.createCheckbox('Simmetry', false)
+    pSimmetry = panel.createCheckbox('Simmetry', false, () => edited = true)
+    pGround = panel.createCheckbox('Ground', false, () => edited = true)
     panel.createButton('Generate', generateWFC)
     panel.createButton('Edit', editCanvas)
     pStatus = panel.createText('Status: not generating')
+
+    panel.createSeparator()
+    panel.createText('Load examples', true)
+    panel.createSelect(['Red Dot', 'Example 2', 'Example 3'])
     initBrushes()
     //initCanvas()
     initCanvasDebug()
@@ -620,20 +630,23 @@ function setup(){
 
 function editCanvas(){
     state = 'painting'
+    edited = true
     pStatus.setText('Status: not generating')
 }
 
-function setTileSize(){
+function setTileSize(bool){
     if(state == 'generating') return
     TILE_SIZE = pSelTileSize.getValue()
     TILE_SIZE_RENDER = WIDTH/wfcSize
+    if(!bool) edited = true
 }
 
-function setSizeGrid(){
+function setSizeGrid(bool){
     if(state == 'generating') return
     wfcSize = pSelGridSize.getValue()
     GRID_SIZE = wfcSize
     TILE_SIZE_RENDER = WIDTH/wfcSize
+    if(!bool) edited = true
 }
 
 function mouseReleased(){
@@ -776,18 +789,45 @@ function drawCursor(){
 
 function generateWFC(){
     state = 'painting'
-    setSizeGrid()
-    setTileSize()
+    setSizeGrid(true)
+    setTileSize(true)
     state = 'generating'
     pStatus.setText('Status: generating...')
-    extractTiles()
+    if(edited){ 
+        console.log("extracting tiles")
+        extractTiles()
+        calculateNeighbors()
+    }
     initializeGrid()
-    calculateNeighbors()
+    edited = false
 }
 
 function calculateNeighbors(){
     for(let i = 0; i < tiles.length; i++){
         tiles[i].calculateNeighbors(tiles)
+    }
+}
+
+function setGround(){
+    let tileGround = new Tile(createImage(TILE_SIZE, TILE_SIZE), tiles.length)
+    tileGround.img.loadPixels()
+    let groundColor = canvas[0][canvasSize-1]
+    //set the first 2 rows to undefined colors and the bottom row to the color of the grond (bottom row of canvas)
+    for(let i = 0; i < TILE_SIZE; i++){
+        for(let j = 0; j < TILE_SIZE; j++){
+            tileGround.img.set(i, j, color(groundColor[0], groundColor[1], groundColor[2], groundColor[3]))
+        }
+    }
+    tileGround.img.updatePixels()
+    tileGround.isGround = true
+    tiles.push(tileGround)
+    tileGround.calculateNeighbors(tiles)
+    //console.log(tileGround)
+    //noLoop()
+    //set the last row of grid to the ground tile
+    for(let i = 0; i < GRID_SIZE; i++){
+        grid[GRID_SIZE * (GRID_SIZE - 1) + i].options = [tiles.length - 1]
+        grid[GRID_SIZE * (GRID_SIZE - 1) + i].collapsed = true
     }
 }
 
@@ -801,13 +841,15 @@ function initializeGrid() {
         count++;
       }
     }
+    if(pGround.isChecked()) setGround()
   }
 
 function extractTiles(){
     tiles = []
+    let groundOffset = pGround.isChecked() ? -1 : 0
     //extract all possible 3x3 tiles from the canvas as tile objects, use createImage to create the tile
     for(let i = 0; i < canvasSize; i++){
-        for(let j = 0; j < canvasSize; j++){
+        for(let j = 0; j < canvasSize + groundOffset; j++){
             let img = createImage(TILE_SIZE, TILE_SIZE)
             img.loadPixels()
             for(let x = 0; x < TILE_SIZE; x++){
@@ -879,10 +921,10 @@ function wfc() {
   
     // Choose one option randomly from the cell's options
     const pick = random(cell.options);
+    //const pick = chooseRandomOptionWithFrequency(cell.options);
   
     // If there are no possible tiles that fit there!
     if (pick == undefined) {
-      console.log("ran into a conflict");
       pStatus.setText('Status: conflict, restarting...')
       cooldownStatus = 120
       initializeGrid();
@@ -900,6 +942,21 @@ function wfc() {
       if (cell.options.length == 1) {
         cell.collapsed = true;
         reduceEntropy(grid, cell, 0);
+      }
+    }
+  }
+  
+  function chooseRandomOptionWithFrequency(options){
+    let total = 0;
+    for(let i = 0; i < options.length; i++){
+      total += tiles[options[i]].freq;
+    }
+    let r = Math.random() * total;
+    let count = 0;
+    for(let i = 0; i < options.length; i++){
+      count +=  tiles[options[i]].freq;
+      if(count > r){
+        return options[i];
       }
     }
   }
@@ -1098,8 +1155,9 @@ function simmetry(tile){
     for (let mod of modifications) {
         let newTile = new Tile(mod, tiles.length);
         let itExists = tileExists(newTile);
-        if (itExists) itExists.freq++;
-        else tiles.push(newTile);
+        // if (itExists) itExists.freq++;
+        // else tiles.push(newTile);
+        if(!itExists) tiles.push(newTile);
     }
 }
 

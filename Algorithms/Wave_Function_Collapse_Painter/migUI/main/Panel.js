@@ -134,7 +134,7 @@ class Panel{
 
 	}
 
-	createCheckbox(title = "", state = false) {
+	createCheckbox(title = "", state = false, func = undefined) {
 	    let newX, newY;
 	    let needsNewLine = false;
 
@@ -164,7 +164,7 @@ class Panel{
 	       
 	    }
 
-	    const checkbox = new Checkbox(newX, newY, title, state, this.lightCol, this.darkCol, this.transCol);
+	    const checkbox = new Checkbox(newX, newY, title, state, func, this.lightCol, this.darkCol, this.transCol);
 	    this.checkboxes.push(checkbox);
 	    this.lastElementAdded = checkbox;
 	    if(needsNewLine) this.lastElementPos.y += checkbox.height + this.padding
