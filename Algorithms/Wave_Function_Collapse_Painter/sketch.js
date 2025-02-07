@@ -22,7 +22,7 @@ let cellSize = WIDTH / numberOfCells
 let curColor
 let curSize = 0
 
-let panel, pColPick, pSizeSel, pSelCanvSize, pBucket, pEraser, pSelGridSize, pSelTileSize, pStatus, pSimmetry
+let panel, pColPick, pSizeSel, pSelCanvSize, pBucket, pEraser, pSelGridSize, pSelTileSize, pStatus, pSimmetry, pExamples
 let cooldownStatus = 0
 let animGenerating = 300
 
@@ -37,6 +37,87 @@ let grid = []
 let TILE_SIZE_RENDER = WIDTH/wfcSize
 let TILE_SIZE = 3
 let MAX_RECURSION_DEPTH = 20;
+
+
+
+function initCanvas(){
+    grid = []
+    tiles = []
+    state = 'painting'
+
+    numberOfCells = pSelCanvSize.getValue()
+    canvasSize = numberOfCells * pixelsPerCell
+    pixelSize = WIDTH / canvasSize
+    cellSize = WIDTH / numberOfCells
+
+    for(let i = 0; i < canvasSize; i++){
+        canvas[i] = []
+        for(let j = 0; j < canvasSize; j++){
+            canvas[i][j] = [0,0,0,0]
+        }
+    }
+    prevCanvas = JSON.parse(JSON.stringify(canvas))
+}
+
+function initBrushes(){
+    for (let radius = 0; radius <= 10; radius++) {
+        let brush = [];
+        for (let x = -radius; x <= radius; x++) {
+            for (let y = -radius; y <= radius; y++) {
+                if (x * x + y * y <= radius * radius) {
+                    brush.push([x, y]);
+                }
+            }
+        }
+        brushes.push(brush);
+    }
+}
+
+function setup(){
+    createCanvas(WIDTH+300, HEIGHT)
+    
+    panel = new Panel({
+        title: 'Wave Function Collapse',
+        x: WIDTH,
+        w: 300,
+        automaticHeight: false
+    })
+    panel.createText('First paint, then generate')
+
+    panel.createSeparator()
+
+    panel.createText('Paint', true)
+    pSelCanvSize = panel.createNumberPicker('Size of canvas', 1, 20, 1, 3, initCanvas, initCanvas)
+    //panel.createSeparator()
+    pSizeSel = panel.createSlider(0, 10, 0, 'Size of brush', true, () => {curSize = Math.floor(Math.round(pSizeSel.getValue()))})
+    pColPick = panel.createColorPicker('Color of brush', () => {curColor = pColPick.getColor()})
+    pColPick.finalCol = [0, 0, 0, 255]
+    curColor = pColPick.getColor()
+    pBucket = panel.createCheckbox('Paint bucket', false)
+    pEraser = panel.createCheckbox('Eraser', false)
+    //panel.createSeparator()
+    panel.createButton('Clear', initCanvas)
+    panel.createButton('Undo', undo)
+    panel.createButton('Color picker', pickColor)
+
+    panel.createSeparator()
+
+    panel.createText('Generate', true)
+    pSelGridSize = panel.createNumberPicker('Size of grid', 10, 100, 10, 30, setSizeGrid, setSizeGrid)
+    pSelTileSize = panel.createNumberPicker('Tile Size', 2, 5, 1, 3, setTileSize, setTileSize)
+    pSimmetry = panel.createCheckbox('Simmetry', false, () => edited = true)
+    pGround = panel.createCheckbox('Ground', false, () => edited = true)
+    panel.createButton('Generate', generateWFC)
+    panel.createButton('Edit', editCanvas)
+    pStatus = panel.createText('Status: not generating')
+
+    panel.createSeparator()
+    panel.createText('Load examples', true)
+    pExamples = panel.createSelect(['Red Dot', 'Cactus', 'Loop', 'Rooms', 'Office'], undefined, loadExample)
+    initBrushes()
+    initCanvas()
+    //initCanvasDebug()
+}
 
 function initCanvasDebug(){
     canvas = [
@@ -549,83 +630,21 @@ function initCanvasDebug(){
     pushToUndo()
 }
 
-function initCanvas(){
-    grid = []
-    tiles = []
+function loadExample(){
     state = 'painting'
+    let exampleIndex = pExamples.getSelectedIndex()
+    let ex = examples[exampleIndex]
 
-    numberOfCells = pSelCanvSize.getValue()
-    canvasSize = numberOfCells * pixelsPerCell
-    pixelSize = WIDTH / canvasSize
-    cellSize = WIDTH / numberOfCells
+    pSelCanvSize.setValue(ex.size)
+    initCanvas()
+    pSimmetry.setChecked(ex.simmetry)
+    pGround.setChecked(ex.ground)
+    pSelTileSize.setValue(3)
+    canvas = JSON.parse(JSON.stringify(ex.canvas))
+    setSizeGrid()
+    setTileSize()
 
-    for(let i = 0; i < canvasSize; i++){
-        canvas[i] = []
-        for(let j = 0; j < canvasSize; j++){
-            canvas[i][j] = [0,0,0,0]
-        }
-    }
     prevCanvas = JSON.parse(JSON.stringify(canvas))
-}
-
-function initBrushes(){
-    for (let radius = 0; radius <= 10; radius++) {
-        let brush = [];
-        for (let x = -radius; x <= radius; x++) {
-            for (let y = -radius; y <= radius; y++) {
-                if (x * x + y * y <= radius * radius) {
-                    brush.push([x, y]);
-                }
-            }
-        }
-        brushes.push(brush);
-    }
-}
-
-function setup(){
-    createCanvas(WIDTH+300, HEIGHT)
-    
-    panel = new Panel({
-        title: 'Wave Function Collapse',
-        x: WIDTH,
-        w: 300,
-        automaticHeight: false
-    })
-    panel.createText('First paint, then generate')
-
-    panel.createSeparator()
-
-    panel.createText('Paint', true)
-    pSelCanvSize = panel.createNumberPicker('Size of canvas', 1, 20, 1, 3, initCanvas, initCanvas)
-    //panel.createSeparator()
-    pSizeSel = panel.createSlider(0, 10, 0, 'Size of brush', true, () => {curSize = Math.floor(Math.round(pSizeSel.getValue()))})
-    pColPick = panel.createColorPicker('Color of brush', () => {curColor = pColPick.getColor()})
-    pColPick.finalCol = [0, 0, 0, 255]
-    curColor = pColPick.getColor()
-    pBucket = panel.createCheckbox('Paint bucket', false)
-    pEraser = panel.createCheckbox('Eraser', false)
-    //panel.createSeparator()
-    panel.createButton('Clear', initCanvas)
-    panel.createButton('Undo', undo)
-    panel.createButton('Color picker', pickColor)
-
-    panel.createSeparator()
-
-    panel.createText('Generate', true)
-    pSelGridSize = panel.createNumberPicker('Size of grid', 10, 100, 10, 30, setSizeGrid, setSizeGrid)
-    pSelTileSize = panel.createNumberPicker('Tile Size', 2, 5, 1, 3, setTileSize, setTileSize)
-    pSimmetry = panel.createCheckbox('Simmetry', false, () => edited = true)
-    pGround = panel.createCheckbox('Ground', false, () => edited = true)
-    panel.createButton('Generate', generateWFC)
-    panel.createButton('Edit', editCanvas)
-    pStatus = panel.createText('Status: not generating')
-
-    panel.createSeparator()
-    panel.createText('Load examples', true)
-    panel.createSelect(['Red Dot', 'Example 2', 'Example 3'])
-    initBrushes()
-    //initCanvas()
-    initCanvasDebug()
 }
 
 function editCanvas(){
@@ -793,8 +812,7 @@ function generateWFC(){
     setTileSize(true)
     state = 'generating'
     pStatus.setText('Status: generating...')
-    if(edited){ 
-        console.log("extracting tiles")
+    if(edited){
         extractTiles()
         calculateNeighbors()
     }
@@ -851,14 +869,18 @@ function extractTiles(){
     for(let i = 0; i < canvasSize; i++){
         for(let j = 0; j < canvasSize + groundOffset; j++){
             let img = createImage(TILE_SIZE, TILE_SIZE)
-            img.loadPixels()
-            for(let x = 0; x < TILE_SIZE; x++){
-                for(let y = 0; y < TILE_SIZE; y++){
-                    let c = canvas[(i+x)%canvasSize][(j+y)%canvasSize]
-                    img.set(x, y, color(c[0], c[1], c[2], c[3]))
+            img.loadPixels();
+            for (let x = 0; x < TILE_SIZE; x++) {
+                for (let y = 0; y < TILE_SIZE; y++) {
+                    let c = canvas[(i + x) % canvasSize][(j + y) % canvasSize]
+                    let index = (y * TILE_SIZE + x) * 4
+                    img.pixels[index] = c[0]
+                    img.pixels[index + 1] = c[1]
+                    img.pixels[index + 2] = c[2]
+                    img.pixels[index + 3] = c[3]
                 }
             }
-            img.updatePixels()
+            img.updatePixels();
             let newTile = new Tile(img, tiles.length)
             let itExists = tileExists(newTile)
             if(itExists) itExists.freq++

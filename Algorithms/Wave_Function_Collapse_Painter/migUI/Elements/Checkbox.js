@@ -27,6 +27,10 @@ class Checkbox{
 		return this.state
 	}
 
+	setChecked(bool){
+		this.state = bool
+	}
+
 	toggle(){
 		this.state = !this.state
 	}

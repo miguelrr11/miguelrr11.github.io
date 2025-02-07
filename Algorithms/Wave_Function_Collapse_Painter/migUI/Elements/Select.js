@@ -37,6 +37,10 @@ class Select{
 		return this.options[this.selected]
 	}
 
+	getSelectedIndex(){
+		return this.selected
+	}
+
 	evaluate(){
 		let inB = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
 		this.beingHovered = inB
@@ -44,13 +48,7 @@ class Select{
 		if(inB && mouseIsPressed && !this.beingPressed){ 
 			for(let i = 0; i < this.options.length; i++){
 				if(this.isHovering(i)){
-					if(this.selected == undefined) this.selected = i
-					else if(i == this.selected){
-						this.selected = undefined
-					}
-					else{
-						this.selected =  i
-					}
+					this.selected = i
 					this.beingPressed = true
 					this.execute()
 					return true
