@@ -24,13 +24,18 @@ let wfcSize = 50,
 let TILE_SIZE_RENDER = WIDTH / wfcSize,
     TILE_SIZE = 3,
     MAX_RECURSION_DEPTH = 20
+let gitImage
+
+function preload(){
+    gitImage = loadImage('github.png')
+}
 
 function initCanvas() {
     grid = []
     tiles = []
     state = 'painting'
     numberOfCells = pSelCanvSize.getValue()
-    canvasSize = numberOfCells * pixelsPerCell
+    canvasSize = numberOfCells
     pixelSize = WIDTH / canvasSize
     cellSize = WIDTH / numberOfCells
     canvas = []
@@ -67,8 +72,8 @@ function setup() {
     panel.createText('First paint, then generate')
     panel.createSeparator()
     panel.createText('Paint', true)
-    pSelCanvSize = panel.createNumberPicker('Size of canvas', 1, 20, 1, 3, initCanvas, initCanvas)
-    pSizeSel = panel.createSlider(0, 10, 0, 'Size of brush', true, () => {
+    pSelCanvSize = panel.createNumberPicker('Size of canvas', 10, 15, 1, 3, initCanvas, initCanvas)
+    pSizeSel = panel.createSlider(0, 5, 0, 'Size of brush', true, () => {
         curSize = Math.floor(Math.round(pSizeSel.getValue()))
     })
     pColPick = panel.createColorPicker('Color of brush', () => {
@@ -83,7 +88,7 @@ function setup() {
     panel.createButton('Color picker', pickColor)
     panel.createSeparator()
     panel.createText('Generate', true)
-    pSelGridSize = panel.createNumberPicker('Size of grid', 10, 200, 10, 30, setSizeGrid, setSizeGrid)
+    pSelGridSize = panel.createNumberPicker('Size of grid', 5, 80, 5, 30, setSizeGrid, setSizeGrid)
     pSelTileSize = panel.createNumberPicker('Tile Size', 2, 5, 1, 3, setTileSize, setTileSize)
     pSimmetry = panel.createCheckbox('Simmetry', false, () => edited = true)
     pGround = panel.createCheckbox('Ground', false, () => edited = true)
@@ -94,6 +99,8 @@ function setup() {
     panel.createSeparator()
     panel.createText('Load examples', true)
     pExamples = panel.createSelect(['Red Dot', 'Cactus', 'Loop', 'Rooms', 'Office'], undefined, loadExample)
+    let pGit = panel.createButton('  ', () => window.open('https://github.com/miguelrr11/miguelrr11.github.io/tree/main/Algorithms/Wave_Function_Collapse_Painter'))
+    pGit.pos = createVector(WIDTH + WIDTH_UI - 28, HEIGHT-25)
     initBrushes()
     initCanvas()
 }
@@ -177,6 +184,14 @@ function draw() {
     push()
     panel.update()
     panel.show()
+    pop()
+    push()
+    noStroke()
+    fill(255)
+    textSize(10)
+    textAlign(RIGHT)
+    text('Miguel Rodríguez Rodríguez', WIDTH+WIDTH_UI-35, HEIGHT-11)
+    image(gitImage, WIDTH+WIDTH_UI-26.5, HEIGHT-25, 21, 21)
     pop()
 }
 

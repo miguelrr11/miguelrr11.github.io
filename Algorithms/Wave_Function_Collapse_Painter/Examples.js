@@ -1,5 +1,5 @@
 let examples = [{
-    size: 3,
+    size: 9,
     simmetry: false,
     ground: false,
     canvas: [
@@ -509,7 +509,7 @@ let examples = [{
 ]
     ]},
 {
-    size: 5,
+    size: 15,
     simmetry: false,
     ground: true,
     canvas: [
@@ -1895,7 +1895,7 @@ let examples = [{
         ]
     ]},
 {
-    size: 6,
+    size: 18,
     simmetry: true,
     ground: false,
     canvas: [
@@ -3882,7 +3882,7 @@ let examples = [{
     ]
     },
 {
-    size: 5,
+    size: 15,
     simmetry: false,
     ground: false,
     canvas: [
@@ -5269,7 +5269,7 @@ let examples = [{
     ]
 },
 {
-    size: 5,
+    size: 15,
     simmetry: true,
     ground: false,
     canvas: [
