@@ -299,12 +299,10 @@ class Panel{
 	}
 
 	createColorPicker(sentence = [], func = undefined, def = undefined){
-		//if(this.lastElementAdded.constructor.name != "ColorPicker") this.lastElementPos.y += 5
 		let colorPicker = new ColorPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
 										  sentence, func, def, 
 										  this.lightCol, this.darkCol, this.transCol)
-		//this.lastElementPos.y += 25
 		this.lastElementPos.y += colorPicker.height + this.padding
 		this.colorPickers.push(colorPicker)
 		this.lastElementAdded = colorPicker

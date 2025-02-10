@@ -151,7 +151,7 @@ class ColorPicker{
 
 		noStroke()
 		fill(this.lightCol)
-		textSize(text_SizeMIGUI-2)
+		textSize(text_SizeMIGUI-1)
 		text(this.title, this.pos.x + this.w + 10, this.pos.y + this.h*0.85)
 
 		//show picker
