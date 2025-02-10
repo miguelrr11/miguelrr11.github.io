@@ -20,7 +20,7 @@ Digital Logic Simulator inspired by [Sebastian Lague](https://www.youtube.com/@S
 ---
 
 ### [Wave Function Collapse Painter](https://miguelrr11.github.io/Algorithms/Wave_Function_Collapse_Painter/)
-Demonstration of the WFC (overlapping method) with user-created tiles, inspired by the [original github page](https://github.com/mxgmn/WaveFunctionCollapse)
+Demonstration of the WFC (overlapping method) with user-created tiles, inspired by the [original github page](https://github.com/mxgmn/WaveFunctionCollapse).
 
 ![WFC Painter](assets/WFCPainter.png)
 

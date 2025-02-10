@@ -67,6 +67,7 @@ function initBrushes() {
 
 function setup() {
     createCanvas(WIDTH + WIDTH_UI, HEIGHT)
+    drawingContext.willReadFrequently = true;
     panel = new Panel({
         title: 'Wave Function Collapse',
         x: WIDTH,
@@ -76,7 +77,7 @@ function setup() {
     panel.createText('First paint, then generate')
     panel.createSeparator()
     panel.createText('Paint', true)
-    pSelCanvSize = panel.createNumberPicker('Size of canvas', 10, 15, 1, 3, initCanvas, initCanvas)
+    pSelCanvSize = panel.createNumberPicker('Size of canvas', 4, 25, 1, 10, initCanvas, initCanvas)
     pSizeSel = panel.createSlider(0, 5, 0, 'Size of brush', true, () => {
         curSize = Math.floor(Math.round(pSizeSel.getValue()))
     })
@@ -92,22 +93,57 @@ function setup() {
     panel.createButton('Color picker', pickColor)
     panel.createSeparator()
     panel.createText('Generate', true)
-    pSelGridSize = panel.createNumberPicker('Size of grid', 5, 80, 5, 30, setSizeGrid, setSizeGrid)
+    pSelGridSize = panel.createNumberPicker('Size of grid', 10, 120, 10, 30, setSizeGrid, setSizeGrid)
     pSelTileSize = panel.createNumberPicker('Tile Size', 2, 5, 1, 3, setTileSize, setTileSize)
     pSimmetry = panel.createCheckbox('Simmetry', false, () => edited = true)
     pGround = panel.createCheckbox('Ground', false, () => edited = true)
     pFreq = panel.createCheckbox('Frequency', false)
     panel.createButton('Generate', generateWFC)
     panel.createButton('Edit', editCanvas)
+    panel.createButton('Save', saveImage)
     pStatus = panel.createText('Status: not generating')
     panel.createSeparator()
     panel.createText('Load examples', true)
-    pExamples = panel.createSelect(['Red Dot', 'Cactus', 'Loop', 'Rooms', 'Office'], undefined, loadExample)
+    pExamples = panel.createSelect(['Red Dot', 'Cactus', 'Loop', 'Rooms', 'Office', 'Land'], undefined, loadExample)
     let pGit = panel.createButton('  ', () => window.open('https://github.com/miguelrr11/miguelrr11.github.io/tree/main/Algorithms/Wave_Function_Collapse_Painter'))
     pGit.pos = createVector(WIDTH + WIDTH_UI - 28, HEIGHT-25)
     initBrushes()
     initCanvas()
 }
+
+function saveImage(){
+    let scale = 20;
+    let image = createImage(GRID_SIZE * scale, GRID_SIZE * scale);
+    image.loadPixels();
+    
+    for(let i = 0; i < grid.length; i++){
+        let cell = grid[i];
+        let x = i % GRID_SIZE;
+        let y = Math.floor(i / GRID_SIZE);
+        let color = [0, 0, 0, 255];
+        
+        if(cell.options.length == 1){
+            let img = tiles[cell.options[0]].img;
+            let c = img.get(0, 0);
+            color = [c[0], c[1], c[2], c[3]];
+        }
+
+        for(let j = 0; j < scale; j++){
+            for(let k = 0; k < scale; k++){
+                let index = ((x * scale + k) + (y * scale + j) * (GRID_SIZE * scale)) * 4;
+                image.pixels[index] = color[0];
+                image.pixels[index + 1] = color[1];
+                image.pixels[index + 2] = color[2];
+                image.pixels[index + 3] = color[3];
+            }
+        }
+    }
+    
+    image.updatePixels();
+    image.save('WFC_Painter.png');
+}
+
+
 
 function loadExample() {
     state = 'painting'
@@ -118,7 +154,7 @@ function loadExample() {
     pSimmetry.setChecked(ex.simmetry)
     pGround.setChecked(ex.ground)
     pSelTileSize.setValue(3)
-    canvas = JSON.parse(JSON.stringify(ex.canvas))
+    canvas = decodeCanvas(ex.canvas)
     setSizeGrid()
     setTileSize()
     prevCanvas = JSON.parse(JSON.stringify(canvas))
@@ -131,14 +167,20 @@ function editCanvas() {
 }
 
 function setTileSize(bool) {
-    if(state == 'generating') return
+    if(state == 'generating'){
+        edited = true
+        return
+    }
     TILE_SIZE = pSelTileSize.getValue()
     TILE_SIZE_RENDER = WIDTH / wfcSize
     if(!bool) edited = true
 }
 
 function setSizeGrid(bool) {
-    if(state == 'generating') return
+    if(state == 'generating'){
+        edited = true
+        return
+    }
     wfcSize = pSelGridSize.getValue()
     GRID_SIZE = wfcSize
     TILE_SIZE_RENDER = WIDTH / wfcSize
@@ -146,8 +188,10 @@ function setSizeGrid(bool) {
 }
 
 function mouseReleased() {
-    if(state == 'picking color' && mouseX < WIDTH) {
-        pColPick.finalCol = get(mouseX, mouseY)
+    if(state == 'picking color' && (mouseX < WIDTH && mouseY < HEIGHT)) {
+        let x = Math.floor(mouseX / pixelSize)
+        let y = Math.floor(mouseY / pixelSize)
+        pColPick.finalCol = canvas[x][y]
         curColor = pColPick.getColor()
         state = 'painting'
     }
@@ -155,10 +199,14 @@ function mouseReleased() {
 
 function draw() {
     background(0)
+    if(mouseX < WIDTH && mouseY < HEIGHT) cursor(CROSS)
+    else cursor(ARROW)
     if(state == 'painting' || state == 'picking color') {
         drawCanvas()
         drawPixelGrid()
+        blendMode(DIFFERENCE)
         drawCursor()
+        blendMode(BLEND)
         if(mouseIsPressed && mouseX < WIDTH && mouseY < HEIGHT && !panel.isInteracting && state == 'painting') {
             let i = Math.floor(mouseX / pixelSize)
             let j = Math.floor(mouseY / pixelSize)
@@ -250,7 +298,7 @@ function drawCanvas() {
 
 function drawPixelGrid() {
     push()
-    stroke(120)
+    stroke(120, 100)
     strokeWeight(0.5)
     for(let i = 0; i < canvasSize + 1; i++) {
         line(0, i * pixelSize, WIDTH, i * pixelSize)
@@ -331,6 +379,7 @@ function extractTiles() {
     for(let i = 0; i < canvasSize; i++) {
         for(let j = 0; j < canvasSize + groundOffset; j++) {
             let img = createImage(TILE_SIZE, TILE_SIZE)
+            img.canvas.getContext('2d').willReadFrequently = true;
             img.loadPixels()
             for(let x = 0; x < TILE_SIZE; x++) {
                 for(let y = 0; y < TILE_SIZE; y++) {
@@ -599,10 +648,12 @@ function getAllModifications(img) {
     let modifications = []
 
     function copyImage(src) {
-        let cpy = createImage(src.width, src.height)
-        cpy.copy(src, 0, 0, src.width, src.height, 0, 0, src.width, src.height)
-        return cpy
-    }
+        let cpy = createImage(src.width, src.height);
+        cpy.drawingContext.willReadFrequently = true; // already here
+        cpy.copy(src, 0, 0, src.width, src.height, 0, 0, src.width, src.height);
+        return cpy;
+    }    
+    
 
     function flipHorizontal(src) {
         let result = copyImage(src)

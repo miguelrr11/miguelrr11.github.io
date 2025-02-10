@@ -581,7 +581,7 @@ class Panel{
 
 		if(this.beingHoveredHand) cursor(HAND)
 		else if(this.beingHoveredText) cursor(TEXT)
-		else cursor(ARROW)
+		//else cursor(ARROW)
 
 		pop()
 	}
