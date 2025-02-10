@@ -1,6 +1,6 @@
-//
+//Sudoku
 //Miguel Rodríguez
-//
+//27-12-2024
 
 p5.disableFriendlyErrors = true
 const WIDTH = 540

@@ -1,3 +1,7 @@
+//WFC painter (Ovelapping Method)
+//Miguel Rodríguez Rodríguez
+//29-12-2024 && 10/02/2025
+
 p5.disableFriendlyErrors = true
 const WIDTH = 600,
     HEIGHT = 600,
