@@ -38,6 +38,7 @@ function initCanvas() {
     grid = []
     tiles = []
     state = 'painting'
+    edited = true
     numberOfCells = pSelCanvSize.getValue()
     canvasSize = numberOfCells
     pixelSize = WIDTH / canvasSize
@@ -609,6 +610,7 @@ function renderCell(img, x, y, w) {
 
 function undo() {
     if(undoStack.length == 0) return
+    edited = true
     canvas = undoStack.pop()
 }
 
