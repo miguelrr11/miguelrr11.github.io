@@ -99,7 +99,7 @@ class Simulation{
         //variables para ovjeas y foxes
         this.panel_GRID_SIZE = this.panel.createNumberPicker('Grid Size', 5, 120, 5, 50)
         this.panel_LAND = this.panel.createNumberPicker('% of Land vs Water', 0, 1, 0.05, 0.55)
-        this.panel_FOOD_FACTOR_REGEN = this.panel.createNumberPicker('Food regen cooldwon', 0, 200, 5, 100)
+        this.panel_FOOD_FACTOR_REGEN = this.panel.createNumberPicker('Food regen cooldown', 0, 200, 5, 100)
         
 
         this.panel.createSeparator()
