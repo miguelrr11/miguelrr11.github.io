@@ -61,7 +61,6 @@ class Button{
 		return false
 	}
 
-
 	show(){
 		push()
 		this.beingHovered && !this.disabled ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)

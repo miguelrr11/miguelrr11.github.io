@@ -36,8 +36,10 @@ class Panel{
 
 	    this.pos = createVector(x, y);
 	    this.title = title;
-	    this.w = constrain(w, 100, 1000);
-	    this.h = constrain(h, 100, 1000);
+	    // this.w = constrain(w, 100, 1000);
+	    // this.h = constrain(h, 100, 1000);
+		this.w = w
+	    this.h = h
 	    this.retractable = retractable;
 	    
 	    //width_elementsMIGUI = this.w - 35;
