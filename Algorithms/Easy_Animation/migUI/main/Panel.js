@@ -316,10 +316,10 @@ class Panel{
 	}
 
 	createNumberPicker(sentence = "", min = undefined, max = undefined, delta = 1,
-					   def = undefined, funcMinus = undefined, funcPlus = undefined){
+					   def = undefined, func = undefined){
 		let numberPicker = new NumberPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
-										  sentence, min, max, delta, def, funcMinus, funcPlus,
+										  sentence, min, max, delta, def, func, 
 										  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 25
 		this.lastElementPos.y += numberPicker.height + this.padding
@@ -363,6 +363,7 @@ class Panel{
 	    this.lastElementAdded = 'separator'
 	}
 
+	//not in use anymore
 	duplicateFunctionsNumberPicker(){
 		for(let np of this.numberPickers){
 			np.funcPlus = np.funcMinus

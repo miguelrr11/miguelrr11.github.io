@@ -5,13 +5,26 @@ class Timeline_UI{
         this.w = 1410
         this.h = 30
 
-        this.w_frame = 25
+        this.w_frame = 20
 
-        this.frames = [{canvas: undefined}]
+        this.frames = [{canvas: undefined},{canvas: undefined},{canvas: undefined},{canvas: undefined},{canvas: undefined},{canvas: undefined}]
 
         this.hovering = undefined
         this.selected = 0
         this.coolDownKey = 10
+
+        this.playing = false
+        this.fps = 8
+        this.fpf = Math.round((1/this.fps) * 60)    //frames of draw per frame of timeline
+    }
+
+    setFps(fps){
+        this.fps = fps
+        this.fpf = Math.round((1/this.fps) * 60)
+    }
+
+    play(){
+        this.playing = !this.playing
     }
 
     checkExistingCanvas(){
@@ -90,13 +103,29 @@ class Timeline_UI{
         }
     }
 
-    show_canvas(){
+    show(){
+        rect(0, 0, WIDTH_canvas, HEIGHT_canvas)
+        if(!this.playing){
+            this.show_canvas(-2)
+            this.show_canvas(2)
+            this.show_canvas(-1)
+            this.show_canvas(1)
+        }
+        this.show_canvas(0)
+    }
+
+    show_canvas(layer){
+        let index = this.selected + layer
+        if(index < 0 || index > this.frames.length-1) return
+        if(this.playing && (frameCount % this.fpf == 0)) {
+            this.selected++
+            if(this.selected > this.frames.length-1) this.selected = 0
+            index = this.selected
+        }
         push()
-        translate(0, 0)
         noStroke()
         fill(col_light)
-        let canvas = this.frames[this.selected].canvas
-        rect(0, 0, WIDTH_canvas, HEIGHT_canvas)
+        let canvas = this.frames[index].canvas
         if(canvas == undefined){
             pop()
             return
@@ -105,7 +134,9 @@ class Timeline_UI{
             for(let i = 0; i < cols; i++){
                 for(let j = 0; j < rows; j++){
                     if(canvas[i][j] != 0){
-                        canvas[i][j] == 1 ? fill(col_dark) : canvas[i][j] == 2 ? fill(col_medium) : fill(col_light)
+                        if(layer == 0) canvas[i][j] == 1 ? fill(col_dark) : canvas[i][j] == 2 ? fill(col_medium) : fill(col_light)
+                        else if(layer == 1) fill(col_layer1)
+                        else if(layer == -1) fill(col_layern1)
                         rect(i*tamCell, j*tamCell, tamCell, tamCell)
                     }
                 }
@@ -120,18 +151,15 @@ class Timeline_UI{
         translate(this.x, this.y)
         stroke(col_dark)
         fill(col_light)
-        rect(0, 0, this.w, this.h)
+        rect(0, -30, this.w, this.h+30)
+        textSize(15)
+        textAlign(CENTER, CENTER)
 
         push()
         for(let i = 0; i < this.frames.length; i++){
             //rect of frame
             if(this.hovering == i) fill(col_light_medium)
             else fill(col_medium)
-            if(this.selected == i){ 
-                strokeWeight(4)
-                fill(col_dark_medium)
-            }
-            else strokeWeight(2)
             stroke(col_dark)
             rect(0, 0, this.w_frame, this.h)
 
@@ -143,10 +171,25 @@ class Timeline_UI{
             ellipse(this.w_frame/2, this.h/2, this.w_frame/2)
             pop()
 
+            if(i % 5 == 0){
+                push()
+                stroke(col_dark_medium)
+                strokeWeight(.8)
+                fill(col_dark_medium)
+                text(i, this.w_frame/2, -12)
+                pop()
+            }
+
             //for next frame
             translate(this.w_frame, 0)
         }
         pop()
+
+        translate(this.selected * this.w_frame, 0)
+        noFill()
+        strokeWeight(4)
+        noFill()
+        rect(0, 0, this.w_frame, this.h)
 
         pop()
     }

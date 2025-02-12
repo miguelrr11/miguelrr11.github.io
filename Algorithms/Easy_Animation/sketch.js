@@ -4,8 +4,8 @@
 
 p5.disableFriendlyErrors = true
 const WIDTH_canvas = 1410
-const HEIGHT_canvas = 1050
-const tamCell = 15
+const HEIGHT_canvas = 1030
+const tamCell = 10
 const cols = WIDTH_canvas/tamCell
 const rows = HEIGHT_canvas/tamCell
 
@@ -17,6 +17,10 @@ const col_dark_medium = "#5C6378"
 const col_medium = "#8d99ae"
 const col_light_medium = "#BDC6D1"
 const col_light = "#edf2f4"
+
+const col_layern1 = "#aaf683"
+const col_layer1 = "#E4B5FF"
+const col_layer2 = "#8E8E8E"
 
 let panel, brshSizeSel
 
@@ -51,7 +55,6 @@ function setup(){
     panel.createButton('-', timeline_UI.removeFrame.bind(timeline_UI))
     panel.createButton('Clear', timeline_UI.clear.bind(timeline_UI))
     brshSizeSel = panel.createNumberPicker('Brush Size', 0, 10, 0, 1, 
-        () => brush = brushes[brshSizeSel.getValue()], 
         () => brush = brushes[brshSizeSel.getValue()])
         brshSizeSel.value = 0
     brush = brushes[0]
@@ -68,6 +71,10 @@ function setup(){
     c3.darkCol = col_light
 	c3.transCol = col_light
     curColor = 1
+    panel.createButton('Play', timeline_UI.play.bind(timeline_UI))
+    let fpsPick = panel.createNumberPicker('FPS', 1, 60, 1, 8,
+        () => timeline_UI.setFps(fpsPick.getValue())
+    )
 }
 
 function draw(){
@@ -101,7 +108,7 @@ function draw(){
     
     timeline_UI.update()
     timeline_UI.show_timeline()
-    timeline_UI.show_canvas()
+    timeline_UI.show()
     timeline_UI.showHoveredCell()
     
 

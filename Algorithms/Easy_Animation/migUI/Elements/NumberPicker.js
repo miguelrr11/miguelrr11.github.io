@@ -1,5 +1,5 @@
 class NumberPicker{
-	constructor(x, y, text, min, max, delta, def, funcMinus, funcPlus, lightCol, darkCol){
+	constructor(x, y, text, min, max, delta, def, func, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -11,8 +11,7 @@ class NumberPicker{
 		this.beingHoveredMinus = false
 		this.beingPressed = false
 
-		this.funcMinus = funcMinus
-		this.funcPlus = funcPlus
+		this.func = func
 
 		this.min = min != undefined ? min : -Infinity
 		this.max = max != undefined ? max : Infinity
@@ -67,14 +66,14 @@ class NumberPicker{
 			if(this.beingHoveredMinus){
 				this.value -= this.delta
 				this.value = round(this.value, 3)
-				if(this.funcMinus && this.value >= this.min) this.funcMinus()
+				if(this.func && this.value >= this.min) this.func()
 				this.value = constrain(this.value, this.min, this.max)
 				
 			}
 			if(this.beingHoveredPlus){
 				this.value += this.delta
 				this.value = round(this.value, 3)
-				if(this.funcPlus && this.value <= this.max) this.funcPlus()
+				if(this.func && this.value <= this.max) this.func()
 				this.value = constrain(this.value, this.min, this.max)
 			}
 			this.beingPressed = true
