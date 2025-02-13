@@ -129,8 +129,8 @@ class NumberPicker{
 
 		noStroke()
 		this.setSFtext(false)
-		textAlign(LEFT, TOP)
-		text(this.text, this.pos.x + this.w + 10, this.pos.y + 1)
+		textAlign(LEFT, CENTER)
+		text(this.text, this.pos.x + this.w + 10, this.pos.y + this.h/2)
 		
 		//text(this.text, this.pos.x + bordeMIGUI+text_offset_xMIGUI, this.pos.y + this.h*0.75)
 

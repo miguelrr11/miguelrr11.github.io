@@ -31,6 +31,10 @@ class OptionPicker{
 		return this.options[this.selectedIndex%this.options.length]
 	}
 
+	getSelectedIndex(){
+		return this.selectedIndex
+	}
+
 	disable(){
 		this.disabled = true
 	}
@@ -64,6 +68,7 @@ class OptionPicker{
 			}
 			if(this.beingHoveredPlus){
 				this.selectedIndex++
+				if(this.selectedIndex > this.options.length - 1) this.selectedIndex = 0
 				if(this.func) this.func()
 			}
 			this.beingPressed = true

@@ -30,10 +30,13 @@ class Button{
 		this.disabled = false
 	}
 
-	setText(text){
+	setText(text, resize = false){
 		this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
-		this.w = getPixelLength(this.text, this.textSize) + 8
-		this.w = constrain(this.w, 20, width_elementsMIGUI)
+		if(resize){
+			this.w = getPixelLength(this.text, this.textSize) + 8
+			this.w = constrain(this.w, 20, width_elementsMIGUI)
+		}
+		
 	}
 
 	setFunc(func){
@@ -76,7 +79,8 @@ class Button{
 		this.disabled ? fill(this.transCol) : fill(this.lightCol)
 		if(this.beingHovered && mouseIsPressed) fill(this.darkCol)
 		textSize(this.textSize)
-		text(this.text, this.pos.x + bordeMIGUI+text_offset_xMIGUI, this.pos.y + this.h*0.75)
+		textAlign(CENTER)
+		text(this.text, this.pos.x + this.w/2, this.pos.y + this.h*0.75)
 
 		// fill(255, 0, 0)
 		// ellipse(this.pos.x, this.pos.y, 5)

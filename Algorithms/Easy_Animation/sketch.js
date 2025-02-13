@@ -4,8 +4,8 @@
 
 p5.disableFriendlyErrors = true
 const WIDTH_canvas = 1410
-const HEIGHT_canvas = 1030
-const tamCell = 3
+const HEIGHT_canvas = 970
+const tamCell = 10
 const cols = WIDTH_canvas/tamCell
 const rows = HEIGHT_canvas/tamCell
 
@@ -38,8 +38,9 @@ let brushes, brush
 let prevMouseX, prevMouseY
 let curColor
 let shade
-let onion
+let onionOption = 0
 let copyPasteBuffer
+let painting = false
 
 const bayerMatrix = [
     [0,  8,  2, 10],
@@ -53,14 +54,17 @@ let timeline_UI
 
 let dubugfps
 
+
+
 function mouseReleased(){
     prevMouseX = undefined
     prevMouseY = undefined
-    if(mouseX < WIDTH_canvas) timeline_UI.pushToUndoStack()
+    if(mouseX < WIDTH_canvas && mouseY < HEIGHT_canvas) timeline_UI.pushToUndoStack()
+    painting = false
 }
 
 function setup(){
-    createCanvas(WIDTH_canvas + WIDTH_UI, HEIGHT)
+    createCanvas(WIDTH_canvas, HEIGHT)
     density = pixelDensity()
     adjustedWidth = width * density
     w_den = (tamCell * density) | 0
@@ -72,25 +76,46 @@ function setup(){
     panel = new Panel({
         title: 'Easy Animation',
         x: WIDTH_canvas,
-        w: WIDTH_UI,
-        h: HEIGHT,
+        w: 0,
+        h: 0,
         lightCol: col_dark,
         darkCol: col_light,
         automaticHeight: false
     })
+    clipping_length_normalMIGUI = 26
     panel.createSeparator()
-    panel.createButton('+', timeline_UI.addFrame.bind(timeline_UI))
-    panel.createButton('-', timeline_UI.removeFrame.bind(timeline_UI))
-    panel.createButton('Clear', timeline_UI.clear.bind(timeline_UI))
-    panel.createButton('Duplicate', timeline_UI.duplicate.bind(timeline_UI))
-    panel.createButton('Undo', timeline_UI.undo.bind(timeline_UI))
-    panel.createButton('Copy', timeline_UI.copy.bind(timeline_UI))
+
+    let p1 = panel.createButton('<', timeline_UI.previousFrame.bind(timeline_UI))
+    p1.pos = createVector(10, HEIGHT_canvas + 77)
+    let p2 = panel.createButton(' Play ', () => {
+        timeline_UI.play()
+        if(timeline_UI.playing) p2.setText('Pause')
+        else p2.setText(' Play ')
+    })
+    panel.createButton('>', timeline_UI.nextFrame.bind(timeline_UI))
+    let fpsPick = panel.createNumberPicker('FPS', 1, 60, 1, 8,
+        () => timeline_UI.setFps(fpsPick.getValue())
+    )
+    fpsPick.pos = createVector(150, HEIGHT_canvas + 77)
+    fpsPick.w = 75
+    fpsPick.h = 20
+    let p3 = panel.createButton('+', timeline_UI.addFrame.bind(timeline_UI))
+    p3.pos = createVector(290, HEIGHT_canvas + 77)
+    p3.w = 20
+    let p4 = panel.createButton('-', timeline_UI.removeFrame.bind(timeline_UI))
+    p4.pos.x += 5
+    p4.w = 20
+    let dup = panel.createButton('Duplicate', timeline_UI.duplicate.bind(timeline_UI))
+    dup.pos.x += 30
+    let cop = panel.createButton('Copy', timeline_UI.copy.bind(timeline_UI))
+    cop.pos.x += 23
     panel.createButton('Paste', timeline_UI.paste.bind(timeline_UI))
-    brshSizeSel = panel.createNumberPicker('Brush Size', 0, 10, 1, 10, 
-        () => brush = brushes[brshSizeSel.getValue()])
-    brush = brushes[brshSizeSel.getValue()]
+    let un = panel.createButton('Undo', timeline_UI.undo.bind(timeline_UI))
+    un.pos.x += 27
+
     let c1 = panel.createButton('  ', () => curColor = 1)
     c1.w = 20
+    c1.pos.x += 27
     c1.darkCol = col_dark
 	c1.transCol = col_dark
     let c2 = panel.createButton('  ', () => curColor = 2)
@@ -102,21 +127,37 @@ function setup(){
     c3.darkCol = col_light
 	c3.transCol = col_light
     curColor = 1
+
+    brshSizeSel = panel.createNumberPicker('Size', 0, 10, 1, 10, 
+        () => brush = brushes[brshSizeSel.getValue()])
+    brshSizeSel.w = 75
+    brshSizeSel.h = 20
+    brshSizeSel.pos = createVector(795, HEIGHT_canvas + 77)
+    brush = brushes[brshSizeSel.getValue()]
+
     let shadePick = panel.createNumberPicker('Shade', 0, 5, 1, 0, () => {
         shade = shadePick.getValue()
     })
+    shadePick.pos = createVector(945, HEIGHT_canvas + 77)
+    shadePick.w = 75
+    shadePick.h = 20
     shade = 0
-    let onionSel = panel.createCheckbox('Onion Skin', false, () => onion = onionSel.isChecked())
-    onion = false
-    panel.createButton('Play', timeline_UI.play.bind(timeline_UI))
-    let fpsPick = panel.createNumberPicker('FPS', 1, 60, 1, 8,
-        () => timeline_UI.setFps(fpsPick.getValue())
-    )
-    //debugfps = panel.createText('', false, () => {return Math.round(frameRate())})
+
+    let cl = panel.createButton('Clear', timeline_UI.clear.bind(timeline_UI))
+    cl.pos = createVector(1100, HEIGHT_canvas + 77)
+
+    let onionPick = panel.createOptionPicker('', ['', '', '', '', '', '', ''], () => onionOption = onionPick.getSelectedIndex())
+    onionPick.w = 75
+    onionPick.h = 20
+    onionPick.pos = createVector(1178, HEIGHT_canvas + 77)
 }
 
 function mouseClicked(){
     timeline_UI.setPrevCanvas()
+}
+
+function mousePressed(){
+    if(inBoundsCanvas()) painting = true
 }
 
 function draw(){
@@ -161,20 +202,45 @@ function draw(){
     }
     
     timeline_UI.update()
-    timeline_UI.show_timeline()
     timeline_UI.show()
     timeline_UI.showHoveredCell()
+    timeline_UI.show_timeline()
     
+    push()
+    stroke(col_dark)
+    strokeWeight(5)
+    let x = 692 + 11
+    x += (curColor-1) * 33.5
+    point(x, 1042)
+    pop()
 
     push()
     panel.show()
-    panel.update()
+    if(!painting) panel.update()
     pop()
 
     if(mouseIsPressed && inBoundsCanvas()){
         prevMouseX = constrain(mouseX, 0, WIDTH_canvas);
         prevMouseY = constrain(mouseY, 0, WIDTH_canvas);
     }
+
+    // no, atras, adelante, atras 2, adelante 2, atras y adelante, todos
+    // 0,   1,       2,        3,       4,              5,           6
+
+    push()
+    stroke(col_light)
+    strokeWeight(1.5)
+    translate(1216, 1057.5)
+    rectMode(CENTER)
+    fill(col_dark)
+    let off = 10
+    let half_off = off / 2
+    if(onionOption == 3 || onionOption == 6) ellipse(-off, 0, 10)
+    if(onionOption == 4 || onionOption == 6) ellipse(off, 0, 10)
+    if(onionOption == 1 || onionOption == 3 || onionOption == 5 || onionOption == 6) ellipse(-half_off, 0, 10)
+    if(onionOption == 2 || onionOption == 4 || onionOption == 5 || onionOption == 6) ellipse(half_off, 0, 10)
+    ellipse(0, 0, 10)
+    pop()
 }
 
 function initBrushes() {
