@@ -1,5 +1,5 @@
 class Sentence{
-	constructor(x, y, words, isTitle, lightCol, darkCol, transCol){
+	constructor(x, y, words, isTitle, func,  lightCol, darkCol, transCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -7,6 +7,8 @@ class Sentence{
 		this.name = words
 		this.words = words
 		this.isTitle = isTitle
+
+		this.func = func
 
 		let newlines = words.split('\n').length
 		let lines = newlines
@@ -25,6 +27,7 @@ class Sentence{
 
 	show(){
 		push()
+		if(this.func) this.words = this.func()
 		if(this.isTitle){
 			push()
 			fill(this.lightCol)

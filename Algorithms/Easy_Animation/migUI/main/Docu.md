@@ -65,9 +65,10 @@ A slider holds a value within a specified range.
 ### Text
 Creates a block of formatted text.
 
-- **`panel.createText([text], [isTitle])`**: Creates a text element.
+- **`panel.createText([text], [isTitle], [func])`**: Creates a text element.
   - `text` (`string`, optional): Content of the text.
   - `isTitle` (`boolean`, optional): If `true`, the text will be styled as a title.
+  - `func` (`function`, optional): The text will be set to whatever the function returns (run every update).
   - **Returns**: `Text` instance.
 
 - **`tx.setText([text])`**: Updates the text content.

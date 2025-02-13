@@ -7,7 +7,7 @@ class Timeline_UI{
 
         this.w_frame = 20
 
-        this.frames = [{canvas: undefined},{canvas: undefined},{canvas: undefined},{canvas: undefined},{canvas: undefined},{canvas: undefined}]
+        this.frames = this.initFrames()
 
         this.hovering = undefined
         this.selected = 0
@@ -18,9 +18,45 @@ class Timeline_UI{
         this.fpf = Math.round((1/this.fps) * 60)    //frames of draw per frame of timeline
     }
 
+    initFrames(){
+        let frames = []
+        for(let i = 0; i < 5; i++){
+            frames.push({canvas: undefined, prevCanvas: undefined, undoStack: []})
+        }
+        return frames
+    }
+
+    undo(){
+        let frame = this.frames[this.selected]
+        if(frame.undoStack.length == 0) return
+        frame.canvas = frame.undoStack.pop()
+        console.log("hola")
+    }
+
+    pushToUndoStack(){
+        let frame = this.frames[this.selected]
+        if(!frame.prevCanvas) return
+        if(!sameCanvas(frame.canvas, frame.prevCanvas)){
+            if(frame.undoStack.length > 25) frame.undoStack.shift()
+            frame.undoStack.push(JSON.parse(JSON.stringify(frame.prevCanvas)))
+        }
+    }
+
     setFps(fps){
         this.fps = fps
         this.fpf = Math.round((1/this.fps) * 60)
+    }
+
+    setPrevCanvas(){
+        let frame = this.frames[this.selected]
+        if(!frame.canvas) return
+        frame.prevCanvas = JSON.parse(JSON.stringify(frame.canvas))
+    }
+
+    duplicate(){
+        this.addFrame()
+        this.frames[this.selected+1].canvas = JSON.parse(JSON.stringify(this.frames[this.selected].canvas))
+        this.frames[this.selected+1].prevCanvas = JSON.parse(JSON.stringify(this.frames[this.selected].prevCanvas))
     }
 
     play(){
@@ -30,19 +66,33 @@ class Timeline_UI{
     checkExistingCanvas(){
         if(this.frames[this.selected].canvas == undefined){
             this.frames[this.selected].canvas = initCanvas()
+            this.frames[this.selected].prevCanvas = initCanvas()
+            this.frames[this.selected].undoStack.push(initCanvas())
         }
     }
 
-    paint(i, j){
-        let canvas = this.frames[this.selected].canvas
-        for(let b = 0; b < brush.length; b++) {
-            let pixelBrush = brush[b]
+    paint(i, j) {
+        let canvas = this.frames[this.selected].canvas;
+      
+        for (let b = 0; b < brush.length; b++) {
+            let pixelBrush = brush[b];
             let x = i + pixelBrush[0],
-                y = j + pixelBrush[1]
-            if(x >= cols || y >= rows || x < 0 || y < 0) continue
-            canvas[x][y] = curColor
+                y = j + pixelBrush[1];
+            if (x >= cols || y >= rows || x < 0 || y < 0) continue;
+        
+            if (shade === 0) {
+                canvas[x][y] = curColor;
+            } 
+            else {
+                let threshold = shadeThresholds[shade]
+                if (bayerMatrix[x % 4][y % 4] < threshold) canvas[x][y] = curColor;
+                else {
+                    if(curColor != 3) canvas[x][y] = 3;
+                }
+            }
         }
     }
+      
 
     clear(){
         this.frames[this.selected].canvas = undefined
@@ -65,6 +115,14 @@ class Timeline_UI{
     addFrame(){
         if(this.selected != undefined) this.frames.splice(this.selected+1, 0, {canvas: undefined})
         else this.frames.push({canvas: undefined})
+    }
+
+    copy(){
+        copyPasteBuffer = JSON.stringify(this.frames[this.selected].canvas)
+    }
+    
+    paste(){
+        if(copyPasteBuffer != undefined) this.frames[this.selected].canvas = JSON.parse(copyPasteBuffer)
     }
 
     update(){
@@ -104,45 +162,63 @@ class Timeline_UI{
     }
 
     show(){
+        fill(col_light)
         rect(0, 0, WIDTH_canvas, HEIGHT_canvas)
-        if(!this.playing){
+        loadPixels()
+        buf = new Uint32Array(pixels.buffer);
+        if(!this.playing && onion){
             this.show_canvas(-2)
             this.show_canvas(2)
             this.show_canvas(-1)
             this.show_canvas(1)
         }
         this.show_canvas(0)
+        updatePixels()
     }
 
-    show_canvas(layer){
-        let index = this.selected + layer
-        if(index < 0 || index > this.frames.length-1) return
-        if(this.playing && (frameCount % this.fpf == 0)) {
-            this.selected++
-            if(this.selected > this.frames.length-1) this.selected = 0
-            index = this.selected
+    show_canvas(layer) {
+        let index = this.selected + layer;
+        if (index < 0 || index >= this.frames.length) return;
+      
+        if (this.playing && frameCount % this.fpf === 0) {
+          this.selected = (this.selected + 1) % this.frames.length;
+          index = this.selected;
         }
-        push()
-        noStroke()
-        fill(col_light)
-        let canvas = this.frames[index].canvas
-        if(canvas == undefined){
-            pop()
-            return
-        }
-        else{
-            for(let i = 0; i < cols; i++){
-                for(let j = 0; j < rows; j++){
-                    if(canvas[i][j] != 0){
-                        if(layer == 0) canvas[i][j] == 1 ? fill(col_dark) : canvas[i][j] == 2 ? fill(col_medium) : fill(col_light)
-                        else if(layer == 1) fill(col_layer1)
-                        else if(layer == -1) fill(col_layern1)
-                        rect(i*tamCell, j*tamCell, tamCell, tamCell)
-                    }
-                }
+      
+        const canvas = this.frames[index].canvas;
+        if (!canvas) return;
+      
+        for (let j = 0; j < rows; j++) {
+          for (let i = 0; i < cols; i++) {
+            const cellVal = canvas[i][j];
+            if (cellVal === 0 || cellVal === 3) continue;
+            
+            if(layer != 0 && (this.frames[this.selected].canvas != undefined) && 
+            (this.frames[this.selected].canvas[i][j] == 2 || 
+            this.frames[this.selected].canvas[i][j] == 1)) continue
+      
+            let col;
+            if (layer === 0) {
+              col = (cellVal === 1)
+                ? col_dark_RGB
+                : (cellVal === 2)
+                  ? col_medium_RGB
+                  : col_light_RGB;
+            } else if (layer === 1) {
+              col = col_layer1_RGB;
+            } else if (layer === -1) {
+              col = col_layern1_RGB;
+            } else {
+              col = [155, 155, 155];
             }
+
+            drawFastRect(i * tamCell, j * tamCell, tamCell, tamCell, col[0], col[1], col[2]);
+          }
         }
-        pop()
+      }
+
+    isThisPixelBehindLayerZero(layer, i, j){
+        return this.frames[this.selected+layer].canvas[i][j] == 3 || this.frames[this.selected+layer].canvas[i][j] == 0
     }
 
     show_timeline(){

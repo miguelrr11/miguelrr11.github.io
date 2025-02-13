@@ -201,13 +201,13 @@ class Panel{
 		return slider
 	}
 
-	createText(words = "", isTitle = false){
+	createText(words = "", isTitle = false, func = undefined){
 		//if(this.lastElementAdded.constructor.name != "Sentence") this.lastElementPos.y += 5
 		//if(isTitle) this.lastElementPos.y += 5
 		let spacedWords = wrapText(words, this.w, isTitle ? title_SizeMIGUI : text_SizeMIGUI)
 		let sentence = new Sentence(this.lastElementPos.x,
 									this.lastElementPos.y,
-									spacedWords, isTitle,
+									spacedWords, isTitle, func,
 									this.lightCol, this.darkCol, this.transCol)
 		
 		let newlines = spacedWords.split('\n').length;
