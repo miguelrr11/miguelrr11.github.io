@@ -127,7 +127,7 @@ function setup(){
 	c3.transCol = col_light
     curColor = 1
 
-    brshSizeSel = panel.createNumberPicker('Size', 0, 10, 1, 10, 
+    brshSizeSel = panel.createNumberPicker('Size', 0, 20, 1, 10, 
         () => brush = brushes[brshSizeSel.getValue()])
     brshSizeSel.w = 75
     brshSizeSel.h = 20
@@ -292,7 +292,7 @@ function draw(){
 
 function initBrushes() {
     brushes = []
-    for(let r = 0; r <= 10; r++) {
+    for(let r = 0; r <= 20; r++) {
         let b = []
         for(let x = -r; x <= r; x++) {
             for(let y = -r; y <= r; y++) {
