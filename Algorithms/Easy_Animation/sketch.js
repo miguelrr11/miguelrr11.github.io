@@ -3,36 +3,35 @@
 //12-02-2024
 
 p5.disableFriendlyErrors = true
-const WIDTH_canvas = 1410
+const WIDTH_canvas = 1440
 const HEIGHT_canvas = 970
 const tamCell = 10
 const cols = WIDTH_canvas/tamCell
 const rows = HEIGHT_canvas/tamCell
 
-const WIDTH_UI = 1650 - WIDTH_canvas
 const HEIGHT = 1080
 
 const col_dark = "#2b2d42"
 const col_dark_medium = "#5C6378"
 const col_medium = "#8d99ae"
 const col_light_medium = "#BDC6D1"
-const col_light = "#edf2f4"
+const col_light = "#F1F3F5"
 
 const col_layern1 = "#aaf683"
 const col_layer1 = "#E4B5FF"
 const col_layer2 = "#8E8E8E"
 
-const col_dark_RGB = hexToRgb("#2b2d42")
-const col_dark_medium_RGB = hexToRgb("#5C6378")
-const col_medium_RGB = hexToRgb("#8d99ae")
-const col_light_medium_RGB = hexToRgb("#BDC6D1")
-const col_light_RGB = hexToRgb("#edf2f4")
+const col_dark_RGB = hexToRgb(col_dark)
+const col_dark_medium_RGB = hexToRgb(col_dark_medium)
+const col_medium_RGB = hexToRgb(col_medium)
+const col_light_medium_RGB = hexToRgb(col_light_medium)
+const col_light_RGB = hexToRgb(col_light)
 
-const col_layern1_RGB = hexToRgb("#aaf683")
-const col_layer1_RGB = hexToRgb("#E4B5FF")
-const col_layer2_RGB = hexToRgb("#8E8E8E")
+const col_layern1_RGB = hexToRgb(col_layern1)
+const col_layer1_RGB = hexToRgb(col_layer1)
+const col_layer2_RGB = hexToRgb(col_layer2)
 
-let panel, brshSizeSel
+let panel, brshSizeSel, playButton
 
 let brushes, brush
 let prevMouseX, prevMouseY
@@ -54,8 +53,6 @@ let timeline_UI
 
 let dubugfps
 
-
-
 function mouseReleased(){
     prevMouseX = undefined
     prevMouseY = undefined
@@ -64,7 +61,9 @@ function mouseReleased(){
 }
 
 function setup(){
-    createCanvas(WIDTH_canvas, HEIGHT)
+    sourceCanvas = createCanvas(WIDTH_canvas, HEIGHT)
+    recordingCanvas = createGraphics(WIDTH_canvas, HEIGHT_canvas)
+
     density = pixelDensity()
     adjustedWidth = width * density
     w_den = (tamCell * density) | 0
@@ -87,13 +86,13 @@ function setup(){
 
     let p1 = panel.createButton('<', timeline_UI.previousFrame.bind(timeline_UI))
     p1.pos = createVector(10, HEIGHT_canvas + 77)
-    let p2 = panel.createButton(' Play ', () => {
+    playButton = panel.createButton(' Play ', () => {
         timeline_UI.play()
-        if(timeline_UI.playing) p2.setText('Pause')
-        else p2.setText(' Play ')
+        if(timeline_UI.playing) playButton.setText('Pause')
+        else playButton.setText(' Play ')
     })
     panel.createButton('>', timeline_UI.nextFrame.bind(timeline_UI))
-    let fpsPick = panel.createNumberPicker('FPS', 1, 60, 1, 8,
+    let fpsPick = panel.createNumberPicker('FPS', 1, 60, 1, 12,
         () => timeline_UI.setFps(fpsPick.getValue())
     )
     fpsPick.pos = createVector(150, HEIGHT_canvas + 77)
@@ -149,7 +148,53 @@ function setup(){
     let onionPick = panel.createOptionPicker('', ['', '', '', '', '', '', ''], () => onionOption = onionPick.getSelectedIndex())
     onionPick.w = 75
     onionPick.h = 20
+    onionPick.sectionW = 17
     onionPick.pos = createVector(1178, HEIGHT_canvas + 77)
+
+    buttonRec = panel.createButton('Save', saveMovie);
+    buttonRec.pos = createVector(1285, HEIGHT_canvas + 77)
+
+    let btn1 = panel.createButton('<', timeline_UI.moveTimelineLeft.bind(timeline_UI))
+    let btn2 = panel.createButton('>', timeline_UI.moveTimelineRight.bind(timeline_UI))
+    btn1.w = 15
+    btn2.w = 15
+    btn1.pos = createVector(6, HEIGHT_canvas + 36.5)
+    btn2.pos = createVector(WIDTH_canvas-23, HEIGHT_canvas + 36.5)
+}
+  
+function saveMovie(){
+    for(let f = 0; f < timeline_UI.frames.length; f++){
+        let image = createImage(cols * tamCell, rows * tamCell);
+        image.loadPixels();
+        
+        let grid = timeline_UI.frames[f].canvas
+        for (let j = 0; j < rows; j++) {
+            for (let i = 0; i < cols; i++) {
+                let cellVal = grid[i][j]
+                let col = (cellVal === 1)
+                        ? col_dark_RGB
+                        : (cellVal === 2)
+                        ? col_medium_RGB
+                        : col_light_RGB;
+                col.push(255)
+            
+                
+                for(let l = 0; l < tamCell; l++){
+                    for(let k = 0; k < tamCell; k++){
+                        let index = ((i * tamCell + k) + (j * tamCell + l) * (cols * tamCell)) * 4;
+                        image.pixels[index] = col[0];
+                        image.pixels[index + 1] = col[1];
+                        image.pixels[index + 2] = col[2];
+                        image.pixels[index + 3] = col[3];
+                    }
+                }
+            }
+        }
+        
+        image.updatePixels();
+        let name = 'frame_' + f + '.png'
+        image.save(name);
+    }
 }
 
 function mouseClicked(){
@@ -235,10 +280,12 @@ function draw(){
     fill(col_dark)
     let off = 10
     let half_off = off / 2
-    if(onionOption == 3 || onionOption == 6) ellipse(-off, 0, 10)
-    if(onionOption == 4 || onionOption == 6) ellipse(off, 0, 10)
+    if(onionOption == 3 || onionOption == 6) {fill(col_medium); ellipse(-off, 0, 10)}
+    if(onionOption == 4 || onionOption == 6){ fill(col_medium); ellipse(off, 0, 10)}
+    fill(col_dark_medium)
     if(onionOption == 1 || onionOption == 3 || onionOption == 5 || onionOption == 6) ellipse(-half_off, 0, 10)
     if(onionOption == 2 || onionOption == 4 || onionOption == 5 || onionOption == 6) ellipse(half_off, 0, 10)
+    fill(col_dark)
     ellipse(0, 0, 10)
     pop()
 }
@@ -278,4 +325,8 @@ function sameCanvas(can1, can2) {
         }
     }
     return true
+}
+
+function inBounds(x, y, a, b, w, h){
+	return x < a+w && x > a && y < b+h && y > b
 }

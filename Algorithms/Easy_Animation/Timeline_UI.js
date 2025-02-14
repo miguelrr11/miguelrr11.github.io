@@ -1,8 +1,9 @@
 class Timeline_UI{
     constructor(){
         this.x = 15
+        this.x_timeline = 30
         this.y = 1000
-        this.w = 1410
+        this.w = WIDTH_canvas
         this.h = 35
 
         this.w_frame = 20
@@ -16,11 +17,58 @@ class Timeline_UI{
         this.playing = false
         this.fps = 8
         this.fpf = Math.round((1/this.fps) * 60)    //frames of draw per frame of timeline
+        this.spf = 1/this.fps
+
+        this.offsetFrames = 0
+    }
+
+    moveTimelineLeft(){
+        this.offsetFrames += 5
+    }
+
+    moveTimelineRight(){
+        this.offsetFrames -= 5
+    }
+
+    getMedianFps(){
+        let res = 0
+        for(let f of this.frames) res += f.fps
+        return res / this.frames.length
+    }
+
+    getTotalLengthInMs(){
+        this.fpf = Math.round((1/this.fps) * 60)
+        this.spf = 1/this.fps
+        // console.log("uncorrected: " + (this.frames.length * this.spf * 1000))
+        // console.log("corrected: " + (this.frames.length * this.spf * 1000) * map(this.getMedianFps(), 0, 60, 60, 1, true) )
+        // console.log("Median Fps: " + this.getMedianFps())
+        return this.frames.length * this.spf * 1000
+    }
+
+    getFps(){
+        return this.fps
+    }
+
+    doubleFps(){
+        this.fps *= 2
+        this.fpf = Math.round((1/this.fps) * 60) 
+        this.spf = 1/this.fps
+    }
+
+    halfFps(){
+        this.fps /= 2
+        this.fpf = Math.round((1/this.fps) * 60) 
+        this.spf = 1/this.fps
+    }
+
+    record(){
+        this.selected = 0
+        this.playing = true
     }
 
     initFrames(){
         let frames = []
-        for(let i = 0; i < 5; i++){
+        for(let i = 0; i < 6; i++){
             frames.push({canvas: undefined, prevCanvas: undefined, undoStack: []})
         }
         return frames
@@ -137,12 +185,11 @@ class Timeline_UI{
         this.selected = this.selected % this.frames.length
     }
 
-
     update(){
         if(painting) return
         this.hovering = undefined
-        if(mouseX > this.x && mouseX < this.x + this.w && mouseY > this.y && mouseY < this.y + this.h){
-            let x = this.x
+        if(inBounds(mouseX, mouseY, this.x_timeline, this.y, WIDTH_canvas - (2*this.x_timeline), this.h)){
+            let x = this.x_timeline + this.offsetFrames*this.w_frame
             for(let i = 0; i < this.frames.length; i++){
                 if(mouseX > x && mouseX < x + this.w_frame){
                     this.hovering = i
@@ -157,7 +204,8 @@ class Timeline_UI{
         if(keyIsPressed && this.coolDownKey < 0){
             if(keyCode == RIGHT_ARROW) this.nextFrame()
             else if(keyCode == LEFT_ARROW) this.previousFrame()
-            this.coolDownKey = 5
+            else if(keyCode == 32) playButton.func()
+            this.coolDownKey = 8
         }
         this.coolDownKey--
     }
@@ -168,14 +216,14 @@ class Timeline_UI{
             let j = floor(mouseY / tamCell)
             push()
             noStroke()
-            fill(0, 100)
+            fill(0, 70)
             let radius = (brshSizeSel.getValue() + 1) * tamCell; 
             ellipse(i * tamCell + tamCell / 2, j * tamCell + tamCell / 2, radius * 2, radius * 2);
             pop()
         }
     }
-// no, atras, adelante, atras 2, adelante 2, atras y adelante, todos
-// 0,   1,       2,        3,       4,              5,           6
+    // no, atras, adelante, atras 2, adelante 2, atras y adelante, todos
+    // 0,   1,       2,        3,       4,              5,           6
     show(){
         fill(col_light)
         rect(0, 0, WIDTH_canvas, HEIGHT_canvas)
@@ -196,8 +244,9 @@ class Timeline_UI{
         if (index < 0 || index >= this.frames.length) return;
       
         if (this.playing && frameCount % this.fpf === 0) {
-          this.selected = (this.selected + 1) % this.frames.length;
-          index = this.selected;
+            this.frames[this.selected].fps = frameRate()
+            this.selected = (this.selected + 1) % this.frames.length;
+            index = this.selected;
         }
       
         const canvas = this.frames[index].canvas;
@@ -235,12 +284,84 @@ class Timeline_UI{
 
 
     show_timeline(){
+
         push()
         strokeWeight(2)
         translate(this.x, this.y)
         stroke(col_dark)
         fill(col_light)
-        rect(-15, -30, this.w+15, this.h+75)
+        rect(-15, -30, WIDTH_canvas, this.h+75)
+        pop()
+        
+
+        push()
+
+        translate(this.x_timeline + this.offsetFrames*this.w_frame, this.y)
+        push()
+        textAlign(CENTER)
+        textSize(13)
+        for(let i = 0; i < this.frames.length; i++){
+            if(i + this.offsetFrames > 68 ||  i + this.offsetFrames < 0){
+                translate(this.w_frame , 0)
+                continue
+            }
+            //rect of frame
+            if(this.hovering == i || this.selected == i) fill(col_light_medium)
+            else fill(col_medium)
+            stroke(col_dark)
+            rect(0, 0, this.w_frame, this.h)
+
+            //circle of frame
+            push()
+            if(this.frames[i].canvas == undefined) noFill()
+            else fill(col_dark)
+            strokeWeight(1.5)
+            ellipse(this.w_frame/2, this.h*0.66, this.w_frame/2)
+            pop()
+
+            //guide lines
+            push()
+            stroke(col_dark_medium)
+            strokeWeight(1)
+            line(this.w_frame/2, -5, this.w_frame/2, -10)
+            pop()
+
+            //text
+            if(i % 5 == 0 && this.offsetFrames <= 68){
+                push()
+                stroke(col_dark)
+                strokeWeight(.3)
+                fill(col_dark)
+                text(i, this.w_frame/2, -15)
+                pop()
+                push()
+                stroke(col_dark_medium)
+                strokeWeight(2.5)
+                line(this.w_frame/2, -5, this.w_frame/2, -10)
+                pop()
+            }
+
+            //for next frame
+            translate(this.w_frame , 0)
+        }
+        pop()
+
+        if(this.selected + this.offsetFrames <= 68 && this.selected + this.offsetFrames >= 0){
+            translate(this.selected * this.w_frame, 0)
+            noFill()
+            strokeWeight(4)
+            noFill()
+            rect(0, 0, this.w_frame, this.h)
+        }
+       
+
+        pop()
+
+        push()
+        strokeWeight(2)
+        translate(this.x, this.y)
+        stroke(col_dark)
+        fill(col_light)
         strokeWeight(4)
         line(-15, 0, this.w, 0)
         line(-15, this.h, this.w, this.h)
@@ -254,47 +375,8 @@ class Timeline_UI{
         line(1070, this.h, 1070, this.h + 100)
         line(1148, this.h, 1148, this.h + 100)
         line(1255, this.h, 1255, this.h + 100)
-        strokeWeight(2)
-        textSize(17)
-        textAlign(CENTER, CENTER)
-
-        push()
-        for(let i = 0; i < this.frames.length; i++){
-            //rect of frame
-            if(this.hovering == i) fill(col_light_medium)
-            else fill(col_medium)
-            stroke(col_dark)
-            rect(0, 0, this.w_frame, this.h)
-
-            //circle of frame
-            push()
-            if(this.frames[i].canvas == undefined) noFill()
-            else fill(col_dark)
-            strokeWeight(1.5)
-            ellipse(this.w_frame/2, this.h*0.66, this.w_frame/2)
-            pop()
-
-            //text
-            if(i % 5 == 0){
-                push()
-                stroke(col_dark_medium)
-                strokeWeight(.8)
-                fill(col_dark_medium)
-                text(i, this.w_frame/2, -16)
-                pop()
-            }
-
-            //for next frame
-            translate(this.w_frame, 0)
-        }
-        pop()
-
-        translate(this.selected * this.w_frame, 0)
-        noFill()
-        strokeWeight(4)
-        noFill()
-        rect(0, 0, this.w_frame, this.h)
-
+        rect(WIDTH_canvas - this.x_timeline - this.x, 0, this.x_timeline, this.h)
+        rect(-this.x, 0, this.x_timeline, this.h)
         pop()
     }
 }

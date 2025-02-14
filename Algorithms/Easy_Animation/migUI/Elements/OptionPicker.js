@@ -17,6 +17,7 @@ class OptionPicker{
 		this.h = 17
 
         this.options = options
+		if(this.options.length == 0) this.options.push('')
         this.selectedIndex = 0
 
 		this.sectionW = 20
