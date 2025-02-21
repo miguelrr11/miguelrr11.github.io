@@ -14,11 +14,9 @@ class Cell{
         push()
         translate(this.x * cellPixelSize, this.y * cellPixelSize)
         noStroke()
-        this.hp === 5 ? fill(170) : fill(210)
-        if (this.material == 1) fill(255, 0, 0)
-        else if(this.material == 2) fill(0, 255, 0)
-        else if(this.material == 3) fill(0, 0, 255)
-        rect(0, 0, cellPixelSize, cellPixelSize)
+        //lerp from 170 to 220 depending on hp
+        fill(lerp(220, 170, this.hp/5))
+        rect(0, 0, cellPixelSize+1, cellPixelSize+1)
         pop()
     }
 }

@@ -18,6 +18,17 @@ let deltaMat2 = 0.07
 let deltaMat3 = 0.2
 let offsetMat2 = 512
 
+let coolDownMovement = 5 //frames
+let coolDownMining = 1 //frames
+
+let transitioning = false
+let transitionFrames = 30
+let transitionFramesCounter = transitionFrames
+let transitionChunk = undefined
+let transitionChunkPos = undefined
+let translationPlayer
+
+
 /*
 Proceso generacion terreno
 1. Todo es solido

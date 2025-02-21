@@ -30,14 +30,30 @@ function generateChunk(x, y){
     return newChunk
 }
 
+function hitCell(chunk, x, y){
+    if(chunk[x][y].hp > 0){
+        chunk[x][y].hp--
+    }
+}
+
+function getChunkNeighbor(dx, dy){
+    if(dx == 0 && dy == 1) return chunkUp
+    if(dx == 0 && dy == -1) return chunkDown
+    if(dx == 1 && dy == 0) return chunkRight
+    if(dx == -1 && dy == 0) return chunkLeft
+}
+
 function moveToChunk(dx, dy){
+    transitionToChunk(getChunkNeighbor(dx, dy))
     saveChunk(currentChunk, currentChunkPos.x, currentChunkPos.y)
-    loadChunks(currentChunkPos.x + dx, currentChunkPos.y + dy)
-    currentChunkPos.x += dx
-    currentChunkPos.y += dy
-    console.log('--------------------------------')
-    console.log('moved to chunk' + ' x: ' + currentChunkPos.x + ' y: ' + currentChunkPos.y)
-    console.log('--------------------------------')
+    saveChunk(chunkLeft, currentChunkPos.x-1, currentChunkPos.y)
+    saveChunk(chunkRight, currentChunkPos.x+1, currentChunkPos.y)
+    saveChunk(chunkUp, currentChunkPos.x, currentChunkPos.y+1)
+    saveChunk(chunkDown, currentChunkPos.x, currentChunkPos.y-1)
+}
+
+function isThereAwall(chunk, x, y){
+    return chunk[x][y].hp > 0 ? true : false
 }
 
 function willBeMaterial(i, j, cx, cy){
@@ -73,13 +89,82 @@ function willBeAir(i, j, cx, cy){
     return isAir
 }
 
-function showChunk(){
-    for(let i = 0; i < currentChunk.length; i++){
-        for(let j = 0; j < currentChunk[i].length; j++){
-            currentChunk[i][j].show()
+
+function transitionToChunk(chunk){
+    transitioning = true
+    transitionChunk = chunk
+    switch(chunk){
+        case chunkLeft:
+            transitionChunkPos = createVector(-1, 0)
+            break
+        case chunkRight:
+            transitionChunkPos = createVector(1, 0)
+            break
+        case chunkUp:
+            transitionChunkPos = createVector(0, 1)
+            break
+        case chunkDown:
+            transitionChunkPos = createVector(0, -1)
+            break
+        default: console.log('error')
+    }
+}
+
+function showChunk() {
+    if (transitioning) {
+        let progress = 1 - transitionFramesCounter / transitionFrames;
+        let smoothFactor = 1 - Math.pow(1 - progress, 3);
+
+        push();
+        translate(
+            (1 - smoothFactor) * transitionChunkPos.x * WIDTH,
+            -(1 - smoothFactor) * transitionChunkPos.y * HEIGHT
+        );
+        for (let i = 0; i < transitionChunk.length; i++) {
+            for (let j = 0; j < transitionChunk[i].length; j++) {
+                transitionChunk[i][j].show();
+            }
+        }
+        pop();
+
+        push();
+        translationPlayer = createVector(
+            (1 - smoothFactor) * transitionChunkPos.x * WIDTH,
+            -(1 - smoothFactor) * transitionChunkPos.y * HEIGHT
+        );
+        translate(
+            -smoothFactor * transitionChunkPos.x * WIDTH,
+            smoothFactor * transitionChunkPos.y * HEIGHT
+        );
+        for (let i = 0; i < currentChunk.length; i++) {
+            for (let j = 0; j < currentChunk[i].length; j++) {
+                currentChunk[i][j].show();
+            }
+        }
+        pop();
+
+        transitionFramesCounter--;
+        if (transitionFramesCounter <= 0) {
+            transitioning = false;
+            transitionFramesCounter = transitionFrames;
+            loadChunks(
+                currentChunkPos.x + transitionChunkPos.x,
+                currentChunkPos.y + transitionChunkPos.y
+            );
+            currentChunkPos.x += transitionChunkPos.x;
+            currentChunkPos.y += transitionChunkPos.y;
+            translationPlayer = createVector(0, 0)
+        }
+    } 
+    else {
+        for (let i = 0; i < currentChunk.length; i++) {
+            for (let j = 0; j < currentChunk[i].length; j++) {
+                currentChunk[i][j].show();
+            }
         }
     }
 }
+
 
 //saves the chunk in the map as a string
 function saveChunk(chunk, x, y){
@@ -121,6 +206,7 @@ function loadChunks(x, y){
 
 //generates a circle of air in the middle of the chunk
 function prepareSpawn(){
+    translationPlayer = createVector(0, 0)
     currentChunkPos = createVector(0, 0)
     let radius = 5
     for(let i = 0; i < currentChunk.length; i++){

@@ -1,0 +1,19 @@
+Grid Digger
+- 2d cenital
+- Grid based
+- Tipo roguelite
+- Trata de ir minando bloques y conseguir  recursos para llegar a un fin (tesoro o lo q sea)
+- Con los recursos mejoras tus habilidades de minar, movimiento y más 
+- Generación del mapa procedural 
+- Animaciones y sonidos al minar satisfactorias 
+- Tipo speedrun, cuanto tiempo tardas en conseguir el tesoro 
+- Diferentes builds: picar rápido, explosivo, intel, …
+- 2 huecos para activos, que se pueden mejorar
+- Se obtiene experiencia con cada bloque minado
+- Todas las mejoras y compras se realizan en un nexo que aparece en el spawn, al principio de la partida
+- Diferentes biomas, cada uno con su dificultad y recursos
+- Bosses que desbloquean mejoras permanentes importantes 
+- Solo con teclado (sin ratón)
+- Minimalista en ui y en presentación 
+- Idea: offset muy pequeño en cada esquina de cada cell del grid para que no sean tan cuadrados
+- Capacidad limitada para llevar materiales, se puede mejorar para poder llevar mas (como una mochila)
