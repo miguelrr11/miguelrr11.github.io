@@ -32,8 +32,8 @@ let maxHealthCell = 5
 
 let animations = []
 
-let fovRadius = 10
-let fovRadiusWall = 4
+let fovRadius = 20
+let fovRadiusWall = 3
 
 /*
 Proceso generacion terreno

@@ -1,6 +1,6 @@
 let colSuelo = 50
 let colFullIluminated = 225
-let wallFullIluminated = 150
+let wallFullIluminated = 100
 
 class Cell{
     constructor(x, y, material, isAir){
@@ -30,6 +30,8 @@ class Cell{
         //suelo
         if(this.hp == maxHealthCell){
             fill(map(light, 0, 1, colSuelo, wallFullIluminated))
+            // if(light > 0) fill(wallFullIluminated)
+            // else fill(colSuelo)
             rect(0, 0, cellPixelSize+offset, cellPixelSize+offset)
         }
         else if(this.hp > 0){
@@ -39,7 +41,7 @@ class Cell{
             //pared rompiendose
             if(visible){
                 translate(-.5, -.5)
-                fill(colFullIluminated)
+                fill(wallFullIluminated)
                 let tam = map(this.hp, 0, maxHealthCell, 0, cellPixelSize)
                 rect(0, 0, tam+offset, tam+offset)
             }

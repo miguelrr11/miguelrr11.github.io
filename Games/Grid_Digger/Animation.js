@@ -14,7 +14,7 @@ class Animation{
     initParticles(type){
         switch(type){
             case 'mining':
-                for(let i = 0; i < 10; i++){
+                for(let i = 0; i < 5; i++){
                     let x = this.x + random(-cellPixelSize/2, cellPixelSize/2)
                     let y = this.y + random(-cellPixelSize/2, cellPixelSize/2)
                     let col = random(170, 220)

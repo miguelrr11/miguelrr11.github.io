@@ -155,24 +155,16 @@ function computeLightingGrid() {
         for (let y = 0; y < cellsPerRow; y++) {
             let cell = grid[x][y];
             let light = 0
-
-            let minDist = 1000
+            let minDist = Infinity
             for(let lp of lightPoints){
                 let d = dist(lp.x, lp.y, x, y)
                 if(d < minDist) minDist = d
             }
-            let intensity = grid[x][y].visible ? 1 - (minDist / fovRadius) : 1 - (minDist / fovRadiusWall);
+            let rad = grid[x][y].visible ? fovRadius : fovRadiusWall
+            //let intensity = 1 - Math.pow(minDist / rad, 2)
+            let intensity = Math.exp(-2 * (minDist / rad))
+            //let intensity = 1 / (1 + Math.pow(minDist / rad, 2))
             light = constrain(intensity, 0, 1);
-            // if (grid[x][y].visible) {
-            //     let d = dist(player.pos.x, player.pos.y, x, y);
-            //     let intensity = 1 - (d / fovRadius);
-            //     light = constrain(intensity, 0, 1);
-            // } 
-            // else{
-            //     let d = dist(player.pos.x, player.pos.y, x, y);
-            //     let intensity = 1 - (d / fovRadiusWall);
-            //     light = constrain(intensity, 0, 1);
-            // }
             lightingGrid[x][y] = {wall: cell.wall, visible: cell.visible, light:light};
         }
     }
