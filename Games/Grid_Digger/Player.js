@@ -35,6 +35,7 @@ class Player{
         this.state = 'moving';
         this.newPos = newPos;
         this.coolDownMovement = coolDownMovement;
+        anims.addAnimation(newPos.x * cellPixelSize + cellPixelSize/2, newPos.y * cellPixelSize + cellPixelSize/2, 'walking');
     }
 
     setMiningState(chunk, x, y) {
@@ -186,6 +187,7 @@ class Player{
             translate(translationPlayer.x, translationPlayer.y)
         }
         fill(50)
+        translate(-.5, -.5)
         rect(0, 0, cellPixelSize*0.7, cellPixelSize*0.7)
         pop()
     }

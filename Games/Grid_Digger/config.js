@@ -1,7 +1,7 @@
 const WIDTH = 600
 const HEIGHT = 600
 
-let cellsPerRow = 20
+let cellsPerRow = 30
 let cellPixelSize = WIDTH / cellsPerRow
 
 let currentChunkPos
@@ -18,7 +18,7 @@ let deltaMat2 = 0.07
 let deltaMat3 = 0.2
 let offsetMat2 = 512
 
-let coolDownMovement = 5 //frames
+let coolDownMovement = 1 //frames
 let coolDownMining = 1 //frames
 
 let transitioning = false
@@ -28,6 +28,12 @@ let transitionChunk = undefined
 let transitionChunkPos = undefined
 let translationPlayer
 
+let maxHealthCell = 5
+
+let animations = []
+
+let fovRadius = 10
+let fovRadiusWall = 4
 
 /*
 Proceso generacion terreno

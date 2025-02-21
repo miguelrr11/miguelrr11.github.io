@@ -6,23 +6,38 @@ p5.disableFriendlyErrors = true
 
 
 let currentChunk, chunkUp, chunkDown, chunkLeft, chunkRight
-let player
+let player, anims, lightingGrid
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     loadChunks(0, 0)
     prepareSpawn()
     player = new Player()
+    anims = new AnimationManager()
+    initLighting()
     console.log('--------------------------------')
 }
 
 function draw(){
     background(0)
+    updateGrid()
+    lightingGrid = computeLightingGrid()
     push()
     showChunk()
     pop()
     player.update()
     player.show()
+    anims.update()
+    anims.show()
+}
+
+function mouseClicked(){
+    let x = floor(mouseX / cellPixelSize)
+    let y = floor(mouseY / cellPixelSize)
+    currentChunk[x][y].illuminate()
+}
+
+function mouseDragged(){
 }
 
 // function keyReleased(){

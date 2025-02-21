@@ -17,3 +17,6 @@ Grid Digger
 - Minimalista en ui y en presentación 
 - Idea: offset muy pequeño en cada esquina de cada cell del grid para que no sean tan cuadrados
 - Capacidad limitada para llevar materiales, se puede mejorar para poder llevar mas (como una mochila)
+
+- IDEAZA: el player ilumina el entorno con shadowcasting
+---- Ahora

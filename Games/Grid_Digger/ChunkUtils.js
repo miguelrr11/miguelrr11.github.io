@@ -7,7 +7,9 @@ function loadChunk(x, y){
         for(let i = 0; i < cellsPerRow; i++){
             chunk[i] = []
             for(let j = 0; j < cellsPerRow; j++){
-                chunk[i][j] = new Cell(i, j, serializedChunk[i][j].material, serializedChunk[i][j].hp)
+                chunk[i][j] = new Cell(i, j, serializedChunk[i][j].material, false)
+                chunk[i][j].hp = serializedChunk[i][j].hp
+                chunk[i][j].iluminated = serializedChunk[i][j].iluminated
             }
         }
     }
@@ -21,7 +23,7 @@ function generateChunk(x, y){
         let row = []
         for(let j = 0; j < cellsPerRow; j++){
             let air = willBeAir(i, j, x, y)
-            let material = (air != 5) && willBeMaterial(i, j, x, y)
+            let material = (!air) && willBeMaterial(i, j, x, y)
             let newCell = new Cell(i, j, material, air)
             row.push(newCell)
         }
@@ -30,9 +32,18 @@ function generateChunk(x, y){
     return newChunk
 }
 
+function isWall(x, y){
+    return currentChunk[x][y].hp > 0 ? true : false
+}
+
+function isIluminated(x, y){
+    return currentChunk[x][y].iluminated
+}
+
 function hitCell(chunk, x, y){
     if(chunk[x][y].hp > 0){
         chunk[x][y].hp--
+        anims.addAnimation(x*cellPixelSize + cellPixelSize/2, y*cellPixelSize + cellPixelSize/2, 'mining')
     }
 }
 
@@ -83,13 +94,13 @@ function willBeAir(i, j, cx, cy){
     let offsetY = cy * deltaAir * cellsPerRow
     let noiseVal = noise(i * deltaAir + offsetX, j * deltaAir + offsetY)
     let noiseVal2 = noise(i * deltaAir + offsetX + offsetAir2, j * deltaAir + offsetY + offsetAir2)
-    let isAir = (noiseVal > 0.5 && noiseVal < 0.5+airWidth) || (noiseVal2 > 0.5 && noiseVal2 < 0.5+airWidth) ? 0 : 5
+    let isAir = (noiseVal > 0.5 && noiseVal < 0.5+airWidth) || (noiseVal2 > 0.5 && noiseVal2 < 0.5+airWidth) ? true : false
     //|| (noiseVal > 0.5+airSeparation && noiseVal < 0.5+airWidth+airSeparation) ||
     //(noiseVal > 0.5-airSeparation && noiseVal < 0.5+airWidth-airSeparation)? 1 : 0
     return isAir
 }
 
-
+//sets transitionChunkPos based on what neighbor chunk is being transitioned to
 function transitionToChunk(chunk){
     transitioning = true
     transitionChunk = chunk
