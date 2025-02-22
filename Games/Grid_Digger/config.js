@@ -32,8 +32,10 @@ let maxHealthCell = 5
 
 let animations = []
 
-let fovRadius = 20
-let fovRadiusWall = 3
+// fovRadius >= fovRadiudWall SIEMPRE !!!!!
+let fovRadius = 15       //la luz que tu emites (no ves a traves de las paredes)
+let fovRadiusWall = 15   //es como un sensor que te permite ver que hay en las paredes a tu alrededor
+
 
 /*
 Proceso generacion terreno

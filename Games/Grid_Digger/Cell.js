@@ -2,18 +2,20 @@ let colSuelo = 50
 let colFullIluminated = 225
 let wallFullIluminated = 100
 
-let colMat1 = "#90e0ef"
-let colMat2 = "#e76f51"
-let colMat3 = "#a7c957"
+let colMat1 = hexToRgb("#90e0ef")
+let colMat2 = hexToRgb("#e76f51")
+let colMat3 = hexToRgb("#a7c957")
+
+let colors = [colMat1, colMat2, colMat3]
 
 class Cell{
-    constructor(x, y, material, hp, illuminated){
+    constructor(x, y, material, hp, illuminated, rnd){
         this.x = x
         this.y = y
         this.material = material
         this.hp = hp != undefined ? hp : maxHealthCell
         this.illuminated = illuminated != undefined ? illuminated : false
-        this.rnd = (Math.random() * 2 -1).toFixed(2)
+        this.rnd = rnd != undefined ? rnd : (Math.random() * 2 -1).toFixed(2)
     }
 
     convertIntoAir(){
@@ -23,53 +25,43 @@ class Cell{
     illuminate(){
         if(this.hp == 0) this.illuminated = true
     }
-
-    showMat(){
+    
+    translateToCenter(){
         let off = this.rnd * 2
+        translate(-.5 + off + cellPixelSize/2 + this.x * cellPixelSize, -.5 - off + cellPixelSize/2 + this.y * cellPixelSize)
+    }
+
+    showMat(light){
+        let off = this.rnd * 2
+        let trans = map(light, 0, 1, 0, 255)
+        let col = colors[this.material-1]
+        let tam = map(this.hp, 0, maxHealthCell, 0, cellPixelSize*0.4)
         push()
-        //ellipse
+        rectMode(CENTER)
+        noStroke()
+        fill([...col, trans])
+        this.translateToCenter()
+        rotate(off)
         if(this.material == 1){
-            translate(-.5 + off, -.5 - off)
-            noStroke()
-            fill(colMat1)
-            let tam = map(this.hp, 0, maxHealthCell, 0, cellPixelSize/2)
-            ellipse(this.x * cellPixelSize + cellPixelSize/2, this.y * cellPixelSize + cellPixelSize/2, tam, tam)
+            ellipse(0, 0, tam, tam)
         }
-        //square
         if(this.material == 2){
-            rectMode(CENTER)
-            translate(-.5 + off + cellPixelSize/2 + this.x * cellPixelSize, -.5 - off + cellPixelSize/2 + this.y * cellPixelSize)
-            rotate(off)
-            noStroke()
-            fill(colMat2)
-            let tam = map(this.hp, 0, maxHealthCell, 0, cellPixelSize*0.4)
             square(0, 0, tam)
         }
-        //triangle
         if(this.material == 3){
-            rectMode(CENTER)
-            translate(-.5 + off + cellPixelSize/2 + this.x * cellPixelSize, -.5 - off + cellPixelSize/2 + this.y * cellPixelSize)
-            rotate(off)
-            noStroke()
-            fill(colMat3)
-            let tam = map(this.hp, 0, maxHealthCell, 0, cellPixelSize*0.4)
-            beginShape()
-            vertex(-tam/2, -tam/2)
-            vertex(tam/2, -tam/2)
-            vertex(0, tam/2)
-            endShape()
+            triangle(tam)
         }
         pop()
     }
 
-    show(){
+    show(lightGrid){
         push()
         let offset = 1
         rectMode(CENTER)
         translate(this.x * cellPixelSize + cellPixelSize/2, this.y * cellPixelSize + cellPixelSize/2)
         noStroke()
-        let light = lightingGrid[this.x][this.y].light
-        let visible = lightingGrid[this.x][this.y].visible
+        let light = lightGrid[this.x][this.y].light
+        let visible = lightGrid[this.x][this.y].visible
         //suelo
         if(this.hp == maxHealthCell){
             fill(map(light, 0, 1, colSuelo, wallFullIluminated))
@@ -116,11 +108,19 @@ class Cell{
         pop()
 
         if(this.hp > 0 && this.material != 0 && visible){
-            this.showMat()
+            this.showMat(light)
         }
     }
 
     showDebug(){
         this.showMat()
     }
+}
+
+function triangle(tam){
+    beginShape()
+    vertex(-tam/2, -tam/2)
+    vertex(tam/2, -tam/2)
+    vertex(0, tam/2)
+    endShape()
 }

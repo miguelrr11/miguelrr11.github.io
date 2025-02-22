@@ -5,6 +5,7 @@ class Player{
         this.state = 'resting'
         this.coolDownMovement = coolDownMovement
         this.coolDownMining = coolDownMining
+        this.oldPos = undefined         //quick fix for lighting in transitions
     }
 
     move(dx, dy) {
@@ -123,8 +124,10 @@ class Player{
             this.setMiningState(targetChunk, checkCoord.x, checkCoord.y);
         }
         else {
-            moveToChunk(moveChunk.dx, moveChunk.dy);
+            //computeLightingGrid(curLightMap)
+            this.oldPos = this.pos.copy()
             updatePlayerCoord();
+            moveToChunk(moveChunk.dx, moveChunk.dy);
         }
     }
       
@@ -147,7 +150,8 @@ class Player{
         if(this.state == 'moving'){
             this.coolDownMovement--
             if(this.coolDownMovement == 0){
-                this.pos = this.newPos
+                this.pos = this.newPos.copy()
+                this.newPos = undefined
                 this.state = 'resting'
             }
         }

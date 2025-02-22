@@ -6,7 +6,7 @@ p5.disableFriendlyErrors = true
 
 
 let currentChunk, chunkUp, chunkDown, chunkLeft, chunkRight
-let player, anims, lightingGrid
+let player, anims, curLightMap, transitionLightMap
 
 let SHOW_DEBUG = false
 
@@ -19,19 +19,18 @@ function setup(){
     initLighting()
     console.log('--------------------------------')
 
-    emptyChunk()
+    //emptyChunk()
 }
 
 function draw(){
     background(0)
-    updateGrid()
-    lightingGrid = computeLightingGrid()
+    computeLightingGrid(curLightMap)
+    player.update()
+    anims.update()
     push()
     showChunk()
     pop()
-    player.update()
     player.show()
-    anims.update()
     anims.show()
 }
 
@@ -39,6 +38,7 @@ function mouseClicked(){
     let x = floor(mouseX / cellPixelSize)
     let y = floor(mouseY / cellPixelSize)
     currentChunk[x][y].illuminate()
+    console.log(curLightMap.lightingGrid[x][y])
 }
 
 function mouseDragged(){

@@ -4,7 +4,6 @@ function loadChunk(x, y){
     if(chunks.has(x + ',' + y)){
         console.log('loading chunk' + ' x: ' + x + ' y: ' + y)
         let csvCells = chunks.get(x + ',' + y).split('\n')
-        console.log(csvCells)
         for(let i = 0; i < cellsPerRow; i++){
             chunk[i] = []
             for(let j = 0; j < cellsPerRow; j++){
@@ -13,7 +12,8 @@ function loadChunk(x, y){
                 let material = parseInt(properties[0])
                 let hp = parseInt(properties[1])
                 let illuminated = parseInt(properties[2]) == 1 ? true : false
-                chunk[i][j] = new Cell(i, j, material, hp, illuminated)
+                let rnd = parseFloat(properties[3])
+                chunk[i][j] = new Cell(i, j, material, hp, illuminated, rnd)
             }
         }
     }
@@ -36,7 +36,7 @@ function generateChunk(x, y){
         for(let j = 0; j < cellsPerRow; j++){
             let air = willBeAir(i, j, x, y)
             let material
-            if(air != 0) material = 0
+            if(air == 0) material = 0
             else material = willBeMaterial(i, j, x, y)
             let newCell = new Cell(i, j, material, air)
             row.push(newCell)
@@ -46,18 +46,27 @@ function generateChunk(x, y){
     return newChunk
 }
 
-function isWall(x, y){
-    return currentChunk[x][y].hp > 0 ? true : false
+function isWall(chunk, x, y){
+    return chunk[x][y].hp > 0 ? true : false
 }
 
-function isIluminated(x, y){
-    return currentChunk[x][y].illuminated
+function isIluminated(chunk, x, y){
+    return chunk[x][y].illuminated
 }
 
 function hitCell(chunk, x, y){
+    let actualX = x  
+    let acutalY = y
+    console.log(x)
+    if(chunk != currentChunk){
+        if(y == cellsPerRow-1) acutalY = -1
+        if(x == cellsPerRow-1) acutalX = -1
+        if(x == 0) actualX = cellsPerRow
+        if(y == 0) actualY = cellsPerRow
+    }
     if(chunk[x][y].hp > 0){
         chunk[x][y].hp--
-        anims.addAnimation(x*cellPixelSize + cellPixelSize/2, y*cellPixelSize + cellPixelSize/2, 'mining')
+        anims.addAnimation(actualX*cellPixelSize + cellPixelSize/2, acutalY*cellPixelSize + cellPixelSize/2, 'mining')
     }
 }
 
@@ -123,6 +132,9 @@ function willBeAir(i, j, cx, cy){
 function transitionToChunk(chunk){
     transitioning = true
     transitionChunk = chunk
+    transitionLightMap.chunk = chunk
+    computeLightingGrid(transitionLightMap)
+    computeLightingGrid(curLightMap, true)
     switch(chunk){
         case chunkLeft:
             transitionChunkPos = createVector(-1, 0)
@@ -152,7 +164,7 @@ function showChunk() {
         );
         for (let i = 0; i < transitionChunk.length; i++) {
             for (let j = 0; j < transitionChunk[i].length; j++) {
-                transitionChunk[i][j].show();
+                transitionChunk[i][j].show(transitionLightMap.lightingGrid);
             }
         }
         pop();
@@ -168,13 +180,14 @@ function showChunk() {
         );
         for (let i = 0; i < currentChunk.length; i++) {
             for (let j = 0; j < currentChunk[i].length; j++) {
-                currentChunk[i][j].show();
+                currentChunk[i][j].show(curLightMap.lightingGrid);
             }
         }
         pop();
 
         transitionFramesCounter--;
         if (transitionFramesCounter <= 0) {
+           
             transitioning = false;
             transitionFramesCounter = transitionFrames;
             currentChunkPos.x += transitionChunkPos.x;
@@ -183,14 +196,16 @@ function showChunk() {
                 currentChunkPos.x,
                 currentChunkPos.y
             );
+            curLightMap.chunk = currentChunk
             translationPlayer = createVector(0, 0)
+            player.oldPos = undefined
         }
     } 
     else {
         for (let i = 0; i < currentChunk.length; i++) {
             for (let j = 0; j < currentChunk[i].length; j++) {
                 if(SHOW_DEBUG) currentChunk[i][j].showDebug();
-                else currentChunk[i][j].show();
+                else currentChunk[i][j].show(curLightMap.lightingGrid);
             }
         }
     }
@@ -200,12 +215,11 @@ function showChunk() {
 //saves the chunk in the map as a string
 function saveChunk(chunk, x, y){
     console.log('saving chunk' + ' x: ' + x + ' y: ' + y)
-    //we will save each cell as a csv string
     let csv = ''
     for(let i = 0; i < chunk.length; i++){
         for(let j = 0; j < chunk[i].length; j++){
             let illuminated = chunk[i][j].illuminated ? 1 : 0
-            csv += chunk[i][j].material + ',' + chunk[i][j].hp + ',' + illuminated + '\n'
+            csv += chunk[i][j].material + ',' + chunk[i][j].hp + ',' + illuminated +  ',' + chunk[i][j].rnd + '\n'
         }
     }
     chunks.set(x + ',' + y, csv)
