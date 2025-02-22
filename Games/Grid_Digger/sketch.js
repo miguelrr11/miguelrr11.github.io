@@ -8,6 +8,8 @@ p5.disableFriendlyErrors = true
 let currentChunk, chunkUp, chunkDown, chunkLeft, chunkRight
 let player, anims, lightingGrid
 
+let SHOW_DEBUG = false
+
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     loadChunks(0, 0)
@@ -16,6 +18,8 @@ function setup(){
     anims = new AnimationManager()
     initLighting()
     console.log('--------------------------------')
+
+    emptyChunk()
 }
 
 function draw(){

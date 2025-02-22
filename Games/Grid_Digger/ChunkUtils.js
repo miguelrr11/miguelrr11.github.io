@@ -1,19 +1,31 @@
-//if it does not exist, it creates a new chunk, if it does, it loads it (reconstructing the objects)
+//it loads a chunk reconstructing each cell from a csv string
 function loadChunk(x, y){
     let chunk = []
     if(chunks.has(x + ',' + y)){
         console.log('loading chunk' + ' x: ' + x + ' y: ' + y)
-        let serializedChunk = JSON.parse(chunks.get(x + ',' + y))
+        let csvCells = chunks.get(x + ',' + y).split('\n')
+        console.log(csvCells)
         for(let i = 0; i < cellsPerRow; i++){
             chunk[i] = []
             for(let j = 0; j < cellsPerRow; j++){
-                chunk[i][j] = new Cell(i, j, serializedChunk[i][j].material, false)
-                chunk[i][j].hp = serializedChunk[i][j].hp
-                chunk[i][j].iluminated = serializedChunk[i][j].iluminated
+                let properties = csvCells[i*cellsPerRow + j].split(',')
+                //material, hp, illuminated
+                let material = parseInt(properties[0])
+                let hp = parseInt(properties[1])
+                let illuminated = parseInt(properties[2]) == 1 ? true : false
+                chunk[i][j] = new Cell(i, j, material, hp, illuminated)
             }
         }
     }
     return chunk
+}
+
+function emptyChunk(){
+    for(let i = 0; i < cellsPerRow; i++){
+        for(let j = 0; j < cellsPerRow; j++){
+            currentChunk[i][j].hp = 0
+        }
+    }
 }
 
 function generateChunk(x, y){
@@ -23,7 +35,9 @@ function generateChunk(x, y){
         let row = []
         for(let j = 0; j < cellsPerRow; j++){
             let air = willBeAir(i, j, x, y)
-            let material = (!air) && willBeMaterial(i, j, x, y)
+            let material
+            if(air != 0) material = 0
+            else material = willBeMaterial(i, j, x, y)
             let newCell = new Cell(i, j, material, air)
             row.push(newCell)
         }
@@ -37,7 +51,7 @@ function isWall(x, y){
 }
 
 function isIluminated(x, y){
-    return currentChunk[x][y].iluminated
+    return currentChunk[x][y].illuminated
 }
 
 function hitCell(chunk, x, y){
@@ -55,13 +69,18 @@ function getChunkNeighbor(dx, dy){
 }
 
 function moveToChunk(dx, dy){
-    transitionToChunk(getChunkNeighbor(dx, dy))
-    saveChunk(currentChunk, currentChunkPos.x, currentChunkPos.y)
-    saveChunk(chunkLeft, currentChunkPos.x-1, currentChunkPos.y)
-    saveChunk(chunkRight, currentChunkPos.x+1, currentChunkPos.y)
-    saveChunk(chunkUp, currentChunkPos.x, currentChunkPos.y+1)
-    saveChunk(chunkDown, currentChunkPos.x, currentChunkPos.y-1)
+    const neighborChunk = getChunkNeighbor(dx, dy);
+    transitionToChunk(neighborChunk);
+    
+    saveChunk(currentChunk, currentChunkPos.x, currentChunkPos.y);
+    saveChunk(chunkLeft, currentChunkPos.x-1, currentChunkPos.y);
+    saveChunk(chunkRight, currentChunkPos.x+1, currentChunkPos.y);
+    saveChunk(chunkUp, currentChunkPos.x, currentChunkPos.y+1);
+    saveChunk(chunkDown, currentChunkPos.x, currentChunkPos.y-1);
+    
 }
+
+
 
 function isThereAwall(chunk, x, y){
     return chunk[x][y].hp > 0 ? true : false
@@ -71,7 +90,7 @@ function willBeMaterial(i, j, cx, cy){
     let offsetX = cx * deltaMat1 * cellsPerRow
     let offsetY = cy * deltaMat1 * cellsPerRow
     let noiseVal = noise(i * deltaMat1 + offsetX, j * deltaMat1 + offsetY)
-    let material = noiseVal > 0.725 && noiseVal < 0.95 ? true : false
+    let material = noiseVal > 0.55 && noiseVal < 0.59 ? true : false
     if(material) return 1
 
     offsetX = cx * deltaMat2 * cellsPerRow + offsetMat2
@@ -83,10 +102,10 @@ function willBeMaterial(i, j, cx, cy){
     offsetX = cx * deltaMat3 * cellsPerRow
     offsetY = cy * deltaMat3 * cellsPerRow
     noiseVal = noise(i * deltaMat3 + offsetX, j * deltaMat3 + offsetY)
-    material = noiseVal > 0.8 ? true : false
+    material = noiseVal > 0.75 ? true : false
     if(material) return 3
 
-    return material
+    return 0
 }
 
 function willBeAir(i, j, cx, cy){
@@ -94,7 +113,7 @@ function willBeAir(i, j, cx, cy){
     let offsetY = cy * deltaAir * cellsPerRow
     let noiseVal = noise(i * deltaAir + offsetX, j * deltaAir + offsetY)
     let noiseVal2 = noise(i * deltaAir + offsetX + offsetAir2, j * deltaAir + offsetY + offsetAir2)
-    let isAir = (noiseVal > 0.5 && noiseVal < 0.5+airWidth) || (noiseVal2 > 0.5 && noiseVal2 < 0.5+airWidth) ? true : false
+    let isAir = (noiseVal > 0.5 && noiseVal < 0.5+airWidth) || (noiseVal2 > 0.5 && noiseVal2 < 0.5+airWidth) ? 0 : maxHealthCell
     //|| (noiseVal > 0.5+airSeparation && noiseVal < 0.5+airWidth+airSeparation) ||
     //(noiseVal > 0.5-airSeparation && noiseVal < 0.5+airWidth-airSeparation)? 1 : 0
     return isAir
@@ -158,19 +177,20 @@ function showChunk() {
         if (transitionFramesCounter <= 0) {
             transitioning = false;
             transitionFramesCounter = transitionFrames;
-            loadChunks(
-                currentChunkPos.x + transitionChunkPos.x,
-                currentChunkPos.y + transitionChunkPos.y
-            );
             currentChunkPos.x += transitionChunkPos.x;
             currentChunkPos.y += transitionChunkPos.y;
+            loadChunks(
+                currentChunkPos.x,
+                currentChunkPos.y
+            );
             translationPlayer = createVector(0, 0)
         }
     } 
     else {
         for (let i = 0; i < currentChunk.length; i++) {
             for (let j = 0; j < currentChunk[i].length; j++) {
-                currentChunk[i][j].show();
+                if(SHOW_DEBUG) currentChunk[i][j].showDebug();
+                else currentChunk[i][j].show();
             }
         }
     }
@@ -180,39 +200,52 @@ function showChunk() {
 //saves the chunk in the map as a string
 function saveChunk(chunk, x, y){
     console.log('saving chunk' + ' x: ' + x + ' y: ' + y)
-    chunks.set(x + ',' + y, JSON.stringify(chunk))
+    //we will save each cell as a csv string
+    let csv = ''
+    for(let i = 0; i < chunk.length; i++){
+        for(let j = 0; j < chunk[i].length; j++){
+            let illuminated = chunk[i][j].illuminated ? 1 : 0
+            csv += chunk[i][j].material + ',' + chunk[i][j].hp + ',' + illuminated + '\n'
+        }
+    }
+    chunks.set(x + ',' + y, csv)
 }
 
 function loadChunks(x, y){
     let offset = 1
+    console.log('left')
     if(!chunks.has((x-offset) + ',' + y)){
         chunkLeft = generateChunk(x-offset, y)
         saveChunk(chunkLeft, x-offset, y)
     }
     else chunkLeft = loadChunk(x-offset, y)
-
+    console.log('right')
     if(!chunks.has((x+offset) + ',' + y)){
         chunkRight = generateChunk(x+offset, y)
         saveChunk(chunkRight, x+offset, y)
     }
     else chunkRight = loadChunk(x+offset, y)
-
+    console.log('up')
     if(!chunks.has(x + ',' + (y+offset))){
         chunkUp = generateChunk(x, y+offset)
         saveChunk(chunkUp, x, y+offset)
     }
     else chunkUp = loadChunk(x, y+offset)
-
+    console.log('down')
     if(!chunks.has(x + ',' + (y-offset))){
         chunkDown = generateChunk(x, y-offset)
         saveChunk(chunkDown, x, y-offset)
     }
     else chunkDown = loadChunk(x, y-offset)
-
-    if(!chunks.has(x + ',' + y)){
+    console.log('cur')
+    if (!chunks.has(x + ',' + y)) {
         currentChunk = generateChunk(x, y)
+        saveChunk(currentChunk, x, y)
+    } 
+    else {
+        currentChunk = loadChunk(x, y)
     }
-    else currentChunk = loadChunk(x, y)
+    
 }
 
 //generates a circle of air in the middle of the chunk
