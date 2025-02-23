@@ -17,6 +17,7 @@ function setup(){
     player = new Player()
     anims = new AnimationManager()
     initLighting()
+    initMinimap()
     console.log('--------------------------------')
 
     //emptyChunk()
@@ -27,11 +28,16 @@ function draw(){
     computeLightingGrid(curLightMap)
     player.update()
     anims.update()
-    push()
+    
+    // translate(-player.pos.x * cellPixelSize, -player.pos.y * cellPixelSize)
+    // scale(2)
+
     showChunk()
-    pop()
     player.show()
     anims.show()
+
+    updateMinimap()
+    showMinimap()
 }
 
 function mouseClicked(){

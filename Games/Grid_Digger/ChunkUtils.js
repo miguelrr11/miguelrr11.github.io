@@ -57,17 +57,13 @@ function isIluminated(chunk, x, y){
 function hitCell(chunk, x, y){
     let actualX = x  
     let acutalY = y
-    console.log(x)
     if(chunk != currentChunk){
         if(y == cellsPerRow-1) acutalY = -1
         if(x == cellsPerRow-1) acutalX = -1
         if(x == 0) actualX = cellsPerRow
         if(y == 0) actualY = cellsPerRow
     }
-    if(chunk[x][y].hp > 0){
-        chunk[x][y].hp--
-        anims.addAnimation(actualX*cellPixelSize + cellPixelSize/2, acutalY*cellPixelSize + cellPixelSize/2, 'mining')
-    }
+    chunk[x][y].hit()
 }
 
 function getChunkNeighbor(dx, dy){
@@ -78,6 +74,7 @@ function getChunkNeighbor(dx, dy){
 }
 
 function moveToChunk(dx, dy){
+    updateExploredMinimap()
     const neighborChunk = getChunkNeighbor(dx, dy);
     transitionToChunk(neighborChunk);
     
@@ -153,6 +150,7 @@ function transitionToChunk(chunk){
 }
 
 function showChunk() {
+    push()
     if (transitioning) {
         let progress = 1 - transitionFramesCounter / transitionFrames;
         let smoothFactor = 1 - Math.pow(1 - progress, 3);
@@ -209,6 +207,7 @@ function showChunk() {
             }
         }
     }
+    pop()
 }
 
 
@@ -283,6 +282,14 @@ function debug(){
         for(let j = 0; j < currentChunk[i].length; j++){
             let material = floor(random(1, 4))
             currentChunk[i][j].material = material
+        }
+    }
+}
+
+function eraseAllMaterials(){
+    for(let i = 0; i < currentChunk.length; i++){
+        for(let j = 0; j < currentChunk[i].length; j++){
+            currentChunk[i][j].material = 0
         }
     }
 }

@@ -26,3 +26,7 @@ function hexToRgb(hex) {
       parseInt(result[3], 16)
     ] : null;
 }
+
+function randomizeColor(col, amt){
+    return col.map(c => c + random(-amt, amt))
+}

@@ -191,7 +191,7 @@ class Player{
             translate(translationPlayer.x, translationPlayer.y)
         }
         fill(50)
-        translate(-.5, -.5)
+        translate(-1, -1)
         rect(0, 0, cellPixelSize*0.7, cellPixelSize*0.7)
         pop()
     }

@@ -22,3 +22,12 @@ Grid Digger
 
 - Idea: robots que minan por ti
 - Objetos que pones en el suelo que minan, por ejemplo un laser rotativo que va reventando jijijiiji
+
+- Minimapa:
+    - Grid donde el centro es el spawn
+    - Colores de cada cell:
+        - Spawn: azul
+        - Player: verde
+        - Explorado: grid
+            - Quedan materiales: punto negro
+        - No explorado: transparente

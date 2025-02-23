@@ -1,0 +1,167 @@
+let minimap = []
+let transparencies
+let minimapSize = 101
+let minimapShowingSize = 15
+let midShowingSize = Math.floor(minimapShowingSize / 2)
+let spawnLocation = Math.floor(minimapSize / 2)
+let tamCellMinimap = 7
+let maxDist = Math.sqrt(midShowingSize * midShowingSize + midShowingSize * midShowingSize) - 1.5
+
+// Arc settings
+let arcFlatness = tamCellMinimap * 3;  // Increase for a flatter arc
+let arcAngleRange = Math.PI / 8; // Adjust: PI/4 = steeper, PI/8 = flatter
+let arcRadius = midShowingSize * 1.1;
+
+const SPAWN = 0
+const PLAYER = 1
+const EXPLORED = 2
+const NOMATERIAL = 3
+const UNEXPLORED = 4
+
+const colSPAWN = hexToRgb('#c1121f')    //rojo
+const colPLAYER = hexToRgb('#ffffff')   //blanco
+const colEXPLORED = hexToRgb('#adb5bd')  //gris
+//const colMATERIAL = [255, 255, 0] igual renta poner una cruz donde NO hay material
+// const colUNEXPLORED = noFill()
+
+let playerPosMinimap = {x: 0, y: 0}
+
+/*
+- Spawn: rojo (0)
+- Player: blanco (1)
+- Explorado: gris (2)
+    - Quedan materiales: punto negro (3)
+- No explorado: transparente (4)
+*/
+
+function initTransparencies(){
+    transparencies = []
+    for(let i = 0; i < minimapShowingSize; i++){
+        transparencies[i] = []
+        for(let j = 0; j < minimapShowingSize; j++){
+            let d = dist(i, j, midShowingSize, midShowingSize)
+            transparencies[i][j] = map(d, 0, maxDist, 255, 0)
+        }
+    }
+
+}
+
+function updateMinimap(){
+    let mPlayerX = currentChunkPos.x + spawnLocation
+    let mPlayerY = - currentChunkPos.y + spawnLocation
+    if(minimap[mPlayerX][mPlayerY] == UNEXPLORED) minimap[mPlayerX][mPlayerY] = EXPLORED
+
+    playerPosMinimap.x = currentChunkPos.x + spawnLocation
+    playerPosMinimap.y = - currentChunkPos.y + spawnLocation
+}
+
+function updateExploredMinimap(){
+    // update if all materials have been recolected when exiting the chunk
+    for(let i = 0; i < cellsPerRow; i++){
+        for(let j = 0; j < cellsPerRow; j++){
+            if(currentChunk[i][j].isMaterial()){
+                return
+            }
+        }
+    }
+    let minimapPlayerX = currentChunkPos.x + spawnLocation
+    let minimapPlayerY = - currentChunkPos.y + spawnLocation
+    if(minimap[minimapPlayerX][minimapPlayerY] == EXPLORED) minimap[minimapPlayerX][minimapPlayerY] = NOMATERIAL
+}
+
+function showMinimap(){
+    push()
+    translate(20, 20)
+    noFill()
+    //always draw the minimap centered in player
+    let startI = playerPosMinimap.x - midShowingSize
+    let startJ = playerPosMinimap.y - midShowingSize
+    for(let i = startI; i < minimapShowingSize + startI; i++){
+        for(let j = startJ; j < minimapShowingSize + startJ; j++){
+            strokeWeight(.5)
+            let trans = transparencies[i - startI][j - startJ]
+            let col;
+            switch(minimap[i][j]){
+                case SPAWN: 
+                    col = color(colSPAWN)
+                    break
+                case EXPLORED:
+                    col = color(colEXPLORED)
+                    break
+                case NOMATERIAL:
+                    col = color(colEXPLORED)
+                    break
+                case UNEXPLORED:
+                    col = color(0, 0, 0, 0)
+                    break
+                default: console.log('error')
+                
+            }
+            if(i == playerPosMinimap.x && j == playerPosMinimap.y){
+                col = color(colPLAYER)
+            }
+            if(i == spawnLocation && j == spawnLocation){
+                col = color(colSPAWN)
+            } 
+            col.setAlpha(trans)
+            fill(col)
+            stroke(0, trans)
+            if(minimap[i][j] == UNEXPLORED){
+                noFill()
+            }
+            let drawI = i - startI
+            let drawJ = j - startJ
+            rect(drawI*tamCellMinimap, drawJ*tamCellMinimap, tamCellMinimap, tamCellMinimap)
+            if(minimap[i][j] == NOMATERIAL){
+                stroke(0, trans)
+                strokeWeight(1)
+                //cross in cell
+                line(drawI*tamCellMinimap + 1, drawJ*tamCellMinimap + 1, (drawI + 1)*tamCellMinimap - 1, (drawJ + 1)*tamCellMinimap - 1)
+                line(drawI*tamCellMinimap + 1, (drawJ + 1)*tamCellMinimap - 1, (drawI + 1)*tamCellMinimap - 1, drawJ*tamCellMinimap + 1)
+            }
+        }
+    }
+    drawSpawnOutsideMinimap()
+    pop()
+}
+
+function isItOutside(i, j){
+    return i < 0 || i >= minimapShowingSize ||
+           j < 0 || j >= minimapShowingSize || 
+           transparencies[i][j] == undefined || 
+           transparencies[i][j] <= 0
+}
+
+function drawSpawnOutsideMinimap() {
+    let drawI = spawnLocation - playerPosMinimap.x + midShowingSize;
+    let drawJ = spawnLocation - playerPosMinimap.y + midShowingSize;
+    //is the spawn transparent?
+    if (isItOutside(drawI, drawJ)) {
+        push();
+        translate(tamCellMinimap / 2, tamCellMinimap / 2);
+        let angle = Math.atan2(drawJ - midShowingSize, drawI - midShowingSize);
+        let arcX = Math.cos(angle) * arcRadius + midShowingSize;
+        let arcY = Math.sin(angle) * arcRadius + midShowingSize;
+
+        noFill();
+        strokeWeight(1.5);
+        stroke(colSPAWN);
+        arc(arcX * tamCellMinimap, arcY * tamCellMinimap, 
+            arcFlatness, arcFlatness, 
+            angle - arcAngleRange, angle + arcAngleRange);
+
+        pop();
+    }
+    
+}
+
+function initMinimap(){
+    for(let i = 0; i < minimapSize; i++){
+        minimap.push([])
+        for(let j = 0; j < minimapSize; j++){
+            minimap[i].push(UNEXPLORED)
+        }
+    }
+    minimap[spawnLocation][spawnLocation] = SPAWN
+    initTransparencies()
+}
