@@ -21,18 +21,9 @@ const UNEXPLORED = 4
 const colSPAWN = hexToRgb('#c1121f')    //rojo
 const colPLAYER = hexToRgb('#ffffff')   //blanco
 const colEXPLORED = hexToRgb('#adb5bd')  //gris
-//const colMATERIAL = [255, 255, 0] igual renta poner una cruz donde NO hay material
-// const colUNEXPLORED = noFill()
 
 let playerPosMinimap = {x: 0, y: 0}
 
-/*
-- Spawn: rojo (0)
-- Player: blanco (1)
-- Explorado: gris (2)
-    - Quedan materiales: punto negro (3)
-- No explorado: transparente (4)
-*/
 
 function initTransparencies(){
     transparencies = []
@@ -105,7 +96,7 @@ function showMinimap(){
             } 
             col.setAlpha(trans)
             fill(col)
-            stroke(0, trans)
+            stroke(20, trans)
             if(minimap[i][j] == UNEXPLORED){
                 noFill()
             }
@@ -113,7 +104,7 @@ function showMinimap(){
             let drawJ = j - startJ
             rect(drawI*tamCellMinimap, drawJ*tamCellMinimap, tamCellMinimap, tamCellMinimap)
             if(minimap[i][j] == NOMATERIAL){
-                stroke(0, trans)
+                stroke(20, trans)
                 strokeWeight(1)
                 //cross in cell
                 line(drawI*tamCellMinimap + 1, drawJ*tamCellMinimap + 1, (drawI + 1)*tamCellMinimap - 1, (drawJ + 1)*tamCellMinimap - 1)

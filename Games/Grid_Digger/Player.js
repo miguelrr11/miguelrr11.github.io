@@ -156,9 +156,11 @@ class Player{
             }
         }
         if(this.state == 'mining'){
+            this.state = 'resting'
             this.coolDownMining--
             if(this.coolDownMining == 0){
-                this.state = 'resting'
+                this.state = 'mining'
+                this.coolDownMining = coolDownMining
             }
         }
     }
@@ -191,7 +193,6 @@ class Player{
             translate(translationPlayer.x, translationPlayer.y)
         }
         fill(50)
-        translate(-1, -1)
         rect(0, 0, cellPixelSize*0.7, cellPixelSize*0.7)
         pop()
     }

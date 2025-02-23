@@ -29,7 +29,7 @@ let colMat3 = hexToRgb("#a7c957")  //triangle
 let colors = [colMat1, colMat2, colMat3]
 
 let coolDownMovement = 1 //frames
-let coolDownMining = 1 //frames
+let coolDownMining = 2 //frames
 
 let transitioning = false
 let transitionFrames = 10
@@ -38,13 +38,13 @@ let transitionChunk = undefined
 let transitionChunkPos = undefined
 let translationPlayer
 
-let maxHealthCell = 10
+let maxHealthCell = 5
 
 let animations = []
 
-// fovRadius >= fovRadiudWall SIEMPRE !!!!!
-let fovRadius = 15       //la luz que tu emites (no ves a traves de las paredes)
-let fovRadiusWall = 15   //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
+// fovRadius >= fovRadiusWall SIEMPRE !!!!!
+let fovRadius = 20       //la luz que tu emites (no ves a traves de las paredes)
+let fovRadiusWall = 20    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
 
 
 /*

@@ -1,19 +1,34 @@
+let maxTam = cellPixelSize
+let minTam = cellPixelSize * 0.3
+
 class Cell{
     constructor(x, y, material, hp, illuminated, rnd){
         this.x = x
         this.y = y
-        this.material = 3
+        this.material = material != undefined ? material : 0
         this.hp = hp != undefined ? hp : maxHealthCell
         this.illuminated = illuminated != undefined ? illuminated : false
         this.rnd = rnd != undefined ? rnd : (Math.random() * 2 -1).toFixed(2)
     }
 
-    hit(){
+    hit(animX, animY){
         if(this.hp > 0) this.hp--
-        if(this.material == 0) anims.addAnimation(this.x*cellPixelSize + cellPixelSize/2, this.y*cellPixelSize + cellPixelSize/2, 'mining')
-        else if(this.material == 1) anims.addAnimation(this.x*cellPixelSize + cellPixelSize/2, this.y*cellPixelSize + cellPixelSize/2, 'miningMat1')
-        else if(this.material == 2) anims.addAnimation(this.x*cellPixelSize + cellPixelSize/2, this.y*cellPixelSize + cellPixelSize/2, 'miningMat2')
-        else if(this.material == 3) anims.addAnimation(this.x*cellPixelSize + cellPixelSize/2, this.y*cellPixelSize + cellPixelSize/2, 'miningMat3')
+        let anim;
+        switch(this.material){
+            case 0:
+                anim = 'mining'
+                break
+            case 1:
+                anim = 'miningMat1'
+                break
+            case 2:
+                anim = 'miningMat2'
+                break
+            case 3:
+                anim = 'miningMat3'
+                break
+        }
+        anims.addAnimation(animX*cellPixelSize + cellPixelSize/2, animY*cellPixelSize + cellPixelSize/2, anim)
         if(this.hp == 0) this.material = 0
     }
 
@@ -30,7 +45,7 @@ class Cell{
     }
     
     translateToCenter(){
-        let off = this.rnd * 2 + -.5
+        let off = this.rnd * 2
         translate(off + cellPixelSize/2 + this.x * cellPixelSize,  off + cellPixelSize/2 + this.y * cellPixelSize)
     }
 
@@ -38,7 +53,7 @@ class Cell{
         let off = this.rnd * 2
         let trans = map(light, 0, 1, 0, 255)
         let col = colors[this.material-1]
-        let tam = map(this.hp, 0, maxHealthCell, 0, cellPixelSize*0.4)
+        let tam = map(this.hp, 0, maxHealthCell, minTam, cellPixelSize*0.4)
         push()
         rectMode(CENTER)
         noStroke()
@@ -59,7 +74,7 @@ class Cell{
 
     show(lightGrid){
         push()
-        let offset = 1
+        let offset = 0
         rectMode(CENTER)
         translate(this.x * cellPixelSize + cellPixelSize/2, this.y * cellPixelSize + cellPixelSize/2)
         noStroke()
@@ -71,9 +86,8 @@ class Cell{
             rect(0, 0, cellPixelSize+offset, cellPixelSize+offset)
             //pared rompiendose
             if(visible){
-                translate(-1, -1)
                 fill(map(light, 0, 1, colSuelo, wallFullIluminated))
-                let tam = map(this.hp, 0, maxHealthCell, 0, cellPixelSize)
+                let tam = map(this.hp, 0, maxHealthCell, minTam, maxTam)
                 rect(0, 0, tam+offset, tam+offset)
             }
             

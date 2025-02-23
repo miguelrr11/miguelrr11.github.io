@@ -63,7 +63,7 @@ function hitCell(chunk, x, y){
         if(x == 0) actualX = cellsPerRow
         if(y == 0) actualY = cellsPerRow
     }
-    chunk[x][y].hit()
+    chunk[x][y].hit(actualX, acutalY)
 }
 
 function getChunkNeighbor(dx, dy){

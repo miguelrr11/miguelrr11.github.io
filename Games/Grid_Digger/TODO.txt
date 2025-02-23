@@ -31,3 +31,7 @@ Grid Digger
         - Explorado: grid
             - Quedan materiales: punto negro
         - No explorado: transparente
+
+- Idea: que salgan particulas de los bloques con materiales, sutil
+
+- Idea: que algunos chunks sean laberintos

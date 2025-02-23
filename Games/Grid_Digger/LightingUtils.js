@@ -193,7 +193,7 @@ function computeLightingGrid(map) {
                 let d = dist(lp.x, lp.y, x, y);
                 if (d < rad) cell.visible = true;
                 // Multiply the contribution by the light point's strength.
-                let intensity = lp.strength * Math.exp(-4 * (d / rad));
+                let intensity = lp.strength * Math.exp(-5 * (d / rad));
                 // Alternatively, you might choose one of the commented formulas.
                 light += intensity;
             }
