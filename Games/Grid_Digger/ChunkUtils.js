@@ -13,7 +13,8 @@ function loadChunk(x, y){
                 let hp = parseInt(properties[1])
                 let illuminated = parseInt(properties[2]) == 1 ? true : false
                 let rnd = parseFloat(properties[3])
-                chunk[i][j] = new Cell(i, j, material, hp, illuminated, rnd)
+                let biome = parseInt(properties[4])
+                chunk[i][j] = new Cell(i, j, material, hp, illuminated, rnd, biome)
             }
         }
     }
@@ -28,6 +29,21 @@ function emptyChunk(){
     }
 }
 
+function getBiome(x, y){
+    //if the point is inseide a circle of center (0, 0) and radius 15, then is biome 1
+    let distance = dist(x, y, 0, 0)
+    if(distance < 15) return 1
+    //else the a sqaure of sides 60x60 centered in (0, 0) is cut into 4 pieces, diagonally
+    if(y >= x && y >= -x) return 2
+    if(y <= x && y >= -x) return 3
+    if(y <= x && y <= -x) return 4
+    if(y >= x && y <= -x) return 5
+
+    //si en un futuro quiero poner un bioma de transicion entre biomas tengo que quitar las igualdades (quedarme con < o >)
+    //y poner aqui un return 6
+}
+
+
 function generateChunk(x, y){
     let newChunk = []
     console.log('generating chunk' + ' x: ' + x + ' y: ' + y)  
@@ -38,7 +54,8 @@ function generateChunk(x, y){
             let material
             if(air == 0) material = 0
             else material = willBeMaterial(i, j, x, y)
-            let newCell = new Cell(i, j, material, air)
+            let biome = getBiome(x, y)
+            let newCell = new Cell(i, j, material, air, undefined, undefined, biome)
             row.push(newCell)
         }
         newChunk.push(row)

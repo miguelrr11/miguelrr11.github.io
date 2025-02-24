@@ -3,6 +3,7 @@ const HEIGHT = 600
 
 let cellsPerRow = 30
 let cellPixelSize = WIDTH / cellsPerRow
+let mapSize = 61
 
 let currentChunkPos
 
@@ -18,16 +19,6 @@ let deltaMat2 = 0.07
 let deltaMat3 = 0.2
 let offsetMat2 = 512
 
-let colSuelo = 50
-let colFullIluminated = 225
-let wallFullIluminated = 100
-
-let colMat1 = hexToRgb("#90e0ef")  //ellipse
-let colMat2 = hexToRgb("#e76f51")  //square
-let colMat3 = hexToRgb("#a7c957")  //triangle
-
-let colors = [colMat1, colMat2, colMat3]
-
 let coolDownMovement = 1 //frames
 let coolDownMining = 2 //frames
 
@@ -42,9 +33,8 @@ let maxHealthCell = 5
 
 let animations = []
 
-// fovRadius >= fovRadiusWall SIEMPRE !!!!!
-let fovRadius = 20       //la luz que tu emites (no ves a traves de las paredes)
-let fovRadiusWall = 20    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
+let fovRadius = 10       //la luz que tu emites (no ves a traves de las paredes)
+let fovRadiusWall = 0    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
 
 
 /*

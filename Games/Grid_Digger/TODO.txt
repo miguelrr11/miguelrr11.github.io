@@ -33,5 +33,17 @@ Grid Digger
         - No explorado: transparente
 
 - Idea: que salgan particulas de los bloques con materiales, sutil
-
 - Idea: que algunos chunks sean laberintos
+
+- Idea: el tesoro esta escondido en alguna celda del mapa que no contiene materiales, si se encuentra, se acaba la partida. 
+Entonces, el jugador equilibra entre buscar el tesoro y minar materiales para poder buscarlo mas rapido
+
+- Idea: hay 4 o 5 biomas que en cada partida estan en sitios diferentes, cada bioma tiene su look y recursos diferentes
+- Idea relacionada: hay que encontrar un tesoro en CADA bioma para ganar y cada tesoro que encuentras desbloquea algo
+
+------ TODO -------
+- Bloques irrompibles
+- Materiales spawnean con frecuencias dependientes de su distancia al spawn
+- Poner un tamaño fijo al mapa y handle los edges
+- Todos los upgrades
+- UI de recursos, xp, ....

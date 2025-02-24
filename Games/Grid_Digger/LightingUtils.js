@@ -188,20 +188,22 @@ function computeLightingGrid(map) {
         for (let y = 0; y < cellsPerRow; y++) {
             let cell = map.grid[x][y];
             let light = 0;
-            let rad = cell.visible ? fovRadius : fovRadiusWall;
+            //let rad = cell.visible ? fovRadius : fovRadiusWall;
+            let rad = fovRadius;
+            let sensor = false
             for (let lp of map.lightPoints) {
                 let d = dist(lp.x, lp.y, x, y);
-                if (d < rad) cell.visible = true;
-                // Multiply the contribution by the light point's strength.
-                let intensity = lp.strength * Math.exp(-5 * (d / rad));
-                // Alternatively, you might choose one of the commented formulas.
+                if (d < fovRadiusWall) sensor = true
+                let intensity = lp.strength * Math.exp(-2 * (d / rad));
                 light += intensity;
             }
             light = constrain(light, 0, 1);
+            if(light == undefined) light = 0
             lightingGrid[x][y] = {
                 wall: cell.wall,
                 visible: cell.visible,
-                light: light
+                light: light,
+                sensor: sensor
             };
         }
     }
