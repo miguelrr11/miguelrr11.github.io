@@ -29,7 +29,7 @@ let transitionChunk = undefined
 let transitionChunkPos = undefined
 let translationPlayer
 
-let maxHealthCell = 5
+let maxHealthCell = 0
 
 let animations = []
 

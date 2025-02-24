@@ -3,15 +3,21 @@
 2. Encima de cada celda se dibuja su correspondiente oscuridad
 */
 
-let colOscuridad = hexToRgb("#1F1F36")
+
 
 // BIOMA 1 - PÁRAMO ROCOSO
 let colSueloBioma1 = hexToRgb("#9A8C98")
 let colRocaBioma1 = hexToRgb("#4A4E69")
+let colOscuridad1 = hexToRgb("#1F1F36")
 
 //BIOMA 2 - BOSQUE FRONDOSO
-//BIOMA 3 - CUEVAS DE LAVA
+let colSueloBioma2 = hexToRgb("#606c38")
+let colRocaBioma2 = hexToRgb("#283618")
+let colOscuridad2 = hexToRgb("#112611")
 
+//BIOMA 3 - CUEVAS IGNIFUGAS
+//BIOMA 4 - DESIERTO SALADO
+//BIOMA 5 - PLAYA CRUSTÁCEA
 
 
 // MATERIALES

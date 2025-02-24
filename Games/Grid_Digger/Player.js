@@ -125,6 +125,7 @@ class Player{
         }
         else {
             //computeLightingGrid(curLightMap)
+            if(!checkPlayerBoundaries(moveChunk.dx, moveChunk.dy)) return
             this.oldPos = this.pos.copy()
             updatePlayerCoord();
             moveToChunk(moveChunk.dx, moveChunk.dy);

@@ -1,6 +1,7 @@
 //it loads a chunk reconstructing each cell from a csv string
 function loadChunk(x, y){
     let chunk = []
+    let biome = getBiome(x, y)
     if(chunks.has(x + ',' + y)){
         console.log('loading chunk' + ' x: ' + x + ' y: ' + y)
         let csvCells = chunks.get(x + ',' + y).split('\n')
@@ -13,8 +14,8 @@ function loadChunk(x, y){
                 let hp = parseInt(properties[1])
                 let illuminated = parseInt(properties[2]) == 1 ? true : false
                 let rnd = parseFloat(properties[3])
-                let biome = parseInt(properties[4])
-                chunk[i][j] = new Cell(i, j, material, hp, illuminated, rnd, biome)
+                if(biome == 1) chunk[i][j] = new Cell_1(i, j, material, hp, illuminated, rnd)
+                else if(biome == 2) chunk[i][j] = new Cell_2(i, j, material, hp, illuminated, rnd)
             }
         }
     }
@@ -47,6 +48,7 @@ function getBiome(x, y){
 function generateChunk(x, y){
     let newChunk = []
     console.log('generating chunk' + ' x: ' + x + ' y: ' + y)  
+    let biome = getBiome(x, y)
     for(let i = 0; i < cellsPerRow; i++){
         let row = []
         for(let j = 0; j < cellsPerRow; j++){
@@ -54,9 +56,8 @@ function generateChunk(x, y){
             let material
             if(air == 0) material = 0
             else material = willBeMaterial(i, j, x, y)
-            let biome = getBiome(x, y)
-            let newCell = new Cell(i, j, material, air, undefined, undefined, biome)
-            row.push(newCell)
+            if(biome == 1) row.push(new Cell_1(i, j, material, air))
+            else if(biome == 2) row.push(new Cell_2(i, j, material, air))
         }
         newChunk.push(row)
     }
@@ -90,7 +91,16 @@ function getChunkNeighbor(dx, dy){
     if(dx == -1 && dy == 0) return chunkLeft
 }
 
+function checkPlayerBoundaries(dx, dy){
+    let finalX = currentChunkPos.x + dx
+    let finalY = currentChunkPos.y + dy
+    if(finalX < -30 || finalX > 30 || finalY < -30 || finalY > 30) return false
+    return true
+}
+
 function moveToChunk(dx, dy){
+    let access = checkPlayerBoundaries(dx, dy)
+    if(!access) return
     updateExploredMinimap()
     const neighborChunk = getChunkNeighbor(dx, dy);
     transitionToChunk(neighborChunk);
@@ -235,7 +245,10 @@ function saveChunk(chunk, x, y){
     for(let i = 0; i < chunk.length; i++){
         for(let j = 0; j < chunk[i].length; j++){
             let illuminated = chunk[i][j].illuminated ? 1 : 0
-            csv += chunk[i][j].material + ',' + chunk[i][j].hp + ',' + illuminated +  ',' + chunk[i][j].rnd + '\n'
+            csv += chunk[i][j].material + ',' + 
+            chunk[i][j].hp + ',' + 
+            illuminated +  ',' + 
+            chunk[i][j].rnd + '\n'
         }
     }
     chunks.set(x + ',' + y, csv)
