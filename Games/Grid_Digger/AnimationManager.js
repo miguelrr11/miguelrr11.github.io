@@ -3,8 +3,8 @@ class AnimationManager{
         this.animations = []
     }
 
-    addAnimation(x, y, type){
-        this.animations.push(new Animation(x, y, type))
+    addAnimation(x, y, type, i, j){
+        this.animations.push(new Animation(x, y, type, i, j))
     }
 
     update(){

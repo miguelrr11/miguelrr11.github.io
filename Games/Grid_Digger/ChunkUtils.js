@@ -14,7 +14,8 @@ function loadChunk(x, y){
                 let hp = properties[1] == 'i' ? Infinity : parseInt(properties[1])
                 let illuminated = parseInt(properties[2]) == 1 ? true : false
                 let rnd = parseFloat(properties[3])
-                if(biome == 1) chunk[i][j] = new Cell_1(i, j, material, hp, illuminated, rnd)
+                if(material == 5) chunk[i][j] = new Cell_exp(i, j, material, hp, illuminated, rnd, getBiome(x, y))
+                else if(biome == 1) chunk[i][j] = new Cell_1(i, j, material, hp, illuminated, rnd)
                 else if(biome == 2) chunk[i][j] = new Cell_2(i, j, material, hp, illuminated, rnd)
                 else if(biome == 3) chunk[i][j] = new Cell_3(i, j, material, hp, illuminated, rnd)
                 else if(biome == 4) chunk[i][j] = new Cell_4(i, j, material, hp, illuminated, rnd)
@@ -61,15 +62,17 @@ function generateChunk(x, y){
     for(let i = 0; i < cellsPerRow; i++){
         let row = []
         for(let j = 0; j < cellsPerRow; j++){
-            let air = willBeAir(i, j, x, y)
+            let hp = willBeAir(i, j, x, y)
             let material
-            if(air == 0) material = 0
+            if(hp == 0) material = 0
             else material = willBeMaterial(i, j, x, y)
-            if(biome == 1) row.push(new Cell_1(i, j, material, air))
-            else if(biome == 2) row.push(new Cell_2(i, j, material, air))
-            else if(biome == 3) row.push(new Cell_3(i, j, material, air))
-            else if(biome == 4) row.push(new Cell_4(i, j, material, air))
-            else if(biome == 5) row.push(new Cell_5(i, j, material, air))
+            if(material != 0) hp = maxHealthCellMat
+            if(hp <= 2 && hp < 1000 && random() < 0.05) row.push(new Cell_exp(i, j, material, hp, undefined, undefined, biome)) 
+            else if(biome == 1) row.push(new Cell_1(i, j, material, hp))
+            else if(biome == 2) row.push(new Cell_2(i, j, material, hp))
+            else if(biome == 3) row.push(new Cell_3(i, j, material, hp))
+            else if(biome == 4) row.push(new Cell_4(i, j, material, hp))
+            else if(biome == 5) row.push(new Cell_5(i, j, material, hp))
         }
         newChunk.push(row)
     }
@@ -84,7 +87,7 @@ function isIluminated(chunk, x, y){
     return chunk[x][y].illuminated
 }
 
-function hitCell(chunk, x, y){
+function getAnimationPos(chunk, x, y){
     let actualX = x  
     let acutalY = y
     if(chunk != currentChunk){
@@ -93,6 +96,11 @@ function hitCell(chunk, x, y){
         if(x == 0) actualX = cellsPerRow
         if(y == 0) actualY = cellsPerRow
     }
+    return [actualX, acutalY]
+}
+
+function hitCell(chunk, x, y){
+    let [actualX, acutalY] = getAnimationPos(chunk, x, y)
     chunk[x][y].hit(actualX, acutalY)
 }
 

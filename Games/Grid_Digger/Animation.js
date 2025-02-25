@@ -1,9 +1,11 @@
 class Animation{
-    constructor(x, y, type){
+    constructor(x, y, type, i, j){
         this.x = x
         this.y = y
         this.particles = []
         this.initParticles(type)
+        this.i = i
+        this.j = j
     }
 
     finished(){
@@ -70,6 +72,30 @@ class Animation{
                 this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape))
             }
         }
+        if(type == 'fuse'){
+            let count = explosionMat ? 250 : 3
+            for(let i = 0; i < count; i++){
+                let x = this.x + random(-cellPixelSize/8, cellPixelSize/8)
+                let y = this.y + random(-cellPixelSize/8, cellPixelSize/8)
+                let col1 = color(255, 0, 0)
+                let col2 = color(255, 255, 0)
+                let col = lerpColor(col1, col2, Math.random())
+                let lifespan = explosionMat ? random(20, 60) : random(20, 30)
+                let strength = explosionMat ? random(3, 7.5) : random(2.5, 3.4)
+                // direction of a fuse, upwards and sliightly to the sides
+                let dir = explosionMat ? createVector(random(-1, 1), random(-1, 1)).normalize() :
+                createVector(random(-0.5, 0.5), -1).normalize()
+                let vel = createVector(dir.x*strength, dir.y*strength)
+                let acc = createVector(0, 0)
+                let friction = 0.965
+                let angle = 0
+                let rotVel = 0
+                let size = explosionMat ?  random(cellPixelSize*.35, cellPixelSize*.45) : 
+                random(cellPixelSize*.2, cellPixelSize*.25)
+                let shape = 'rect'
+                this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape))
+            }
+        }
     }
 
     update(){
@@ -79,7 +105,11 @@ class Animation{
         }
     }
 
+    isInVision(){
+        return curLightMap.lightingGrid[this.i][this.j].visible
+    }
+
     show(){
-        for(let p of this.particles) p.show()
+        if(this.isInVision()) for(let p of this.particles) p.show()
     }
 }

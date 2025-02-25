@@ -6,12 +6,59 @@ class Cell {
         this.x = x;
         this.y = y;
         this.material = material !== undefined ? material : 0;
+        //this.material = 1
         this.hp = hp !== undefined ? hp : maxHealthCell;
-        if(this.material != 0) this.hp *= 2
         this.illuminated = illuminated !== undefined ? illuminated : false;
         this.rnd = rnd !== undefined ? rnd : (Math.random() * 2 - 1).toFixed(2);
         this.und = this.hp == Infinity ? true : false       //undestructible
         if(this.und) this.material = 4                      //material 4 is the undestructible material
+        this.maxHealthCell = this.material == 0 ? maxHealthCell : maxHealthCellMat;
+    }
+
+    setBiomeColors(biome){
+        switch(biome){
+            case 1:
+                this.colSuelo1 = colSueloBioma1;
+                this.colSuelo2 = colSueloBioma1_2;
+                this.colRoca = colRocaBioma1;
+                this.colOscuridad1 = colOscuridad1;
+                this.colOscuridad2 = colOscuridad1_2;
+                break;
+            case 2:
+                this.colSuelo1 = colSueloBioma2;
+                this.colSuelo2 = colSueloBioma2_2;
+                this.colRoca = colRocaBioma2;
+                this.colOscuridad1 = colOscuridad2;
+                this.colOscuridad2 = colOscuridad2_2;
+                break;
+            case 3: 
+                this.colSuelo1 = colSueloBioma3;
+                this.colSuelo2 = colSueloBioma3_2;
+                this.colRoca = colRocaBioma3;
+                this.colOscuridad1 = colOscuridad3;
+                this.colOscuridad2 = colOscuridad3_2;
+                break;
+            case 4:
+                this.colSuelo1 = colSueloBioma4;
+                this.colSuelo2 = colSueloBioma4_2;
+                this.colRoca = colRocaBioma4;
+                this.colOscuridad1 = colOscuridad4;
+                this.colOscuridad2 = colOscuridad4_2;
+                break;
+            case 5:
+                this.colSuelo1 = colSueloBioma5;
+                this.colSuelo2 = colSueloBioma5_2;
+                this.colRoca = colRocaBioma5;
+                this.colOscuridad1 = colOscuridad5;
+                this.colOscuridad2 = colOscuridad5_2;
+                break;
+        }
+    }
+
+    damage(dmg){
+        this.hp -= Math.floor(dmg)
+        if(this.hp < 0) this.hp = 0
+        if (this.hp === 0) this.material = 0;
     }
 
     hit(animX, animY) {
@@ -35,7 +82,7 @@ class Cell {
         anims.addAnimation(
             animX * cellPixelSize + cellPixelSize / 2,
             animY * cellPixelSize + cellPixelSize / 2,
-            anim
+            anim, this.x, this.y
         );
         if (this.hp === 0) this.material = 0;
     }
@@ -46,6 +93,8 @@ class Cell {
 
     convertIntoAir() {
         this.hp = 0;
+        this.material = 0
+        this.und = false
     }
 
     illuminate() {
@@ -64,7 +113,7 @@ class Cell {
         if (this.material === 0 || this.hp === 0) return;
         let off = this.rnd * 2;
         let col = colors[this.material - 1];
-        let tam = map(this.hp, 0, maxHealthCell, minTam, cellPixelSize * 0.4, true);
+        let tam = map(this.hp, 0, this.maxHealthCell, minTam, cellPixelSize * 0.4, true);
         push();
         rectMode(CENTER);
         noStroke();
@@ -80,11 +129,16 @@ class Cell {
         if (this.material === 3) {
             drawTriangle(tam);
         }
-        if(this.material === 4){
+        if(this.material === 4){ //undestructible
             rotate(-off)
             translate(-off, -off)
             rect(0, -cellPixelSize*0.25, cellPixelSize, cellPixelSize/5)
             rect(0, cellPixelSize*0.25, cellPixelSize, cellPixelSize/5)
+        }
+        if(this.material === 5){ //explosive 
+            rotate(-off)
+            translate(-off, -off)
+            rect(0, 0, cellPixelSize/2, cellPixelSize/2)
         }
         pop();
     }
@@ -101,7 +155,7 @@ class Cell {
         this.showSuelo();
         if (this.hp > 0 && !this.und) {
             fill(this.colRoca); // set by the child class
-            tam = map(this.hp, 0, maxHealthCell, minTam, maxTam, true);
+            tam = map(this.hp, 0, this.maxHealthCell, minTam, maxTam, true);
             rect(0, 0, tam, tam);
         }
         else if(this.und){

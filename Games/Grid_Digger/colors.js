@@ -34,10 +34,12 @@ let colRocaBioma5 = hexToRgb("#b388eb")
 //MISCELANEA
 let colUnd = hexToRgb("#38160d")   //undestructible
 let colUndMat = hexToRgb("#5c3324")   //undestructible
+let colCellExp = hexToRgb("#d00000")   //cell explosivo
+let colMatExp = hexToRgb("#e85d04")   //material explosivo
 
 // MATERIALES
 let colMat1 = hexToRgb("#90e0ef")  //ellipse
 let colMat2 = hexToRgb("#e76f51")  //square
 let colMat3 = hexToRgb("#a7c957")  //triangle
 
-let colors = [colMat1, colMat2, colMat3, colUndMat]
+let colors = [colMat1, colMat2, colMat3, colUndMat, colMatExp]

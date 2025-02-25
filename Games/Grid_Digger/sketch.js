@@ -74,10 +74,11 @@ function mouseDragged(){
 
 function keyPressed(){
     let offset = 1
-    if(keyCode == 65) moveToChunk(-offset, 0)
-    else if(keyCode == 68) moveToChunk(offset, 0)
-    else if(keyCode == 87) moveToChunk(0, offset)
-    else if(keyCode == 83) moveToChunk(0, -offset)
+    if(keyCode == 65) moveToChunk(-offset, 0)       //a
+    else if(keyCode == 68) moveToChunk(offset, 0)   //d
+    else if(keyCode == 87) moveToChunk(0, offset)   //w
+    else if(keyCode == 83) moveToChunk(0, -offset)  //s
+    else if(keyCode == 80) generateImageMap(3)      //p
 }
 
 // function mousePressed(){
@@ -89,16 +90,13 @@ function keyPressed(){
 
 
 function bomb(x, y, tamInCells){
-    
-    let distance = tamInCells * cellPixelSize
+    let distance = tamInCells
     for(let i = 0; i < cellsPerRow; i++){
         for(let j = 0; j < cellsPerRow; j++){
-            let d = dist(x, y, i * cellPixelSize, j * cellPixelSize)
+            let d = dist(x, y, i, j)
             if(d < distance){
-                currentChunk[i][j].hp -= Math.floor(map(d, 0, distance, maxHealthCell, 0)) 
-                if(currentChunk[i][j].hp < 0) currentChunk[i][j].hp = 0
+                currentChunk[i][j].damage(10 * Math.exp(-2 * (d / distance)))
             }
         }
     }
-
 }

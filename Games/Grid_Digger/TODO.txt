@@ -40,6 +40,7 @@ Entonces, el jugador equilibra entre buscar el tesoro y minar materiales para po
 
 - Idea: hay 4 o 5 biomas que en cada partida estan en sitios diferentes, cada bioma tiene su look y recursos diferentes
 - Idea relacionada: hay que encontrar un tesoro en CADA bioma para ganar y cada tesoro que encuentras desbloquea algo
+- Idea: si te hacen daño pierdes materiales (no tienes vida como tal)
 
 ------ TODO -------
 - Bloques irrompibles
@@ -48,5 +49,4 @@ Entonces, el jugador equilibra entre buscar el tesoro y minar materiales para po
 - Todos los upgrades
 - UI de recursos, xp, ....
 
-----------------------
-PROGRESO:
+

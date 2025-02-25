@@ -43,7 +43,7 @@ class Player{
                                 type: 'walking', 
                                 direction: createVector(this.pos.x - this.newPos.x, this.pos.y - this.newPos.y),
                                 color: getCurrentFloorColor()
-                            }
+                            }, this.pos.x, this.pos.y
         );
     }
 

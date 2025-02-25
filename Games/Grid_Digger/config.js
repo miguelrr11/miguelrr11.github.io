@@ -22,8 +22,12 @@ let deltaMat3 = 0.2
 let offsetMat2 = 512
 let offsetUnd = 432
 
+let maxHealthCell = 5        //vida de los bloques normales
+let maxHealthCellMat = 10    //vida de los bloques de materiales
+let baseHpCellExp = 20       //vida de los barriles explosivos
+
 let coolDownMovement = 1 //frames
-let coolDownMining = 1 //frames
+let coolDownMining = 5 //frames
 
 let transitioning = false
 let transitionFrames = 0
@@ -32,12 +36,12 @@ let transitionChunk = undefined
 let transitionChunkPos = undefined
 let translationPlayer
 
-let maxHealthCell = 1
+
 
 let animations = []
 
 let fovRadius = 15      //la luz que tu emites (no ves a traves de las paredes)
-let fovRadiusWall = 25    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
+let fovRadiusWall = 5    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
 
 
 /*
