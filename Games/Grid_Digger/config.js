@@ -13,14 +13,17 @@ let deltaAir = 0.02     //determina la escla de los caminos (longitud)
 let airWidth = 0.023    //determina la anchura de los caminos
 let offsetAir2 = 512
 // let airSeparation = 0.15    //determina la separacion entre caminos (se generan 3 caminos al lado de cada uno)
+let deltaUnd = 0.025
+let undWidth = 0.025
 
 let deltaMat1 = 0.07
 let deltaMat2 = 0.07
 let deltaMat3 = 0.2
 let offsetMat2 = 512
+let offsetUnd = 432
 
-let coolDownMovement = 3 //frames
-let coolDownMining = 5 //frames
+let coolDownMovement = 1 //frames
+let coolDownMining = 1 //frames
 
 let transitioning = false
 let transitionFrames = 0
@@ -29,12 +32,12 @@ let transitionChunk = undefined
 let transitionChunkPos = undefined
 let translationPlayer
 
-let maxHealthCell = 5
+let maxHealthCell = 1
 
 let animations = []
 
 let fovRadius = 15      //la luz que tu emites (no ves a traves de las paredes)
-let fovRadiusWall = 5    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
+let fovRadiusWall = 25    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
 
 
 /*

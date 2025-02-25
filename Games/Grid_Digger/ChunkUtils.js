@@ -11,11 +11,14 @@ function loadChunk(x, y){
                 let properties = csvCells[i*cellsPerRow + j].split(',')
                 //material, hp, illuminated
                 let material = parseInt(properties[0])
-                let hp = parseInt(properties[1])
+                let hp = properties[1] == 'i' ? Infinity : parseInt(properties[1])
                 let illuminated = parseInt(properties[2]) == 1 ? true : false
                 let rnd = parseFloat(properties[3])
                 if(biome == 1) chunk[i][j] = new Cell_1(i, j, material, hp, illuminated, rnd)
                 else if(biome == 2) chunk[i][j] = new Cell_2(i, j, material, hp, illuminated, rnd)
+                else if(biome == 3) chunk[i][j] = new Cell_3(i, j, material, hp, illuminated, rnd)
+                else if(biome == 4) chunk[i][j] = new Cell_4(i, j, material, hp, illuminated, rnd)
+                else if(biome == 5) chunk[i][j] = new Cell_5(i, j, material, hp, illuminated, rnd)
             }
         }
     }
@@ -64,6 +67,9 @@ function generateChunk(x, y){
             else material = willBeMaterial(i, j, x, y)
             if(biome == 1) row.push(new Cell_1(i, j, material, air))
             else if(biome == 2) row.push(new Cell_2(i, j, material, air))
+            else if(biome == 3) row.push(new Cell_3(i, j, material, air))
+            else if(biome == 4) row.push(new Cell_4(i, j, material, air))
+            else if(biome == 5) row.push(new Cell_5(i, j, material, air))
         }
         newChunk.push(row)
     }
@@ -152,6 +158,10 @@ function willBeAir(i, j, cx, cy){
     let offsetY = cy * deltaAir * cellsPerRow
     let noiseVal = noise(i * deltaAir + offsetX, j * deltaAir + offsetY)
     let noiseVal2 = noise(i * deltaAir + offsetX + offsetAir2, j * deltaAir + offsetY + offsetAir2)
+    let offsetX2 = cx * deltaUnd * cellsPerRow
+    let offsetY2 = cy * deltaUnd * cellsPerRow
+    let noiseVal3 = noise(i * deltaUnd + offsetX2 + offsetUnd, j * deltaUnd + offsetY2)
+    if(noiseVal3 > 0.65 && noiseVal3 < 0.65+undWidth)  return Infinity
     if(noiseVal > 0.5 && noiseVal < 0.5+airWidth) return floor(map(noiseVal, 0.5, 0.5+airWidth, 0, maxHealthCell))
     if(noiseVal2 > 0.5 && noiseVal2 < 0.5+airWidth) return floor(map(noiseVal2, 0.5, 0.5+airWidth, 0, maxHealthCell))
     return maxHealthCell
@@ -250,8 +260,9 @@ function saveChunk(chunk, x, y){
     for(let i = 0; i < chunk.length; i++){
         for(let j = 0; j < chunk[i].length; j++){
             let illuminated = chunk[i][j].illuminated ? 1 : 0
+            let hp = chunk[i][j].und ? 'i' : chunk[i][j].hp
             csv += chunk[i][j].material + ',' + 
-            chunk[i][j].hp + ',' + 
+            hp + ',' + 
             illuminated +  ',' + 
             chunk[i][j].rnd + '\n'
         }
@@ -328,3 +339,59 @@ function eraseAllMaterials(){
         }
     }
 }
+/* 
+type 1 = biome
+type 2 = material
+type 3 = both
+*/
+function generateImageMap(type = 1) {
+    // Generates an image representation of the entire map
+    let imgSize = cellsPerRow * mapSize;
+    let img = createImage(imgSize, imgSize);
+    img.loadPixels();
+
+    for (let j = 0; j < mapSize; j++) {
+        for (let i = 0; i < mapSize; i++) {
+            let chunk = generateChunk(j-30, i-30);
+            for (let l = 0; l < cellsPerRow; l++) {
+                for (let k = 0; k < cellsPerRow; k++) {
+                    let index = ((i * cellsPerRow + k) + (j * cellsPerRow + l) * imgSize) * 4;
+                    let bioma = getBiome(j-30, i-30);
+                    let color
+                    if(type == 1){
+                        if(bioma == 1) color = chunk[l][k].hp == 0 ? colSueloBioma1 : colRocaBioma1;
+                        else if(bioma == 2) color = chunk[l][k].hp == 0 ? colSueloBioma2 : colRocaBioma2;
+                        else if(bioma == 3) color = chunk[l][k].hp == 0 ? colSueloBioma3 : colRocaBioma3;
+                        else if(bioma == 4) color = chunk[l][k].hp == 0 ? colSueloBioma4 : colRocaBioma4;
+                        else if(bioma == 5) color = chunk[l][k].hp == 0 ? colSueloBioma5 : colRocaBioma5;
+                    }
+                    else if(type == 2){
+                        if(chunk[l][k].und) color = colUnd
+                        let material = chunk[l][k].material
+                        if(material == 0) color = [0, 0, 0]
+                        else color = colors[material - 1]
+                    }
+                    else if(type == 3){
+                        if(chunk[l][k].und) color = colUnd
+                        let material = chunk[l][k].material
+                        if(material == 0) {
+                            if(bioma == 1) color = chunk[l][k].hp == 0 ? colSueloBioma1 : colRocaBioma1;
+                            else if(bioma == 2) color = chunk[l][k].hp == 0 ? colSueloBioma2 : colRocaBioma2;
+                            else if(bioma == 3) color = chunk[l][k].hp == 0 ? colSueloBioma3 : colRocaBioma3;
+                            else if(bioma == 4) color = chunk[l][k].hp == 0 ? colSueloBioma4 : colRocaBioma4;
+                            else if(bioma == 5) color = chunk[l][k].hp == 0 ? colSueloBioma5 : colRocaBioma5;
+                        }
+                        else color = colors[material - 1]
+                    }
+                    img.pixels[index] = color[0];     // Red
+                    img.pixels[index + 1] = color[1]; // Green
+                    img.pixels[index + 2] = color[2]; // Blue
+                    img.pixels[index + 3] = 255;      // Alpha
+                }
+            }
+        }
+    }
+    img.updatePixels();
+    save(img, 'map.png');
+}
+

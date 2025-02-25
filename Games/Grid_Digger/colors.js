@@ -20,13 +20,24 @@ let colOscuridad2 = hexToRgb("#152F15")
 let colOscuridad2_2 = hexToRgb("#1C301C")
 
 //BIOMA 3 - CUEVAS IGNIFUGAS
-//BIOMA 4 - DESIERTO SALADO
-//BIOMA 5 - PLAYA CRUSTÁCEA
+let colSueloBioma3 = hexToRgb("#e36414")
+let colRocaBioma3 = hexToRgb("#6a040f")
 
+//BIOMA 4 - DESIERTO SALADO
+let colSueloBioma4 = hexToRgb("#ffe5ec")
+let colRocaBioma4 = hexToRgb("#a4133c")
+
+//BIOMA 5 - PLAYA CRUSTÁCEA
+let colSueloBioma5 = hexToRgb("#a2d2ff")
+let colRocaBioma5 = hexToRgb("#b388eb")
+
+//MISCELANEA
+let colUnd = hexToRgb("#38160d")   //undestructible
+let colUndMat = hexToRgb("#5c3324")   //undestructible
 
 // MATERIALES
 let colMat1 = hexToRgb("#90e0ef")  //ellipse
 let colMat2 = hexToRgb("#e76f51")  //square
 let colMat3 = hexToRgb("#a7c957")  //triangle
 
-let colors = [colMat1, colMat2, colMat3]
+let colors = [colMat1, colMat2, colMat3, colUndMat]

@@ -10,6 +10,8 @@ class Cell {
         if(this.material != 0) this.hp *= 2
         this.illuminated = illuminated !== undefined ? illuminated : false;
         this.rnd = rnd !== undefined ? rnd : (Math.random() * 2 - 1).toFixed(2);
+        this.und = this.hp == Infinity ? true : false       //undestructible
+        if(this.und) this.material = 4                      //material 4 is the undestructible material
     }
 
     hit(animX, animY) {
@@ -78,6 +80,12 @@ class Cell {
         if (this.material === 3) {
             drawTriangle(tam);
         }
+        if(this.material === 4){
+            rotate(-off)
+            translate(-off, -off)
+            rect(0, -cellPixelSize*0.25, cellPixelSize, cellPixelSize/5)
+            rect(0, cellPixelSize*0.25, cellPixelSize, cellPixelSize/5)
+        }
         pop();
     }
 
@@ -91,10 +99,14 @@ class Cell {
         noStroke();
         let tam = cellPixelSize;
         this.showSuelo();
-        if (this.hp > 0) {
+        if (this.hp > 0 && !this.und) {
             fill(this.colRoca); // set by the child class
             tam = map(this.hp, 0, maxHealthCell, minTam, maxTam, true);
             rect(0, 0, tam, tam);
+        }
+        else if(this.und){
+            fill(colUnd)
+            rect(0, 0, cellPixelSize, cellPixelSize)
         }
         pop();
     }
