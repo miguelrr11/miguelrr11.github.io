@@ -1,42 +1,13 @@
-// Cell_1.js
-
-// Ensure Cell.js is loaded before this file
-
 class Cell_1 extends Cell {
     constructor(x, y, material, hp, illuminated, rnd) {
-      super(x, y, material, hp, illuminated, rnd);
-      // Define biome-specific color properties
-      this.colSuelo = colSueloBioma1;
-      this.colRoca = colRocaBioma1;
-      this.colOscuridad = colOscuridad1;
+        super(x, y, material, hp, illuminated, rnd);
+        this.colSuelo1 = colSueloBioma1;
+        this.colSuelo2 = colSueloBioma1_2;
+        this.colRoca = colRocaBioma1;
+        this.colOscuridad1 = colOscuridad1;
+        this.colOscuridad2 = colOscuridad1_2;
     }
 
-    showLight(lightGrid) {
-        push();
-        rectMode(CENTER);
-        translate(this.x * cellPixelSize + cellPixelSize / 2, this.y * cellPixelSize + cellPixelSize / 2);
-        noStroke();
-        let light = lightGrid[this.x][this.y].light;
-        let visible = lightGrid[this.x][this.y].visible;
-        let sensor = lightGrid[this.x][this.y].sensor;
-        let col = color(this.colOscuridad);
-        col.setAlpha(255 - light * 255);
-        fill(col);
-        if (!visible) fill(this.colOscuridad);
-        if (sensor && !visible) {
-          col.setAlpha(200);
-          fill(col);
-        }
-        rect(0, 0, cellPixelSize, cellPixelSize);
-        pop();
-      }
-  
-    // Override the biome-specific suelo rendering
-    showSuelo() {
-      fill(this.colSuelo);
-      rect(0, 0, cellPixelSize, cellPixelSize);
-      if (this.rnd > 0.85 && this.hp === 0) showGrass();
-      if (this.rnd < -0.85 && this.hp === 0) showPebbles(this.rnd);
-    }
-  }
+    //en un futuro poner aqui funciones de show() y mas cosas para diferenciar a los biomas mas que simplemente por los colores
+}
   

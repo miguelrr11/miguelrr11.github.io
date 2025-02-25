@@ -44,6 +44,12 @@ function getBiome(x, y){
     //y poner aqui un return 6
 }
 
+function getCurrentFloorColor(){
+    let biome = getBiome(currentChunkPos.x, currentChunkPos.y)
+    if(biome == 1) return colSueloBioma1
+    else if(biome == 2) return colSueloBioma2
+}
+
 
 function generateChunk(x, y){
     let newChunk = []
@@ -146,10 +152,9 @@ function willBeAir(i, j, cx, cy){
     let offsetY = cy * deltaAir * cellsPerRow
     let noiseVal = noise(i * deltaAir + offsetX, j * deltaAir + offsetY)
     let noiseVal2 = noise(i * deltaAir + offsetX + offsetAir2, j * deltaAir + offsetY + offsetAir2)
-    let isAir = (noiseVal > 0.5 && noiseVal < 0.5+airWidth) || (noiseVal2 > 0.5 && noiseVal2 < 0.5+airWidth) ? 0 : maxHealthCell
-    //|| (noiseVal > 0.5+airSeparation && noiseVal < 0.5+airWidth+airSeparation) ||
-    //(noiseVal > 0.5-airSeparation && noiseVal < 0.5+airWidth-airSeparation)? 1 : 0
-    return isAir
+    if(noiseVal > 0.5 && noiseVal < 0.5+airWidth) return floor(map(noiseVal, 0.5, 0.5+airWidth, 0, maxHealthCell))
+    if(noiseVal2 > 0.5 && noiseVal2 < 0.5+airWidth) return floor(map(noiseVal2, 0.5, 0.5+airWidth, 0, maxHealthCell))
+    return maxHealthCell
 }
 
 //sets transitionChunkPos based on what neighbor chunk is being transitioned to

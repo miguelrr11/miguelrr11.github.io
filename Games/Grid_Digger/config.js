@@ -19,22 +19,22 @@ let deltaMat2 = 0.07
 let deltaMat3 = 0.2
 let offsetMat2 = 512
 
-let coolDownMovement = 1 //frames
-let coolDownMining = 2 //frames
+let coolDownMovement = 3 //frames
+let coolDownMining = 5 //frames
 
 let transitioning = false
-let transitionFrames = 10
+let transitionFrames = 0
 let transitionFramesCounter = transitionFrames
 let transitionChunk = undefined
 let transitionChunkPos = undefined
 let translationPlayer
 
-let maxHealthCell = 0
+let maxHealthCell = 5
 
 let animations = []
 
-let fovRadius = 10       //la luz que tu emites (no ves a traves de las paredes)
-let fovRadiusWall = 0    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
+let fovRadius = 15      //la luz que tu emites (no ves a traves de las paredes)
+let fovRadiusWall = 5    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
 
 
 /*

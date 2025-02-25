@@ -47,3 +47,6 @@ Entonces, el jugador equilibra entre buscar el tesoro y minar materiales para po
 - Poner un tamaño fijo al mapa y handle los edges
 - Todos los upgrades
 - UI de recursos, xp, ....
+
+----------------------
+PROGRESO:

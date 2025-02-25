@@ -5,6 +5,7 @@ let minimapShowingSize = 15
 let midShowingSize = Math.floor(minimapShowingSize / 2)
 let spawnLocation = Math.floor(minimapSize / 2)
 let tamCellMinimap = 7
+let totalTam = tamCellMinimap * minimapShowingSize
 let maxDist = Math.sqrt(midShowingSize * midShowingSize + midShowingSize * midShowingSize) - 1.5
 
 // Arc settings
@@ -60,6 +61,17 @@ function updateExploredMinimap(){
     if(minimap[minimapPlayerX][minimapPlayerY] == EXPLORED) minimap[minimapPlayerX][minimapPlayerY] = NOMATERIAL
 }
 
+function showCoords(){
+    push()
+    fill(255, 200)
+    noStroke()
+    textFont('Arial')
+    textAlign(CENTER, CENTER)
+    textSize(10)
+    text('x: ' + currentChunkPos.x + '    y: ' + currentChunkPos.y, totalTam/2, -5)
+    pop()
+}
+
 function showMinimap(){
     push()
     translate(20, 20)
@@ -113,6 +125,7 @@ function showMinimap(){
         }
     }
     drawSpawnOutsideMinimap()
+    showCoords()
     pop()
 }
 

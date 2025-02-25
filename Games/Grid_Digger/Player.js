@@ -28,20 +28,29 @@ class Player{
             this.setMovingState(newPos);
         }
         else {
-            this.setMiningState(currentChunk, newPos.x, newPos.y);
+            if(this.coolDownMining < 0) this.setMiningState(currentChunk, newPos.x, newPos.y);
         }
     }
 
     setMovingState(newPos) {
+        if(this.miningPos != undefined) return
         this.state = 'moving';
         this.newPos = newPos;
         this.coolDownMovement = coolDownMovement;
-        anims.addAnimation(newPos.x * cellPixelSize + cellPixelSize/2, newPos.y * cellPixelSize + cellPixelSize/2, 'walking');
+        anims.addAnimation( this.pos.x * cellPixelSize + cellPixelSize/2, 
+                            this.pos.y * cellPixelSize + cellPixelSize/2, 
+                            {
+                                type: 'walking', 
+                                direction: createVector(this.pos.x - this.newPos.x, this.pos.y - this.newPos.y),
+                                color: getCurrentFloorColor()
+                            }
+        );
     }
 
     setMiningState(chunk, x, y) {
         this.state = 'mining';
         this.coolDownMining = coolDownMining;
+        this.miningPos = createVector(x, y);
         hitCell(chunk, x, y);
     }
 
@@ -134,6 +143,8 @@ class Player{
       
 
     update(){
+        this.coolDownMining--
+        if(this.coolDownMining < 0) this.miningPos = undefined
         if(this.state == 'resting' && !transitioning){
             if(keyIsDown(LEFT_ARROW)){
                 this.move(-1, 0)
@@ -150,7 +161,7 @@ class Player{
         }
         if(this.state == 'moving'){
             this.coolDownMovement--
-            if(this.coolDownMovement == 0){
+            if(this.coolDownMovement < 0){
                 this.pos = this.newPos.copy()
                 this.newPos = undefined
                 this.state = 'resting'
@@ -158,8 +169,7 @@ class Player{
         }
         if(this.state == 'mining'){
             this.state = 'resting'
-            this.coolDownMining--
-            if(this.coolDownMining == 0){
+            if(this.coolDownMining < 0){
                 this.state = 'mining'
                 this.coolDownMining = coolDownMining
             }
@@ -181,13 +191,35 @@ class Player{
         push()
         rectMode(CENTER)
         if(!transitioning){
-            if(this.state == 'resting'){
+            if(this.miningPos != undefined){
+                translate(cellPixelSize/2, cellPixelSize/2)
+                let dx = 0
+                let dy = 0
+                let progress
+                if(this.coolDownMining > coolDownMining / 2){
+                    progress = 1 - (this.coolDownMining) / (coolDownMining);
+                    let smoothFactor = 1 - Math.pow(1 - progress, 3);
+                    dx = (this.miningPos.x - this.pos.x) * 0.2 * cellPixelSize * smoothFactor
+                    dy = (this.miningPos.y - this.pos.y) * 0.2 * cellPixelSize * smoothFactor
+                }
+                else{
+                    progress = (this.coolDownMining) / (coolDownMining);
+                    let smoothFactor = 1 - Math.pow(1 - progress, 3);
+                    dx = (this.miningPos.x - this.pos.x) * 0.2 * cellPixelSize * smoothFactor
+                    dy = (this.miningPos.y - this.pos.y) * 0.2 * cellPixelSize * smoothFactor
+                }
+                translate(this.pos.x * cellPixelSize + dx, this.pos.y * cellPixelSize + dy)
+            }
+            else if(this.state == 'resting'){
                 translate(this.pos.x * cellPixelSize + cellPixelSize/2, this.pos.y * cellPixelSize + cellPixelSize/2)
             }
-            else{
+            else if(this.state == 'moving'){
                 let [deltaMovX, deltaMovY] = this.getSmoothDeltas();
                 translate((this.pos.x + deltaMovX) * cellPixelSize + cellPixelSize/2, (this.pos.y + deltaMovY) * cellPixelSize + cellPixelSize/2)
+                
             }
+            
+           
         }
         else{ 
             translate(this.pos.x * cellPixelSize + cellPixelSize/2, this.pos.y * cellPixelSize + cellPixelSize/2)
