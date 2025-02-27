@@ -7,8 +7,9 @@ function loadChunk(x, y){
         let csvCells = chunks.get(x + ',' + y).split('\n')
         for(let i = 0; i < cellsPerRow; i++){
             chunk[i] = []
-            for(let j = 0; j < cellsPerRow; j++){
-                let properties = csvCells[i*cellsPerRow + j].split(',')
+            for(let j = 0; j < cellsPerCol; j++){
+                let cell = csvCells[i*cellsPerCol + j]
+                let properties = cell.split(',')
                 //material, hp, illuminated
                 let material = parseInt(properties[0])
                 let hp = properties[1] == 'i' ? Infinity : parseInt(properties[1])
@@ -28,7 +29,7 @@ function loadChunk(x, y){
 
 function emptyChunk(){
     for(let i = 0; i < cellsPerRow; i++){
-        for(let j = 0; j < cellsPerRow; j++){
+        for(let j = 0; j < cellsPerCol; j++){
             currentChunk[i][j].hp = 0
         }
     }
@@ -52,6 +53,9 @@ function getCurrentFloorColor(){
     let biome = getBiome(currentChunkPos.x, currentChunkPos.y)
     if(biome == 1) return colSueloBioma1
     else if(biome == 2) return colSueloBioma2
+    else if(biome == 3) return colSueloBioma3
+    else if(biome == 4) return colSueloBioma4
+    else if(biome == 5) return colSueloBioma5
 }
 
 
@@ -61,13 +65,13 @@ function generateChunk(x, y){
     let biome = getBiome(x, y)
     for(let i = 0; i < cellsPerRow; i++){
         let row = []
-        for(let j = 0; j < cellsPerRow; j++){
+        for(let j = 0; j < cellsPerCol; j++){
             let hp = willBeAir(i, j, x, y)
             let material
             if(hp == 0) material = 0
             else material = willBeMaterial(i, j, x, y)
             if(material != 0) hp = maxHealthCellMat
-            if(hp <= 2 && hp < 1000 && random() < 0.05) row.push(new Cell_exp(i, j, material, hp, undefined, undefined, biome)) 
+            if(hp == 0 && random() < 0.01) row.push(new Cell_exp(i, j, material, hp, undefined, undefined, biome)) 
             else if(biome == 1) row.push(new Cell_1(i, j, material, hp))
             else if(biome == 2) row.push(new Cell_2(i, j, material, hp))
             else if(biome == 3) row.push(new Cell_3(i, j, material, hp))
@@ -91,10 +95,10 @@ function getAnimationPos(chunk, x, y){
     let actualX = x  
     let acutalY = y
     if(chunk != currentChunk){
-        if(y == cellsPerRow-1) acutalY = -1
+        if(y == cellsPerCol-1) acutalY = -1
         if(x == cellsPerRow-1) acutalX = -1
         if(x == 0) actualX = cellsPerRow
-        if(y == 0) actualY = cellsPerRow
+        if(y == 0) actualY = cellsPerCol
     }
     return [actualX, acutalY]
 }
@@ -141,19 +145,19 @@ function isThereAwall(chunk, x, y){
 
 function willBeMaterial(i, j, cx, cy){
     let offsetX = cx * deltaMat1 * cellsPerRow
-    let offsetY = cy * deltaMat1 * cellsPerRow
+    let offsetY = -cy * deltaMat1 * cellsPerCol
     let noiseVal = noise(i * deltaMat1 + offsetX, j * deltaMat1 + offsetY)
     let material = noiseVal > 0.55 && noiseVal < 0.59 ? true : false
     if(material) return 1
 
     offsetX = cx * deltaMat2 * cellsPerRow + offsetMat2
-    offsetY = cy * deltaMat2 * cellsPerRow + offsetMat2
+    offsetY = -cy * deltaMat2 * cellsPerCol + offsetMat2
     noiseVal = noise(i * deltaMat2 + offsetX, j * deltaMat2 + offsetY)
     material = noiseVal > 0.725 && noiseVal < 0.95 ? true : false
     if(material) return 2
 
     offsetX = cx * deltaMat3 * cellsPerRow
-    offsetY = cy * deltaMat3 * cellsPerRow
+    offsetY = -cy * deltaMat3 * cellsPerCol
     noiseVal = noise(i * deltaMat3 + offsetX, j * deltaMat3 + offsetY)
     material = noiseVal > 0.75 ? true : false
     if(material) return 3
@@ -163,11 +167,11 @@ function willBeMaterial(i, j, cx, cy){
 
 function willBeAir(i, j, cx, cy){
     let offsetX = cx * deltaAir * cellsPerRow
-    let offsetY = cy * deltaAir * cellsPerRow
+    let offsetY = -cy * deltaAir * cellsPerCol
     let noiseVal = noise(i * deltaAir + offsetX, j * deltaAir + offsetY)
     let noiseVal2 = noise(i * deltaAir + offsetX + offsetAir2, j * deltaAir + offsetY + offsetAir2)
     let offsetX2 = cx * deltaUnd * cellsPerRow
-    let offsetY2 = cy * deltaUnd * cellsPerRow
+    let offsetY2 = cy * deltaUnd * cellsPerCol
     let noiseVal3 = noise(i * deltaUnd + offsetX2 + offsetUnd, j * deltaUnd + offsetY2)
     if(noiseVal3 > 0.65 && noiseVal3 < 0.65+undWidth)  return Infinity
     if(noiseVal > 0.5 && noiseVal < 0.5+airWidth) return floor(map(noiseVal, 0.5, 0.5+airWidth, 0, maxHealthCell))
@@ -215,6 +219,11 @@ function showChunk() {
                 transitionChunk[i][j].show(transitionLightMap.lightingGrid);
             }
         }
+        for (let i = 0; i < transitionChunk.length; i++) {
+            for (let j = 0; j < transitionChunk[i].length; j++) {
+                transitionChunk[i][j].showLight(transitionLightMap.lightingGrid);
+            }
+        }
         pop();
 
         push();
@@ -229,6 +238,11 @@ function showChunk() {
         for (let i = 0; i < currentChunk.length; i++) {
             for (let j = 0; j < currentChunk[i].length; j++) {
                 currentChunk[i][j].show(curLightMap.lightingGrid);
+            }
+        }
+        for (let i = 0; i < currentChunk.length; i++) {
+            for (let j = 0; j < currentChunk[i].length; j++) {
+                currentChunk[i][j].showLight(curLightMap.lightingGrid);
             }
         }
         pop();
@@ -256,6 +270,12 @@ function showChunk() {
                 else currentChunk[i][j].show(curLightMap.lightingGrid);
             }
         }
+        for (let i = 0; i < currentChunk.length; i++) {
+            for (let j = 0; j < currentChunk[i].length; j++) {
+                if(SHOW_DEBUG) currentChunk[i][j].showDebug();
+                else currentChunk[i][j].showLight(curLightMap.lightingGrid);
+            }
+        }
     }
     pop()
 }
@@ -272,7 +292,10 @@ function saveChunk(chunk, x, y){
             csv += chunk[i][j].material + ',' + 
             hp + ',' + 
             illuminated +  ',' + 
-            chunk[i][j].rnd + '\n'
+            chunk[i][j].rnd
+            //if last, do not add \n
+            if(i == chunk.length - 1 && j == chunk[i].length - 1) break
+            csv += '\n'
         }
     }
     chunks.set(x + ',' + y, csv)
@@ -322,7 +345,7 @@ function prepareSpawn(){
     let radius = 5
     for(let i = 0; i < currentChunk.length; i++){
         for(let j = 0; j < currentChunk[i].length; j++){
-            let distance = dist(i, j, floor(cellsPerRow/2), floor(cellsPerRow/2))
+            let distance = dist(i, j, floor(cellsPerRow/2), floor(cellsPerCol/2))
             if(distance < radius){
                 currentChunk[i][j].convertIntoAir()
             }
@@ -352,26 +375,28 @@ type 1 = biome
 type 2 = material
 type 3 = both
 */
+// BUG: solo funciona para mapas con chunks cuadrados
 function generateImageMap(type = 1) {
     // Generates an image representation of the entire map
-    let imgSize = cellsPerRow * mapSize;
-    let img = createImage(imgSize, imgSize);
+    let imgSizeX = cellsPerRow * mapSize;
+    let imgSizeY = cellsPerCol * mapSize;
+    let img = createImage(imgSizeX, imgSizeY);
     img.loadPixels();
 
     for (let j = 0; j < mapSize; j++) {
         for (let i = 0; i < mapSize; i++) {
             let chunk = generateChunk(j-30, i-30);
             for (let l = 0; l < cellsPerRow; l++) {
-                for (let k = 0; k < cellsPerRow; k++) {
-                    let index = ((i * cellsPerRow + k) + (j * cellsPerRow + l) * imgSize) * 4;
+                for (let k = 0; k < cellsPerCol; k++) {
+                    let index = ((i * cellsPerRow + k) + (j * cellsPerCol + l) * imgSizeX) * 4;
                     let bioma = getBiome(j-30, i-30);
                     let color
                     if(type == 1){
-                        if(bioma == 1) color = chunk[l][k].hp == 0 ? colSueloBioma1 : colRocaBioma1;
-                        else if(bioma == 2) color = chunk[l][k].hp == 0 ? colSueloBioma2 : colRocaBioma2;
-                        else if(bioma == 3) color = chunk[l][k].hp == 0 ? colSueloBioma3 : colRocaBioma3;
-                        else if(bioma == 4) color = chunk[l][k].hp == 0 ? colSueloBioma4 : colRocaBioma4;
-                        else if(bioma == 5) color = chunk[l][k].hp == 0 ? colSueloBioma5 : colRocaBioma5;
+                        if(bioma == 1) color = chunk[l][k].hp == maxHealthCell ? colRocaBioma1 : colSueloBioma1;
+                            else if(bioma == 2) color = chunk[l][k].hp == maxHealthCell ? colSueloBioma2 : colRocaBioma2;
+                            else if(bioma == 3) color = chunk[l][k].hp == maxHealthCell ? colSueloBioma3 : colRocaBioma3;
+                            else if(bioma == 4) color = chunk[l][k].hp == maxHealthCell ? colSueloBioma4 : colRocaBioma4;
+                            else if(bioma == 5) color = chunk[l][k].hp == maxHealthCell ? colSueloBioma5 : colRocaBioma5;
                     }
                     else if(type == 2){
                         if(chunk[l][k].und) color = colUnd
@@ -383,11 +408,11 @@ function generateImageMap(type = 1) {
                         if(chunk[l][k].und) color = colUnd
                         let material = chunk[l][k].material
                         if(material == 0) {
-                            if(bioma == 1) color = chunk[l][k].hp == 0 ? colSueloBioma1 : colRocaBioma1;
-                            else if(bioma == 2) color = chunk[l][k].hp == 0 ? colSueloBioma2 : colRocaBioma2;
-                            else if(bioma == 3) color = chunk[l][k].hp == 0 ? colSueloBioma3 : colRocaBioma3;
-                            else if(bioma == 4) color = chunk[l][k].hp == 0 ? colSueloBioma4 : colRocaBioma4;
-                            else if(bioma == 5) color = chunk[l][k].hp == 0 ? colSueloBioma5 : colRocaBioma5;
+                            if(bioma == 1) color = chunk[l][k].hp == maxHealthCell ? colRocaBioma1 : colSueloBioma1;
+                            else if(bioma == 2) color = chunk[l][k].hp == maxHealthCell ? colSueloBioma2 : colRocaBioma2;
+                            else if(bioma == 3) color = chunk[l][k].hp == maxHealthCell ? colSueloBioma3 : colRocaBioma3;
+                            else if(bioma == 4) color = chunk[l][k].hp == maxHealthCell ? colSueloBioma4 : colRocaBioma4;
+                            else if(bioma == 5) color = chunk[l][k].hp == maxHealthCell ? colSueloBioma5 : colRocaBioma5;
                         }
                         else color = colors[material - 1]
                     }
@@ -402,4 +427,3 @@ function generateImageMap(type = 1) {
     img.updatePixels();
     save(img, 'map.png');
 }
-

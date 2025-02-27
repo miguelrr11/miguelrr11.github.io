@@ -30,3 +30,20 @@ function hexToRgb(hex) {
 function randomizeColor(col, amt){
     return col.map(c => c + random(-amt, amt))
 }
+
+function modifyColor(col, amt){
+    return col.map(c => c + amt)
+}
+
+function getTwoDecimals(number) {
+    // Asegúrate de que el número tenga exactamente 2 decimales
+    let numStr = number.toFixed(2);
+    // Divide el número en la parte entera y la parte decimal
+    let decimals = numStr.split('.')[1];
+    // Devuelve un array con el primer y segundo decimal
+    return [parseInt(decimals[0]), parseInt(decimals[1])];
+}
+
+function between(value, min, max) {
+    return Math.max(min, Math.min(value, max));
+}

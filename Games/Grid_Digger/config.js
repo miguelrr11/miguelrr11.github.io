@@ -1,9 +1,13 @@
-const WIDTH = 600
-const HEIGHT = 600
 
-let cellsPerRow = 30
-let cellPixelSize = WIDTH / cellsPerRow
+let cellsPerCol = 30
+let cellsPerRow = Math.round(cellsPerCol*1.78)
+//let cellsPerRow = 30
+
+let cellPixelSize = 30
 let mapSize = 61
+
+const HEIGHT = cellPixelSize * cellsPerCol
+const WIDTH = cellPixelSize * cellsPerRow
 
 let currentChunkPos
 
@@ -22,31 +26,29 @@ let deltaMat3 = 0.2
 let offsetMat2 = 512
 let offsetUnd = 432
 
-let maxHealthCell = 5        //vida de los bloques normales
+let maxHealthCell = 10        //vida de los bloques normales
 let maxHealthCellMat = 10    //vida de los bloques de materiales
 let baseHpCellExp = 20       //vida de los barriles explosivos
 
-let coolDownMovement = 1 //frames
-let coolDownMining = 5 //frames
+let coolDownMovement = 2 //frames
+let coolDownMining = 2 //frames (nunca menor que 2 porque sino no se ve el efecto de minado)
 
 let transitioning = false
-let transitionFrames = 0
+let transitionFrames = 30
 let transitionFramesCounter = transitionFrames
 let transitionChunk = undefined
 let transitionChunkPos = undefined
 let translationPlayer
 
-
-
 let animations = []
 
 let fovRadius = 15      //la luz que tu emites (no ves a traves de las paredes)
-let fovRadiusWall = 5    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
+let fovRadiusWall = 100    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
 
 
 /*
 Proceso generacion terreno
 1. Todo es solido
-2. Se generan caminos (aire)
+2. Se generan caminos (aire) y bloques indestructibles y bombas
 3. Se generan cumulos de diferentes materiales
 */

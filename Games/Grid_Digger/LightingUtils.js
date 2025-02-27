@@ -3,7 +3,7 @@ function initLighting() {
     let grid = []
     for (let x = 0; x < cellsPerRow; x++) {
         grid[x] = [];
-        for (let y = 0; y < cellsPerRow; y++) {
+        for (let y = 0; y < cellsPerCol; y++) {
             grid[x][y] = {
                 wall: false,
                 visible: false
@@ -28,7 +28,7 @@ function initLighting() {
 function computeFOV(map) {
     // Reset all cells to not visible.
     for (let x = 0; x < cellsPerRow; x++) {
-        for (let y = 0; y < cellsPerRow; y++) {
+        for (let y = 0; y < cellsPerCol; y++) {
             map.grid[x][y].visible = false;
         }
     }
@@ -122,21 +122,21 @@ function isOpaque(x, y, grid) {
     // Diagonal checks to prevent leakage.
     if (x > 0 && y > 0 && grid[x - 1][y].wall && grid[x][y - 1].wall) return true;
     if (x < cellsPerRow - 1 && y > 0 && grid[x + 1][y].wall && grid[x][y - 1].wall) return true;
-    if (x > 0 && y < cellsPerRow - 1 && grid[x - 1][y].wall && grid[x][y + 1].wall) return true;
-    if (x < cellsPerRow - 1 && y < cellsPerRow - 1 && grid[x + 1][y].wall && grid[x][y + 1].wall) return true;
+    if (x > 0 && y < cellsPerCol - 1 && grid[x - 1][y].wall && grid[x][y + 1].wall) return true;
+    if (x < cellsPerRow - 1 && y < cellsPerCol - 1 && grid[x + 1][y].wall && grid[x][y + 1].wall) return true;
 
     return false;
 }
 
 // Helper: check whether (x,y) is within grid bounds.
 function inBounds(x, y) {
-    return x >= 0 && x < cellsPerRow && y >= 0 && y < cellsPerRow;
+    return x >= 0 && x < cellsPerRow && y >= 0 && y < cellsPerCol;
 }
 
 function updateGrid(map) {
     map.lightPoints = [];
     for (let i = 0; i < cellsPerRow; i++) {
-        for (let j = 0; j < cellsPerRow; j++) {
+        for (let j = 0; j < cellsPerCol; j++) {
             map.grid[i][j].wall = isWall(map.chunk, i, j);
             if (isIluminated(map.chunk, i, j)) {
                 map.lightPoints.push({
@@ -185,7 +185,7 @@ function computeLightingGrid(map) {
     let lightingGrid = [];
     for (let x = 0; x < cellsPerRow; x++) {
         lightingGrid[x] = [];
-        for (let y = 0; y < cellsPerRow; y++) {
+        for (let y = 0; y < cellsPerCol; y++) {
             let cell = map.grid[x][y];
             let light = 0;
             //let rad = cell.visible ? fovRadius : fovRadiusWall;

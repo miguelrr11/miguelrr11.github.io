@@ -13,6 +13,14 @@ class Cell {
         this.und = this.hp == Infinity ? true : false       //undestructible
         if(this.und) this.material = 4                      //material 4 is the undestructible material
         this.maxHealthCell = this.material == 0 ? maxHealthCell : maxHealthCellMat;
+
+        this.coolDownHit = 0       //just some visual feedback
+        this.maxCoolDownHit = 15
+
+        let dec = getTwoDecimals(parseFloat(this.rnd));
+        this.rnd1 = dec[0];
+        this.rnd2 = dec[1];
+        this.noise = noise(this.x/10, this.y/10);
     }
 
     setBiomeColors(biome){
@@ -58,11 +66,15 @@ class Cell {
     damage(dmg){
         this.hp -= Math.floor(dmg)
         if(this.hp < 0) this.hp = 0
+        if(this.hp == 0 && this.material != 0) this.hp = 1
         if (this.hp === 0) this.material = 0;
     }
 
     hit(animX, animY) {
-        if (this.hp > 0) this.hp--;
+        if (this.hp > 0){ 
+            this.hp--;
+            this.coolDownHit = this.maxCoolDownHit
+        }
         let type;
         switch (this.material) {
             case 0:
@@ -121,12 +133,15 @@ class Cell {
         this.translateToCenterMat();
         rotate(off);
         if (this.material === 1) {
-            ellipse(0, 0, tam, tam);
+           //this.showMaterial1(tam, col, off);
+           ellipse(0, 0, tam, tam);
         }
         if (this.material === 2) {
+            //this.showMaterial2(tam, col, off);
             square(0, 0, tam);
         }
         if (this.material === 3) {
+            //this.showMaterial3(tam, col, off);
             drawTriangle(tam);
         }
         if(this.material === 4){ //undestructible
@@ -143,9 +158,44 @@ class Cell {
         pop();
     }
 
+    //not currently used
+    showMaterial1(tam, col, off) {
+        ellipse(0, 0, tam, tam);
+        rotate(-off)
+        let modTam = tam * 0.6
+        fill(modifyColor(col, this.rnd * 40));
+        let movement = frameCount * .025
+        let coord = this.rnd * TWO_PI + this.rnd * movement
+        let x = modTam * Math.cos(coord);
+        let y = modTam * Math.sin(coord);
+        ellipse(x, y, modTam, modTam);
+    }
 
+    showMaterial2(tam, col, off) {
+        square(0, 0, tam);
+        rotate(-off)
+        let modTam = tam * 0.6
+        fill(modifyColor(col, this.rnd * 40));
+        let movement = frameCount * .025
+        let coord = this.rnd * TWO_PI + this.rnd * movement
+        let x = modTam * Math.cos(coord);
+        let y = modTam * Math.sin(coord);
+        square(x, y, modTam);
+    }
 
-    // The default showBasic() method calls the biome-specific showSuelo().
+    showMaterial3(tam, col, off) {
+        drawTriangle(tam);
+        rotate(-off)
+        let modTam = tam * 0.6
+        fill(modifyColor(col, this.rnd * 40));
+        let movement = frameCount * .025
+        let coord = this.rnd * TWO_PI + this.rnd * movement
+        let x = modTam * Math.cos(coord);
+        let y = modTam * Math.sin(coord);
+        translate(x, y)
+        drawTriangle(modTam);
+    }
+
     showBasic() {
         push();
         rectMode(CENTER);
@@ -154,9 +204,18 @@ class Cell {
         let tam = cellPixelSize;
         this.showSuelo();
         if (this.hp > 0 && !this.und) {
-            fill(this.colRoca); // set by the child class
+            //fill(this.colRoca); // set by the child class
+            let col1 = color(this.colRoca)
+            let col2 = color(this.colOscuridad2)
+            let col = lerpColor(col1, col2, noise(this.x/10, this.y/10));
+            fill(col)
             tam = map(this.hp, 0, this.maxHealthCell, minTam, maxTam, true);
             rect(0, 0, tam, tam);
+
+            if(this.coolDownHit > 0){
+                fill(255, map(this.coolDownHit, 0, this.maxCoolDownHit, 0, 255))
+                rect(0, 0, tam, tam)
+            }
         }
         else if(this.und){
             fill(colUnd)
@@ -188,10 +247,13 @@ class Cell {
 
     // The show() method is common to both children.
     show(lightGrid) {
+        if(this.coolDownHit > 0) this.coolDownHit--
         this.showBasic();
         this.showMat();
-        this.showLight(lightGrid);
+        //this.showLight(lightGrid);
     }
+
+
 
     showDebug() {
         this.showMat();
@@ -204,8 +266,8 @@ class Cell {
         let c = lerpColor(c1, c2, noise(this.x/4, this.y/4));
         fill(c);
         rect(0, 0, cellPixelSize, cellPixelSize);
-        if (this.rnd > 0.85 && this.hp === 0) showGrass();
-        if (this.rnd < -0.85 && this.hp === 0) showPebbles(this.rnd);
+        if (this.rnd > 0.85) showGrass();
+        if (this.rnd < -0.85) showPebbles(this.rnd);
     }
 
 }

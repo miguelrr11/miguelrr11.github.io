@@ -17,19 +17,28 @@ let colSueloBioma2 = hexToRgb("#778745")
 let colSueloBioma2_2 = hexToRgb("#786C3F")
 let colRocaBioma2 = hexToRgb("#283618")
 let colOscuridad2 = hexToRgb("#152F15")
-let colOscuridad2_2 = hexToRgb("#1C301C")
+let colOscuridad2_2 = hexToRgb("#162716")
 
 //BIOMA 3 - CUEVAS IGNIFUGAS
 let colSueloBioma3 = hexToRgb("#e36414")
+let colSueloBioma3_2 = hexToRgb("#A98879")
 let colRocaBioma3 = hexToRgb("#6a040f")
+let colOscuridad3 = hexToRgb("#612026")
+let colOscuridad3_2 = hexToRgb("#583C3C")
 
 //BIOMA 4 - DESIERTO SALADO
 let colSueloBioma4 = hexToRgb("#ffe5ec")
+let colSueloBioma4_2 = hexToRgb("#E5B3C1")
 let colRocaBioma4 = hexToRgb("#a4133c")
+let colOscuridad4 = hexToRgb("#661426")
+let colOscuridad4_2 = hexToRgb("#6D1F30")
 
 //BIOMA 5 - PLAYA CRUSTÁCEA
 let colSueloBioma5 = hexToRgb("#a2d2ff")
-let colRocaBioma5 = hexToRgb("#b388eb")
+let colSueloBioma5_2 = hexToRgb("#ABADF5")
+let colRocaBioma5 = hexToRgb("#843FDE")
+let colOscuridad5 = hexToRgb("#7038A8")
+let colOscuridad5_2 = hexToRgb("#6F3A90")
 
 //MISCELANEA
 let colUnd = hexToRgb("#38160d")   //undestructible

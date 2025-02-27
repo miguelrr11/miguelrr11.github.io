@@ -50,7 +50,7 @@ function updateMinimap(){
 function updateExploredMinimap(){
     // update if all materials have been recolected when exiting the chunk
     for(let i = 0; i < cellsPerRow; i++){
-        for(let j = 0; j < cellsPerRow; j++){
+        for(let j = 0; j < cellsPerCol; j++){
             if(currentChunk[i][j].isMaterial()){
                 return
             }
@@ -69,6 +69,17 @@ function showCoords(){
     textAlign(CENTER, CENTER)
     textSize(10)
     text('x: ' + currentChunkPos.x + '    y: ' + currentChunkPos.y, totalTam/2, -5)
+    pop()
+}
+
+function showFPS(){
+    push()
+    fill(255, 200)
+    noStroke()
+    textFont('Arial')
+    textAlign(CENTER, CENTER)
+    textSize(10)
+    text(Math.ceil(frameRate()), totalTam/2, totalTam)
     pop()
 }
 
@@ -126,6 +137,7 @@ function showMinimap(){
     }
     drawSpawnOutsideMinimap()
     showCoords()
+    showFPS()
     pop()
 }
 

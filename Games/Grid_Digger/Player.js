@@ -1,6 +1,6 @@
 class Player{
     constructor(){
-        this.pos = createVector(floor(cellsPerRow/2), floor(cellsPerRow/2))
+        this.pos = createVector(floor(cellsPerRow/2), floor(cellsPerCol/2))
         this.newPos = undefined
         this.state = 'resting'
         this.coolDownMovement = coolDownMovement
@@ -20,7 +20,7 @@ class Player{
     }
 
     isWithinChunk(pos) {
-        return pos.x >= 0 && pos.x < cellsPerRow && pos.y >= 0 && pos.y < cellsPerRow;
+        return pos.x >= 0 && pos.x < cellsPerRow && pos.y >= 0 && pos.y < cellsPerCol;
     }
 
     handleCurrentChunkMove(newPos) {
@@ -94,18 +94,18 @@ class Player{
                 targetChunk: chunkUp,
                 checkCoord: {
                     x: newPos.x,
-                    y: cellsPerRow - 1
+                    y: cellsPerCol - 1
                 },
                 moveChunk: {
                     dx: 0,
                     dy: offset
                 },
                 updatePlayerCoord: () => {
-                    this.pos.y = cellsPerRow - 1;
+                    this.pos.y = cellsPerCol - 1;
                 }
             });
         }
-        else if (newPos.y >= cellsPerRow) {
+        else if (newPos.y >= cellsPerCol) {
             this.processBoundaryTransition({
                 targetChunk: chunkDown,
                 checkCoord: {

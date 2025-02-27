@@ -73,7 +73,7 @@ class Animation{
             }
         }
         if(type == 'fuse'){
-            let count = explosionMat ? 250 : 3
+            let count = explosionMat ? 150 : 3
             for(let i = 0; i < count; i++){
                 let x = this.x + random(-cellPixelSize/8, cellPixelSize/8)
                 let y = this.y + random(-cellPixelSize/8, cellPixelSize/8)
@@ -88,7 +88,7 @@ class Animation{
                 let vel = createVector(dir.x*strength, dir.y*strength)
                 let acc = createVector(0, 0)
                 let friction = 0.965
-                let angle = 0
+                let angle = random(-PI/4, PI/4)
                 let rotVel = 0
                 let size = explosionMat ?  random(cellPixelSize*.35, cellPixelSize*.45) : 
                 random(cellPixelSize*.2, cellPixelSize*.25)
@@ -106,6 +106,7 @@ class Animation{
     }
 
     isInVision(){
+        return true
         return curLightMap.lightingGrid[this.i][this.j].visible
     }
 

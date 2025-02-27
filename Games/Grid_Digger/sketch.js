@@ -92,10 +92,11 @@ function keyPressed(){
 function bomb(x, y, tamInCells){
     let distance = tamInCells
     for(let i = 0; i < cellsPerRow; i++){
-        for(let j = 0; j < cellsPerRow; j++){
+        for(let j = 0; j < cellsPerCol; j++){
             let d = dist(x, y, i, j)
             if(d < distance){
-                currentChunk[i][j].damage(10 * Math.exp(-2 * (d / distance)))
+                if(d < distance * 0.8) currentChunk[i][j].damage(1000)
+                else currentChunk[i][j].damage(10 * Math.exp(-1 * (d / distance)))
             }
         }
     }
