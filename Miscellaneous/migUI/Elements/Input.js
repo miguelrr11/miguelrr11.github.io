@@ -1,204 +1,258 @@
-class Input{
-	constructor(x, y, placeholder, func, lightCol, darkCol, transCol){
-		this.darkCol = darkCol
-		this.lightCol = lightCol
-		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
-		this.textSize = text_SizeMIGUI-2
-		this.placeholder = getClippedTextMIGUI(placeholder, clipping_length_normalMIGUI)
-		this.func = func
+class Input {
+    constructor(x, y, placeholder, func, lightCol, darkCol, transCol) {
+        this.darkCol = darkCol
+        this.lightCol = lightCol
+        this.transCol = [...lightCol, 100]
+        this.pos = createVector(x, y)
+        this.textSize = text_SizeMIGUI - 2
 
-		this.beingHovered = false
-		this.beingPressed = false
-		this.sentence = ""
-		this.clippedSentence = ""
-		this.active = false
+        textSize(this.textSize)
+        let margin = bordeMIGUI + text_offset_xMIGUI
+        let maxTextWidth = width_elementsMIGUI - 2 * margin
+        this.placeholder = getClippedTextByWidth(placeholder, 0, maxTextWidth)
 
-		this.w = width_elementsMIGUI
-		this.h = 20
-		this.height = this.h
+        this.func = func
 
-		this.cursorPos = 0
-		this.relCursorPos = 0
-		this.firstCursor = 0
+        this.beingHovered = false
+        this.beingPressed = false
+        this.sentence = ""
+        this.clippedSentence = ""
+        this.active = false
 
-		this.frame = 0
-		this.coolDownBS = 0
+        this.w = width_elementsMIGUI
+        this.h = 20
+        this.height = this.h
+        this.rad = radMIGUI
 
-		document.addEventListener('keyup', this.evaluateKey.bind(this));
-	}
+        this.cursorPos = 0
+        this.firstCursor = 0
+        this.relCursorPos = 0
 
-	setText(text){
-		this.sentence = text
-		this.cursorPos = this.sentence.length
-		if(this.sentence.length < clipping_length_normalMIGUI) this.firstCursor = 0
-		else this.firstCursor = this.sentence.length - clipping_length_normalMIGUI
-		this.setClippedSentence()
-		if(this.clippedSentence.length <= this.sentence.length) this.relCursorPos = this.clippedSentence.length
-		else this.relCursorPos = clipping_length_normalMIGUI
-	}
+        this.frame = 0
+        this.coolDownBS = 0
+        this.widthLimit = this.w - 8
 
-	getText(){
-		return this.sentence
-	}
+        document.addEventListener("keyup", this.evaluateKey.bind(this))
+    }
 
-	execute(){
-		if(this.func){ 
-			this.func()
-			this.sentence = ""
-			this.clippedSentence = ""
-			this.cursorPos = 0
-			this.relCursorPos = 0
-			this.firstCursor = 0
-		}
-	}
-
-	evaluateKey(event) {
-	    let c = event.key;
-	    if (this.active) {
-	    	this.coolDownBS = 0
-	    	this.frame = 0
-
-	    	if(c === "ArrowLeft"){
-	    		this.arrowLeft()
-	    	}
-	    	if(c === "ArrowRight"){
-	    		this.arrowRight()
-	    	}	    	
-	        if (c === "Backspace") {
-	            this.backspace()
-	        }
-	        else if (c === "Enter") {
-	            this.execute()
-	        }
-	        else if (isPrintableKey(c)) {
-	            this.write(c)
-	        }
-
-	        this.setClippedSentence()
-	    }
-	}
-
-	setClippedSentence(){
-		this.clippedSentence = getClippedTextSEMIGUI(this.sentence, this.firstCursor, this.firstCursor + clipping_length_normalMIGUI)
-	}
-
-	write(c){
-		this.sentence = this.insertCharAt(this.sentence, c, this.cursorPos)
-        this.cursorPos++
-        if(this.relCursorPos == clipping_length_normalMIGUI){
-        	this.firstCursor++
+    setText(text) {
+        this.sentence = text
+        this.cursorPos = this.sentence.length
+        this.firstCursor = 0
+        textSize(this.textSize)
+        let margin = bordeMIGUI + text_offset_xMIGUI
+        let maxTextWidth = this.w - 2 * margin
+        while(
+            this.firstCursor < this.cursorPos &&
+            textWidth(this.sentence.substring(this.firstCursor, this.cursorPos)) > maxTextWidth
+        ) {
+            this.firstCursor++
         }
-        else this.relCursorPos++
-	}
+        this.relCursorPos = this.cursorPos - this.firstCursor
+        this.setClippedSentence()
+    }
 
-	backspace(){
-		this.sentence = this.sentence = this.deleteCharAt(this.sentence, this.cursorPos-1)
-        this.cursorPos--
-        if(this.cursorPos < 0) this.cursorPos = 0
-		if(this.relCursorPos < 0){ 
-			this.relCursorPos = 0
-			this.firstCursor--
-			if(this.firstCursor < 0) this.firstCursor = 0
-		}
-		else{
-			if(this.firstCursor > 0) this.firstCursor--
-			else this.relCursorPos--
-			if(this.relCursorPos < 0) this.relCursorPos = 0
-		}
-		this.setClippedSentence()
-	}
+    getText() {
+        return this.sentence
+    }
 
-	arrowLeft(){
-		this.cursorPos--
-		if(this.cursorPos < 0) this.cursorPos = 0
-		if(this.relCursorPos == 0){
-			this.firstCursor--
-			if(this.firstCursor < 0) this.firstCursor = 0
-		}
-		else this.relCursorPos--
-		this.setClippedSentence()
-	}
+    execute() {
+        if(this.func) {
+            this.func()
+            this.sentence = ""
+            this.clippedSentence = ""
+            this.cursorPos = 0
+            this.relCursorPos = 0
+            this.firstCursor = 0
+        }
+    }
 
-	arrowRight(){
-		this.cursorPos++
-		if(this.cursorPos > this.sentence.length) this.cursorPos =  this.sentence.length
-		if(this.relCursorPos == clipping_length_normalMIGUI){
-			this.firstCursor++
-		}
-		else if(this.cursorPos <= this.sentence.length){ 
-			this.relCursorPos++
-			if(this.relCursorPos > this.cursorPos) this.relCursorPos = this.cursorPos
-		}
-    	this.setClippedSentence()
-	}
+    evaluateKey(event) {
+        let c = event.key
+        if(this.active) {
+            this.coolDownBS = 0
+            this.frame = 0
+            if(c === "ArrowLeft") {
+                this.arrowLeft()
+            }
+            else if(c === "ArrowRight") {
+                this.arrowRight()
+            }
+            else if(c === "Backspace") {
+                this.backspace()
+            }
+            else if(c === "Enter") {
+                this.execute()
+            }
+            else if(isPrintableKey(c)) {
+                this.write(c)
+            }
+            this.setClippedSentence()
+        }
+    }
 
-	deleteCharAt(str, pos) {
-		if (pos < 0 || pos >= str.length) return str
-		return str.slice(0, pos) + str.slice(pos + 1)
-	}
+    setClippedSentence() {
+        textSize(this.textSize)
+        let margin = bordeMIGUI + text_offset_xMIGUI
+        let maxTextWidth = this.w - 2 * margin
+        this.clippedSentence = getClippedTextByWidth(this.sentence, this.firstCursor, maxTextWidth)
+    }
 
-	insertCharAt(str, char, pos) {
-	    return str.slice(0, pos) + char + str.slice(pos);
-	}
+    write(c) {
+        this.sentence = this.insertCharAt(this.sentence, c, this.cursorPos)
+        this.cursorPos++
 
-	update(){
-		this.frame++
-		if(this.relCursorPos > this.clippedSentence.length + 1) this.relCursorPos = this.clippedSentence.length
-		if(keyIsPressed && this.active){ 
-			this.frame = 0
-			this.coolDownBS++
-		}
+        textSize(this.textSize)
+        let margin = bordeMIGUI + text_offset_xMIGUI
+        let maxTextWidth = this.w - 2 * margin
+        while(
+            this.firstCursor < this.cursorPos &&
+            textWidth(this.sentence.substring(this.firstCursor, this.cursorPos)) > maxTextWidth
+        ) {
+            this.firstCursor++
+        }
+        this.relCursorPos = this.cursorPos - this.firstCursor
+        this.setClippedSentence()
+    }
 
-		if(this.active && keyIsPressed && Math.floor(frameCount / 2) % 2 == 0 && this.coolDownBS > 30){
-			if(keyCode === 8)  this.backspace()
-			if(keyCode === 39) this.arrowRight()
-			if(keyCode === 37) this.arrowLeft()
-		}
+    backspace() {
+        if(this.cursorPos > 0) {
+            this.sentence = this.deleteCharAt(this.sentence, this.cursorPos - 1)
+            this.cursorPos--
+            textSize(this.textSize)
+            let margin = bordeMIGUI + text_offset_xMIGUI
+            let maxTextWidth = this.w - 2 * margin
+			
+            while(
+                this.firstCursor > 0 &&
+                textWidth(this.sentence.substring(this.firstCursor - 1, this.cursorPos)) <= maxTextWidth
+            ) {
+                this.firstCursor--
+            }
+            this.relCursorPos = this.cursorPos - this.firstCursor
+            this.setClippedSentence()
+        }
+    }
 
-		if(inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)) this.beingHovered = true
-		else this.beingHovered = false
-	}
+    arrowLeft() {
+        if(this.cursorPos > 0) {
+            this.cursorPos--
+            if(this.cursorPos < this.firstCursor) {
+                this.firstCursor = this.cursorPos
+            }
+            else if(this.cursorPos === this.firstCursor && this.firstCursor > 0) {
+                this.firstCursor--
+            }
+            this.relCursorPos = this.cursorPos - this.firstCursor
+            this.setClippedSentence()
+        }
+    }
 
-	evaluate(){
-		this.active = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
-		return this.active
-	}
+    arrowRight() {
+        if(this.cursorPos < this.sentence.length) {
+            this.cursorPos++
+            textSize(this.textSize)
+            let margin = bordeMIGUI + text_offset_xMIGUI
+            let maxTextWidth = this.w - 2 * margin
+            while(
+                this.firstCursor < this.cursorPos &&
+                textWidth(this.sentence.substring(this.firstCursor, this.cursorPos)) > maxTextWidth
+            ) {
+                this.firstCursor++
+            }
+            this.relCursorPos = this.cursorPos - this.firstCursor
+            this.setClippedSentence()
+        }
+    }
 
-	show(){
-		push()
-		this.beingHovered || this.active ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
-		stroke(this.lightCol)
-		this.active ? fill(this.transCol) : fill(this.darkCol)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
+    deleteCharAt(str, pos) {
+        if(pos < 0 || pos >= str.length) return str
+        return str.slice(0, pos) + str.slice(pos + 1)
+    }
 
-		noStroke()
-		fill(this.lightCol)
-		textSize(this.textSize)
+    insertCharAt(str, char, pos) {
+        return str.slice(0, pos) + char + str.slice(pos)
+    }
 
-		if(this.sentence.length != 0) text(this.clippedSentence, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.h*0.77)
-		else text(this.placeholder, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.h*0.75)
+    update() {
+        this.frame++
+        if(this.relCursorPos > this.clippedSentence.length + 1)
+            this.relCursorPos = this.clippedSentence.length
+        if(keyIsPressed && this.active) {
+            this.frame = 0
+            this.coolDownBS++
+        }
+        if(
+            this.active &&
+            keyIsPressed &&
+            Math.floor(frameCount / 2) % 2 === 0 &&
+            this.coolDownBS > 30
+        ) {
+            if(keyCode === 8) this.backspace()
+            if(keyCode === 39) this.arrowRight()
+            if(keyCode === 37) this.arrowLeft()
+        }
+        if(inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h))
+            this.beingHovered = true
+        else
+            this.beingHovered = false
+    }
 
-		if(this.active && Math.floor(this.frame / 35) % 2 == 0){
-			stroke(this.lightCol)
-			strokeWeight(2)
-			let relativeCursorPos = this.relCursorPos
-			let x = getPixelLengthFromLength(constrain(relativeCursorPos, 0, this.clippedSentence.length), this.textSize) + this.pos.x + 3
-			let y = this.pos.y + 3
-			line(x, y, x, y + this.h - 6)
-		}
+    evaluate() {
+        this.active = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
+        return this.active
+    }
 
-		// fill(255, 0, 0)
-		// ellipse(this.pos.x, this.pos.y, 5)
-		// ellipse(this.pos.x, this.pos.y + this.height, 5)
-		
-		pop()
+    show() {
+        push();
+        (this.beingHovered || this.active) ? strokeWeight(bordeMIGUI + 1): strokeWeight(bordeMIGUI)
+        stroke(this.lightCol)
+        this.active ? fill(this.transCol) : fill(this.darkCol)
+        rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 
-		return this.beingHovered
-	}
+        noStroke()
+        fill(this.lightCol)
+        textSize(this.textSize)
+
+        if(this.sentence.length !== 0) {
+            text(
+                this.clippedSentence,
+                this.pos.x + bordeMIGUI + text_offset_xMIGUI,
+                this.pos.y + this.h * 0.77
+            )
+        }
+        else {
+            text(
+                this.placeholder,
+                this.pos.x + bordeMIGUI + text_offset_xMIGUI,
+                this.pos.y + this.h * 0.75
+            )
+        }
+
+        if(this.active && Math.floor(this.frame / 35) % 2 === 0) {
+            stroke(this.lightCol)
+            strokeWeight(2)
+            let x =
+                textWidth(
+                    this.sentence.substring(this.firstCursor, this.firstCursor + this.relCursorPos)
+                ) + this.pos.x + 3
+            let y = this.pos.y + 3
+            line(x, y, x, y + this.h - 6)
+        }
+        pop()
+
+        return this.beingHovered
+    }
 }
 
-
-
-
-
+function getClippedTextByWidth(str, startIndex, maxWidth) {
+    let accumWidth = 0
+    let i = startIndex
+    while(i < str.length) {
+        let charW = textWidth(str.charAt(i))
+        if(accumWidth + charW > maxWidth) break
+        accumWidth += charW
+        i++
+    }
+    return str.substring(startIndex, i)
+}

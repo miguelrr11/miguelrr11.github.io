@@ -2,11 +2,12 @@
 //Miguel Rodríguez
 //06-09-2024
 
-let bordeMIGUI = 1.5
-let text_FontMIGUI = ""
+let bordeMIGUI = 1
+let text_FontMIGUI
 let text_SizeMIGUI = 15
+let title_SizeMIGUI = text_SizeMIGUI * 1.3
+let radMIGUI = 3.5
 let text_offset_xMIGUI = 2
-let title_SizeMIGUI = 20
 let width_elementsMIGUI = 158
 let clipping_length_normalMIGUI = 20
 let clipping_length_titleMIGUI = 11
@@ -20,7 +21,7 @@ x = width - 200, y = 0, w = 200, h = height, title = "", darkC = [0,0,0], lightC
 */
 
 class Panel{
-	constructor(properties = {}) {
+	constructor(properties = {}, font) {
 	    const {
 	        x = width - 200,
 	        y = 0,
@@ -36,9 +37,14 @@ class Panel{
 
 	    this.pos = createVector(x, y);
 	    this.title = title;
-	    this.w = constrain(w, 100, 1000);
-	    this.h = constrain(h, 100, 1000);
+	    // this.w = constrain(w, 100, 1000);
+	    // this.h = constrain(h, 100, 1000);
+		this.w = w
+	    this.h = h
 	    this.retractable = retractable;
+
+		//kfbajslhdfgsubcuwfgeirufgc
+		this.font = font
 	    
 	    //width_elementsMIGUI = this.w - 35;
 	    clipping_length_normalMIGUI = Math.ceil(0.125 * this.w - 4);
@@ -56,7 +62,7 @@ class Panel{
 	    this.lastElementPos = createVector(x + 17, y + 30);
 	    if (this.retractable) this.lastElementPos.y += 20;
 
-	    this.titlePos = createVector(this.lastElementPos.x - 3, this.lastElementPos.y);
+	    this.titlePos = createVector(this.lastElementPos.x, this.lastElementPos.y);
 	    this.adjustElementPositionForTitle();
 
 	    if (this.retractable) {
@@ -96,8 +102,9 @@ class Panel{
 	adjustElementPositionForTitle() {
 	    if (this.title) {
 	        const newlines = this.title.split('\n').length;
-	        this.lastElementPos.y += newlines * 20 - 10;
-	    } else {
+	        this.lastElementPos.y += newlines * 20 - 5;
+	    } 
+		else {
 	        this.lastElementPos.y -= 15;
 	    }
 	}
@@ -124,8 +131,7 @@ class Panel{
 	}
 
 	setFontSettings() {
-	    text_FontMIGUI = loadFont("migUI/main/mono.ttf");
-	    textFont(text_FontMIGUI);
+	    textFont(this.font);
 	    textSize(text_SizeMIGUI);
 	    textAlign(LEFT);
 	}
@@ -139,10 +145,11 @@ class Panel{
 	    let needsNewLine = false;
 
 	    if (this.lastCB) {
-	        const lastCBLength = this.lastCB.length + 20 
+	        const lastCBLength = this.lastCB.length + 40 
 	        newX = this.lastCB.pos.x + lastCBLength
 
-	        let l = getPixelLength(title, text_SizeMIGUI) + 60
+			textSize(text_SizeMIGUI-1)
+	        let l = textWidth(title) + 85
 
 	        if (this.lastCB.pos.x + this.lastCB.length + l > this.pos.x + this.w) {
 	            needsNewLine = true;
@@ -199,17 +206,15 @@ class Panel{
 		return slider
 	}
 
-	createText(words = "", isTitle = false){
+	createText(words = "", isTitle = false, func = undefined){
 		//if(this.lastElementAdded.constructor.name != "Sentence") this.lastElementPos.y += 5
 		//if(isTitle) this.lastElementPos.y += 5
 		let spacedWords = wrapText(words, this.w, isTitle ? title_SizeMIGUI : text_SizeMIGUI)
 		let sentence = new Sentence(this.lastElementPos.x,
 									this.lastElementPos.y,
-									spacedWords, isTitle,
+									spacedWords, isTitle, func,
 									this.lightCol, this.darkCol, this.transCol)
 		
-		let newlines = spacedWords.split('\n').length;
-		//this.lastElementPos.y += newlines*15
 		this.lastElementPos.y += sentence.height + this.padding
 		
 		this.sentences.push(sentence)
@@ -266,8 +271,9 @@ class Panel{
 	    if (this.lastBU) {
 	        const lastCBLength = this.lastBU.length + 10 
 	        newX = this.lastBU.pos.x + lastCBLength
-	        
-	        let l = getPixelLength(sentence, text_SizeMIGUI)
+			
+			textSize(text_SizeMIGUI-2)
+	        let l = textWidth(sentence)
 
 	        if (this.lastBU.pos.x + this.lastBU.length + l + 30 > this.pos.x + this.w) {
 	            needsNewLine = true;
@@ -287,6 +293,7 @@ class Panel{
 	        newY = this.lastElementPos.y;
 	        
 	    }
+		
 		let button = new Button(newX, newY, sentence, func, this.lightCol, this.darkCol, this.transCol)
 		if(needsNewLine) this.lastElementPos.y += button.height + this.padding
 		this.buttons.push(button)
@@ -314,10 +321,10 @@ class Panel{
 	}
 
 	createNumberPicker(sentence = "", min = undefined, max = undefined, delta = 1,
-					   def = undefined, funcMinus = undefined, funcPlus = undefined){
+					   def = undefined, func = undefined){
 		let numberPicker = new NumberPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
-										  sentence, min, max, delta, def, funcMinus, funcPlus,
+										  sentence, min, max, delta, def, func, 
 										  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 25
 		this.lastElementPos.y += numberPicker.height + this.padding
@@ -361,6 +368,7 @@ class Panel{
 	    this.lastElementAdded = 'separator'
 	}
 
+	//not in use anymore
 	duplicateFunctionsNumberPicker(){
 		for(let np of this.numberPickers){
 			np.funcPlus = np.funcMinus
@@ -547,12 +555,13 @@ class Panel{
 			cursor(ARROW)
 			return
 		}
-		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI)
+		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI, radMIGUI)
 		//Titulo
-		noStroke()
 		textSize(title_SizeMIGUI)
-		fill([...this.lightCol, 170])
-		text(this.title, this.titlePos.x + 3, this.titlePos.y + 3)
+		stroke([...this.lightCol, 140])
+		fill([...this.lightCol, 110])
+		strokeWeight(2)
+		text(this.title, this.titlePos.x + 2, this.titlePos.y + 2)
 		fill(this.lightCol)
 		stroke(this.darkCol)
 		text(this.title, this.titlePos.x, this.titlePos.y)
@@ -581,7 +590,7 @@ class Panel{
 
 		if(this.beingHoveredHand) cursor(HAND)
 		else if(this.beingHoveredText) cursor(TEXT)
-		//else cursor(ARROW)
+		else cursor(ARROW) 	//esta linea puede interferir si el usuario quiere cambiar el cursor
 
 		pop()
 	}
@@ -635,13 +644,6 @@ function hexToRgbMIGUI(hex) {
   ] : null;
 }
 
-function getPixelLength(word, size){
-	return word.length * size * 0.585
-}
-
-function getPixelLengthFromLength(length, size){
-	return length * size * 0.585
-}
 
 function getClippedTextSEMIGUI(text, start, end){
 	return text.slice(start, end);
@@ -682,26 +684,31 @@ function isPrintableKey(char) {
     return char.length === 1 && char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126;
 }
 
-function wrapText(text, maxWidth = this.w, textSize = text_SizeMIGUI) {
-  const words = text.split(' ');
-  let currentLine = '';
-  let wrappedText = '';
+function wrapText(text, maxWidth = this.w, tSize = text_SizeMIGUI) {
+	const words = text.split(' ');
+	let currentLine = '';
+	let wrappedText = '';
+	textSize(tSize)
+	words.forEach((word) => {
+		const lineWithWord = currentLine + (currentLine ? ' ' : '') + word;
 
-  words.forEach((word) => {
-    const lineWithWord = currentLine + (currentLine ? ' ' : '') + word;
-    
-    // Check the length of the line with the new word
-    if (getPixelLength(lineWithWord, textSize) <= maxWidth) {
-      currentLine = lineWithWord;
-    } else {
-      // Add the current line to the wrapped text and start a new one
-      wrappedText += currentLine + '\n';
-      currentLine = word; // Start new line with the current word
-    }
-  });
+		// Check the length of the line with the new word
+		if (textWidth(lineWithWord) <= maxWidth) {
+			currentLine = lineWithWord;
+		} 
+		else {
+			// Add the current line to the wrapped text and start a new one
+			wrappedText += currentLine + '\n';
+			currentLine = word; // Start new line with the current word
+		}
+	});
 
-  // Append any remaining text
-  wrappedText += currentLine;
+	// Append any remaining text
+	wrappedText += currentLine;
 
-  return wrappedText;
+	return wrappedText;
+}
+
+function textHeight() {
+    return textAscent() + textDescent();
 }

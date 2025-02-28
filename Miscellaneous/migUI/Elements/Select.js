@@ -22,6 +22,8 @@ class Select{
 		this.singleH = 20
 		this.h = this.singleH * options.length
 		this.height = this.h
+
+		this.rad = radMIGUI
 	}
 
 	execute(){
@@ -73,7 +75,7 @@ class Select{
 		this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		stroke(this.lightCol)
 		noFill()
-		rect(this.pos.x, this.pos.y, this.w, this.h)
+		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 		fill(this.darkCol)
 		textSize(text_SizeMIGUI-2)
 		for(let i = 0; i < this.optionsText.length; i++){
@@ -83,7 +85,7 @@ class Select{
 				fill(this.lightCol)
 			}
 			noStroke()
-			rect(this.pos.x, this.pos.y, this.w, this.singleH)
+			rect(this.pos.x, this.pos.y, this.w, this.singleH, this.rad)
 
 			noStroke()
 			fill(this.lightCol)

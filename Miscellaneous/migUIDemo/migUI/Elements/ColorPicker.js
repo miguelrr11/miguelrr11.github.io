@@ -20,6 +20,8 @@ class ColorPicker{
 		this.h = 16
 		this.height = this.h
 
+		this.rad = radMIGUI
+
 		this.cpw = 185
 		this.cph = 45
 		this.poscp = createVector(constrain(this.pos.x - 10, 0, width - this.cpw - 10), constrain(this.pos.y + this.h * 2, 0, height - this.cph - 10))
@@ -123,6 +125,23 @@ class ColorPicker{
 		drawGradient2col(x, y, w, h, this.hue)
 		y += h + 5 + 2.5 * 0.5
 		drawGradientAlpha(x, y, w, h, this.saturation)
+		this.drawAlphaSquares(x, y, w, h)
+	}
+
+	drawAlphaSquares(x, y, w, h){
+		let nSquares = 40
+		let wSq = w / nSquares
+		let hSq = h / 2
+		push()
+		fill(255, 100)
+		noStroke()
+		translate(x, y)
+		for(let i = 0; i < nSquares; i++){
+			let off = i % 2 == 0 ? 0 : hSq
+			rect(0, off, wSq, hSq)
+			translate(wSq, 0)
+		}
+		pop()
 	}
 
 	show(){
@@ -130,11 +149,11 @@ class ColorPicker{
 		this.interacted ? fill(this.finalCol) : fill(this.defaultCol)
 		stroke(this.lightCol)
 		this.isChoosing || this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
+		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 
 		noStroke()
 		fill(this.lightCol)
-		textSize(text_SizeMIGUI-2)
+		textSize(text_SizeMIGUI-1)
 		text(this.title, this.pos.x + this.w + 10, this.pos.y + this.h*0.85)
 
 		//show picker
@@ -142,7 +161,7 @@ class ColorPicker{
 			fill(this.darkCol)
 			stroke(this.lightCol)
 			strokeWeight(bordeMIGUI)
-			rect(this.poscp.x, this.poscp.y, this.cpw, this.cph)
+			rect(this.poscp.x, this.poscp.y, this.cpw, this.cph, this.rad)
 
 			this.drawGradients()
 			// drawGradientRainbow(this.poscp.x + 5, this.poscp.y + 5, this.cpw - 10, this.cph * 0.33 - 7.5)

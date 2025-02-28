@@ -14,18 +14,28 @@ let sl1, sl2, sl3
 let tt, ss, ip, bt, cp
 let th
 let np1, np2
+let opp
+
+let widthPanel = 245
 
 let panel2
 
+let fontPanel
+
+function preload(){
+    fontPanel = loadFont("migUI/main/bnr.ttf")
+    
+}
+
 function setup(){
-    createCanvas(WIDTH+200, HEIGHT)
-    let properties = {
+    createCanvas(WIDTH+widthPanel, HEIGHT)
+    panel = new Panel({
         retractable: true,
         theme: "techno",
-        title: "MIGUI DEMO"
-    }
-    panel = new Panel(properties)
-
+        title: "MIGUI DEMO",
+        w: widthPanel,
+        x: WIDTH,
+    }, fontPanel)
     cb1 = panel.createCheckbox("RED", false)
     cb2 = panel.createCheckbox("Green", false)
     cb3 = panel.createCheckbox("Blue!", false)
@@ -54,8 +64,10 @@ function setup(){
     th = panel.createSelect(["spiderman", "sublime", "blossom", "techno"], "techno", (f) => {
         panel.setTheme(th.getSelected())
     })
+    
+    np1 = panel.createNumberPicker("Add circ.", 0, 22, 1, 1, npMinus)
 
-    np1 = panel.createNumberPicker("Add circle", 0, 22, 1, npMinus, npPlus)
+    opp = panel.createOptionPicker("options", ["a", "b", "c"])
 }
 
 function npPlus(){

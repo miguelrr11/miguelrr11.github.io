@@ -2,14 +2,16 @@
 //Miguel Rodríguez
 //06-09-2024
 
-let bordeMIGUI = 1.5
-let text_FontMIGUI = ""
+let bordeMIGUI = 1
+let text_FontMIGUI
 let text_SizeMIGUI = 15
-let text_offset_xMIGUI = 1.5
-let title_SizeMIGUI = 20
+let title_SizeMIGUI = text_SizeMIGUI * 1.3
+let radMIGUI = 3.5
+let text_offset_xMIGUI = 2
 let width_elementsMIGUI = 158
 let clipping_length_normalMIGUI = 20
 let clipping_length_titleMIGUI = 11
+let picker_width = 100
 
 /*
 200 - 20
@@ -19,7 +21,7 @@ x = width - 200, y = 0, w = 200, h = height, title = "", darkC = [0,0,0], lightC
 */
 
 class Panel{
-	constructor(properties = {}) {
+	constructor(properties = {}, font) {
 	    const {
 	        x = width - 200,
 	        y = 0,
@@ -35,11 +37,16 @@ class Panel{
 
 	    this.pos = createVector(x, y);
 	    this.title = title;
-	    this.w = constrain(w, 100, 1000);
-	    this.h = constrain(h, 100, 1000);
+	    // this.w = constrain(w, 100, 1000);
+	    // this.h = constrain(h, 100, 1000);
+		this.w = w
+	    this.h = h
 	    this.retractable = retractable;
+
+		//kfbajslhdfgsubcuwfgeirufgc
+		this.font = font
 	    
-	    width_elementsMIGUI = this.w - 35;
+	    //width_elementsMIGUI = this.w - 35;
 	    clipping_length_normalMIGUI = Math.ceil(0.125 * this.w - 4);
 
 	    this.darkCol = typeof darkCol === "string" ? hexToRgbMIGUI(darkCol) : darkCol;
@@ -52,13 +59,10 @@ class Panel{
 
 	    this.initializeUIElements();
 
-	    this.padding = 10
-	    this.paddingSeparator = 15
-
 	    this.lastElementPos = createVector(x + 17, y + 30);
 	    if (this.retractable) this.lastElementPos.y += 20;
 
-	    this.titlePos = createVector(this.lastElementPos.x - 3, this.lastElementPos.y);
+	    this.titlePos = createVector(this.lastElementPos.x, this.lastElementPos.y);
 	    this.adjustElementPositionForTitle();
 
 	    if (this.retractable) {
@@ -70,7 +74,10 @@ class Panel{
 
 	    if (theme) this.setTheme(theme);
 	    this.automaticHeight = automaticHeight;
-	    if (this.automaticHeight) this.h = this.lastElementPos.y + 10 - this.pos.y
+	    if (this.automaticHeight) this.h = this.lastElementPos.y + 10;
+
+	    this.padding = 10
+	    this.paddingSeparator = 15
 
 	    this.lastCB = undefined
 	    this.lastBU = undefined
@@ -86,6 +93,7 @@ class Panel{
 	    this.colorPickers = []
 	    this.separators = []
 	    this.numberPickers = []
+		this.optionPickers = []
 	    this.activeCP = undefined
 	    this.lastElementAdded = ""
 	    this.isInteracting = undefined
@@ -94,8 +102,9 @@ class Panel{
 	adjustElementPositionForTitle() {
 	    if (this.title) {
 	        const newlines = this.title.split('\n').length;
-	        this.lastElementPos.y += newlines * 20 - 10;
-	    } else {
+	        this.lastElementPos.y += newlines * 20 - 5;
+	    } 
+		else {
 	        this.lastElementPos.y -= 15;
 	    }
 	}
@@ -122,10 +131,7 @@ class Panel{
 	}
 
 	setFontSettings() {
-	    text_FontMIGUI = loadFont("migUI/main/mono.ttf");
-	    if(textFont() != text_FontMIGUI){
-	    	textFont(text_FontMIGUI);
-	    }
+	    textFont(this.font);
 	    textSize(text_SizeMIGUI);
 	    textAlign(LEFT);
 	}
@@ -134,15 +140,16 @@ class Panel{
 
 	}
 
-	createCheckbox(title = "", state = false) {
+	createCheckbox(title = "", state = false, func = undefined) {
 	    let newX, newY;
 	    let needsNewLine = false;
 
 	    if (this.lastCB) {
-	        const lastCBLength = this.lastCB.length + 20 
+	        const lastCBLength = this.lastCB.length + 40 
 	        newX = this.lastCB.pos.x + lastCBLength
 
-	        let l = getPixelLength(title, text_SizeMIGUI) + 60
+			textSize(text_SizeMIGUI-1)
+	        let l = textWidth(title) + 85
 
 	        if (this.lastCB.pos.x + this.lastCB.length + l > this.pos.x + this.w) {
 	            needsNewLine = true;
@@ -157,14 +164,14 @@ class Panel{
 
 	    if (needsNewLine) {
 	        if (this.lastElementAdded.constructor.name !== "Checkbox") {
-	            this.lastElementPos.y += 5;
+	            //this.lastElementPos.y += 5;
 	        }
 	        newX = this.lastElementPos.x;
 	        newY = this.lastElementPos.y;
 	       
 	    }
 
-	    const checkbox = new Checkbox(newX, newY, title, state, this.lightCol, this.darkCol, this.transCol);
+	    const checkbox = new Checkbox(newX, newY, title, state, func, this.lightCol, this.darkCol, this.transCol);
 	    this.checkboxes.push(checkbox);
 	    this.lastElementAdded = checkbox;
 	    if(needsNewLine) this.lastElementPos.y += checkbox.height + this.padding
@@ -199,17 +206,15 @@ class Panel{
 		return slider
 	}
 
-	createText(words = "", isTitle = false){
+	createText(words = "", isTitle = false, func = undefined){
 		//if(this.lastElementAdded.constructor.name != "Sentence") this.lastElementPos.y += 5
 		//if(isTitle) this.lastElementPos.y += 5
 		let spacedWords = wrapText(words, this.w, isTitle ? title_SizeMIGUI : text_SizeMIGUI)
 		let sentence = new Sentence(this.lastElementPos.x,
 									this.lastElementPos.y,
-									spacedWords, isTitle,
+									spacedWords, isTitle, func,
 									this.lightCol, this.darkCol, this.transCol)
 		
-		let newlines = spacedWords.split('\n').length;
-		//this.lastElementPos.y += newlines*15
 		this.lastElementPos.y += sentence.height + this.padding
 		
 		this.sentences.push(sentence)
@@ -266,8 +271,9 @@ class Panel{
 	    if (this.lastBU) {
 	        const lastCBLength = this.lastBU.length + 10 
 	        newX = this.lastBU.pos.x + lastCBLength
-	        
-	        let l = getPixelLength(sentence, text_SizeMIGUI)
+			
+			textSize(text_SizeMIGUI-2)
+	        let l = textWidth(sentence)
 
 	        if (this.lastBU.pos.x + this.lastBU.length + l + 30 > this.pos.x + this.w) {
 	            needsNewLine = true;
@@ -287,6 +293,7 @@ class Panel{
 	        newY = this.lastElementPos.y;
 	        
 	    }
+		
 		let button = new Button(newX, newY, sentence, func, this.lightCol, this.darkCol, this.transCol)
 		if(needsNewLine) this.lastElementPos.y += button.height + this.padding
 		this.buttons.push(button)
@@ -299,12 +306,10 @@ class Panel{
 	}
 
 	createColorPicker(sentence = [], func = undefined, def = undefined){
-		//if(this.lastElementAdded.constructor.name != "ColorPicker") this.lastElementPos.y += 5
 		let colorPicker = new ColorPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
 										  sentence, func, def, 
 										  this.lightCol, this.darkCol, this.transCol)
-		//this.lastElementPos.y += 25
 		this.lastElementPos.y += colorPicker.height + this.padding
 		this.colorPickers.push(colorPicker)
 		this.lastElementAdded = colorPicker
@@ -315,11 +320,11 @@ class Panel{
 		return colorPicker
 	}
 
-	createNumberPicker(sentence = "", min = undefined, max = undefined, 
-					   def = undefined, funcMinus = undefined, funcPlus = undefined){
+	createNumberPicker(sentence = "", min = undefined, max = undefined, delta = 1,
+					   def = undefined, func = undefined){
 		let numberPicker = new NumberPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
-										  sentence, min, max, def, funcMinus, funcPlus,
+										  sentence, min, max, delta, def, func, 
 										  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 25
 		this.lastElementPos.y += numberPicker.height + this.padding
@@ -330,6 +335,22 @@ class Panel{
 		this.lastCB = undefined
 
 		return numberPicker
+	}
+
+	createOptionPicker(sentence = "", options = [], func = undefined){
+		let optionPicker = new OptionPicker(this.lastElementPos.x, 
+								this.lastElementPos.y,
+								sentence, options, func,
+								this.lightCol, this.darkCol, this.transCol)
+		//this.lastElementPos.y += 25
+		this.lastElementPos.y += optionPicker.height + this.padding
+		this.optionPickers.push(optionPicker)
+		this.lastElementAdded = optionPicker
+
+		this.lastBU = undefined
+		this.lastCB = undefined
+
+		return optionPicker
 	}
 
 	createSeparator(){
@@ -343,113 +364,17 @@ class Panel{
 	separate(){
 		this.lastCB = undefined
 	    this.lastBU = undefined
+		this.lastElementPos.y = this.lastElementPos.y + this.padding
 	    this.lastElementAdded = 'separator'
 	}
 
-	// setText(pos, sentence = ""){
-	//     if (typeof pos == "number" && pos >= this.sentences.length) {
-	//         throw new Error("Text " + pos + " doesn't exist")
-	//     }
-	//     this.sentences[pos].setText(sentence)
-	// }
+	//not in use anymore
+	duplicateFunctionsNumberPicker(){
+		for(let np of this.numberPickers){
+			np.funcPlus = np.funcMinus
+		}
+	}
 
-	// setInputText(pos, sentence){
-	// 	if(pos >= this.inputs.length) throw new Error("Input " + pos + " doesn't exist")
-	// 	this.inputs[pos].setText(sentence)
-	// }
-
-	// setSliderValue(pos, value){
-	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.sliders) : pos
-    
-	//     if (index == -1 || (typeof index == "number" && index >= this.sliders.length)) {
-	//         throw new Error("Slider " + pos + " doesn't exist")
-	//     }
-
-	//     this.sliders[index].setValue(value)
-	// }
-
-	// //get selected of selected[pos]
-	// getSelected(pos){
-	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.selects) : pos
-    
-	//     if (index == -1 || (typeof index == "number" && index >= this.selects.length)) {
-	//         throw new Error("Select " + pos + " doesn't exist")
-	//     }
-
-	//     return this.selects[index].getSelected()
-	// }
-
-	// //get value of sliders[pos]
-	// getValue(pos) {
-    // 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.sliders) : pos
-    
-	//     if (index == -1 || (typeof index == "number" && index >= this.sliders.length)) {
-	//         throw new Error("Slider " + pos + " doesn't exist")
-	//     }
-
-	//     return this.sliders[index].getValue()
-	// }
-
-	// //set value of sliders[pos]
-	// setValue(pos, value){
-	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.sliders) : pos
-    
-	//     if (index == -1 || (typeof index == "number" && index >= this.sliders.length)) {
-	//         throw new Error("Slider " + pos + " doesn't exist")
-	//     }
-
-	//     this.sliders[index].setValue(value)
-	// }
-
-	// //getChecked of checkboxes[pos]
-	// isChecked(pos){
-	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.checkboxes) : pos
-
-	// 	if (index == -1 || (typeof index == "number" && index >= this.checkboxes.length)) {
-	//         throw new Error("Checkbox " + pos + " doesn't exist")
-	//         return false
-	//     }
-
-	//     return this.checkboxes[index].isChecked()
-	// }
-
-	// //getText of inputs[pos]
-	// getInput(pos){	
-	// 	if(pos >= this.inputs.length || pos < 0){
-	// 		throw new Error("Input " + pos + " doesn't exist")
-	//         return false
-	// 	}
-	// 	return this.inputs[pos].getText()
-	// }
-
-	// getColor(pos){
-	// 	let index = typeof pos == "string" ? findIndexMIGUI(pos, this.colorPickers) : pos
-    
-	//     if (index == -1 || (typeof index == "number" && index >= this.colorPickers.length)) {
-	//         throw new Error("Color picker " + pos + " doesn't exist")
-	//     }
-
-	//     return this.colorPickers[pos].getColor()
-	// }
-
-	// //change text of buttons[pos]
-	// changeText(pos, text = ""){
-	// 	let offset = this.retractable ? 1 : 0
-	// 	if(pos >= this.buttons.length + offset || pos < 0){
-	// 		throw new Error("Button " + pos + " doesn't exist")
-	//         return false
-	// 	}
-	// 	this.buttons[pos + offset].setText(text)
-	// }
-
-	// //change function of buttons[pos]
-	// changeFunc(pos, func = undefined){
-	// 	if(pos >= this.buttons.length + 1 || pos < 0){
-	// 		throw new Error("Button " + pos + " doesn't exist")
-	//         return false
-	// 	}
-	// 	this.buttons[pos + 1].setFunc(func)
-	// }
 
 	changeColors(dark, light){
 		if(typeof dark === "string"){
@@ -475,12 +400,8 @@ class Panel{
 		for(let b of this.buttons)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
 		for(let b of this.colorPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol; b.saturation = this.transCol}
 		for(let b of this.numberPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
+		for(let b of this.optionPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
 	}
-
-// let c1 = [hexToRgb("#1d3557"), hexToRgb("#457b9d"), hexToRgb("#e63946")]
-// let c2 = [hexToRgb("#393e41"), hexToRgb("#fff8f0"), hexToRgb("#f4d35e")]
-// let c3 = [hexToRgb("#fbf5f3"), hexToRgb("#e28413"), hexToRgb("#000022")]
-// let c4 = [hexToRgb("#092327"), hexToRgb("#0b5351"), hexToRgb("#17B1AD")]
 
 	setTheme(theme){
 		if(theme == "mono"){
@@ -593,6 +514,10 @@ class Panel{
 			this.isInteracting = c
 			return
 		}
+		for(let c of this.optionPickers) if(c.evaluate()) {
+			this.isInteracting = c
+			return
+		}
 
 		
 		// for(let i of this.inputs) {
@@ -611,11 +536,13 @@ class Panel{
 	}
 
 	show(){
+		push()
+
 		this.beingHoveredHand = false
 		this.beingHoveredText = false
 
 		push()
-		if(this.automaticHeight) this.h = this.lastElementPos.y - this.pos.y + this.padding
+		if(this.automaticHeight) this.h = this.lastElementPos.y + 10
 		translate(bordeMIGUI*0.5, bordeMIGUI*0.5)
 
 		//fondo
@@ -628,13 +555,13 @@ class Panel{
 			cursor(ARROW)
 			return
 		}
-		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI)
-		
+		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI, radMIGUI)
 		//Titulo
-		noStroke()
 		textSize(title_SizeMIGUI)
-		fill([...this.lightCol, 170])
-		text(this.title, this.titlePos.x + 3, this.titlePos.y + 3)
+		stroke([...this.lightCol, 140])
+		fill([...this.lightCol, 110])
+		strokeWeight(2)
+		text(this.title, this.titlePos.x + 2, this.titlePos.y + 2)
 		fill(this.lightCol)
 		stroke(this.darkCol)
 		text(this.title, this.titlePos.x, this.titlePos.y)
@@ -646,6 +573,7 @@ class Panel{
 		for(let b of this.inputs) this.beingHoveredText = b.show() || this.beingHoveredText
 		for(let b of this.buttons) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.numberPickers) this.beingHoveredHand = b.show() || this.beingHoveredHand
+		for(let b of this.optionPickers) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.colorPickers){ 
 			this.beingHoveredHand = b.show() || this.beingHoveredHand
 			if(b.isChoosing) this.activeCP = b
@@ -662,7 +590,9 @@ class Panel{
 
 		if(this.beingHoveredHand) cursor(HAND)
 		else if(this.beingHoveredText) cursor(TEXT)
-		else cursor(ARROW)
+		else cursor(ARROW) 	//esta linea puede interferir si el usuario quiere cambiar el cursor
+
+		pop()
 	}
 }
 
@@ -714,13 +644,6 @@ function hexToRgbMIGUI(hex) {
   ] : null;
 }
 
-function getPixelLength(word, size){
-	return word.length * size * 0.585
-}
-
-function getPixelLengthFromLength(length, size){
-	return length * size * 0.585
-}
 
 function getClippedTextSEMIGUI(text, start, end){
 	return text.slice(start, end);
@@ -761,26 +684,31 @@ function isPrintableKey(char) {
     return char.length === 1 && char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126;
 }
 
-function wrapText(text, maxWidth = this.w, textSize = text_SizeMIGUI) {
-  const words = text.split(' ');
-  let currentLine = '';
-  let wrappedText = '';
+function wrapText(text, maxWidth = this.w, tSize = text_SizeMIGUI) {
+	const words = text.split(' ');
+	let currentLine = '';
+	let wrappedText = '';
+	textSize(tSize)
+	words.forEach((word) => {
+		const lineWithWord = currentLine + (currentLine ? ' ' : '') + word;
 
-  words.forEach((word) => {
-    const lineWithWord = currentLine + (currentLine ? ' ' : '') + word;
-    
-    // Check the length of the line with the new word
-    if (getPixelLength(lineWithWord, textSize) <= maxWidth) {
-      currentLine = lineWithWord;
-    } else {
-      // Add the current line to the wrapped text and start a new one
-      wrappedText += currentLine + '\n';
-      currentLine = word; // Start new line with the current word
-    }
-  });
+		// Check the length of the line with the new word
+		if (textWidth(lineWithWord) <= maxWidth) {
+			currentLine = lineWithWord;
+		} 
+		else {
+			// Add the current line to the wrapped text and start a new one
+			wrappedText += currentLine + '\n';
+			currentLine = word; // Start new line with the current word
+		}
+	});
 
-  // Append any remaining text
-  wrappedText += currentLine;
+	// Append any remaining text
+	wrappedText += currentLine;
 
-  return wrappedText;
+	return wrappedText;
+}
+
+function textHeight() {
+    return textAscent() + textDescent();
 }

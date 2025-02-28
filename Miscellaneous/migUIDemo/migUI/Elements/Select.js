@@ -22,16 +22,25 @@ class Select{
 		this.singleH = 20
 		this.h = this.singleH * options.length
 		this.height = this.h
+
+		this.rad = radMIGUI
 	}
 
 	execute(){
-		console.log(this.getSelected())
 		if(this.func) this.func()
+	}
+
+	deselect(){
+		this.select = undefined
 	}
 
 	getSelected(){
 		if(this.selected == undefined) return undefined
 		return this.options[this.selected]
+	}
+
+	getSelectedIndex(){
+		return this.selected
 	}
 
 	evaluate(){
@@ -41,11 +50,7 @@ class Select{
 		if(inB && mouseIsPressed && !this.beingPressed){ 
 			for(let i = 0; i < this.options.length; i++){
 				if(this.isHovering(i)){
-					if(this.selected == undefined) this.selected = i
-					else if(i == this.selected) return
-					else{
-						this.selected =  i
-					}
+					this.selected = i
 					this.beingPressed = true
 					this.execute()
 					return true
@@ -70,7 +75,7 @@ class Select{
 		this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		stroke(this.lightCol)
 		noFill()
-		rect(this.pos.x, this.pos.y, this.w, this.h)
+		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 		fill(this.darkCol)
 		textSize(text_SizeMIGUI-2)
 		for(let i = 0; i < this.optionsText.length; i++){
@@ -80,14 +85,14 @@ class Select{
 				fill(this.lightCol)
 			}
 			noStroke()
-			rect(this.pos.x, this.pos.y, this.w, this.singleH)
+			rect(this.pos.x, this.pos.y, this.w, this.singleH, this.rad)
 
 			noStroke()
 			fill(this.lightCol)
 			if(i == this.selected){ 
 				fill(this.darkCol)
 			}
-			text(o, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.singleH*0.8)
+			text(o, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.singleH*0.8-1)
 			translate(0, this.singleH)
 		}
 

@@ -17,6 +17,8 @@ class Slider{
 		this.w = width_elementsMIGUI
 		this.h = 12
 
+		this.rad = radMIGUI
+
 		this.height = this.h + 1
 		this.height += (this.showValue || this.title) != "" ? 17 : 0
 
@@ -28,6 +30,7 @@ class Slider{
 	}
 
 	setValue(value){
+		if(isNaN(value)) value = 0
 		this.value = value
 		this.value = constrain(this.value, this.min, this.max)
 		this.valuePosX = mappMIGUI(this.value, this.min, this.max, this.pos.x, this.pos.x + this.w)
@@ -77,7 +80,7 @@ class Slider{
 		fill(this.darkCol)
 		stroke(this.lightCol)
 		this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
-		rect(this.sliderPos.x, this.sliderPos.y, this.w, this.h)
+		rect(this.sliderPos.x, this.sliderPos.y, this.w, this.h, this.rad)
 
 		//relleno hovering
 		if(this.beingHovered){
@@ -85,13 +88,16 @@ class Slider{
 			fill(this.transCol)
 			noStroke()
 			let x = this.getBound()[1]
-			rect(this.sliderPos.x, this.sliderPos.y, x-this.sliderPos.x, this.h)
+			rect(this.sliderPos.x, this.sliderPos.y, x-this.sliderPos.x, this.h, this.rad)
 			pop()
 		}
 
 		//relleno slider
-		fill(this.lightCol)
-		rect(this.sliderPos.x, this.sliderPos.y, this.valuePosX-this.sliderPos.x, this.h)
+		if(this.valuePosX-this.sliderPos.x >= 1.5){
+			fill(this.lightCol)
+			rect(this.sliderPos.x, this.sliderPos.y, this.valuePosX-this.sliderPos.x, this.h, this.rad)
+		}
+		
 
 
 		//texto

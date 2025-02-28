@@ -41,9 +41,10 @@ The Panel UI library supports various components that can be added to the panel.
 ### Checkbox
 A checkbox is a UI element that represents a binary state (on or off).
 
-- **`panel.createCheckbox([title], [state])`**: Creates a checkbox.
+- **`panel.createCheckbox([title], [state], [func])`**: Creates a checkbox.
   - `title` (`string`, optional): Label for the checkbox.
   - `state` (`boolean`, optional): Initial state (`false` by default).
+  - `func` (`function`, optional): Function executed when the checkbox is interacted with.
   - **Returns**: `Checkbox` instance.
 
 - **`cb.isChecked()`**: Returns the current state (`true` or `false`).
@@ -64,9 +65,10 @@ A slider holds a value within a specified range.
 ### Text
 Creates a block of formatted text.
 
-- **`panel.createText([text], [isTitle])`**: Creates a text element.
+- **`panel.createText([text], [isTitle], [func])`**: Creates a text element.
   - `text` (`string`, optional): Content of the text.
   - `isTitle` (`boolean`, optional): If `true`, the text will be styled as a title.
+  - `func` (`function`, optional): The text will be set to whatever the function returns (run every update).
   - **Returns**: `Text` instance.
 
 - **`tx.setText([text])`**: Updates the text content.
@@ -120,16 +122,27 @@ A color picker with sliders for hue, saturation, and transparency.
 ### Number Picker
 A number picker allows to change a number with 2 buttons (- and +)
 
-- **`panel.createNumberPicker([title], [min], [max], [default], [funcMinus], [funcPlus])`**: Creates a number picker.
+- **`panel.createNumberPicker([title], [min], [max], [delta], [default], [func])`**: Creates a number picker.
   - `title` (`string`, optional): Label for the number picker.
   - `min` (`number`, optional): Minimum value for the picker.
   - `max` (`number`, optional): Maximum value for the picker.
+  - `delta` (`number`, optional): Value that determines the change, defaults to 1.
   - `default` (`number`, optional): Default value for the picker.
-  - `funcMinus` (`function`, optional): Function executed when the value is decreased.
-  - `funcPlus` (`function`, optional): Function executed when the value is increased.
+  - `func` (`function`, optional): Function executed when the value is changed.
   - **Returns**: `NumberPicker` instance.
 
 - **`np.getValue()`**: Returns the value of the picker
+
+### Option Picker
+Similar to the Number Picker, this allows to select text options.
+
+- **`panel.createOptionPicker([title], [options], [func])`**: Creates an option picker.
+  - `title` (`string`, optional): Label for the option picker.
+  - `options` (`array`, optional): Options (array of strings).
+  - `func` (`function`, optional): Function executed when the option is changed.
+  - **Returns**: `OptionPicker` instance.
+
+- **`op.getSelected()`**: Returns the option selected
 
 ### Separator
 Creates a visual separator between elements.

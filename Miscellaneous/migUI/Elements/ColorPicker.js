@@ -20,6 +20,8 @@ class ColorPicker{
 		this.h = 16
 		this.height = this.h
 
+		this.rad = radMIGUI
+
 		this.cpw = 185
 		this.cph = 45
 		this.poscp = createVector(constrain(this.pos.x - 10, 0, width - this.cpw - 10), constrain(this.pos.y + this.h * 2, 0, height - this.cph - 10))
@@ -147,7 +149,7 @@ class ColorPicker{
 		this.interacted ? fill(this.finalCol) : fill(this.defaultCol)
 		stroke(this.lightCol)
 		this.isChoosing || this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
+		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 
 		noStroke()
 		fill(this.lightCol)
@@ -159,7 +161,7 @@ class ColorPicker{
 			fill(this.darkCol)
 			stroke(this.lightCol)
 			strokeWeight(bordeMIGUI)
-			rect(this.poscp.x, this.poscp.y, this.cpw, this.cph)
+			rect(this.poscp.x, this.poscp.y, this.cpw, this.cph, this.rad)
 
 			this.drawGradients()
 			// drawGradientRainbow(this.poscp.x + 5, this.poscp.y + 5, this.cpw - 10, this.cph * 0.33 - 7.5)

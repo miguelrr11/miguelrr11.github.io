@@ -1,5 +1,5 @@
 class Sentence{
-	constructor(x, y, words, isTitle, lightCol, darkCol, transCol){
+	constructor(x, y, words, isTitle, func,  lightCol, darkCol, transCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -7,11 +7,17 @@ class Sentence{
 		this.name = words
 		this.words = words
 		this.isTitle = isTitle
+		this.textSize = this.isTitle ? title_SizeMIGUI : text_SizeMIGUI-2
+		this.func = func
 
-		let newlines = words.split('\n').length
-		let lines = newlines
-		this.height = newlines * 7 + (newlines-1) * 9.6
-		if(this.isTitle) this.height *= 2
+		let newlinesN = words.split('\n').length
+		let newlines = words.split('\n')
+		textSize(this.textSize)
+		this.height = 0
+		for(let i = 0; i < newlinesN; i++){
+			this.height += textHeight(newlines[i])
+		}
+		this.height *= 1.2
 	}
 
 	getText(){
@@ -25,12 +31,13 @@ class Sentence{
 
 	show(){
 		push()
+		if(this.func) this.words = this.func()
 		if(this.isTitle){
 			push()
 			fill(this.lightCol)
 			stroke(this.transCol)
 			strokeWeight(1)
-			textSize(title_SizeMIGUI)
+			textSize(this.textSize)
 			text(this.words, this.pos.x - bordeMIGUI, this.pos.y + 15)
 			fill(this.transCol)
 			text(this.words, this.pos.x - bordeMIGUI + 3, this.pos.y + 13)
@@ -39,7 +46,7 @@ class Sentence{
 		else{
 			noStroke()
 			fill(this.lightCol)
-			textSize(text_SizeMIGUI-2)
+			textSize(this.textSize)
 			text(this.words, this.pos.x - bordeMIGUI, this.pos.y + 10)
 		}
 		// fill(255, 0, 0)
