@@ -71,7 +71,7 @@ function generateChunk(x, y){
             if(hp == 0) material = 0
             else material = willBeMaterial(i, j, x, y)
             if(material != 0) hp = maxHealthCellMat
-            if(hp == 0 && random() < 0.01) row.push(new Cell_exp(i, j, material, hp, undefined, undefined, biome)) 
+            if(hp == 0 && random() < 0.2) row.push(new Cell_exp(i, j, material, hp, undefined, undefined, biome)) 
             else if(biome == 1) row.push(new Cell_1(i, j, material, hp))
             else if(biome == 2) row.push(new Cell_2(i, j, material, hp))
             else if(biome == 3) row.push(new Cell_3(i, j, material, hp))
@@ -136,8 +136,6 @@ function moveToChunk(dx, dy){
     saveChunk(chunkDown, currentChunkPos.x, currentChunkPos.y-1);
     
 }
-
-
 
 function isThereAwall(chunk, x, y){
     return chunk[x][y].hp > 0 ? true : false

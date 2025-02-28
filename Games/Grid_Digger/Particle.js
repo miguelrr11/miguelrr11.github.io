@@ -1,5 +1,5 @@
 class Particle{
-    constructor(x, y, color, lifespan, vel, acc, friction, angle, rotVel, size, shape){
+    constructor(x, y, color, lifespan, vel, acc, friction, angle, rotVel, size, shape, followPlayer){
         this.pos = createVector(x, y)
         this.vel = vel
         this.acc = acc
@@ -13,6 +13,7 @@ class Particle{
         this.rotVel = rotVel
         this.size = size
         this.shape = shape
+        this.followPlayer = followPlayer
     }
 
     dead(){
@@ -20,6 +21,11 @@ class Particle{
     }
 
     update(){
+        //set the acceleration so the particle goes towards the player
+        if(this.followPlayer){
+            let dir = createVector(((player.pos.x+.5)*cellPixelSize) - this.pos.x, ((player.pos.y+.5)*cellPixelSize) - this.pos.y).normalize()
+            this.acc = dir.mult(0.35)
+        }
         this.vel.add(this.acc)
         this.vel.mult(this.friction)
         this.pos.add(this.vel)

@@ -83,6 +83,17 @@ function showFPS(){
     pop()
 }
 
+function showNparticles(){
+    push()
+    fill(255, 200)
+    noStroke()
+    textFont('Arial')
+    textAlign(CENTER, CENTER)
+    textSize(10)
+    text(anims.nParticles, totalTam/2, totalTam + 15)
+    pop()
+}
+
 function showMinimap(){
     push()
     translate(20, 20)
@@ -138,6 +149,7 @@ function showMinimap(){
     drawSpawnOutsideMinimap()
     showCoords()
     showFPS()
+    showNparticles()
     pop()
 }
 

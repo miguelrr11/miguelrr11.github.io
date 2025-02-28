@@ -71,8 +71,10 @@ class Cell {
     }
 
     hit(animX, animY) {
-        if (this.hp > 0){ 
+        if (this.hp > 0){
             this.hp--;
+            if(this.hp == 0) playDiggingSound()
+            else playHittingSound()
             this.coolDownHit = this.maxCoolDownHit
         }
         let type;
@@ -250,10 +252,7 @@ class Cell {
         if(this.coolDownHit > 0) this.coolDownHit--
         this.showBasic();
         this.showMat();
-        //this.showLight(lightGrid);
     }
-
-
 
     showDebug() {
         this.showMat();

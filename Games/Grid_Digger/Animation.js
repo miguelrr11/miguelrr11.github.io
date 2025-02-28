@@ -6,13 +6,14 @@ class Animation{
         this.initParticles(type)
         this.i = i
         this.j = j
+        this.particlesAlive = 0
     }
 
     finished(){
         return this.particles.length == 0
     }
 
-    //constructor(x, y, color, lifespan, vel, acc, friction, angle, rotVel, size)
+    //constructor(x, y, color, lifespan, vel, acc, friction, angle, rotVel, size, followPlayer)
     //anim = {type, explosion}
     initParticles(anim){
         let type = anim.type;
@@ -34,25 +35,25 @@ class Animation{
                 let rotVel = random(-0.1, 0.1)
                 let size = random(cellPixelSize*.2, cellPixelSize*.25)
                 let shape = 'rect'
-                this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape))
+                this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape, false))
             }
         }
         if(type == 'miningMat1' || type == 'miningMat2' || type == 'miningMat3'){
-            let count = explosionMat ? 30 : 10
+            let count = explosionMat ? 30 : 8
             for(let i = 0; i < count; i++){
                 let x = this.x + random(-cellPixelSize/2, cellPixelSize/2)
                 let y = this.y + random(-cellPixelSize/2, cellPixelSize/2)
                 let col = randomizeColor(colMat, 30)
-                let lifespan = explosionMat ? random(45, 55) : random(10, 25)
-                let speed = explosionMat ? 6.5 : 2
+                let lifespan = explosionMat ? random(35, 40) : random(10, 25)
+                let speed = explosionMat ? 8.5 : 3
                 let vel = createVector(random(-speed, speed), random(-speed, speed))
-                let acc = p5.Vector.fromAngle(atan2(vel.y, vel.x)).mult(-0.15)      //effect of particles returning to the center
-                let friction = explosionMat ? 0.92 : 0.88
+                let acc = explosionMat ? p5.Vector.fromAngle(atan2(vel.y, vel.x)).mult(-0.15) : createVector(0,0) //effect of particles returning to the center
+                let friction = .92
                 let angle = 0
                 let rotVel = random(-0.1, 0.1)
                 let size = random(cellPixelSize*.3, cellPixelSize*.3)
                 let shape = shapeMat
-                this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape))
+                this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape, explosionMat))
             }
         }
         if(type == 'walking'){
@@ -69,7 +70,7 @@ class Animation{
                 let rotVel = 0
                 let size = random(cellPixelSize*.2, cellPixelSize*.25)
                 let shape = 'rect'
-                this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape))
+                this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape, false))
             }
         }
         if(type == 'fuse'){
@@ -93,15 +94,17 @@ class Animation{
                 let size = explosionMat ?  random(cellPixelSize*.35, cellPixelSize*.45) : 
                 random(cellPixelSize*.2, cellPixelSize*.25)
                 let shape = 'rect'
-                this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape))
+                this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape, false))
             }
         }
     }
 
     update(){
+        this.particlesAlive = 0
         for(let i = this.particles.length - 1; i >= 0; i--){
             this.particles[i].update()
             if(this.particles[i].dead()) this.particles.splice(i, 1)
+            else this.particlesAlive++
         }
     }
 

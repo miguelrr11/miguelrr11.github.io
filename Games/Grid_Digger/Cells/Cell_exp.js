@@ -10,14 +10,28 @@ class Cell_exp extends Cell {
         this.maxHealthCell = baseHpCellExp
     }
 
+    damage(dmg){
+        if(this.hp == 0) return
+        if(this.hp == baseHpCellExp) playFuseSound()
+        if (this.hp > 0) this.hp--;
+        this.addAnimationFuse(this.x + cellPixelSize/2, this.y + cellPixelSize/2);
+        // if (this.hp === 0){ 
+        //     this.material = 0;
+        //     this.addAnimationFuse(this.x + cellPixelSize/2, this.y + cellPixelSize/2);
+        //     bomb(this.x, this.y, 8);
+        // }
+    }
+
     hit(animX, animY) {
+        if(this.hp == 0) return
+        if(this.hp == baseHpCellExp) playFuseSound()
         if (this.hp > 0) this.hp--;
         this.addAnimationFuse(animX, animY);
-        if (this.hp === 0){ 
-            this.material = 0;
-            this.addAnimationFuse(animX, animY);
-            bomb(this.x, this.y, 8);
-        }
+        // if (this.hp === 0){ 
+        //     this.material = 0;
+        //     this.addAnimationFuse(animX, animY);
+        //     bomb(this.x, this.y, 8);
+        // }
     }
 
     addAnimationFuse(animX, animY){
@@ -30,12 +44,12 @@ class Cell_exp extends Cell {
     }
 
     // The show() method is common to both children.
-    show(lightGrid) {
+    show() {
         this.showBasic();
         this.showMat();
-        this.showLight(lightGrid);
+        if(this.hp == 0) this.material = 0
         if(this.hp < baseHpCellExp && this.hp > 0){
-            if(frameCount % 10 == 0) this.hp--
+            if(frameCount % 13 == 0) this.hp--
             if (this.hp === 0){ 
                 this.material = 0;
                 this.addAnimationFuse(this.x, this.y);

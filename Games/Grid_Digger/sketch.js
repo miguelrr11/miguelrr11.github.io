@@ -18,6 +18,7 @@ function setup(){
     anims = new AnimationManager()
     initLighting()
     initMinimap()
+    loadAllSounds()
     console.log('--------------------------------')
 
     // let fov = PI / 2;
