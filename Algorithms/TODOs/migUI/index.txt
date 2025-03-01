@@ -9,7 +9,3 @@
 <script src="migUI/Elements/Slider.js"></script>
 <script src="migUI/Elements/NumberPicker.js"></script>
 <script src="migUI/Elements/OptionPicker.js"></script>
-
-function preload(){
-    fontPanel = loadFont("migUI/main/bnr.ttf")
-}

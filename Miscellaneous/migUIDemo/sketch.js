@@ -24,7 +24,6 @@ let fontPanel
 
 function preload(){
     fontPanel = loadFont("migUI/main/bnr.ttf")
-    
 }
 
 function setup(){
