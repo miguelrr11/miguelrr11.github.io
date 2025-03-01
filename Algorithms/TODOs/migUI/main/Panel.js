@@ -6,7 +6,7 @@ let bordeMIGUI = 1
 let text_FontMIGUI
 let text_SizeMIGUI = 15
 let title_SizeMIGUI = text_SizeMIGUI * 1.3
-let radMIGUI = 3.5
+let radMIGUI = 4.5
 let text_offset_xMIGUI = 2
 let width_elementsMIGUI = 158
 let clipping_length_normalMIGUI = 20
@@ -226,16 +226,25 @@ class Panel{
 		return sentence
 	}
 
-	createSelect(options = [""], selected = undefined, func = undefined){
+	createSelect(options = [""], selected = undefined, func = undefined, isSelectTask = false){
 		if(options.length == 0) return
 		//if(this.lastElementAdded.constructor.name != "Select") this.lastElementPos.y += 5
 		let selectedFinal = selected
 		if(selected != undefined) selectedFinal = findIndexMIGUI(selected, options)
-		let select = new Select(this.lastElementPos.x,
-								this.lastElementPos.y,
-								options, selectedFinal, func,
-								this.lightCol, this.darkCol, this.transCol)
-		//this.lastElementPos.y += (select.options.length*20) + 10
+		let select
+		if(!isSelectTask){
+			select = new Select(this.lastElementPos.x,
+				this.lastElementPos.y,
+				options, selectedFinal, func,
+				this.lightCol, this.darkCol, this.transCol)
+		}
+		else{
+			select = new SelectTask(this.lastElementPos.x,
+				this.lastElementPos.y,
+				options, selectedFinal, func,
+				this.lightCol, this.darkCol, this.transCol)
+		}
+		
 		this.lastElementPos.y += select.height + this.padding
 
 		this.selects.push(select)
@@ -247,10 +256,10 @@ class Panel{
 		return select
 	}
 
-	createInput(placeholder = "", func = undefined){
+	createInput(placeholder = "", func = undefined, arg = false){
 		//if(this.lastElementAdded.constructor.name != "Input") this.lastElementPos.y += 5
 		let input = new Input(this.lastElementPos.x,
-							  this.lastElementPos.y, placeholder, func, 
+							  this.lastElementPos.y, placeholder, func, arg,
 							  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 30
 		this.lastElementPos.y += input.height + this.padding

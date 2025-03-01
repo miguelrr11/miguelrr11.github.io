@@ -20,6 +20,13 @@ class Sentence{
 		this.height *= 1.2
 	}
 
+	cropText(pixelLength){
+		push()
+		textSize(this.textSize)
+		this.words = getClippedTextByWidth(this.words, 0, pixelLength)
+		pop()
+	}
+
 	getText(){
 		return this.words
 	}
@@ -40,7 +47,7 @@ class Sentence{
 			textSize(this.textSize)
 			text(this.words, this.pos.x - bordeMIGUI, this.pos.y + 15)
 			fill(this.transCol)
-			text(this.words, this.pos.x - bordeMIGUI + 3, this.pos.y + 13)
+			text(this.words, this.pos.x - bordeMIGUI + 2, this.pos.y + 17)
 			pop()
 		}
 		else{

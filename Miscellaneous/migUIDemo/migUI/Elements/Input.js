@@ -1,10 +1,11 @@
 class Input {
-    constructor(x, y, placeholder, func, lightCol, darkCol, transCol) {
+    constructor(x, y, placeholder, func, arg, lightCol, darkCol, transCol) {
         this.darkCol = darkCol
         this.lightCol = lightCol
         this.transCol = [...lightCol, 100]
         this.pos = createVector(x, y)
         this.textSize = text_SizeMIGUI - 2
+        this.arg = arg
 
         textSize(this.textSize)
         let margin = bordeMIGUI + text_offset_xMIGUI
@@ -58,7 +59,8 @@ class Input {
 
     execute() {
         if(this.func) {
-            this.func()
+            if(this.arg) this.func(this.sentence)
+            else this.func()
             this.sentence = ""
             this.clippedSentence = ""
             this.cursorPos = 0

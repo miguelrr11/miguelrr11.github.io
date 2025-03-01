@@ -1,10 +1,11 @@
 class Input {
-    constructor(x, y, placeholder, func, lightCol, darkCol, transCol) {
+    constructor(x, y, placeholder, func, arg, lightCol, darkCol, transCol) {
         this.darkCol = darkCol
         this.lightCol = lightCol
         this.transCol = [...lightCol, 100]
         this.pos = createVector(x, y)
         this.textSize = text_SizeMIGUI - 2
+        this.arg = arg
 
         textSize(this.textSize)
         let margin = bordeMIGUI + text_offset_xMIGUI
@@ -32,7 +33,18 @@ class Input {
         this.coolDownBS = 0
         this.widthLimit = this.w - 8
 
+        this.disabled = false
+
         document.addEventListener("keyup", this.evaluateKey.bind(this))
+    }
+
+    disable(){
+        this.disabled = true
+        this.active = false
+    }
+
+    enable(){
+        this.disabled = false
     }
 
     setText(text) {
@@ -58,7 +70,8 @@ class Input {
 
     execute() {
         if(this.func) {
-            this.func()
+            if(this.arg) this.func(this.sentence)
+            else this.func()
             this.sentence = ""
             this.clippedSentence = ""
             this.cursorPos = 0
@@ -68,6 +81,7 @@ class Input {
     }
 
     evaluateKey(event) {
+        if(this.disabled) return
         let c = event.key
         if(this.active) {
             this.coolDownBS = 0
@@ -175,6 +189,7 @@ class Input {
     }
 
     update() {
+        if(this.disabled) return
         this.frame++
         if(this.relCursorPos > this.clippedSentence.length + 1)
             this.relCursorPos = this.clippedSentence.length
@@ -199,6 +214,7 @@ class Input {
     }
 
     evaluate() {
+        if(this.disabled) return
         this.active = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
         return this.active
     }
@@ -208,10 +224,12 @@ class Input {
         (this.beingHovered || this.active) ? strokeWeight(bordeMIGUI + 1): strokeWeight(bordeMIGUI)
         stroke(this.lightCol)
         this.active ? fill(this.transCol) : fill(this.darkCol)
+        if(this.disabled) stroke(200)
         rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 
         noStroke()
         fill(this.lightCol)
+        if(this.disabled) fill(200)
         textSize(this.textSize)
 
         if(this.sentence.length !== 0) {

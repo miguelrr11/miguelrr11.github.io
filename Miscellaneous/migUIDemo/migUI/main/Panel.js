@@ -247,10 +247,10 @@ class Panel{
 		return select
 	}
 
-	createInput(placeholder = "", func = undefined){
+	createInput(placeholder = "", func = undefined, arg = false){
 		//if(this.lastElementAdded.constructor.name != "Input") this.lastElementPos.y += 5
 		let input = new Input(this.lastElementPos.x,
-							  this.lastElementPos.y, placeholder, func, 
+							  this.lastElementPos.y, placeholder, func, arg,
 							  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 30
 		this.lastElementPos.y += input.height + this.padding
