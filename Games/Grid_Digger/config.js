@@ -1,13 +1,14 @@
 
+// NO CAMBAIAR NADA DESDE AQUI
 let cellsPerCol = 30
 let cellsPerRow = Math.round(cellsPerCol*1.78)
-//let cellsPerRow = 30
 
 let cellPixelSize = 30
 let mapSize = 61
 
 const HEIGHT = cellPixelSize * cellsPerCol
 const WIDTH = cellPixelSize * cellsPerRow
+// HASTA AQUI
 
 let currentChunkPos
 
@@ -26,11 +27,11 @@ let deltaMat3 = 0.2
 let offsetMat2 = 512
 let offsetUnd = 432
 
-let maxHealthCell = 10        //vida de los bloques normales
+let maxHealthCell = 6        //vida de los bloques normales
 let maxHealthCellMat = 10    //vida de los bloques de materiales
 let baseHpCellExp = 20       //vida de los barriles explosivos
 
-let coolDownMovement = 2 //frames
+let coolDownMovement = 10 //frames
 let coolDownMining = 10 //frames (nunca menor que 2 porque sino no se ve el efecto de minado)
 
 let transitioning = false
@@ -43,8 +44,15 @@ let translationPlayer
 let animations = []
 
 let fovRadius = 15      //la luz que tu emites (no ves a traves de las paredes)
-let fovRadiusWall = 100    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
+let fovRadiusWall = 50    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
 
+let mat1Name = 'Shlob'
+let mat2Name = 'Flonk'
+let mat3Name = 'Tribnub'
+
+let posNexo1
+let posNexo2
+let posNexo3
 
 /*
 Proceso generacion terreno

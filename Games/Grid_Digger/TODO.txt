@@ -41,6 +41,7 @@ Entonces, el jugador equilibra entre buscar el tesoro y minar materiales para po
 - Idea: hay 4 o 5 biomas que en cada partida estan en sitios diferentes, cada bioma tiene su look y recursos diferentes
 - Idea relacionada: hay que encontrar un tesoro en CADA bioma para ganar y cada tesoro que encuentras desbloquea algo
 - Idea: si te hacen daño pierdes materiales (no tienes vida como tal)
+- Idea: si en la generacion de materiales, una celula cabe en mas de un material, que los tenga, se enseñarian los 2 y se darian los dos al morir
 
 ------ TODO -------
 - Bloques irrompibles
@@ -48,5 +49,14 @@ Entonces, el jugador equilibra entre buscar el tesoro y minar materiales para po
 - Poner un tamaño fijo al mapa y handle los edges
 - Todos los upgrades
 - UI de recursos, xp, ....
+
+------ RECURSOS -------
+- El player tiene una capacidad total para llevar recursos  
+    - Por ejemplo si es de 50 puede llevar 30 mat1, 15 mat2 y 5 mat3 como maximo
+- En el nexo se pueden almacenar infinitos materiales para liberar la mochila
+- En el nexo se pueden mejorar las stats con los materiale
+- mat1: mejora velocidad de movimiento
+- mat2: mejora velocidad de minado
+- mat3: mejora campo de vision
 
 

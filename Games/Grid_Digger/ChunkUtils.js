@@ -1,3 +1,19 @@
+/*
+MATERIALS:
+0 = air
+1 = MAT1
+2 = MAT2
+3 = MAT3
+4 = UNDESTROYABLE
+5 = BOMB
+
+6 = NEXO_UPGRADE_MAT1
+7 = NEXO_UPGRADE_MAT2
+8 = NEXO_UPGRADE_MAT3
+*/
+
+let nexo1, nexo2, nexo3
+
 //it loads a chunk reconstructing each cell from a csv string
 function loadChunk(x, y){
     let chunk = []
@@ -16,6 +32,7 @@ function loadChunk(x, y){
                 let illuminated = parseInt(properties[2]) == 1 ? true : false
                 let rnd = parseFloat(properties[3])
                 if(material == 5) chunk[i][j] = new Cell_exp(i, j, material, hp, illuminated, rnd, getBiome(x, y))
+                if(material == 6 || material == 7 || material == 8) chunk[i][j] = new Cell_nexo(i, j, material, hp, illuminated, rnd)
                 else if(biome == 1) chunk[i][j] = new Cell_1(i, j, material, hp, illuminated, rnd)
                 else if(biome == 2) chunk[i][j] = new Cell_2(i, j, material, hp, illuminated, rnd)
                 else if(biome == 3) chunk[i][j] = new Cell_3(i, j, material, hp, illuminated, rnd)
@@ -71,7 +88,7 @@ function generateChunk(x, y){
             if(hp == 0) material = 0
             else material = willBeMaterial(i, j, x, y)
             if(material != 0) hp = maxHealthCellMat
-            if(hp == 0 && random() < 0.2) row.push(new Cell_exp(i, j, material, hp, undefined, undefined, biome)) 
+            if(hp == 0 && random() < 0.085) row.push(new Cell_exp(i, j, material, hp, undefined, undefined, biome)) 
             else if(biome == 1) row.push(new Cell_1(i, j, material, hp))
             else if(biome == 2) row.push(new Cell_2(i, j, material, hp))
             else if(biome == 3) row.push(new Cell_3(i, j, material, hp))
@@ -274,6 +291,7 @@ function showChunk() {
                 else currentChunk[i][j].showLight(curLightMap.lightingGrid);
             }
         }
+        showNexos()
     }
     pop()
 }
@@ -340,7 +358,7 @@ function loadChunks(x, y){
 function prepareSpawn(){
     translationPlayer = createVector(0, 0)
     currentChunkPos = createVector(0, 0)
-    let radius = 5
+    let radius = 8
     for(let i = 0; i < currentChunk.length; i++){
         for(let j = 0; j < currentChunk[i].length; j++){
             let distance = dist(i, j, floor(cellsPerRow/2), floor(cellsPerCol/2))
@@ -349,6 +367,42 @@ function prepareSpawn(){
             }
         }
     }
+
+    currentChunk[21][11] = new Cell_nexo(21, 11, 6, Infinity, undefined, undefined)
+    currentChunk[22][11] = new Cell_nexo(22, 11, 6, Infinity, undefined, undefined)
+    currentChunk[23][11] = new Cell_nexo(23, 11, 6, Infinity, undefined, undefined)
+    currentChunk[21][12] = new Cell_nexo(21, 12, 6, Infinity, undefined, undefined)
+    currentChunk[22][12] = new Cell_nexo(22, 12, 6, Infinity, undefined, undefined)
+    currentChunk[23][12] = new Cell_nexo(23, 12, 6, Infinity, undefined, undefined)
+
+    currentChunk[25][11] = new Cell_nexo(25, 11, 7, Infinity, undefined, undefined)
+    currentChunk[26][11] = new Cell_nexo(26, 11, 7, Infinity, undefined, undefined)
+    currentChunk[27][11] = new Cell_nexo(27, 11, 7, Infinity, undefined, undefined)
+    currentChunk[25][12] = new Cell_nexo(25, 12, 7, Infinity, undefined, undefined)
+    currentChunk[26][12] = new Cell_nexo(26, 12, 7, Infinity, undefined, undefined)
+    currentChunk[27][12] = new Cell_nexo(27, 12, 7, Infinity, undefined, undefined)
+    currentChunk[26][12].illuminated = true
+
+    currentChunk[29][11] = new Cell_nexo(29, 11, 8, Infinity, undefined, undefined)
+    currentChunk[30][11] = new Cell_nexo(30, 11, 8, Infinity, undefined, undefined)
+    currentChunk[31][11] = new Cell_nexo(31, 11, 8, Infinity, undefined, undefined)
+    currentChunk[29][12] = new Cell_nexo(29, 12, 8, Infinity, undefined, undefined)
+    currentChunk[30][12] = new Cell_nexo(30, 12, 8, Infinity, undefined, undefined)
+    currentChunk[31][12] = new Cell_nexo(31, 12, 8, Infinity, undefined, undefined)
+
+    posNexo1 = createVector(21, 11)
+    posNexo2 = createVector(25, 11)
+    posNexo3 = createVector(29, 11)
+
+    nexo1 = currentChunk[21][11]
+    nexo2 = currentChunk[25][11]
+    nexo3 = currentChunk[29][11]
+}
+
+function showNexos(){
+    nexo1.show()
+    nexo2.show()
+    nexo3.show()
 }
 
 // randomly sets a material to the current chunk
@@ -424,4 +478,18 @@ function generateImageMap(type = 1) {
     }
     img.updatePixels();
     save(img, 'map.png');
+}
+
+
+function bomb(x, y, tamInCells){
+    let distance = tamInCells
+    for(let i = 0; i < cellsPerRow; i++){
+        for(let j = 0; j < cellsPerCol; j++){
+            let d = dist(x, y, i, j)
+            if(d < distance){
+                if(d < distance * 0.8) currentChunk[i][j].damage(1000)
+                else currentChunk[i][j].damage(10 * Math.exp(-1 * (d / distance)))
+            }
+        }
+    }
 }

@@ -23,15 +23,12 @@ class Cell_exp extends Cell {
     }
 
     hit(animX, animY) {
-        if(this.hp == 0) return
+        if(this.hp < baseHpCellExp) return
         if(this.hp == baseHpCellExp) playFuseSound()
         if (this.hp > 0) this.hp--;
         this.addAnimationFuse(animX, animY);
-        // if (this.hp === 0){ 
-        //     this.material = 0;
-        //     this.addAnimationFuse(animX, animY);
-        //     bomb(this.x, this.y, 8);
-        // }
+        if(this.hp != 0) this.illuminated = true;
+        computeLightingGrid(curLightMap)
     }
 
     addAnimationFuse(animX, animY){
@@ -41,18 +38,27 @@ class Cell_exp extends Cell {
             animY * cellPixelSize + cellPixelSize / 2,
             anim, this.x, this.y
         );
+        if(this.hp != 0) this.illuminated = true;
+        computeLightingGrid(curLightMap)
     }
 
     // The show() method is common to both children.
     show() {
         this.showBasic();
         this.showMat();
-        if(this.hp == 0) this.material = 0
+        if(this.hp == 0){ 
+            this.material = 0
+            this.illuminated = false
+        }
         if(this.hp < baseHpCellExp && this.hp > 0){
             if(frameCount % 13 == 0) this.hp--
+            //just died
             if (this.hp === 0){ 
                 this.material = 0;
+                console.log("explosion")
+                this.illuminated = false
                 this.addAnimationFuse(this.x, this.y);
+                computeLightingGrid(curLightMap)
                 bomb(this.x, this.y, 8);
             }
             this.addAnimationFuse(this.x, this.y);

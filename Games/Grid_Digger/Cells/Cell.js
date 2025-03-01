@@ -1,5 +1,6 @@
 let maxTam = cellPixelSize;
 let minTam = cellPixelSize * 0.3;
+let materialNames = ['mining', 'miningMat1', 'miningMat2', 'miningMat3'];
 
 class Cell {
     constructor(x, y, material, hp, illuminated, rnd) {
@@ -66,38 +67,38 @@ class Cell {
     damage(dmg){
         this.hp -= Math.floor(dmg)
         if(this.hp < 0) this.hp = 0
-        if(this.hp == 0 && this.material != 0) this.hp = 1
-        if (this.hp === 0) this.material = 0;
+        //if(this.hp == 0 && this.material != 0) this.hp = 1
+        if (this.hp === 0){
+            this.createAnimation(this.x, this.y)
+            player.give(this.material)
+            this.material = 0;
+            computeLightingGrid(curLightMap)
+        }
     }
 
-    hit(animX, animY) {
-        if (this.hp > 0){
-            this.hp--;
-            if(this.hp == 0) playDiggingSound()
-            else playHittingSound()
-            this.coolDownHit = this.maxCoolDownHit
-        }
-        let type;
-        switch (this.material) {
-            case 0:
-                type = 'mining';
-                break;
-            case 1:
-                type = 'miningMat1';
-                break;
-            case 2:
-                type = 'miningMat2';
-                break;
-            case 3:
-                type = 'miningMat3';
-                break;
-        }
+    createAnimation(animX, animY){
+        let type = materialNames[this.material];
         let anim = { type: type, explosion: this.hp === 0 };
         anims.addAnimation(
             animX * cellPixelSize + cellPixelSize / 2,
             animY * cellPixelSize + cellPixelSize / 2,
             anim, this.x, this.y
         );
+
+    }
+
+    hit(animX, animY) {
+        if (this.hp > 0){
+            this.hp--;
+            if(this.hp == 0){ 
+                computeLightingGrid(curLightMap)
+                playDiggingSound()
+                player.give(this.material)
+            }
+            else playHittingSound()
+            this.coolDownHit = this.maxCoolDownHit
+        }
+        this.createAnimation(animX, animY)
         if (this.hp === 0) this.material = 0;
     }
 
@@ -124,6 +125,7 @@ class Cell {
     }
 
     showMat() {
+        if(this.material == 6 || this.material == 7 || this.material == 8) return
         if (this.material === 0 || this.hp === 0) return;
         let off = this.rnd * 2;
         let col = colors[this.material - 1];
@@ -248,7 +250,7 @@ class Cell {
     }
 
     // The show() method is common to both children.
-    show(lightGrid) {
+    show() {
         if(this.coolDownHit > 0) this.coolDownHit--
         this.showBasic();
         this.showMat();

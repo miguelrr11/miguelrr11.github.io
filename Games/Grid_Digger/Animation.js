@@ -23,7 +23,7 @@ class Animation{
         let shapeMat = type == 'miningMat1' ? 'ellipse' : type == 'miningMat2' ? 'rect' : 'triangle'
         let colWalking = anim.color
         if(type == 'mining'){
-            for(let i = 0; i < 7; i++){
+            for(let i = 0; i < 5; i++){
                 let x = this.x + random(-cellPixelSize/2, cellPixelSize/2)
                 let y = this.y + random(-cellPixelSize/2, cellPixelSize/2)
                 let col = random(170, 220)
@@ -39,15 +39,15 @@ class Animation{
             }
         }
         if(type == 'miningMat1' || type == 'miningMat2' || type == 'miningMat3'){
-            let count = explosionMat ? 30 : 8
+            let count = explosionMat ? 20 : 4
             for(let i = 0; i < count; i++){
                 let x = this.x + random(-cellPixelSize/2, cellPixelSize/2)
                 let y = this.y + random(-cellPixelSize/2, cellPixelSize/2)
                 let col = randomizeColor(colMat, 30)
-                let lifespan = explosionMat ? random(35, 40) : random(10, 25)
+                let lifespan = explosionMat ? random(50, 60) : random(10, 25)
                 let speed = explosionMat ? 8.5 : 3
                 let vel = createVector(random(-speed, speed), random(-speed, speed))
-                let acc = explosionMat ? p5.Vector.fromAngle(atan2(vel.y, vel.x)).mult(-0.15) : createVector(0,0) //effect of particles returning to the center
+                let acc = explosionMat ? p5.Vector.fromAngle(atan2(vel.y, vel.x)).mult(-0.3) : createVector(0,0) //effect of particles returning to the center
                 let friction = .92
                 let angle = 0
                 let rotVel = random(-0.1, 0.1)
@@ -74,15 +74,15 @@ class Animation{
             }
         }
         if(type == 'fuse'){
-            let count = explosionMat ? 150 : 3
+            let count = explosionMat ? 200 : 2
             for(let i = 0; i < count; i++){
                 let x = this.x + random(-cellPixelSize/8, cellPixelSize/8)
                 let y = this.y + random(-cellPixelSize/8, cellPixelSize/8)
                 let col1 = color(255, 0, 0)
                 let col2 = color(255, 255, 0)
                 let col = lerpColor(col1, col2, Math.random())
-                let lifespan = explosionMat ? random(20, 60) : random(20, 30)
-                let strength = explosionMat ? random(3, 7.5) : random(2.5, 3.4)
+                let lifespan = explosionMat ? random(40, 80) : random(20, 30)
+                let strength = explosionMat ? random(8, 12) : random(2.5, 3.4)
                 // direction of a fuse, upwards and sliightly to the sides
                 let dir = explosionMat ? createVector(random(-1, 1), random(-1, 1)).normalize() :
                 createVector(random(-0.5, 0.5), -1).normalize()

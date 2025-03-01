@@ -6,6 +6,28 @@ class Player{
         this.coolDownMovement = coolDownMovement
         this.coolDownMining = coolDownMining
         this.oldPos = undefined         //quick fix for lighting in transitions
+
+        this.mat1Cap = 10
+        this.mat2Cap = 10
+        this.mat3Cap = 10
+        this.mat1 = 0
+        this.mat2 = 0
+        this.mat3 = 0
+    }
+
+    give(material){
+        if(material == 1){
+            this.mat1++
+            if(this.mat1 > this.mat1Cap) this.mat1 = this.mat1Cap
+        }
+        else if(material == 2){
+            this.mat2++
+            if(this.mat2 > this.mat2Cap) this.mat2 = this.mat2Cap
+        }
+        else if(material == 3){
+            this.mat3++
+            if(this.mat3 > this.mat3Cap) this.mat3 = this.mat3Cap
+        }
     }
 
     move(dx, dy) {
@@ -163,6 +185,7 @@ class Player{
             this.coolDownMovement--
             if(this.coolDownMovement < 0){
                 this.pos = this.newPos.copy()
+                computeLightingGrid(curLightMap)
                 this.newPos = undefined
                 this.state = 'resting'
             }
@@ -216,6 +239,7 @@ class Player{
             else if(this.state == 'moving'){
                 let [deltaMovX, deltaMovY] = this.getSmoothDeltas();
                 translate((this.pos.x + deltaMovX) * cellPixelSize + cellPixelSize/2, (this.pos.y + deltaMovY) * cellPixelSize + cellPixelSize/2)
+                computeLightingGrid(curLightMap)
                 
             }
             

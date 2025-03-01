@@ -52,3 +52,11 @@ let colMat2 = hexToRgb("#e76f51")  //square
 let colMat3 = hexToRgb("#a7c957")  //triangle
 
 let colors = [colMat1, colMat2, colMat3, colUndMat, colMatExp]
+
+let colMat1Dark = hexToRgb("#082F36")  //ellipse
+let colMat2Dark = hexToRgb("#361107")  //square
+let colMat3Dark = hexToRgb("#252E0F")  //triangle
+
+let colMat1Medium = hexToRgb("#147C8F")  //ellipse
+let colMat2Medium = hexToRgb("#902C14")  //square
+let colMat3Medium = hexToRgb("#566C23")  //triangle
