@@ -39,8 +39,6 @@ class SelectTask{
 		//uncross the option
 		let indexCrossed = this.crossed.indexOf(uncrossedOption)
 		if(indexCrossed != -1) this.crossed.splice(indexCrossed, 1)
-		
-
 	}
 
 	cross(index){

@@ -72,7 +72,7 @@ class Button{
 	show(){
 		push()
 		this.beingHovered && !this.disabled ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
-		this.disabled ? stroke(this.transCol) : stroke(this.lightCol)
+		this.disabled ? stroke(200) : stroke(this.lightCol)
 		fill(this.darkCol)
 		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 		this.beingHovered ? fill(this.transCol) : fill(this.darkCol)
@@ -81,8 +81,8 @@ class Button{
 		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 
 		noStroke()
-		this.disabled ? fill(this.transCol) : fill(this.lightCol)
 		if(this.beingHovered && mouseIsPressed) fill(this.darkCol)
+		this.disabled ? fill(200) : fill(this.lightCol)
 		textSize(this.textSize)
 		textAlign(CENTER)
 		text(this.text, this.pos.x + this.w/2, this.pos.y + this.h*0.75)

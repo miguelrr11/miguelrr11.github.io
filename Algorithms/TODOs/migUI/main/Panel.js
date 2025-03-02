@@ -2,6 +2,15 @@
 //Miguel Rodríguez
 //06-09-2024
 
+
+//--------------------------//
+//--------------------------//
+//--------------------------//
+//VERSION PARA PROYECTO TODOs - NO UTILIZAR PARA OTROS PROYECTOS
+//--------------------------//
+//--------------------------//
+//--------------------------//
+
 let bordeMIGUI = 1
 let text_FontMIGUI
 let text_SizeMIGUI = 15
@@ -384,6 +393,36 @@ class Panel{
 		}
 	}
 
+	//----------------proyecto TODOs----------------//
+
+	deleteSelect(select, dx = 0){
+		let index = findIndexByObjMIGUI(select, this.selects)
+		if(index == -1) return
+		this.selects.splice(index, 1)
+		if(dx != 0) this.moveElementFromIndex(this.selects, index, dx)
+	}
+
+	deleteSentence(sentence, dx = 0){
+		let index = findIndexByObjMIGUI(sentence, this.sentences)
+		if(index == -1) return
+		this.sentences.splice(index, 1)
+		this.moveElementFromIndex(this.sentences, index, dx)
+	}	
+
+	deleteSentence(words){
+		let index = findIndexMIGUI(words, this.sentences)
+		if(index == -1) return
+		this.sentences.splice(index, 1)
+	}
+
+	moveElementFromIndex(arr, index, dx){
+		console.log(index)
+		for(let i = index; i < arr.length; i++){
+			arr[i].pos.x += dx
+		}
+	}
+	//----------------proyecto TODOs----------------//
+
 
 	changeColors(dark, light){
 		if(typeof dark === "string"){
@@ -675,6 +714,13 @@ function getRoundedValueMIGUI(value){
 	if(Math.abs(value) < 1) return round(value, 2)
 	if(Math.abs(value) < 10) return round(value, 1)
 	return round(value)
+}
+
+function findIndexByObjMIGUI(obj, arr){
+	for(let i = 0; i < arr.length; i++){
+		if(arr[i] == obj) return i
+	}
+	return -1
 }
 
 function findIndexMIGUI(name, arr){

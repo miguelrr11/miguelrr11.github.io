@@ -9,7 +9,7 @@ const HEIGHT = 600
 const colBack = "#3c3c3c"
 
 let panel, fontPanel
-let inputTask, selectTab, createTab
+let inputTask, selectTab, createTab, deleteTab
 let nTabs = 0
 let separation = 180
 
@@ -20,12 +20,72 @@ function preload(){
     fontPanel = loadFont("migUI/main/bnr.ttf")
 }
 
+function saveDataLocalStorage(){
+    let data = {}
+    for(let [key, value] of tabs){
+        if(value != '-1'){
+            data[key] = value.options
+        }
+        else data[key] = ''
+    }
+    localStorage.setItem('data', JSON.stringify(data))
+}
+
+function loadDataLocalStorage(){
+    let data = JSON.parse(localStorage.getItem('data'))
+    if(data == null) return
+    
+    for(let key in data){
+        deleteTab.enable()
+        createNewTab(key)
+        if(data[key] == '') continue
+        let index = getIndexOfKey(tabs, key)
+        let tabSelect = createSelectTask(index, data[key][0])
+        tabs.set(key, tabSelect)
+        for(let i = 1; i < data[key].length; i++){
+            tabSelect.addOption(data[key][i])
+        }
+    }
+}
+
+function deleteSelectedTab(){
+    let tab = selectTab.getSelected()
+    let index = getIndexOfKey(tabs, tab)
+    let tabSelect = tabs.get(tab)
+    // if(tabSelect != '-1'){
+    //     for(let i = 0; i < tabSelect.options.length; i++){
+    //         if(tabSelect.isItCrossed(tabSelect.options[i])){
+    //             tabSelect.removeOption(tabSelect.options[i])
+    //             i--
+    //         }
+    //     }
+    // }
+    panel.deleteSelect(tabSelect, -separation)
+    panel.deleteSentence(titles[index], -separation)
+    tabs.delete(tab)
+    titles.splice(index, 1)
+    createTab.pos.x -= separation
+    nTabs--
+    if(nTabs == 0){
+        inputTask.disable()
+        deleteTab.disable()
+        panel.deleteSelect(selectTab)
+        panel.deleteSentence('Select Tab')
+    }
+    else{
+        selectTab.removeOption(tab)
+    }
+    saveDataLocalStorage()
+}
+
 function setup(){
     createCanvas(WIDTH, HEIGHT)
+    
     panel = new Panel({
         retractable: false,
         title: "TODOs",
-        theme: 'light',
+        lightCol: "#89A0D2",
+        darkCol: "#E4F0F1",
         w: WIDTH,
         x: 0,
         h: HEIGHT,
@@ -41,16 +101,30 @@ function setup(){
     createTab.pos.y = 20
     createTab.pos.x = 223
     panel.lastElementPos.y -= 40
+
+    deleteTab = panel.createButton('Delete selected Tab', deleteSelectedTab)
+    deleteTab.disable()
+
+    loadDataLocalStorage()
+    saveDataLocalStorage()
+}
+
+function createSelectTab(cleanedTabName){
+    inputTask.enable()
+    deleteTab.enable()
+    let tx = panel.createText('Select Tab')
+    tx.pos.x = 17
+    tx.pos.y = 105
+    selectTab = panel.createSelect([cleanedTabName], cleanedTabName, selectActualTab)
+    selectTab.pos.x = 17
+    selectTab.pos.y = 124.196
 }
 
 function createNewTab(tabName){
     let cleanedTabName = removeFirstAndLastWhiteSpaces(tabName)
     if(tabName == '' || allWhiteSpaces(tabName) || tabNameExists(cleanedTabName)) return
     if(nTabs == 0){
-        inputTask.enable()
-        panel.createText('Select Tab')
-        selectTab = panel.createSelect([cleanedTabName], cleanedTabName, selectActualTab)
-        selectTab.pos.y -= 5
+       createSelectTab(cleanedTabName)
     }
     else{
         selectTab.addOption(cleanedTabName)
@@ -63,6 +137,8 @@ function createNewTab(tabName){
     title.pos.y = 20
     title.pos.x = 223 + (nTabs-1) * separation
     titles.push(title)
+
+    saveDataLocalStorage()
 }
 
 function createSelectTask(indexOfTab, task){
@@ -91,6 +167,7 @@ function addTask(task){
         let tabSelect = tabs.get(tab)
         tabSelect.addOption(cleanedTask)
     }
+    saveDataLocalStorage()
 }
 
 function draw(){
