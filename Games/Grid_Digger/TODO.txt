@@ -44,9 +44,9 @@ Entonces, el jugador equilibra entre buscar el tesoro y minar materiales para po
 - Idea: si en la generacion de materiales, una celula cabe en mas de un material, que los tenga, se enseñarian los 2 y se darian los dos al morir
 
 ------ TODO -------
-- Bloques irrompibles
+- Bloques irrompibles - hecho
 - Materiales spawnean con frecuencias dependientes de su distancia al spawn
-- Poner un tamaño fijo al mapa y handle los edges
+- Poner un tamaño fijo al mapa y handle los edges - hecho
 - Todos los upgrades
 - UI de recursos, xp, ....
 

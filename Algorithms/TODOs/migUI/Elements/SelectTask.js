@@ -11,7 +11,10 @@ class SelectTask{
 		}
 		this.optionsText = []
 		for(let i = 0; i < options.length; i++){
-			this.optionsText[i] = getClippedTextByWidth(options[i], 0, this.w+8)
+			//this.optionsText[i] = getClippedTextByWidth(options[i], 0, this.w+8)
+			let text = wrapText(options[i], this.w-8, text_SizeMIGUI-2)
+			let htext = getHeightOfText(text, this.w-8, text_SizeMIGUI-2)
+			this.optionsText[i] = {text: text, h: htext, y: 0}
 		}
 		this.selected = selected
 		this.func = func
@@ -68,7 +71,9 @@ class SelectTask{
 
 	addOption(option){
 		this.options.push(option)
-		this.optionsText.push(getClippedTextByWidth(option, 0, this.w-8))
+		let text =  wrapText(option, this.w-8, text_SizeMIGUI-2)
+		let htext = getHeightOfText(text, this.w-8, text_SizeMIGUI-2)
+		this.optionsText.push({text: text, h: htext, y: 0})
 		//this.h += this.singleH
 	}
 
@@ -112,9 +117,36 @@ class SelectTask{
 	}
 
 	isHovering(index){
-		let x = this.pos.x
-		let y = this.pos.y + (index * this.singleH)
-		return inBoundsMIGUI(mouseX, mouseY, x, y, this.w, this.singleH)
+		let totalHeightOfrect = this.singleH + this.optionsText[index].h
+		return inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.optionsText[index].y, this.w, totalHeightOfrect)
+	}
+
+	showNotCrossed(i, totalHeightOfrect, o){
+		this.isHovering(i) ? fill(this.lightCol) : fill(this.transCol)
+		if(i == this.selected){ 
+			fill(this.lightCol)
+		}
+		noStroke()
+		let off = 3
+		rect(this.pos.x+off, this.pos.y+off, this.w-off*2, totalHeightOfrect-off*2, this.rad)
+
+		noStroke()
+		fill(this.lightCol)
+		if(this.isHovering(i)){ 
+			fill(this.darkCol)
+		}
+		let yCenter = this.pos.y + totalHeightOfrect/2
+		text(o, this.pos.x + bordeMIGUI + text_offset_xMIGUI+off, yCenter)
+	}
+
+	showCrossed(totalHeightOfrect, o){
+		fill(180)
+		noStroke()
+		let off = 3
+		rect(this.pos.x+off, this.pos.y+off, this.w-off*2, totalHeightOfrect-off*2, this.rad)
+		fill(100)
+		let yCenter = this.pos.y + totalHeightOfrect/2
+		text(o, this.pos.x + bordeMIGUI + text_offset_xMIGUI+off, yCenter)
 	}
 
 	show(){		
@@ -126,35 +158,31 @@ class SelectTask{
 		fill(this.darkCol)
 		textSize(text_SizeMIGUI-2)
 		textAlign(LEFT, CENTER)
+		let totalHeight = this.pos.y
 		for(let i = 0; i < this.optionsText.length; i++){
-			let o = this.optionsText[i]
-			this.isHovering(i) ? fill(this.lightCol) : fill(this.transCol)
-			if(i == this.selected){ 
-				fill(this.lightCol)
-			}
-			noStroke()
-			let off = 3
-			rect(this.pos.x+off, this.pos.y+off, this.w-off*2, this.singleH-off*2, this.rad)
-
-			noStroke()
-			fill(this.lightCol)
-			if(this.isHovering(i)){ 
-				fill(this.darkCol)
-			}
-			text(o, this.pos.x + bordeMIGUI + text_offset_xMIGUI+off, this.pos.y + this.singleH*0.5)
-
-			push()
-			stroke(this.lightCol)
-			strokeWeight(2.5)
-			//if this option is crossed, draw a line
-			if(this.crossed.includes(this.options[i])){
-				line(this.pos.x+5, this.pos.y+this.singleH/2, this.pos.x + this.w-5, this.pos.y + this.singleH/2)
-			}
-			pop()
-
-			translate(0, this.singleH)
-
+			let o = this.optionsText[i].text
+			let opH = this.optionsText[i].h
+			this.optionsText[i].y = totalHeight
+			let totalHeightOfrect = this.singleH + opH
 			
+			if(!this.crossed.includes(this.options[i])){
+				this.showNotCrossed(i, totalHeightOfrect, o)
+			}
+			else{
+				this.showCrossed(totalHeightOfrect, o)
+			}
+
+			// push()
+			// stroke(this.lightCol)
+			// strokeWeight(2.5)
+			// //if this option is crossed, draw a line
+			// if(this.crossed.includes(this.options[i])){
+			// 	line(this.pos.x+5, this.pos.y+this.singleH/2, this.pos.x + this.w-5, this.pos.y + this.singleH/2)
+			// }
+			// pop()
+
+			totalHeight += totalHeightOfrect
+			translate(0, totalHeightOfrect)
 		}
 
 		pop()
@@ -168,4 +196,20 @@ class SelectTask{
 
 		// pop()
 	}
+}
+
+function getNlines(str){
+	return str.split('\n').length
+}
+
+function getHeightOfText(words, pixelLength, ts){
+	let newlinesN = words.split('\n').length
+	let newlines = words.split('\n')
+	textSize(ts)
+	let height = 0
+	for(let i = 0; i < newlinesN; i++){
+		height += textHeight(newlines[i])
+	}
+	height *= 1.2
+	return height
 }

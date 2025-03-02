@@ -78,14 +78,29 @@ function deleteSelectedTab(){
     saveDataLocalStorage()
 }
 
+function deleteCrossedOptions(){
+    for(let [key, value] of tabs){
+        if(value != '-1'){
+            for(let i = 0; i < value.options.length; i++){
+                if(value.isItCrossed(value.options[i])){
+                    value.removeOption(value.options[i])
+                    i--
+                }
+            }
+        }
+    }
+    saveDataLocalStorage()
+}
+
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     
     panel = new Panel({
         retractable: false,
         title: "TODOs",
-        lightCol: "#89A0D2",
-        darkCol: "#E4F0F1",
+        // lightCol: "#89A0D2",
+        // darkCol: "#E4F0F1",
+        theme: 'clean',
         w: WIDTH,
         x: 0,
         h: HEIGHT,
@@ -102,8 +117,10 @@ function setup(){
     createTab.pos.x = 223
     panel.lastElementPos.y -= 40
 
+    panel.createButton('Delete crossed Tasks', deleteCrossedOptions)
     deleteTab = panel.createButton('Delete selected Tab', deleteSelectedTab)
     deleteTab.disable()
+    deleteTab.pos = createVector(17, HEIGHT - 40)
 
     loadDataLocalStorage()
     saveDataLocalStorage()
