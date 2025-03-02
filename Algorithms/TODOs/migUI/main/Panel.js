@@ -480,7 +480,7 @@ class Panel{
 			this.changeColors("#393e41", "#f4d35e")
 		}
 		else if(theme == "clean"){
-			this.changeColors("#000022", "#fbf5f3")
+			this.changeColors("#fbf5f3", "#000022")
 		}
 		else if(theme == "techno"){
 			this.changeColors("#092327", "#17B1AD")
