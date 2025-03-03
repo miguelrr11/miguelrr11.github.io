@@ -25,16 +25,16 @@ class Animation{
         let colWalking = anim.color
         if(type == 'mining'){
             for(let i = 0; i < 5; i++){
-                let x = this.x + random(-cellPixelSize/2, cellPixelSize/2)
-                let y = this.y + random(-cellPixelSize/2, cellPixelSize/2)
-                let col = random(170, 220)
-                let lifespan = random(10, 25)
-                let vel = createVector(random(-1.5, 1.5), random(-1.5, 1.5))
+                let x = this.x + randomm(-cellPixelSize/2, cellPixelSize/2)
+                let y = this.y + randomm(-cellPixelSize/2, cellPixelSize/2)
+                let col = [randomm(170, 220)]
+                let lifespan = randomm(10, 25)
+                let vel = createVector(randomm(-1.5, 1.5), randomm(-1.5, 1.5))
                 let acc = createVector(0, 0)
                 let friction = 0.9
                 let angle = 0
-                let rotVel = random(-0.1, 0.1)
-                let size = random(cellPixelSize*.2, cellPixelSize*.25)
+                let rotVel = randomm(-0.1, 0.1)
+                let size = randomm(cellPixelSize*.2, cellPixelSize*.25)
                 let shape = 'rect'
                 this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape, false))
             }
@@ -42,35 +42,35 @@ class Animation{
         if(type == 'miningMat1' || type == 'miningMat2' || type == 'miningMat3'){
             let count = explosionMat ? 20 : 4
             for(let i = 0; i < count; i++){
-                let x = this.x + random(-cellPixelSize/2, cellPixelSize/2)
-                let y = this.y + random(-cellPixelSize/2, cellPixelSize/2)
+                let x = this.x + randomm(-cellPixelSize/2, cellPixelSize/2)
+                let y = this.y + randomm(-cellPixelSize/2, cellPixelSize/2)
                 let col = randomizeColor(colMat, 30)
-                let lifespan = explosionMat ? random(50, 60) : random(10, 25)
+                let lifespan = explosionMat ? randomm(50, 60) : randomm(10, 25)
                 let speed = explosionMat ? 8.5 : 3
-                let direction = dir ? dir : createVector(random(-1, 1), random(-1, 1)).normalize()
+                let direction = dir ? dir : createVector(random(-1, 1), randomm(-1, 1)).normalize()
                 let vel = createVector(direction.x*speed, direction.y*speed)
                 let acc = explosionMat ? p5.Vector.fromAngle(atan2(vel.y, vel.x)).mult(-0.3) : createVector(0,0) //effect of particles returning to the center
                 let friction = .92
                 let angle = 0
-                let rotVel = random(-0.1, 0.1)
-                let size = random(cellPixelSize*.3, cellPixelSize*.3)
+                let rotVel = randomm(-0.1, 0.1)
+                let size = randomm(cellPixelSize*.3, cellPixelSize*.3)
                 let shape = shapeMat
                 this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape, followPlayer))
             }
         }
         if(type == 'walking'){
             for(let i = 0; i < 4; i++){
-                let x = this.x + random(-cellPixelSize/2, cellPixelSize/2)
-                let y = this.y + random(-cellPixelSize/2, cellPixelSize/2)
+                let x = this.x + randomm(-cellPixelSize/2, cellPixelSize/2)
+                let y = this.y + randomm(-cellPixelSize/2, cellPixelSize/2)
                 let col = randomizeColor(colWalking, 10)
-                let lifespan = random(10, 17)
-                let strength = random(1, 1.4)
+                let lifespan = randomm(10, 17)
+                let strength = randomm(1, 1.4)
                 let vel = createVector(dir.x*strength, dir.y*strength)
                 let acc = createVector(0, 0)
                 let friction = 0.95
                 let angle = 0
                 let rotVel = 0
-                let size = random(cellPixelSize*.2, cellPixelSize*.25)
+                let size = randomm(cellPixelSize*.2, cellPixelSize*.25)
                 let shape = 'rect'
                 this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape, false))
             }
@@ -78,23 +78,21 @@ class Animation{
         if(type == 'fuse'){
             let count = explosionMat ? 200 : 2
             for(let i = 0; i < count; i++){
-                let x = this.x + random(-cellPixelSize/8, cellPixelSize/8)
-                let y = this.y + random(-cellPixelSize/8, cellPixelSize/8)
-                let col1 = color(255, 0, 0)
-                let col2 = color(255, 255, 0)
-                let col = lerpColor(col1, col2, Math.random())
-                let lifespan = explosionMat ? random(40, 80) : random(20, 30)
-                let strength = explosionMat ? random(8, 12) : random(2.5, 3.4)
+                let x = this.x + randomm(-cellPixelSize/8, cellPixelSize/8)
+                let y = this.y + randomm(-cellPixelSize/8, cellPixelSize/8)
+                let col = lerppColor([255, 0, 0], [255, 255, 0], Math.random())
+                let lifespan = explosionMat ? randomm(40, 80) : randomm(20, 30)
+                let strength = explosionMat ? randomm(8, 12) : randomm(2.5, 3.4)
                 // direction of a fuse, upwards and sliightly to the sides
-                let dir = explosionMat ? createVector(random(-1, 1), random(-1, 1)).normalize() :
+                let dir = explosionMat ? createVector(random(-1, 1), randomm(-1, 1)).normalize() :
                 createVector(random(-0.5, 0.5), -1).normalize()
                 let vel = createVector(dir.x*strength, dir.y*strength)
                 let acc = createVector(0, 0)
                 let friction = 0.965
-                let angle = random(-PI/4, PI/4)
+                let angle = randomm(-PI/4, PI/4)
                 let rotVel = 0
-                let size = explosionMat ?  random(cellPixelSize*.35, cellPixelSize*.45) : 
-                random(cellPixelSize*.2, cellPixelSize*.25)
+                let size = explosionMat ?  randomm(cellPixelSize*.35, cellPixelSize*.45) : 
+                randomm(cellPixelSize*.2, cellPixelSize*.25)
                 let shape = 'rect'
                 this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape, false))
             }

@@ -38,7 +38,7 @@ function showTopo() {
     if(transitionFramesCounter == transitionFrames) stroke(colOscuridad1_2);
     else{
         let diff = Math.abs(transitionFramesCounter - transitionFrames / 2);
-        let alpha = mapp(pow(diff, 10), 0, pow(transitionFrames / 2, 10), 0, 255);
+        let alpha = mapp(Math.pow(diff, 2), 0, Math.pow(transitionFrames / 2, 2), 0, 255);
         let col = color(colOscuridad1_2);
         col.setAlpha(alpha);
         stroke(col);

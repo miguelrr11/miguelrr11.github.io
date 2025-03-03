@@ -125,28 +125,28 @@ function showMinimap(){
             let col;
             switch(minimap[i][j]){
                 case SPAWN: 
-                    col = color(colSPAWN)
+                    col = (colSPAWN)
                     break
                 case EXPLORED:
-                    col = color(colEXPLORED)
+                    col = (colEXPLORED)
                     break
                 case NOMATERIAL:
-                    col = color(colEXPLORED)
+                    col = (colEXPLORED)
                     break
                 case UNEXPLORED:
-                    col = color(0, 0, 0, 0)
+                    col = [0, 0, 0]
                     break
                 default: console.log('error')
                 
             }
             if(i == playerPosMinimap.x && j == playerPosMinimap.y){
-                col = color(colPLAYER)
+                col = (colPLAYER)
             }
             if(i == spawnLocation && j == spawnLocation){
-                col = color(colSPAWN)
+                col = (colSPAWN)
             } 
-            col.setAlpha(trans)
-            fill(col)
+            
+            fill([...col, trans])
             stroke(20, trans)
             if(minimap[i][j] == UNEXPLORED){
                 noFill()

@@ -22,6 +22,7 @@ class Cell {
         this.rnd1 = dec[0];
         this.rnd2 = dec[1];
         this.noise = noise(this.x/10, this.y/10);
+        this.noise4 = noise(this.x/4, this.y/4);
     }
 
     setBiomeColors(biome){
@@ -200,75 +201,71 @@ class Cell {
         drawTriangle(modTam);
     }
 
-    showBasic() {
-        push();
-        rectMode(CENTER);
-        translate(this.x * cellPixelSize + cellPixelSize / 2, this.y * cellPixelSize + cellPixelSize / 2);
-        noStroke();
-        let tam = cellPixelSize;
-        this.showSuelo();
-        if (this.hp > 0 && !this.und) {
-            //fill(this.colRoca); // set by the child class
-            let col1 = color(this.colRoca)
-            let col2 = color(this.colOscuridad2)
-            let col = lerpColor(col1, col2, noise(this.x/10, this.y/10));
-            fill(col)
-            tam = mapp(this.hp, 0, this.maxHealthCell, minTam, maxTam, true);
-            rect(0, 0, tam, tam);
-
-            if(this.coolDownHit > 0){
-                fill(255, mapp(this.coolDownHit, 0, this.maxCoolDownHit, 0, 255))
-                rect(0, 0, tam, tam)
-            }
-        }
-        else if(this.und){
-            fill(colUnd)
-            rect(0, 0, cellPixelSize, cellPixelSize)
-        }
-        pop();
-    }
-
-
-    showLight(lightGrid) {
-        push();
-        rectMode(CENTER);
-        translate(this.x * cellPixelSize + cellPixelSize / 2, this.y * cellPixelSize + cellPixelSize / 2);
-        noStroke();
-        let light = lightGrid[this.x][this.y].light;
-        let visible = lightGrid[this.x][this.y].visible;
-        let sensor = lightGrid[this.x][this.y].sensor;
-        let col = color(this.colOscuridad1);
-        col.setAlpha(255 - light * 255);
-        fill(col);
-        if (!sensor && !visible){ 
-            let colOsc1 = color(this.colOscuridad1);
-            let colOsc2 = color(this.colOscuridad2);
-            fill(lerpColor(colOsc1, colOsc2, noise(this.x/10, this.y/10, frameCount * sclNoiseMovement)));
-        }
-        rect(0, 0, cellPixelSize, cellPixelSize);
-        pop();
-    }
-
-    // The show() method is common to both children.
     show() {
         if(this.coolDownHit > 0) this.coolDownHit--
         this.showBasic();
         this.showMat();
     }
 
+    showBasic() {
+        let x = this.x * cellPixelSize + cellPixelSize / 2
+        let y = this.y * cellPixelSize + cellPixelSize / 2
+        let tam = cellPixelSize;
+        if(this.hp < this.maxHealthCell) this.showSuelo(x, y)
+        if (this.hp > 0 && !this.und) {
+            //fill(this.colRoca); // set by the child class
+            let col = lerppColor(this.colRoca, this.colOscuridad2, this.noise);
+            fill(col)
+            tam = mapp(this.hp, 0, this.maxHealthCell, minTam, maxTam, true);
+            rect(x, y, tam, tam);
+
+            if(this.coolDownHit > 0){
+                fill(255, mapp(this.coolDownHit, 0, this.maxCoolDownHit, 0, 255))
+                rect(x, y, tam, tam)
+            }
+
+        }
+        else if(this.und){
+            fill(colUnd)
+            rect(x, y, cellPixelSize, cellPixelSize)
+        }
+    }
+
+
+    showLight(lightGrid) {
+        
+        let light = lightGrid[this.x][this.y].light;
+        let visible = lightGrid[this.x][this.y].visible;
+        let sensor = lightGrid[this.x][this.y].sensor;
+        fill([...this.colOscuridad1, 255 - light * 255]);
+        if (!sensor && !visible){
+            fill(lerppColor(this.colOscuridad1, this.colOscuridad2, noise(this.x/10, this.y/10, frameCount * sclNoiseMovement)));
+        }
+        // if(!visible){
+        //     stroke(255, 50)
+        //     strokeWeight(mapp(this.rnd, -1, 1, .1, 3.5))
+        // }
+        // else noStroke()
+        
+        rect(this.x * cellPixelSize + cellPixelSize / 2, 
+            this.y * cellPixelSize + cellPixelSize / 2, 
+            cellPixelSize, cellPixelSize);
+        
+    }
+
+    
+
     showDebug() {
         this.showMat();
     }
 
       
-    showSuelo() {
-        let c1 = color(this.colSuelo1);
-        let c2 = color(this.colSuelo2);
-        let c = lerpColor(c1, c2, noise(this.x/4, this.y/4));
+    showSuelo(x, y) {
+        let c = lerppColor(this.colSuelo1, this.colSuelo2, this.noise4);
         fill(c);
-        rect(0, 0, cellPixelSize, cellPixelSize);
-        if (this.rnd > 0.85) showGrass();
-        if (this.rnd < -0.85) showPebbles(this.rnd);
+        rect(x, y, cellPixelSize, cellPixelSize);
+        if (this.rnd > 0.85) showGrass(x, y);
+        if (this.rnd < 1) showPebbles(x, y, this.rnd);
     }
 
 }
@@ -282,34 +279,39 @@ function drawTriangle(tam) {
     endShape();
 }
 
-function showGrass() {
+const p1G = {x:0.25, y:0.5}
+const p2G = {x:0.35, y:0.8}
+const p3G = {x:0.5, y:0.3}
+const p4G = {x:0.5, y:0.7}
+const p5G = {x:0.67, y:0.7}
+const p6G = {x:0.75, y:0.5}
+
+function showGrass(x, y) {
     push();
-    translate(-cellPixelSize / 2, -cellPixelSize / 2);
+    let xG = x - cellPixelSize / 2;
+    let yG = y - cellPixelSize / 2;
     stroke("#365B64");
-    strokeWeight(1.5);
-    let p1 = createVector(0.25, 0.5);
-    let p2 = createVector(0.35, 0.8);
-    let p3 = createVector(0.5, 0.3);
-    let p4 = createVector(0.5, 0.7);
-    let p5 = createVector(0.67, 0.7);
-    let p6 = createVector(0.76, 0.4);
-    line(p1.x * cellPixelSize, p1.y * cellPixelSize, p2.x * cellPixelSize, p2.y * cellPixelSize);
-    line(p3.x * cellPixelSize, p3.y * cellPixelSize, p4.x * cellPixelSize, p4.y * cellPixelSize);
-    line(p5.x * cellPixelSize, p5.y * cellPixelSize, p6.x * cellPixelSize, p6.y * cellPixelSize);
+    strokeWeight(2);
+    
+    line(p1G.x * cellPixelSize + xG, p1G.y * cellPixelSize + yG, p2G.x * cellPixelSize + xG, p2G.y * cellPixelSize + yG);
+    line(p3G.x * cellPixelSize + xG, p3G.y * cellPixelSize + yG, p4G.x * cellPixelSize + xG, p4G.y * cellPixelSize + yG);
+    line(p5G.x * cellPixelSize + xG, p5G.y * cellPixelSize + yG, p6G.x * cellPixelSize + xG, p6G.y * cellPixelSize + yG);
     pop();
 }
 
-function showPebbles(rnd) {
+const p1P = {x:0.3, y:0.5}
+const p2P = {x:0.5, y:0.75}
+const p3P = {x:0.75, y:0.4}
+
+//stopped working
+function showPebbles(x, y, rnd) {
     push();
     rotate(rnd * 10);
-    translate(-cellPixelSize / 2, -cellPixelSize / 2);
+    translate(x, y)
     fill("#2C2D47");
     noStroke();
-    let p1 = createVector(0.3, 0.5);
-    let p2 = createVector(0.5, 0.75);
-    let p3 = createVector(0.75, 0.4);
-    ellipse(p1.x * cellPixelSize, p1.y * cellPixelSize, cellPixelSize * 0.16);
-    ellipse(p2.x * cellPixelSize, p2.y * cellPixelSize, cellPixelSize * 0.18);
-    ellipse(p3.x * cellPixelSize, p3.y * cellPixelSize, cellPixelSize * 0.2);
+    ellipse(p1P.x * cellPixelSize, p1P.y * cellPixelSize, cellPixelSize * 0.16);
+    ellipse(p2P.x * cellPixelSize, p2P.y * cellPixelSize, cellPixelSize * 0.18);
+    ellipse(p3P.x * cellPixelSize, p3P.y * cellPixelSize, cellPixelSize * 0.2);
     pop();
 }

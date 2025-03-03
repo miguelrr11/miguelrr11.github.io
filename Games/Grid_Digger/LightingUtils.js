@@ -192,9 +192,9 @@ function computeLightingGrid(map) {
             let rad = fovRadius;
             let sensor = false
             for (let lp of map.lightPoints) {
-                let d = dist(lp.x, lp.y, x, y);
-                if (d < fovRadiusWall) sensor = true
-                let intensity = lp.strength * Math.exp(-2 * (d / rad));
+                let d = squaredDistance(lp.x, lp.y, x, y);
+                if (d < fovRadiusWallSq) sensor = true
+                let intensity = lp.strength * Math.exp(-2 * ((Math.sqrt(d)) / rad));
                 light += intensity;
             }
             light = constrain(light, 0, 1);

@@ -31,7 +31,7 @@ function hexToRgb(hex) {
 }
 
 function randomizeColor(col, amt){
-    return col.map(c => c + random(-amt, amt))
+    return col.map(c => c + randomm(-amt, amt))
 }
 
 function modifyColor(col, amt){
@@ -49,4 +49,16 @@ function getTwoDecimals(number) {
 
 function between(value, min, max) {
     return Math.max(min, Math.min(value, max));
+}
+
+function lerppColor(color1, color2, t) {
+    return color1.map((c, i) => (1 - t) * c + t * color2[i]);
+}
+
+function randomm(start, stop){
+    return Math.random() * (stop - start) + start
+}
+
+function squaredDistance(x1, y1, x2, y2) {
+    return (x2 - x1) ** 2 + (y2 - y1) ** 2
 }

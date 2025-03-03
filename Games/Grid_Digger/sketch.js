@@ -1,6 +1,6 @@
-//
+//Grid Digger
 //Miguel Rodríguez
-//
+//Started on 20-02-2025
 
 p5.disableFriendlyErrors = true
 
@@ -12,13 +12,13 @@ let SHOW_DEBUG = false
 
 let plotFps, plotAnims
 
-let nFPS = 60
+let nFPS = 5
 let FPSarr = Array(nFPS).fill(60)
 let meanFPS = 60
 
 function setup(){
     createCanvas(WIDTH+400, HEIGHT)
-    frameRate(60)
+    //pixelDensity(1)   // no parece mejorar fps
     loadChunks(0, 0)
     prepareSpawn()
     player = new Player()
@@ -61,7 +61,7 @@ function draw(){
 
     
 
-    if(frameCount % 10 == 0) updateTopo()
+    if(frameCount % 1 == 0) updateTopo()
     showTopo()
 
     updateMinimap()

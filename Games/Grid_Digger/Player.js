@@ -26,6 +26,7 @@ class Player{
         }
         else if(upgrade == 2){
             fovRadiusWall++
+            fovRadiusWallSq = fovRadiusWall * fovRadiusWall
             computeLightingGrid(curLightMap)
         }
     }

@@ -67,6 +67,7 @@ class Cell_nexo extends Cell {
         push()
         translate(this.x * cellPixelSize, this.y * cellPixelSize)
         strokeWeight(4)
+        rectMode(CORNER)
         let w = cellPixelSize * 3
         let h = cellPixelSize * 2
         let wImg = h - 3

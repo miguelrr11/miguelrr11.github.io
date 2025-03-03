@@ -76,7 +76,7 @@ function generateChunk(x, y){
             if(hp == 0) material = 0
             else material = willBeMaterial(i, j, x, y)
             if(material != 0) hp = maxHealthCellMat
-            if(hp == 0 && random() < 0.085) row.push(new Cell_exp(i, j, material, hp, undefined, undefined, biome)) 
+            if(hp == 0 && randomm() < 0.085) row.push(new Cell_exp(i, j, material, hp, undefined, undefined, biome)) 
             else if(biome == 1) row.push(new Cell_1(i, j, material, hp))
             else if(biome == 2) row.push(new Cell_2(i, j, material, hp))
             else if(biome == 3) row.push(new Cell_3(i, j, material, hp))
@@ -208,7 +208,6 @@ function transitionToChunk(chunk){
 }
 
 function showChunk() {
-    push()
     if (transitioning) {
         let progress = 1 - transitionFramesCounter / transitionFrames;
         let smoothFactor = 1 - Math.pow(1 - progress, 3);
@@ -218,16 +217,10 @@ function showChunk() {
             (1 - smoothFactor) * transitionChunkPos.x * WIDTH,
             -(1 - smoothFactor) * transitionChunkPos.y * HEIGHT
         );
-        for (let i = 0; i < transitionChunk.length; i++) {
-            for (let j = 0; j < transitionChunk[i].length; j++) {
-                transitionChunk[i][j].show(transitionLightMap.lightingGrid);
-            }
-        }
-        for (let i = 0; i < transitionChunk.length; i++) {
-            for (let j = 0; j < transitionChunk[i].length; j++) {
-                transitionChunk[i][j].showLight(transitionLightMap.lightingGrid);
-            }
-        }
+        rectMode(CENTER);
+        noStroke();
+        drawChunk(transitionChunk)
+        drawLightChunk(transitionChunk, transitionLightMap);
         pop();
 
         push();
@@ -239,54 +232,59 @@ function showChunk() {
             -smoothFactor * transitionChunkPos.x * WIDTH,
             smoothFactor * transitionChunkPos.y * HEIGHT
         );
-        for (let i = 0; i < currentChunk.length; i++) {
-            for (let j = 0; j < currentChunk[i].length; j++) {
-                currentChunk[i][j].show(curLightMap.lightingGrid);
-            }
-        }
-        for (let i = 0; i < currentChunk.length; i++) {
-            for (let j = 0; j < currentChunk[i].length; j++) {
-                currentChunk[i][j].showLight(curLightMap.lightingGrid);
-            }
-        }
+        rectMode(CENTER);
+        noStroke();
+        drawChunk(currentChunk)
+        drawLightChunk(currentChunk, curLightMap);
         pop();
 
         transitionFramesCounter--;
         if (transitionFramesCounter <= 0) {
-           
-            transitioning = false;
-            transitionFramesCounter = transitionFrames;
-            currentChunkPos.x += transitionChunkPos.x;
-            currentChunkPos.y += transitionChunkPos.y;
-            loadChunks(
-                currentChunkPos.x,
-                currentChunkPos.y
-            );
-            curLightMap.chunk = currentChunk
-            translationPlayer = createVector(0, 0)
-            player.oldPos = undefined
-            computeLightingGrid(curLightMap)
-            updateTopo()
+           stopTransition();
         }
     } 
     else {
-        for (let i = 0; i < currentChunk.length; i++) {
-            for (let j = 0; j < currentChunk[i].length; j++) {
-                if(SHOW_DEBUG) currentChunk[i][j].showDebug();
-                else currentChunk[i][j].show(curLightMap.lightingGrid);
-            }
-        }
-        for (let i = 0; i < currentChunk.length; i++) {
-            for (let j = 0; j < currentChunk[i].length; j++) {
-                if(SHOW_DEBUG) currentChunk[i][j].showDebug();
-                else currentChunk[i][j].showLight(curLightMap.lightingGrid);
-            }
-        }
+        push()
+        rectMode(CENTER);
+        noStroke();
+        drawChunk(currentChunk)
+        drawLightChunk(currentChunk, curLightMap);
         if(currentChunkPos.x == 0 && currentChunkPos.y == 0) showNexos()
+        pop()
     }
-    pop()
 }
 
+function drawChunk(chunk){
+    for(let i = 0; i < chunk.length; i++){
+        for(let j = 0; j < chunk[i].length; j++){
+            chunk[i][j].show()
+        }
+    }
+}
+
+function drawLightChunk(chunk, lightMap){
+    for(let i = 0; i < chunk.length; i++){
+        for(let j = 0; j < chunk[i].length; j++){
+            chunk[i][j].showLight(lightMap.lightingGrid)
+        }
+    }
+}
+
+function stopTransition(){
+    transitioning = false;
+    transitionFramesCounter = transitionFrames;
+    currentChunkPos.x += transitionChunkPos.x;
+    currentChunkPos.y += transitionChunkPos.y;
+    loadChunks(
+        currentChunkPos.x,
+        currentChunkPos.y
+    );
+    curLightMap.chunk = currentChunk
+    translationPlayer = createVector(0, 0)
+    player.oldPos = undefined
+    computeLightingGrid(curLightMap)
+    updateTopo()
+}
 
 //saves the chunk in the map as a string
 function saveChunk(chunk, x, y){
