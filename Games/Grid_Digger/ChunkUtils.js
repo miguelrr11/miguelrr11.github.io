@@ -20,7 +20,7 @@ function loadChunk(x, y){
                 let illuminated = parseInt(properties[2]) == 1 ? true : false
                 let rnd = parseFloat(properties[3])
                 if(material == 5) chunk[i][j] = new Cell_exp(i, j, material, hp, illuminated, rnd, getBiome(x, y))
-                if(material == 6 || material == 7 || material == 8) chunk[i][j] = new Cell_nexo(i, j, material, hp, illuminated, rnd)
+                else if(material == 6 || material == 7 || material == 8) chunk[i][j] = new Cell_nexo(i, j, material, hp, illuminated, rnd)
                 else if(biome == 1) chunk[i][j] = new Cell_1(i, j, material, hp, illuminated, rnd)
                 else if(biome == 2) chunk[i][j] = new Cell_2(i, j, material, hp, illuminated, rnd)
                 else if(biome == 3) chunk[i][j] = new Cell_3(i, j, material, hp, illuminated, rnd)
@@ -178,8 +178,8 @@ function willBeAir(i, j, cx, cy){
     let offsetY2 = cy * deltaUnd * cellsPerCol
     let noiseVal3 = noise(i * deltaUnd + offsetX2 + offsetUnd, j * deltaUnd + offsetY2)
     if(noiseVal3 > 0.65 && noiseVal3 < 0.65+undWidth)  return Infinity
-    if(noiseVal > 0.5 && noiseVal < 0.5+airWidth) return floor(map(noiseVal, 0.5, 0.5+airWidth, 0, maxHealthCell))
-    if(noiseVal2 > 0.5 && noiseVal2 < 0.5+airWidth) return floor(map(noiseVal2, 0.5, 0.5+airWidth, 0, maxHealthCell))
+    if(noiseVal > 0.5 && noiseVal < 0.5+airWidth) return floor(mapp(noiseVal, 0.5, 0.5+airWidth, 0, maxHealthCell))
+    if(noiseVal2 > 0.5 && noiseVal2 < 0.5+airWidth) return floor(mapp(noiseVal2, 0.5, 0.5+airWidth, 0, maxHealthCell))
     return maxHealthCell
 }
 
@@ -265,6 +265,8 @@ function showChunk() {
             curLightMap.chunk = currentChunk
             translationPlayer = createVector(0, 0)
             player.oldPos = undefined
+            computeLightingGrid(curLightMap)
+            updateTopo()
         }
     } 
     else {

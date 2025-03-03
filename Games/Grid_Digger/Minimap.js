@@ -32,7 +32,7 @@ function initTransparencies(){
         transparencies[i] = []
         for(let j = 0; j < minimapShowingSize; j++){
             let d = dist(i, j, midShowingSize, midShowingSize)
-            transparencies[i][j] = map(d, 0, maxDist, 255, 0)
+            transparencies[i][j] = mapp(d, 0, maxDist, 255, 0)
         }
     }
 
@@ -79,7 +79,7 @@ function showFPS(){
     textFont('Arial')
     textAlign(CENTER, CENTER)
     textSize(10)
-    text(Math.ceil(frameRate()), totalTam/2, totalTam)
+    text(meanFPS, totalTam/2, totalTam)
     pop()
 }
 

@@ -22,11 +22,13 @@ function loadAllSounds(){
     fuseSound = loadSound('Sounds/tnt.mp3')
 }
 
+//se rompe al picar
 function playDiggingSound(){
     let sound = random(diggingSounds)
     sound.play()
 }
 
+//picar
 function playHittingSound(){
     let sound = random(hittingSounds)
     sound.play()

@@ -12,8 +12,13 @@ let SHOW_DEBUG = false
 
 let plotFps, plotAnims
 
+let nFPS = 60
+let FPSarr = Array(nFPS).fill(60)
+let meanFPS = 60
+
 function setup(){
     createCanvas(WIDTH+400, HEIGHT)
+    frameRate(60)
     loadChunks(0, 0)
     prepareSpawn()
     player = new Player()
@@ -22,6 +27,7 @@ function setup(){
     initMinimap()
     loadAllSounds()
     loadAllImages()
+    initTopo()
 
     computeLightingGrid(curLightMap)
 
@@ -38,6 +44,7 @@ function setup(){
 
 function draw(){
     background(0)
+    
 
     player.update()
     anims.update()
@@ -47,13 +54,23 @@ function draw(){
     player.show()
     anims.show()
 
-    plotFps.feed(Math.round(frameRate()))
+    plotFps.feed(meanFPS)
     plotFps.show()
     plotAnims.feed(anims.nParticles)
     plotAnims.show()
 
+    
+
+    if(frameCount % 10 == 0) updateTopo()
+    showTopo()
+
     updateMinimap()
     showMinimap()
+
+    //remove las fps and push fps
+    FPSarr.shift()
+    FPSarr.push((frameRate()))
+    meanFPS = Math.round(FPSarr.reduce((a, b) => a + b) / FPSarr.length)
 }
 
 function mouseClicked(){

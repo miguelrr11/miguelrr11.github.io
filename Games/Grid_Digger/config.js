@@ -41,10 +41,12 @@ let transitionChunk = undefined
 let transitionChunkPos = undefined
 let translationPlayer
 
+let sclNoiseMovement = 0.0001        //para las cells que no se ven y las lineas topograficas
+
 let animations = []
 
 let fovRadius = 15      //la luz que tu emites (no ves a traves de las paredes)
-let fovRadiusWall = 5    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
+let fovRadiusWall = 50    //es como un sensor que te permite ver que hay en las paredes a tu alrededor (5)
 
 let mat1Name = 'Shlob'
 let mat2Name = 'Flonk'

@@ -129,7 +129,7 @@ class Cell {
         if (this.material === 0 || this.hp === 0) return;
         let off = this.rnd * 2;
         let col = colors[this.material - 1];
-        let tam = map(this.hp, 0, this.maxHealthCell, minTam, cellPixelSize * 0.4, true);
+        let tam = mapp(this.hp, 0, this.maxHealthCell, minTam, cellPixelSize * 0.4, true);
         push();
         rectMode(CENTER);
         noStroke();
@@ -213,11 +213,11 @@ class Cell {
             let col2 = color(this.colOscuridad2)
             let col = lerpColor(col1, col2, noise(this.x/10, this.y/10));
             fill(col)
-            tam = map(this.hp, 0, this.maxHealthCell, minTam, maxTam, true);
+            tam = mapp(this.hp, 0, this.maxHealthCell, minTam, maxTam, true);
             rect(0, 0, tam, tam);
 
             if(this.coolDownHit > 0){
-                fill(255, map(this.coolDownHit, 0, this.maxCoolDownHit, 0, 255))
+                fill(255, mapp(this.coolDownHit, 0, this.maxCoolDownHit, 0, 255))
                 rect(0, 0, tam, tam)
             }
         }
@@ -243,7 +243,7 @@ class Cell {
         if (!sensor && !visible){ 
             let colOsc1 = color(this.colOscuridad1);
             let colOsc2 = color(this.colOscuridad2);
-            fill(lerpColor(colOsc1, colOsc2, noise(this.x/10, this.y/10, frameCount * 0.0025)));
+            fill(lerpColor(colOsc1, colOsc2, noise(this.x/10, this.y/10, frameCount * sclNoiseMovement)));
         }
         rect(0, 0, cellPixelSize, cellPixelSize);
         pop();

@@ -1,4 +1,7 @@
-function mapp(value, start1, stop1, start2, stop2){
+function mapp(value, start1, stop1, start2, stop2, forceConstrain = false){
+    if(forceConstrain){
+        return constrain(start2 + ( (value - start1) / (stop1 - start1) ) * (stop2 - start2), start2, stop2)
+    }
     return start2 + ( (value - start1) / (stop1 - start1) ) * (stop2 - start2); 
 }
 

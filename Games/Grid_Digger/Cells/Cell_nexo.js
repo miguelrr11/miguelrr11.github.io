@@ -48,6 +48,7 @@ class Cell_nexo extends Cell {
         let mats = player.give(this.id+1, maxMatsPerHit)
         nexoMats[this.id] += mats
         if(mats > 0) this.createAnimation(animX, animY)
+        playHittingSound()
     }
 
     createAnimation(animX, animY, bool = false){
@@ -73,7 +74,7 @@ class Cell_nexo extends Cell {
 
         let nexoCap = capacities[nexoLevels[this.id]]
         let nexoMat = nexoMats[this.id]
-        let hMat = map(nexoMat, 0, nexoCap, 0, h, true)
+        let hMat = mapp(nexoMat, 0, nexoCap, 0, h, true)
 
         imageMode(CENTER)
         if(this.x == posNexo1.x && this.y == posNexo1.y){
