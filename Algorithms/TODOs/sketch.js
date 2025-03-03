@@ -25,8 +25,11 @@ function saveDataLocalStorage(){
     for(let [key, value] of tabs){
         if(value != '-1'){
             data[key] = value.options
+            data['Crossed' + key] = getCrossedValues(value.options, key)
         }
-        else data[key] = ''
+        else{ 
+            data[key] = ''
+        }
     }
     localStorage.setItem('data', JSON.stringify(data))
 }
@@ -36,6 +39,7 @@ function loadDataLocalStorage(){
     if(data == null) return
     
     for(let key in data){
+        if(key.includes('Crossed')) continue
         deleteTab.enable()
         createNewTab(key)
         if(data[key] == '') continue
@@ -45,7 +49,23 @@ function loadDataLocalStorage(){
         for(let i = 1; i < data[key].length; i++){
             tabSelect.addOption(data[key][i])
         }
+        if(data['Crossed' + key] == undefined) continue
+        for(let crossed of data['Crossed' + key]){
+            crossTask(tabSelect, crossed)
+        }
     }
+}
+
+function getCrossedValues(options, tab){
+    let crossed = []
+    let tabSelect = tabs.get(tab)
+    for(let i = 0; i < options.length; i++){
+        //do it like this: tabSelect.isItCrossed(tabSelect.options[i])
+        if(tabSelect.isItCrossed(tabSelect.options[i])){
+            crossed.push(tabSelect.options[i])
+        }
+    }
+    return crossed
 }
 
 function deleteSelectedTab(){
@@ -200,15 +220,16 @@ function draw(){
 
 }
 
-function crossTask(tab){
-    let task = tab.getSelected()
+function crossTask(tab, task = undefined){
+    let taskk = task ? task : tab.getSelected()
     let indexOfTask = tab.selected
-    if(!tab.isItCrossed(task)){
+    if(!tab.isItCrossed(taskk)){
         tab.cross(indexOfTask)
     }
     else{
         tab.uncross(indexOfTask)
     }
+    saveDataLocalStorage()
 }
 
 function getIndexOfKey(map, key) {
