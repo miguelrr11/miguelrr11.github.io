@@ -10,12 +10,52 @@ class Player{
         this.mat1Cap = 10
         this.mat2Cap = 10
         this.mat3Cap = 10
-        this.mat1 = 0
-        this.mat2 = 0
-        this.mat3 = 0
+        this.mat1 = 100
+        this.mat2 = 100
+        this.mat3 = 100
     }
 
-    give(material){
+    upgrade(upgrade){
+        if(upgrade == 0){
+            coolDownMovement -= 3
+            if(coolDownMovement < 2) coolDownMovement = 2
+        }
+        else if(upgrade == 1){
+            coolDownMining -= 3
+            if(coolDownMining < 2) coolDownMining = 2
+        }
+        else if(upgrade == 2){
+            fovRadiusWall++
+            computeLightingGrid(curLightMap)
+        }
+    }
+
+    give(material, max){
+        if(material == 1){
+            if(this.mat1 > 0){
+                let give = Math.min(this.mat1, max)
+                this.mat1 -= give
+                return give
+            }
+        }
+        else if(material == 2){
+            if(this.mat2 > 0){
+                let give = Math.min(this.mat2, max)
+                this.mat2 -= give
+                return give
+            }
+        }
+        else if(material == 3){
+            if(this.mat3 > 0){
+                let give = Math.min(this.mat3, max)
+                this.mat3 -= give
+                return give
+            }
+        }
+        return 0
+    }
+
+    receive(material){
         if(material == 1){
             this.mat1++
             if(this.mat1 > this.mat1Cap) this.mat1 = this.mat1Cap

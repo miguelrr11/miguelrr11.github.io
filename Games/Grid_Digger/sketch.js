@@ -21,6 +21,7 @@ function setup(){
     initLighting()
     initMinimap()
     loadAllSounds()
+    loadAllImages()
 
     computeLightingGrid(curLightMap)
 

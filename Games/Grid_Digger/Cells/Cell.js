@@ -70,7 +70,7 @@ class Cell {
         //if(this.hp == 0 && this.material != 0) this.hp = 1
         if (this.hp === 0){
             this.createAnimation(this.x, this.y)
-            player.give(this.material)
+            player.receive(this.material)
             this.material = 0;
             computeLightingGrid(curLightMap)
         }
@@ -78,7 +78,7 @@ class Cell {
 
     createAnimation(animX, animY){
         let type = materialNames[this.material];
-        let anim = { type: type, explosion: this.hp === 0 };
+        let anim = { type: type, explosion: this.hp === 0, followPlayer: this.hp === 0};
         anims.addAnimation(
             animX * cellPixelSize + cellPixelSize / 2,
             animY * cellPixelSize + cellPixelSize / 2,
@@ -93,7 +93,7 @@ class Cell {
             if(this.hp == 0){ 
                 computeLightingGrid(curLightMap)
                 playDiggingSound()
-                player.give(this.material)
+                player.receive(this.material)
             }
             else playHittingSound()
             this.coolDownHit = this.maxCoolDownHit

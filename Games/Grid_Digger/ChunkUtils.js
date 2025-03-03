@@ -1,16 +1,4 @@
-/*
-MATERIALS:
-0 = air
-1 = MAT1
-2 = MAT2
-3 = MAT3
-4 = UNDESTROYABLE
-5 = BOMB
 
-6 = NEXO_UPGRADE_MAT1
-7 = NEXO_UPGRADE_MAT2
-8 = NEXO_UPGRADE_MAT3
-*/
 
 let nexo1, nexo2, nexo3
 
@@ -101,6 +89,7 @@ function generateChunk(x, y){
 }
 
 function isWall(chunk, x, y){
+    if(chunk[x][y].material == 6 || chunk[x][y].material == 7 || chunk[x][y].material == 8 ) return false
     return chunk[x][y].hp > 0 ? true : false
 }
 
@@ -291,7 +280,7 @@ function showChunk() {
                 else currentChunk[i][j].showLight(curLightMap.lightingGrid);
             }
         }
-        showNexos()
+        if(currentChunkPos.x == 0 && currentChunkPos.y == 0) showNexos()
     }
     pop()
 }

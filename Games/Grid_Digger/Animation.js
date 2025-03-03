@@ -14,11 +14,12 @@ class Animation{
     }
 
     //constructor(x, y, color, lifespan, vel, acc, friction, angle, rotVel, size, followPlayer)
-    //anim = {type, explosion}
+    //anim = {type, explosion, follow}
     initParticles(anim){
         let type = anim.type;
         let explosionMat = anim.explosion;
         let dir = anim.direction
+        let followPlayer = anim.followPlayer
         let colMat = type == 'miningMat1' ? colMat1 : type == 'miningMat2' ? colMat2 : colMat3
         let shapeMat = type == 'miningMat1' ? 'ellipse' : type == 'miningMat2' ? 'rect' : 'triangle'
         let colWalking = anim.color
@@ -46,14 +47,15 @@ class Animation{
                 let col = randomizeColor(colMat, 30)
                 let lifespan = explosionMat ? random(50, 60) : random(10, 25)
                 let speed = explosionMat ? 8.5 : 3
-                let vel = createVector(random(-speed, speed), random(-speed, speed))
+                let direction = dir ? dir : createVector(random(-1, 1), random(-1, 1)).normalize()
+                let vel = createVector(direction.x*speed, direction.y*speed)
                 let acc = explosionMat ? p5.Vector.fromAngle(atan2(vel.y, vel.x)).mult(-0.3) : createVector(0,0) //effect of particles returning to the center
                 let friction = .92
                 let angle = 0
                 let rotVel = random(-0.1, 0.1)
                 let size = random(cellPixelSize*.3, cellPixelSize*.3)
                 let shape = shapeMat
-                this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape, explosionMat))
+                this.particles.push(new Particle(x, y, col, lifespan, vel, acc, friction, angle, rotVel, size, shape, followPlayer))
             }
         }
         if(type == 'walking'){
