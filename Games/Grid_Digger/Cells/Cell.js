@@ -25,6 +25,16 @@ class Cell {
         this.noise4 = noise(this.x/4, this.y/4);
     }
 
+    //what happens when the player is standing on this cell
+    onPlayerStanding(){
+        return
+    }
+
+    //can the player move to this cell?
+    transparent(){
+        return this.hp == 0
+    }
+
     setBiomeColors(biome){
         switch(biome){
             case 1:
@@ -265,7 +275,7 @@ class Cell {
         fill(c);
         rect(x, y, cellPixelSize, cellPixelSize);
         if (this.rnd > 0.85) showGrass(x, y);
-        if (this.rnd < 1) showPebbles(x, y, this.rnd);
+        if (this.rnd < -.85) showPebbles(x, y, this.rnd);
     }
 
 }
@@ -303,11 +313,13 @@ const p1P = {x:0.3, y:0.5}
 const p2P = {x:0.5, y:0.75}
 const p3P = {x:0.75, y:0.4}
 
-//stopped working
+
 function showPebbles(x, y, rnd) {
     push();
+    translate(x, y);
     rotate(rnd * 10);
-    translate(x, y)
+    translate(-cellPixelSize/2, -cellPixelSize/2);
+    
     fill("#2C2D47");
     noStroke();
     ellipse(p1P.x * cellPixelSize, p1P.y * cellPixelSize, cellPixelSize * 0.16);

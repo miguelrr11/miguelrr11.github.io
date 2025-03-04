@@ -16,6 +16,12 @@ let nFPS = 5
 let FPSarr = Array(nFPS).fill(60)
 let meanFPS = 60
 
+function preload(){
+    imgNexo1 = loadImage('images/shoe.png')
+    imgNexo2 = loadImage('images/pickaxe.png')
+    imgNexo3 = loadImage('images/sensor.png')
+}
+
 function setup(){
     createCanvas(WIDTH+400, HEIGHT)
     //pixelDensity(1)   // no parece mejorar fps
@@ -26,7 +32,7 @@ function setup(){
     initLighting()
     initMinimap()
     loadAllSounds()
-    loadAllImages()
+    //loadAllImages()
     initTopo()
 
     computeLightingGrid(curLightMap)

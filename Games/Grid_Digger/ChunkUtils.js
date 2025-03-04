@@ -357,35 +357,19 @@ function prepareSpawn(){
         }
     }
 
-    currentChunk[21][11] = new Cell_nexo(21, 11, 6, Infinity, undefined, undefined)
-    currentChunk[22][11] = new Cell_nexo(22, 11, 6, Infinity, undefined, undefined)
-    currentChunk[23][11] = new Cell_nexo(23, 11, 6, Infinity, undefined, undefined)
-    currentChunk[21][12] = new Cell_nexo(21, 12, 6, Infinity, undefined, undefined)
     currentChunk[22][12] = new Cell_nexo(22, 12, 6, Infinity, undefined, undefined)
-    currentChunk[23][12] = new Cell_nexo(23, 12, 6, Infinity, undefined, undefined)
-
-    currentChunk[25][11] = new Cell_nexo(25, 11, 7, Infinity, undefined, undefined)
-    currentChunk[26][11] = new Cell_nexo(26, 11, 7, Infinity, undefined, undefined)
-    currentChunk[27][11] = new Cell_nexo(27, 11, 7, Infinity, undefined, undefined)
-    currentChunk[25][12] = new Cell_nexo(25, 12, 7, Infinity, undefined, undefined)
     currentChunk[26][12] = new Cell_nexo(26, 12, 7, Infinity, undefined, undefined)
-    currentChunk[27][12] = new Cell_nexo(27, 12, 7, Infinity, undefined, undefined)
+    currentChunk[30][12] = new Cell_nexo(30, 12, 8, Infinity, undefined, undefined)
+
     currentChunk[26][12].illuminated = true
 
-    currentChunk[29][11] = new Cell_nexo(29, 11, 8, Infinity, undefined, undefined)
-    currentChunk[30][11] = new Cell_nexo(30, 11, 8, Infinity, undefined, undefined)
-    currentChunk[31][11] = new Cell_nexo(31, 11, 8, Infinity, undefined, undefined)
-    currentChunk[29][12] = new Cell_nexo(29, 12, 8, Infinity, undefined, undefined)
-    currentChunk[30][12] = new Cell_nexo(30, 12, 8, Infinity, undefined, undefined)
-    currentChunk[31][12] = new Cell_nexo(31, 12, 8, Infinity, undefined, undefined)
+    posNexo1 = createVector(22, 12)
+    posNexo2 = createVector(26, 12)
+    posNexo3 = createVector(30, 12)
 
-    posNexo1 = createVector(21, 11)
-    posNexo2 = createVector(25, 11)
-    posNexo3 = createVector(29, 11)
-
-    nexo1 = currentChunk[21][11]
-    nexo2 = currentChunk[25][11]
-    nexo3 = currentChunk[29][11]
+    nexo1 = currentChunk[posNexo1.x][posNexo1.y]
+    nexo2 = currentChunk[posNexo2.x][posNexo2.y]
+    nexo3 = currentChunk[posNexo3.x][posNexo3.y]
 }
 
 function showNexos(){
