@@ -18,6 +18,11 @@ class Sentence{
 			this.height += textHeight(newlines[i])
 		}
 		this.height *= 1.2
+		this.align = LEFT
+	}
+
+	position(x, y){
+		this.pos = createVector(x, y)
 	}
 
 	getText(){
@@ -31,6 +36,7 @@ class Sentence{
 
 	show(){
 		push()
+		textAlign(this.align)
 		if(this.func) this.words = this.func()
 		if(this.isTitle){
 			push()
@@ -38,16 +44,16 @@ class Sentence{
 			stroke(this.transCol)
 			strokeWeight(1)
 			textSize(this.textSize)
-			text(this.words, this.pos.x - bordeMIGUI, this.pos.y + 15)
+			text(this.words, this.pos.x + bordeMIGUI, this.pos.y + 15)
 			fill(this.transCol)
-			text(this.words, this.pos.x - bordeMIGUI + 3, this.pos.y + 13)
+			text(this.words, this.pos.x + bordeMIGUI + 3, this.pos.y + 13)
 			pop()
 		}
 		else{
 			noStroke()
 			fill(this.lightCol)
 			textSize(this.textSize)
-			text(this.words, this.pos.x - bordeMIGUI, this.pos.y + 10)
+			text(this.words, this.pos.x + bordeMIGUI, this.pos.y + 10)
 		}
 		// fill(255, 0, 0)
 		// noStroke()

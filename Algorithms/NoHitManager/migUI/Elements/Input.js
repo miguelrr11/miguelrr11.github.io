@@ -14,10 +14,23 @@ class Input {
 
         this.func = func
 
+
+        this.cursorPos = 0
+        this.firstCursor = 0
+        this.relCursorPos = 0
+
         this.beingHovered = false
         this.beingPressed = false
-        this.sentence = ""
-        this.clippedSentence = ""
+        /*
+        this.sentence = ''
+        this.clippedSentence = ''
+        */
+        //-------------
+        this.sentence = this.placeholder
+        this.clippedSentence = this.placeholder
+        this.setText(this.sentence)
+        //-------------
+
         this.active = false
 
         this.w = width_elementsMIGUI
@@ -25,16 +38,31 @@ class Input {
         this.height = this.h
         this.rad = radMIGUI
 
-        this.cursorPos = 0
-        this.firstCursor = 0
-        this.relCursorPos = 0
+        
 
         this.frame = 0
         this.coolDownBS = 0
         this.widthLimit = this.w - 8
 
+        this.selected = false
+        this.modifiable = true
+
         document.addEventListener("keyup", this.evaluateKey.bind(this))
     }
+
+    select(){
+        this.selected = true
+    }
+
+    deselect(){
+        this.selected = false
+    }
+
+    reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+		this.w = w || this.w
+		this.h = h || this.h
+	}
 
     setText(text) {
         this.sentence = text
@@ -51,6 +79,8 @@ class Input {
         }
         this.relCursorPos = this.cursorPos - this.firstCursor
         this.setClippedSentence()
+
+        this.id = 0
     }
 
     getText() {
@@ -59,13 +89,14 @@ class Input {
 
     execute() {
         if(this.func) {
-            if(this.arg) this.func(this.sentence)
+            if(this.arg) this.func(this.sentence, this)
             else this.func()
-            this.sentence = ""
-            this.clippedSentence = ""
-            this.cursorPos = 0
-            this.relCursorPos = 0
-            this.firstCursor = 0
+            this.active = false
+            // this.sentence = ""
+            // this.clippedSentence = ""
+            // this.cursorPos = 0
+            // this.relCursorPos = 0
+            // this.firstCursor = 0
         }
     }
 
@@ -101,6 +132,7 @@ class Input {
     }
 
     write(c) {
+        if(!this.modifiable) return
         this.sentence = this.insertCharAt(this.sentence, c, this.cursorPos)
         this.cursorPos++
 
@@ -114,7 +146,6 @@ class Input {
             this.firstCursor++
         }
         this.relCursorPos = this.cursorPos - this.firstCursor
-        this.setClippedSentence()
     }
 
     backspace() {
@@ -207,9 +238,9 @@ class Input {
 
     show() {
         push();
-        (this.beingHovered || this.active) ? strokeWeight(bordeMIGUI + 1): strokeWeight(bordeMIGUI)
-        stroke(this.lightCol)
-        this.active ? fill(this.transCol) : fill(this.darkCol)
+        (this.beingHovered || this.active || this.selected) ? strokeWeight(bordeMIGUI + 1): strokeWeight(bordeMIGUI)
+        stroke(this.lightCol);
+        (this.active && this.modifiable) ? fill(this.transCol) : fill(this.darkCol)
         rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 
         noStroke()
@@ -231,7 +262,7 @@ class Input {
             )
         }
 
-        if(this.active && Math.floor(this.frame / 35) % 2 === 0) {
+        if(this.active && Math.floor(this.frame / 35) % 2 === 0 && this.modifiable) {
             stroke(this.lightCol)
             strokeWeight(2)
             let x =

@@ -1,6 +1,7 @@
 //UI library for p5 projects
 //Miguel Rodríguez
 //06-09-2024
+//v2
 
 let bordeMIGUI = 1
 let text_FontMIGUI
@@ -82,6 +83,19 @@ class Panel{
 	    this.lastCB = undefined
 	    this.lastBU = undefined
 	}
+
+	removeElement(element){
+		if(element.constructor.name == "Checkbox") this.checkboxes.splice(this.checkboxes.indexOf(element), 1)
+		if(element.constructor.name == "Slider") this.sliders.splice(this.sliders.indexOf(element), 1)
+		if(element.constructor.name == "Sentence") this.sentences.splice(this.sentences.indexOf(element), 1)
+		if(element.constructor.name == "Select") this.selects.splice(this.selects.indexOf(element), 1)
+		if(element.constructor.name == "Input") this.inputs.splice(this.inputs.indexOf(element), 1)
+		if(element.constructor.name == "Button") this.buttons.splice(this.buttons.indexOf(element), 1)
+		if(element.constructor.name == "ColorPicker") this.colorPickers.splice(this.colorPickers.indexOf(element), 1)
+		if(element.constructor.name == "NumberPicker") this.numberPickers.splice(this.numberPickers.indexOf(element), 1)
+		if(element.constructor.name == "OptionPicker") this.optionPickers.splice(this.optionPickers.indexOf(element), 1)
+	}
+
 
 	initializeUIElements() {
 	    this.checkboxes = []

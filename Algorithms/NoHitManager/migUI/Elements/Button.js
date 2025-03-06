@@ -26,6 +26,15 @@ class Button{
 
 		this.disabled = false
 		this.rad = radMIGUI
+
+		this.id = 0
+		this.modifiable = true
+	}
+
+	reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+		this.w = w || this.w
+		this.h = h || this.h
 	}
 
 	disable(){
@@ -49,7 +58,7 @@ class Button{
 	}
 
 	execute(){
-		if(this.func != undefined) this.func()
+		if(this.func != undefined) this.func(this.id)
 	}
 
 	evaluate(){
@@ -58,7 +67,7 @@ class Button{
 		let inB = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
 		if(inB) this.beingHovered = true
 		else this.beingHovered = false
-		if(inB && mouseIsPressed && !this.beingPressed){ 
+		if(inB && mouseIsPressed && !this.beingPressed && this.modifiable){ 
 			this.execute()
 			this.beingPressed = true
 			return true

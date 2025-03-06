@@ -31,6 +31,12 @@ class OptionPicker{
 		this.disabled = false
 	}
 
+	reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+		this.w = w || this.w
+		this.h = h || this.h
+	}
+
 	getSelected(){
 		return this.options[this.selectedIndex%this.options.length]
 	}
@@ -54,7 +60,7 @@ class OptionPicker{
 	// }
 
 	setFunc(func){
-		this.func = func
+		this.func = func(this.selectedIndex)
 	}
 
 	evaluate(){
