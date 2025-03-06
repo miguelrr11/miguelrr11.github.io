@@ -40,7 +40,7 @@ class Cell_nexo extends Cell {
         }
         this.und = false
         this.hp = Infinity
-        this.lastPositionProgressBar = createVector(this.x, this.y)
+        this.lastPositionProgressBar = createVector(this.x*cellPixelSize, this.y*cellPixelSize)
     }
 
     transparent(){
@@ -148,7 +148,6 @@ class Cell_nexo extends Cell {
 
         let nexoCap = capacities[nexoLevels[this.id]]
         let nexoMat = nexoMats[this.id]
-        let hMat = mapp(nexoMat, 0, nexoCap, 0, h, true)
 
         imageMode(CENTER)
         strokeWeight(3)
@@ -159,7 +158,7 @@ class Cell_nexo extends Cell {
         this.drawProgressbar(this.material)
         pop()
         strokeWeight(2)
-        fill([...this.colMat])
+        fill([...this.colMat, 100])
         rect(0, 0, h, h)
         image(this.img, 0, 0, wImg-10, wImg-10)
         

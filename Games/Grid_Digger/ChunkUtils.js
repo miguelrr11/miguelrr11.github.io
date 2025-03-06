@@ -221,6 +221,7 @@ function showChunk() {
         noStroke();
         drawChunk(transitionChunk)
         drawLightChunk(transitionChunk, transitionLightMap);
+        if(transitionChunkPos.x == 0 && transitionChunkPos.y == 0) showNexos()
         pop();
 
         push();
@@ -236,6 +237,7 @@ function showChunk() {
         noStroke();
         drawChunk(currentChunk)
         drawLightChunk(currentChunk, curLightMap);
+        if(currentChunkPos.x == 0 && currentChunkPos.y == 0) showNexos()
         pop();
 
         transitionFramesCounter--;

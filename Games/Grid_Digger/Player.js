@@ -10,9 +10,9 @@ class Player{
         this.mat1Cap = 10
         this.mat2Cap = 10
         this.mat3Cap = 10
-        this.mat1 = 100
-        this.mat2 = Infinity
-        this.mat3 = 1000
+        this.mat1 = 0
+        this.mat2 = 0
+        this.mat3 = 0
 
         this.nMatsGiven = 1
     }

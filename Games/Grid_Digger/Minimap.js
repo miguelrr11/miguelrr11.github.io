@@ -98,15 +98,15 @@ function showMaterialsPlayer(){
     push()
     noStroke()
     textFont('Arial')
-    textAlign(RIGHT, CENTER)
+    textAlign(LEFT, CENTER)
     textSize(12)
 
     fill(colMat1)
-    text(mat1Name + ': ' + player.mat1, totalTam + 35, 20)
+    text(mat1Name + ': ' + player.mat1, totalTam + 0, 20)
     fill(colMat2)
-    text(mat2Name + ': ' + player.mat2, totalTam + 35, 40)
+    text(mat2Name + ': ' + player.mat2, totalTam + 0, 40)
     fill(colMat3)
-    text(mat3Name + ': ' + player.mat3, totalTam + 35, 60)
+    text(mat3Name + ': ' + player.mat3, totalTam + 0, 60)
 
     pop()
 }
