@@ -2,9 +2,10 @@ class Input {
     constructor(x, y, placeholder, func, arg, lightCol, darkCol, transCol) {
         this.darkCol = darkCol
         this.lightCol = lightCol
-        this.transCol = [...lightCol, 100]
+        this.transCol = [...lightCol, 65]
+        this.textCol = lightCol
         this.pos = createVector(x, y)
-        this.textSize = text_SizeMIGUI - 2
+        this.textSize = text_SizeMIGUI - 3
         this.arg = arg
 
         textSize(this.textSize)
@@ -47,8 +48,18 @@ class Input {
         this.selected = false
         this.modifiable = true
 
+        this.disabled = false
+
         document.addEventListener("keyup", this.evaluateKey.bind(this))
     }
+
+    disable(){
+		this.disabled = true
+	}
+
+	enable(){
+		this.disabled = false
+	}
 
     select(){
         this.selected = true
@@ -238,14 +249,26 @@ class Input {
 
     show() {
         push();
-        (this.beingHovered || this.active || this.selected) ? strokeWeight(bordeMIGUI + 1): strokeWeight(bordeMIGUI)
+        (this.beingHovered || this.active) ? strokeWeight(bordeMIGUI + 1): strokeWeight(bordeMIGUI)
         stroke(this.lightCol);
-        (this.active && this.modifiable) ? fill(this.transCol) : fill(this.darkCol)
+        ((this.active && this.modifiable) || this.selected) ? fill(this.transCol) : fill(this.darkCol)
+        if(this.disabled){
+            noFill()
+            stroke(this.transCol)
+        }
         rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 
         noStroke()
-        fill(this.lightCol)
+        fill(this.textCol)
         textSize(this.textSize)
+        if(true){ 
+            strokeWeight(0.5)
+            stroke(this.textCol)
+        }
+        if(this.disabled){
+            fill(this.transCol)
+            stroke(this.transCol)
+        }
 
         if(this.sentence.length !== 0) {
             text(
@@ -278,14 +301,3 @@ class Input {
     }
 }
 
-function getClippedTextByWidth(str, startIndex, maxWidth) {
-    let accumWidth = 0
-    let i = startIndex
-    while(i < str.length) {
-        let charW = textWidth(str.charAt(i))
-        if(accumWidth + charW > maxWidth) break
-        accumWidth += charW
-        i++
-    }
-    return str.substring(startIndex, i)
-}

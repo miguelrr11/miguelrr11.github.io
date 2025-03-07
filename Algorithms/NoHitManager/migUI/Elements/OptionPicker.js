@@ -4,7 +4,7 @@ class OptionPicker{
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
 		this.pos = createVector(x, y)
-		this.textSize = text_SizeMIGUI-2
+		this.textSize = text_SizeMIGUI-4
 		this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
 
 		this.beingHoveredPlus = false
@@ -19,7 +19,7 @@ class OptionPicker{
 		this.rad = radMIGUI
 
         this.options = options
-		if(this.options.length == 0) this.options.push('')
+		//if(this.options.length == 0) this.options.push('')
         this.selectedIndex = 0
 
 		this.sectionW = 20
@@ -29,6 +29,18 @@ class OptionPicker{
 		this.height = this.h
 
 		this.disabled = false
+	}
+
+	removeOption(text){
+		let index = this.options.indexOf(text)
+		if(index > -1){
+			this.options.splice(index, 1)
+			if(this.selectedIndex >= this.options.length) this.selectedIndex = this.options.length - 1
+		}
+	}
+
+	addOption(option){
+		this.options.push(option)
 	}
 
 	reposition(x, y, w = undefined, h = undefined){
@@ -63,6 +75,10 @@ class OptionPicker{
 		this.func = func(this.selectedIndex)
 	}
 
+	execute(){
+		if(this.func != undefined) this.func(this.getSelected())
+	}
+
 	evaluate(){
 		this.beingHoveredMinus = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.sectionW, this.h)
 		this.beingHoveredPlus = inBoundsMIGUI(mouseX, mouseY, this.pos.x+this.w-this.sectionW, this.pos.y, this.sectionW, this.h)
@@ -74,12 +90,12 @@ class OptionPicker{
 			if(this.beingHoveredMinus){
 				this.selectedIndex--
 				if(this.selectedIndex < 0) this.selectedIndex = this.options.length-1
-				if(this.func != undefined) this.func()
+				if(this.func != undefined) this.execute()
 			}
 			if(this.beingHoveredPlus){
 				this.selectedIndex++
 				if(this.selectedIndex > this.options.length - 1) this.selectedIndex = 0
-				if(this.func != undefined) this.func()
+				if(this.func != undefined) this.execute()
 			}
 			this.beingPressed = true
 			return true
@@ -116,8 +132,15 @@ class OptionPicker{
 		fill(this.darkCol)
 		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 		this.setSFtext(false)
-        let option = getClippedTextMIGUI(this.options[this.selectedIndex%this.options.length], 10)
-		text(option, this.pos.x + this.w * 0.5, this.pos.y + this.h / 2)
+        //let option = getClippedTextMIGUI(this.options[this.selectedIndex%this.options.length], 10)
+		//if(this.options.length != 0){
+			//let option = getClippedTextByWidth(this.options[this.selectedIndex%this.options.length], 0, this.w - this.sectionW*2-8)
+			let option = this.options.length > 0 ? this.options[this.selectedIndex%this.options.length] : '-'
+			let size = getSizeToFit(option, this.textSize, this.w - this.sectionW*2-8)
+			textSize(size)
+			text(option, this.pos.x + this.w * 0.5, this.pos.y + this.h / 2)
+		//}
+		
 
 		//rect con -
 		let off = 0

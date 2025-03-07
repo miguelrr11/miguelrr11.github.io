@@ -41,12 +41,13 @@ class Sentence{
 		if(this.isTitle){
 			push()
 			fill(this.lightCol)
-			stroke(this.transCol)
-			strokeWeight(1)
+			stroke(this.lightCol)
+			strokeWeight(1.5)
 			textSize(this.textSize)
 			text(this.words, this.pos.x + bordeMIGUI, this.pos.y + 15)
 			fill(this.transCol)
-			text(this.words, this.pos.x + bordeMIGUI + 3, this.pos.y + 13)
+			stroke(this.transCol)
+			text(this.words, this.pos.x + bordeMIGUI + 2, this.pos.y + 14.5)
 			pop()
 		}
 		else{

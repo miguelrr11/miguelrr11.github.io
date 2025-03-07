@@ -723,3 +723,41 @@ function wrapText(text, maxWidth = this.w, tSize = text_SizeMIGUI) {
 function textHeight() {
     return textAscent() + textDescent();
 }
+
+function getClippedTextByWidth(str, startIndex, maxWidth) {
+    let accumWidth = 0
+    let i = startIndex
+    while(i < str.length) {
+        let charW = textWidth(str.charAt(i))
+        if(accumWidth + charW > maxWidth) break
+        accumWidth += charW
+        i++
+    }
+    return str.substring(startIndex, i)
+}
+
+function getSizeToFit(str, startSize, maxWidth) {
+	let size = startSize
+	let maxOps = 15
+	textSize(size)
+	while(maxOps > 0) {
+		let strW = textWidth(str)
+		if(strW < maxWidth) break
+		size -= 1
+		textSize(size)
+		maxOps--
+	}
+	return size
+}
+
+function drawSimpleArrow(angle, length = 10){
+	push()
+	let halfLength = length / 2
+	translate(0, 0)
+	rotate(angle)
+	translate(-halfLength, 0)
+	line(0, 0, length, 0)
+	line(length, 0, halfLength, -halfLength)
+	line(length, 0, halfLength, halfLength)
+	pop()
+}

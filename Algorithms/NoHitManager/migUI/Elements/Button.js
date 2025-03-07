@@ -4,7 +4,7 @@ class Button{
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
 		this.pos = createVector(x, y)
-		this.textSize = text_SizeMIGUI-2
+		this.textSize = text_SizeMIGUI-4
 		if((func && func.name != "retractMenu") || func == undefined) 
 			this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
 		else this.text = text
@@ -29,6 +29,12 @@ class Button{
 
 		this.id = 0
 		this.modifiable = true
+
+		this.drawingFunc = undefined
+	}
+
+	setTextSize(size){
+		this.textSize = size
 	}
 
 	reposition(x, y, w = undefined, h = undefined){
@@ -93,13 +99,15 @@ class Button{
 		this.disabled ? fill(this.transCol) : fill(this.lightCol)
 		if(this.beingHovered && mouseIsPressed) fill(this.darkCol)
 		textSize(this.textSize)
-		textAlign(CENTER)
-		text(this.text, this.pos.x + this.w/2, this.pos.y + this.h*0.75)
+		textAlign(CENTER, CENTER)
+		text(this.text, this.pos.x + this.w*0.5, this.pos.y + this.h*0.5)
 		//this.w = getSentenceWidth(this.text) + 8
 		// fill(255, 0, 0)
 		// ellipse(this.pos.x, this.pos.y, 5)
 		// ellipse(this.pos.x, this.pos.y + this.height, 5)
-
+		if(this.drawingFunc != undefined){
+			this.drawingFunc(this)
+		}
 		pop()
 		return this.beingHovered
 	}
