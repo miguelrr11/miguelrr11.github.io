@@ -1,6 +1,6 @@
-//
+//No Hit Manager
 //Miguel Rodríguez
-//
+//06-03-2025
 
 p5.disableFriendlyErrors = true
 const WIDTH = 600
@@ -200,12 +200,14 @@ function createHitUI(){
     hitButton.setTextSize(hitTextSize)
     hitButton.darkCol = redPastel
     hitButton.lightCol = darkenColor(hexToRgbMIGUI(redPastel), amtDarken)
+    hitButton.drawingFunc = drawKeyHintsHit
 
     nextSplitButton = panel.createButton('Next Split', nextSplit)
     nextSplitButton.reposition(hitPosUI.x + hButton*2 + wHitButton + offset*3, hitPosUI.y, 95, hButton)
     nextSplitButton.setTextSize(normalTextSize-1)
     nextSplitButton.darkCol = greenPastel
     nextSplitButton.lightCol = darkenColor(hexToRgbMIGUI(greenPastel), amtDarken)
+    nextSplitButton.drawingFunc = drawKeyHintsSplit
 
     buttons.push(finishRunButton)
     buttons.push(setPBButton)
@@ -318,6 +320,7 @@ function createUIfromProfile(index = currentProfile){
         ui.push({button: buttonSelectSplit, title: titleBox, hits: hitsBox, diff: diffBox, pb: pbBox})
     }
     UIs.set(index, ui)
+    updateDiff()
 }
 
 let posFirstButton = {x: 560, y: posTable.y}
@@ -416,9 +419,6 @@ function updateHits(args, input){
     if(split.hits < 0) split.hits = 0
     updateDiff()
 }
-function updateDiff(args, input){
-    return
-}
 function updatePB(args, input){
     let profile = profiles.get(currentProfile)
     let split = profile.splits[input.id]
@@ -447,7 +447,7 @@ function updateTextProfile(){
 
 
 
-let posTextTags = {x: 48, y: posTextProfileRect.y + 40}
+let posTextTags = {x: 49, y: posTextProfileRect.y + 43}
 function createTagsTable(){
     let tx = panel.createText('Title')
     tx.position(posTextTags.x, posTextTags.y)
@@ -499,33 +499,33 @@ function setup(){
     createTagsTable()
     selectSplit(0)
 
-    let profile = {
-        title: 'Dark Souls',
-        split: 0,
-        runs: 34,
-        hitsPB: 5,
-        hits: 0,
-        splits: [
-            {title: 'Asylum Demon', hits: 0, pb: 0, diff: 0},
-            {title: 'Taurus Demon', hits: 0, pb: 0, diff: 0},
-            {title: 'Bell Gargoyles', hits: 0, pb: 0, diff: 0},
-            {title: 'Capra Demon', hits: 0, pb: 0, diff: 0},
-            {title: 'Gaping Dragon', hits: 0, pb: 0, diff: 0},
-            {title: 'Chaos Witch Quelaag', hits: 0, pb: 0, diff: 0},
-            {title: 'Iron Golem', hits: 0, pb: 0, diff: 0},
-            {title: 'Ornstein & Smough', hits: 0, pb: 0, diff: 0},
-            {title: 'Seath the Scaleless', hits: 0, pb: 0, diff: 0},
-            {title: 'The Four Kings', hits: 0, pb: 0, diff: 0},
-            {title: 'Pinwheel', hits: 0, pb: 0, diff: 0},
-            {title: 'Gravelord Nito', hits: 0, pb: 0, diff: 0},
-            {title: 'Demon Firesage', hits: 0, pb: 0, diff: 0},
-            {title: 'Centipede Demon', hits: 0, pb: 0, diff: 0},
-            {title: 'Bed of Chaos', hits: 0, pb: 0, diff: 0},
-            {title: 'Gwyn, Lord of Cinder', hits: 0, pb: 0, diff: 0}
-        ],
-        currentSplit: 0
-    }
-    addProfile(profile)
+    // let profile = {
+    //     title: 'Dark Souls',
+    //     split: 0,
+    //     runs: 34,
+    //     hitsPB: 5,
+    //     hits: 0,
+    //     splits: [
+    //         {title: 'Asylum Demon', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Taurus Demon', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Bell Gargoyles', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Capra Demon', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Gaping Dragon', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Chaos Witch Quelaag', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Iron Golem', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Ornstein & Smough', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Seath the Scaleless', hits: 0, pb: 0, diff: 0},
+    //         {title: 'The Four Kings', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Pinwheel', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Gravelord Nito', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Demon Firesage', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Centipede Demon', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Bed of Chaos', hits: 0, pb: 0, diff: 0},
+    //         {title: 'Gwyn, Lord of Cinder', hits: 0, pb: 0, diff: 0}
+    //     ],
+    //     currentSplit: 0
+    // }
+    // addProfile(profile)
     
     redDiff = darkenColor(hexToRgbMIGUI(redPastel), 60)
     greenDiff = darkenColor(hexToRgbMIGUI(greenPastel), 100)
@@ -641,9 +641,26 @@ function drawArrowUp(button){
     pop()
 }
 
+function drawKeyHintsHit(button){
+    push()
+    translate(button.pos.x + button.w/2, button.pos.y + button.h/2)
+    textSize(9)
+    text('[Space]', 0, 18)
+    pop()
+}
+
+function drawKeyHintsSplit(button){
+    push()
+    translate(button.pos.x + button.w/2, button.pos.y + button.h/2)
+    textSize(9)
+    text('[Enter]', 0, 18)
+    pop()
+}
+
 // evita el scroll al apretar espacio
 document.addEventListener("keydown", function(event) {
-    if (event.key === " " && !event.target.matches("input, textarea")) {
+    if (event.key === " "  || event.key === "ArrowDown" || event.key === "ArrowUp") {
         event.preventDefault();
     }
 });
+
