@@ -220,10 +220,10 @@ class Panel{
 		return slider
 	}
 
-	createText(words = "", isTitle = false, func = undefined){
+	createText(words = "", isTitle = false, func = undefined, warp = true){
 		//if(this.lastElementAdded.constructor.name != "Sentence") this.lastElementPos.y += 5
 		//if(isTitle) this.lastElementPos.y += 5
-		let spacedWords = wrapText(words, this.w, isTitle ? title_SizeMIGUI : text_SizeMIGUI)
+		let spacedWords = warp ? wrapText(words, this.w, isTitle ? title_SizeMIGUI : text_SizeMIGUI) : words
 		let sentence = new Sentence(this.lastElementPos.x,
 									this.lastElementPos.y,
 									spacedWords, isTitle, func,
@@ -725,4 +725,18 @@ function wrapText(text, maxWidth = this.w, tSize = text_SizeMIGUI) {
 
 function textHeight() {
     return textAscent() + textDescent();
+}
+
+function getSizeToFit(str, startSize, maxWidth) {
+	let size = startSize
+	let maxOps = 15
+	textSize(size)
+	while(maxOps > 0) {
+		let strW = textWidth(str)
+		if(strW < maxWidth) break
+		size -= 1
+		textSize(size)
+		maxOps--
+	}
+	return size
 }
