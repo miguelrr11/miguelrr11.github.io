@@ -10,8 +10,8 @@ let spawnLocation = Math.floor(minimapSize / 2)
 let midBigShowingSize = Math.floor(bigMinimapShowingSize / 2)
 let tamCellMinimap = 10
 let totalTam = tamCellMinimap * minimapShowingSize
-let maxDist = Math.sqrt(midShowingSize * midShowingSize + midShowingSize * midShowingSize) - 1.5
-let maxDistBig = Math.sqrt(midBigShowingSize * midBigShowingSize + midBigShowingSize * midBigShowingSize) - 1.5
+let maxDist = Math.sqrt(midShowingSize * midShowingSize + midShowingSize * midShowingSize) - (1.5)
+let maxDistBig = Math.sqrt(midBigShowingSize * midBigShowingSize + midBigShowingSize * midBigShowingSize) - (3.5)
 
 // Arc settings
 let arcFlatness = tamCellMinimap * 3;  // Increase for a flatter arc
@@ -33,11 +33,12 @@ let playerPosMinimap = {x: 0, y: 0}
 
 function initTransparencies(){
     transparencies = []
+    let maxTrans = 255
     for(let i = 0; i < minimapShowingSize; i++){
         transparencies[i] = []
         for(let j = 0; j < minimapShowingSize; j++){
             let d = dist(i, j, midShowingSize, midShowingSize)
-            transparencies[i][j] = mapp(d, 0, maxDist, 255, 0)
+            transparencies[i][j] = mapp(d, 0, maxDist, maxTrans, 0)
         }
     }
     transparenciesBig = []
@@ -45,7 +46,7 @@ function initTransparencies(){
         transparenciesBig[i] = []
         for(let j = 0; j < bigMinimapShowingSize; j++){
             let d = dist(i, j, midBigShowingSize, midBigShowingSize)
-            transparenciesBig[i][j] = mapp(d, 0, maxDistBig, 255, 0)
+            transparenciesBig[i][j] = mapp(d, 0, maxDistBig, maxTrans, 0)
         }
     }
 }
@@ -187,7 +188,7 @@ function showBigMinimap(){
     let startJ = playerPosMinimap.y - midBigShowingSize
     for(let i = startI; i < bigMinimapShowingSize + startI; i++){
         for(let j = startJ; j < bigMinimapShowingSize + startJ; j++){
-            strokeWeight(.5)
+            strokeWeight(1.5)
             let trans = transparenciesBig[i - startI][j - startJ]
             let col;
             switch(minimap[i][j]){
