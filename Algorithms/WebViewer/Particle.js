@@ -1,7 +1,7 @@
 const RADIUS_PARTICLE = 5
 
 class Particle{
-	constructor(x, y, pinned, id, str){
+	constructor(x, y, pinned, id, str, parent){
 		this.pos = createVector(x, y)
 		this.prevPos = createVector(x, y)
 		this.acc = createVector(0, 0)
@@ -9,6 +9,8 @@ class Particle{
 		this.id = id
 		this.radius = RADIUS_PARTICLE
 		this.link = str
+		this.parent = parent
+		this.angle = 0
 	}
 
 	applyForce(force){
@@ -31,6 +33,27 @@ class Particle{
 		this.hovered = mouseInside
 		if(this.hovered) hoveredParticle = this
 		else if(hoveredParticle == this) hoveredParticle = null
+
+		if(this.parent) this.angle = atan2(this.pos.y - this.parent.pos.y, this.pos.x - this.parent.pos.x)
+	}
+
+	repelGroup(particles, separationDistance) {
+		if(this.isPinned) return
+		particles.forEach(other => {
+			if (other !== this && other.parent !== this.parent) {
+				let diff = p5.Vector.sub(this.pos, other.pos);
+				let distance = diff.mag();
+
+				if (distance < separationDistance) {
+					if(distance == 0) distance = 0.1
+					// Normalize and scale the force so that closer particles are pushed away stronger
+					let strength = (separationDistance - distance) / separationDistance; // 0-1 strength
+					diff.normalize();
+					diff.mult(strength);
+					this.applyForce(diff);
+				}
+			}
+		});
 	}
 
 
@@ -74,6 +97,12 @@ class Particle{
 			textSize(13)
 			textAlign(CENTER, CENTER)
 			text(getLastPartOfLink(this.link), this.pos.x, this.pos.y + 20)
+
+			// let a = atan2(this.pos.y - this.parent.pos.y, this.pos.x - this.parent.pos.x)
+			// let x = this.pos.x + cos(a) * (REST_DISTANCE + absoluteSeparationDistance)
+			// let y = this.pos.y + sin(a) * (REST_DISTANCE + absoluteSeparationDistance)
+			// fill(255, 0, 0)
+			// ellipse(x, y, this.radius * 2)
 		}
 		pop()
 	}
