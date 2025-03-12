@@ -2,27 +2,36 @@ class Creature{
     constructor(x, y){
         this.pos = createVector(x, y);
         this.angle = random(TWO_PI)
-        this.w = 50
+        this.w = 70
         this.h = 30
-        this.speed = 1.5
-        this.rotSpeed = 0.05
+        this.speed = .73
+        this.rotSpeed = 0.55
 
         //gx and gy are the goal points of the limbs (respective from the creature)
         //sx and sy are the start points of the limbs (respective from the creature)
         //x and y are the current points of the limbs (absolute coordinates)
         //maxDist is the maximum distance of the limb
-        let xC = 25
+        let xC = 40
+        let mD = 30
+        let midH = this.h / 2
         this.limbs = [
-            {gx: 10, gy: -xC, x: 0, y: 0, maxDist: 20, sx: 20, sy: 0},
-            {gx: 10, gy: xC, x: 0, y: 0, maxDist: 20, sx: 20, sy: 0},
+            {gx: 30, gy: -xC, x: 0, y: 0, maxDist: mD, sx: 20, sy: -midH},
+            {gx: 30, gy: xC, x: 0, y: 0, maxDist: mD, sx: 20, sy: midH},
 
-            {gx: -10, gy: -xC, x: 0, y: 0, maxDist: 20, sx: 10, sy: 0},
-            {gx: -10, gy: xC, x: 0, y: 0, maxDist: 20, sx: 10, sy: 0},
+            {gx: 10, gy: -xC, x: 0, y: 0, maxDist: mD, sx: 0, sy: -midH},
+            {gx: 10, gy: xC, x: 0, y: 0, maxDist: mD, sx: 0, sy: midH},
 
-            {gx: -30, gy: -xC, x: 0, y: 0, maxDist: 20, sx: -10, sy: 0},
-            {gx: -30, gy: xC, x: 0, y: 0, maxDist: 20, sx: -10, sy: 0},
-        ] 
+            {gx: -10, gy: -xC, x: 0, y: 0, maxDist: mD, sx: -20, sy: -midH},
+            {gx: -10, gy: xC, x: 0, y: 0, maxDist: mD, sx: -20, sy: midH},
+        ]
     }
+
+    getNextPos(){
+        this.followMouse()
+        let vel = p5.Vector.fromAngle(this.angle).mult(this.speed)
+        return p5.Vector.add(this.pos, vel)
+    }
+    
 
     update(){
         this.followMouse()
@@ -45,7 +54,6 @@ class Creature{
         if (abs(diff) > 0.1){
             this.angle += diff * this.rotSpeed
         }
-
     }
 
     updateLimbs(){
@@ -54,11 +62,12 @@ class Creature{
             let realGoalY = this.pos.y + limb.gx * sin(this.angle) + limb.gy * cos(this.angle)
             let limbX = limb.x
             let limbY = limb.y
-            if(dist(realGoalX, realGoalY, limbX, limbY) > limb.maxDist){
+            let d = dist(realGoalX, realGoalY, limbX, limbY)
+            if(d > limb.maxDist){
                 // limb.x = realGoalX
                 // limb.y = realGoalY
-                limb.x = lerp(limb.x, realGoalX, 0.7);
-                limb.y = lerp(limb.y, realGoalY, 0.7);
+                limb.x = lerp(limb.x, realGoalX, 0.5);
+                limb.y = lerp(limb.y, realGoalY, 0.5);
             }
         }
     }
@@ -91,7 +100,7 @@ class Creature{
             let endLimbX = this.limbs[i].x
             let endLimbY = this.limbs[i].y
             let red = map(dist(x, y, endLimbX, endLimbY), 0, this.limbs[i].maxDist, 0, 255)
-            stroke(255, red, 0, 100)
+            stroke(red, 255, 0, 100)
             line(x, y, endLimbX, endLimbY)
         }
         pop()
@@ -150,7 +159,7 @@ class Creature{
         strokeWeight(3.5)
         rect(this.pos.x, this.pos.y, this.w, this.h, 9)
         pop()
-        // this.showLimbs()
-        // this.showStartLimbsPos()
+        this.showLimbs()
+        this.showStartLimbsPos()
     }
 }

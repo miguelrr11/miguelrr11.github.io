@@ -16,6 +16,8 @@ let nFPS = 5
 let FPSarr = Array(nFPS).fill(60)
 let meanFPS = 60
 
+let showingMinimap = false
+
 function preload(){
     imgNexo1 = loadImage('images/shoe.png')
     imgNexo2 = loadImage('images/pickaxe.png')
@@ -46,11 +48,13 @@ function setup(){
     //plotAnims.maxGlobal = 1500
     plotAnims.minGlobal = 0
     console.log('--------------------------------')
+
 }
+
 
 function draw(){
     background(0)
-    
+    showingMinimap = keyIsPressed && keyCode == 32
 
     player.update()
     anims.update()
@@ -67,11 +71,13 @@ function draw(){
 
     
 
-    if(frameCount % 1 == 0) updateTopo()
-    showTopo()
+    updateTopo()
+    showTopo(showingMinimap)
 
     updateMinimap()
     showMinimap()
+
+    
 
     //remove las fps and push fps
     FPSarr.shift()
@@ -89,6 +95,12 @@ function mouseClicked(){
 }
 
 function mouseDragged(){
+}
+
+function keyReleased(){
+    if(keyCode == 32){
+        blurredFrame = undefined
+    }
 }
 
 function keyPressed(){

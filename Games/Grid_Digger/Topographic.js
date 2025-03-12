@@ -33,7 +33,7 @@ function updateTopo() {
     }
 }
 
-function showTopo() {
+function showTopo(doNotAccountForLight = false) {
     push();
     if(transitionFramesCounter == transitionFrames) stroke(colOscuridad1_2);
     else{
@@ -59,7 +59,7 @@ function showTopo() {
             const lightRow = curLightMap.lightingGrid[i >> 2];
             const x = i * rez;
             for(let j = 0; j < rows; j++) {
-                if(lightRow[j >> 2].visible || lightRow[j >> 2].sensor) continue;
+                if(!doNotAccountForLight && (lightRow[j >> 2].visible || lightRow[j >> 2].sensor)) continue;
 
                 // Retrieve the noise values at the cell corners
                 const a_val = topoGrid[i][j];

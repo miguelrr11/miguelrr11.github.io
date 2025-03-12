@@ -137,6 +137,7 @@ class Cell_nexo extends Cell {
 
 
     show(){
+        if(showingMinimap) return
         push()
         translate(this.x * cellPixelSize + cellPixelSize/2, this.y * cellPixelSize + cellPixelSize/2)
         strokeWeight(4)

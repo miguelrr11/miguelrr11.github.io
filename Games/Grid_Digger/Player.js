@@ -268,6 +268,7 @@ class Player{
     
 
     show(){
+        if(showingMinimap) return
         push()
         rectMode(CENTER)
         if(!transitioning){

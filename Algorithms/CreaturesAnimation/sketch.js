@@ -9,16 +9,16 @@ let creature
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
-    creature = new Creature(width/2, height/2)
+    creature = new FullCreature(5)
 }
 
 function draw(){
     background(180)
     creature.update()
-    if(mouseIsPressed){
-        creature.showGoalPoints()
-        creature.showLimbsPos()
-        creature.showDistances()
-    }
+    // if(mouseIsPressed){
+    //     creature.showGoalPoints()
+    //     creature.showLimbsPos()
+    //     creature.showDistances()
+    // }
     creature.show()
 }

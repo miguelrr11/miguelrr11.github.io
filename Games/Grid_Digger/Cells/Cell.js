@@ -221,12 +221,13 @@ class Cell {
         let x = this.x * cellPixelSize + cellPixelSize / 2
         let y = this.y * cellPixelSize + cellPixelSize / 2
         let tam = cellPixelSize;
-        if(this.hp < this.maxHealthCell) this.showSuelo(x, y)
-        if (this.hp > 0 && !this.und) {
+        if(this.hp < this.maxHealthCell && !showingMinimap) this.showSuelo(x, y)
+        if ((this.hp > 0 && !this.und) || showingMinimap) {
             //fill(this.colRoca); // set by the child class
             let col = lerppColor(this.colRoca, this.colOscuridad2, this.noise);
             fill(col)
             tam = mapp(this.hp, 0, this.maxHealthCell, minTam, maxTam, true);
+            if(showingMinimap) tam = cellPixelSize
             rect(x, y, tam, tam);
 
             if(this.coolDownHit > 0){
@@ -243,20 +244,13 @@ class Cell {
 
 
     showLight(lightGrid) {
-        
         let light = lightGrid[this.x][this.y].light;
         let visible = lightGrid[this.x][this.y].visible;
         let sensor = lightGrid[this.x][this.y].sensor;
         fill([...this.colOscuridad1, 255 - light * 255]);
-        if (!sensor && !visible){
+        if ((!sensor && !visible) || showingMinimap){
             fill(lerppColor(this.colOscuridad1, this.colOscuridad2, noise(this.x/10, this.y/10, frameCount * sclNoiseMovement)));
         }
-        // if(!visible){
-        //     stroke(255, 50)
-        //     strokeWeight(mapp(this.rnd, -1, 1, .1, 3.5))
-        // }
-        // else noStroke()
-        
         rect(this.x * cellPixelSize + cellPixelSize / 2, 
             this.y * cellPixelSize + cellPixelSize / 2, 
             cellPixelSize, cellPixelSize);
