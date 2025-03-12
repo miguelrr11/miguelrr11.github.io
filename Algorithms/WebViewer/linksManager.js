@@ -82,32 +82,11 @@ function filterLinks(links, targetUrl) {
     }
   }
 
-  let linksLevel1 = [];
-//   let linksLevel2 = [];
-//   let linksLevel3 = [];
-  
 
-// For testing:
-extractAndFilterLinks('https://es.wikipedia.org/wiki/God_of_War_(franquicia)')
-.then(links => linksLevel1 = links)
-.catch(err => console.error(err));
-
-// function level2(){
-//     for(let i = 0; i < linksLevel1.length; i++){
-//         extractAndFilterLinks(linksLevel1[i])
-//         .then(links => linksLevel2.push(links))
-//         .catch(err => console.error(err));
-//     }
-// }
-
-// function level3(){
-//     for(let i = 0; i < linksLevel2.length; i++){
-//         for(let j = 0; j < linksLevel2[i].length; j++){
-//             extractAndFilterLinks(linksLevel2[i][j])
-//             .then(links => linksLevel3.push(links))
-//             .catch(err => console.error(err));
-//         }
-//     }
-// }
-
+//function that preserves only the last portion of a link (so the text following the last /)
+function getLastPartOfLink(link) {
+    if(link == undefined) return '';
+    const parts = link.split('/');
+    return parts[parts.length - 1];
+}
   
