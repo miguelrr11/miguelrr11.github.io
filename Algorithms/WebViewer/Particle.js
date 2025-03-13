@@ -1,7 +1,7 @@
 const RADIUS_PARTICLE = 5
 
 class Particle{
-	constructor(x, y, pinned, id, str, parent){
+	constructor(x, y, pinned, id, str = '', parent){
 		this.pos = createVector(x, y)
 		this.prevPos = createVector(x, y)
 		this.acc = createVector(0, 0)
@@ -9,8 +9,10 @@ class Particle{
 		this.id = id
 		this.radius = RADIUS_PARTICLE
 		this.link = str
+		this.str = removeBarrabaja(getLastPartOfLink(decodeURIComponent(str)))
 		this.parent = parent
 		this.angle = 0
+		this.isParent = false
 	}
 
 	applyForce(force){
@@ -25,10 +27,11 @@ class Particle{
 			this.pos.add(p5.Vector.add(vel, this.acc.copy().mult(timeStep * timeStep)))
 			this.acc = createVector(0, 0)
         }
-		let mouseInside = dist(mouseX, mouseY, this.pos.x, this.pos.y) < this.radius
-        if(!this.isPinned && mouseInside && mouseIsPressed){
-        	this.pos.x = mouseX
-        	this.pos.y = mouseY
+		let mouseInside = dist(mouseX - xOff, mouseY - yOff, this.pos.x, this.pos.y) < this.radius
+        if((mouseInside && mouseIsPressed) || (draggedParticle == this && mouseIsPressed)){
+        	this.pos.x = mouseX - xOff
+        	this.pos.y = mouseY - yOff
+			draggedParticle = this
         }
 		this.hovered = mouseInside
 		if(this.hovered) hoveredParticle = this
@@ -93,10 +96,10 @@ class Particle{
 		if(this.hovered){
 			fill(255)
 			stroke(0)
-			strokeWeight(.75)
-			textSize(13)
+			strokeWeight(1.2)
+			textSize(17)
 			textAlign(CENTER, CENTER)
-			text(getLastPartOfLink(this.link), this.pos.x, this.pos.y + 20)
+			text(this.str, this.pos.x, this.pos.y + 20)
 
 			// let a = atan2(this.pos.y - this.parent.pos.y, this.pos.x - this.parent.pos.x)
 			// let x = this.pos.x + cos(a) * (REST_DISTANCE + absoluteSeparationDistance)

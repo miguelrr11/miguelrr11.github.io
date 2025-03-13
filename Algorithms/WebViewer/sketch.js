@@ -8,16 +8,39 @@ const WIDTH = 1920*scl
 const HEIGHT = 1080*scl
 
 let hoveredParticle = null
+let draggedParticle = null
 
 let parentParticles = []
 
 let constraints = []
 let particles = []
 
-let initialLink = 'https://en.wikipedia.org/wiki/Hollow_Knight'
+let initialLink = 'https://en.wikipedia.org/wiki/The_Legend_of_Zelda:_Breath_of_the_Wild'
+
+let xOff = 0
+let yOff = 0
+let prevMouseX, prevMouseY
+
+function mouseReleased(){
+    prevMouseX = undefined
+    prevMouseY = undefined
+    draggedParticle = null
+}
+
+function mouseDragged(){
+    if(hoveredParticle || draggedParticle) return
+    if(!prevMouseX) prevMouseX = mouseX
+    if(!prevMouseY) prevMouseY = mouseY
+    let dx = mouseX - prevMouseX; // Change in mouse X
+    let dy = mouseY - prevMouseY; // Change in mouse Y
+    xOff += dx;
+    yOff += dy;
+    prevMouseX = mouseX;
+    prevMouseY = mouseY;
+}
 
 function doubleClicked(){
-    if(hoveredParticle && hoveredParticle.link){
+    if(hoveredParticle && !hoveredParticle.isParent && hoveredParticle.link){
         createGraph(hoveredParticle.link, hoveredParticle)
     }
 }
@@ -26,6 +49,7 @@ function createGraph(link, p){
     extractAndFilterLinks(link)
     .then(links => {
         initSecondaryGraph(links.splice(30, floor(random(10, 100))), p)
+        //console.log(links)
     })
     .catch(err => console.error(err));
 }
@@ -33,7 +57,7 @@ function createGraph(link, p){
 const absoluteSeparationDistance = 70
 function initSecondaryGraph(links, p){
     REST_DISTANCE = getRadiusFromCircumference(links.length * RADIUS_PARTICLE*2) * 1.1
-    p.isPinned = true   //importante
+    p.isPinned = true       //importante
     let deltaAngle = TWO_PI / links.length
     let parent = p.parent
     let a = atan2(p.pos.y - parent.pos.y, p.pos.x - parent.pos.x)
@@ -43,7 +67,22 @@ function initSecondaryGraph(links, p){
     let pos = getFinalPos(createVector(cos(a), sin(a)), createVector(x, y), 0, REST_DISTANCE)
     let pCopy = new Particle(pos.x, pos.y, true, -1, p.link, p)
     particles.push(pCopy)
-    constraints.push(new Constraint(p, pCopy))
+    constraints.push(new Constraint(parent, pCopy))
+    //remove p from parentParticles with indexOf
+    for(let i = 0; i < particles.length; i++){
+        if(particles[i] == p){
+            particles.splice(i, 1)
+            break
+        }
+    }
+    //remove the constraint with p
+    for(let i = 0; i < constraints.length; i++){
+        if(constraints[i].p1 == p || constraints[i].p2 == p){
+            constraints.splice(i, 1)
+            break
+        }
+    }
+
 
     for(let i = 0; i < links.length; i++){
         let x = pCopy.pos.x + cos(deltaAngle * i) * REST_DISTANCE
@@ -53,6 +92,7 @@ function initSecondaryGraph(links, p){
         constraints.push(new Constraint(pCopy, newP))
     }
 
+    pCopy.isParent = true
     parentParticles.push({
         particle: pCopy,
         radius: REST_DISTANCE
@@ -61,7 +101,8 @@ function initSecondaryGraph(links, p){
 
 function initFirstGraph(links){
     REST_DISTANCE = getRadiusFromCircumference(links.length * RADIUS_PARTICLE*2)
-    let p1 = new Particle(width/2, height/2, true, -1)
+    let p1 = new Particle(width/2, height/2, true, -1, initialLink)
+    p1.isParent = true
     let deltaAngle = TWO_PI / links.length
 
     for(let i = 0; i < links.length; i++){
@@ -84,13 +125,15 @@ function setup(){
 
     extractAndFilterLinks(initialLink)
     .then(links => {
-        initFirstGraph(links.splice(30, floor(random(10, 150))))
+        initFirstGraph(links.splice(0, floor(random(150, 300))))
+        //console.log(links)
     })
     .catch(err => console.error(err));
 }
 
 function draw(){
     background(0)
+    translate(xOff, yOff)
     udpateGraph()
     showGraph()
 }
@@ -110,7 +153,7 @@ function udpateGraph(){
         force.mult(0.2)
         p.applyForce(force)
         p.repel(particles, RADIUS_PARTICLE*2)
-        p.repelGroup(particles, RADIUS_PARTICLE*10)
+        //p.repelGroup(particles, RADIUS_PARTICLE*10)
         p.update(deltaTime/50)
         //p.constrainToBounds()
     }
@@ -147,4 +190,24 @@ function getFinalPos(direction, start, minDistance, radius, randomSep = Math.ran
         return getFinalPos(direction, start, distance, radius, randomSep)
     }
     return pos
+}
+
+function removeBarrabaja(str){
+    //this function replaces any _ with a space
+    if(str == undefined) return ''
+    let newStr = ''
+    for(let i = 0; i < str.length; i++){
+        if(str[i] == '_') newStr += ' '
+        else newStr += str[i]
+    }
+    return newStr
+}
+
+function getAllStr(){
+    let str = ""
+    for(let p of particles){
+        if(p.str == undefined) continue
+        str += p.str + ', '
+    }
+    return str
 }

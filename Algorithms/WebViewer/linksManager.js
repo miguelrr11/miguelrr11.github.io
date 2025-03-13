@@ -11,54 +11,49 @@
  */
 
 function filterLinks(links, targetUrl) {
-    const filtered = new Set();
-    const target = new URL(targetUrl);
-    const targetHost = target.host;
-    const targetPath = target.pathname;
-  
-    links.forEach(link => {
-      if (!link) return;
-  
-      let urlObj;
-      try {
-        // Resolve relative URLs against the targetUrl
-        urlObj = new URL(link, targetUrl);
-      } catch (e) {
-        // Skip invalid URLs
-        return;
-      }
-  
-      // Skip in-page anchor links that reference the same page
-      if (urlObj.pathname === targetPath && urlObj.hash) {
-        return;
-      }
-  
-      // Skip links that point to navigation/boilerplate pages.
-      // This covers Spanish-specific prefixes like "Especial:", "Ayuda:", "Portal:", "Discusión:", and "Archivo:".
-      // You can add or remove prefixes as needed.
-      const navRegex = /\/(Especial|Wikipedia|Ayuda|Portal|Discusi[oó]n|Archivo):/i;
-      if (navRegex.test(urlObj.pathname)) {
-        return;
-      }
-  
-      // Skip URLs with query parameters for editing or history actions
-      const action = urlObj.searchParams.get('action');
-      if (action === 'edit' || action === 'history') {
-        return;
-      }
-  
-      // Optional: Keep only links on the same host (e.g. "es.wikipedia.org")
-      if (urlObj.host !== targetHost) {
-        return;
-      }
-  
-      // Normalize the URL by stripping the fragment (if you don't care about it)
-      urlObj.hash = '';
-      filtered.add(urlObj.toString());
-    });
-  
-    return Array.from(filtered);
-  }
+  const filtered = new Set();
+  const target = new URL(targetUrl);
+  const targetHost = target.host;
+  const targetPath = target.pathname;
+
+  links.forEach(link => {
+    if (!link) return;
+
+    let urlObj;
+    try {
+      // Resolve relative URLs against the original target
+      urlObj = new URL(link, targetUrl);
+    } catch (e) {
+      return; // Skip invalid URLs
+    }
+
+    // Skip in-page anchors (links that only reference a section in the same page)
+    if (urlObj.pathname === targetPath && urlObj.hash) return;
+
+    // Exclude paths that indicate templates, files, help, special pages, or Wikipedia meta pages.
+    // This regex now covers prefixes like "Template:", "File:", "Help:", "Special:", "Especial:", and "Wikipedia:".
+    const exclusionRegex = /\/(Template|File|Help|Special|Especial|Wikipedia):/i;
+    if (exclusionRegex.test(urlObj.pathname)) return;
+
+    // Skip URLs that point to internal index.php pages
+    if (/\/w\/index\.php/i.test(urlObj.pathname)) return;
+
+    // Skip URLs with query parameters for editing or history actions
+    const action = urlObj.searchParams.get('action');
+    if (action === 'edit' || action === 'history') return;
+
+    // Optionally: Keep only links on the same host (e.g. "en.wikipedia.org" or "es.wikipedia.org")
+    if (urlObj.host !== targetHost) return;
+
+    // Normalize the URL by removing any fragment (hash)
+    urlObj.hash = '';
+    filtered.add(urlObj.toString());
+  });
+
+  return Array.from(filtered);
+}
+
+
   
   // Example usage:
   async function extractAndFilterLinks(targetUrl) {
