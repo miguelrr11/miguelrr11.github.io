@@ -15,7 +15,10 @@ let parentParticles = []
 let constraints = []
 let particles = []
 
-let initialLink = 'https://es.wikipedia.org/wiki/Tool'
+//let initialLink = 'https://es.wikipedia.org/wiki/Tool'
+//let initialLink = 'https://es.wikipedia.org/wiki/The_Legend_of_Zelda:_Breath_of_the_Wild'
+//let initialLink = 'https://es.wikipedia.org/wiki/Segunda_Guerra_Mundial'
+let initialLink = 'https://en.wikipedia.org/wiki/History_of_France'
 
 let xOff = 0
 let yOff = 0
@@ -77,7 +80,7 @@ function doubleClicked(){
 function createGraph(link, p){
     extractAndFilterLinks(link)
     .then(links => {
-        initSecondaryGraph(links.splice(0, floor(random(10, 100))), p)
+        initSecondaryGraph(links.splice(0, floor(random(25, 100))), p)
         //console.log(links)
     })
     .catch(err => console.error(err));
@@ -184,10 +187,49 @@ function initFirstGraph(links){
         radius: REST_DISTANCE
     })
 }
+
+function initFirstGraphCategorized(links, title, primordial){
+    REST_DISTANCE = getRadiusFromCircumference(links.length * RADIUS_PARTICLE*2)
+    let rAngle = random(TWO_PI)
+    let x = cos(rAngle) * (REST_DISTANCE + 100) + primordial.pos.x
+    let y = sin(rAngle) * (REST_DISTANCE + 100) + primordial.pos.y
+    let pos = getFinalPos(createVector(cos(rAngle), sin(rAngle)), createVector(x, y), 0, REST_DISTANCE)
+    let p1 = new Particle(pos.x, pos.y, true, -1, initialLink)
+    constraints.push(new Constraint(primordial, p1))
+    p1.str = title
+    p1.isParent = true
+    p1.color = color(255)
+    let deltaAngle = TWO_PI / links.length
+    let col = random(colors)
+    let siblings = []
+    let newParticles = []
+
+    let radius = (REST_DISTANCE + 5)
+    for(let i = 0; i < links.length; i++){
+        let x = p1.pos.x + cos(deltaAngle * i) * radius
+        let y = p1.pos.y + sin(deltaAngle * i) * radius
+        let particle = new Particle(x, y, false, particles.length, links[i], p1)
+        particle.color = col
+        newParticles.push(particle)
+        constraints.push(new Constraint(p1, particle, radius))
+        siblings.push(particle)
+    }
+    for(let p of newParticles){
+        p.siblings = siblings
+        particles.push(p)
+    }
+    particles.push(p1)
+
+    parentParticles.push({
+        particle: p1,
+        radius: REST_DISTANCE
+    })
+}
   
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
+    textFont('Arial')
 
     colors = [
         color(255, 133, 133),
@@ -200,10 +242,16 @@ function setup(){
         color(255, 173, 255)
     ]
 
-    extractAndFilterLinks(initialLink)
-    .then(links => {
-        initFirstGraph(links.splice(0, floor(random(150, 300))))
-        //console.log(links)
+    extractAndFilterLinksCategorized(initialLink)
+    .then(categories => {
+        let primordial = new Particle(width/2, height/2, true, -1, initialLink)
+        primordial.isParent = true
+        primordial.color = color(255)
+        for(let i = 0; i < categories.length; i++){
+            let links = categories[i].links.splice(0, floor(random(10, 100)))
+            initFirstGraphCategorized(links, categories[i].title, primordial)
+        }
+        particles.push(primordial)
     })
     .catch(err => console.error(err));
 }
@@ -253,17 +301,15 @@ function showGraph(){
 
 function udpateGraph(){
     for(let p of particles){
-        let n = noise(p.pos.x, p.pos.y, frameCount*10)
-        n = map(n, 0, 1, -1, 1)
-        //apply a tangential force to the particle
-        let force = createVector(cos(n), sin(n))
-        force.rotate(p.angle)
-        force.mult(0.2)
-        p.applyForce(force)
-        p.repel(particles, RADIUS_PARTICLE*2)
-        //p.repelGroup(particles, RADIUS_PARTICLE*10)
-        p.update(deltaTime/50)
-        //p.constrainToBounds()
+        // let n = noise(p.pos.x, p.pos.y, frameCount*10)
+        // n = mapp(n, 0, 1, -1, 1)
+        // //apply a tangential force to the particle
+        // let force = createVector(Math.cos(n), Math.sin(n))
+        // force.rotate(p.angle)
+        // force.mult(0.2)
+        //p.applyForce(force)
+        p.repel(p.siblings, RADIUS_PARTICLE*2)
+        p.update(0.1)
     }
     for(let i = 0; i < 10; i++){
         for(let c of constraints) c.satisfy()
@@ -275,6 +321,7 @@ function getRadiusFromCircumference(length) {
     return radius;
 }
 
+//TODO: try the direction and the opposite direction, choose the smaller one
 function getFinalPos(direction, start, minDistance, radius, randomSep = Math.random() * 50){
     //this function tries to position a circle of a fixed radius. this circle can only be placed in a line that goes from start and has a direction.
     //It will do this checking if it collides with any of the circles of parentParticles

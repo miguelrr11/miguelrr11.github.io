@@ -14,6 +14,7 @@ class Particle{
 		this.angle = 0
 		this.isParent = false
 		this.color = color(255)
+		this.siblings = []
 	}
 
 	removeInertia(){
@@ -86,7 +87,7 @@ class Particle{
 					// Normalize and scale the force so that closer particles are pushed away stronger
 					let strength = (separationDistance - distance) / separationDistance; // 0-1 strength
 					diff.normalize();
-					diff.mult(strength);
+					diff.mult(strength*5);
 					this.applyForce(diff);
 				}
 			}
@@ -101,7 +102,7 @@ class Particle{
 	}
 	
 
-	show(bool){
+	show(bool = false){
 		push()
 		fill(this.color)
 		stroke(50)
@@ -119,7 +120,7 @@ class Particle{
 			noStroke()
 			rect(this.pos.x, this.pos.y + 20, w + 10, h + 10, 7)
 			fill(this.color)
-			stroke(50)
+			stroke(50, 125)
 			text(this.str, this.pos.x, this.pos.y + 20)
 		}
 		pop()
