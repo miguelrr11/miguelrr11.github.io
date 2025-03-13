@@ -55,28 +55,37 @@ function filterLinks(links, targetUrl) {
 
 
   
-  // Example usage:
-  async function extractAndFilterLinks(targetUrl) {
-    try {
-      const proxyUrl = `http://localhost:3000/?url=${encodeURIComponent(targetUrl)}`;
-      const response = await fetch(proxyUrl);
-      const html = await response.text();
-  
-      const parser = new DOMParser();
-      const doc = parser.parseFromString(html, 'text/html');
-      // Using getAttribute so the base URL doesn't resolve relative URLs automatically
-      const anchors = Array.from(doc.querySelectorAll('a[href]')).map(anchor =>
-        anchor.getAttribute('href')
-      );
-  
-      const filteredLinks = filterLinks(anchors, targetUrl);
-      return filteredLinks;
-    } catch (error) {
-      console.error('Error fetching or processing the URL:', error);
-      return [];
+async function extractAndFilterLinks(targetUrl) {
+  try {
+    const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
+    console.log('Fetching from proxy:', proxyUrl);
+    const response = await fetch(proxyUrl);
+    
+    // Check the content type to ensure it's HTML and not JSON
+    const contentType = response.headers.get('Content-Type');
+    if (!contentType || !contentType.includes('text/html')) {
+      throw new Error('Expected HTML response but got ' + contentType);
     }
-  }
 
+    const html = await response.text();  // Use text() instead of json()
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(html, 'text/html');
+
+    // Extract links using getAttribute to avoid auto-resolving relative URLs
+    const anchors = Array.from(doc.querySelectorAll('a[href]')).map(anchor =>
+      anchor.getAttribute('href')
+    );
+
+    const filteredLinks = filterLinks(anchors, targetUrl);
+    return filteredLinks;
+  } catch (error) {
+    console.error('Error fetching or processing the URL:', error);
+    return [];
+  }
+}
+
+  
+  
 
 //function that preserves only the last portion of a link (so the text following the last /)
 function getLastPartOfLink(link) {
