@@ -13,10 +13,22 @@ class Particle{
 		this.parent = parent
 		this.angle = 0
 		this.isParent = false
+		this.color = color(255)
+	}
+
+	removeInertia(){
+		this.prevPos = this.pos.copy()
+		this.acc = createVector(0, 0)
 	}
 
 	applyForce(force){
 		if(!this.isPinned) this.acc.add(force)
+	}
+
+	getRelativeMousePos(){
+		let worldX = (mouseX - xOff) / zoom;
+		let worldY = (mouseY - yOff) / zoom;
+		return createVector(worldX, worldY);
 	}
 
 	update(timeStep){
@@ -27,10 +39,12 @@ class Particle{
 			this.pos.add(p5.Vector.add(vel, this.acc.copy().mult(timeStep * timeStep)))
 			this.acc = createVector(0, 0)
         }
-		let mouseInside = dist(mouseX - xOff, mouseY - yOff, this.pos.x, this.pos.y) < this.radius
-        if((mouseInside && mouseIsPressed) || (draggedParticle == this && mouseIsPressed)){
-        	this.pos.x = mouseX - xOff
-        	this.pos.y = mouseY - yOff
+		let mousePos = this.getRelativeMousePos()
+		ellipse(mousePos.x, mousePos.y, 10)   //for debugging
+		let mouseInside = dist(mousePos.x, mousePos.y, this.pos.x, this.pos.y) < this.radius
+        if(((mouseInside && mouseIsPressed) || (draggedParticle == this && mouseIsPressed)) && (draggedParticle == null || draggedParticle == this)){
+        	this.pos.x = mousePos.x
+        	this.pos.y = mousePos.y
 			draggedParticle = this
         }
 		this.hovered = mouseInside
@@ -87,29 +101,32 @@ class Particle{
 	}
 	
 
-	//changed and suited for the pendulum project
-	show(){
+	show(bool){
 		push()
-		fill(255)
-		let rad = this.hovered ? this.radius * 5 : this.radius * 2
+		fill(this.color)
+		stroke(50)
+		strokeWeight(2)
+		let rad = bool ? this.radius * 5 : this.radius * 2
 		ellipse(this.pos.x, this.pos.y, rad)
-		if(this.hovered){
-			fill(255)
-			stroke(0)
-			strokeWeight(1.2)
+		if(this.isParent || bool){
+			strokeWeight(1.5)
 			textSize(17)
 			textAlign(CENTER, CENTER)
+			let w = textWidth(this.str)
+			let h = textHeight()
+			rectMode(CENTER)
+			fill(50, 50, 50, 150)
+			noStroke()
+			rect(this.pos.x, this.pos.y + 20, w + 10, h + 10, 7)
+			fill(this.color)
+			stroke(50)
 			text(this.str, this.pos.x, this.pos.y + 20)
-
-			// let a = atan2(this.pos.y - this.parent.pos.y, this.pos.x - this.parent.pos.x)
-			// let x = this.pos.x + cos(a) * (REST_DISTANCE + absoluteSeparationDistance)
-			// let y = this.pos.y + sin(a) * (REST_DISTANCE + absoluteSeparationDistance)
-			// fill(255, 0, 0)
-			// ellipse(x, y, this.radius * 2)
 		}
 		pop()
 	}
 }
 
-
+function textHeight() {
+    return textAscent() + textDescent();
+}
 

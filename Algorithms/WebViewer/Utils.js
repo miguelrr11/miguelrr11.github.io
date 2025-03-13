@@ -18,3 +18,15 @@ function drawFastRect(x, y, w, h, r, g, b, a = 255) {
     }
 }
 
+function gradientLine(x1, y1, x2, y2, colors) {
+	// linear gradient from start to end of line
+	var grad = this.drawingContext.createLinearGradient(x1, y1, x2, y2);
+	for(let i = 0; i < colors.length; i++){
+		grad.addColorStop(i / (colors.length - 1), colors[i]);
+	}
+  
+	this.drawingContext.strokeStyle = grad;
+  
+	line(x1, y1, x2, y2);
+}
+

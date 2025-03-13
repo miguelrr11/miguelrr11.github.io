@@ -15,16 +15,27 @@ let parentParticles = []
 let constraints = []
 let particles = []
 
-let initialLink = 'https://en.wikipedia.org/wiki/The_Legend_of_Zelda:_Breath_of_the_Wild'
+let initialLink = 'https://es.wikipedia.org/wiki/Tool'
 
 let xOff = 0
 let yOff = 0
 let prevMouseX, prevMouseY
+let zoom = 1
+
+let framesPerAnimation = 60 * 2
+
+let colors
 
 function mouseReleased(){
     prevMouseX = undefined
     prevMouseY = undefined
     draggedParticle = null
+}
+
+function mouseWheel(event) {
+    zoom += event.delta / 1000
+    zoom = constrain(zoom, 0.1, 5)
+    return false
 }
 
 function mouseDragged(){
@@ -35,6 +46,21 @@ function mouseDragged(){
     let dy = mouseY - prevMouseY; // Change in mouse Y
     xOff += dx;
     yOff += dy;
+    // if(zoom < 1){
+    //     console.log('zoom < 1')
+    //     xOff += dx;
+    //     yOff += dy;
+    // }
+    // else if(zoom > 1) {
+    //     console.log('zoom > 1')
+    //     xOff -= dx
+    //     yOff -= dy
+    // }
+    // else if(zoom == 1){
+    //     console.log('zoom == 1')
+    //     xOff -= dx
+    //     yOff -= dy
+    // }
     prevMouseX = mouseX;
     prevMouseY = mouseY;
 }
@@ -43,31 +69,55 @@ function doubleClicked(){
     if(hoveredParticle && !hoveredParticle.isParent && hoveredParticle.link){
         createGraph(hoveredParticle.link, hoveredParticle)
     }
+    if(hoveredParticle && hoveredParticle.isParent){
+        window.open(hoveredParticle.link, '_blank')
+    }
 }
 
 function createGraph(link, p){
     extractAndFilterLinks(link)
     .then(links => {
-        initSecondaryGraph(links.splice(30, floor(random(10, 100))), p)
+        initSecondaryGraph(links.splice(0, floor(random(10, 100))), p)
         //console.log(links)
     })
     .catch(err => console.error(err));
 }
 
+let animations = []
+
 const absoluteSeparationDistance = 70
 function initSecondaryGraph(links, p){
     REST_DISTANCE = getRadiusFromCircumference(links.length * RADIUS_PARTICLE*2) * 1.1
-    p.isPinned = true       //importante
     let deltaAngle = TWO_PI / links.length
     let parent = p.parent
     let a = atan2(p.pos.y - parent.pos.y, p.pos.x - parent.pos.x)
+
     let sep = (REST_DISTANCE + absoluteSeparationDistance)
     let x = p.pos.x + cos(a) * sep
     let y = p.pos.y + sin(a) * sep
     let pos = getFinalPos(createVector(cos(a), sin(a)), createVector(x, y), 0, REST_DISTANCE)
-    let pCopy = new Particle(pos.x, pos.y, true, -1, p.link, p)
+    let pCopy = new Particle(p.pos.x, p.pos.y, true, -1, p.link, p)
+    
+
+    let color
+    if(Math.random() < 0.5){
+        color = random(colors)
+    }
+    else{
+        let auxColor = random(colors)
+        color = lerpColor(auxColor, p.color, 0.5)
+    }
+
+    pCopy.color = color
+
+    animations.push({
+        particle: pCopy,
+        finalPos: pos
+    })
+
     particles.push(pCopy)
     constraints.push(new Constraint(parent, pCopy))
+
     //remove p from parentParticles with indexOf
     for(let i = 0; i < particles.length; i++){
         if(particles[i] == p){
@@ -83,13 +133,25 @@ function initSecondaryGraph(links, p){
         }
     }
 
+    let deltaFrames = Math.floor(framesPerAnimation / links.length)
+
+    
 
     for(let i = 0; i < links.length; i++){
-        let x = pCopy.pos.x + cos(deltaAngle * i) * REST_DISTANCE
-        let y = pCopy.pos.y + sin(deltaAngle * i) * REST_DISTANCE
-        let newP = new Particle(x, y, false, particles.length, links[i], pCopy)
+        let x = pos.x + cos(deltaAngle * i) * REST_DISTANCE
+        let y = pos.y + sin(deltaAngle * i) * REST_DISTANCE
+        let newP = new Particle(parent.pos.x, parent.pos.y, true, particles.length, links[i], pCopy)
+        newP.color = color
+
+        animations.push({
+            particle: newP,
+            finalPos: createVector(x, y),
+            parent: pCopy,
+            framesTillStart: -(i * deltaFrames)
+        })
+
         particles.push(newP)
-        constraints.push(new Constraint(pCopy, newP))
+        constraints.push(new Constraint(pCopy, newP, REST_DISTANCE))
     }
 
     pCopy.isParent = true
@@ -103,12 +165,16 @@ function initFirstGraph(links){
     REST_DISTANCE = getRadiusFromCircumference(links.length * RADIUS_PARTICLE*2)
     let p1 = new Particle(width/2, height/2, true, -1, initialLink)
     p1.isParent = true
+    p1.color = color(255)
     let deltaAngle = TWO_PI / links.length
+    let col = random(colors)
 
     for(let i = 0; i < links.length; i++){
         let x = p1.pos.x + cos(deltaAngle * i) * REST_DISTANCE
         let y = p1.pos.y + sin(deltaAngle * i) * REST_DISTANCE
-        particles.push(new Particle(x, y, false, particles.length, links[i], p1))
+        let particle = new Particle(x, y, false, particles.length, links[i], p1)
+        particle.color = col
+        particles.push(particle)
         constraints.push(new Constraint(p1, particles[i]))
     }
     particles.push(p1)
@@ -123,6 +189,17 @@ function initFirstGraph(links){
 function setup(){
     createCanvas(WIDTH, HEIGHT)
 
+    colors = [
+        color(255, 133, 133),
+        color(255, 200, 133),
+        color(252, 255, 153),
+        color(170, 255, 153),
+        color(133, 245, 255),
+        color(153, 192, 255),
+        color(186, 173, 255),
+        color(255, 173, 255)
+    ]
+
     extractAndFilterLinks(initialLink)
     .then(links => {
         initFirstGraph(links.splice(0, floor(random(150, 300))))
@@ -134,9 +211,40 @@ function setup(){
 function draw(){
     background(0)
     translate(xOff, yOff)
+    scale(zoom)
+    updateAnimations()
     udpateGraph()
     showGraph()
+    showHovered()
 }
+
+function showHovered(){
+    if(hoveredParticle){
+        hoveredParticle.show(true)
+    }
+}
+
+function updateAnimations(){
+    for(let i = animations.length - 1; i >= 0; i--){
+        let anim = animations[i]
+        let p = anim.particle
+        if(anim.parent && animations.some(a => a.particle == anim.parent)){
+            p.pos = anim.parent.pos.copy()
+            continue
+        }
+        let finalPos = anim.finalPos
+        if(anim.framesTillStart == undefined || anim.framesTillStart > 0) p.pos.lerp(finalPos, 0.05)
+        if(anim.framesTillStart != undefined) anim.framesTillStart++
+        let d = dist(p.pos.x, p.pos.y, finalPos.x, finalPos.y)
+        if(d < 1){
+            if(anim.parent) p.isPinned = false
+            p.removeInertia()
+            animations.splice(i, 1)
+        }
+    }
+}
+
+
 
 function showGraph(){
     for(let c of constraints) c.show()
