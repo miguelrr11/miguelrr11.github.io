@@ -4,6 +4,8 @@ class Constraint{
 	constructor(p1, p2, initialLength = REST_DISTANCE){
 		this.p1 = p1
 		this.p2 = p2
+		this.baseLength = initialLength
+		this.baseLengthSq = initialLength * initialLength
 		this.initialLength = initialLength
 		this.active = true
 		this.currentLength = dist(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y)

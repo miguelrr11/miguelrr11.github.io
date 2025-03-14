@@ -15,9 +15,9 @@ let parentParticles = []
 let constraints = []
 let particles = []
 
-//let initialLink = 'https://es.wikipedia.org/wiki/Tool'
+let initialLink = 'https://es.wikipedia.org/wiki/Tool'
 //let initialLink = 'https://es.wikipedia.org/wiki/The_Legend_of_Zelda:_Breath_of_the_Wild'
-let initialLink = 'https://es.wikipedia.org/wiki/Segunda_Guerra_Mundial'
+//let initialLink = 'https://es.wikipedia.org/wiki/Segunda_Guerra_Mundial'
 //let initialLink = 'https://en.wikipedia.org/wiki/History_of_France'
 
 let xOff = 0
@@ -66,6 +66,7 @@ function createGraph(link, p){
     extractAndFilterLinksCategorized(link)
     .then(categories => {
         let primordial = getP(p)
+        primordial.isParent = true
         for(let i = 0; i < categories.length; i++){
             let links = categories[i].links.splice(0, floor(random(10, 100)))
             initFirstGraphCategorized(links, categories[i].title, primordial)
@@ -105,7 +106,9 @@ function getP(p){
     })
 
     particles.push(pCopy)
-    constraints.push(new Constraint(parent, pCopy))
+    let constraint = new Constraint(parent, pCopy)
+    constraints.push(constraint)
+    parent.constraint = constraint
 
     //remove p from parentParticles with indexOf
     for(let i = 0; i < particles.length; i++){
@@ -135,8 +138,8 @@ function initFirstGraphCategorized(links, title, primordial){
             break
         }
     }
-    let x = Math.cos(rAngle) * (REST_DISTANCE + 100) + finalPos.x
-    let y = Math.sin(rAngle) * (REST_DISTANCE + 100) + finalPos.y
+    let x = Math.cos(rAngle) * (REST_DISTANCE + 300) + finalPos.x
+    let y = Math.sin(rAngle) * (REST_DISTANCE + 300) + finalPos.y
 
     let pos = getFinalPos(createVector(Math.cos(rAngle), Math.sin(rAngle)), createVector(x, y), 0, REST_DISTANCE)
     parentParticles.push({
@@ -144,10 +147,13 @@ function initFirstGraphCategorized(links, title, primordial){
         radius: REST_DISTANCE
     })
     let p1 = new Particle(primordial.pos.x, primordial.pos.y, true, -1, initialLink)
-    constraints.push(new Constraint(primordial, p1))
+    let constraint = new Constraint(primordial, p1)
+    constraints.push(constraint)
     p1.str = title
     p1.isParent = true
     p1.color = color(255)
+    p1.constraint = constraint
+    primordial.constraint = constraint
 
     let deltaAngle = TWO_PI / links.length
     let col = randomizeColor(primordial.color, 50)
@@ -167,8 +173,10 @@ function initFirstGraphCategorized(links, title, primordial){
         let particle = new Particle(p1.pos.x, p1.pos.y, true, particles.length, links[i], p1)
         particle.color = col
         newParticles.push(particle)
-        constraints.push(new Constraint(p1, particle, radius))
+        let constraint = new Constraint(p1, particle, radius)
+        constraints.push(constraint)
         siblings.push(particle)
+        particle.constraint = constraint
 
         animations.push({
             particle: particle,
@@ -230,6 +238,7 @@ function draw(){
     showGraph()
     showHovered()
 
+
     // push()
     // noFill()
     // stroke(255, 100)
@@ -272,18 +281,25 @@ function showGraph(){
 
 function udpateGraph(){
     for(let p of particles){
-        // let n = noise(p.pos.x, p.pos.y, frameCount*10)
-        // n = mapp(n, 0, 1, -1, 1)
-        // //apply a tangential force to the particle
-        // let force = createVector(Math.cos(n), Math.sin(n))
-        // force.rotate(p.angle)
-        // force.mult(0.2)
-        //p.applyForce(force)
+        if(p.isParent){
+            let n = noise(p.pos.x, p.pos.y, frameCount*10)
+            n = mapp(n, 0, 1, -1, 1)
+            let force = createVector(Math.cos(n), Math.sin(n))
+            force.rotate(p.angle)
+            force.mult(0.2)
+            p.applyForce(force)
+            p.isPinned = false
+        }
         
-        p.repel(p.siblings, RADIUS_PARTICLE*2 + 5)
+        
+        p.repel(p.siblings)
         p.update(0.1)
+
+        if(p.isParent){
+            p.isPinned = true
+        }
     }
-    for(let i = 0; i < 1; i++){
+    for(let i = 0; i < 5; i++){
         for(let c of constraints) c.satisfy()
     }
 }

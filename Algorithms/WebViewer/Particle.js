@@ -1,4 +1,6 @@
 const RADIUS_PARTICLE = 5
+const MAX_RADIUS_PARTICLE = 10
+const minDistanceGrowSq = 50 * 50
 
 class Particle{
 	constructor(x, y, pinned, id, str = '', parent){
@@ -16,6 +18,7 @@ class Particle{
 		this.color = color(255)
 		this.siblings = []
 		this.sqRadius = this.radius * this.radius
+		this.constraint = undefined
 	}
 
 	removeInertia(){
@@ -27,11 +30,25 @@ class Particle{
 		if(!this.isPinned) this.acc.add(force)
 	}
 
-	getRelativeMousePos(){
-		let worldX = (mouseX - xOff) / zoom;
-		let worldY = (mouseY - yOff) / zoom;
+	getRelativePos(x, y){
+		let worldX = (x - xOff) / zoom;
+		let worldY = (y - yOff) / zoom;
 		return createVector(worldX, worldY);
 	}
+
+	getEdges(){
+		let minX = (0 - xOff) / zoom
+		let maxX = (WIDTH - xOff) / zoom
+		let minY = (0 - yOff) / zoom
+		let maxY = (HEIGHT - yOff) / zoom
+		return [
+			minX,
+			maxX,
+			minY,
+			maxY
+		]
+	}
+
 
 	update(timeStep){
 		// verlet intergration
@@ -41,10 +58,13 @@ class Particle{
 			this.pos.add(p5.Vector.add(vel, this.acc.copy().mult(timeStep * timeStep)))
 			this.acc = createVector(0, 0)
         }
-		let mousePos = this.getRelativeMousePos()
+		let mousePos = this.getRelativePos(mouseX, mouseY)
 		//ellipse(mousePos.x, mousePos.y, 10)   //for debugging
 		//let mouseInside = dist(mousePos.x, mousePos.y, this.pos.x, this.pos.y) < this.radius
-		let mouseInside = squaredDistance(mousePos.x, mousePos.y, this.pos.x, this.pos.y) < this.sqRadius
+		let sqDist = squaredDistance(mousePos.x, mousePos.y, this.pos.x, this.pos.y)
+		let sqDistParent = 0
+		if(this.parent) sqDistParent = squaredDistance(mousePos.x, mousePos.y, this.parent.pos.x, this.parent.pos.y)
+		let mouseInside = sqDist < this.sqRadius
         if(((mouseInside && mouseIsPressed) || (draggedParticle == this && mouseIsPressed)) && (draggedParticle == null || draggedParticle == this)){
         	this.pos.x = mousePos.x
         	this.pos.y = mousePos.y
@@ -55,29 +75,23 @@ class Particle{
 		else if(hoveredParticle == this) hoveredParticle = null
 
 		if(this.parent) this.angle = atan2(this.pos.y - this.parent.pos.y, this.pos.x - this.parent.pos.x)
+		else return
+
+		let constrain = this.constraint
+		if(sqDist < minDistanceGrowSq && sqDistParent > constrain.baseLengthSq){
+			this.radius = mapp(sqDist, 0, minDistanceGrowSq, MAX_RADIUS_PARTICLE, RADIUS_PARTICLE)
+			this.sqRadius = this.radius * this.radius
+			//find the constrain of this particle
+			constrain.initialLength = mapp(sqDist, 0, minDistanceGrowSq, constrain.baseLength + 10, constrain.baseLength)
+		}
+		else{ 
+			this.radius = RADIUS_PARTICLE
+			this.sqRadius = this.radius * this.radius
+			constrain.initialLength = constrain.baseLength
+		}
 	}
 
-	repelGroup(particles, separationDistance) {
-		if(this.isPinned) return
-		particles.forEach(other => {
-			if (other !== this && other.parent !== this.parent) {
-				let diff = p5.Vector.sub(this.pos, other.pos);
-				let distance = diff.mag();
-
-				if (distance < separationDistance) {
-					if(distance == 0) distance = 0.1
-					// Normalize and scale the force so that closer particles are pushed away stronger
-					let strength = (separationDistance - distance) / separationDistance; // 0-1 strength
-					diff.normalize();
-					diff.mult(strength);
-					this.applyForce(diff);
-				}
-			}
-		});
-	}
-
-
-	repel(particles, separationDistance) {
+	repel(particles, separationDistance = this.radius*2 + 50) {
 		if(this.isPinned) return
 		particles.forEach(other => {
 			if (other !== this) {
@@ -96,20 +110,23 @@ class Particle{
 		});
 	}
 
-	constrainToBounds(){
-		if(this.pos.x < 0) this.pos.x = 0
-		if(this.pos.y < 0) this.pos.y = 0
-		if(this.pos.x > WIDTH + 220) this.pos.x = WIDTH + 220
-		if(this.pos.y > HEIGHT) this.pos.y = HEIGHT
-	}
-	
-
 	show(bool = false){
+		// //if its out of the screen, dont show it
+		// let actualPos = this.getRelativePos(this.pos.x, this.pos.y)
+		// // let minX = this.getRelativePos(0, 0).x - this.radius - xOff / zoom
+		// // let maxX = this.getRelativePos(WIDTH, 0).x + this.radius - xOff / zoom
+		// // let minY = this.getRelativePos(0, 0).y - this.radius - yOff / zoom
+		// // let maxY = this.getRelativePos(0, HEIGHT).y + this.radius - yOff / zoom
+		// let [minX, maxX, minY, maxY] = this.getEdges()
+		// let out = actualPos.x < minX || actualPos.x > maxX || actualPos.y < minY || actualPos.y > maxY
+		// if(out){
+		// 	return 
+		// }
 		push()
 		fill(this.color)
 		stroke(50)
 		strokeWeight(2)
-		let rad = bool ? this.radius * 5 : this.radius * 2
+		let rad = bool ? this.radius * 2.5 : this.radius * 2
 		ellipse(this.pos.x, this.pos.y, rad)
 		if(this.isParent || bool){
 			strokeWeight(1.5)
@@ -124,12 +141,30 @@ class Particle{
 			fill(this.color)
 			stroke(50, 125)
 			text(this.str, this.pos.x, this.pos.y + 20)
+			gradientCircle(this.pos.x, this.pos.y, this.radius, [this.color, color(255, 255, 255, 150)])
 		}
 		pop()
+		return 
 	}
+	
 }
 
 function textHeight() {
     return textAscent() + textDescent();
 }
+
+function gradientCircle(x, y, r, colors) {
+    let ctx = this.drawingContext;
+    let grad = ctx.createRadialGradient(x, y, 0, x, y, r);
+
+    for (let i = 0; i < colors.length; i++) {
+        grad.addColorStop(i / (colors.length - 1), colors[i]);
+    }
+
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, TWO_PI);
+    ctx.fill();
+}
+
 

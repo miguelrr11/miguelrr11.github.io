@@ -121,9 +121,11 @@ function filterLink(link, targetUrl, targetHost, targetPath) {
 // - Links encountered are filtered and added to the latest section.
 async function extractAndFilterLinksCategorized(targetUrl) {
   try {
-    const proxyUrl = `https://corsproxy.io/?url=${encodeURIComponent(targetUrl)}`;
-    console.log('Fetching from proxy:', proxyUrl);
-    const response = await fetch(proxyUrl);
+    const proxyUrl = `https://corsproxy.io/?url=`;
+    //const proxyUrl = `https://api.cors.lol/?url=`;
+    //const proxyUrl = `https://api.allorigins.win/get?url=`;
+    const url = encodeURIComponent(targetUrl);
+    const response = await fetch(proxyUrl + url);
 
     const contentType = response.headers.get('Content-Type');
     if (!contentType || !contentType.includes('text/html')) {
@@ -162,15 +164,10 @@ async function extractAndFilterLinksCategorized(targetUrl) {
       }
     });
 
-    return sections.filter(section => section.links.length > 0);;
+    return sections.filter(section => section.links.length > 0);
   } catch (error) {
     console.error('Error fetching or processing the URL:', error);
     return [];
   }
 }
-
-
-
-extractAndFilterLinksCategorized('https://es.wikipedia.org/wiki/Tool').then(console.log);
-
 
