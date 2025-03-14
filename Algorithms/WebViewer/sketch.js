@@ -17,8 +17,8 @@ let particles = []
 
 //let initialLink = 'https://es.wikipedia.org/wiki/Tool'
 //let initialLink = 'https://es.wikipedia.org/wiki/The_Legend_of_Zelda:_Breath_of_the_Wild'
-//let initialLink = 'https://es.wikipedia.org/wiki/Segunda_Guerra_Mundial'
-let initialLink = 'https://en.wikipedia.org/wiki/History_of_France'
+let initialLink = 'https://es.wikipedia.org/wiki/Segunda_Guerra_Mundial'
+//let initialLink = 'https://en.wikipedia.org/wiki/History_of_France'
 
 let xOff = 0
 let yOff = 0
@@ -49,21 +49,6 @@ function mouseDragged(){
     let dy = mouseY - prevMouseY; // Change in mouse Y
     xOff += dx;
     yOff += dy;
-    // if(zoom < 1){
-    //     console.log('zoom < 1')
-    //     xOff += dx;
-    //     yOff += dy;
-    // }
-    // else if(zoom > 1) {
-    //     console.log('zoom > 1')
-    //     xOff -= dx
-    //     yOff -= dy
-    // }
-    // else if(zoom == 1){
-    //     console.log('zoom == 1')
-    //     xOff -= dx
-    //     yOff -= dy
-    // }
     prevMouseX = mouseX;
     prevMouseY = mouseY;
 }
@@ -78,26 +63,27 @@ function doubleClicked(){
 }
 
 function createGraph(link, p){
-    extractAndFilterLinks(link)
-    .then(links => {
-        initSecondaryGraph(links.splice(0, floor(random(25, 100))), p)
-        //console.log(links)
+    extractAndFilterLinksCategorized(link)
+    .then(categories => {
+        let primordial = getP(p)
+        for(let i = 0; i < categories.length; i++){
+            let links = categories[i].links.splice(0, floor(random(10, 100)))
+            initFirstGraphCategorized(links, categories[i].title, primordial)
+        }
     })
     .catch(err => console.error(err));
 }
 
 let animations = []
 
-const absoluteSeparationDistance = 70
-function initSecondaryGraph(links, p){
-    REST_DISTANCE = getRadiusFromCircumference(links.length * RADIUS_PARTICLE*2) * 1.1
-    let deltaAngle = TWO_PI / links.length
+function getP(p){
+    REST_DISTANCE = 250
     let parent = p.parent
     let a = atan2(p.pos.y - parent.pos.y, p.pos.x - parent.pos.x)
 
     let sep = (REST_DISTANCE + absoluteSeparationDistance)
-    let x = p.pos.x + cos(a) * sep
-    let y = p.pos.y + sin(a) * sep
+    let x = p.pos.x + Math.cos(a) * sep
+    let y = p.pos.y + Math.sin(a) * sep
     let pos = getFinalPos(createVector(cos(a), sin(a)), createVector(x, y), 0, REST_DISTANCE)
     let pCopy = new Particle(p.pos.x, p.pos.y, true, -1, p.link, p)
     
@@ -135,95 +121,67 @@ function initSecondaryGraph(links, p){
             break
         }
     }
-
-    let deltaFrames = Math.floor(framesPerAnimation / links.length)
-
-    
-
-    for(let i = 0; i < links.length; i++){
-        let x = pos.x + cos(deltaAngle * i) * REST_DISTANCE
-        let y = pos.y + sin(deltaAngle * i) * REST_DISTANCE
-        let newP = new Particle(parent.pos.x, parent.pos.y, true, particles.length, links[i], pCopy)
-        newP.color = color
-
-        animations.push({
-            particle: newP,
-            finalPos: createVector(x, y),
-            parent: pCopy,
-            framesTillStart: -(i * deltaFrames)
-        })
-
-        particles.push(newP)
-        constraints.push(new Constraint(pCopy, newP, REST_DISTANCE))
-    }
-
-    pCopy.isParent = true
-    parentParticles.push({
-        particle: pCopy,
-        radius: REST_DISTANCE
-    })
+    return pCopy
 }
 
-function initFirstGraph(links){
-    REST_DISTANCE = getRadiusFromCircumference(links.length * RADIUS_PARTICLE*2)
-    let p1 = new Particle(width/2, height/2, true, -1, initialLink)
-    p1.isParent = true
-    p1.color = color(255)
-    let deltaAngle = TWO_PI / links.length
-    let col = random(colors)
-
-    for(let i = 0; i < links.length; i++){
-        let x = p1.pos.x + cos(deltaAngle * i) * REST_DISTANCE
-        let y = p1.pos.y + sin(deltaAngle * i) * REST_DISTANCE
-        let particle = new Particle(x, y, false, particles.length, links[i], p1)
-        particle.color = col
-        particles.push(particle)
-        constraints.push(new Constraint(p1, particles[i]))
-    }
-    particles.push(p1)
-
-    parentParticles.push({
-        particle: p1,
-        radius: REST_DISTANCE
-    })
-}
-
+const absoluteSeparationDistance = 70
 function initFirstGraphCategorized(links, title, primordial){
     REST_DISTANCE = getRadiusFromCircumference(links.length * RADIUS_PARTICLE*2)
     let rAngle = random(TWO_PI)
-    let x = cos(rAngle) * (REST_DISTANCE + 100) + primordial.pos.x
-    let y = sin(rAngle) * (REST_DISTANCE + 100) + primordial.pos.y
-    let pos = getFinalPos(createVector(cos(rAngle), sin(rAngle)), createVector(x, y), 0, REST_DISTANCE)
-    let p1 = new Particle(pos.x, pos.y, true, -1, initialLink)
+    let finalPos = primordial.pos.copy()
+    for(let anim of animations){
+        if(anim.particle == primordial){
+            finalPos = anim.finalPos.copy()
+            break
+        }
+    }
+    let x = Math.cos(rAngle) * (REST_DISTANCE + 100) + finalPos.x
+    let y = Math.sin(rAngle) * (REST_DISTANCE + 100) + finalPos.y
+
+    let pos = getFinalPos(createVector(Math.cos(rAngle), Math.sin(rAngle)), createVector(x, y), 0, REST_DISTANCE)
+    parentParticles.push({
+        pos: pos,
+        radius: REST_DISTANCE
+    })
+    let p1 = new Particle(primordial.pos.x, primordial.pos.y, true, -1, initialLink)
     constraints.push(new Constraint(primordial, p1))
     p1.str = title
     p1.isParent = true
     p1.color = color(255)
+
     let deltaAngle = TWO_PI / links.length
-    let col = random(colors)
+    let col = randomizeColor(primordial.color, 50)
     let siblings = []
     let newParticles = []
 
+    animations.push({
+        particle: p1,
+        finalPos: pos
+    })
+
     let radius = (REST_DISTANCE + 5)
+    let deltaFrames = Math.floor(framesPerAnimation / links.length)
     for(let i = 0; i < links.length; i++){
-        let x = p1.pos.x + cos(deltaAngle * i) * radius
-        let y = p1.pos.y + sin(deltaAngle * i) * radius
-        let particle = new Particle(x, y, false, particles.length, links[i], p1)
+        let x2 = pos.x + Math.cos(deltaAngle * i) * radius
+        let y2 = pos.y + Math.sin(deltaAngle * i) * radius
+        let particle = new Particle(p1.pos.x, p1.pos.y, true, particles.length, links[i], p1)
         particle.color = col
         newParticles.push(particle)
         constraints.push(new Constraint(p1, particle, radius))
         siblings.push(particle)
+
+        animations.push({
+            particle: particle,
+            finalPos: createVector(x2, y2),
+            parent: p1,
+            framesTillStart: -(i * deltaFrames)
+        })
     }
     for(let p of newParticles){
         p.siblings = siblings
         particles.push(p)
     }
     particles.push(p1)
-
-    parentParticles.push({
-        particle: p1,
-        radius: REST_DISTANCE
-    })
 }
   
 
@@ -246,7 +204,7 @@ function setup(){
     .then(categories => {
         let primordial = new Particle(width/2, height/2, true, -1, initialLink)
         primordial.isParent = true
-        primordial.color = color(255)
+        primordial.color = random(colors)
         for(let i = 0; i < categories.length; i++){
             let links = categories[i].links.splice(0, floor(random(10, 100)))
             initFirstGraphCategorized(links, categories[i].title, primordial)
@@ -254,16 +212,29 @@ function setup(){
         particles.push(primordial)
     })
     .catch(err => console.error(err));
+
+    initTopo()
 }
 
 function draw(){
-    background(0)
+    background(25)
+
+    updateTopo()
+    showTopo()
+
     translate(xOff, yOff)
     scale(zoom)
+
     updateAnimations()
     udpateGraph()
     showGraph()
     showHovered()
+
+    // push()
+    // noFill()
+    // stroke(255, 100)
+    // for(let p of parentParticles) ellipse(p.pos.x, p.pos.y, p.radius*2)
+    // pop()
 }
 
 function showHovered(){
@@ -308,10 +279,11 @@ function udpateGraph(){
         // force.rotate(p.angle)
         // force.mult(0.2)
         //p.applyForce(force)
-        p.repel(p.siblings, RADIUS_PARTICLE*2)
+        
+        p.repel(p.siblings, RADIUS_PARTICLE*2 + 5)
         p.update(0.1)
     }
-    for(let i = 0; i < 10; i++){
+    for(let i = 0; i < 1; i++){
         for(let c of constraints) c.satisfy()
     }
 }
@@ -322,10 +294,19 @@ function getRadiusFromCircumference(length) {
 }
 
 //TODO: try the direction and the opposite direction, choose the smaller one
-function getFinalPos(direction, start, minDistance, radius, randomSep = Math.random() * 50){
+function getFinalPos(direction, start, minDistance, radius, randomSep = Math.random() * 50 + 20){
     //this function tries to position a circle of a fixed radius. this circle can only be placed in a line that goes from start and has a direction.
     //It will do this checking if it collides with any of the circles of parentParticles
     //kind of like a raycast
+    let pos1 = getFinalPosAux(direction, start, minDistance, radius, randomSep)
+    let pos2 = getFinalPosAux(direction.mult(-1), start, minDistance, radius, randomSep)
+    let d1 = dist(pos1.x, pos1.y, start.x, start.y)
+    let d2 = dist(pos2.x, pos2.y, start.x, start.y)
+    if(d1 < d2) return pos1
+    return pos2
+}
+
+function getFinalPosAux(direction, start, minDistance, radius, randomSep){
     let pos = start.copy()
     let distance = minDistance
     let dir = direction.copy()
@@ -334,7 +315,7 @@ function getFinalPos(direction, start, minDistance, radius, randomSep = Math.ran
     pos.add(dir)
     let collision = false
     for(let p of parentParticles){
-        let d = dist(pos.x, pos.y, p.particle.pos.x, p.particle.pos.y)
+        let d = dist(pos.x, pos.y, p.pos.x, p.pos.y)
         if(d < (radius + p.radius + randomSep)){
             collision = true
             break
@@ -342,7 +323,7 @@ function getFinalPos(direction, start, minDistance, radius, randomSep = Math.ran
     }
     if(collision){
         distance += 10
-        return getFinalPos(direction, start, distance, radius, randomSep)
+        return getFinalPosAux(direction, start, distance, radius, randomSep)
     }
     return pos
 }

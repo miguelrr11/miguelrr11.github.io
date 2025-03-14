@@ -15,6 +15,7 @@ class Particle{
 		this.isParent = false
 		this.color = color(255)
 		this.siblings = []
+		this.sqRadius = this.radius * this.radius
 	}
 
 	removeInertia(){
@@ -41,8 +42,9 @@ class Particle{
 			this.acc = createVector(0, 0)
         }
 		let mousePos = this.getRelativeMousePos()
-		ellipse(mousePos.x, mousePos.y, 10)   //for debugging
-		let mouseInside = dist(mousePos.x, mousePos.y, this.pos.x, this.pos.y) < this.radius
+		//ellipse(mousePos.x, mousePos.y, 10)   //for debugging
+		//let mouseInside = dist(mousePos.x, mousePos.y, this.pos.x, this.pos.y) < this.radius
+		let mouseInside = squaredDistance(mousePos.x, mousePos.y, this.pos.x, this.pos.y) < this.sqRadius
         if(((mouseInside && mouseIsPressed) || (draggedParticle == this && mouseIsPressed)) && (draggedParticle == null || draggedParticle == this)){
         	this.pos.x = mousePos.x
         	this.pos.y = mousePos.y
