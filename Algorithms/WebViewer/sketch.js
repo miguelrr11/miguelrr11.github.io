@@ -27,7 +27,11 @@ let zoom = 1
 
 let framesPerAnimation = 60 * 2
 
-let colors
+let colors  
+
+function mouseClicked(){
+    console.log(hoveredParticle)
+}
 
 function mouseReleased(){
     prevMouseX = undefined
@@ -65,11 +69,13 @@ function doubleClicked(){
 function createGraph(link, p){
     extractAndFilterLinksCategorized(link)
     .then(categories => {
+        console.log('Categories:', categories)
         let primordial = getP(p)
         primordial.isParent = true
         for(let i = 0; i < categories.length; i++){
             let links = categories[i].links.splice(0, floor(random(10, 100)))
-            initFirstGraphCategorized(links, categories[i].title, primordial)
+            let exists = parentExists(categories[i].title, primordial)
+            initFirstGraphCategorized(links, categories[i].title, primordial, categories.length == 1)
         }
     })
     .catch(err => console.error(err));
@@ -109,6 +115,7 @@ function getP(p){
     let constraint = new Constraint(parent, pCopy)
     constraints.push(constraint)
     parent.constraint = constraint
+    pCopy.constraint = constraint
 
     //remove p from parentParticles with indexOf
     for(let i = 0; i < particles.length; i++){
@@ -128,7 +135,7 @@ function getP(p){
 }
 
 const absoluteSeparationDistance = 70
-function initFirstGraphCategorized(links, title, primordial){
+function initFirstGraphCategorized(links, title, primordial, fromPrimordial = false){
     REST_DISTANCE = getRadiusFromCircumference(links.length * RADIUS_PARTICLE*2)
     let rAngle = random(TWO_PI)
     let finalPos = primordial.pos.copy()
@@ -138,52 +145,77 @@ function initFirstGraphCategorized(links, title, primordial){
             break
         }
     }
-    let x = Math.cos(rAngle) * (REST_DISTANCE + 300) + finalPos.x
-    let y = Math.sin(rAngle) * (REST_DISTANCE + 300) + finalPos.y
+    let x, y
+    if(!fromPrimordial){
+        x = Math.cos(rAngle) * (REST_DISTANCE + 300) + finalPos.x
+        y = Math.sin(rAngle) * (REST_DISTANCE + 300) + finalPos.y
+    }
+    else{
+        x = finalPos.x
+        y = finalPos.y
+    }
 
     let pos = getFinalPos(createVector(Math.cos(rAngle), Math.sin(rAngle)), createVector(x, y), 0, REST_DISTANCE)
     parentParticles.push({
         pos: pos,
         radius: REST_DISTANCE
     })
-    let p1 = new Particle(primordial.pos.x, primordial.pos.y, true, -1, initialLink)
-    let constraint = new Constraint(primordial, p1)
-    constraints.push(constraint)
-    p1.str = title
-    p1.isParent = true
-    p1.color = color(255)
-    p1.constraint = constraint
-    primordial.constraint = constraint
+
+    let p1
+    if(!fromPrimordial){
+        p1 = new Particle(primordial.pos.x, primordial.pos.y, true, -1, primordial.link)
+        let constraint = new Constraint(primordial, p1)
+        constraints.push(constraint)
+        p1.str = title
+        p1.isParent = true
+        p1.color = color(255)
+        p1.constraint = constraint
+        primordial.constraint = constraint
+
+        animations.push({
+            particle: p1,
+            finalPos: pos
+        })
+    }
+    else p1 = primordial
 
     let deltaAngle = TWO_PI / links.length
     let col = randomizeColor(primordial.color, 50)
     let siblings = []
     let newParticles = []
 
-    animations.push({
-        particle: p1,
-        finalPos: pos
-    })
+    
 
     let radius = (REST_DISTANCE + 5)
     let deltaFrames = Math.floor(framesPerAnimation / links.length)
     for(let i = 0; i < links.length; i++){
-        let x2 = pos.x + Math.cos(deltaAngle * i) * radius
-        let y2 = pos.y + Math.sin(deltaAngle * i) * radius
-        let particle = new Particle(p1.pos.x, p1.pos.y, true, particles.length, links[i], p1)
-        particle.color = col
-        newParticles.push(particle)
-        let constraint = new Constraint(p1, particle, radius)
-        constraints.push(constraint)
-        siblings.push(particle)
-        particle.constraint = constraint
+        let pLink = findParticleByLink(links[i])
+        if(true){   //if(pLink == undefined)
+            let x2 = pos.x + Math.cos(deltaAngle * i) * radius
+            let y2 = pos.y + Math.sin(deltaAngle * i) * radius
+            let particle = new Particle(p1.pos.x, p1.pos.y, true, particles.length, links[i], p1)
+            particle.color = col
+            newParticles.push(particle)
+            let constraint = new Constraint(p1, particle, radius)
+            constraints.push(constraint)
+            siblings.push(particle)
+            particle.constraint = constraint
 
-        animations.push({
-            particle: particle,
-            finalPos: createVector(x2, y2),
-            parent: p1,
-            framesTillStart: -(i * deltaFrames)
-        })
+            animations.push({
+                particle: particle,
+                finalPos: createVector(x2, y2),
+                parent: p1,
+                framesTillStart: -(i * deltaFrames)
+            })
+        }
+        else{
+            siblings.push(pLink)
+            let constraint = new Constraint(p1, pLink, radius)
+            constraints.push(constraint)
+            pLink.constraint = constraint
+            pLink.siblings.push(p1)
+            pLink.siblings.push(pLink)
+        }
     }
     for(let p of newParticles){
         p.siblings = siblings
@@ -363,3 +395,18 @@ function getAllStr(){
     }
     return str
 }
+
+function parentExists(str, avoid){
+    for(let p of particles){
+        if(p != avoid && p.isParent && p.str == str) return true
+    }
+    return false
+}
+
+function findParticleByLink(link){
+    for(let p of particles){
+        if(p.link == link) return p
+    }
+    return undefined
+}
+
