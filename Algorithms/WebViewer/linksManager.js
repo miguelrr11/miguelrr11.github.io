@@ -158,16 +158,20 @@ async function extractAndFilterLinksCategorized(targetUrl) {
         // Process anchor tags
         const href = node.getAttribute('href');
         const filteredLink = filterLink(href, targetUrl, targetHost, targetPath);
-        if (filteredLink) {
+        // Only add the link if it passes the filter and isn't already added to the current section
+        if (filteredLink && !currentSection.links.includes(filteredLink)) {
           currentSection.links.push(filteredLink);
         }
       }
     });
 
     return sections.filter(section => section.links.length > 0);
-  } catch (error) {
+  } 
+  catch (error) {
+    throw new Error()
     console.error('Error fetching or processing the URL:', error);
-    return [];
+    return new Error();
   }
 }
+
 

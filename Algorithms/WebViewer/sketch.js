@@ -29,6 +29,14 @@ let framesPerAnimation = 60 * 2
 
 let colors  
 
+let panelInput, font
+let started = false
+let errorFrames = 0
+
+function preload(){
+    font = loadFont('bnr.ttf')
+}
+
 function mouseClicked(){
     console.log(hoveredParticle)
 }
@@ -40,13 +48,14 @@ function mouseReleased(){
 }
 
 function mouseWheel(event) {
+    if(!started) return
     zoom += event.delta / 1000
     zoom = constrain(zoom, 0.1, 5)
     return false
 }
 
 function mouseDragged(){
-    if(hoveredParticle || draggedParticle) return
+    if(hoveredParticle || draggedParticle || !started) return
     if(!prevMouseX) prevMouseX = mouseX
     if(!prevMouseY) prevMouseY = mouseY
     let dx = mouseX - prevMouseX; // Change in mouse X
@@ -190,6 +199,7 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
     let deltaFrames = Math.floor(framesPerAnimation / links.length)
     for(let i = 0; i < links.length; i++){
         let pLink = findParticleByLink(links[i])
+        let sameLinks = findAllParticlesByLink(links[i])
         if(true){   //if(pLink == undefined)
             let x2 = pos.x + Math.cos(deltaAngle * i) * radius
             let y2 = pos.y + Math.sin(deltaAngle * i) * radius
@@ -200,6 +210,7 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
             constraints.push(constraint)
             siblings.push(particle)
             particle.constraint = constraint
+            particle.relations = sameLinks
 
             animations.push({
                 particle: particle,
@@ -221,6 +232,7 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
         p.siblings = siblings
         particles.push(p)
     }
+    p1.children = siblings
     particles.push(p1)
 }
   
@@ -240,18 +252,44 @@ function setup(){
         color(255, 173, 255)
     ]
 
-    extractAndFilterLinksCategorized(initialLink)
-    .then(categories => {
-        let primordial = new Particle(width/2, height/2, true, -1, initialLink)
-        primordial.isParent = true
-        primordial.color = random(colors)
-        for(let i = 0; i < categories.length; i++){
-            let links = categories[i].links.splice(0, floor(random(10, 100)))
-            initFirstGraphCategorized(links, categories[i].title, primordial)
-        }
-        particles.push(primordial)
-    })
-    .catch(err => console.error(err));
+    textFont(font)
+
+    input = new Input(
+        width/2,
+        height/2,
+        'Enter Wikipedia URL',
+        () => {
+            extractAndFilterLinksCategorized(arg = input.getText())
+            .then(categories => {
+                let primordial = new Particle(width/2, height/2, true, -1, arg)
+                primordial.isParent = true
+                primordial.color = random(colors)
+                for(let i = 0; i < categories.length; i++){
+                    let links = categories[i].links.splice(0, floor(random(10, 100)))
+                    initFirstGraphCategorized(links, categories[i].title, primordial)
+                }
+                particles.push(primordial)
+                started = true
+            })
+            .catch(() => {errorFrames = 6 * 3});
+        },
+        true,
+        [255, 255, 255],
+        [0, 0, 0]
+    )
+
+    // extractAndFilterLinksCategorized(initialLink)
+    // .then(categories => {
+    //     let primordial = new Particle(width/2, height/2, true, -1, initialLink)
+    //     primordial.isParent = true
+    //     primordial.color = random(colors)
+    //     for(let i = 0; i < categories.length; i++){
+    //         let links = categories[i].links.splice(0, floor(random(10, 100)))
+    //         initFirstGraphCategorized(links, categories[i].title, primordial)
+    //     }
+    //     particles.push(primordial)
+    // })
+    // .catch(err => console.error(err));
 
     initTopo()
 }
@@ -265,10 +303,27 @@ function draw(){
     translate(xOff, yOff)
     scale(zoom)
 
+    textFont('Arial')
+
     updateAnimations()
     udpateGraph()
+    showRelationsHovered()
     showGraph()
     showHovered()
+    
+    textFont(font)
+
+    if(!started){
+        if(errorFrames > 0){
+            errorFrames -= 0.75
+            let mult = mapp(errorFrames, 6 * 3, 0, 15, 1)
+            let dx = Math.cos(errorFrames) * mult
+            input.pos.x = input.initialPos.x + dx
+        }
+        input.update()
+        input.show()
+    }
+    
 
 
     // push()
@@ -278,9 +333,16 @@ function draw(){
     // pop()
 }
 
+function showRelationsHovered(){
+    if(hoveredParticle){
+        hoveredParticle.showRelations()
+    }
+}
+
 function showHovered(){
     if(hoveredParticle){
         hoveredParticle.show(true)
+        hoveredParticle.showRelationsCircles()
     }
 }
 
@@ -410,3 +472,10 @@ function findParticleByLink(link){
     return undefined
 }
 
+function findAllParticlesByLink(link){
+    let arr = []
+    for(let p of particles){
+        if(p.link == link) arr.push(p)
+    }
+    return arr
+}

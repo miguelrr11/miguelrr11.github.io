@@ -34,7 +34,7 @@ class Constraint{
 
 	show(){
 		push()
-		stroke(190)
+		stroke(170)
 		line(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y)
 		//gradientLine(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y, [this.p1.color, this.p2.color])
 		pop()

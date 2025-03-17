@@ -6,7 +6,7 @@ const cellsPerCol = Math.floor(HEIGHT / cellPixelSize) + 2;
 const cellsPerRowTopo = cellsPerRow * sclTopo;
 const cellsPerColTopo = cellsPerCol * sclTopo;
 let topoGrid = [];
-let sclTopoNoiseMovement = 0.00025
+let sclTopoNoiseMovement = 0.00015
 
 function initTopo() {
     const tam = 10 * sclTopo;

@@ -19,6 +19,8 @@ class Particle{
 		this.siblings = []
 		this.sqRadius = this.radius * this.radius
 		this.constraint = undefined
+		this.relations = []
+		this.children = []
 	}
 
 	removeInertia(){
@@ -78,7 +80,7 @@ class Particle{
 		else return
 
 		let constrain = this.constraint
-		if(sqDist < minDistanceGrowSq && sqDistParent > constrain.baseLengthSq){
+		if(sqDist < minDistanceGrowSq && sqDistParent > constrain.baseLengthSq - this.radius / 2){
 			this.radius = mapp(sqDist, 0, minDistanceGrowSq, MAX_RADIUS_PARTICLE, RADIUS_PARTICLE)
 			this.sqRadius = this.radius * this.radius
 			//find the constrain of this particle
@@ -111,7 +113,7 @@ class Particle{
 	}
 
 	show(bool = false){
-		// //if its out of the screen, dont show it
+		// //if its out of the screen, dont show it, doesnt work
 		// let actualPos = this.getRelativePos(this.pos.x, this.pos.y)
 		// // let minX = this.getRelativePos(0, 0).x - this.radius - xOff / zoom
 		// // let maxX = this.getRelativePos(WIDTH, 0).x + this.radius - xOff / zoom
@@ -146,7 +148,46 @@ class Particle{
 		pop()
 		return 
 	}
-	
+
+	showCircleHovered(){
+		gradientCircle(this.pos.x, this.pos.y, this.radius, [this.color, color(255, 255, 255, 150)])
+	}
+
+	//shows lines between particles with the same link as this one
+	showRelations(){
+		push()
+		let trans = color(0, 0, 0, 100)
+		if(!this.isParent){
+			strokeWeight(1.5)
+			this.relations = findAllParticlesByLink(this.link)
+			for(let rel of this.relations){
+				if(rel == this) continue
+				let relPos = rel.pos
+				let thisPos = this.pos
+				gradientLine(thisPos.x, thisPos.y, relPos.x, relPos.y, [this.color, trans, trans, rel.color])
+			}
+		}
+		else{
+			//calls recursively to show all relations of the siblings
+			for(let child of this.children){
+				child.showRelations()
+			}
+		}
+		pop()
+	}
+
+	showRelationsCircles(){
+		push()
+		for(let rel of this.relations){
+			rel.showCircleHovered()
+		}
+		if(this.isParent){
+			for(let child of this.children){
+				child.showRelationsCircles()
+			}
+		}
+		pop()
+	}
 }
 
 function textHeight() {

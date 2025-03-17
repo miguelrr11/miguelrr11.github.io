@@ -1,16 +1,26 @@
+let bordeMIGUI = 1
+let text_FontMIGUI
+let text_SizeMIGUI = 15
+let title_SizeMIGUI = text_SizeMIGUI * 1.3
+let radMIGUI = 3.5
+let text_offset_xMIGUI = 2
+let width_elementsMIGUI = 158
+let clipping_length_normalMIGUI = 20
+let clipping_length_titleMIGUI = 11
+let picker_width = 100
+
 class Input {
     constructor(x, y, placeholder, func, arg, lightCol, darkCol, transCol) {
         this.darkCol = darkCol
         this.lightCol = lightCol
         this.transCol = [...lightCol, 100]
+        this.initialPos = createVector(x, y)
         this.pos = createVector(x, y)
         this.textSize = text_SizeMIGUI - 2
         this.arg = arg
 
         textSize(this.textSize)
-        let margin = bordeMIGUI + text_offset_xMIGUI
-        let maxTextWidth = width_elementsMIGUI - 2 * margin
-        this.placeholder = getClippedTextByWidth(placeholder, 0, maxTextWidth)
+        this.placeholder = placeholder
 
         this.func = func
 
@@ -18,9 +28,9 @@ class Input {
         this.beingPressed = false
         this.sentence = ""
         this.clippedSentence = ""
-        this.active = false
+        this.active = true
 
-        this.w = width_elementsMIGUI
+        this.w = 10000
         this.h = 20
         this.height = this.h
         this.rad = radMIGUI
@@ -34,6 +44,7 @@ class Input {
         this.widthLimit = this.w - 8
 
         document.addEventListener("keyup", this.evaluateKey.bind(this))
+
         document.addEventListener("paste", this.handlePaste.bind(this));
     }
 
@@ -42,12 +53,6 @@ class Input {
         if (clipboardData) {
             let clipboardContent = clipboardData.getData("text")
             this.addText(clipboardContent)
-        }
-    }
-
-    addText(text){
-        for(let i = 0; i < text.length; i++){
-            this.write(text[i])
         }
     }
 
@@ -66,6 +71,12 @@ class Input {
         }
         this.relCursorPos = this.cursorPos - this.firstCursor
         this.setClippedSentence()
+    }
+
+    addText(text){
+        for(let i = 0; i < text.length; i++){
+            this.write(text[i])
+        }
     }
 
     getText() {
@@ -222,16 +233,18 @@ class Input {
 
     show() {
         push();
+        //rectMode(CENTER)
         (this.beingHovered || this.active) ? strokeWeight(bordeMIGUI + 1): strokeWeight(bordeMIGUI)
         stroke(this.lightCol)
         this.active ? fill(this.transCol) : fill(this.darkCol)
-        rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
+        //rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 
         noStroke()
-        fill(this.lightCol)
         textSize(this.textSize)
+        textAlign(CENTER)
 
         if(this.sentence.length !== 0) {
+            fill(this.lightCol)
             text(
                 this.clippedSentence,
                 this.pos.x + bordeMIGUI + text_offset_xMIGUI,
@@ -239,6 +252,7 @@ class Input {
             )
         }
         else {
+            fill(this.transCol)
             text(
                 this.placeholder,
                 this.pos.x + bordeMIGUI + text_offset_xMIGUI,
@@ -252,7 +266,7 @@ class Input {
             let x =
                 textWidth(
                     this.sentence.substring(this.firstCursor, this.firstCursor + this.relCursorPos)
-                ) + this.pos.x + 3
+                ) * 0.5 + this.pos.x + 3
             let y = this.pos.y + 3
             line(x, y, x, y + this.h - 6)
         }
@@ -272,4 +286,121 @@ function getClippedTextByWidth(str, startIndex, maxWidth) {
         i++
     }
     return str.substring(startIndex, i)
+}
+
+function drawGradientAlpha(x, y, w, h, col){
+	let ctx = drawingContext;
+
+	let gradient = ctx.createLinearGradient(x, y, x + w, y);
+
+	gradient.addColorStop(0, `rgb(${col[0]}, ${col[1]}, ${col[2]}, 0)`);
+	gradient.addColorStop(1, `rgb(${col[0]}, ${col[1]}, ${col[2]}, 255)`);
+	ctx.fillStyle = gradient;
+	ctx.fillRect(x, y, w, h);
+}
+
+function drawGradient2col(x, y, w, h, col){
+	let ctx = drawingContext;
+
+	let gradient = ctx.createLinearGradient(x, y, x + w, y);
+
+	gradient.addColorStop(0, 'white');
+	gradient.addColorStop(0.5, `rgb(${col[0]}, ${col[1]}, ${col[2]})`);
+	gradient.addColorStop(1, 'black');
+	ctx.fillStyle = gradient;
+	ctx.fillRect(x, y, w, h);
+}
+
+function drawGradientRainbow(x, y, w, h){
+	let ctx = drawingContext;
+
+	let gradient = ctx.createLinearGradient(x, y, x + w, y);
+
+	let numStops = 360; // Adjust this value for smoother gradients
+	for (let i = 0; i <= numStops; i++) {
+		let hue = map(i, 0, numStops, 0, 360);
+		let color = `hsl(${hue}, 100%, 50%)`;
+
+		gradient.addColorStop(i / numStops, color);
+	}
+	ctx.fillStyle = gradient;
+	ctx.fillRect(x, y, w, h);
+}
+
+function hexToRgbMIGUI(hex) {
+  var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? [
+    parseInt(result[1], 16),
+    parseInt(result[2], 16),
+    parseInt(result[3], 16)
+  ] : null;
+}
+
+
+function getClippedTextSEMIGUI(text, start, end){
+	return text.slice(start, end);
+}
+
+function getClippedTextMIGUI(text, length, toEnd = false){
+	if(toEnd) return text.slice(-length)
+	return text.slice(0, length)
+}
+
+function inBoundsMIGUI(x, y, a, b, w, h){
+	return x < a+w && x > a && y < b+h && y > b
+}
+
+function mappMIGUI(value, start1, stop1, start2, stop2){
+    return start2 + ( (value - start1) / (stop1 - start1) ) * (stop2 - start2); 
+}
+
+function getRoundedValueMIGUI(value){
+	if(Math.abs(value) < 1) return round(value, 2)
+	if(Math.abs(value) < 10) return round(value, 1)
+	return round(value)
+}
+
+function findIndexMIGUI(name, arr){
+	for(let i = 0; i < arr.length; i++){
+		if(arr[i].title == name || arr[i].name == name || arr[i] == name) return i
+	}
+	return -1
+}
+
+function keyCodeToCharMIGUI(keyc = keyCode){
+    return String.fromCharCode(keyc);
+}
+
+function isPrintableKey(char) {
+    // Check if the length of the key is 1 and the character is within the normal ASCII range
+    return char.length === 1 && char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126;
+}
+
+function wrapText(text, maxWidth = this.w, tSize = text_SizeMIGUI) {
+	const words = text.split(' ');
+	let currentLine = '';
+	let wrappedText = '';
+	textSize(tSize)
+	words.forEach((word) => {
+		const lineWithWord = currentLine + (currentLine ? ' ' : '') + word;
+
+		// Check the length of the line with the new word
+		if (textWidth(lineWithWord) <= maxWidth) {
+			currentLine = lineWithWord;
+		} 
+		else {
+			// Add the current line to the wrapped text and start a new one
+			wrappedText += currentLine + '\n';
+			currentLine = word; // Start new line with the current word
+		}
+	});
+
+	// Append any remaining text
+	wrappedText += currentLine;
+
+	return wrappedText;
+}
+
+function textHeight() {
+    return textAscent() + textDescent();
 }
