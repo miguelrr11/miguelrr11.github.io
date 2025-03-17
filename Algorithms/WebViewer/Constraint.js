@@ -34,7 +34,15 @@ class Constraint{
 
 	show(){
 		push()
-		stroke(170)
+		if(dimmingLines == -1){
+			transLines = lerp(transLines, 50, 0.0015)
+			stroke(170, transLines)
+		}
+		else if(dimmingLines == 1){
+			transLines = lerp(transLines, 255, 0.0015)
+			stroke(170, transLines)
+		}
+		else stroke(170, transLines)
 		line(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y)
 		//gradientLine(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y, [this.p1.color, this.p2.color])
 		pop()

@@ -14,16 +14,15 @@ let parentParticles = []
 
 let constraints = []
 let particles = []
+let primordials = []
 
-let initialLink = 'https://es.wikipedia.org/wiki/Tool'
-//let initialLink = 'https://es.wikipedia.org/wiki/The_Legend_of_Zelda:_Breath_of_the_Wild'
-//let initialLink = 'https://es.wikipedia.org/wiki/Segunda_Guerra_Mundial'
-//let initialLink = 'https://en.wikipedia.org/wiki/History_of_France'
+let animConn = []
 
 let xOff = 0
 let yOff = 0
 let prevMouseX, prevMouseY
 let zoom = 1
+let currentEdges
 
 let framesPerAnimation = 60 * 2
 
@@ -33,8 +32,49 @@ let panelInput, font
 let started = false
 let errorFrames = 0
 
+let dimmingLines = 1        //1 for increasing, -1 for decreasing
+let transLines = 255
+
+let btnReset = {
+    x: WIDTH - 20,
+    y: HEIGHT - 20,
+    size: 20,
+    img: undefined
+}
+let reseting = false
+
+function resetState(){
+    hoveredParticle = null
+    draggedParticle = null
+
+    parentParticles = []
+
+    constraints = []
+    particles = []
+    primordials = []
+
+    animConn = []
+
+    xOff = 0
+    yOff = 0
+    prevMouseX, prevMouseY
+    zoom = 1
+    currentEdges
+
+    framesPerAnimation = 60 * 2
+
+    started = false
+    errorFrames = 0
+
+    dimmingLines = 1       
+    transLines = 255
+
+    reseting = false
+}
+
 function preload(){
     font = loadFont('bnr.ttf')
+    btnReset.img = loadImage('reiniciar.png')
 }
 
 function mouseClicked(){
@@ -66,9 +106,42 @@ function mouseDragged(){
     prevMouseY = mouseY;
 }
 
+function removeChild(child){
+    let parent = child.parent
+    for(let i = 0; i < parent.children.length; i++){
+        if(parent.children[i] == child){ 
+            parent.children.splice(i, 1)
+            return
+        }
+    }
+}
+
+function existsPrimordial(link){
+    for(let pri of primordials){
+        if(pri.link == link) return pri
+    }
+    return undefined
+}
+
+function createConnection(p1, p2){
+    constraints.push(new Constraint(p1, p2, dist(p1.pos.x, p1.pos.y, p2.pos.x, p2.pos.y)))
+}
+
 function doubleClicked(){
     if(hoveredParticle && !hoveredParticle.isParent && hoveredParticle.link){
-        createGraph(hoveredParticle.link, hoveredParticle)
+        let existingPri = existsPrimordial(hoveredParticle.link)
+        if(existingPri != undefined){
+            hoveredParticle.isPinned = true
+            animConn.push({
+                from: hoveredParticle,
+                to: existingPri
+            })
+            //createConnection(hoveredParticle.parent, existingPri)
+        }
+        else{
+            createGraph(hoveredParticle.link, hoveredParticle)
+        }
+        removeChild(hoveredParticle)
     }
     if(hoveredParticle && hoveredParticle.isParent){
         window.open(hoveredParticle.link, '_blank')
@@ -76,19 +149,20 @@ function doubleClicked(){
 }
 
 function createGraph(link, p){
-    extractAndFilterLinksCategorized(link)
+    return extractAndFilterLinksCategorized(link)
     .then(categories => {
-        console.log('Categories:', categories)
-        let primordial = getP(p)
-        primordial.isParent = true
-        for(let i = 0; i < categories.length; i++){
-            let links = categories[i].links.splice(0, floor(random(10, 100)))
-            let exists = parentExists(categories[i].title, primordial)
-            initFirstGraphCategorized(links, categories[i].title, primordial, categories.length == 1)
+        p.isParent = true;
+        primordials.push(p);
+        for (let i = 0; i < categories.length; i++){
+            let links = categories[i].links.splice(0, floor(random(10, 100)));
+            initFirstGraphCategorized(links, categories[i].title, p, categories.length == 1);
         }
     })
-    .catch(err => console.error(err));
+    .catch(err => {
+        throw err;
+    });
 }
+
 
 let animations = []
 
@@ -126,21 +200,28 @@ function getP(p){
     parent.constraint = constraint
     pCopy.constraint = constraint
 
-    //remove p from parentParticles with indexOf
+    removeParticle(p)
+    removeConstraint(p)
+
+    return pCopy
+}
+
+function removeParticle(p){
     for(let i = 0; i < particles.length; i++){
         if(particles[i] == p){
             particles.splice(i, 1)
             break
         }
     }
-    //remove the constraint with p
+}
+
+function removeConstraint(p){
     for(let i = 0; i < constraints.length; i++){
         if(constraints[i].p1 == p || constraints[i].p2 == p){
             constraints.splice(i, 1)
             break
         }
     }
-    return pCopy
 }
 
 const absoluteSeparationDistance = 70
@@ -175,8 +256,9 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
         p1 = new Particle(primordial.pos.x, primordial.pos.y, true, -1, primordial.link)
         let constraint = new Constraint(primordial, p1)
         constraints.push(constraint)
-        p1.str = title
+        p1.str = (title)
         p1.isParent = true
+        p1.parent = primordial
         p1.color = color(255)
         p1.constraint = constraint
         primordial.constraint = constraint
@@ -257,39 +339,25 @@ function setup(){
     input = new Input(
         width/2,
         height/2,
-        'Enter Wikipedia URL',
+        'Enter a Wikipedia URL',
         () => {
-            extractAndFilterLinksCategorized(arg = input.getText())
-            .then(categories => {
-                let primordial = new Particle(width/2, height/2, true, -1, arg)
-                primordial.isParent = true
-                primordial.color = random(colors)
-                for(let i = 0; i < categories.length; i++){
-                    let links = categories[i].links.splice(0, floor(random(10, 100)))
-                    initFirstGraphCategorized(links, categories[i].title, primordial)
-                }
-                particles.push(primordial)
-                started = true
+            let link = input.getText();
+            let primordial = new Particle(width / 2, height / 2, true, -1, link);
+            primordial.color = random(colors);
+            particles.push(primordial);
+            
+            createGraph(link, primordial)
+            .then(() => {
+                started = true;
             })
-            .catch(() => {errorFrames = 6 * 3});
+            .catch(() => {
+                errorFrames = 6 * 3;
+            });
         },
         true,
         [255, 255, 255],
         [0, 0, 0]
     )
-
-    // extractAndFilterLinksCategorized(initialLink)
-    // .then(categories => {
-    //     let primordial = new Particle(width/2, height/2, true, -1, initialLink)
-    //     primordial.isParent = true
-    //     primordial.color = random(colors)
-    //     for(let i = 0; i < categories.length; i++){
-    //         let links = categories[i].links.splice(0, floor(random(10, 100)))
-    //         initFirstGraphCategorized(links, categories[i].title, primordial)
-    //     }
-    //     particles.push(primordial)
-    // })
-    // .catch(err => console.error(err));
 
     initTopo()
 }
@@ -297,56 +365,124 @@ function setup(){
 function draw(){
     background(25)
 
+    if(keyIsPressed && keyCode == 32){
+        push()
+        fill(255, 255, 0)
+        text(Math.round(frameRate()), width - 20, 20)
+        pop()
+    }
+
+    manageDimming()
+
     updateTopo()
     showTopo()
+
+    updateAndShowBtnReset()
 
     translate(xOff, yOff)
     scale(zoom)
 
-    textFont('Arial')
+    currentEdges = getEdges()
 
     updateAnimations()
     udpateGraph()
+    updateReset()
     showRelationsHovered()
     showGraph()
     showHovered()
     
     textFont(font)
 
+    manageInput()
+    
+    manageAnimConn()
+
+    
+    
+}
+
+function manageInput(){
     if(!started){
         if(errorFrames > 0){
             errorFrames -= 0.75
-            let mult = mapp(errorFrames, 6 * 3, 0, 15, 1)
-            let dx = Math.cos(errorFrames) * mult
+            let mul = mapp(errorFrames, 6 * 3, 0, 15, 1)
+            let dx = Math.cos(errorFrames) * mul
             input.pos.x = input.initialPos.x + dx
         }
         input.update()
         input.show()
     }
-    
+}
 
+function manageAnimConn(){
+    for(let i = animConn.length - 1; i >= 0; i--){
+        let conn = animConn[i]
+        conn.from.pos.lerp(conn.to.pos, 0.1)
+        if(dist(conn.from.pos.x, conn.from.pos.y, conn.to.pos.x, conn.to.pos.y) < 1){
+            let parent = conn.from.parent
+            let to = conn.to
+            constraints.push(new Constraint(parent, to, dist(parent.pos.x, parent.pos.y, to.pos.x, to.pos.y)))
+            removeParticle(conn.from)
+            removeConstraint(conn.from)
+            animConn.splice(i, 1)
+        }
+    }
+}
 
-    // push()
-    // noFill()
-    // stroke(255, 100)
-    // for(let p of parentParticles) ellipse(p.pos.x, p.pos.y, p.radius*2)
-    // pop()
+function manageDimming(){
+    if((dimmingLines == 1 || dimmingLines == 0) && hoveredParticle && (hoveredParticle.relations.length > 1 || hoveredParticle.isParent)){
+        dimmingLines = -1
+    }
+    if(hoveredParticle == undefined || (hoveredParticle && hoveredParticle.relations.length <= 1 && !hoveredParticle.isParent)){ 
+        dimmingLines = 1
+    }
+    if(dimmingLines == -1 && transLines <= 51){
+        dimmingLines = 0
+        transLines = 50
+    }
+    if(dimmingLines == 1 && transLines >= 254){
+        dimmingLines = 0
+        transLines = 255
+    }
+}
+
+function worldToCanvas(x, y) {
+    return {
+      x: (x - xOff) / zoom,
+      y: (y - yOff) / zoom
+    };
+}
+
+function getEdges(){
+    let minX = (0 - xOff) / zoom
+    let maxX = (WIDTH - xOff) / zoom
+    let minY = (0 - yOff) / zoom
+    let maxY = (HEIGHT - yOff) / zoom
+    return [
+        minX,
+        maxX,
+        minY,
+        maxY
+    ]
 }
 
 function showRelationsHovered(){
-    if(hoveredParticle){
-        hoveredParticle.showRelations()
+    let part = draggedParticle || hoveredParticle
+    if(part){
+        part.showRelations()
     }
 }
 
 function showHovered(){
-    if(hoveredParticle){
-        hoveredParticle.show(true)
-        hoveredParticle.showRelationsCircles()
+    let part = draggedParticle || hoveredParticle
+    if(part){
+        part.show(true)
+        part.showRelationsCircles()
     }
 }
 
 function updateAnimations(){
+    if(reseting) return
     for(let i = animations.length - 1; i >= 0; i--){
         let anim = animations[i]
         let p = anim.particle
@@ -358,7 +494,7 @@ function updateAnimations(){
         if(anim.framesTillStart == undefined || anim.framesTillStart > 0) p.pos.lerp(finalPos, 0.05)
         if(anim.framesTillStart != undefined) anim.framesTillStart++
         let d = dist(p.pos.x, p.pos.y, finalPos.x, finalPos.y)
-        if(d < 1){
+        if(d < 0.1){
             if(anim.parent) p.isPinned = false
             p.removeInertia()
             animations.splice(i, 1)
@@ -366,32 +502,38 @@ function updateAnimations(){
     }
 }
 
-
-
 function showGraph(){
     for(let c of constraints) c.show()
-    for(let p of particles) p.show()
+    for(let p of particles) {
+        if(hoveredParticle == p) continue
+        if(hoveredParticle && (hoveredParticle.relations.length > 1 || hoveredParticle.isParent)){
+            if(hoveredParticle.relations.includes(p)) p.show()
+            else p.show(false, true)
+        }
+        else{ 
+            p.show()
+        }
+    }
+}
+
+function updateReset(){
+    let aux = worldToCanvas(width/2, height/2)
+    let mid = createVector(aux.x, aux.y)
+    if(reseting){
+        for(let part of particles){
+            part.isPinned = true
+            part.pos.lerp(mid, 0.1)
+        }
+        if(dist(particles[0].pos.x, particles[0].pos.y, mid.x, mid.y) < 3){
+            resetState()
+        }
+    }
 }
 
 function udpateGraph(){
     for(let p of particles){
-        if(p.isParent){
-            let n = noise(p.pos.x, p.pos.y, frameCount*10)
-            n = mapp(n, 0, 1, -1, 1)
-            let force = createVector(Math.cos(n), Math.sin(n))
-            force.rotate(p.angle)
-            force.mult(0.2)
-            p.applyForce(force)
-            p.isPinned = false
-        }
-        
-        
         p.repel(p.siblings)
         p.update(0.1)
-
-        if(p.isParent){
-            p.isPinned = true
-        }
     }
     for(let i = 0; i < 5; i++){
         for(let c of constraints) c.satisfy()
@@ -479,3 +621,57 @@ function findAllParticlesByLink(link){
     }
     return arr
 }
+
+function shortenStr(str, maxLength = 25){
+    if(str.length > maxLength){
+        return str.substring(0, maxLength) + '...'
+    }
+    return str
+}
+
+let dimmBtn = 0   // 0 to 100
+let hoveringBtn = false
+
+function updateAndShowBtnReset(){
+    if(!started) return
+    let hovNow = inBounds(mouseX, mouseY, btnReset.x - btnReset.size/2, btnReset.y - btnReset.size/2, btnReset.size, btnReset.size)
+    if(hovNow && !hoveringBtn){
+        hoveringBtn = true
+    }
+    else if(!hovNow && hoveringBtn){
+        hoveringBtn = false
+    }
+    let max = mouseIsPressed ? 200 : 100
+    hoveringBtn ? dimmBtn = lerp(dimmBtn, max, 0.3) : dimmBtn = lerp(dimmBtn, 0, 0.3)
+    let strokeCol = (mapp(dimmBtn, 0, 100, 50, 200))
+    let strokeWeightCol = mapp(dimmBtn, 0, 100, 1, 1.3)
+    let sizeMult = mapp(dimmBtn, 0, 100, 1, 1.08)
+    size = btnReset.size * sizeMult
+    stroke(strokeCol)
+    strokeWeight(strokeWeightCol)
+    rectMode(CENTER)
+    noFill()
+    drawResetIcon(btnReset.x, btnReset.y, size*0.65)
+    rect(btnReset.x, btnReset.y, size, size, 5)
+    if(mouseIsPressed && hoveringBtn){
+        reseting = true
+    }
+}
+
+function drawResetIcon(x, y, size) {
+    arc(x, y, size, size, 0.6981317007977318, 0);
+    let tipX = x + (size * 0.5)
+    let tipY = y
+    let tangentAngle = 1.3962634015954636;
+    
+    let arrowLength = size * 0.2;       
+    let arrowAngleOffset = 0.6981317007977318;  
+    
+    let leftX  = tipX - arrowLength * Math.cos(tangentAngle - arrowAngleOffset);
+    let leftY  = tipY - arrowLength * Math.sin(tangentAngle - arrowAngleOffset);
+    let rightX = tipX - arrowLength * Math.cos(tangentAngle + arrowAngleOffset);
+    let rightY = tipY - arrowLength * Math.sin(tangentAngle + arrowAngleOffset);
+    
+    line(tipX, tipY, leftX, leftY);
+    line(tipX, tipY, rightX, rightY);
+  }

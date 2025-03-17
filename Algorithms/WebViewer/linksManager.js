@@ -146,15 +146,18 @@ async function extractAndFilterLinksCategorized(targetUrl) {
     let currentSection = { title: "Introduction", links: [] };
     sections.push(currentSection);
 
-    // Select all h3 and anchor elements in document order
-    const nodes = doc.querySelectorAll('h3, a[href]');
+    // Select all h3 and h2 and anchor elements in document order
+    const nodes = doc.querySelectorAll('h3, a[href], h2');
     nodes.forEach(node => {
-      if (node.tagName.toLowerCase() === 'h3') {
-        // Create a new section when encountering an h3 tag
+      let tagName = node.tagName.toLowerCase()
+      if (tagName === 'h3' || tagName == 'h2') {
         const title = node.textContent.trim();
-        currentSection = { title: title, links: [] };
-        sections.push(currentSection);
-      } else if (node.tagName.toLowerCase() === 'a') {
+        if(isCategory(title)){
+          currentSection = { title: title, links: [] };
+          sections.push(currentSection);
+        }
+        
+      } else if (tagName === 'a') {
         // Process anchor tags
         const href = node.getAttribute('href');
         const filteredLink = filterLink(href, targetUrl, targetHost, targetPath);
@@ -169,9 +172,46 @@ async function extractAndFilterLinksCategorized(targetUrl) {
   } 
   catch (error) {
     throw new Error()
-    console.error('Error fetching or processing the URL:', error);
-    return new Error();
   }
 }
 
-
+function isCategory(str){
+  let notCategories = [
+    'Contenidos',
+    'Contents',
+    'External links',
+    'References',
+    'Enlaces externos',
+    'Referencias',
+    'See also',
+    'Véase también',
+    'Related articles',
+    'Artículos relacionados',
+    'Further reading',
+    'Lectura adicional',
+    'Bibliography',
+    'Bibliografía',
+    'Sources',
+    'Fuentes',
+    'Citations',
+    'Citas',
+    'Notes',
+    'Notas',
+    'Notes and references',
+    'Notas y referencias',
+    'Further information',
+    'Información adicional',
+    'Related topics',
+    'Temas relacionados',
+    'Related links',
+    'Enlaces relacionados',
+    'Related articles',
+    'Artículos relacionados',
+    'Related content',
+    'Contenido relacionado',
+  ]
+  for(let cat of notCategories){
+    if(cat == str) return false
+  }
+  return true
+}

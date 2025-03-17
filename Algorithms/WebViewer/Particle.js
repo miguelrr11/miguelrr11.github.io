@@ -21,6 +21,7 @@ class Particle{
 		this.constraint = undefined
 		this.relations = []
 		this.children = []
+		this.out = false
 	}
 
 	removeInertia(){
@@ -38,22 +39,19 @@ class Particle{
 		return createVector(worldX, worldY);
 	}
 
-	getEdges(){
-		let minX = (0 - xOff) / zoom
-		let maxX = (WIDTH - xOff) / zoom
-		let minY = (0 - yOff) / zoom
-		let maxY = (HEIGHT - yOff) / zoom
-		return [
-			minX,
-			maxX,
-			minY,
-			maxY
-		]
+	setOut(){
+		let [minX, maxX, minY, maxY] = currentEdges
+		let r = this.radius + 50
+		this.out = this.pos.x < minX - r ||
+		this.pos.x > maxX + r || 
+		this.pos.y < minY - r || 
+		this.pos.y > maxY + r
 	}
-
 
 	update(timeStep){
 		// verlet intergration
+		this.setOut()
+		if(this.out) return
         if (!this.isPinned) {
         	let vel = p5.Vector.sub(this.pos, this.prevPos).mult(0.97)
 			this.prevPos = this.pos.copy()
@@ -112,37 +110,46 @@ class Particle{
 		});
 	}
 
-	show(bool = false){
-		// //if its out of the screen, dont show it, doesnt work
-		// let actualPos = this.getRelativePos(this.pos.x, this.pos.y)
-		// // let minX = this.getRelativePos(0, 0).x - this.radius - xOff / zoom
-		// // let maxX = this.getRelativePos(WIDTH, 0).x + this.radius - xOff / zoom
-		// // let minY = this.getRelativePos(0, 0).y - this.radius - yOff / zoom
-		// // let maxY = this.getRelativePos(0, HEIGHT).y + this.radius - yOff / zoom
-		// let [minX, maxX, minY, maxY] = this.getEdges()
-		// let out = actualPos.x < minX || actualPos.x > maxX || actualPos.y < minY || actualPos.y > maxY
-		// if(out){
-		// 	return 
-		// }
+	show(bool = false, trans = false){
+		if(this.out){
+			return 
+		}
 		push()
-		fill(this.color)
+		if(trans){
+			let col = dupeColor(this.color)
+			col.setAlpha(150)
+			fill(col)
+		}
+		else fill(this.color)
 		stroke(50)
 		strokeWeight(2)
 		let rad = bool ? this.radius * 2.5 : this.radius * 2
 		ellipse(this.pos.x, this.pos.y, rad)
 		if(this.isParent || bool){
+			let yOff = 28
 			strokeWeight(1.5)
-			textSize(17)
+			let m = worldToCanvas(mouseX, mouseY)
+			let d = dist(m.x, m.y, this.pos.x, this.pos.y)
+			let transRect = 150
+			let transText = 255
+			if(d > 200){ 
+				textSize(13)
+				transRect = mapp(d, 200, 300, 150, 0)
+				transText = mapp(d, 200, 300, 255, 0)
+			}
+			else textSize(mapp(d, 0, 200, 18 / zoom, 13))
 			textAlign(CENTER, CENTER)
-			let w = textWidth(this.str)
+			let str = bool ? this.str : shortenStr(this.str)
+			let w = textWidth(str)
 			let h = textHeight()
 			rectMode(CENTER)
-			fill(50, 50, 50, 150)
+			fill(50, 50, 50, transRect)
 			noStroke()
-			rect(this.pos.x, this.pos.y + 20, w + 10, h + 10, 7)
-			fill(this.color)
-			stroke(50, 125)
-			text(this.str, this.pos.x, this.pos.y + 20)
+			rect(this.pos.x, this.pos.y + yOff, w + 10, h + 10, 7)
+			let col = dupeColor(this.color)
+			col.setAlpha(transText)
+			fill(col)
+			text(str, this.pos.x, this.pos.y + yOff)
 			gradientCircle(this.pos.x, this.pos.y, this.radius, [this.color, color(255, 255, 255, 150)])
 		}
 		pop()
@@ -160,11 +167,13 @@ class Particle{
 		if(!this.isParent){
 			strokeWeight(1.5)
 			this.relations = findAllParticlesByLink(this.link)
+			let col1 = dupeColor(this.color)
+			col1.setAlpha(180)
 			for(let rel of this.relations){
 				if(rel == this) continue
-				let relPos = rel.pos
-				let thisPos = this.pos
-				gradientLine(thisPos.x, thisPos.y, relPos.x, relPos.y, [this.color, trans, trans, rel.color])
+				let col2 = dupeColor(rel.color)
+				col2.setAlpha(180)
+				gradientLine(this.pos.x, this.pos.y, rel.pos.x, rel.pos.y, [col1, col2])
 			}
 		}
 		else{
@@ -208,4 +217,6 @@ function gradientCircle(x, y, r, colors) {
     ctx.fill();
 }
 
-
+function dupeColor(col){
+	return color(col.levels[0], col.levels[1], col.levels[2], col.levels[3])
+}

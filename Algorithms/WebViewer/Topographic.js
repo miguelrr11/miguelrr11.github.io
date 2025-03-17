@@ -1,12 +1,12 @@
 const sclTopo = 4; //ya no se puede cambiar 
-const cellPixelSize = 40; // size of each cell in pixels
+const cellPixelSize = 20; // size of each cell in pixels
 const spacing = cellPixelSize / sclTopo; // cellPixelSize * (1/sclTopo)
 const cellsPerRow = Math.floor(WIDTH / cellPixelSize) + 2;
 const cellsPerCol = Math.floor(HEIGHT / cellPixelSize) + 2;
 const cellsPerRowTopo = cellsPerRow * sclTopo;
 const cellsPerColTopo = cellsPerCol * sclTopo;
 let topoGrid = [];
-let sclTopoNoiseMovement = 0.00015
+let sclTopoNoiseMovement = 0.00008
 
 function initTopo() {
     const tam = 10 * sclTopo;
@@ -23,7 +23,7 @@ function initTopo() {
 }
 
 function updateTopo() {
-    const tam = 10 * sclTopo;
+    const tam = 30 * sclTopo;
     const z = frameCount * sclTopoNoiseMovement;
     const cols = cellsPerRowTopo,
         rows = cellsPerColTopo;
