@@ -1,14 +1,16 @@
-const sclTopo = 4; //ya no se puede cambiar 
-const cellPixelSize = 20; // size of each cell in pixels
-const spacing = cellPixelSize / sclTopo; // cellPixelSize * (1/sclTopo)
-const cellsPerRow = Math.floor(WIDTH / cellPixelSize) + 2;
-const cellsPerCol = Math.floor(HEIGHT / cellPixelSize) + 2;
-const cellsPerRowTopo = cellsPerRow * sclTopo;
-const cellsPerColTopo = cellsPerCol * sclTopo;
-let topoGrid = [];
-let sclTopoNoiseMovement = 0.00008
+let sclTopo, cellPixelSize, spacing, cellsPerRow, cellsPerCol, cellsPerRowTopo, cellsPerColTopo, topoGrid, sclTopoNoiseMovement;
 
 function initTopo() {
+    sclTopo = 4; //ya no se puede cambiar 
+    cellPixelSize = 20; // size of each cell in pixels
+    spacing = cellPixelSize / sclTopo; // cellPixelSize * (1/sclTopo)
+    cellsPerRow = Math.floor(WIDTH / cellPixelSize) + 2;
+    cellsPerCol = Math.floor(HEIGHT / cellPixelSize) + 2;
+    cellsPerRowTopo = cellsPerRow * sclTopo;
+    cellsPerColTopo = cellsPerCol * sclTopo;
+    topoGrid = [];
+    sclTopoNoiseMovement = 0.00008
+    
     const tam = 10 * sclTopo;
     const cols = cellsPerRowTopo,
         rows = cellsPerColTopo;

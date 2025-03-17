@@ -4,8 +4,8 @@
 
 p5.disableFriendlyErrors = true
 let scl = 0.7
-const WIDTH = 1920*scl
-const HEIGHT = 1080*scl
+let WIDTH = 1920*scl
+let HEIGHT = 1080*scl
 
 let hoveredParticle = null
 let draggedParticle = null
@@ -320,6 +320,8 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
   
 
 function setup(){
+    WIDTH = windowWidth
+    HEIGHT = windowHeight
     createCanvas(WIDTH, HEIGHT)
     textFont('Arial')
 
@@ -523,8 +525,9 @@ function updateReset(){
         for(let part of particles){
             part.isPinned = true
             part.pos.lerp(mid, 0.1)
+            part.color.levels[3] = lerp(part.color.levels[3], 0, 0.99)
         }
-        if(dist(particles[0].pos.x, particles[0].pos.y, mid.x, mid.y) < 3){
+        if(dist(particles[1].pos.x, particles[1].pos.y, mid.x, mid.y) < 1){
             resetState()
         }
     }
@@ -674,4 +677,15 @@ function drawResetIcon(x, y, size) {
     
     line(tipX, tipY, leftX, leftY);
     line(tipX, tipY, rightX, rightY);
-  }
+}
+
+function windowResized() {
+    WIDTH = windowWidth
+    HEIGHT = windowHeight
+    input.pos.x = width/2
+    input.pos.y = height/2
+    btnReset.x = WIDTH - 20
+    btnReset.y = HEIGHT - 20
+    initTopo()
+    resizeCanvas(windowWidth, windowHeight);
+}
