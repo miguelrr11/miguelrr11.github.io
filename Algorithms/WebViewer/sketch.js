@@ -8,6 +8,9 @@ let WIDTH = 1920*scl
 let HEIGHT = 1080*scl
 let canvas, ctx
 
+const MIN_ZOOM = 0.01
+const MAX_ZOOM = 2
+
 let hoveredParticle = null
 let draggedParticle = null
 
@@ -105,7 +108,7 @@ function mouseWheel(event) {
     if(!started) return
     btnCenter.bool = false
     zoom += event.delta / 1000
-    zoom = constrain(zoom, 0.1, 5)
+    zoom = Math.max(MIN_ZOOM, Math.min(zoom, MAX_ZOOM));
     return false
 }
 
@@ -445,13 +448,13 @@ function draw(){
     manageAnimConn()
 
     //show parent particles
-    push()
-    for(let p of parentParticles){
-        stroke(255, 0, 0)
-        noFill()
-        ellipse(p.pos.x, p.pos.y, p.radius * 2)
-    }
-    pop()
+    // push()
+    // for(let p of parentParticles){
+    //     stroke(255, 0, 0)
+    //     noFill()
+    //     ellipse(p.pos.x, p.pos.y, p.radius * 2)
+    // }
+    // pop()
 
     pop()
     
@@ -819,5 +822,5 @@ function getTargetZoom(){
     let heightE = (maxYe - minYe) * zoom
     let zoomX = widthE / widthP
     let zoomY = heightE / heightP
-    return Math.min(zoomX, zoomY)
+    return constrain(Math.min(zoomX, zoomY), MIN_ZOOM, MAX_ZOOM)
 }

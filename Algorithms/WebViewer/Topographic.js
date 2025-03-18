@@ -39,7 +39,8 @@ function updateTopo() {
 
 function showTopo() {
     ctx.strokeStyle = "rgb(50, 50, 50)"; 
-    ctx.lineWidth = 1.25;
+    if(zoom >= 1) ctx.lineWidth = mapp(zoom, 1, MAX_ZOOM, 1.25, 2.5);
+    else ctx.lineWidth = mapp(zoom, MIN_ZOOM, 1, 0.5, 1.25);
 
     const steps = 10;
     const dK = 1 / steps;
