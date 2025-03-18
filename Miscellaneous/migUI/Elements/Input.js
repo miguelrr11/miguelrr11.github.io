@@ -246,15 +246,16 @@ class Input {
             )
         }
 
-        if(this.active && Math.floor(this.frame / 35) % 2 === 0) {
+        if(this.active) {
             stroke(this.lightCol)
             strokeWeight(2)
             let x =
                 textWidth(
                     this.sentence.substring(this.firstCursor, this.firstCursor + this.relCursorPos)
-                ) + this.pos.x + 3
-            let y = this.pos.y + 3
-            line(x, y, x, y + this.h - 6)
+                ) * 0.5 + this.pos.x + 4
+            let midY = this.pos.y + this.h * 0.5;
+            let dy = Math.sin(frameCount / 25) * (this.h - 6) * 0.5;
+            line(x, midY + dy, x, midY - dy);
         }
         pop()
 
