@@ -43,7 +43,6 @@ let btnReset = {
     x: WIDTH - 20,
     y: HEIGHT - 20,
     size: 20,
-    img: undefined,
     dimm: 0,
     hovering: false,
     func: drawResetIcon,
@@ -53,12 +52,24 @@ let btnCenter = {
     x: WIDTH - 20,
     y: HEIGHT - 40,
     size: 20,
-    img: undefined,
     dimm: 0,
     hovering: false,
     func: drawCenterIcon,
     bool: false
 }
+let btnGit = {
+    x: 20,
+    y: HEIGHT - 20,
+    size: 20,
+    svgData: undefined,
+    paths: [],
+    dimm: 0,
+    hovering: false,
+    func: drawGitSvg,
+    bool: false
+}
+
+
 
 function resetState(){
     hoveredParticle = null
@@ -91,7 +102,7 @@ function resetState(){
 
 function preload(){
     font = loadFont('bnr.ttf')
-    btnReset.img = loadImage('reiniciar.png')
+    btnGit.svgData = loadXML('github.svg')
 }
 
 function mouseClicked(){
@@ -175,7 +186,8 @@ function createGraph(link, p){
         console.log(primordial)
         primordials.push(primordial);
         for (let i = 0; i < categories.length; i++){
-            let links = categories[i].links.splice(0, floor(random(10, 100)));
+            //let links = categories[i].links.splice(0, floor(random(10, 100)));
+            let links = categories[i].links;
             initFirstGraphCategorized(links, categories[i].title, primordial, categories.length == 1);
         }
     })
@@ -354,6 +366,12 @@ function setup(){
     btnReset.y = HEIGHT - 20
     btnCenter.x = WIDTH - 20
     btnCenter.y = HEIGHT - 45
+    btnGit.x = 20
+    btnGit.y = HEIGHT - 20
+    let [paths, cx, cy] = parseSVG(btnGit.svgData)
+    btnGit.paths = paths
+    btnGit.centerX = cx
+    btnGit.centerY = cy
     textFont('Arial')
 
     colors = [
@@ -438,7 +456,7 @@ function draw(){
     currentEdges = getEdges()
 
     updateAnimations()
-    udpateGraph()
+    updateGraph()
     updateReset()
 
     showRelationsHovered()
@@ -460,6 +478,7 @@ function draw(){
     
     updateAndShowButton(btnReset)
     updateAndShowButton(btnCenter)
+    updateAndShowButton(btnGit)
 
     
 }
@@ -594,13 +613,15 @@ function updateReset(){
     }
 }
 
-function udpateGraph(){
+function updateGraph(){
     for(let p of particles){
         p.repel(p.siblings)
         p.update(0.1)
     }
-    for(let i = 0; i < 2; i++){
-        for(let c of constraints) c.satisfy()
+    for(let i = 0; i < 1; i++){
+        for(let c of constraints){
+            c.satisfy()
+        }
     }
 }
 
@@ -720,6 +741,8 @@ function windowResized() {
     btnReset.y = HEIGHT - 20
     btnCenter.x = WIDTH - 20
     btnCenter.y = HEIGHT - 45
+    btnGit.x = 20
+    btnGit.y = HEIGHT - 20
     initTopo()
     resizeCanvas(windowWidth, windowHeight);
 }
@@ -736,7 +759,7 @@ function drawCenterIcon(x, y, size){
 }
 
 function updateAndShowButton(btn){
-    if(!started) return
+    if(!started && btn.paths == undefined) return
     let hovNow = inBounds(mouseX, mouseY, btn.x - btn.size/2, btn.y - btn.size/2, btn.size, btn.size)
     if(hovNow && !btn.hovering){
         btn.hovering = true
@@ -758,8 +781,13 @@ function updateAndShowButton(btn){
     fill(255, mapp(btn.dimm, 0, 100, 0, 35))
     rect(btn.x, btn.y, size, size, 5)
     if(mouseIsPressed && btn.hovering && !btn.bool){
-        btn.bool = true
+        if(btn.paths) window.open('https://github.com/miguelrr11/miguelrr11.github.io/tree/main/Algorithms/WebViewer')
+        else btn.bool = true
     }
+}
+
+function drawGitSvg(x, y, size){
+    drawPaths(btnGit.paths, x, y, size*0.064, btnGit.centerX, btnGit.centerY)
 }
 
 function replaceBlankWithBarraBaja(str){

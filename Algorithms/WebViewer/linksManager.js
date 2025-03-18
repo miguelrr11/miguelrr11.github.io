@@ -74,25 +74,30 @@ async function extractAndFilterLinksCategorized(targetUrl) {
 
     // Select all h3 and h2 and anchor elements in document order
     const nodes = doc.querySelectorAll('h3, a[href], h2');
-    nodes.forEach(node => {
-      let tagName = node.tagName.toLowerCase()
-      if (tagName === 'h3' || tagName == 'h2') {
+    for (const node of nodes) {
+      let tagName = node.tagName.toLowerCase();
+      if (tagName === 'h3' || tagName === 'h2') {
         const title = node.textContent.trim();
-        if(isCategory(title)){
+        if (isCategory(title)) {
+          console.log(title);
           currentSection = { title: title, links: [] };
           sections.push(currentSection);
+        } 
+        else {
+          console.log('out ', title);
+          currentSection = undefined
         }
-        
-      } else if (tagName === 'a') {
-        // Process anchor tags
+      } 
+      else if (tagName === 'a' && currentSection) {
         const href = node.getAttribute('href');
         const filteredLink = filterLink(href, targetUrl, targetHost, targetPath);
-        // Only add the link if it passes the filter and isn't already added to the current section
         if (filteredLink && !currentSection.links.includes(filteredLink)) {
           currentSection.links.push(filteredLink);
+          console.log('title ' + currentSection.title + ' link ', filteredLink);
         }
       }
-    });
+    }
+    
 
     return sections.filter(section => section.links.length > 0);
   } 
