@@ -33,9 +33,9 @@ Real-time music visualization using frequency data to generate graphics.
 
 ---
 
-### [RT Fluid Dynamics](https://miguelrr11.github.io/Physics_Simulations/RT_Fluid_Dynamics/)
-Real-time fluid simulation based on the [famous paper](http://graphics.cs.cmu.edu/nsp/course/15-464/Fall09/papers/StamFluidforGames.pdf).
+### [WikiGraph](https://miguelrr11.github.io/Algorithms/WebViewer/)
+Interactive Wikipedia article explorer.
 
-![RT Fluid Dynamics](assets/FluidDynamics.png)
+![WikGraph](assets/WikiGraph.png)
 
 ---
