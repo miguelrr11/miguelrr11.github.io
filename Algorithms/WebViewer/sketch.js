@@ -92,17 +92,18 @@ function preload(){
 }
 
 function mouseClicked(){
-    console.log(hoveredParticle)
+    if(hoveredParticle) console.log(hoveredParticle)
 }
 
 function mouseReleased(){
     prevMouseX = undefined
     prevMouseY = undefined
-    draggedParticle = null
+    draggedParticle = undefined
 }
 
 function mouseWheel(event) {
     if(!started) return
+    btnCenter.bool = false
     zoom += event.delta / 1000
     zoom = constrain(zoom, 0.1, 5)
     return false
@@ -168,11 +169,8 @@ function createGraph(link, p){
         let primordial = p
         primordial.isParent = true;
         primordial.isPinned = true;
+        console.log(primordial)
         primordials.push(primordial);
-        parentParticles.push({
-            pos: primordial.pos.copy(),
-            radius: 10
-        })
         for (let i = 0; i < categories.length; i++){
             let links = categories[i].links.splice(0, floor(random(10, 100)));
             initFirstGraphCategorized(links, categories[i].title, primordial, categories.length == 1);
@@ -215,6 +213,10 @@ function getP(p){
     })
 
     particles.push(pCopy)
+    parentParticles.push({
+        pos: pos.copy(),
+        radius: 50
+    })
     let constraint = new Constraint(parent, pCopy)
     constraints.push(constraint)
     parent.constraint = constraint
@@ -268,12 +270,13 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
     let pos = getFinalPos(createVector(Math.cos(rAngle), Math.sin(rAngle)), createVector(x, y), 0, REST_DISTANCE)
     parentParticles.push({
         pos: pos,
-        radius: REST_DISTANCE
+        radius: REST_DISTANCE + RADIUS_PARTICLE * 2
     })
 
     let p1
     if(!fromPrimordial){
         p1 = new Particle(primordial.pos.x, primordial.pos.y, true, -1, primordial.link)
+        p1.link = primordial.link + '#' + replaceBlankWithBarraBaja(title)
         let constraint = new Constraint(primordial, p1)
         constraints.push(constraint)
         p1.str = (title)
@@ -374,7 +377,7 @@ function setup(){
             particles.push(primordial);
             parentParticles.push({
                 pos: primordial.pos.copy(),
-                radius: 10
+                radius: 50
             })
             
             createGraph(link, primordial)
@@ -397,10 +400,15 @@ function draw(){
     background(25)
 
     if(btnCenter.bool){
-        xOff = lerp(xOff, 0, 0.1)
-        yOff = lerp(yOff, 0, 0.1)
-        zoom = lerp(zoom, 1, 0.1)
-        if(dist(xOff, yOff, 0, 0) < .1){
+        // xOff = lerp(xOff, 0, 0.1)
+        // yOff = lerp(yOff, 0, 0.1)
+        zoom = lerp(zoom, getTargetZoom(), 0.1)
+        let [finalxOff, finalyOff] = centerGraph()
+        xOff = lerp(xOff, finalxOff, 0.1)
+        yOff = lerp(yOff, finalyOff, 0.1)
+        
+        
+        if(dist(xOff, yOff, finalxOff, finalyOff) < .1){
             btnCenter.bool = false
         }
         if(mouseIsPressed) btnCenter.bool = false
@@ -435,10 +443,22 @@ function draw(){
     showHovered()
     manageInput()
     manageAnimConn()
+
+    //show parent particles
+    push()
+    for(let p of parentParticles){
+        stroke(255, 0, 0)
+        noFill()
+        ellipse(p.pos.x, p.pos.y, p.radius * 2)
+    }
+    pop()
+
     pop()
     
     updateAndShowButton(btnReset)
     updateAndShowButton(btnCenter)
+
+    
 }
 
 function manageInput(){
@@ -736,6 +756,68 @@ function updateAndShowButton(btn){
     rect(btn.x, btn.y, size, size, 5)
     if(mouseIsPressed && btn.hovering && !btn.bool){
         btn.bool = true
-        console.log(btn.bool)
     }
+}
+
+function replaceBlankWithBarraBaja(str){
+    //creates a new string with the same characters as str, but replaces any space with a _
+    let newStr = ''
+    for(let i = 0; i < str.length; i++){
+        if(str[i] == ' ') newStr += '_'
+        else newStr += str[i]
+    }
+    return newStr
+}
+
+function getMinMaxPos(){
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    for(let p of particles){
+        if(p.pos.x < minX) minX = p.pos.x
+        if(p.pos.y < minY) minY = p.pos.y
+        if(p.pos.x > maxX) maxX = p.pos.x
+        if(p.pos.y > maxY) maxY = p.pos.y
+    }
+    return [
+        minX,
+        maxX,
+        minY,
+        maxY
+    ]
+}
+
+function centerGraph(){
+    let [minXp, maxXp, minYp, maxYp] = getMinMaxPos()
+    let [minXe, maxXe, minYe, maxYe] = getEdges()   
+    //sets the zoom to fit the graph in the screen
+    let widthP = maxXp - minXp
+    let heightP = maxYp - minYp
+    let widthE = maxXe - minXe
+    let heightE = maxYe - minYe
+    let zoomX = widthE / widthP
+    let zoomY = heightE / heightP
+    //zoom = min(zoomX, zoomY)
+    //sets the offset to center the graph
+    let centerX = (maxXp + minXp) / 2
+    let centerY = (maxYp + minYp) / 2
+    let xOffAux = (WIDTH / 2) - centerX * zoom
+    let yOffAux = (HEIGHT / 2) - centerY * zoom
+    return [
+        xOffAux,
+        yOffAux
+    ]
+}
+let margin = 50
+function getTargetZoom(){
+    let [minXp, maxXp, minYp, maxYp] = getMinMaxPos()
+    let [minXe, maxXe, minYe, maxYe] = getEdges()   
+    let widthP = (maxXp - minXp) + margin
+    let heightP = (maxYp - minYp)  + margin
+    let widthE = (maxXe - minXe) * zoom
+    let heightE = (maxYe - minYe) * zoom
+    let zoomX = widthE / widthP
+    let zoomY = heightE / heightP
+    return Math.min(zoomX, zoomY)
 }

@@ -12,6 +12,7 @@ class Particle{
 		this.radius = RADIUS_PARTICLE
 		this.link = str
 		this.str = removeBarrabaja(getLastPartOfLink(decodeURIComponent(str)))
+		this.plainStr = undefined
 		this.parent = parent
 		this.angle = 0
 		this.isParent = false
@@ -51,7 +52,10 @@ class Particle{
 	update(timeStep){
 		// verlet intergration
 		this.setOut()
-		if(this.out) return
+		if(this.out){
+			this.removeInertia()
+			return
+		}
         if (!this.isPinned) {
         	let vel = p5.Vector.sub(this.pos, this.prevPos).mult(0.97)
 			this.prevPos = this.pos.copy()
