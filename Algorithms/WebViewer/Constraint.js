@@ -33,25 +33,17 @@ class Constraint{
 	}
 
 	show(){
-		push()
 		if(dimmingLines == -1){
 			transLines = lerp(transLines, 50, 0.0015)
-			stroke(170, transLines)
 		}
 		else if(dimmingLines == 1){
 			transLines = lerp(transLines, 255, 0.0015)
-			stroke(170, transLines)
 		}
-		else stroke(170, transLines)
-		line(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y)
-		//gradientLine(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y, [this.p1.color, this.p2.color])
-		pop()
-
+		customLine(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y, [170, 170, 170, transLines], 1)
 	}
 }
 
 function gradientLine(x1, y1, x2, y2, colors) {
-	// linear gradient from start to end of line
 	var grad = this.drawingContext.createLinearGradient(x1, y1, x2, y2);
 	for(let i = 0; i < colors.length; i++){
 		grad.addColorStop(i / (colors.length - 1), colors[i]);

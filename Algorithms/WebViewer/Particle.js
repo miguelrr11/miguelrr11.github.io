@@ -115,16 +115,16 @@ class Particle{
 			return 
 		}
 		push()
-		if(trans){
-			let col = dupeColor(this.color)
-			col.setAlpha(150)
-			fill(col)
+		let col = dupeColorArr(this.color);
+		if (trans) {
+			col[3] = 150 / 255; 
 		}
-		else fill(this.color)
-		stroke(50)
-		strokeWeight(2)
-		let rad = bool ? this.radius * 2.5 : this.radius * 2
-		ellipse(this.pos.x, this.pos.y, rad)
+		else col[3] = 1;
+
+		let rad = bool ? this.radius * 2.5 : this.radius * 2;
+
+		customCircle(this.pos.x, this.pos.y, rad / 2, [50, 50, 50, 1], col, 2)
+		
 		if(this.isParent || bool){
 			let yOff = 28
 			strokeWeight(1.5)
@@ -163,7 +163,6 @@ class Particle{
 	//shows lines between particles with the same link as this one
 	showRelations(){
 		push()
-		let trans = color(0, 0, 0, 100)
 		if(!this.isParent){
 			strokeWeight(1.5)
 			this.relations = findAllParticlesByLink(this.link)
@@ -219,4 +218,28 @@ function gradientCircle(x, y, r, colors) {
 
 function dupeColor(col){
 	return color(col.levels[0], col.levels[1], col.levels[2], col.levels[3])
+}
+
+function dupeColorArr(col){
+	return [col.levels[0], col.levels[1], col.levels[2], col.levels[3]]
+}
+
+function customCircle(x, y, r, strokeCol, fillCol, strokeW = 1){
+	ctx.fillStyle = `rgba(${fillCol.join(",")})`;
+	ctx.strokeStyle = `rgba(${strokeCol.join(",")})`;
+	ctx.lineWidth = strokeW;
+	ctx.beginPath();
+	ctx.arc(x, y, r, 0, TWO_PI);
+	ctx.fill();
+	ctx.stroke();
+}
+
+function customLine(x1, y1, x2, y2, strokeCol, strokeW = 1){
+	ctx.strokeStyle = `rgba(${strokeCol.join(",")})`;
+	ctx.lineWidth = strokeW;
+	ctx.beginPath();
+	ctx.moveTo(x1, y1);
+	ctx.lineTo(x2, y2);
+	ctx.stroke();
+	ctx.closePath();
 }

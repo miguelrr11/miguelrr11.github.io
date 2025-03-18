@@ -6,6 +6,7 @@ p5.disableFriendlyErrors = true
 let scl = 0.7
 let WIDTH = 1920*scl
 let HEIGHT = 1080*scl
+let canvas, ctx
 
 let hoveredParticle = null
 let draggedParticle = null
@@ -39,9 +40,22 @@ let btnReset = {
     x: WIDTH - 20,
     y: HEIGHT - 20,
     size: 20,
-    img: undefined
+    img: undefined,
+    dimm: 0,
+    hovering: false,
+    func: drawResetIcon,
+    bool: false
 }
-let reseting = false
+let btnCenter = {
+    x: WIDTH - 20,
+    y: HEIGHT - 40,
+    size: 20,
+    img: undefined,
+    dimm: 0,
+    hovering: false,
+    func: drawCenterIcon,
+    bool: false
+}
 
 function resetState(){
     hoveredParticle = null
@@ -69,7 +83,7 @@ function resetState(){
     dimmingLines = 1       
     transLines = 255
 
-    reseting = false
+    btnReset.bool = false
 }
 
 function preload(){
@@ -153,6 +167,10 @@ function createGraph(link, p){
     .then(categories => {
         p.isParent = true;
         primordials.push(p);
+        parentParticles.push({
+            pos: p.pos.copy(),
+            radius: 10
+        })
         for (let i = 0; i < categories.length; i++){
             let links = categories[i].links.splice(0, floor(random(10, 100)));
             initFirstGraphCategorized(links, categories[i].title, p, categories.length == 1);
@@ -322,7 +340,12 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
 function setup(){
     WIDTH = windowWidth
     HEIGHT = windowHeight
-    createCanvas(WIDTH, HEIGHT)
+    canvas = createCanvas(WIDTH, HEIGHT)
+    ctx = drawingContext
+    btnReset.x = WIDTH - 20
+    btnReset.y = HEIGHT - 20
+    btnCenter.x = WIDTH - 20
+    btnCenter.y = HEIGHT - 45
     textFont('Arial')
 
     colors = [
@@ -347,6 +370,10 @@ function setup(){
             let primordial = new Particle(width / 2, height / 2, true, -1, link);
             primordial.color = random(colors);
             particles.push(primordial);
+            parentParticles.push({
+                pos: primordial.pos.copy(),
+                radius: 10
+            })
             
             createGraph(link, primordial)
             .then(() => {
@@ -360,12 +387,22 @@ function setup(){
         [255, 255, 255],
         [0, 0, 0]
     )
-
+    textFont(font)
     initTopo()
 }
 
 function draw(){
     background(25)
+
+    if(btnCenter.bool){
+        xOff = lerp(xOff, 0, 0.1)
+        yOff = lerp(yOff, 0, 0.1)
+        zoom = lerp(zoom, 1, 0.1)
+        if(dist(xOff, yOff, 0, 0) < .1){
+            btnCenter.bool = false
+        }
+        if(mouseIsPressed) btnCenter.bool = false
+    }
 
     if(keyIsPressed && keyCode == 32){
         push()
@@ -379,8 +416,9 @@ function draw(){
     updateTopo()
     showTopo()
 
-    updateAndShowBtnReset()
+    
 
+    push()
     translate(xOff, yOff)
     scale(zoom)
 
@@ -389,18 +427,16 @@ function draw(){
     updateAnimations()
     udpateGraph()
     updateReset()
+
     showRelationsHovered()
     showGraph()
     showHovered()
-    
-    textFont(font)
-
     manageInput()
-    
     manageAnimConn()
-
+    pop()
     
-    
+    updateAndShowButton(btnReset)
+    updateAndShowButton(btnCenter)
 }
 
 function manageInput(){
@@ -484,7 +520,7 @@ function showHovered(){
 }
 
 function updateAnimations(){
-    if(reseting) return
+    if(btnReset.bool) return
     for(let i = animations.length - 1; i >= 0; i--){
         let anim = animations[i]
         let p = anim.particle
@@ -521,7 +557,7 @@ function showGraph(){
 function updateReset(){
     let aux = worldToCanvas(width/2, height/2)
     let mid = createVector(aux.x, aux.y)
-    if(reseting){
+    if(btnReset.bool){
         for(let part of particles){
             part.isPinned = true
             part.pos.lerp(mid, 0.1)
@@ -538,7 +574,7 @@ function udpateGraph(){
         p.repel(p.siblings)
         p.update(0.1)
     }
-    for(let i = 0; i < 5; i++){
+    for(let i = 0; i < 2; i++){
         for(let c of constraints) c.satisfy()
     }
 }
@@ -549,7 +585,7 @@ function getRadiusFromCircumference(length) {
 }
 
 //TODO: try the direction and the opposite direction, choose the smaller one
-function getFinalPos(direction, start, minDistance, radius, randomSep = Math.random() * 50 + 20){
+function getFinalPos(direction, start, minDistance, radius, randomSep = Math.random() * 50 + 50){
     //this function tries to position a circle of a fixed radius. this circle can only be placed in a line that goes from start and has a direction.
     //It will do this checking if it collides with any of the circles of parentParticles
     //kind of like a raycast
@@ -632,35 +668,6 @@ function shortenStr(str, maxLength = 25){
     return str
 }
 
-let dimmBtn = 0   // 0 to 100
-let hoveringBtn = false
-
-function updateAndShowBtnReset(){
-    if(!started) return
-    let hovNow = inBounds(mouseX, mouseY, btnReset.x - btnReset.size/2, btnReset.y - btnReset.size/2, btnReset.size, btnReset.size)
-    if(hovNow && !hoveringBtn){
-        hoveringBtn = true
-    }
-    else if(!hovNow && hoveringBtn){
-        hoveringBtn = false
-    }
-    let max = mouseIsPressed ? 200 : 100
-    hoveringBtn ? dimmBtn = lerp(dimmBtn, max, 0.3) : dimmBtn = lerp(dimmBtn, 0, 0.3)
-    let strokeCol = (mapp(dimmBtn, 0, 100, 50, 200))
-    let strokeWeightCol = mapp(dimmBtn, 0, 100, 1, 1.3)
-    let sizeMult = mapp(dimmBtn, 0, 100, 1, 1.08)
-    size = btnReset.size * sizeMult
-    stroke(strokeCol)
-    strokeWeight(strokeWeightCol)
-    rectMode(CENTER)
-    noFill()
-    drawResetIcon(btnReset.x, btnReset.y, size*0.65)
-    rect(btnReset.x, btnReset.y, size, size, 5)
-    if(mouseIsPressed && hoveringBtn){
-        reseting = true
-    }
-}
-
 function drawResetIcon(x, y, size) {
     arc(x, y, size, size, 0.6981317007977318, 0);
     let tipX = x + (size * 0.5)
@@ -686,6 +693,47 @@ function windowResized() {
     input.pos.y = height/2
     btnReset.x = WIDTH - 20
     btnReset.y = HEIGHT - 20
+    btnCenter.x = WIDTH - 20
+    btnCenter.y = HEIGHT - 45
     initTopo()
     resizeCanvas(windowWidth, windowHeight);
+}
+
+function drawCenterIcon(x, y, size){
+    ellipse(x, y, size, size)
+    let off = size * 0.15
+    let st = size*.5
+    //draw 4 segments like a crosshair
+    line(x+st-off, y, x+st+off, y)
+    line(x, y+st-off, x, y+st+off)
+    line(x-st-off, y, x-st+off, y)
+    line(x, y-st-off, x, y-st+off)
+}
+
+function updateAndShowButton(btn){
+    if(!started) return
+    let hovNow = inBounds(mouseX, mouseY, btn.x - btn.size/2, btn.y - btn.size/2, btn.size, btn.size)
+    if(hovNow && !btn.hovering){
+        btn.hovering = true
+    }
+    else if(!hovNow && btn.hovering){
+        btn.hovering = false
+    }
+    let max = mouseIsPressed ? 200 : 100
+    btn.hovering ? btn.dimm = lerp(btn.dimm, max, 0.3) : btn.dimm = lerp(btn.dimm, 0, 0.3)
+    let strokeCol = (mapp(btn.dimm, 0, 100, 50, 200))
+    let strokeWeightCol = mapp(btn.dimm, 0, 100, 1, 1.3)
+    let sizeMult = mapp(btn.dimm, 0, 100, 1, 1.08)
+    size = btn.size * sizeMult
+    stroke(strokeCol)
+    strokeWeight(strokeWeightCol)
+    rectMode(CENTER)
+    noFill()
+    btn.func(btn.x, btn.y, size*0.6)
+    fill(255, mapp(btn.dimm, 0, 100, 0, 35))
+    rect(btn.x, btn.y, size, size, 5)
+    if(mouseIsPressed && btn.hovering && !btn.bool){
+        btn.bool = true
+        console.log(btn.bool)
+    }
 }

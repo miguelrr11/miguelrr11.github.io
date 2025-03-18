@@ -38,9 +38,8 @@ function updateTopo() {
 }
 
 function showTopo() {
-    push();
-    stroke(50);
-    strokeWeight(1.25);
+    ctx.strokeStyle = "rgb(50, 50, 50)"; 
+    ctx.lineWidth = 1.25;
 
     const steps = 10;
     const dK = 1 / steps;
@@ -48,31 +47,27 @@ function showTopo() {
     const rows = cellsPerColTopo - 1;
     const rez = spacing;
 
-    // Iterate through different threshold values
-    for(let s = 0; s < steps; s++) {
+    for (let s = 0; s < steps; s++) {
         const threshVal = s * dK;
-        for(let i = 0; i < cols; i++) {
-            // Use bit-shifting for floor division (sclTopo is 4)
-            const x = i * rez;
-            for(let j = 0; j < rows; j++) {
 
-                // Retrieve the noise values at the cell corners
+        for (let i = 0; i < cols; i++) {
+            const x = i * rez;
+            for (let j = 0; j < rows; j++) {
+
                 const a_val = topoGrid[i][j];
                 const b_val = topoGrid[i + 1][j];
                 const c_val = topoGrid[i + 1][j + 1];
                 const d_val = topoGrid[i][j + 1];
 
-                // Build the marching squares case as a bit mask
                 const caseVal = ((a_val > threshVal) << 3) |
                     ((b_val > threshVal) << 2) |
                     ((c_val > threshVal) << 1) |
                     (d_val > threshVal);
-                // Skip cells that have no intersections
-                if(caseVal === 0 || caseVal === 15) continue;
+
+                if (caseVal === 0 || caseVal === 15) continue;
 
                 const y = j * rez;
 
-                // Compute the interpolated points (inline lerp: result = start + amt * (end - start))
                 let amt, ax, ay, bx, by, cx, cy, dx, dy;
                 amt = (threshVal - a_val) / (b_val - a_val);
                 ax = x + amt * rez;
@@ -90,55 +85,79 @@ function showTopo() {
                 dx = x;
                 dy = y + amt * rez;
 
-                // Draw line segments based on the marching squares case
-                switch(caseVal) {
-                    case 1:
-                        line(cx, cy, dx, dy);
-                        break;
-                    case 2:
-                        line(bx, by, cx, cy);
-                        break;
-                    case 3:
-                        line(bx, by, dx, dy);
-                        break;
-                    case 4:
-                        line(ax, ay, bx, by);
-                        break;
-                    case 5:
-                        line(ax, ay, dx, dy);
-                        line(bx, by, cx, cy);
-                        break;
-                    case 6:
-                        line(ax, ay, cx, cy);
-                        break;
-                    case 7:
-                        line(ax, ay, dx, dy);
-                        break;
-                    case 8:
-                        line(ax, ay, dx, dy);
-                        break;
-                    case 9:
-                        line(ax, ay, cx, cy);
-                        break;
-                    case 10:
-                        line(ax, ay, bx, by);
-                        line(cx, cy, dx, dy);
-                        break;
-                    case 11:
-                        line(ax, ay, bx, by);
-                        break;
-                    case 12:
-                        line(bx, by, dx, dy);
-                        break;
-                    case 13:
-                        line(bx, by, cx, cy);
-                        break;
-                    case 14:
-                        line(cx, cy, dx, dy);
-                        break;
-                }
+                // Draw lines using Canvas API
+                drawLine(caseVal, ax, ay, bx, by, cx, cy, dx, dy);
             }
         }
     }
-    pop();
+}
+
+// Function to replace p5.js line() with Canvas API
+function drawLine(caseVal, ax, ay, bx, by, cx, cy, dx, dy) {
+    ctx.beginPath();
+    
+    switch (caseVal) {
+        case 1:
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(dx, dy);
+            break;
+        case 2:
+            ctx.moveTo(bx, by);
+            ctx.lineTo(cx, cy);
+            break;
+        case 3:
+            ctx.moveTo(bx, by);
+            ctx.lineTo(dx, dy);
+            break;
+        case 4:
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(bx, by);
+            break;
+        case 5:
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(dx, dy);
+            ctx.moveTo(bx, by);
+            ctx.lineTo(cx, cy);
+            break;
+        case 6:
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(cx, cy);
+            break;
+        case 7:
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(dx, dy);
+            break;
+        case 8:
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(dx, dy);
+            break;
+        case 9:
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(cx, cy);
+            break;
+        case 10:
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(bx, by);
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(dx, dy);
+            break;
+        case 11:
+            ctx.moveTo(ax, ay);
+            ctx.lineTo(bx, by);
+            break;
+        case 12:
+            ctx.moveTo(bx, by);
+            ctx.lineTo(dx, dy);
+            break;
+        case 13:
+            ctx.moveTo(bx, by);
+            ctx.lineTo(cx, cy);
+            break;
+        case 14:
+            ctx.moveTo(cx, cy);
+            ctx.lineTo(dx, dy);
+            break;
+    }
+
+    ctx.stroke(); 
 }
