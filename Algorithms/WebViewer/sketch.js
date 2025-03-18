@@ -153,7 +153,7 @@ function doubleClicked(){
             //createConnection(hoveredParticle.parent, existingPri)
         }
         else{
-            createGraph(hoveredParticle.link, hoveredParticle)
+            createGraph(hoveredParticle.link, getP(hoveredParticle))
         }
         removeChild(hoveredParticle)
     }
@@ -165,15 +165,17 @@ function doubleClicked(){
 function createGraph(link, p){
     return extractAndFilterLinksCategorized(link)
     .then(categories => {
-        p.isParent = true;
-        primordials.push(p);
+        let primordial = p
+        primordial.isParent = true;
+        primordial.isPinned = true;
+        primordials.push(primordial);
         parentParticles.push({
-            pos: p.pos.copy(),
+            pos: primordial.pos.copy(),
             radius: 10
         })
         for (let i = 0; i < categories.length; i++){
             let links = categories[i].links.splice(0, floor(random(10, 100)));
-            initFirstGraphCategorized(links, categories[i].title, p, categories.length == 1);
+            initFirstGraphCategorized(links, categories[i].title, primordial, categories.length == 1);
         }
     })
     .catch(err => {
