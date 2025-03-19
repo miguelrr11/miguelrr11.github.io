@@ -116,12 +116,21 @@ function mouseReleased(){
 }
 
 function mouseWheel(event) {
-    if(!started) return
-    btnCenter.bool = false
-    zoom += event.delta / 1000
+    if (!started) return;
+    btnCenter.bool = false;
+    
+    let worldX = (mouseX - xOff) / zoom;
+    let worldY = (mouseY - yOff) / zoom;
+    
+    zoom += event.delta / 1000;
     zoom = Math.max(MIN_ZOOM, Math.min(zoom, MAX_ZOOM));
-    return false
+    
+    xOff = mouseX - worldX * zoom;
+    yOff = mouseY - worldY * zoom;
+    
+    return false;
 }
+
 
 function mouseDragged(){
     if(hoveredParticle || draggedParticle || !started) return
@@ -190,6 +199,7 @@ function createGraph(link, p){
             let links = categories[i].links;
             initFirstGraphCategorized(links, categories[i].title, primordial, categories.length == 1);
         }
+        btnCenter.bool = true
     })
     .catch(err => {
         throw err;
@@ -406,6 +416,7 @@ function setup(){
                 started = true;
             })
             .catch(() => {
+                particles = []
                 errorFrames = 6 * 3;
             });
         },
@@ -421,15 +432,15 @@ function draw(){
     background(25)
 
     if(btnCenter.bool){
-        // xOff = lerp(xOff, 0, 0.1)
-        // yOff = lerp(yOff, 0, 0.1)
-        zoom = lerp(zoom, getTargetZoom(), 0.1)
+        // xOff = lerpp(xOff, 0, 0.1)
+        // yOff = lerpp(yOff, 0, 0.1)
+        zoom = lerpp(zoom, getTargetZoom(), 0.1)
         let [finalxOff, finalyOff] = centerGraph()
-        xOff = lerp(xOff, finalxOff, 0.1)
-        yOff = lerp(yOff, finalyOff, 0.1)
+        xOff = lerpp(xOff, finalxOff, 0.1)
+        yOff = lerpp(yOff, finalyOff, 0.1)
         
         
-        if(dist(xOff, yOff, finalxOff, finalyOff) < .1){
+        if(squaredDistance(xOff, yOff, finalxOff, finalyOff) < .1 && animations.length == 0){
             btnCenter.bool = false
         }
         if(mouseIsPressed) btnCenter.bool = false
@@ -450,8 +461,10 @@ function draw(){
     
 
     push()
-    translate(xOff, yOff)
-    scale(zoom)
+    translate(xOff, yOff);
+    scale(zoom);
+    
+
 
     currentEdges = getEdges()
 
@@ -460,7 +473,7 @@ function draw(){
     updateReset()
 
     showRelationsHovered()
-    showGraph()
+    if(started) showGraph()
     showHovered()
     manageInput()
     manageAnimConn()
@@ -500,7 +513,7 @@ function manageAnimConn(){
     for(let i = animConn.length - 1; i >= 0; i--){
         let conn = animConn[i]
         conn.from.pos.lerp(conn.to.pos, 0.1)
-        if(dist(conn.from.pos.x, conn.from.pos.y, conn.to.pos.x, conn.to.pos.y) < 1){
+        if(squaredDistance(conn.from.pos.x, conn.from.pos.y, conn.to.pos.x, conn.to.pos.y) < 1){
             let parent = conn.from.parent
             let to = conn.to
             constraints.push(new Constraint(parent, to, dist(parent.pos.x, parent.pos.y, to.pos.x, to.pos.y)))
@@ -564,25 +577,32 @@ function showHovered(){
 }
 
 function updateAnimations(){
-    if(btnReset.bool) return
-    for(let i = animations.length - 1; i >= 0; i--){
-        let anim = animations[i]
-        let p = anim.particle
-        if(anim.parent && animations.some(a => a.particle == anim.parent)){
-            p.pos = anim.parent.pos.copy()
-            continue
+    if (btnReset.bool) return;
+
+    const activeParticles = new Set(animations.map(anim => anim.particle));
+
+    for (let i = animations.length - 1; i >= 0; i--){
+        let anim = animations[i];
+        let p = anim.particle;
+
+        if (anim.parent && activeParticles.has(anim.parent)) {
+            p.pos = anim.parent.pos.copy();
+            continue;
         }
-        let finalPos = anim.finalPos
-        if(anim.framesTillStart == undefined || anim.framesTillStart > 0) p.pos.lerp(finalPos, 0.05)
-        if(anim.framesTillStart != undefined) anim.framesTillStart++
-        let d = dist(p.pos.x, p.pos.y, finalPos.x, finalPos.y)
-        if(d < 0.1){
-            if(anim.parent) p.isPinned = false
-            p.removeInertia()
-            animations.splice(i, 1)
+        let finalPos = anim.finalPos;
+        if (anim.framesTillStart === undefined || anim.framesTillStart > 0)
+            p.pos.lerp(finalPos, 0.05);
+        if (anim.framesTillStart !== undefined)
+            anim.framesTillStart++;
+        let d = squaredDistance(p.pos.x, p.pos.y, finalPos.x, finalPos.y);
+        if (d < 0.1) {
+            if (anim.parent) p.isPinned = false;
+            p.removeInertia();
+            animations.splice(i, 1);
         }
     }
 }
+
 
 function showGraph(){
     for(let c of constraints) c.show()
@@ -605,24 +625,26 @@ function updateReset(){
         for(let part of particles){
             part.isPinned = true
             part.pos.lerp(mid, 0.1)
-            part.color.levels[3] = lerp(part.color.levels[3], 0, 0.99)
+            part.color.levels[3] = lerpp(part.color.levels[3], 0, 0.99)
         }
-        if(dist(particles[1].pos.x, particles[1].pos.y, mid.x, mid.y) < 1){
+        if(squaredDistance(particles[1].pos.x, particles[1].pos.y, mid.x, mid.y) < 1){
             resetState()
         }
     }
 }
 
 function updateGraph(){
+    let bool = zoom > 0.2
     for(let p of particles){
-        p.repel(p.siblings)
-        p.update(0.1)
-    }
-    for(let i = 0; i < 1; i++){
-        for(let c of constraints){
-            c.satisfy()
+        if(bool){
+            p.repel(p.siblings)
+            p.update(0.1)
         }
+        p.updateHovering()
     }
+    for(let c of constraints){
+        c.satisfy()
+    }   
 }
 
 function getRadiusFromCircumference(length) {
@@ -637,8 +659,8 @@ function getFinalPos(direction, start, minDistance, radius, randomSep = Math.ran
     //kind of like a raycast
     let pos1 = getFinalPosAux(direction, start, minDistance, radius, randomSep)
     let pos2 = getFinalPosAux(direction.mult(-1), start, minDistance, radius, randomSep)
-    let d1 = dist(pos1.x, pos1.y, start.x, start.y)
-    let d2 = dist(pos2.x, pos2.y, start.x, start.y)
+    let d1 = squaredDistance(pos1.x, pos1.y, start.x, start.y)
+    let d2 = squaredDistance(pos2.x, pos2.y, start.x, start.y)
     if(d1 < d2) return pos1
     return pos2
 }
@@ -768,7 +790,7 @@ function updateAndShowButton(btn){
         btn.hovering = false
     }
     let max = mouseIsPressed ? 200 : 100
-    btn.hovering ? btn.dimm = lerp(btn.dimm, max, 0.3) : btn.dimm = lerp(btn.dimm, 0, 0.3)
+    btn.hovering ? btn.dimm = lerpp(btn.dimm, max, 0.3) : btn.dimm = lerpp(btn.dimm, 0, 0.3)
     let strokeCol = (mapp(btn.dimm, 0, 100, 50, 200))
     let strokeWeightCol = mapp(btn.dimm, 0, 100, 1, 1.3)
     let sizeMult = mapp(btn.dimm, 0, 100, 1, 1.08)

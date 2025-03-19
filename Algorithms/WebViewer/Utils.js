@@ -55,3 +55,7 @@ function squaredDistance(x1, y1, x2, y2) {
 function inBounds(x, y, a, b, w, h){
 	return x < a+w && x > a && y < b+h && y > b
 }
+
+function lerpp(start, end, t) {
+    return start + (end - start) * t;
+}

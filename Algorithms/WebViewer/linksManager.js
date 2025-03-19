@@ -53,6 +53,10 @@ async function extractAndFilterLinksCategorized(targetUrl) {
     const url = encodeURIComponent(targetUrl);
     const response = await fetch(proxyUrl + url);
 
+    if (!response.ok) {
+      throw new Error(`HTTP error! Status: ${response.status}`);
+  }
+
     const contentType = response.headers.get('Content-Type');
     if (!contentType || !contentType.includes('text/html')) {
       throw new Error('Expected HTML response but got ' + contentType);

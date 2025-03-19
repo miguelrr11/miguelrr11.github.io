@@ -62,9 +62,10 @@ class Particle{
 			this.pos.add(p5.Vector.add(vel, this.acc.copy().mult(timeStep * timeStep)))
 			this.acc = createVector(0, 0)
         }
+	}
+
+	updateHovering(){
 		let mousePos = this.getRelativePos(mouseX, mouseY)
-		//ellipse(mousePos.x, mousePos.y, 10)   //for debugging
-		//let mouseInside = dist(mousePos.x, mousePos.y, this.pos.x, this.pos.y) < this.radius
 		let sqDist = squaredDistance(mousePos.x, mousePos.y, this.pos.x, this.pos.y)
 		let sqDistParent = 0
 		if(this.parent) sqDistParent = squaredDistance(mousePos.x, mousePos.y, this.parent.pos.x, this.parent.pos.y)
@@ -124,26 +125,38 @@ class Particle{
 			col[3] = 150 / 255; 
 		}
 		else col[3] = 1;
-
 		let rad = bool ? this.radius * 2.5 : this.radius * 2;
-
 		customCircle(this.pos.x, this.pos.y, rad / 2, [50, 50, 50, 1], col, 2)
 		
 		if(this.isParent || bool){
-			let yOff = 28
-			strokeWeight(1.5)
-			let m = worldToCanvas(mouseX, mouseY)
-			let d = dist(m.x, m.y, this.pos.x, this.pos.y)
-			let transRect = 150
-			let transText = 255
-			if(d > 200){ 
-				textSize(13)
-				transRect = mapp(d, 200, 300, 150, 0)
-				transText = mapp(d, 200, 300, 255, 0)
-			}
-			else textSize(mapp(d, 0, 200, 18 / zoom, 13))
+			this.showText(bool)
+			this.showCircleHovered()
+		}
+		pop()
+		return 
+	}
+
+	showText(doNotShorten, defSize = false){
+		let yOff = 28
+		strokeWeight(1.5)
+		let m = worldToCanvas(mouseX, mouseY)
+		let d = squaredDistance(m.x, m.y, this.pos.x, this.pos.y)
+		let transRect = 150
+		let transText = 255
+		if(d > 40000){ 
+			textSize(13)
+			transRect = mapp(d, 40000, 90000, 150, 0)
+			transText = mapp(d, 40000, 90000, 255, 0)
+		}
+		else textSize(mapp(d, 0, 40000, 18 / zoom, 13))
+		if(defSize){ 
+			textSize(8 / zoom)
+			transRect = 150
+			transText = 255
+		}
+		if(transRect > 5){
 			textAlign(CENTER, CENTER)
-			let str = bool ? this.str : shortenStr(this.str)
+			let str = doNotShorten ? this.str : shortenStr(this.str)
 			let w = textWidth(str)
 			let h = textHeight()
 			rectMode(CENTER)
@@ -154,10 +167,7 @@ class Particle{
 			col.setAlpha(transText)
 			fill(col)
 			text(str, this.pos.x, this.pos.y + yOff)
-			gradientCircle(this.pos.x, this.pos.y, this.radius, [this.color, color(255, 255, 255, 150)])
 		}
-		pop()
-		return 
 	}
 
 	showCircleHovered(){
@@ -192,10 +202,13 @@ class Particle{
 		push()
 		for(let rel of this.relations){
 			rel.showCircleHovered()
+			if(rel != this) rel.showText(false, true)
 		}
 		if(this.isParent){
 			for(let child of this.children){
-				child.showRelationsCircles()
+				if(child.relations.length > 1){ 
+					child.showRelationsCircles()
+				}
 			}
 		}
 		pop()
