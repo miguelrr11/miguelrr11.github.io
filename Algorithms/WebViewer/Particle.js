@@ -82,6 +82,7 @@ class Particle{
 		if(this.parent) this.angle = atan2(this.pos.y - this.parent.pos.y, this.pos.x - this.parent.pos.x)
 		else return
 
+		if(mouseIsPressed) return
 		let constrain = this.constraint
 		if(sqDist < minDistanceGrowSq && sqDistParent > constrain.baseLengthSq - this.radius / 2){
 			this.radius = mapp(sqDist, 0, minDistanceGrowSq, MAX_RADIUS_PARTICLE, RADIUS_PARTICLE)
@@ -120,50 +121,53 @@ class Particle{
 			return 
 		}
 		push()
-		let col = dupeColorArr(this.color);
+		let fillCol = dupeColorArr(this.color);
+		let strokeCol = [...curCol.partStroke]
 		if (trans) {
-			col[3] = 150 / 255; 
+			fillCol[3] = 0.15
+			strokeCol[3] = 0.15
 		}
-		else col[3] = 1;
+		else{ 
+			fillCol[3] = 1;
+		}
 		let rad = bool ? this.radius * 2.5 : this.radius * 2;
-		customCircle(this.pos.x, this.pos.y, rad / 2, [50, 50, 50, 1], col, 2)
+		customCircle(this.pos.x, this.pos.y, rad / 2, strokeCol, fillCol, 2)
 		
 		if((this.isParent || bool)){
-			this.showText(bool)
 			this.showCircleHovered()
+			this.showText(bool)
 		}
 		pop()
 		return 
 	}
 
 	showText(doNotShorten, defSize = false){
-		let yOff = 28
+		let yOff = 10
 		strokeWeight(1.5)
 		let m = worldToCanvas(mouseX, mouseY)
 		let d = squaredDistance(m.x, m.y, this.pos.x, this.pos.y)
-		let transRect = 150
+		let transRect = 200
 		let transText = 255
-		//if(d > 40000){ 
-			textSize(mapp(d, 0, 40000, 12 / zoom, 10 / zoom))
-			transRect = mapp(d, 40000, 90000, 150, 0)
+		textSize(mapp(d, 0, 40000, 12 / zoom, 10 / zoom))
+		if(d > 40000){
+			transRect = mapp(d, 40000, 90000, 200, 0)
 			transText = mapp(d, 40000, 90000, 255, 0)
-		//}
-		//else textSize(mapp(d, 0, 40000, 12 / zoom, 10))
+		}
 		if(defSize){ 
 			textSize(9 / zoom)
-			transRect = 150
+			transRect = 200
 			transText = 255
 		}
 		if(transRect > 5){
 			textAlign(CENTER, CENTER)
 			let str = doNotShorten ? this.str : shortenStr(this.str)
 			let w = textWidth(str)
-			let h = textHeight()
+			let h = textHeight(str) * .8
 			rectMode(CENTER)
-			fill(50, 50, 50, transRect)
+			fill(curCol.partFillRectText, transRect)
 			noStroke()
-			rect(this.pos.x, this.pos.y + yOff, w + 10, h + 10, 7)
-			let col = dupeColor(this.color)
+			rect(this.pos.x, this.pos.y + yOff, w + offsetsText[0], h + offsetsText[0], offsetsText[1])
+			let col = dupeColor(curCol.partTextStroke)
 			col.setAlpha(transText)
 			fill(col)
 			text(str, this.pos.x, this.pos.y + yOff)
@@ -171,7 +175,10 @@ class Particle{
 	}
 
 	showCircleHovered(){
-		gradientCircle(this.pos.x, this.pos.y, this.radius, [this.color, color(255, 255, 255, 150)])
+		// fill(this.color)
+		// noStroke()
+		// circle(this.pos.x, this.pos.y, this.radius * 2)
+		gradientCircle(this.pos.x, this.pos.y, this.radius, [this.color, this.color, this.color, color(255, 150)])
 	}
 
 	//shows lines between particles with the same link as this one
@@ -202,7 +209,7 @@ class Particle{
 		push()
 		for(let rel of this.relations){
 			rel.showCircleHovered()
-			if(rel != this && rel != hoveredParticle) rel.showText(false, true)
+			if(rel != this && rel != hoveredParticle && mouseIsPressed) rel.showText(false, true)
 		}
 		if(this.isParent){
 			for(let child of this.children){

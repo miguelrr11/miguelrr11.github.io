@@ -39,7 +39,8 @@ class Constraint{
 		else if(dimmingLines == 1){
 			transLines = lerpp(transLines, 255, 0.0015)
 		}
-		customLine(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y, [170, 170, 170, transLines/255], 1)
+		let col = curCol.lineStroke
+		customLine(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y, [col, col, col, transLines/255], 1)
 	}
 }
 

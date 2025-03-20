@@ -8,7 +8,7 @@ let WIDTH = 1920*scl
 let HEIGHT = 1080*scl
 let canvas, ctx
 
-const MIN_ZOOM = 0.01
+const MIN_ZOOM = 0.005
 const MAX_ZOOM = 2
 
 let hoveredParticle = null
@@ -124,7 +124,7 @@ function resetState(){
 function preload(){
     font = loadFont('bnr.ttf')
     btnGit.svgData = loadXML('github.svg')
-    goalSvg.data = loadXML('Untitled-2.svg')
+    //goalSvg.data = loadXML('Untitled-2.svg')
 }
 
 function mouseClicked(){
@@ -135,6 +135,9 @@ function mouseReleased(){
     prevMouseX = undefined
     prevMouseY = undefined
     draggedParticle = undefined
+    if(hoveredParticle && hoveredParticle.isParent){
+        for(let child of hoveredParticle.children) child.removeInertia()
+    }
 }
 
 function mouseWheel(event) {
@@ -382,7 +385,11 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
     p1.children = siblings
     particles.push(p1)
 }
-  
+ 
+let darkModeColors
+let lightModeColors
+let curCol
+let curColMode
 
 function setup(){
     WIDTH = windowWidth
@@ -399,10 +406,10 @@ function setup(){
     btnGit.paths = pathsGit
     btnGit.centerX = cxGit
     btnGit.centerY = cyGit
-    let [pathsGoal, cxGoal, cyGoal] = parseSVG(goalSvg.data)
-    goalSvg.paths = pathsGoal
-    goalSvg.centerX = cxGoal
-    goalSvg.centerY = cyGoal
+    // let [pathsGoal, cxGoal, cyGoal] = parseSVG(goalSvg.data)
+    // goalSvg.paths = pathsGoal
+    // goalSvg.centerX = cxGoal
+    // goalSvg.centerY = cyGoal
     textFont('Arial')
 
     colors = [
@@ -415,6 +422,36 @@ function setup(){
         color(186, 173, 255),
         color(255, 173, 255)
     ]
+
+    darkModeColors = {
+        background: (25),
+        topographic: "rgb(50, 50, 50)",
+        btnStrokeStart: (50),
+        btnStrokeStop: (200),
+        btnFill: 255,
+        btnTextMax: 200,
+        partFillRectText: 50,
+        partTextStroke: color(255),
+        partStroke: [50, 50, 50, 1],
+        lineStroke: 170
+    }
+
+    lightModeColors = {
+        background: (230),
+        topographic: "rgb(212, 211, 211)",
+        btnStrokeStart: (200),
+        btnStrokeStop: (120),
+        btnFill: 0,
+        btnTextMax: 50,
+        partFillRectText: 200,
+        partTextStroke: color(0),
+        partStroke: [100, 100, 100, 1],
+        lineStroke: 85
+    }
+    
+    curCol = lightModeColors
+    curColMode = 'light'
+    //curCol = darkModeColors
 
     textFont(font)
 
@@ -449,6 +486,32 @@ function setup(){
     initTopo()
 }
 
+function updateAndShowButton(btn){
+    //if(!started && btn.paths == undefined) return
+    let hovNow = inBounds(mouseX, mouseY, btn.x - btn.size/2, btn.y - btn.size/2, btn.size, btn.size)
+    if(hovNow && !btn.hovering){
+        btn.hovering = true
+    }
+    else if(!hovNow && btn.hovering){
+        btn.hovering = false
+    }
+    let max = mouseIsPressed ? 200 : 100
+    btn.hovering ? btn.dimm = lerpp(btn.dimm, max, 0.3) : btn.dimm = lerpp(btn.dimm, 0, 0.3)
+    let strokeCol = (mapp(btn.dimm, 0, 100, curCol.btnStrokeStart, curCol.btnStrokeStop))
+    let textTrans = (mapp(btn.dimm, 0, 100, 0, 200))
+    let strokeWeightCol = mapp(btn.dimm, 0, 100, 1, 1.3)
+    let sizeMult = mapp(btn.dimm, 0, 100, 1, 1.08)
+    size = btn.size * sizeMult
+    stroke(strokeCol)
+    strokeWeight(strokeWeightCol)
+    rectMode(CENTER)
+    noFill()
+    let col = color(curCol.btnFill, mapp(btn.dimm, 0, 100, 0, 35))
+    btn.func(btn.x, btn.y, size*0.6, btn, color(curCol.btnTextMax, textTrans), strokeCol)
+    fill(col)
+    rect(btn.x, btn.y, size, size, 5)
+}
+
 function keyPressed(){
     if(keyCode == 82){
         btnReset.bool = true
@@ -456,10 +519,21 @@ function keyPressed(){
     if(keyCode == 67){
         btnCenter.bool = true
     }
+    if(keyCode == 32){
+        if(curColMode == 'light'){
+            curCol = darkModeColors
+            curColMode = 'dark'
+        }
+        else{
+            curCol = lightModeColors
+            curColMode = 'light'
+        }
+    }
 }
 
+let offsetsText = []
 function draw(){
-    background(25)
+    background(curCol.background)
 
     if(btnCenter.bool){
         // xOff = lerpp(xOff, 0, 0.1)
@@ -476,12 +550,17 @@ function draw(){
         if(mouseIsPressed) btnCenter.bool = false
     }
 
+    offsetsText[0] = 10/zoom
+    offsetsText[1] = 7/zoom
+
     if(keyIsPressed && keyCode == 32){
         push()
         fill(255, 255, 0)
         //text(Math.round(frameRate()), width - 20, 20)
         pop()
     }
+
+    
 
     manageDimming()
 
@@ -507,6 +586,17 @@ function draw(){
     showHovered()
     manageInput()
     manageAnimConn()
+
+    if(mouseIsPressed && hoveredParticle && hoveredParticle.isParent){
+        let forceMult = (Math.log(hoveredParticle.children.length * 100) * 300) / Math.pow(zoom, 2)
+        for(let child of hoveredParticle.children){
+            child.showText(false, true)
+            let forceOutward = p5.Vector.sub(child.pos, hoveredParticle.pos)
+            forceOutward.normalize()
+            forceOutward.mult(forceMult)
+            child.applyForce(forceOutward)
+        }
+    }
 
     //show parent particles
     // push()
@@ -758,31 +848,6 @@ function windowResized() {
     resizeCanvas(windowWidth, windowHeight);
 }
 
-function updateAndShowButton(btn){
-    //if(!started && btn.paths == undefined) return
-    let hovNow = inBounds(mouseX, mouseY, btn.x - btn.size/2, btn.y - btn.size/2, btn.size, btn.size)
-    if(hovNow && !btn.hovering){
-        btn.hovering = true
-    }
-    else if(!hovNow && btn.hovering){
-        btn.hovering = false
-    }
-    let max = mouseIsPressed ? 200 : 100
-    btn.hovering ? btn.dimm = lerpp(btn.dimm, max, 0.3) : btn.dimm = lerpp(btn.dimm, 0, 0.3)
-    let strokeCol = (mapp(btn.dimm, 0, 100, 50, 200))
-    let textCol = (mapp(btn.dimm, 0, 100, 0, 200))
-    let strokeWeightCol = mapp(btn.dimm, 0, 100, 1, 1.3)
-    let sizeMult = mapp(btn.dimm, 0, 100, 1, 1.08)
-    size = btn.size * sizeMult
-    stroke(strokeCol)
-    strokeWeight(strokeWeightCol)
-    rectMode(CENTER)
-    noFill()
-    let col = color(255, mapp(btn.dimm, 0, 100, 0, 35))
-    btn.func(btn.x, btn.y, size*0.6, btn, color(200, textCol), strokeCol)
-    fill(col)
-    rect(btn.x, btn.y, size, size, 5)
-}
 
 
 function drawResetIcon(x, y, size, btn, col) {
