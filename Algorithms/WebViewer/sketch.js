@@ -46,7 +46,8 @@ let btnReset = {
     dimm: 0,
     hovering: false,
     func: drawResetIcon,
-    bool: false
+    bool: false,
+    str: 'Reset [R]'
 }
 let btnCenter = {
     x: WIDTH - 20,
@@ -55,7 +56,8 @@ let btnCenter = {
     dimm: 0,
     hovering: false,
     func: drawCenterIcon,
-    bool: false
+    bool: false,
+    str: 'Center [C]'
 }
 let btnGit = {
     x: 20,
@@ -66,9 +68,26 @@ let btnGit = {
     dimm: 0,
     hovering: false,
     func: drawGitSvg,
-    bool: false
+    bool: false,
+    str: 'Source code'
+}
+let btnGame = {
+    x: 20,
+    y: 20,
+    size: 20,
+    dimm: 0,
+    hovering: false,
+    func: drawGame,
+    bool: false,
+    str: 'Start Game'
 }
 
+let goalSvg = {
+    data: undefined,
+    paths: [],
+    centerX: 0,
+    centerY: 0
+}
 
 
 function resetState(){
@@ -98,11 +117,14 @@ function resetState(){
     transLines = 255
 
     btnReset.bool = false
+
+    input.removeText()
 }
 
 function preload(){
     font = loadFont('bnr.ttf')
     btnGit.svgData = loadXML('github.svg')
+    goalSvg.data = loadXML('Untitled-2.svg')
 }
 
 function mouseClicked(){
@@ -130,7 +152,6 @@ function mouseWheel(event) {
     
     return false;
 }
-
 
 function mouseDragged(){
     if(hoveredParticle || draggedParticle || !started) return
@@ -180,6 +201,7 @@ function doubleClicked(){
             createGraph(hoveredParticle.link, getP(hoveredParticle))
         }
         removeChild(hoveredParticle)
+        hoveredParticle = undefined
     }
     if(hoveredParticle && hoveredParticle.isParent){
         window.open(hoveredParticle.link, '_blank')
@@ -284,15 +306,16 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
     }
     let x, y
     if(!fromPrimordial){
-        x = Math.cos(rAngle) * (REST_DISTANCE + 300) + finalPos.x
-        y = Math.sin(rAngle) * (REST_DISTANCE + 300) + finalPos.y
+        x = Math.cos(rAngle) * (REST_DISTANCE + 150) + finalPos.x
+        y = Math.sin(rAngle) * (REST_DISTANCE + 150) + finalPos.y
     }
     else{
         x = finalPos.x
         y = finalPos.y
     }
 
-    let pos = getFinalPos(createVector(Math.cos(rAngle), Math.sin(rAngle)), createVector(x, y), 0, REST_DISTANCE)
+    let pos = fromPrimordial ? primordial.pos.copy() : 
+              getFinalPos(createVector(Math.cos(rAngle), Math.sin(rAngle)), createVector(x, y), 0, REST_DISTANCE)
     parentParticles.push({
         pos: pos,
         radius: REST_DISTANCE + RADIUS_PARTICLE * 2
@@ -318,6 +341,8 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
     }
     else p1 = primordial
 
+    primordial.children.push(p1)
+
     let deltaAngle = TWO_PI / links.length
     let col = randomizeColor(primordial.color, 50)
     let siblings = []
@@ -328,35 +353,27 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
     let radius = (REST_DISTANCE + 5)
     let deltaFrames = Math.floor(framesPerAnimation / links.length)
     for(let i = 0; i < links.length; i++){
-        let pLink = findParticleByLink(links[i])
         let sameLinks = findAllParticlesByLink(links[i])
-        if(true){   //if(pLink == undefined)
-            let x2 = pos.x + Math.cos(deltaAngle * i) * radius
-            let y2 = pos.y + Math.sin(deltaAngle * i) * radius
-            let particle = new Particle(p1.pos.x, p1.pos.y, true, particles.length, links[i], p1)
-            particle.color = col
-            newParticles.push(particle)
-            let constraint = new Constraint(p1, particle, radius)
-            constraints.push(constraint)
-            siblings.push(particle)
-            particle.constraint = constraint
-            particle.relations = sameLinks
+    
+        let x2 = pos.x + Math.cos(deltaAngle * i) * radius
+        let y2 = pos.y + Math.sin(deltaAngle * i) * radius
+        let particle = new Particle(p1.pos.x, p1.pos.y, true, particles.length, links[i], p1)
+        particle.color = col
+        newParticles.push(particle)
+        let constraint = new Constraint(p1, particle, radius)
+        constraints.push(constraint)
+        siblings.push(particle)
+        particle.constraint = constraint
+        particle.relations = sameLinks
 
-            animations.push({
-                particle: particle,
-                finalPos: createVector(x2, y2),
-                parent: p1,
-                framesTillStart: -(i * deltaFrames)
-            })
-        }
-        else{
-            siblings.push(pLink)
-            let constraint = new Constraint(p1, pLink, radius)
-            constraints.push(constraint)
-            pLink.constraint = constraint
-            pLink.siblings.push(p1)
-            pLink.siblings.push(pLink)
-        }
+        animations.push({
+            particle: particle,
+            finalPos: createVector(x2, y2),
+            parent: p1,
+            framesTillStart: -(i * deltaFrames)
+        })
+        
+        
     }
     for(let p of newParticles){
         p.siblings = siblings
@@ -378,10 +395,14 @@ function setup(){
     btnCenter.y = HEIGHT - 45
     btnGit.x = 20
     btnGit.y = HEIGHT - 20
-    let [paths, cx, cy] = parseSVG(btnGit.svgData)
-    btnGit.paths = paths
-    btnGit.centerX = cx
-    btnGit.centerY = cy
+    let [pathsGit, cxGit, cyGit] = parseSVG(btnGit.svgData)
+    btnGit.paths = pathsGit
+    btnGit.centerX = cxGit
+    btnGit.centerY = cyGit
+    let [pathsGoal, cxGoal, cyGoal] = parseSVG(goalSvg.data)
+    goalSvg.paths = pathsGoal
+    goalSvg.centerX = cxGoal
+    goalSvg.centerY = cyGoal
     textFont('Arial')
 
     colors = [
@@ -428,13 +449,22 @@ function setup(){
     initTopo()
 }
 
+function keyPressed(){
+    if(keyCode == 82){
+        btnReset.bool = true
+    }
+    if(keyCode == 67){
+        btnCenter.bool = true
+    }
+}
+
 function draw(){
     background(25)
 
     if(btnCenter.bool){
         // xOff = lerpp(xOff, 0, 0.1)
         // yOff = lerpp(yOff, 0, 0.1)
-        zoom = lerpp(zoom, getTargetZoom(), 0.1)
+        zoom = lerpp(zoom, getTargetZoom(), 0.05)
         let [finalxOff, finalyOff] = centerGraph()
         xOff = lerpp(xOff, finalxOff, 0.1)
         yOff = lerpp(yOff, finalyOff, 0.1)
@@ -449,7 +479,7 @@ function draw(){
     if(keyIsPressed && keyCode == 32){
         push()
         fill(255, 255, 0)
-        text(Math.round(frameRate()), width - 20, 20)
+        //text(Math.round(frameRate()), width - 20, 20)
         pop()
     }
 
@@ -489,10 +519,12 @@ function draw(){
 
     pop()
     
+    push()
     updateAndShowButton(btnReset)
     updateAndShowButton(btnCenter)
     updateAndShowButton(btnGit)
-
+    updateAndShowButton(btnGame)
+    pop()
     
 }
 
@@ -687,26 +719,6 @@ function getFinalPosAux(direction, start, minDistance, radius, randomSep){
     return pos
 }
 
-function removeBarrabaja(str){
-    //this function replaces any _ with a space
-    if(str == undefined) return ''
-    let newStr = ''
-    for(let i = 0; i < str.length; i++){
-        if(str[i] == '_') newStr += ' '
-        else newStr += str[i]
-    }
-    return newStr
-}
-
-function getAllStr(){
-    let str = ""
-    for(let p of particles){
-        if(p.str == undefined) continue
-        str += p.str + ', '
-    }
-    return str
-}
-
 function parentExists(str, avoid){
     for(let p of particles){
         if(p != avoid && p.isParent && p.str == str) return true
@@ -729,14 +741,53 @@ function findAllParticlesByLink(link){
     return arr
 }
 
-function shortenStr(str, maxLength = 25){
-    if(str.length > maxLength){
-        return str.substring(0, maxLength) + '...'
-    }
-    return str
+function windowResized() {
+    WIDTH = windowWidth
+    HEIGHT = windowHeight
+    input.pos.x = width/2
+    input.pos.y = height/2
+    btnReset.x = WIDTH - 20
+    btnReset.y = HEIGHT - 20
+    btnCenter.x = WIDTH - 20
+    btnCenter.y = HEIGHT - 45
+    btnGit.x = 20
+    btnGit.y = HEIGHT - 20
+    btnGame.x = 20
+    btnGame.y = 20
+    initTopo()
+    resizeCanvas(windowWidth, windowHeight);
 }
 
-function drawResetIcon(x, y, size) {
+function updateAndShowButton(btn){
+    //if(!started && btn.paths == undefined) return
+    let hovNow = inBounds(mouseX, mouseY, btn.x - btn.size/2, btn.y - btn.size/2, btn.size, btn.size)
+    if(hovNow && !btn.hovering){
+        btn.hovering = true
+    }
+    else if(!hovNow && btn.hovering){
+        btn.hovering = false
+    }
+    let max = mouseIsPressed ? 200 : 100
+    btn.hovering ? btn.dimm = lerpp(btn.dimm, max, 0.3) : btn.dimm = lerpp(btn.dimm, 0, 0.3)
+    let strokeCol = (mapp(btn.dimm, 0, 100, 50, 200))
+    let textCol = (mapp(btn.dimm, 0, 100, 0, 200))
+    let strokeWeightCol = mapp(btn.dimm, 0, 100, 1, 1.3)
+    let sizeMult = mapp(btn.dimm, 0, 100, 1, 1.08)
+    size = btn.size * sizeMult
+    stroke(strokeCol)
+    strokeWeight(strokeWeightCol)
+    rectMode(CENTER)
+    noFill()
+    let col = color(255, mapp(btn.dimm, 0, 100, 0, 35))
+    btn.func(btn.x, btn.y, size*0.6, btn, color(200, textCol), strokeCol)
+    fill(col)
+    rect(btn.x, btn.y, size, size, 5)
+}
+
+
+function drawResetIcon(x, y, size, btn, col) {
+    if(mouseIsPressed && btn.hovering && !btn.bool) btn.bool = true
+    let str = btn.str
     arc(x, y, size, size, 0.6981317007977318, 0);
     let tipX = x + (size * 0.5)
     let tipY = y
@@ -752,24 +803,17 @@ function drawResetIcon(x, y, size) {
     
     line(tipX, tipY, leftX, leftY);
     line(tipX, tipY, rightX, rightY);
+
+    textAlign(RIGHT, CENTER)
+    textSize(10.5)
+    noStroke()
+    fill(col)
+    text(str, x - size * 0.5 - 10, y)
 }
 
-function windowResized() {
-    WIDTH = windowWidth
-    HEIGHT = windowHeight
-    input.pos.x = width/2
-    input.pos.y = height/2
-    btnReset.x = WIDTH - 20
-    btnReset.y = HEIGHT - 20
-    btnCenter.x = WIDTH - 20
-    btnCenter.y = HEIGHT - 45
-    btnGit.x = 20
-    btnGit.y = HEIGHT - 20
-    initTopo()
-    resizeCanvas(windowWidth, windowHeight);
-}
-
-function drawCenterIcon(x, y, size){
+function drawCenterIcon(x, y, size, btn, col){
+    if(mouseIsPressed && btn.hovering && !btn.bool) btn.bool = true
+    let str = btn.str
     ellipse(x, y, size, size)
     let off = size * 0.15
     let st = size*.5
@@ -778,48 +822,60 @@ function drawCenterIcon(x, y, size){
     line(x, y+st-off, x, y+st+off)
     line(x-st-off, y, x-st+off, y)
     line(x, y-st-off, x, y-st+off)
+
+    textAlign(RIGHT, CENTER)
+    textSize(10.5)
+    noStroke()
+    fill(col)
+    text(str, x - size * 0.5 - 10, y)
 }
 
-function updateAndShowButton(btn){
-    if(!started && btn.paths == undefined) return
-    let hovNow = inBounds(mouseX, mouseY, btn.x - btn.size/2, btn.y - btn.size/2, btn.size, btn.size)
-    if(hovNow && !btn.hovering){
-        btn.hovering = true
-    }
-    else if(!hovNow && btn.hovering){
-        btn.hovering = false
-    }
-    let max = mouseIsPressed ? 200 : 100
-    btn.hovering ? btn.dimm = lerpp(btn.dimm, max, 0.3) : btn.dimm = lerpp(btn.dimm, 0, 0.3)
-    let strokeCol = (mapp(btn.dimm, 0, 100, 50, 200))
-    let strokeWeightCol = mapp(btn.dimm, 0, 100, 1, 1.3)
-    let sizeMult = mapp(btn.dimm, 0, 100, 1, 1.08)
-    size = btn.size * sizeMult
-    stroke(strokeCol)
-    strokeWeight(strokeWeightCol)
-    rectMode(CENTER)
-    noFill()
-    btn.func(btn.x, btn.y, size*0.6)
-    fill(255, mapp(btn.dimm, 0, 100, 0, 35))
-    rect(btn.x, btn.y, size, size, 5)
-    if(mouseIsPressed && btn.hovering && !btn.bool){
-        if(btn.paths) window.open('https://github.com/miguelrr11/miguelrr11.github.io/tree/main/Algorithms/WebViewer')
-        else btn.bool = true
-    }
+function drawGitSvg(x, y, size, btn, col){
+    if(mouseIsPressed && btn.hovering && !btn.bool) window.open('https://github.com/miguelrr11/miguelrr11.github.io/tree/main/Algorithms/WebViewer')
+    let str = btn.str
+    drawPaths(btnGit.paths, x, y, size*0.055, btnGit.centerX, btnGit.centerY)
+
+    textAlign(LEFT, CENTER)
+    textSize(10.5)
+    noStroke()
+    fill(col)
+    text(str, x + size * 0.5 + 10, y)
 }
 
-function drawGitSvg(x, y, size){
-    drawPaths(btnGit.paths, x, y, size*0.064, btnGit.centerX, btnGit.centerY)
-}
+function drawGame(x, y, size, btn, col, fillCol){
+    if(mouseIsPressed && btn.hovering && !btn.bool) startGame()
 
-function replaceBlankWithBarraBaja(str){
-    //creates a new string with the same characters as str, but replaces any space with a _
-    let newStr = ''
-    for(let i = 0; i < str.length; i++){
-        if(str[i] == ' ') newStr += '_'
-        else newStr += str[i]
-    }
-    return newStr
+    push()
+    translate(x, y)
+    rotate(Math.PI * .5)
+    translate(-x, -y)
+    if(btn.bool) fill(fillCol)
+    let triSize = size * 0.375
+    let h = Math.sqrt(3) * triSize
+    let x1 = x - triSize
+    let y1 = y + h / 2
+    let x2 = x + triSize
+    let y2 = y + h / 2
+    let x3 = x
+    let y3 = y - h / 2
+    triangle(x1, y1, x2, y2, x3, y3)
+    pop()
+
+    let str = btn.str
+    let str2 = btn.secondStr
+
+    drawPaths(goalSvg.paths, x - size * .5, y + size * 0.5 + 10, size*0.055, goalSvg.centerX, goalSvg.centerY)
+
+    textAlign(LEFT, CENTER)
+    textSize(10.5)
+    noStroke()
+    fill(col)
+    text(str, x + size * 0.5 + 10, y)
+    textAlign(LEFT, TOP)
+    textSize(9)
+    text(str2, x - size * .5, y + size * 0.5 + 10)
+
+    
 }
 
 function getMinMaxPos(){
@@ -862,6 +918,7 @@ function centerGraph(){
         yOffAux
     ]
 }
+
 let margin = 50
 function getTargetZoom(){
     let [minXp, maxXp, minYp, maxYp] = getMinMaxPos()
@@ -873,4 +930,42 @@ function getTargetZoom(){
     let zoomX = widthE / widthP
     let zoomY = heightE / heightP
     return constrain(Math.min(zoomX, zoomY), MIN_ZOOM, MAX_ZOOM)
+}
+
+let currentGame = {
+    from: undefined,
+    to: undefined,
+    score: 0
+}
+
+function startGame(){
+    resetState()
+    btnGame.bool = true
+    started = true
+    currentGame = {
+        from: random(articles),
+        to: random(articles),
+        score: 0
+    }
+
+    btnGame.str = 'Game started'
+    btnGame.secondStr = 'Goal: ' + removeBarrabaja(getLastPartOfLink(decodeURIComponent(currentGame.to))) 
+                      + '\nScore: ' + currentGame.score
+
+    let link = currentGame.from
+    let primordial = new Particle(width / 2, height / 2, true, -1, link);
+    primordial.color = random(colors);
+    particles.push(primordial);
+    parentParticles.push({
+        pos: primordial.pos.copy(),
+        radius: 50
+    })
+    
+    createGraph(link, primordial)
+    .then(() => {
+        started = true;
+    })
+    .catch(() => {
+        console.log('Error loading game')
+    });
 }

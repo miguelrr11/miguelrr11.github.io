@@ -1,4 +1,9 @@
-function mapp(value, start1, stop1, start2, stop2){
+function mapp(value, start1, stop1, start2, stop2, clamped = false){
+    let res = start2 + ( (value - start1) / (stop1 - start1) ) * (stop2 - start2); 
+    if(clamped){
+        if(res < start2) res = start2
+        else if(res > stop2) res = stop2
+    }
     return start2 + ( (value - start1) / (stop1 - start1) ) * (stop2 - start2); 
 }
 
@@ -58,4 +63,41 @@ function inBounds(x, y, a, b, w, h){
 
 function lerpp(start, end, t) {
     return start + (end - start) * t;
+}
+
+function removeBarrabaja(str){
+    //this function replaces any _ with a space
+    if(str == undefined) return ''
+    let newStr = ''
+    for(let i = 0; i < str.length; i++){
+        if(str[i] == '_') newStr += ' '
+        else newStr += str[i]
+    }
+    return newStr
+}
+
+function getAllStr(){
+    let str = ""
+    for(let p of particles){
+        if(p.str == undefined) continue
+        str += p.str + ', '
+    }
+    return str
+}
+
+function shortenStr(str, maxLength = 25){
+    if(str.length > maxLength){
+        return str.substring(0, maxLength) + '...'
+    }
+    return str
+}
+
+function replaceBlankWithBarraBaja(str){
+    //creates a new string with the same characters as str, but replaces any space with a _
+    let newStr = ''
+    for(let i = 0; i < str.length; i++){
+        if(str[i] == ' ') newStr += '_'
+        else newStr += str[i]
+    }
+    return newStr
 }

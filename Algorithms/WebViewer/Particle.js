@@ -128,7 +128,7 @@ class Particle{
 		let rad = bool ? this.radius * 2.5 : this.radius * 2;
 		customCircle(this.pos.x, this.pos.y, rad / 2, [50, 50, 50, 1], col, 2)
 		
-		if(this.isParent || bool){
+		if((this.isParent || bool)){
 			this.showText(bool)
 			this.showCircleHovered()
 		}
@@ -143,14 +143,14 @@ class Particle{
 		let d = squaredDistance(m.x, m.y, this.pos.x, this.pos.y)
 		let transRect = 150
 		let transText = 255
-		if(d > 40000){ 
-			textSize(13)
+		//if(d > 40000){ 
+			textSize(mapp(d, 0, 40000, 12 / zoom, 10 / zoom))
 			transRect = mapp(d, 40000, 90000, 150, 0)
 			transText = mapp(d, 40000, 90000, 255, 0)
-		}
-		else textSize(mapp(d, 0, 40000, 18 / zoom, 13))
+		//}
+		//else textSize(mapp(d, 0, 40000, 12 / zoom, 10))
 		if(defSize){ 
-			textSize(8 / zoom)
+			textSize(9 / zoom)
 			transRect = 150
 			transText = 255
 		}
@@ -181,11 +181,11 @@ class Particle{
 			strokeWeight(1.5)
 			this.relations = findAllParticlesByLink(this.link)
 			let col1 = dupeColor(this.color)
-			col1.setAlpha(180)
+			col1.setAlpha(155)
 			for(let rel of this.relations){
 				if(rel == this) continue
 				let col2 = dupeColor(rel.color)
-				col2.setAlpha(180)
+				col2.setAlpha(155)
 				gradientLine(this.pos.x, this.pos.y, rel.pos.x, rel.pos.y, [col1, col2])
 			}
 		}
@@ -202,11 +202,11 @@ class Particle{
 		push()
 		for(let rel of this.relations){
 			rel.showCircleHovered()
-			if(rel != this) rel.showText(false, true)
+			if(rel != this && rel != hoveredParticle) rel.showText(false, true)
 		}
 		if(this.isParent){
 			for(let child of this.children){
-				if(child.relations.length > 1){ 
+				if(child.relations.length > 1 || child.isParent){
 					child.showRelationsCircles()
 				}
 			}

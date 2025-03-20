@@ -56,6 +56,10 @@ class Input {
         }
     }
 
+    removeText(){
+        this.setText("")
+    }
+
     setText(text) {
         this.sentence = text
         this.cursorPos = this.sentence.length

@@ -13,7 +13,8 @@ function filterLink(link, targetUrl, targetHost, targetPath) {
   try {
     // Resolve relative URLs against the targetUrl
     urlObj = new URL(link, targetUrl);
-  } catch (e) {
+  } 
+  catch (e) {
     return null; // Skip invalid URLs
   }
 
@@ -21,7 +22,8 @@ function filterLink(link, targetUrl, targetHost, targetPath) {
   if (urlObj.pathname === targetPath && urlObj.hash) return null;
 
   // Exclude paths that indicate templates, files, help, special pages, or Wikipedia meta pages.
-  const exclusionRegex = /\/(Template|File|Help|Special|Especial|Wikipedia|Archivo|Ayuda|Categor%C3%ADa|Category|Portal|Discusi%C3%B3n):/i;
+  const exclusionRegex = /\/(Template|File|Help|Special|Especial|Wikipedia|Archivo|Ayuda|Categor%C3%ADa|Category|Main_Page|Portal|Discusi%C3%B3n)/i;
+
   if (exclusionRegex.test(urlObj.pathname)) return null;
 
   // Skip URLs that point to internal index.php pages
@@ -77,10 +79,10 @@ async function extractAndFilterLinksCategorized(targetUrl) {
     sections.push(currentSection);
 
     // Select all h3 and h2 and anchor elements in document order
-    const nodes = doc.querySelectorAll('h3, a[href], h2');
+    const nodes = doc.querySelectorAll('h3, a[href], h2, h1');
     for (const node of nodes) {
       let tagName = node.tagName.toLowerCase();
-      if (tagName === 'h3' || tagName === 'h2') {
+      if (tagName === 'h3' || tagName === 'h2' || tagName === 'h1') {
         const title = node.textContent.trim();
         if (isCategory(title)) {
           console.log(title);
@@ -144,6 +146,8 @@ function isCategory(str){
     'Artículos relacionados',
     'Related content',
     'Contenido relacionado',
+    'Main page',
+    'Página principal'
   ]
   for(let cat of notCategories){
     if(cat == str) return false
