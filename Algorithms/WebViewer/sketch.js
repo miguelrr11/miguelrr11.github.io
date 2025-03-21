@@ -11,6 +11,8 @@ let canvas, ctx
 const MIN_ZOOM = 0.005
 const MAX_ZOOM = 2
 
+const MAX_PARTICLE_COUNT = 2500
+
 let hoveredParticle = null
 let draggedParticle = null
 
@@ -29,7 +31,7 @@ let prevMouseX, prevMouseY
 let zoom = 1
 let currentEdges
 
-let framesPerAnimation = 60 * 2
+let framesPerAnimation = 60 * 1.5
 
 let colors  
 
@@ -142,7 +144,7 @@ function resetState(){
     zoom = 1
     currentEdges
 
-    framesPerAnimation = 60 * 2
+    framesPerAnimation = 60 * 1.5
 
     started = false
     errorFrames = 0
@@ -249,8 +251,12 @@ function doubleClicked(){
         removeChild(hoveredParticle)
         hoveredParticle = undefined
     }
-    if(hoveredParticle && hoveredParticle.isParent){
+    if(hoveredParticle && hoveredParticle.isParent && hoveredParticle.children.length > 0){
         window.open(hoveredParticle.link, '_blank')
+    }
+    else if(hoveredParticle && hoveredParticle.isParent && hoveredParticle.children.length == 0){
+        createGraph(hoveredParticle.link, hoveredParticle)
+        hoveredParticle = undefined
     }
 }
 
@@ -415,7 +421,8 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
     
 
     let radius = (REST_DISTANCE + 5)
-    let deltaFrames = Math.floor(framesPerAnimation / links.length)
+    let deltaFrames = Math.max(Math.floor(framesPerAnimation / links.length), 1)
+    console.log(deltaFrames)
     for(let i = 0; i < links.length; i++){
         let sameLinks = findAllParticlesByLink(links[i])
     
@@ -610,6 +617,8 @@ function changeColorMode(){
 let offsetsText = []
 function draw(){
     background(curCol.background)
+
+    if(particles.length > MAX_PARTICLE_COUNT && removeAnimations.length == 0) removeCluster()
 
     if(btnCenter.bool){
         // xOff = lerpp(xOff, 0, 0.1)
@@ -815,8 +824,8 @@ function updateAnimations(){
             continue;
         }
 
-        let finalPos = anim.finalPos.pos.copy();
-        p.pos.lerp(finalPos, 0.05);
+        let finalPos = anim.finalPos.pos.copy()
+        p.pos.lerp(finalPos, 0.02);
         let d = squaredDistance(p.pos.x, p.pos.y, finalPos.x, finalPos.y);
         if (d < 0.1) {
             removeAnimations.splice(i, 1);
@@ -824,12 +833,12 @@ function updateAnimations(){
             removeConstraint(p)
         }
     }
-}
+} 
 
 let removeAnimations = []
 
 
-function debugRemoveParticleAnimation(){
+function removeCluster(){
     //choose random particle that is not a parent or, if it is it cant have children
     if(firstParents.length == 0) return
     //else get the first one
@@ -892,7 +901,6 @@ function updateGraph(){
     }
     for(let c of constraints){
         c.satisfy()
-
     }   
 }
 

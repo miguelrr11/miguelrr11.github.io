@@ -51,7 +51,6 @@ class Particle{
 
 	update(sqTimeStep){
 		// verlet intergration
-		
 		if(this.out){
 			this.removeInertia()
 			return
@@ -100,6 +99,10 @@ class Particle{
 
 	repel(particles, separationDistance = this.radius*2 + 50) {
 		if(this.isPinned) return
+		if(this.out){
+			this.removeInertia()
+			return
+		}
 		particles.forEach(other => {
 			if (other !== this) {
 				let diff = p5.Vector.sub(this.pos, other.pos);
