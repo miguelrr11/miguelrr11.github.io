@@ -10,7 +10,7 @@ let clipping_length_titleMIGUI = 11
 let picker_width = 100
 
 class Input {
-    constructor(x, y, placeholder, func, arg, lightCol, darkCol, transCol) {
+    constructor(x, y, placeholder, func, arg, lightCol, darkCol) {
         this.darkCol = darkCol
         this.lightCol = lightCol
         this.transCol = [...lightCol, 100]
@@ -46,6 +46,12 @@ class Input {
         document.addEventListener("keyup", this.evaluateKey.bind(this))
 
         document.addEventListener("paste", this.handlePaste.bind(this));
+    }
+
+    setColors(lightCol, darkCol){
+        this.lightCol = lightCol
+        this.darkCol = darkCol
+        this.transCol = [...lightCol, 100]
     }
 
     handlePaste(event){

@@ -49,9 +49,9 @@ class Particle{
 		this.pos.y > maxY + r
 	}
 
-	update(timeStep){
+	update(sqTimeStep){
 		// verlet intergration
-		this.setOut()
+		
 		if(this.out){
 			this.removeInertia()
 			return
@@ -59,7 +59,7 @@ class Particle{
         if (!this.isPinned) {
         	let vel = p5.Vector.sub(this.pos, this.prevPos).mult(0.97)
 			this.prevPos = this.pos.copy()
-			this.pos.add(p5.Vector.add(vel, this.acc.copy().mult(timeStep * timeStep)))
+			this.pos.add(p5.Vector.add(vel, this.acc.copy().mult(sqTimeStep)))
 			this.acc = createVector(0, 0)
         }
 	}
@@ -84,6 +84,7 @@ class Particle{
 
 		if(mouseIsPressed) return
 		let constrain = this.constraint
+		if(!constrain) return
 		if(sqDist < minDistanceGrowSq && sqDistParent > constrain.baseLengthSq - this.radius / 2){
 			this.radius = mapp(sqDist, 0, minDistanceGrowSq, MAX_RADIUS_PARTICLE, RADIUS_PARTICLE)
 			this.sqRadius = this.radius * this.radius
@@ -142,6 +143,7 @@ class Particle{
 	}
 
 	showText(doNotShorten, defSize = false){
+		if((hoveredParticle && hoveredParticle != this && !mouseIsPressed) ) return
 		let yOff = 10
 		strokeWeight(1.5)
 		let m = worldToCanvas(mouseX, mouseY)
@@ -189,11 +191,12 @@ class Particle{
 			this.relations = findAllParticlesByLink(this.link)
 			let col1 = dupeColor(this.color)
 			col1.setAlpha(155)
+			let trans = color(curCol.lineTrans, 0)
 			for(let rel of this.relations){
 				if(rel == this) continue
 				let col2 = dupeColor(rel.color)
 				col2.setAlpha(155)
-				gradientLine(this.pos.x, this.pos.y, rel.pos.x, rel.pos.y, [col1, col2])
+				gradientLine(this.pos.x, this.pos.y, rel.pos.x, rel.pos.y, [col1, trans , col2])
 			}
 		}
 		else{

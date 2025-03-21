@@ -19,6 +19,7 @@ let parentParticles = []
 let constraints = []
 let particles = []
 let primordials = []
+let firstParents = [] //particles that are parents and have no parent
 
 let animConn = []
 
@@ -47,7 +48,10 @@ let btnReset = {
     hovering: false,
     func: drawResetIcon,
     bool: false,
-    str: 'Reset [R]'
+    str: 'Reset [R]',
+    canBeShowed: () => {
+        return started
+    }
 }
 let btnCenter = {
     x: WIDTH - 20,
@@ -57,7 +61,10 @@ let btnCenter = {
     hovering: false,
     func: drawCenterIcon,
     bool: false,
-    str: 'Center [C]'
+    str: 'Center [C]',
+    canBeShowed: () => {
+        return started
+    }
 }
 let btnGit = {
     x: 20,
@@ -69,7 +76,10 @@ let btnGit = {
     hovering: false,
     func: drawGitSvg,
     bool: false,
-    str: 'Source code'
+    str: 'Source code',
+    canBeShowed: () => {
+        return true
+    }
 }
 let btnGame = {
     x: 20,
@@ -79,8 +89,32 @@ let btnGame = {
     hovering: false,
     func: drawGame,
     bool: false,
-    str: 'Start Game'
+    str: 'Start Game',
+    canBeShowed: () => {
+        return true
+    }
 }
+let btnColorMode = {
+    x: WIDTH - 20,
+    y: HEIGHT - 60,
+    size: 20,
+    dimm: 0,
+    hovering: false,
+    func: drawColorMode,
+    bool: false,
+    str: 'Light Mode',
+    counter: 0,
+    canBeShowed: () => {
+        return true
+    }
+}
+
+let buttons = [
+    btnReset,
+    btnCenter,
+    btnGit,
+    btnGame,
+    btnColorMode]
 
 let goalSvg = {
     data: undefined,
@@ -118,6 +152,8 @@ function resetState(){
 
     btnReset.bool = false
 
+    resetGame()
+
     input.removeText()
 }
 
@@ -138,6 +174,7 @@ function mouseReleased(){
     if(hoveredParticle && hoveredParticle.isParent){
         for(let child of hoveredParticle.children) child.removeInertia()
     }
+    if(btnColorMode.hovering) changeColorMode()
 }
 
 function mouseWheel(event) {
@@ -198,10 +235,16 @@ function doubleClicked(){
                 from: hoveredParticle,
                 to: existingPri
             })
-            //createConnection(hoveredParticle.parent, existingPri)
         }
         else{
             createGraph(hoveredParticle.link, getP(hoveredParticle))
+            //remove from first parents hoveredParticle.parent
+            for(let i = 0; i < firstParents.length; i++){
+                if(firstParents[i] == hoveredParticle.parent){
+                    firstParents.splice(i, 1)
+                    break
+                }
+            }
         }
         removeChild(hoveredParticle)
         hoveredParticle = undefined
@@ -285,13 +328,29 @@ function removeParticle(p){
             break
         }
     }
+    //remove from childrens array of parent
+    for(let i = 0; i < p.parent.children.length; i++){
+        if(p.parent.children[i] == p){
+            p.parent.children.splice(i, 1)
+            break
+        }
+    }
 }
 
 function removeConstraint(p){
+    let c ;
     for(let i = 0; i < constraints.length; i++){
         if(constraints[i].p1 == p || constraints[i].p2 == p){
+            c = constraints[i]
             constraints.splice(i, 1)
-            break
+        }
+    }
+    if(c){
+        for(let p of particles){
+            if(p.constraint == c){
+                p.constraint = undefined
+                break
+            }
         }
     }
 }
@@ -341,6 +400,8 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
             particle: p1,
             finalPos: pos
         })
+
+        firstParents.push(p1)
     }
     else p1 = primordial
 
@@ -402,6 +463,8 @@ function setup(){
     btnCenter.y = HEIGHT - 45
     btnGit.x = 20
     btnGit.y = HEIGHT - 20
+    btnColorMode.x = 20
+    btnColorMode.y = HEIGHT - 45
     let [pathsGit, cxGit, cyGit] = parseSVG(btnGit.svgData)
     btnGit.paths = pathsGit
     btnGit.centerX = cxGit
@@ -433,7 +496,8 @@ function setup(){
         partFillRectText: 50,
         partTextStroke: color(255),
         partStroke: [50, 50, 50, 1],
-        lineStroke: 170
+        lineStroke: 170,
+        lineTrans: 0
     }
 
     lightModeColors = {
@@ -446,11 +510,12 @@ function setup(){
         partFillRectText: 200,
         partTextStroke: color(0),
         partStroke: [100, 100, 100, 1],
-        lineStroke: 85
+        lineStroke: 85,
+        lineTrans: 255
     }
     
-    curCol = lightModeColors
-    curColMode = 'light'
+    curCol = darkModeColors
+    curColMode = 'dark'
     //curCol = darkModeColors
 
     textFont(font)
@@ -468,6 +533,7 @@ function setup(){
                 pos: primordial.pos.copy(),
                 radius: 50
             })
+            firstParents.push(primordial)
             
             createGraph(link, primordial)
             .then(() => {
@@ -487,7 +553,7 @@ function setup(){
 }
 
 function updateAndShowButton(btn){
-    //if(!started && btn.paths == undefined) return
+    if(!btn.canBeShowed()) return
     let hovNow = inBounds(mouseX, mouseY, btn.x - btn.size/2, btn.y - btn.size/2, btn.size, btn.size)
     if(hovNow && !btn.hovering){
         btn.hovering = true
@@ -520,14 +586,24 @@ function keyPressed(){
         btnCenter.bool = true
     }
     if(keyCode == 32){
-        if(curColMode == 'light'){
-            curCol = darkModeColors
-            curColMode = 'dark'
-        }
-        else{
-            curCol = lightModeColors
-            curColMode = 'light'
-        }
+        changeColorMode()
+    }
+}
+
+function changeColorMode(){
+    if(curColMode == 'light'){
+        curCol = darkModeColors
+        curColMode = 'dark'
+        input.setColors([255, 255, 255], [0, 0, 0])
+        btnColorMode.str = 'Light Mode'
+        btnColorMode.bool = false
+    }
+    else{
+        curCol = lightModeColors
+        curColMode = 'light'
+        input.setColors([0, 0, 0], [255, 255, 255])
+        btnColorMode.str = 'Dark Mode'
+        btnColorMode.bool = true
     }
 }
 
@@ -610,10 +686,7 @@ function draw(){
     pop()
     
     push()
-    updateAndShowButton(btnReset)
-    updateAndShowButton(btnCenter)
-    updateAndShowButton(btnGit)
-    updateAndShowButton(btnGame)
+    for(let btn of buttons) updateAndShowButton(btn)
     pop()
     
 }
@@ -707,6 +780,11 @@ function updateAnimations(){
         let anim = animations[i];
         let p = anim.particle;
 
+        if(!p){
+            animations.splice(i, 1);
+            continue;
+        }
+
         if (anim.parent && activeParticles.has(anim.parent)) {
             p.pos = anim.parent.pos.copy();
             continue;
@@ -721,10 +799,57 @@ function updateAnimations(){
             if (anim.parent) p.isPinned = false;
             p.removeInertia();
             animations.splice(i, 1);
+            if(anim.remove){
+                removeParticle(p)
+                removeConstraint(p)
+            }
+        }
+    }
+
+    for (let i = removeAnimations.length - 1; i >= 0; i--){
+        let anim = removeAnimations[i];
+        let p = anim.particle;
+
+        if(!p){
+            removeAnimations.splice(i, 1);
+            continue;
+        }
+
+        let finalPos = anim.finalPos.pos.copy();
+        p.pos.lerp(finalPos, 0.05);
+        let d = squaredDistance(p.pos.x, p.pos.y, finalPos.x, finalPos.y);
+        if (d < 0.1) {
+            removeAnimations.splice(i, 1);
+            removeParticle(p)
+            removeConstraint(p)
         }
     }
 }
 
+let removeAnimations = []
+
+
+function debugRemoveParticleAnimation(){
+    //choose random particle that is not a parent or, if it is it cant have children
+    if(firstParents.length == 0) return
+    //else get the first one
+    let parentToRemove = firstParents.shift()
+
+    for(let child of parentToRemove.children){
+        child.isPinned = true
+        let anim = {
+            particle: child,
+            finalPos: child.parent
+        }
+        removeAnimations.push(anim)
+    }
+    let finalAnim = {
+        particle: parentToRemove,
+        finalPos: parentToRemove.parent
+    }
+    removeAnimations.push(finalAnim)
+
+}
 
 function showGraph(){
     for(let c of constraints) c.show()
@@ -758,14 +883,16 @@ function updateReset(){
 function updateGraph(){
     let bool = zoom > 0.2
     for(let p of particles){
+        p.setOut()
         if(bool){
             p.repel(p.siblings)
-            p.update(0.1)
+            p.update(0.01)
         }
         p.updateHovering()
     }
     for(let c of constraints){
         c.satisfy()
+
     }   
 }
 
@@ -844,6 +971,8 @@ function windowResized() {
     btnGit.y = HEIGHT - 20
     btnGame.x = 20
     btnGame.y = 20
+    btnColorMode.x = 20
+    btnColorMode.y = HEIGHT - 45
     initTopo()
     resizeCanvas(windowWidth, windowHeight);
 }
@@ -943,6 +1072,31 @@ function drawGame(x, y, size, btn, col, fillCol){
     
 }
 
+function drawColorMode(x, y, size, btn, col){
+    //if(mouseIsPressed && btn.hovering) changeColorMode()
+    let str = btn.str
+    ellipse(x, y, size*.5)
+
+    btn.counter = btn.bool ? lerp(btn.counter, 100, 0.1) : lerp(btn.counter, 0, 0.1)
+    let lengthMult = mapp(btn.counter, 0, 100, 0.45, 0.6)
+
+    for(let i = 0; i < 8; i++){
+        let angle = map(i, 0, 8, 0, TWO_PI)
+        
+        let x1 = x + cos(angle) * size * 0.45
+        let y1 = y + sin(angle) * size * 0.45
+        let x2 = x + cos(angle) * size * lengthMult
+        let y2 = y + sin(angle) * size * lengthMult
+        line(x1, y1, x2, y2)
+    }
+
+    textAlign(LEFT, CENTER)
+    textSize(10.5)
+    noStroke()
+    fill(col)
+    text(str, x + size * 0.5 + 10, y)
+}
+
 function getMinMaxPos(){
     let minX = Infinity
     let minY = Infinity
@@ -1033,4 +1187,15 @@ function startGame(){
     .catch(() => {
         console.log('Error loading game')
     });
+}
+
+function resetGame(){
+    currentGame = {
+        from: undefined,
+        to: undefined,
+        score: 0
+    }
+    btnGame.str = 'Start Game'
+    btnGame.secondStr = ''
+    btnGame.bool = false
 }
