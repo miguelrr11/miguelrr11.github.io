@@ -147,7 +147,9 @@ function isCategory(str){
     'Related content',
     'Contenido relacionado',
     'Main page',
-    'Página principal'
+    'Página principal',
+    'General and cited references',
+    'Referencias generales y citadas'
   ]
   for(let cat of notCategories){
     if(cat == str) return false

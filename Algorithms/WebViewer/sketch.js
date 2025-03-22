@@ -8,8 +8,8 @@ let WIDTH = 1920*scl
 let HEIGHT = 1080*scl
 let canvas, ctx
 
-const MIN_ZOOM = 0.005
-const MAX_ZOOM = 2
+const MIN_ZOOM = 0.05
+const MAX_ZOOM = 5
 
 const MAX_PARTICLE_COUNT = 2500
 
@@ -101,7 +101,7 @@ let btnColorMode = {
     y: HEIGHT - 60,
     size: 20,
     dimm: 0,
-    hovering: false,
+    hovering: false, 
     func: drawColorMode,
     bool: false,
     str: 'Light Mode',
@@ -129,6 +129,7 @@ let goalSvg = {
 function resetState(){
     hoveredParticle = null
     draggedParticle = null
+    winningParticle = null
 
     parentParticles = []
 
@@ -177,6 +178,9 @@ function mouseReleased(){
         for(let child of hoveredParticle.children) child.removeInertia()
     }
     if(btnColorMode.hovering) changeColorMode()
+    if(btnGame.hovering && !btnGame.bool) startGame()
+    else if(btnGame.hovering && btnGame.bool) window.open(currentGame.to)
+    
 }
 
 function mouseWheel(event) {
@@ -239,6 +243,7 @@ function doubleClicked(){
             })
         }
         else{
+            if(currentGame) currentGame.score++
             createGraph(hoveredParticle.link, getP(hoveredParticle))
             //remove from first parents hoveredParticle.parent
             for(let i = 0; i < firstParents.length; i++){
@@ -248,6 +253,7 @@ function doubleClicked(){
                 }
             }
         }
+        if(hoveredParticle == winningParticle) endGame()
         removeChild(hoveredParticle)
         hoveredParticle = undefined
     }
@@ -274,6 +280,7 @@ function createGraph(link, p){
             initFirstGraphCategorized(links, categories[i].title, primordial, categories.length == 1);
         }
         btnCenter.bool = true
+        checkEndGame()
     })
     .catch(err => {
         throw err;
@@ -363,7 +370,7 @@ function removeConstraint(p){
 
 const absoluteSeparationDistance = 70
 function initFirstGraphCategorized(links, title, primordial, fromPrimordial = false){
-    REST_DISTANCE = getRadiusFromCircumference(links.length * RADIUS_PARTICLE*2)
+    REST_DISTANCE = Math.max(getRadiusFromCircumference(links.length * RADIUS_PARTICLE*2), RADIUS_PARTICLE * 2)
     let rAngle = random(TWO_PI)
     let finalPos = primordial.pos.copy()
     for(let anim of animations){
@@ -422,7 +429,6 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
 
     let radius = (REST_DISTANCE + 5)
     let deltaFrames = Math.max(Math.floor(framesPerAnimation / links.length), 1)
-    console.log(deltaFrames)
     for(let i = 0; i < links.length; i++){
         let sameLinks = findAllParticlesByLink(links[i])
     
@@ -592,7 +598,7 @@ function keyPressed(){
     if(keyCode == 67){
         btnCenter.bool = true
     }
-    if(keyCode == 32){
+    if(keyCode == 32 && started){
         changeColorMode()
     }
 }
@@ -615,6 +621,7 @@ function changeColorMode(){
 }
 
 let offsetsText = []
+let mousePos
 function draw(){
     background(curCol.background)
 
@@ -645,7 +652,7 @@ function draw(){
         pop()
     }
 
-    
+    mousePos = this.getRelativePos(mouseX, mouseY)
 
     manageDimming()
 
@@ -683,14 +690,7 @@ function draw(){
         }
     }
 
-    //show parent particles
-    // push()
-    // for(let p of parentParticles){
-    //     stroke(255, 0, 0)
-    //     noFill()
-    //     ellipse(p.pos.x, p.pos.y, p.radius * 2)
-    // }
-    // pop()
+    if(winningParticle) winningParticle.showWin()
 
     pop()
     
@@ -729,19 +729,12 @@ function manageAnimConn(){
 }
 
 function manageDimming(){
-    if((dimmingLines == 1 || dimmingLines == 0) && hoveredParticle && (hoveredParticle.relations.length > 1 || hoveredParticle.isParent)){
+    let p = draggedParticle || hoveredParticle
+    if(dimmingLines == 1 && p && (p.relations.length > 1 || p.isParent)){
         dimmingLines = -1
     }
-    if(hoveredParticle == undefined || (hoveredParticle && hoveredParticle.relations.length <= 1 && !hoveredParticle.isParent)){ 
+    if(p == undefined || (p && p.relations.length <= 1 && !p.isParent)){ 
         dimmingLines = 1
-    }
-    if(dimmingLines == -1 && transLines <= 51){
-        dimmingLines = 0
-        transLines = 50
-    }
-    if(dimmingLines == 1 && transLines >= 254){
-        dimmingLines = 0
-        transLines = 255
     }
 }
 
@@ -1045,8 +1038,6 @@ function drawGitSvg(x, y, size, btn, col){
 }
 
 function drawGame(x, y, size, btn, col, fillCol){
-    if(mouseIsPressed && btn.hovering && !btn.bool) startGame()
-
     push()
     translate(x, y)
     rotate(Math.PI * .5)
@@ -1064,20 +1055,22 @@ function drawGame(x, y, size, btn, col, fillCol){
     pop()
 
     let str = btn.str
-    let str2 = btn.secondStr
+    // btnGame.secondStr = 'Goal: ' + removeBarrabaja(getLastPartOfLink(decodeURIComponent(currentGame.to))) 
+    //                   + '\nArticles visited: ' + currentGame.score
+    btnGame.secondStr = 'Find the article: "' + removeBarrabaja(getLastPartOfLink(decodeURIComponent(currentGame.to))) + '"\nvisiting the fewest articles possible' +
+                        '\nArticles visited: ' + currentGame.score + '\n\nClick on the button to take a look'
+    let str2 = btn.bool ? btn.secondStr : ''
 
     drawPaths(goalSvg.paths, x - size * .5, y + size * 0.5 + 10, size*0.055, goalSvg.centerX, goalSvg.centerY)
 
     textAlign(LEFT, CENTER)
-    textSize(10.5)
+    textSize(11.5)
     noStroke()
     fill(col)
     text(str, x + size * 0.5 + 10, y)
     textAlign(LEFT, TOP)
     textSize(9)
     text(str2, x - size * .5, y + size * 0.5 + 10)
-
-    
 }
 
 function drawColorMode(x, y, size, btn, col){
@@ -1172,12 +1165,12 @@ function startGame(){
     currentGame = {
         from: random(articles),
         to: random(articles),
-        score: 0
+        score: 1
     }
 
     btnGame.str = 'Game started'
     btnGame.secondStr = 'Goal: ' + removeBarrabaja(getLastPartOfLink(decodeURIComponent(currentGame.to))) 
-                      + '\nScore: ' + currentGame.score
+                      + '\nArticles visited: ' + currentGame.score
 
     let link = currentGame.from
     let primordial = new Particle(width / 2, height / 2, true, -1, link);
@@ -1201,9 +1194,26 @@ function resetGame(){
     currentGame = {
         from: undefined,
         to: undefined,
-        score: 0
+        score: 1
     }
     btnGame.str = 'Start Game'
     btnGame.secondStr = ''
     btnGame.bool = false
+}
+
+let winningParticle = undefined
+function checkEndGame(){
+    for(let p of particles){
+        if(p.link == currentGame.to){
+            btnGame.str = 'You found the article, open it to end the game!'
+            winningParticle = p
+            return
+        }
+    }
+}
+
+function endGame(){
+    btnGame.str = 'Game finished!\nArticles visited: ' + currentGame.score 
+    btnGame.bool = false
+    winningParticle = undefined
 }

@@ -64,7 +64,6 @@ class Particle{
 	}
 
 	updateHovering(){
-		let mousePos = this.getRelativePos(mouseX, mouseY)
 		let sqDist = squaredDistance(mousePos.x, mousePos.y, this.pos.x, this.pos.y)
 		let sqDistParent = 0
 		if(this.parent) sqDistParent = squaredDistance(mousePos.x, mousePos.y, this.parent.pos.x, this.parent.pos.y)
@@ -194,12 +193,15 @@ class Particle{
 			this.relations = findAllParticlesByLink(this.link)
 			let col1 = dupeColor(this.color)
 			col1.setAlpha(155)
-			let trans = color(curCol.lineTrans, 0)
+			let col1trans = dupeColor(this.color)
+			col1trans.setAlpha(30)
 			for(let rel of this.relations){
 				if(rel == this) continue
 				let col2 = dupeColor(rel.color)
 				col2.setAlpha(155)
-				gradientLine(this.pos.x, this.pos.y, rel.pos.x, rel.pos.y, [col1, trans , col2])
+				let col2trans = dupeColor(rel.color)
+				col2trans.setAlpha(30)
+				gradientLine(this.pos.x, this.pos.y, rel.pos.x, rel.pos.y, [col1, col1trans, col2trans, col2])
 			}
 		}
 		else{
@@ -224,6 +226,15 @@ class Particle{
 				}
 			}
 		}
+		pop()
+	}
+
+	showWin(){
+		push()
+		this.radius += Math.sin(frameCount / 5) * 2
+		this.radius = constrain(this.radius, RADIUS_PARTICLE/2, MAX_RADIUS_PARTICLE)
+		this.show()
+		gradientCircle(this.pos.x, this.pos.y, this.radius, [this.color, color(255, Math.abs(Math.sin(frameCount / 5) * 150))])
 		pop()
 	}
 }
@@ -272,4 +283,10 @@ function customLine(x1, y1, x2, y2, strokeCol, strokeW = 1){
 	ctx.lineTo(x2, y2);
 	ctx.stroke();
 	ctx.closePath();
+}
+
+function getRelativePos(x, y){
+	let worldX = (x - xOff) / zoom;
+	let worldY = (y - yOff) / zoom;
+	return createVector(worldX, worldY);
 }

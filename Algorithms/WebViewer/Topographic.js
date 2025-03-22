@@ -1,8 +1,8 @@
-let sclTopo, cellPixelSize, spacing, cellsPerRow, cellsPerCol, cellsPerRowTopo, cellsPerColTopo, topoGrid, sclTopoNoiseMovement;
+let sclTopo, cellPixelSize, spacing, cellsPerRow, cellsPerCol, cellsPerRowTopo, cellsPerColTopo, topoGrid, sclTopoNoiseMovement, TAM;
 
 function initTopo() {
     sclTopo = 4; //ya no se puede cambiar 
-    cellPixelSize = 20; // size of each cell in pixels
+    cellPixelSize = 50; // size of each cell in pixels
     spacing = cellPixelSize / sclTopo; // cellPixelSize * (1/sclTopo)
     cellsPerRow = Math.floor(WIDTH / cellPixelSize) + 2;
     cellsPerCol = Math.floor(HEIGHT / cellPixelSize) + 2;
@@ -22,10 +22,12 @@ function initTopo() {
             topoGrid[i][j] = noise(noiseI, j / tam, z);
         }
     }
+
+    TAM = 30 * sclTopo;
 }
 
 function updateTopo() {
-    const tam = 30 * sclTopo;
+    const tam = TAM;
     const z = frameCount * sclTopoNoiseMovement;
     const cols = cellsPerRowTopo,
         rows = cellsPerColTopo;
@@ -43,7 +45,7 @@ function showTopo() {
     else ctx.lineWidth = mapp(zoom, MIN_ZOOM, 1, 0.5, 1.25);
 
     const steps = 10;
-    const dK = 1 / steps;
+    const dK = 0.1   // 1 / steps
     const cols = cellsPerRowTopo - 1;
     const rows = cellsPerColTopo - 1;
     const rez = spacing;
