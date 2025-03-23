@@ -23,7 +23,7 @@ let panel2
 let fontPanel
 
 function preload(){
-    fontPanel = loadFont("migUI/main/bnr.ttf")
+    fontPanel = loadFont("../migUI/main/bnr.ttf")
 }
 
 function setup(){
