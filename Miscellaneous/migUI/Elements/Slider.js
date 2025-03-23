@@ -42,6 +42,7 @@ class Slider{
 	reposition(x, y, w = undefined, h = undefined){
 		this.pos = createVector(x, y)
 		this.sliderPos = createVector(x, y)
+		if(this.title != "" || this.showValue) this.sliderPos.y += 15
 		this.w = w || this.w
 		this.h = h || this.h
 		this.setValue(this.value)

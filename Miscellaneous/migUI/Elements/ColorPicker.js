@@ -60,11 +60,14 @@ class ColorPicker{
 		this.h = h || this.h
 
 		this.height = this.h
-
+		
 		this.poscp = createVector(constrain(this.pos.x - 10, 0, width - this.cpw - 10), constrain(this.pos.y + this.h * 2, 0, height - this.cph - 10))
 		let posY = this.poscp.y + 5
+		this.hBand = this.cph * 0.33 * 0.5
 		this.huePos = createVector(this.poscp.x + this.cpw / 2, posY + this.hBand * 0.5)
+		posY += this.hBand + 5 + 2.5 * 0.5
 		this.saturationPos = createVector(this.poscp.x + this.cpw / 2, posY + this.hBand * 0.5)
+		posY += this.hBand + 5 + 2.5 * 0.5
 		this.alphaPos = createVector(this.poscp.x + this.cpw - 5, posY + this.hBand * 0.5)
 	}
 

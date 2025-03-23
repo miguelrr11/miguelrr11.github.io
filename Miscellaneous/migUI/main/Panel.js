@@ -84,6 +84,29 @@ class Panel{
 	    this.lastBU = undefined
 	}
 
+	reposition(x, y){
+		let dx = x - this.pos.x
+		let dy = y - this.pos.y
+		this.pos.x = x
+		this.pos.y = y
+		//call reposition on all elements
+		for(let b of this.checkboxes) b.reposition(b.pos.x + dx, b.pos.y + dy)
+		for(let b of this.sliders) b.reposition(b.pos.x + dx, b.pos.y + dy)
+		for(let b of this.sentences) b.reposition(b.pos.x + dx, b.pos.y + dy)
+		for(let b of this.selects) b.reposition(b.pos.x + dx, b.pos.y + dy)
+		for(let b of this.inputs) b.reposition(b.pos.x + dx, b.pos.y + dy)
+		for(let b of this.buttons) b.reposition(b.pos.x + dx, b.pos.y + dy)
+		for(let b of this.colorPickers) b.reposition(b.pos.x + dx, b.pos.y + dy)
+		for(let b of this.numberPickers) b.reposition(b.pos.x + dx, b.pos.y + dy)
+		for(let b of this.optionPickers) b.reposition(b.pos.x + dx, b.pos.y + dy)
+		for(let i = 0; i < this.separators.length; i++) this.separators[i] += dy
+		this.titlePos.x += dx
+		this.titlePos.y += dy
+		this.lastElementPos.x += dx
+		this.lastElementPos.y += dy
+	}
+
+
 	removeElement(element){
 		if(element.constructor.name == "Checkbox") this.checkboxes.splice(this.checkboxes.indexOf(element), 1)
 		if(element.constructor.name == "Slider") this.sliders.splice(this.sliders.indexOf(element), 1)

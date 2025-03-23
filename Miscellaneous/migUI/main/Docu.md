@@ -31,6 +31,7 @@ The `properties` object can be used to customize the panel's behavior and appear
 - **`setTheme(theme)`**: Changes the color scheme of the panel based on a preexisting theme.
 - **`areInputsActive()`**: Returns `true` if one or more inputText are being interacted with.
 - **`removeElement(element)`**: Removes `element` from the Panel
+- **`reposition(x, y)`**: Repositions the panel and its elements (x and y being the upper-left corner)
 
 ### Themes
 The following themes are available:

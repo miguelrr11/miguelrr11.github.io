@@ -26,6 +26,10 @@ function preload(){
     fontPanel = loadFont("../migUI/main/bnr.ttf")
 }
 
+function mouseClicked(){
+    if(keyIsPressed) panel.reposition(mouseX, mouseY)
+}
+
 function setup(){
     createCanvas(WIDTH+widthPanel, HEIGHT)
     panel = new Panel({

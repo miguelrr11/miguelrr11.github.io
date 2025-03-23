@@ -28,6 +28,9 @@ class Sentence{
 		this.pos = createVector(x, y)
 
 		this.height = 0
+		let newlinesN = this.words.split('\n').length
+		let newlines = this.words.split('\n')
+		textSize(this.textSize)
 		for(let i = 0; i < newlinesN; i++){
 			this.height += textHeight(newlines[i])
 		}
