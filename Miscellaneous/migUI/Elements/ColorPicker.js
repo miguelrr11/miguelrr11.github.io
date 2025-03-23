@@ -1,5 +1,5 @@
 class ColorPicker{
-	constructor(x, y, title, func, def, lightCol, darkCol, transCol){
+	constructor(x, y, title, def, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -7,7 +7,8 @@ class ColorPicker{
 		this.name = title
 		this.title = getClippedTextMIGUI(title, clipping_length_normalMIGUI)
 		this.isChoosing = false 
-		this.func = func
+		this.func = undefined
+		this.arg = false
 
 		this.isChoosingHue = false
 		this.isChoosingSaturation = false
@@ -42,6 +43,29 @@ class ColorPicker{
 		this.alphaPos = createVector(this.poscp.x + this.cpw - 5, posY + this.hBand * 0.5)
 
 		this.defaultCol = def ? def : this.finalCol
+	}
+
+	setFunc(func, arg = false){
+		this.func = func
+		this.arg = arg
+	}
+
+	execute(){
+		if(this.func) this.arg ? this.func(this.finalCol) : this.func()
+	}
+
+	reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+		this.w = w || this.w
+		this.h = h || this.h
+
+		this.height = this.h
+
+		this.poscp = createVector(constrain(this.pos.x - 10, 0, width - this.cpw - 10), constrain(this.pos.y + this.h * 2, 0, height - this.cph - 10))
+		let posY = this.poscp.y + 5
+		this.huePos = createVector(this.poscp.x + this.cpw / 2, posY + this.hBand * 0.5)
+		this.saturationPos = createVector(this.poscp.x + this.cpw / 2, posY + this.hBand * 0.5)
+		this.alphaPos = createVector(this.poscp.x + this.cpw - 5, posY + this.hBand * 0.5)
 	}
 
 	getColor(){
@@ -100,7 +124,7 @@ class ColorPicker{
 
 			this.finalCol = [...this.saturation.slice(0, 3), this.alpha];
 
-			if(this.func) this.func()
+			this.execute()
 		}
 		if(!mouseIsPressed){ 
 			this.beingPressed = false

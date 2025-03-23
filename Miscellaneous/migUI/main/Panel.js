@@ -22,7 +22,7 @@ x = width - 200, y = 0, w = 200, h = height, title = "", darkC = [0,0,0], lightC
 */
 
 class Panel{
-	constructor(properties = {}, font) {
+	constructor(properties = {}) {
 	    const {
 	        x = width - 200,
 	        y = 0,
@@ -33,7 +33,8 @@ class Panel{
 	        darkCol = [0, 0, 0],
 	        lightCol = [255, 255, 255],
 	        theme,
-	        automaticHeight = true
+	        automaticHeight = true,
+			font = 'Trebuchet MS'
 	    } = properties;
 
 	    this.pos = createVector(x, y);
@@ -44,7 +45,6 @@ class Panel{
 	    this.h = h
 	    this.retractable = retractable;
 
-		//kfbajslhdfgsubcuwfgeirufgc
 		this.font = font
 	    
 	    //width_elementsMIGUI = this.w - 35;
@@ -128,14 +128,14 @@ class Panel{
 	        this.pos.x,
 	        this.pos.y,
 	        " Retract Menu",
-	        (RetractMenu) => {
-	            this.isRetracted = !this.isRetracted;
-	            this.retractButton.text = this.isRetracted ? " Expand Menu" : " Retract Menu";
-	        },
 	        this.lightCol,
-	        this.darkCol,
-	        this.transCol
+	        this.darkCol
 	    );
+
+		this.retractButton.setFunc(() => {
+			this.isRetracted = !this.isRetracted;
+			this.retractButton.text = this.isRetracted ? " Expand Menu" : " Retract Menu";
+		})
 	    
 	    this.retractButton.pos = this.pos.copy();
 	    this.retractButton.w = this.w - bordeMIGUI;
@@ -154,7 +154,7 @@ class Panel{
 
 	}
 
-	createCheckbox(title = "", state = false, func = undefined) {
+	createCheckbox(title = "", state = false) {
 	    let newX, newY;
 	    let needsNewLine = false;
 
@@ -185,7 +185,7 @@ class Panel{
 	       
 	    }
 
-	    const checkbox = new Checkbox(newX, newY, title, state, func, this.lightCol, this.darkCol, this.transCol);
+	    const checkbox = new Checkbox(newX, newY, title, state, this.lightCol, this.darkCol, this.transCol);
 	    this.checkboxes.push(checkbox);
 	    this.lastElementAdded = checkbox;
 	    if(needsNewLine) this.lastElementPos.y += checkbox.height + this.padding
@@ -196,7 +196,7 @@ class Panel{
 	    return checkbox
 	}
 
-	createSlider(min, max, origin, title = "", showValue = false, func = undefined){
+	createSlider(min, max, origin, title = "", showValue = false){
 		let posSlider = this.lastElementPos.copy()
 		if(title != "" || showValue) posSlider.y += 15
 		if(this.lastElementAdded.constructor.name != "Slider"){
@@ -206,7 +206,7 @@ class Panel{
 		let slider = new Slider(this.lastElementPos.x,
 								this.lastElementPos.y,
 								posSlider.x, posSlider.y,
-								min, max, origin, title, showValue, func,
+								min, max, origin, title, showValue,
 								this.lightCol, this.darkCol, this.transCol) //<= === 
 		// if(title == "" && !showValue) this.lastElementPos.y += 22
 		// else this.lastElementPos.y += 37
@@ -220,13 +220,13 @@ class Panel{
 		return slider
 	}
 
-	createText(words = "", isTitle = false, func = undefined){
+	createText(words = "", isTitle = false){
 		//if(this.lastElementAdded.constructor.name != "Sentence") this.lastElementPos.y += 5
 		//if(isTitle) this.lastElementPos.y += 5
 		let spacedWords = wrapText(words, this.w, isTitle ? title_SizeMIGUI : text_SizeMIGUI)
 		let sentence = new Sentence(this.lastElementPos.x,
 									this.lastElementPos.y,
-									spacedWords, isTitle, func,
+									spacedWords, isTitle, 
 									this.lightCol, this.darkCol, this.transCol)
 		
 		this.lastElementPos.y += sentence.height + this.padding
@@ -240,14 +240,14 @@ class Panel{
 		return sentence
 	}
 
-	createSelect(options = [""], selected = undefined, func = undefined){
+	createSelect(options = [""], selected = undefined){
 		if(options.length == 0) return
 		//if(this.lastElementAdded.constructor.name != "Select") this.lastElementPos.y += 5
 		let selectedFinal = selected
 		if(selected != undefined) selectedFinal = findIndexMIGUI(selected, options)
 		let select = new Select(this.lastElementPos.x,
 								this.lastElementPos.y,
-								options, selectedFinal, func,
+								options, selectedFinal,
 								this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += (select.options.length*20) + 10
 		this.lastElementPos.y += select.height + this.padding
@@ -261,10 +261,10 @@ class Panel{
 		return select
 	}
 
-	createInput(placeholder = "", func = undefined, arg = false){
+	createInput(placeholder = ""){
 		//if(this.lastElementAdded.constructor.name != "Input") this.lastElementPos.y += 5
 		let input = new Input(this.lastElementPos.x,
-							  this.lastElementPos.y, placeholder, func, arg,
+							  this.lastElementPos.y, placeholder,
 							  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 30
 		this.lastElementPos.y += input.height + this.padding
@@ -278,7 +278,7 @@ class Panel{
 		return input
 	}
 
-	createButton(sentence = "", func = undefined){
+	createButton(sentence = ""){
 		let newX, newY;
 	    let needsNewLine = false;
 
@@ -308,7 +308,7 @@ class Panel{
 	        
 	    }
 		
-		let button = new Button(newX, newY, sentence, func, this.lightCol, this.darkCol, this.transCol)
+		let button = new Button(newX, newY, sentence,  this.lightCol, this.darkCol, this.transCol)
 		if(needsNewLine) this.lastElementPos.y += button.height + this.padding
 		this.buttons.push(button)
 		this.lastElementAdded = button
@@ -319,10 +319,10 @@ class Panel{
 		return button
 	}
 
-	createColorPicker(sentence = [], func = undefined, def = undefined){
+	createColorPicker(sentence = [], def = undefined){
 		let colorPicker = new ColorPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
-										  sentence, func, def, 
+										  sentence,  def, 
 										  this.lightCol, this.darkCol, this.transCol)
 		this.lastElementPos.y += colorPicker.height + this.padding
 		this.colorPickers.push(colorPicker)
@@ -335,10 +335,10 @@ class Panel{
 	}
 
 	createNumberPicker(sentence = "", min = undefined, max = undefined, delta = 1,
-					   def = undefined, func = undefined){
+					   def = undefined){
 		let numberPicker = new NumberPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
-										  sentence, min, max, delta, def, func, 
+										  sentence, min, max, delta, def,
 										  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 25
 		this.lastElementPos.y += numberPicker.height + this.padding
@@ -351,10 +351,10 @@ class Panel{
 		return numberPicker
 	}
 
-	createOptionPicker(sentence = "", options = [], func = undefined){
+	createOptionPicker(sentence = "", options = []){
 		let optionPicker = new OptionPicker(this.lastElementPos.x, 
 								this.lastElementPos.y,
-								sentence, options, func,
+								sentence, options, 
 								this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 25
 		this.lastElementPos.y += optionPicker.height + this.padding

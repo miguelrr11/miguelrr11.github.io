@@ -1,5 +1,5 @@
 class OptionPicker{
-	constructor(x, y, text, options, func, lightCol, darkCol){
+	constructor(x, y, text, options, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -11,7 +11,8 @@ class OptionPicker{
 		this.beingHoveredMinus = false
 		this.beingPressed = false
 
-		this.func = func
+		this.func = undefined
+		this.arg = false
 
 		this.w = picker_width
 		this.h = 17
@@ -29,6 +30,24 @@ class OptionPicker{
 		this.height = this.h
 
 		this.disabled = false
+	}
+
+	setFunc(func, arg = false){
+		this.func = func
+		this.arg = arg
+	}
+
+	execute(){
+		if(this.func) this.arg ? this.func(this.getSelected()) : this.func()
+	}
+
+	reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+		this.w = w || this.w
+		this.h = h || this.h
+
+		this.length = this.w + textWidth(this.text) + 8
+		this.height = this.h
 	}
 
 	getSelected(){
@@ -53,9 +72,6 @@ class OptionPicker{
 	// 	this.w = constrain(this.w, 20, width_elementsMIGUI)
 	// }
 
-	setFunc(func){
-		this.func = func
-	}
 
 	evaluate(){
 		this.beingHoveredMinus = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.sectionW, this.h)
@@ -68,12 +84,12 @@ class OptionPicker{
 			if(this.beingHoveredMinus){
 				this.selectedIndex--
 				if(this.selectedIndex < 0) this.selectedIndex = this.options.length-1
-				if(this.func != undefined) this.func()
+				this.execute()
 			}
 			if(this.beingHoveredPlus){
 				this.selectedIndex++
 				if(this.selectedIndex > this.options.length - 1) this.selectedIndex = 0
-				if(this.func != undefined) this.func()
+				this.execute()
 			}
 			this.beingPressed = true
 			return true

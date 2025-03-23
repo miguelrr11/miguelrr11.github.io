@@ -1,23 +1,28 @@
 class Button{
-	constructor(x, y, text, func, lightCol, darkCol, transCol){
+	constructor(x, y, text, lightCol, darkCol,){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
 		this.pos = createVector(x, y)
 		this.textSize = text_SizeMIGUI-2
-		if((func && func.name != "retractMenu") || func == undefined) 
-			this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
-		else this.text = text
+		// if((func && func.name != "retractMenu") || func == undefined) 
+		// 	this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
+		// else this.text = text
+
+		this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
 
 		this.beingHovered = false
 		this.beingPressed = false
 
-		this.func = func
-		if((func && func.name != "retractMenu") || func == undefined){ 
-			textSize(this.textSize)
-			this.w = textWidth(this.text) + 8
-		}
-		else this.w = 20
+		// if((func && func.name != "retractMenu") || func == undefined){ 
+		// 	textSize(this.textSize)
+		// 	this.w = textWidth(this.text) + 8
+		// }
+		// else this.w = 20
+
+		textSize(this.textSize)
+		this.w = textWidth(this.text) + 8
+
 		//this.w = constrain(this.w, 10, width_elementsMIGUI)
 		this.h = 20
 
@@ -26,6 +31,24 @@ class Button{
 
 		this.disabled = false
 		this.rad = radMIGUI
+
+		this.func = undefined
+		//this.arg in button is not used
+		this.arg = false
+	}
+
+	setFunc(func, arg = false){
+		this.func = func
+		this.arg = arg
+	}
+
+	reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+		this.w = w || this.w
+		this.h = h || this.h
+
+		this.length = this.w
+		this.height = this.h
 	}
 
 	disable(){
@@ -44,12 +67,11 @@ class Button{
 		// }
 	}
 
-	setFunc(func){
-		this.func = func
-	}
 
 	execute(){
-		if(this.func != undefined) this.func()
+		if(this.func != undefined){ 
+			this.func()
+		}
 	}
 
 	evaluate(){

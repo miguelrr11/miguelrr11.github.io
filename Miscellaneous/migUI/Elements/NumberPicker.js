@@ -1,5 +1,5 @@
 class NumberPicker{
-	constructor(x, y, text, min, max, delta, def, func, lightCol, darkCol){
+	constructor(x, y, text, min, max, delta, def, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -11,7 +11,8 @@ class NumberPicker{
 		this.beingHoveredMinus = false
 		this.beingPressed = false
 
-		this.func = func
+		this.func = undefined
+		this.arg = false
 
 		this.min = min != undefined ? min : -Infinity
 		this.max = max != undefined ? max : Infinity
@@ -30,6 +31,24 @@ class NumberPicker{
 		this.height = this.h
 
 		this.disabled = false
+	}
+
+	setFunc(func, arg = false){
+		this.func = func
+		this.arg = arg
+	}
+
+	execute(){
+		if(this.func) this.arg ? this.func(this.value) : this.func()
+	}
+
+	reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+		this.w = w || this.w
+		this.h = h || this.h
+
+		this.length = this.w + textWidth(this.text) + 8
+		this.height = this.h
 	}
 
 	setValue(value){
@@ -54,9 +73,6 @@ class NumberPicker{
 	// 	this.w = constrain(this.w, 20, width_elementsMIGUI)
 	// }
 
-	setFunc(func){
-		this.func = func
-	}
 
 	evaluate(){
 		this.beingHoveredMinus = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.sectionW, this.h)
@@ -69,14 +85,14 @@ class NumberPicker{
 			if(this.beingHoveredMinus){
 				this.value -= this.delta
 				this.value = round(this.value, 3)
-				if(this.func && this.value >= this.min) this.func()
+				if(this.value >= this.min) this.execute()
 				this.value = constrain(this.value, this.min, this.max)
 				
 			}
 			if(this.beingHoveredPlus){
 				this.value += this.delta
 				this.value = round(this.value, 3)
-				if(this.func && this.value <= this.max) this.func()
+				if(this.value <= this.max) this.execute()
 				this.value = constrain(this.value, this.min, this.max)
 			}
 			this.beingPressed = true

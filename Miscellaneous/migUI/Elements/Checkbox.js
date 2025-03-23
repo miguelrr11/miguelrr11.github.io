@@ -1,5 +1,5 @@
 class Checkbox{
-	constructor(x, y, title, state, func, lightCol, darkCol, transCol){
+	constructor(x, y, title, state,  lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -7,7 +7,8 @@ class Checkbox{
 		this.state = state
 		this.name = title
 		this.title = getClippedTextMIGUI(title, clipping_length_normalMIGUI)
-		this.func = func
+		this.func = undefined
+		this.arg = false
 		this.textSize = text_SizeMIGUI-1
 
 		this.beingPressed = false
@@ -23,8 +24,21 @@ class Checkbox{
 		this.rad = radMIGUI
 	}
 
+	setFunc(func, arg = false){
+		this.func = func
+		this.arg = arg
+	}
+
+	reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+		this.w = w || this.w
+		this.h = h || this.h
+		
+		this.height = this.h
+	}
+
 	execute(){
-		if(this.func) this.func()
+		if(this.func) this.arg ? this.func(this.state) : this.func()
 	}
 
 	isChecked(){

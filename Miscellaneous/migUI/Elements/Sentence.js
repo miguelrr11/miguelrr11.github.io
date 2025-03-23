@@ -1,5 +1,5 @@
 class Sentence{
-	constructor(x, y, words, isTitle, func,  lightCol, darkCol, transCol){
+	constructor(x, y, words, isTitle, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -8,11 +8,25 @@ class Sentence{
 		this.words = words
 		this.isTitle = isTitle
 		this.textSize = this.isTitle ? title_SizeMIGUI : text_SizeMIGUI-2
-		this.func = func
+		this.func = undefined
 
 		let newlinesN = words.split('\n').length
 		let newlines = words.split('\n')
 		textSize(this.textSize)
+		this.height = 0
+		for(let i = 0; i < newlinesN; i++){
+			this.height += textHeight(newlines[i])
+		}
+		this.height *= 1.2
+	}
+
+	setFunc(func){
+		this.func = func
+	}
+
+	reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+
 		this.height = 0
 		for(let i = 0; i < newlinesN; i++){
 			this.height += textHeight(newlines[i])

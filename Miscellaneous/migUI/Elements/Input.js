@@ -1,18 +1,18 @@
 class Input {
-    constructor(x, y, placeholder, func, arg, lightCol, darkCol, transCol) {
+    constructor(x, y, placeholder, lightCol, darkCol) {
         this.darkCol = darkCol
         this.lightCol = lightCol
         this.transCol = [...lightCol, 100]
         this.pos = createVector(x, y)
         this.textSize = text_SizeMIGUI - 2
-        this.arg = arg
 
         textSize(this.textSize)
         let margin = bordeMIGUI + text_offset_xMIGUI
         let maxTextWidth = width_elementsMIGUI - 2 * margin
         this.placeholder = getClippedTextByWidth(placeholder, 0, maxTextWidth)
 
-        this.func = func
+        this.func = undefined
+        this.arg = false
 
         this.beingHovered = false
         this.beingPressed = false
@@ -36,6 +36,17 @@ class Input {
         document.addEventListener("keyup", this.evaluateKey.bind(this))
         document.addEventListener("paste", this.handlePaste.bind(this));
     }
+    
+    setFunc(func, arg = false) {
+        this.func = func
+        this.arg = arg
+    }
+
+    reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+		this.w = w || this.w
+		this.h = h || this.h
+	}
 
     handlePaste(event){
         let clipboardData = event.clipboardData || window.clipboardData;

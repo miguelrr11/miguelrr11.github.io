@@ -34,7 +34,8 @@ function setup(){
         title: "MIGUI DEMO",
         w: widthPanel,
         x: WIDTH,
-    }, fontPanel)
+        font: fontPanel,
+    })
     cb1 = panel.createCheckbox("RED", false)
     cb2 = panel.createCheckbox("Green", false)
     cb3 = panel.createCheckbox("Blue!", false)
@@ -52,31 +53,31 @@ function setup(){
     panel.createSeparator()
 
     panel.createText("Enter number between 0 and 255 below and press enter")
-    ip = panel.createInput("Enter value ", setval)
+    ip = panel.createInput("Enter value ")
+    ip.setFunc(setval)
 
     panel.createSeparator()
 
-    bt = panel.createButton("BLACK", f => back = 0)
-    panel.createButton("GREY", f => back = 125)
-    panel.createButton("WHITE", f => back = 255)
+    bt = panel.createButton("BLACK")
+    let bt2 = panel.createButton("GREY")
+    let bt3 = panel.createButton("WHITE")
+    bt.setFunc(f => back = 0)
+    bt2.setFunc(f => back = 125)
+    bt3.setFunc(f => back = 255)
 
-    th = panel.createSelect(["spiderman", "sublime", "blossom", "techno"], "techno", (f) => {
-        panel.setTheme(th.getSelected())
-    })
+    th = panel.createSelect(["spiderman", "sublime", "blossom", "techno"], "techno")
+    th.setFunc(f => {panel.setTheme(th.getSelected())})
     
-    np1 = panel.createNumberPicker("Add circ.", 0, 22, 1, 1, npMinus)
+    np1 = panel.createNumberPicker("Add circ.", 0, 22, 1, 1)
+    np1.setFunc(npMinus, true)
 
     opp = panel.createOptionPicker("options", ["a", "b", "c"])
 }
 
-function npPlus(){
-    console.log("plus")
-}
 
-function npMinus(){
-    console.log("minus")
+function npMinus(arg){
+    console.log(arg)
 }
-
 
 function setval(){
     sl1.setValue(ip.getText())
@@ -87,7 +88,7 @@ function logInput(text){
 }
 
 function hola(){
-    back = random() * 255
+    back = Math.random() * 255
 }
 
 function adios(){

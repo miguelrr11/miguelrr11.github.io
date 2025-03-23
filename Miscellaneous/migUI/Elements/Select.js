@@ -1,5 +1,5 @@
 class Select{
-	constructor(x, y, options, selected, func, lightCol, darkCol, transCol){
+	constructor(x, y, options, selected, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -14,7 +14,8 @@ class Select{
 			this.optionsText[i] = getClippedTextMIGUI(options[i], clipping_length_normalMIGUI)
 		}
 		this.selected = selected
-		this.func = func
+		this.func = undefined
+		this.arg = false
 
 		this.beingPressed = false
 
@@ -26,8 +27,21 @@ class Select{
 		this.rad = radMIGUI
 	}
 
+	setFunc(func, arg = false){
+		this.func = func
+		this.arg = arg
+	}
+
+	reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+		this.w = w || this.w
+	}
+
 	execute(){
-		if(this.func) this.func()
+		if(this.func){
+			if(this.arg && this.getSelected() != undefined) this.func(this.getSelected())
+			else this.func()
+		}
 	}
 
 	deselect(){

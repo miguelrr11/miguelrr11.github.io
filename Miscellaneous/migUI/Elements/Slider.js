@@ -1,5 +1,5 @@
 class Slider{
-	constructor(x, y, sx, sy, min, max, origin, title, showValue, func, lightCol, darkCol, transCol){
+	constructor(x, y, sx, sy, min, max, origin, title, showValue, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -12,7 +12,8 @@ class Slider{
 		if(origin > max || origin < min) this.origin = ((this.max - this.min) / 2) + this.min
 		this.name = title
 		this.title = getClippedTextMIGUI(title, 50)
-		this.func = func
+		this.func = undefined
+		this.arg = false
 
 		this.w = width_elementsMIGUI
 		this.h = 12
@@ -27,6 +28,25 @@ class Slider{
 
 		this.beingHovered = false
 		this.beingPressed = false		
+	}
+
+	setFunc(func, arg = false){
+		this.func = func
+		this.arg = arg
+	}
+
+	execute(){
+		if(this.func) this.arg ? this.func(this.value) : this.func()
+	}
+
+	reposition(x, y, w = undefined, h = undefined){
+		this.pos = createVector(x, y)
+		this.sliderPos = createVector(x, y)
+		this.w = w || this.w
+		this.h = h || this.h
+		this.setValue(this.value)
+		this.height = this.h + 1
+		this.height += (this.showValue || this.title) != "" ? 17 : 0
 	}
 
 	setValue(value){
@@ -68,7 +88,7 @@ class Slider{
 		}
 		if(this.beingPressed && mouseIsPressed) {
 			[this.value, this.valuePosX] = this.getBound()
-			if(this.func) this.func()
+			this.execute()
 			return true
 		}
 		return false
