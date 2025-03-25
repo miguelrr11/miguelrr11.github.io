@@ -154,6 +154,19 @@ a:hover {
     transform: scale(1.05);
 }
 
+a.custom-link {
+    text-decoration: none;
+    color: #86b0d7;
+    font-weight: bold;
+    transition: color 0.3s ease, transform 0.3s ease;
+    font-size: 14;
+}
+
+a.custom-link:hover {
+    color: #ff6f61;
+    transform: scale(1.05);
+}
+
 footer {
     text-align: center;
     margin-top: 40px;
@@ -181,4 +194,21 @@ footer {
     p {
         font-size: 1em;
     }
+}
+
+
+#toggleShowAll {
+    background: none;
+    border: none;
+    color: rgb(177, 177, 177); /* Change to match your design */
+    cursor: pointer;
+    font-size: 16px;
+    padding: 0;
+    position: fixed; /* Keeps it in place when scrolling */
+    right: 20px; /* Adjust distance from the right edge */
+    top: 10px; /* Adjust vertical position */
+}
+
+#toggleShowAll:hover {
+    color: rgb(225, 225, 225); /* Slight color change on hover */
 }
