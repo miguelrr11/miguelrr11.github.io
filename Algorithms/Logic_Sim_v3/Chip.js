@@ -281,16 +281,16 @@ class Chip{
 
             //connecting node
             line(inputToggleX, this.inputsPos[i].y + tamCompNodes / 2, inputX, this.inputsPos[i].y + tamCompNodes / 2)
-            rect(inputX, this.inputsPos[i].y, tamCompNodes, tamCompNodes)
+            rect(inputX, this.inputsPos[i].y, tamCompNodes, tamCompNodes, RADNODE)
             //toggle node
             fill(this.inputs[i] === 0 ? colorOff : colorOn);
-            rect(inputToggleX, this.inputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes)
+            rect(inputToggleX, this.inputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes, RADNODE)
             //drag node
             fill(125)
             noStroke()
             let inB = this.getInBoundsDragInput(i)
             if(inB) fill (200)
-            rect(5, this.inputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, inputToggleX - 10, tamBasicNodes)
+            rect(5, this.inputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, inputToggleX - 10, tamBasicNodes, RADNODE)
 
             let hovered = hoveredNode && hoveredNode.comp == 'INPUTS' && hoveredNode.index == i
             if(hovered || showingTags) this.showInputTag(i, true)
@@ -316,16 +316,16 @@ class Chip{
 
             //connecting node
             line(outputX, this.outputsPos[i].y + tamCompNodes / 2, outputToggleX, this.outputsPos[i].y + tamCompNodes / 2)
-            rect(outputX, this.outputsPos[i].y, tamCompNodes, tamCompNodes)
+            rect(outputX, this.outputsPos[i].y, tamCompNodes, tamCompNodes, RADNODE)
             //toggle node
             fill(this.outputs[i] === 0 ? colorOff : (this.outputs[i] === 1 ? colorOn : colorFloating));
-            rect(outputToggleX, this.outputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes)
+            rect(outputToggleX, this.outputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, tamBasicNodes, tamBasicNodes, RADNODE)
             //drag node
             fill(125)
             noStroke()
             let inB = this.getInBoundsDragOutput(i)
             if(inB) fill (200)
-            rect(outputToggleX + tamBasicNodes + 5, this.outputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, inputToggleX - 10, tamBasicNodes)
+            rect(outputToggleX + tamBasicNodes + 5, this.outputsPos[i].y + tamCompNodes / 2 - tamBasicNodes / 2, inputToggleX - 10, tamBasicNodes, RADNODE)
 
             let hovered = hoveredNode && hoveredNode.comp == 'OUTPUTS' && hoveredNode.index == i
             if(hovered || showingTags) this.showOutputTag(i, true)
@@ -355,7 +355,7 @@ class Chip{
         else fill(100)
         chip == selectedComp ? stroke(colorSelected) : stroke(darkenColor(chip.col));
         strokeWeight(strokeLight)
-        rect(chip.x, chip.y, chip.width, chip.height);
+        rect(chip.x, chip.y, chip.width, chip.height, RADCHIP);
 
         //inputs
         let multIn = (chip.height - tamCompNodes) /  chip.inputs.length
@@ -376,7 +376,7 @@ class Chip{
             }
             if(chip == selectedComp) stroke(colorSelected)
 
-            rect(chip.x - tamCompNodes / 2, chip.y + i * multIn + off, tamCompNodes, tamCompNodes);
+            rect(chip.x - tamCompNodes / 2, chip.y + i * multIn + off, tamCompNodes, tamCompNodes, RADNODE);
 
             if(hovered || showingTags) chip.showInputTag(i)
         }
@@ -402,7 +402,7 @@ class Chip{
             if(chip == selectedComp) stroke(colorSelected)
 
             fill(chip.outputs[i] === 0 ? colorOff : colorOn);
-            rect(chip.x + chip.width - tamCompNodes / 2, chip.y + i * multOut + off, tamCompNodes, tamCompNodes);
+            rect(chip.x + chip.width - tamCompNodes / 2, chip.y + i * multOut + off, tamCompNodes, tamCompNodes, RADNODE);
 
             if(hovered || showingTags) chip.showOutputTag(i)
         }

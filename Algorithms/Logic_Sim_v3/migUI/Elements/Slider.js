@@ -77,7 +77,7 @@ class Slider{
 		fill(this.darkCol)
 		stroke(this.lightCol)
 		this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
-		rect(this.sliderPos.x, this.sliderPos.y, this.w, this.h)
+		rect(this.sliderPos.x, this.sliderPos.y, this.w, this.h, radMIGUI)
 
 		//relleno hovering
 		if(this.beingHovered){
@@ -85,13 +85,13 @@ class Slider{
 			fill(this.transCol)
 			noStroke()
 			let x = this.getBound()[1]
-			rect(this.sliderPos.x, this.sliderPos.y, x-this.sliderPos.x, this.h)
+			rect(this.sliderPos.x, this.sliderPos.y, x-this.sliderPos.x, this.h, radMIGUI)
 			pop()
 		}
 
 		//relleno slider
 		fill(this.lightCol)
-		rect(this.sliderPos.x, this.sliderPos.y, this.valuePosX-this.sliderPos.x, this.h)
+		rect(this.sliderPos.x, this.sliderPos.y, this.valuePosX-this.sliderPos.x, this.h, radMIGUI)
 
 
 		//texto

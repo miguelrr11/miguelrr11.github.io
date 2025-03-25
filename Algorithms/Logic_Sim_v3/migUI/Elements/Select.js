@@ -70,7 +70,7 @@ class Select{
 		this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		stroke(this.lightCol)
 		noFill()
-		rect(this.pos.x, this.pos.y, this.w, this.h)
+		rect(this.pos.x, this.pos.y, this.w, this.h, radMIGUI)
 		fill(this.darkCol)
 		textSize(text_SizeMIGUI-2)
 		for(let i = 0; i < this.optionsText.length; i++){

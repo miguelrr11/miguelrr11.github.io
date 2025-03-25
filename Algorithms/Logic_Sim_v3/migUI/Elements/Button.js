@@ -67,11 +67,11 @@ class Button{
 		this.beingHovered && !this.disabled ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		this.disabled ? stroke(this.transCol) : stroke(this.lightCol)
 		fill(this.darkCol)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
+		rect(this.pos.x, this.pos.y, this.w, this.h, radMIGUI)
 		this.beingHovered ? fill(this.transCol) : fill(this.darkCol)
 		if(this.beingHovered && mouseIsPressed) fill(this.lightCol)
 		if(this.disabled) fill(this.darkCol)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
+		rect(this.pos.x, this.pos.y, this.w, this.h, radMIGUI)
 
 		noStroke()
 		this.disabled ? fill(this.transCol) : fill(this.lightCol)

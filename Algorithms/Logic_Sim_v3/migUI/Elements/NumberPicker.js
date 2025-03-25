@@ -106,20 +106,20 @@ class NumberPicker{
 		strokeWeight(bordeMIGUI)
 		this.disabled ? stroke(this.transCol) : stroke(this.lightCol)
 		fill(this.darkCol)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
+		rect(this.pos.x, this.pos.y, this.w, this.h, radMIGUI)
 		this.setSFtext(false)
 		text(this.value, this.pos.x + this.w * 0.5, this.pos.y + this.h / 2 - 1)
 
 		//rect con -
 		this.setSF(this.beingHoveredMinus)
-		rect(this.pos.x, this.pos.y, this.sectionW, this.h)
+		rect(this.pos.x, this.pos.y, this.sectionW, this.h, radMIGUI, 0, 0, radMIGUI)
 		this.setSFtext(this.beingHoveredMinus)
 		text('-', this.pos.x + this.sectionW / 2, this.pos.y + this.h / 2 - 1)
 
 
 		//rect con +
 		this.setSF(this.beingHoveredPlus)
-		rect(this.pos.x+this.w-this.sectionW, this.pos.y, this.sectionW, this.h)
+		rect(this.pos.x+this.w-this.sectionW, this.pos.y, this.sectionW, this.h, 0, radMIGUI, radMIGUI, 0)
 		this.setSFtext(this.beingHoveredPlus)
 		text('+', this.pos.x+this.w-this.sectionW/2, this.pos.y + this.h / 2 - 1)
 

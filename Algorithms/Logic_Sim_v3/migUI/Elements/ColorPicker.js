@@ -130,7 +130,7 @@ class ColorPicker{
 		this.interacted ? fill(this.finalCol) : fill(this.defaultCol)
 		stroke(this.lightCol)
 		this.isChoosing || this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
+		rect(this.pos.x, this.pos.y, this.w, this.h, radMIGUI)
 
 		noStroke()
 		fill(this.lightCol)
@@ -142,7 +142,7 @@ class ColorPicker{
 			fill(this.darkCol)
 			stroke(this.lightCol)
 			strokeWeight(bordeMIGUI)
-			rect(this.poscp.x, this.poscp.y, this.cpw, this.cph)
+			rect(this.poscp.x, this.poscp.y, this.cpw, this.cph, radMIGUI)
 
 			this.drawGradients()
 			// drawGradientRainbow(this.poscp.x + 5, this.poscp.y + 5, this.cpw - 10, this.cph * 0.33 - 7.5)

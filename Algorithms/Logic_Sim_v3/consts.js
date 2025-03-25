@@ -8,7 +8,7 @@ const tamCompNodes = 13.5
 const colorBackMenu = "#0E212E"
 const colorBack = "#343A40"
 const colorOn = "#1FF451"
-const colorOff = "#14663F"
+const colorOff = "#115936"
 const colorFloating = "#04070c"
 const colorDisconnected = "#262F36"
 //const colorComp = "#C7F9CC"
@@ -23,6 +23,10 @@ const colsComps = [roundNum(Math.random() * 150),
                    roundNum(Math.random() * 150),
                    roundNum(Math.random() * 150),
                    roundNum(Math.random() * 150)]
+
+//corner radius
+const RADCHIP = 5
+const RADNODE = 2
 
 //connection
 const strokeOff = 3.8

@@ -3,6 +3,7 @@
 //06-09-2024
 
 let bordeMIGUI = 1.5
+let radMIGUI = 2
 let text_FontMIGUI = ""
 let text_SizeMIGUI = 15
 let text_offset_xMIGUI = 1.5
@@ -48,7 +49,7 @@ class Panel{
 	    this.padding = 10
 	    this.paddingSeparator = 15
 
-	    this.lastElementPos = createVector(x + 17, y + 30);
+	    this.lastElementPos = createVector(x + 17, y + 35);
 	    if (this.retractable) this.lastElementPos.y += 20;
 
 	    this.titlePos = createVector(this.lastElementPos.x - 3, this.lastElementPos.y);
@@ -614,23 +615,27 @@ class Panel{
 		//fondo
 		fill(this.darkCol)
 		stroke(this.lightCol)
-		strokeWeight(bordeMIGUI)
+		strokeWeight(2)
 		if(this.isRetracted && this.retractable){
 			this.retractButton.show()
 			pop()
 			cursor(ARROW)
 			return
 		}
-		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI)
+		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI, 30)
 		
 		//Titulo
+		push()
+		textAlign(CENTER)
+		let offx = this.w / 2 + this.pos.x
 		noStroke()
 		textSize(title_SizeMIGUI)
 		fill([...this.lightCol, 170])
-		text(this.title, this.titlePos.x + 3, this.titlePos.y + 3)
+		text(this.title,  3 + offx, this.titlePos.y + 3)
 		fill(this.lightCol)
 		stroke(this.darkCol)
-		text(this.title, this.titlePos.x, this.titlePos.y)
+		text(this.title, offx, this.titlePos.y)
+		pop()
 
 		for(let b of this.checkboxes) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.sliders) this.beingHoveredHand = b.show() || this.beingHoveredHand 

@@ -47,7 +47,7 @@ class Checkbox{
 		if(!this.state && this.beingHovered) fill(this.transCol)
 		stroke(this.lightCol)
 		this.beingHovered ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
-		rect(this.pos.x, this.pos.y, this.w, this.h)
+		rect(this.pos.x, this.pos.y, this.w, this.h, radMIGUI)
 
 		noStroke()
 		fill(this.lightCol)

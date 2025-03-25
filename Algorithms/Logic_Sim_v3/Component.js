@@ -60,7 +60,7 @@ class Component {
         fill(this.col);
         strokeWeight(strokeLight);
         this == selectedComp ? stroke(colorSelected) : stroke(darkenColor(this.col));
-        rect(this.x, this.y, this.width, this.height);
+        rect(this.x, this.y, this.width, this.height, RADCHIP);
 
         let multIn = (this.height - tamCompNodes) / this.inputs.length;
         let off = multIn / 2;
@@ -81,7 +81,7 @@ class Component {
             }
             
             //noFill()////////////////////
-            rect(this.x - tamCompNodes / 2, this.y + i * multIn + off, tamCompNodes, tamCompNodes);
+            rect(this.x - tamCompNodes / 2, this.y + i * multIn + off, tamCompNodes, tamCompNodes, RADNODE);
 
             if(hovered || showingTags) this.showInputTag(i)
         }
@@ -106,7 +106,7 @@ class Component {
             }
 
             //noFill()////////////////////
-            rect(this.x + this.width - tamCompNodes / 2, this.y + i * multOut + off, tamCompNodes, tamCompNodes);
+            rect(this.x + this.width - tamCompNodes / 2, this.y + i * multOut + off, tamCompNodes, tamCompNodes, RADNODE);
 
             if(hovered || showingTags) this.showOutputTag(i)
         }
@@ -221,7 +221,7 @@ class Display extends Component {
         fill(this.col);
         this == selectedComp ? stroke(colorSelected) : stroke(darkenColor(this.col));
         strokeWeight(2);
-        rect(this.x, this.y, this.width, this.height);
+        rect(this.x, this.y, this.width, this.height, RADCHIP);
 
         let multIn = (this.height - tamCompNodes) / this.inputs.length;
         let off = multIn / 2;
@@ -238,7 +238,7 @@ class Display extends Component {
                 strokeWeight(strokeLight)
             }
 
-            rect(this.x - tamCompNodes / 2, this.y + i * multIn + off, tamCompNodes, tamCompNodes);
+            rect(this.x - tamCompNodes / 2, this.y + i * multIn + off, tamCompNodes, tamCompNodes, RADNODE);
         }
 
         noStroke()
@@ -284,7 +284,7 @@ class Clock extends Component {
         fill(this.col);
         this == selectedComp ? stroke(colorSelected) : stroke(darkenColor(this.col));
         strokeWeight(2);
-        rect(this.x, this.y, this.width, this.height);
+        rect(this.x, this.y, this.width, this.height, RADCHIP);
 
         let multOut = (this.height - tamCompNodes) / this.outputs.length;
         let off = multOut / 2;
@@ -301,7 +301,7 @@ class Clock extends Component {
             }
 
             this == selectedComp ? stroke(colorSelected) : stroke(0);
-            rect(this.x + this.width - tamCompNodes / 2, this.y + i * multOut + off, tamCompNodes, tamCompNodes);
+            rect(this.x + this.width - tamCompNodes / 2, this.y + i * multOut + off, tamCompNodes, tamCompNodes, RADNODE);
         }
 
         pop();
@@ -375,8 +375,8 @@ class Bus extends Component {
         noStroke()
         rectMode(CENTER)
         //if(this.inBounds(mouseX, mouseY)) fill(colorOff)
-        rect(this.path[0].x, this.path[0].y, 12)
-        rect(this.path[this.path.length-1].x, this.path[this.path.length-1].y, 12)
+        rect(this.path[0].x, this.path[0].y, 12, 12, 3)
+        rect(this.path[this.path.length-1].x, this.path[this.path.length-1].y, 12, 12, 3)
         pop()
     }
 }

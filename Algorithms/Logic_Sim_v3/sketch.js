@@ -72,13 +72,15 @@ let currentCursorStyle
 let fps = 60
 
 function setup() {
-    canvas = createCanvas(WIDTH+widthPanel, HEIGHT);
+    canvas = createCanvas(WIDTH+widthPanel+10, HEIGHT);
     let x = (windowWidth - width) / 2;
     let y = (windowHeight - height) / 2;
     canvas.position(x, y);
     strokeJoin(ROUND);
     panel = new Panel({
-        x: WIDTH,
+        x: WIDTH+10,
+        y: 10,
+        h: HEIGHT - 20,
         w: widthPanel,
         automaticHeight: false,
         lightCol: colorOn,
@@ -86,7 +88,7 @@ function setup() {
         title: 'LOGIC SIM'
     })
     panel.createSeparator()
-    panel_fps = panel.createText()
+    //panel_fps = panel.createText()
     panel.createText("- Click on an input to start a connection")
     panel.createText("- Press Z to undo a segment")
     panel.createText("- Press T to toggle IO tags")
@@ -234,7 +236,7 @@ function draw() {
     background(colorOff)
 
     if(frameCount % 60 == 0) fps = Math.floor(frameRate())
-    panel_fps.setText("FPS: " + fps)
+    //panel_fps.setText("FPS: " + fps)
     
     drawMargin()
     if(chipStack.length == 0) panel_goBack.disable()
@@ -257,7 +259,6 @@ function draw() {
         drawCurrentConnection()
     }
 
-    if(hoveredNode)
 
     if(creatingBus){
         showBus()
@@ -265,7 +266,7 @@ function draw() {
 
     showMultiSelection()
 
-    if(frameCount % 1 == 0) chipStack.length == 0 ? chip.simulate() : chipStack[0].simulate()
+    chipStack.length == 0 ? chip.simulate() : chipStack[0].simulate()
     chip.show();
 
     panel.update()
@@ -635,8 +636,8 @@ function showBus(){
     else{
         push()
         rectMode(CENTER)
-        rect(pathBus[0].x, pathBus[0].y, 12)
-        rect(mouseX, mouseY, 12)
+        rect(pathBus[0].x, pathBus[0].y, 12, 12, 3)
+        rect(mouseX, mouseY, 12, 12, 3)
         stroke(0)
         strokeWeight(5)
         noFill()
