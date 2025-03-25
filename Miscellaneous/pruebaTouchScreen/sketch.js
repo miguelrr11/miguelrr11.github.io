@@ -14,13 +14,14 @@ function setup(){
 }
 
 function touchStarted(){
-    let touch = touches.pop()
-    points.push({
-        x: touch.x,
-        y: touch.y,
-        framesLeft: 60 * 3
-    })
-    console.log(points)
+    for(let touch of touches){
+        points.push({
+            x: touch.x,
+            y: touch.y,
+            framesLeft: 60 * 3
+        })
+    }
+    touches = []
 }
 
 function draw(){
