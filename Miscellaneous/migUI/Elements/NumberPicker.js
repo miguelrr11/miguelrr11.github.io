@@ -135,14 +135,14 @@ class NumberPicker{
 
 		//rect con -
 		this.setSF(this.beingHoveredMinus)
-		rect(this.pos.x, this.pos.y, this.sectionW, this.h, this.rad)
+		rect(this.pos.x, this.pos.y, this.sectionW, this.h, this.rad, 0, 0, this.rad)
 		this.setSFtext(this.beingHoveredMinus)
 		text('-', this.pos.x + this.sectionW / 2, this.pos.y + this.h / 2)
 
 
 		//rect con +
 		this.setSF(this.beingHoveredPlus)
-		rect(this.pos.x+this.w-this.sectionW, this.pos.y, this.sectionW, this.h, this.rad)
+		rect(this.pos.x+this.w-this.sectionW, this.pos.y, this.sectionW, this.h, 0, this.rad, this.rad, 0)
 		this.setSFtext(this.beingHoveredPlus)
 		text('+', this.pos.x+this.w-this.sectionW/2, this.pos.y + this.h / 2)
 

@@ -27,7 +27,7 @@ function preload(){
 }
 
 function mouseClicked(){
-    if(keyIsPressed) panel.reposition(mouseX, mouseY)
+    //if(keyIsPressed) panel.reposition(mouseX, mouseY)
 }
 
 function setup(){

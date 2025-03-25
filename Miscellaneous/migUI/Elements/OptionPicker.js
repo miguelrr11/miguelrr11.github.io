@@ -132,7 +132,7 @@ class OptionPicker{
 		//rect con -
 		let off = 0
 		this.setSF(this.beingHoveredMinus)
-		rect(this.pos.x+off, this.pos.y+off, this.sectionW-off*2, this.h-off*2, this.rad)
+		rect(this.pos.x+off, this.pos.y+off, this.sectionW-off*2, this.h-off*2, this.rad, 0, 0, this.rad)
 		this.setSFtext(this.beingHoveredMinus)
 		text('<', this.pos.x + this.sectionW / 2, this.pos.y + this.h / 2)
 
@@ -140,7 +140,7 @@ class OptionPicker{
 		//rect con +
 		
 		this.setSF(this.beingHoveredPlus)
-		rect(this.pos.x+this.w-this.sectionW+off, this.pos.y+off, this.sectionW-off*2, this.h-off*2, this.rad)
+		rect(this.pos.x+this.w-this.sectionW+off, this.pos.y+off, this.sectionW-off*2, this.h-off*2, 0, this.rad, this.rad, 0)
 		this.setSFtext(this.beingHoveredPlus)
 		text('>', this.pos.x+this.w-this.sectionW/2, this.pos.y + this.h / 2)
 

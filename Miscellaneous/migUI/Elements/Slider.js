@@ -112,7 +112,7 @@ class Slider{
 			rect(this.sliderPos.x, this.sliderPos.y, x-this.sliderPos.x, this.h, this.rad)
 			pop()
 		}
-
+ 
 		//relleno slider
 		if(this.valuePosX-this.sliderPos.x >= 1.5){
 			fill(this.lightCol)
