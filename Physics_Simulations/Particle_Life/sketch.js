@@ -424,7 +424,7 @@ function draw() {
     textSize(35)
     textFont("Courier")
     text("Particle Life", WIDTH, 75)
-    fps.html("FPS: " + floor(frameRate()))
+    fps.html("FPS: " + Math.floor(frameRate()))
 
     if(!pause){
         applyRule(w, w, sliders[0].value())

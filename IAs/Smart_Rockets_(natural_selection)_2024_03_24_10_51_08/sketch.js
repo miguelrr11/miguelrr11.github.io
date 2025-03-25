@@ -20,7 +20,7 @@ function setup() {
   goal = createVector(width/2, 50)
   steps = 150
   gener = 0
-  checkBox = createCheckbox("Tails");
+  checkBox = createCheckbox("Trails");
   
   obstacles.push(new obstacle(width/2, 300, 100, 15))
   obstacles.push(new obstacle(100, 200, 100, 15))
