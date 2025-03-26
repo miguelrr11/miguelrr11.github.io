@@ -207,6 +207,7 @@ footer {
     position: fixed; /* Keeps it in place when scrolling */
     right: 20px; /* Adjust distance from the right edge */
     top: 10px; /* Adjust vertical position */
+    font-size: 12px;
 }
 
 #toggleShowAll:hover {
