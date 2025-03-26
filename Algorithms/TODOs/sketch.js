@@ -3,7 +3,7 @@
 //
 
 p5.disableFriendlyErrors = true
-const WIDTH = 940
+const WIDTH = 1500
 const HEIGHT = 600
 
 const colBack = "#3c3c3c"
@@ -214,7 +214,7 @@ function draw(){
     panel.show()
 
     push()
-    stroke("#9bafd9")
+    stroke("#000022")
     line(200, 0, 200, HEIGHT)
     pop()
 

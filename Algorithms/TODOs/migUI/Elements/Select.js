@@ -99,7 +99,16 @@ class Select{
 				fill(this.lightCol)
 			}
 			noStroke()
-			rect(this.pos.x, this.pos.y, this.w, this.singleH, this.rad)
+			if(i == 0){
+				if(this.options.length <= 1) rect(this.pos.x, this.pos.y, this.w, this.singleH, this.rad)
+				else rect(this.pos.x, this.pos.y + this.singleH * i, this.w, this.singleH, this.rad, this.rad, 0, 0)
+			}
+			else if(i == this.options.length - 1){
+				rect(this.pos.x, this.pos.y, this.w, this.singleH, 0, 0, this.rad, this.rad)
+			}
+			else{
+				rect(this.pos.x, this.pos.y, this.w, this.singleH)
+			}
 
 			noStroke()
 			fill(this.lightCol)
