@@ -317,9 +317,10 @@ function setup(){
             "i": 10
         }
     ]
-    for (let i = 0; i < data.length; i++) {
+    for (let i = 0; i < 1; i++) {
+        let prev = i == 0 ? createVector(data[i].p0.x, data[i].p0.y) : curves[i-1].p3
         let curve = {
-            p0: createVector(data[i].p0.x, data[i].p0.y),
+            p0: prev,
             p1: createVector(data[i].p1.x, data[i].p1.y),
             p2: createVector(data[i].p2.x, data[i].p2.y),
             p3: createVector(data[i].p3.x, data[i].p3.y),
