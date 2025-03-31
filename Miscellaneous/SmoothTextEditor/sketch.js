@@ -8,6 +8,7 @@ const HEIGHT = 600;
 
 let font;
 let scl = 4;
+let sclTarget = 4;
 
 let lines = ["Type..."];
 let cursor = { line: 0, col: lines[0].length };
@@ -32,7 +33,9 @@ function setup() {
 
 function draw() {
     background(0);
-    camPos.lerp(camTarget, 0.08);
+    updateCameraTarget();
+    scl = lerp(scl, sclTarget, 0.1);
+    camPos.lerp(camTarget, 0.1);
     translate(camPos.x, camPos.y);
     scale(scl);
 
@@ -56,7 +59,14 @@ function updateCameraTarget() {
     camTarget = createVector(
         width / 2 - cursorX * scl,
         height / 2 - cursorY * scl
-    );
+    );   
+    
+}
+
+function updateScl(){
+    let lineLength = lines[cursor.line].length;
+    let factor = 0.2;
+    sclTarget = 4 / (1 + factor * Math.log(1 + lineLength));
 }
 
 function insertChar(ch) {
@@ -64,6 +74,7 @@ function insertChar(ch) {
     lines[cursor.line] = lineStr.slice(0, cursor.col) + ch + lineStr.slice(cursor.col);
     cursor.col++;
     updateCameraTarget();
+    updateScl()
 }
 
 function deleteChar() {
@@ -80,6 +91,7 @@ function deleteChar() {
         lines[cursor.line] += removed;
     }
     updateCameraTarget();
+    updateScl()
 }
 
 function insertNewLine() {
@@ -91,6 +103,7 @@ function insertNewLine() {
     cursor.line++;
     cursor.col = 0;
     updateCameraTarget();
+    updateScl()
 }
 
 function keyTyped() {
@@ -121,6 +134,7 @@ function keyPressed() {
             cursor.col = lines[cursor.line].length;
         }
         updateCameraTarget();
+        updateScl()
     } 
     else if (keyCode === RIGHT_ARROW) {
         if (cursor.col < lines[cursor.line].length) {
@@ -131,6 +145,7 @@ function keyPressed() {
             cursor.col = 0;
         }
         updateCameraTarget();
+        updateScl()
     } 
     else if (keyCode === UP_ARROW) {
         if (cursor.line > 0) {
@@ -138,6 +153,7 @@ function keyPressed() {
             cursor.col = min(cursor.col, lines[cursor.line].length);
         }
         updateCameraTarget();
+        updateScl()
     } 
     else if (keyCode === DOWN_ARROW) {
         if (cursor.line < lines.length - 1) {
@@ -145,5 +161,6 @@ function keyPressed() {
             cursor.col = min(cursor.col, lines[cursor.line].length);
         }
         updateCameraTarget();
+        updateScl()
     }
 }
