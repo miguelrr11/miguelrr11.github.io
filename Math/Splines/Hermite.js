@@ -1,6 +1,7 @@
 class Hermite{
     constructor(curves){
         this.curves = curves ? curves : this.loadFromData()
+        this.points = []
     }
 
     loadFromData(){
@@ -45,53 +46,64 @@ class Hermite{
         }
     }
 
+    getPoints(){
+        this.points = []
+        for(let curve of this.curves) {
+            this.points.push(...this.calculatePoints(curve));
+        }
+        return this.points
+    }
+
+    drawControlFading(t){
+        for(let curve of this.curves) this.drawControlLines(curve, t*255)
+        for(let curve of this.curves) this.drawControlPoints(curve, t*255)
+    }
+
     show(){
+        this.points = []
         for(let curve of this.curves) this.drawControlLines(curve)
-        for(let curve of this.curves) this.drawCurve(curve)
+        for(let curve of this.curves){ 
+            this.points.push(...this.drawCurve(curve))
+        }
         for(let curve of this.curves) this.drawControlPoints(curve)
     }
 
 
     drawCurve(curve){
-        let minVal = curve.i / this.curves.length;
-        let maxVal = (curve.i + 1) / this.curves.length;
         let points = this.calculatePoints(curve);
         strokeWeight(4)
+        stroke(col2)
         for(let i = 1; i < points.length; i++){
-            let ratio = map(i, 0, points.length, minVal, maxVal);
-            stroke(lerpColor(col2, col3, ratio));
             line(points[i-1].x, points[i-1].y, points[i].x, points[i].y)
         }
+        return points
     }
     
-    drawControlPoints(curve){
-        let p0 = curve.p0
-        let p1 = curve.p1
+    drawControlPoints(curve, trans = 255){
+        stroke(255, trans)
+        fill(50, trans)
         strokeWeight(2.5);
-        stroke(0)
-        fill(lerpColor(col2, col3, (curve.i) / this.curves.length));
-        ellipse(p0.x, p0.y, 13);
-        stroke(115)
-        strokeWeight(10)
-        strokeWeight(2.5)
-        fill(lerpColor(col2, col3, (curve.i + 1) / this.curves.length));
-        stroke(0)
-        ellipse(p1.x, p1.y, 13);
+        ellipse(curve.p0.x, curve.p0.y, 11.5);
+        ellipse(curve.p1.x, curve.p1.y, 11.5);
     }
     
-    drawControlLines(curve){
+    drawControlLines(curve, trans = 255){
+        stroke(70, trans)
+        fill(70, trans)
+        strokeWeight(2.5);
+        ellipse(curve.v0.x, curve.v0.y, 11.5);
+        ellipse(curve.v1.x, curve.v1.y, 11.5);
         let p0 = curve.p0
         let v0 = curve.v0
         let v1 = curve.v1
         let p1 = curve.p1
-        let newCol = color(col4.levels[0], col4.levels[1], col4.levels[2], 100)
-        stroke(newCol)
-        strokeWeight(2);
+        stroke(130, trans)
+        strokeWeight(1.5);
         line(p0.x, p0.y, v0.x, v0.y);
         line(p1.x, p1.y, v1.x, v1.y);
         drawArrowTip(v0.x, v0.y, atan2(p0.y - v0.y, p0.x - v0.x), 10);
         drawArrowTip(v1.x, v1.y, atan2(p1.y - v1.y, p1.x - v1.x), 10);
-        stroke(40)
+        
         //line(v0.x, v0.y, v1.x, v1.y);
     }
     

@@ -1,6 +1,7 @@
 class Bezier{
     constructor(curves){
         this.curves = curves ? curves : this.loadFromData()
+        this.points = []
     }
 
     loadFromData(){
@@ -62,51 +63,56 @@ class Bezier{
         }
     }
 
+    getPoints(){
+        this.points = []
+        for(let curve of this.curves) {
+            this.points.push(...this.calculatePoints(curve));
+        }
+        return this.points
+    }
+
     show(){
+        this.points = []
         for(let curve of this.curves) this.drawControlLines(curve)
-        for(let curve of this.curves) this.drawCurve(curve)
+        for(let curve of this.curves){ 
+            this.points.push(...this.drawCurve(curve))
+        }
         for(let curve of this.curves) this.drawControlPoints(curve)
+    }
+
+    drawControlFading(t){
+        for(let curve of this.curves) this.drawControlLines(curve, t*255)
+        for(let curve of this.curves) this.drawControlPoints(curve, t*255)
     }
 
 
     drawCurve(curve){
-        let minVal = curve.i / this.curves.length;
-        let maxVal = (curve.i + 1) / this.curves.length;
         let points = this.calculatePoints(curve);
         strokeWeight(4)
+        stroke(col2)
         for(let i = 1; i < points.length; i++){
-            let ratio = map(i, 0, points.length, minVal, maxVal);
-            stroke(lerpColor(col0, col2, ratio));
             line(points[i-1].x, points[i-1].y, points[i].x, points[i].y)
         }
+        return points
     }
 
-    drawControlPoints(curve){
-        let p0 = curve.p0
-        let p1 = curve.p1
-        let p2 = curve.p2
-        let p3 = curve.p3
+    drawControlPoints(curve, trans = 255){
+        stroke(255, trans)
+        fill(50, trans)
         strokeWeight(2.5);
-        stroke(0)
-        fill(lerpColor(col0, col2, (curve.i) / this.curves.length));
-        ellipse(p0.x, p0.y, 13);
-        stroke(115)
-        strokeWeight(10)
-        point(p1.x, p1.y);
-        point(p2.x, p2.y);
-        strokeWeight(2.5)
-        fill(lerpColor(col0, col2, (curve.i + 1) / this.curves.length));
-        stroke(0)
-        ellipse(p3.x, p3.y, 13);
+        ellipse(curve.p0.x, curve.p0.y, 11.5);
+        ellipse(curve.p1.x, curve.p1.y, 11.5);
+        ellipse(curve.p2.x, curve.p2.y, 11.5);
+        ellipse(curve.p3.x, curve.p3.y, 11.5);
     }
 
-    drawControlLines(curve){
+    drawControlLines(curve, trans = 255){
         let p0 = curve.p0
         let p1 = curve.p1
         let p2 = curve.p2
         let p3 = curve.p3
-        stroke(115)
-        strokeWeight(1);
+        stroke(115, trans)
+        strokeWeight(1.5);
         line(p0.x, p0.y, p1.x, p1.y);
         line(p3.x, p3.y, p2.x, p2.y);
         stroke(40)

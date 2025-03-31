@@ -96,3 +96,22 @@ function replaceBlankWithBarraBaja(str){
     }
     return newStr
 }
+
+function drawArrowTip(x, y, angle, arrowSize = 7) {
+    let x1 = x + Math.cos(angle - PI / 6) * arrowSize;
+    let y1 = y + Math.sin(angle - PI / 6) * arrowSize;
+    let x2 = x + Math.cos(angle + PI / 6) * arrowSize;
+    let y2 = y + Math.sin(angle + PI / 6) * arrowSize;
+    line(x, y, x1, y1);
+    line(x, y, x2, y2);
+}
+
+function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {
+    let d = dist(x1, y1, x2, y2);
+    let numDashes = Math.floor(d / dashLength);
+    let dx = (x2 - x1) / numDashes;
+    let dy = (y2 - y1) / numDashes;
+    for (let i = 0; i < numDashes; i++) {
+        line(x1 + i * dx, y1 + i * dy, x1 + (i + 0.5) * dx, y1 + (i + 0.5) * dy);
+    }
+}

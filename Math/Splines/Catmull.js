@@ -1,6 +1,7 @@
 class Catmull{
     constructor(curves){
         this.curves = curves ? curves : this.loadFromData()
+        this.points = []
     }
 
     loadFromData(){
@@ -12,7 +13,7 @@ class Catmull{
                     p0: prev,
                     v0: createVector(data[i].p1.x, data[i].p1.y),
                     v1: createVector(data[i].p2.x, data[i].p2.y),
-                    p1: createVector(data[i].p3.x, data[i].p3.y),
+                    p1: createVector(data[i].p3.x, data[i].p3.y),   
                     i: i
                 };
                 curves.push(curve);
@@ -45,38 +46,45 @@ class Catmull{
         }
     }
 
+    getPoints(){
+        this.points = []
+        for(let curve of this.curves) {
+            this.points.push(...this.calculatePoints(curve));
+        }
+        return this.points
+    }
+
+    drawControlFading(t){
+        for(let curve of this.curves) this.drawControlLines(curve, t*255)
+        for(let curve of this.curves) this.drawControlPoints(curve, t*255)
+    }
+
     show(){
+        this.points = []
         for(let curve of this.curves) this.drawControlLines(curve)
-        for(let curve of this.curves) this.drawCurve(curve)
+        for(let curve of this.curves){ 
+            this.points.push(...this.drawCurve(curve))
+        }
         for(let curve of this.curves) this.drawControlPoints(curve)
     }
 
 
     drawCurve(curve){
-        let minVal = curve.i / this.curves.length;
-        let maxVal = (curve.i + 1) / this.curves.length;
         let points = this.calculatePoints(curve);
         strokeWeight(4)
+        stroke(col2)
         for(let i = 1; i < points.length; i++){
-            let ratio = map(i, 0, points.length, minVal, maxVal);
-            stroke(lerpColor(col2, col3, ratio));
             line(points[i-1].x, points[i-1].y, points[i].x, points[i].y)
         }
+        return points
     }
     
-    drawControlPoints(curve){
-        let p0 = curve.p0
-        let p1 = curve.p1
+    drawControlPoints(curve, trans = 255){
+        stroke(255, trans)
+        fill(50, trans)
         strokeWeight(2.5);
-        stroke(0)
-        fill(lerpColor(col2, col3, (curve.i) / this.curves.length));
-        ellipse(p0.x, p0.y, 13);
-        stroke(115)
-        strokeWeight(10)
-        strokeWeight(2.5)
-        fill(lerpColor(col2, col3, (curve.i + 1) / this.curves.length));
-        stroke(0)
-        ellipse(p1.x, p1.y, 13);
+        ellipse(curve.p0.x, curve.p0.y, 11.5);
+        ellipse(curve.p1.x, curve.p1.y, 11.5);
     }
 
     drawCurveUsingP5(){
@@ -96,20 +104,18 @@ class Catmull{
         }
     }
     
-    drawControlLines(curve){
-        let p0 = curve.p0
-        let v0 = curve.v0
-        let v1 = curve.v1
-        let p1 = curve.p1
-        let newCol = color(col4.levels[0], col4.levels[1], col4.levels[2], 100)
-        stroke(newCol)
-        strokeWeight(2);
-        line(p0.x, p0.y, v0.x, v0.y);
-        line(p1.x, p1.y, v1.x, v1.y);
-        drawArrowTip(v0.x, v0.y, atan2(p0.y - v0.y, p0.x - v0.x), 10);
-        drawArrowTip(v1.x, v1.y, atan2(p1.y - v1.y, p1.x - v1.x), 10);
-        stroke(40)
-        //line(v0.x, v0.y, v1.x, v1.y);
+    drawControlLines(curve, trans = 255){
+        stroke(115, trans)
+        strokeWeight(1.5);
+        drawDashedLine(curve.p0.x, curve.p0.y, curve.v0.x, curve.v0.y);
+        drawDashedLine(curve.p1.x, curve.p1.y, curve.v1.x, curve.v1.y);
+        let p1 = curve.v0
+        let p2 = curve.v1
+        stroke(70, trans)
+        fill(70, trans)
+        strokeWeight(2.5);
+        ellipse(p1.x, p1.y, 11.5);
+        ellipse(p2.x, p2.y, 11.5);
     }
     
     calculatePoints(curve) {

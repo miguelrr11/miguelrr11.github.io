@@ -1,155 +1,107 @@
 class Bspline {
-    constructor(curves){
-        this.curves = curves ? curves : this.loadFromData();
+    constructor(controlPoints){
+        this.controlPoints = controlPoints ? controlPoints : this.loadFromData();
+        this.points = [];
     }
 
     loadFromData(){
-        let curves = [];
+        let controlPoints = [];
         for (let i = 0; i < data.length; i++) {
-            let prev = i == 0 ? createVector(data[i].p0.x, data[i].p0.y) : curves[i-1].p1;
-            if(i == data.length - 1){
-                let curve = {
-                    p0: prev,
-                    v0: createVector(data[i].p1.x, data[i].p1.y),
-                    v1: createVector(data[i].p2.x, data[i].p2.y),
-                    p1: createVector(data[i].p3.x, data[i].p3.y),
-                    i: i
-                };
-                curves.push(curve);
-                continue;
-            }
-            let curve = {
-                p0: prev,
-                v0: createVector(data[i].p2.x, data[i].p2.y),
-                v1: createVector(data[i+1].p2.x, data[i+1].p2.y),
-                p1: createVector(data[i].p3.x, data[i].p3.y),
-                i: i
-            };
-            curves.push(curve);
+                controlPoints.push(createVector(data[i].p0.x, data[i].p0.y),
+            );
         }
-        return curves;
+        return controlPoints;
     }
 
     mirrorControlPoint(curveIndex, pointIndex) {
         if (pointIndex === 1) {
             if (curveIndex > 0) {
-                let dragged = this.curves[curveIndex].v0;
-                this.curves[curveIndex - 1].v1 = dragged;
+                let dragged = this.controlPoints[curveIndex].v0;
+                this.controlPoints[curveIndex - 1].v1 = dragged;
             }
         } 
         else if (pointIndex === 2) {
-            if (curveIndex < this.curves.length - 1) { 
-                let dragged = this.curves[curveIndex].v1;
-                this.curves[curveIndex + 1].v0 = dragged;
+            if (curveIndex < this.controlPoints.length - 1) { 
+                let dragged = this.controlPoints[curveIndex].v1;
+                this.controlPoints[curveIndex + 1].v0 = dragged;
             }
         }
+    }
+
+    getPoints(){
+        this.points = []
+        for(let i = 0; i < this.controlPoints.length - 3; i++) {
+            this.points.push(...this.calculatePoints(this.controlPoints[i], this.controlPoints[i + 1], this.controlPoints[i + 2], this.controlPoints[i + 3], i));
+        }
+        return this.points
+    }
+
+    drawControlFading(t){
+        this.drawControlLines(t*255)
+        this.drawControlPoints(t*255)
     }
 
     show(){
-        for(let curve of this.curves) this.drawControlLines(curve);
-        for(let curve of this.curves) this.drawCurve(curve);
-        for(let curve of this.curves) this.drawControlPoints(curve);
+        this.points = []
+        this.drawControlLines(curve);
+        for(let i = 0; i < this.controlPoints.length - 3; i++) {
+            this.points.push(...this.drawCurve(this.controlPoints[i], this.controlPoints[i + 1], this.controlPoints[i + 2], this.controlPoints[i + 3], i));
+        }
+        this.drawControlPoints(curve);
     }
 
-    drawCurve(curve){
-        let minVal = curve.i / this.curves.length;
-        let maxVal = (curve.i + 1) / this.curves.length;
-        let points = this.calculatePoints(curve);
+    drawCurve(p0, p1, p2, p3, i){
+        let points = this.calculatePoints(p0, p1, p2, p3, i);
         strokeWeight(4);
         for(let i = 1; i < points.length; i++){
-            let ratio = map(i, 0, points.length, minVal, maxVal);
-            stroke(lerpColor(col2, col3, ratio));
+            stroke(col2);
             line(points[i-1].x, points[i-1].y, points[i].x, points[i].y);
+        }
+        return points
+    }
+    
+    drawControlPoints(trans = 255){
+        stroke(255, trans)
+        fill(50, trans)
+        strokeWeight(2.5);
+        for(let cp of this.controlPoints){
+            ellipse(cp.x, cp.y, 11.5);
         }
     }
     
-    drawControlPoints(curve){
-        let p0 = curve.p0;
-        let p1 = curve.p1;
-        strokeWeight(2.5);
-        stroke(0);
-        fill(lerpColor(col2, col3, (curve.i) / this.curves.length));
-        ellipse(p0.x, p0.y, 13);
-        stroke(115);
-        strokeWeight(10);
-        strokeWeight(2.5);
-        fill(lerpColor(col2, col3, (curve.i + 1) / this.curves.length));
-        stroke(0);
-        ellipse(p1.x, p1.y, 13);
-    }
-    
-    drawControlLines(curve){
-        let p0 = curve.p0;
-        let v0 = curve.v0;
-        let v1 = curve.v1;
-        let p1 = curve.p1;
-        let newCol = color(col4.levels[0], col4.levels[1], col4.levels[2], 100);
-        stroke(newCol);
-        strokeWeight(2);
-        line(p0.x, p0.y, v0.x, v0.y);
-        line(p1.x, p1.y, v1.x, v1.y);
-        drawArrowTip(v0.x, v0.y, atan2(p0.y - v0.y, p0.x - v0.x), 10);
-        drawArrowTip(v1.x, v1.y, atan2(p1.y - v1.y, p1.x - v1.x), 10);
-        stroke(40);
-        //line(v0.x, v0.y, v1.x, v1.y);
+    drawControlLines(trans = 255){
+        stroke(130, trans);
+        strokeWeight(1.5);
+        for(let i = 1; i < this.controlPoints.length; i++){
+            let p0 = this.controlPoints[i - 1];
+            let p1 = this.controlPoints[i];
+            line(p0.x, p0.y, p1.x, p1.y);
+        }
     }
     
     // Calculates and returns an array of points along the B-spline segment.
-    calculatePoints(curve) {
-        // Define the control points for this segment.
-        let controlPoints = [curve.p0, curve.v0, curve.v1, curve.p1];
-        const degree = 3;
-        
-        // For a B-spline with 4 control points, we need a different knot vector 
-        // This will create a curve that doesn't necessarily pass through the endpoints
-        // For a non-clamped B-spline, try:
-        const knots = [0, 1, 2, 3, 4, 5, 6, 7];
-        
-        // B-spline basis function (Cox–de Boor).
-        function basis(i, p, u) {
-          if (p === 0) {
-            return (knots[i] <= u && u < knots[i + 1]) ? 1 : 0;
-          } else {
-            let denom1 = knots[i + p] - knots[i];
-            let term1 = 0;
-            if (denom1 !== 0) {
-              term1 = ((u - knots[i]) / denom1) * basis(i, p - 1, u);
-            }
-            let denom2 = knots[i + p + 1] - knots[i + 1];
-            let term2 = 0;
-            if (denom2 !== 0) {
-              term2 = ((knots[i + p + 1] - u) / denom2) * basis(i + 1, p - 1, u);
-            }
-            return term1 + term2;
-          }
+    calculatePoints(p0, p1, p2, p3, index) {
+        let points = [];
+        let tMax = (u * this.controlPoints.length) - index;
+        tMax = Math.max(0, Math.min(tMax, 1));
+        for (let t = 0; t < tMax; t += 0.01) {
+            let t2 = t * t;
+            let t3 = t2 * t;
+            
+            // Basis functions
+            let b0 = (-t3 + 3*t2 - 3*t + 1) / 6;
+            let b1 = (3*t3 - 6*t2 + 4) / 6; 
+            let b2 = (-3*t3 + 3*t2 + 3*t + 1) / 6;  // Note: Equivalent to (-3*t3+3*t2+t+1)/6 if simplified differently.
+            let b3 = (t3) / 6;
+            
+            // Compute the point on the curve by summing weighted control points
+            let x = p0.x * b0 + p1.x * b1 + p2.x * b2 + p3.x * b3;
+            let y = p0.y * b0 + p1.y * b1 + p2.y * b2 + p3.y * b3;
+            
+            points.push(createVector(x, y));
         }
         
-        const numPoints = 100;
-        let pts = [];
-        let isLastSegment = (curve.i === this.curves.length - 1);
-        let sampleCount = isLastSegment ? (numPoints + 1) : numPoints;
-        
-        // The parameter range should be adjusted based on the knot vector
-        // For cubic B-spline with 4 control points, parameter range is typically [3, 4]
-        const paramStart = 3;
-        const paramEnd = 4;
-        
-        for (let i = 0; i < sampleCount; i++) {
-            // Map i to the parameter range
-            let u = paramStart + (i / numPoints) * (paramEnd - paramStart);
-            let point = createVector(0, 0);
-            
-            // Sum contributions from each control point
-            for (let j = 0; j < controlPoints.length; j++) {
-                let w = basis(j, degree, u);
-                let weighted = controlPoints[j].copy().mult(w);
-                point.add(weighted);
-            }
-            
-            pts.push(point);
-        }
-        
-        return pts;
+        return points;
     }
     
     
