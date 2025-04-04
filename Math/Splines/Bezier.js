@@ -2,6 +2,8 @@ class Bezier{
     constructor(curves){
         this.curves = curves ? curves : this.loadFromData()
         this.points = []
+        this.draggingPoint = null
+        this.draggingPointIndex = null
     }
 
     loadFromData(){
@@ -28,13 +30,21 @@ class Bezier{
                 let mirrorPoint = p5.Vector.sub(p5.Vector.mult(anchor, 2), dragged);
                 this.curves[curveIndex - 1].p2 = mirrorPoint;
             }
-        } else if (pointIndex === 2) {
+        } 
+        else if (pointIndex === 2) {
             if (curveIndex < this.curves.length - 1) { 
                 let anchor = this.curves[curveIndex].p3;
                 let dragged = this.curves[curveIndex].p2;
                 let mirrorPoint = p5.Vector.sub(p5.Vector.mult(anchor, 2), dragged);
                 this.curves[curveIndex + 1].p1 = mirrorPoint;
             }
+        }
+        else if(pointIndex == 3){
+            //this means the dragging point is the anchor point, so we need to set the next curve's control points to be the same distance and direction from the anchor point as the previous curve
+            let anchor = this.curves[curveIndex].p3
+            let control1 = this.curves[curveIndex].p2
+            let control2 = this.curves[curveIndex+1].p1;
+            
         }
     }
       
@@ -60,6 +70,51 @@ class Bezier{
             let anchor = current.p3;
             let diff = p5.Vector.sub(anchor, current.p2);
             nextCurve.p1 = p5.Vector.add(anchor, diff);
+        }
+    }
+
+    release(){
+        this.draggingPoint = null
+        this.draggingPointIndex = null
+    }
+
+    //when moving the anchor, the control points move with it
+    moveControls(curveIndex, dx, dy){
+        let control1 = this.curves[curveIndex].p2
+        control1.x += dx
+        control1.y += dy 
+        if(curveIndex >= this.curves.length-1) return
+        let control2 = this.curves[curveIndex+1].p1;
+        control2.x += dx
+        control2.y += dy
+    }
+
+    move() {
+        for(let j = 0; j < this.curves.length; j++){
+            let curve = this.curves[j]
+            let points = [curve.p0, curve.p1, curve.p2, curve.p3];
+            if (!this.draggingPoint) {
+                for (let i = 0; i < points.length; i++) {
+                    let point = points[i]
+                    if (dist(mouseX, mouseY, point.x, point.y) < 15) {
+                        if(i == 3) this.moveControls(j, mouseX - point.x, mouseY - point.y)
+                        this.draggingPoint = point;
+                        this.draggingPointIndex = {
+                            curveIndex: j,
+                            pointIndex: i
+                        }
+                        this.mirrorControlPoint(j, i)
+                        break;
+                    }
+                }
+            } 
+            else {
+                if(this.draggingPointIndex.pointIndex == 3) this.moveControls(this.draggingPointIndex.curveIndex, mouseX - this.draggingPoint.x, mouseY - this.draggingPoint.y)
+                this.draggingPoint.x = mouseX;
+                this.draggingPoint.y = mouseY;
+                this.mirrorControlPoint(this.draggingPointIndex.curveIndex, this.draggingPointIndex.pointIndex)
+            }
+            if(this.draggingPointIndex != null) console.log(this.draggingPointIndex.pointIndex)
         }
     }
 

@@ -19,6 +19,17 @@ class Hermite{
                 curves.push(curve);
                 continue
             }
+            if(i == data.length - 2){
+                let curve = {
+                    p0: prev,
+                    v0: createVector(data[i].p2.x, data[i].p2.y),
+                    v1: createVector(data[i+1].p1.x, data[i+1].p1.y),
+                    p1: createVector(data[i].p3.x, data[i].p3.y),
+                    i: i
+                };
+                curves.push(curve);
+                continue
+            }
             let curve = {
                 p0: prev,
                 v0: createVector(data[i].p2.x, data[i].p2.y),

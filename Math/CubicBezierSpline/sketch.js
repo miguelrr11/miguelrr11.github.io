@@ -361,7 +361,6 @@ function mouseDragged() {
             mirrorControlPoint(draggingPointIndex.curveIndex, draggingPointIndex.pointIndex)
         }
     }
-    
 }
 
 

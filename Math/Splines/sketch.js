@@ -41,6 +41,23 @@ function setup(){
     bSpline = new Bspline()
 }
 
+function mouseReleased(){
+    switch(mode){
+        case "Bezier":
+            bZspline.release()
+            break
+    }
+}
+
+function mouseDragged(){
+    switch(mode){
+        case "Bezier":
+            bZspline.move()
+            break
+        
+    }
+}
+
 function keyPressed(){
     if(keyCode == 32){
         if(mode == "Bezier"){

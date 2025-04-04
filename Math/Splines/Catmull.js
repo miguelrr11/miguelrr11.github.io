@@ -19,6 +19,17 @@ class Catmull{
                 curves.push(curve);
                 continue
             }
+            if(i == data.length - 2){
+                let curve = {
+                    p0: prev,
+                    v0: createVector(data[i].p2.x, data[i].p2.y),
+                    v1: createVector(data[i+1].p1.x, data[i+1].p1.y),
+                    p1: createVector(data[i].p3.x, data[i].p3.y),
+                    i: i
+                };
+                curves.push(curve);
+                continue
+            }
             let curve = {
                 p0: prev,
                 v0: createVector(data[i].p2.x, data[i].p2.y),
@@ -116,6 +127,13 @@ class Catmull{
         strokeWeight(2.5);
         ellipse(p1.x, p1.y, 11.5);
         ellipse(p2.x, p2.y, 11.5);
+        // push()
+        // fill(255)
+        // noStroke()
+        // textSize(12)
+        // text('v0', p1.x + 10, p1.y - 10)
+        // text('v1', p2.x + 10, p2.y - 10)
+        // pop()
     }
     
     calculatePoints(curve) {
