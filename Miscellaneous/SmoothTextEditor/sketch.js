@@ -110,7 +110,7 @@ function keyTyped() {
     if (key === "Enter") {
         insertNewLine();
     } 
-    else if (key !== "Tab") {
+    else if (key !== "Tab" && keyCode !== BACKSPACE) {
         insertChar(key);
     }
 }
