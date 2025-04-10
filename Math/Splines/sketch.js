@@ -1,35 +1,35 @@
-//
+//Splines
 //Miguel Rodríguez
-//
+//29-03-2025
 
 p5.disableFriendlyErrors = true
 const WIDTH = 1200
 const HEIGHT = 800
 let col0, col1, col2, col3, col4;
-
 let u = 1
 let animating = false
-
-let points
-let nextPoints
-let lerping = false
-let lerpingCounter
-let transLerping = 1
-
-let bZspline
-let hMSpline
-let cRSpline
-
+let points, nextPoints
+let lerping = false, lerpingCounter, transLerping = 1
+let bZspline, hMSpline, cRSpline, bSpline
 let mode = "Bezier"
-
-let font
+let modes = ["Bezier", "Hermite", "Catmull-Rom", "B-Spline"]
+let displayNames = {"Bezier": "Bézier", "Hermite": "Hermite", "Catmull-Rom": "Catmull-Rom", "B-Spline": "B-Spline"}
 
 let descriptions = new Map([
     ["Bezier", "A curve defined by a set of control points. The curve starts at the first point and ends at the last, but may not pass through the intermediate control points. Instead, these influence the direction and shape. Common in vector graphics and font design. Quadratic and cubic Bézier curves are the most used."],
     ["Hermite", "Instead of just using points, Hermite splines also use tangents (or derivatives) at the endpoints of each segment. This gives you fine control over the shape and slope of the curve. Ideal when you know both position and direction at certain key points."],
     ["Catmull-Rom", "A type of Hermite spline that automatically calculates tangents so the curve passes through all control points. It creates smooth paths with minimal effort and is often used in animation and camera movement."],
-    ["B-Spline", "A generalization of Bézier curves. B-splines use multiple control points and do not necessarily pass through them, but provide smooth, flexible curves with local control—moving one point affects only part of the curve. They're powerful in modeling and CAD applications."],
+    ["B-Spline", "A generalization of Bézier curves. B-splines use multiple control points and do not necessarily pass through them, but provide smooth, flexible curves with local control—moving one point affects only part of the curve. They're powerful in modeling and CAD applications."]
 ])
+
+function getSpline(m) {
+  switch(m){
+    case "Bezier": return bZspline
+    case "Hermite": return hMSpline
+    case "Catmull-Rom": return cRSpline
+    case "B-Spline": return bSpline
+  }
+}
 
 function preload(){
     font = loadFont('font.otf')
@@ -38,7 +38,7 @@ function preload(){
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     textFont(font)
-    col0 = color("#05668D") 
+    col0 = color("#05668D")
     col1 = color("#028090")
     col2 = color("#00A896")
     col3 = color("#02C39A")
@@ -50,72 +50,27 @@ function setup(){
 }
 
 function mouseReleased(){
-    switch(mode){
-        case "Bezier":
-            bZspline.release()
-            break
-        case "Hermite":
-            hMSpline.release()
-            break
-        case "Catmull-Rom":
-            cRSpline.release()
-            break
-        case "B-Spline":
-            bSpline.release()
-            break
-    }
+    getSpline(mode).release()
 }
 
 function mouseDragged(){
-    switch(mode){
-        case "Bezier":
-            bZspline.move()
-            break
-        case "Hermite":
-            hMSpline.move()
-            break
-        case "Catmull-Rom":
-            cRSpline.move()
-            break
-        case "B-Spline":
-            bSpline.move()
-            break
-    }
+    getSpline(mode).move()
 }
 
 function keyPressed(){
     if(keyCode == 32){
-        if(mode == "Bezier"){
-            mode = "Hermite"
-            points = bZspline.getPoints()
-            nextPoints = hMSpline.getPoints()
-        }
-        else if(mode == "Hermite"){
-            mode = "Catmull-Rom"
-            points = hMSpline.getPoints()
-            nextPoints = cRSpline.getPoints()
-        }
-        else if(mode == "Catmull-Rom"){
-            mode = "B-Spline"
-            points = cRSpline.getPoints()
-            nextPoints = bSpline.getPoints()
-        }
-        else{
-            mode = "Bezier"
-            points = bSpline.getPoints()
-            nextPoints = bZspline.getPoints()
-        }
+        let curIndex = modes.indexOf(mode)
+        let nextIndex = (curIndex + 1) % modes.length
+        let nextMode = modes[nextIndex]
+        points = getSpline(mode).getPoints()
+        nextPoints = getSpline(nextMode).getPoints()
+        mode = nextMode
         lerping = true
         lerpingCounter = 60
     }
     if(key == 'a' || key == 'A'){
-        if(animating){
-            animating = false
-            u = 1
-        }
-        else{
-            animating = true
-        }
+        animating = !animating
+        if(!animating) u = 1
     }
 }
 
@@ -123,73 +78,31 @@ function draw(){
     background("#011821")
     if(animating && !lerping){
         u = lerp(u, 1, 0.025)
-        if(u > 0.98){
-            u = 0
-        }
+        if(u > 0.98) u = 0
     }
     if(!lerping){
         transLerping = 1
-        switch (mode) {
-            case "Bezier":
-                bZspline.show()
-                drawTitle("Bézier")
-                break;
-            case "Hermite":
-                hMSpline.show()
-                drawTitle("Hermite")
-                break;
-            case "Catmull-Rom":
-                cRSpline.show()
-                drawTitle("Catmull-Rom")
-                break;
-            case "B-Spline":
-                bSpline.show()
-                drawTitle("B-Spline")
-                break;
-            default:
-                break;
-        }
+        getSpline(mode).show()
+        drawTitle(displayNames[mode])
     }
     else{
         lerpPoints(points, nextPoints)
         drawPoints(points)
         transLerping = lerp(transLerping, 0, 0.2)
-        switch (mode) {
-            case "Bezier":
-                bSpline.drawControlFading(transLerping)
-                bZspline.drawControlFading(1-transLerping)
-                drawTitle("Bézier", transLerping)
-                drawTitle("B-Spline", 1-transLerping)
-                break;
-            case "Hermite":
-                bZspline.drawControlFading(transLerping)
-                hMSpline.drawControlFading(1-transLerping)
-                drawTitle("Hermite", transLerping)
-                drawTitle("Bézier", 1-transLerping)
-                break;
-            case "Catmull-Rom":
-                hMSpline.drawControlFading(transLerping)
-                cRSpline.drawControlFading(1-transLerping)
-                drawTitle("Catmull-Rom", transLerping)
-                drawTitle("Hermite", 1-transLerping)
-                break;
-            case "B-Spline":
-                cRSpline.drawControlFading(transLerping)
-                bSpline.drawControlFading(1-transLerping)
-                drawTitle("B-Spline", transLerping)
-                drawTitle("Catmull-Rom", 1-transLerping)
-                break;
-            default:
-                break;
-        }
+        let curIndex = modes.indexOf(mode)
+        let prevIndex = (curIndex - 1 + modes.length) % modes.length
+        let prevMode = modes[prevIndex]
+        getSpline(prevMode).drawControlFading(transLerping)
+        getSpline(mode).drawControlFading(1-transLerping)
+        drawTitle(displayNames[mode], transLerping)
+        drawTitle(displayNames[prevMode], 1-transLerping)
     }
     checkHoverTitle()
 }
 
 function checkHoverTitle(){
     let title = mode
-    let x = 20
-    let y = 50
+    let x = 20, y = 50
     let w = textWidth(title)
     let h = textAscent() + textDescent()
     if(mouseX > x && mouseX < x + w && mouseY > y - h && mouseY < y){
@@ -206,20 +119,16 @@ function drawDescription(description){
     text('Click and drag to move control points', 20, 73)
     text('Press [SPACE] to change spline', 20, 93)
     text('Press [A] to toggle animation', 20, 113)
-    
     fill(0, 150)
     stroke(0, 150)
     strokeWeight(6)
     textSize(20)
     text(description, 20, 150, 300)
-
     fill(col4)
     stroke(col4)
     strokeWeight(.5)
     textSize(20)
     text(description, 20, 150, 300)
-
-    
     pop()
 }
 
@@ -232,8 +141,7 @@ function drawPoints(points){
 }
 
 function lerpPoints(points, nextPoints){
-    let len1 = points.length
-    let len2 = nextPoints.length
+    let len1 = points.length, len2 = nextPoints.length
     let indexMultiplier = (len2 / len1)
     for(let i = 0; i < len1; i++){
         let point = points[i]
@@ -248,8 +156,8 @@ function lerpPoints(points, nextPoints){
     }
 }
 
-function drawTitle(title, lerping = undefined){
-    let col = lerping ? lerpColor(col4, color(0,0,0,0), lerping) : col4
+function drawTitle(title, lerpingVal = undefined){
+    let col = lerpingVal ? lerpColor(col4, color(0,0,0,0), lerpingVal) : col4
     fill(col)
     noStroke()
     textSize(40)
@@ -257,20 +165,20 @@ function drawTitle(title, lerping = undefined){
 }
 
 function drawArrowTip(x, y, angle, arrowSize = 7) {
-    let x1 = x + Math.cos(angle - PI / 6) * arrowSize;
-    let y1 = y + Math.sin(angle - PI / 6) * arrowSize;
-    let x2 = x + Math.cos(angle + PI / 6) * arrowSize;
-    let y2 = y + Math.sin(angle + PI / 6) * arrowSize;
-    line(x, y, x1, y1);
-    line(x, y, x2, y2);
+    let x1 = x + Math.cos(angle - PI / 6) * arrowSize
+    let y1 = y + Math.sin(angle - PI / 6) * arrowSize
+    let x2 = x + Math.cos(angle + PI / 6) * arrowSize
+    let y2 = y + Math.sin(angle + PI / 6) * arrowSize
+    line(x, y, x1, y1)
+    line(x, y, x2, y2)
 }
 
 function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {
-    let d = dist(x1, y1, x2, y2);
-    let numDashes = Math.floor(d / dashLength);
-    let dx = (x2 - x1) / numDashes;
-    let dy = (y2 - y1) / numDashes;
+    let d = dist(x1, y1, x2, y2)
+    let numDashes = Math.floor(d / dashLength)
+    let dx = (x2 - x1) / numDashes
+    let dy = (y2 - y1) / numDashes
     for (let i = 0; i < numDashes; i++) {
-        line(x1 + i * dx, y1 + i * dy, x1 + (i + 0.5) * dx, y1 + (i + 0.5) * dy);
+        line(x1 + i * dx, y1 + i * dy, x1 + (i + 0.5) * dx, y1 + (i + 0.5) * dy)
     }
 }
