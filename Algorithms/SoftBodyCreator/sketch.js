@@ -64,7 +64,7 @@ function draw(){
     }
 
     for(let i = 0; i < particles.length; i++){
-        particles[i].update(deltaTime)
+        particles[i].update(deltaTime*10)
         particles[i].constrainToBounds()
         particles[i].show()
     }

@@ -2,6 +2,38 @@ class Hermite{
     constructor(curves){
         this.curves = curves ? curves : this.loadFromData()
         this.points = []
+        this.draggingPoints = []
+    }
+
+    release(){
+        this.draggingPoints = []
+    }
+
+    move(){
+        if(this.draggingPoints.length > 0){
+            for(let p of this.draggingPoints){
+                p.x = mouseX;
+                p.y = mouseY;
+            }
+            return
+        }
+        else{
+            for(let j = 0; j < this.curves.length; j++){
+                let curve = this.curves[j]
+                let points = [curve.p0, curve.v0, curve.v1, curve.p1];
+                for (let i = 0; i < points.length; i++) {
+                    let point = points[i]
+                    if (dist(mouseX, mouseY, point.x, point.y) < 15) {
+                        this.draggingPoints.push(point);
+                        break;
+                    }
+                }
+            }
+            for(let p of this.draggingPoints){
+                p.x = mouseX;
+                p.y = mouseY;
+            }
+        }
     }
 
     loadFromData(){

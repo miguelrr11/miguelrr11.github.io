@@ -1,7 +1,36 @@
 class Bspline {
     constructor(controlPoints){
         this.controlPoints = controlPoints ? controlPoints : this.loadFromData();
-        this.points = [];
+        this.points = []
+        this.draggingPoints = []
+    }
+
+    release(){
+        this.draggingPoints = []
+    }
+
+    move(){
+        if(this.draggingPoints.length > 0){
+            for(let p of this.draggingPoints){
+                p.x = mouseX;
+                p.y = mouseY;
+            }
+            return
+        }
+        else{
+            for(let i = 0; i < this.controlPoints.length; i++){
+                let point = this.controlPoints[i]
+                if (dist(mouseX, mouseY, point.x, point.y) < 15) {
+                    this.draggingPoints.push(point);
+                    break;
+                }
+                
+            }
+            for(let p of this.draggingPoints){
+                p.x = mouseX;
+                p.y = mouseY;
+            }
+        }
     }
 
     loadFromData(){
