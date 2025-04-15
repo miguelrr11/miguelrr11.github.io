@@ -36,6 +36,20 @@ class Catmull{
         }
     }
 
+    createPoint(){
+        let prevCurve = this.curves[this.curves.length - 1]
+        let newv1 = p5.Vector.sub(createVector(mouseX, mouseY), prevCurve.p1).mult(2).add(prevCurve.p1)
+        let curve = {
+            p0: prevCurve.p1,
+            v0: prevCurve.v1,
+            v1: newv1,
+            p1: createVector(mouseX, mouseY),
+            i: this.curves.length
+        };
+        this.curves.push(curve);
+        this.mirrorDistancesControlPoints()
+    }
+
     loadFromData(){
         let curves = [];
         for (let i = 0; i < data.length; i++) {

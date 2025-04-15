@@ -36,6 +36,20 @@ class Hermite{
         }
     }
 
+    createPoint(){
+        let prevCurve = this.curves[this.curves.length - 1]
+        let newv1 = p5.Vector.sub(createVector(mouseX, mouseY), prevCurve.p1).mult(2).add(prevCurve.p1)
+        let curve = {
+            p0: prevCurve.p1,
+            v0: prevCurve.v1,
+            v1: newv1,
+            p1: createVector(mouseX, mouseY),
+            i: this.curves.length
+        };
+        this.curves.push(curve);
+        this.mirrorDistancesControlPoints()
+    }
+
     loadFromData(){
         let curves = [];
         for (let i = 0; i < data.length; i++) {
@@ -140,10 +154,12 @@ class Hermite{
         let v0 = curve.v0
         let v1 = curve.v1
         let p1 = curve.p1
-        stroke(130, trans)
         strokeWeight(1.5);
-        line(p0.x, p0.y, v0.x, v0.y);
-        line(p1.x, p1.y, v1.x, v1.y);
+        let col1 = color(135, trans)
+        let col2 = color(55, trans)
+        gradientLine(p0.x, p0.y, v0.x, v0.y, [col2, col1]);
+        gradientLine(p1.x, p1.y, v1.x, v1.y,  [col2, col1])
+        stroke(col1)
         drawArrowTip(v0.x, v0.y, atan2(p0.y - v0.y, p0.x - v0.x), 10);
         drawArrowTip(v1.x, v1.y, atan2(p1.y - v1.y, p1.x - v1.x), 10);
         

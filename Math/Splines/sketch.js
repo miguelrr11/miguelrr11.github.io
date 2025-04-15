@@ -49,6 +49,10 @@ function setup(){
     bSpline = new Bspline()
 }
 
+function doubleClicked(){
+    getSpline(mode).createPoint()
+}
+
 function mouseReleased(){
     getSpline(mode).release()
 }
@@ -112,23 +116,24 @@ function checkHoverTitle(){
 
 function drawDescription(description){
     push()
-    fill(200)
+    fill(215)
     stroke(200)
     strokeWeight(.5)
     textSize(14)
     text('Click and drag to move control points', 20, 73)
-    text('Press [SPACE] to change spline', 20, 93)
-    text('Press [A] to toggle animation', 20, 113)
+    text('Double click to add control points', 20, 93)
+    text('Press [SPACE] to change spline', 20, 113)
+    text('Press [A] to toggle animation', 20, 133)
     fill(0, 150)
     stroke(0, 150)
     strokeWeight(6)
     textSize(20)
-    text(description, 20, 150, 300)
+    text(description, 20, 170, 300)
     fill(col4)
     stroke(col4)
     strokeWeight(.5)
     textSize(20)
-    text(description, 20, 150, 300)
+    text(description, 20, 170, 300)
     pop()
 }
 

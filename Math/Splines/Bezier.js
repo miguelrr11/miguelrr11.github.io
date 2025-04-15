@@ -22,6 +22,24 @@ class Bezier{
         return curves;
     }
 
+    createPoint(){
+        let newPos = createVector(mouseX, mouseY)
+        let prev = this.curves.length == 0 ? newPos : this.curves[this.curves.length - 1].p3
+        let prevCurve = this.curves[this.curves.length - 1]
+        let newp1 = p5.Vector.sub(p5.Vector.mult(prevCurve.p3, 2), prevCurve.p2);
+        let newp2 = p5.Vector.sub(p5.Vector.mult(prevCurve.p3, 2), prevCurve.p1);
+        newp2 = p5.Vector.add(prev, newp2).div(2)
+        let newCurve = {
+            p0: prev,
+            p1: newp1,
+            p2: newp2,
+            p3: createVector(mouseX, mouseY),
+            i: this.curves.length
+        }
+        this.curves.push(newCurve)
+        this.mirrorDistancesControlPoints()
+    }
+
     mirrorControlPoint(curveIndex, pointIndex) {
         if (pointIndex === 1) {
             if (curveIndex > 0) {
@@ -38,13 +56,6 @@ class Bezier{
                 let mirrorPoint = p5.Vector.sub(p5.Vector.mult(anchor, 2), dragged);
                 this.curves[curveIndex + 1].p1 = mirrorPoint;
             }
-        }
-        else if(pointIndex == 3){
-            //this means the dragging point is the anchor point, so we need to set the next curve's control points to be the same distance and direction from the anchor point as the previous curve
-            let anchor = this.curves[curveIndex].p3
-            let control1 = this.curves[curveIndex].p2
-            let control2 = this.curves[curveIndex+1].p1;
-            
         }
     }
       
@@ -168,10 +179,10 @@ class Bezier{
         let p3 = curve.p3
         stroke(115, trans)
         strokeWeight(1.5);
-        line(p0.x, p0.y, p1.x, p1.y);
-        line(p3.x, p3.y, p2.x, p2.y);
-        stroke(40)
-        //line(p1.x, p1.y, p2.x, p2.y);
+        let col1 = color(135, trans)
+        let col2 = color(55, trans)
+        gradientLine(p0.x, p0.y, p1.x, p1.y, [col1, col2]);
+        gradientLine(p3.x, p3.y, p2.x, p2.y,  [col1, col2])
     }
 
     calculatePoints(curve) {

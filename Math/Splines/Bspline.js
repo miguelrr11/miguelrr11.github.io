@@ -33,6 +33,10 @@ class Bspline {
         }
     }
 
+    createPoint(){
+        this.controlPoints.push(createVector(mouseX, mouseY));
+    }
+
     loadFromData(){
         let controlPoints = [];
         for (let i = 0; i < data.length; i++) {
