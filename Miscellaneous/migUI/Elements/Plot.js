@@ -24,6 +24,13 @@ class Plot{
         this.plotMargin = 5
 
         this.func = undefined
+
+        this.permanentPressed = false
+
+        //bind the doubleClick function to a function that sets the value of this.permanentPressed to true
+        document.addEventListener('dblclick', () => {
+            if(this.hovering()) this.permanentPressed = !this.permanentPressed
+        })
     }
 
     setFunc(func){
@@ -87,8 +94,8 @@ class Plot{
     showLabels(){
         push()
         if(!this.hovering()) return
-        let max = mouseIsPressed ? this.maxDataH : this.maxData
-        let min = mouseIsPressed ? this.minDataH : this.minData
+        let max = (mouseIsPressed || this.permanentPressed) ? this.maxDataH : this.maxData
+        let min = (mouseIsPressed || this.permanentPressed) ? this.minDataH : this.minData
         let cur = this.data[this.data.length - 1]
         let curr = cur
         let col = [...this.darkCol, 200]
@@ -101,7 +108,7 @@ class Plot{
         let h = textAscent(max) * 2 - 5
         let posMax = createVector(this.plotPos.x + this.w - wmax - 12, this.plotPos.y + h)
         let posMin = createVector(this.plotPos.x + this.w - wmax - 12, this.plotPos.y + this.h - h)
-        let y = mouseIsPressed ? map(curr, this.minDataH, this.maxDataH, posMin.y, posMax.y) :
+        let y = (mouseIsPressed || this.permanentPressed) ? map(curr, this.minDataH, this.maxDataH, posMin.y, posMax.y) :
         map(curr, this.minData, this.maxData, posMin.y, posMax.y)
         let posCur = createVector(this.plotPos.x + this.w - wmax - 12, y)
         textAlign(CENTER, CENTER)
@@ -126,7 +133,7 @@ class Plot{
         if(this.func) this.feed(this.func())
         push()
         strokeWeight(bordeMIGUI)
-        if(this.hovering() && mouseIsPressed){
+        if((this.hovering() && mouseIsPressed) || this.permanentPressed){
             this.showHistory()
         }
         else this.showPlot()
