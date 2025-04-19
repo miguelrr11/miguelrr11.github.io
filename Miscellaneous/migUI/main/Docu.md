@@ -137,6 +137,14 @@ Similar to the Number Picker, this allows to select text options.
 
 - **`op.getSelected()`**: Returns the option selected
 
+### Plot
+A simple plot that displays the inputed values
+- **`panel.createPlot([title])`**: Creates a plot.
+  - `title` (`string`, optional): Label for the plot.
+  - **Returns**: `Plot` instance.
+
+- **`plot.feed(value)`**: Adds a value to the plot.
+
 ### Separator
 Creates a visual separator between elements.
 
@@ -163,6 +171,9 @@ Creates a visual separator between elements.
 | `Option Picker`        | On value change          | The selected option      |
 | `Color Picker`         | On value change           | The color selected as an array      |
 | `Sentence`             | Every frame the text of the element will be changed to whatever the function returns         |-      |
+| `Plot`                 | Every frame the returned value of the function will be fed to the plot         |-      |
+
+
 
 ## Example Usage
 ```javascript

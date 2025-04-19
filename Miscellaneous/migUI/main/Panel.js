@@ -9,7 +9,7 @@ let text_SizeMIGUI = 15
 let title_SizeMIGUI = text_SizeMIGUI * 1.3
 let radMIGUI = 3.5
 let text_offset_xMIGUI = 2
-let width_elementsMIGUI = 158
+let width_elementsMIGUI = 190
 let clipping_length_normalMIGUI = 20
 let clipping_length_titleMIGUI = 11
 let picker_width = 100
@@ -117,6 +117,7 @@ class Panel{
 		if(element.constructor.name == "ColorPicker") this.colorPickers.splice(this.colorPickers.indexOf(element), 1)
 		if(element.constructor.name == "NumberPicker") this.numberPickers.splice(this.numberPickers.indexOf(element), 1)
 		if(element.constructor.name == "OptionPicker") this.optionPickers.splice(this.optionPickers.indexOf(element), 1)
+		if(element.constructor.name == "Plot") this.plots.splice(this.plots.indexOf(element), 1)
 	}
 
 
@@ -131,6 +132,7 @@ class Panel{
 	    this.separators = []
 	    this.numberPickers = []
 		this.optionPickers = []
+		this.plots = []
 	    this.activeCP = undefined
 	    this.lastElementAdded = ""
 	    this.isInteracting = undefined
@@ -374,6 +376,21 @@ class Panel{
 		return numberPicker
 	}
 
+	createPlot(title = ''){
+		let plot = new Plot(this.lastElementPos.x, 
+							this.lastElementPos.y, title,
+							this.lightCol, this.darkCol)
+		plot.title = title
+		this.plots.push(plot)
+		this.lastElementAdded = plot
+
+		this.lastElementPos.y += plot.height + this.padding
+		this.lastBU = undefined
+		this.lastCB = undefined
+
+		return plot
+	}
+
 	createOptionPicker(sentence = "", options = []){
 		let optionPicker = new OptionPicker(this.lastElementPos.x, 
 								this.lastElementPos.y,
@@ -438,6 +455,7 @@ class Panel{
 		for(let b of this.colorPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol; b.saturation = this.transCol}
 		for(let b of this.numberPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
 		for(let b of this.optionPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
+		for(let b of this.plots)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
 	}
 
 	setTheme(theme){
@@ -556,6 +574,7 @@ class Panel{
 			return
 		}
 
+
 		
 		// for(let i of this.inputs) {
 		// 	if(mouseIsPressed && i.evaluate()) {
@@ -611,6 +630,7 @@ class Panel{
 		for(let b of this.buttons) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.numberPickers) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.optionPickers) this.beingHoveredHand = b.show() || this.beingHoveredHand
+		for(let b of this.plots) b.show()
 		for(let b of this.colorPickers){ 
 			this.beingHoveredHand = b.show() || this.beingHoveredHand
 			if(b.isChoosing) this.activeCP = b

@@ -4,7 +4,7 @@
 
 p5.disableFriendlyErrors = true
 const WIDTH = 600
-const HEIGHT = 700
+const HEIGHT = 800
 
 let panel
 let back = 100
@@ -15,6 +15,7 @@ let tt, ss, ip, bt, cp
 let th
 let np1, np2
 let opp
+let plot
 
 let widthPanel = 245
 
@@ -75,7 +76,10 @@ function setup(){
     np1 = panel.createNumberPicker("Add circ.", 0, 22, 1, 1)
     np1.setFunc(npMinus, true)
 
-    opp = panel.createOptionPicker("options", ["a", "b", "c"])
+    opp = panel.createOptionPicker("Plot input", ['sin', 'random', 'noise'])
+
+    plot = panel.createPlot("Sin")
+    plot.setFunc(plotInput)
 }
 
 
@@ -118,6 +122,7 @@ function adios(){
 
 let name
 
+let n = 0
 
 function draw(){
     background(back)
@@ -150,6 +155,8 @@ function draw(){
         panel2.update()
         panel2.show()
     }
+
+    
     
 
     // fill(255, 150)
@@ -165,4 +172,21 @@ function draw(){
 
 }
 
+function plotInput(){
+    switch(opp.getSelected()){
+        case 'sin':
+            plot.title = "Sin"
+            n = sin(frameCount * 0.05) * 100
+            break
+        case 'random':
+            plot.title = "Random"
+            n = random() * 100
+            break
+        case 'noise':
+            plot.title = "Noise"
+            n = noise(frameCount * 0.01) * 100
+            break
+    }
 
+    return n
+}
