@@ -30,11 +30,14 @@ class Button{
 		this.height = this.h
 
 		this.disabled = false
+		this.active = false
 		this.rad = radMIGUI
 
 		this.func = undefined
 		//this.arg in button is not used
 		this.arg = false
+
+		this.corners = [this.rad, this.rad, this.rad, this.rad]
 	}
 
 	setFunc(func, arg = false){
@@ -77,9 +80,7 @@ class Button{
 	evaluate(){
 		this.beingHovered = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
 		if(this.disabled) return false
-		let inB = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
-		if(inB) this.beingHovered = true
-		else this.beingHovered = false
+		let inB = this.beingHovered
 		if(inB && mouseIsPressed && !this.beingPressed){ 
 			this.execute()
 			this.beingPressed = true
@@ -90,21 +91,28 @@ class Button{
 		}
 		return false
 	}
+	
+	setRoundedCorners(c1, c2, c3, c4){
+		this.corners[0] = c1 ? this.rad : 0
+		this.corners[1] = c2 ? this.rad : 0
+		this.corners[2] = c3 ? this.rad : 0
+		this.corners[3] = c4 ? this.rad : 0
+	}
 
 	show(){
-		push()
-		this.beingHovered && !this.disabled ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
+		push();
+		((this.beingHovered && !this.disabled) || this.active) ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		this.disabled ? stroke(this.transCol) : stroke(this.lightCol)
 		fill(this.darkCol)
-		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
+		rect(this.pos.x, this.pos.y, this.w, this.h, this.corners[0], this.corners[1], this.corners[2], this.corners[3])
 		this.beingHovered ? fill(this.transCol) : fill(this.darkCol)
-		if(this.beingHovered && mouseIsPressed) fill(this.lightCol)
+		if((this.beingHovered && mouseIsPressed) || this.active) fill(this.lightCol)
 		if(this.disabled) fill(this.darkCol)
-		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
+		rect(this.pos.x, this.pos.y, this.w, this.h, this.corners[0], this.corners[1], this.corners[2], this.corners[3])
 
 		noStroke()
 		this.disabled ? fill(this.transCol) : fill(this.lightCol)
-		if(this.beingHovered && mouseIsPressed) fill(this.darkCol)
+		if((this.beingHovered && mouseIsPressed) || this.active) fill(this.darkCol)
 		textSize(this.textSize)
 		textAlign(CENTER)
 		text(this.text, this.pos.x + this.w/2, this.pos.y + this.h*0.75)

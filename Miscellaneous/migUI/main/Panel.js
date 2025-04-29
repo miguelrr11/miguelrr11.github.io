@@ -99,6 +99,7 @@ class Panel{
 		for(let b of this.colorPickers) b.reposition(b.pos.x + dx, b.pos.y + dy)
 		for(let b of this.numberPickers) b.reposition(b.pos.x + dx, b.pos.y + dy)
 		for(let b of this.optionPickers) b.reposition(b.pos.x + dx, b.pos.y + dy)
+		for(let b of this.plots) b.reposition(b.pos.x + dx, b.pos.y + dy)
 		for(let i = 0; i < this.separators.length; i++) this.separators[i] += dy
 		this.titlePos.x += dx
 		this.titlePos.y += dy
@@ -303,12 +304,13 @@ class Panel{
 		return input
 	}
 
-	createButton(sentence = ""){
+	createButton(sentence = "", creatingTab = false){
 		let newX, newY;
 	    let needsNewLine = false;
 
 	    if (this.lastBU) {
-	        const lastCBLength = this.lastBU.length + 10 
+			const off = creatingTab ? 3 : 10
+	        const lastCBLength = this.lastBU.length + off 
 	        newX = this.lastBU.pos.x + lastCBLength
 			
 			textSize(text_SizeMIGUI-2)
@@ -334,7 +336,12 @@ class Panel{
 	    }
 		
 		let button = new Button(newX, newY, sentence,  this.lightCol, this.darkCol, this.transCol)
-		if(needsNewLine) this.lastElementPos.y += button.height + this.padding
+		if(creatingTab){
+			button.h = TAB_HEIGHT
+			button.textSize = text_SizeMIGUI-3
+		}
+		if(needsNewLine) this.lastElementPos.y += button.height
+		if(needsNewLine && !creatingTab) this.lastElementPos.y += this.padding
 		this.buttons.push(button)
 		this.lastElementAdded = button
 
@@ -611,7 +618,7 @@ class Panel{
 			cursor(ARROW)
 			return
 		}
-		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI, radMIGUI)
+		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI, 0, 0, radMIGUI, radMIGUI)
 		//Titulo
 		textSize(title_SizeMIGUI)
 		stroke([...this.lightCol, 140])
@@ -700,6 +707,8 @@ function hexToRgbMIGUI(hex) {
     parseInt(result[3], 16)
   ] : null;
 }
+
+
 
 
 function getClippedTextSEMIGUI(text, start, end){

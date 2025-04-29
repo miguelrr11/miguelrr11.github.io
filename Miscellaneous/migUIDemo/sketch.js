@@ -19,7 +19,7 @@ let plot
 
 let widthPanel = 245
 
-let panel2
+let tabs
 
 let fontPanel
 
@@ -27,20 +27,34 @@ function preload(){
     fontPanel = loadFont("../migUI/main/bnr.ttf")
 }
 
-function mouseClicked(){
-    //if(keyIsPressed) panel.reposition(mouseX, mouseY)
-}
+
+
+// function keyPressed(){
+//     showingPanel = (showingPanel + 1) % 2
+// }
 
 function setup(){
     createCanvas(WIDTH+widthPanel, HEIGHT)
-    panel = new Panel({
-        retractable: true,
+
+    tabs = new TabManager({
+        retractable: false,
         theme: "techno",
         title: "MIGUI DEMO",
         w: widthPanel,
         x: WIDTH,
         font: fontPanel,
     })
+
+    panel = tabs.createTab('TAB 1')
+
+    // panel = new Panel({
+    //     retractable: false,
+    //     theme: "techno",
+    //     title: "MIGUI DEMO",
+    //     w: widthPanel,
+    //     x: WIDTH,
+    //     font: fontPanel,
+    // })
     cb1 = panel.createCheckbox("RED", false)
     cb2 = panel.createCheckbox("Green", false)
     cb3 = panel.createCheckbox("Blue!", false)
@@ -80,6 +94,32 @@ function setup(){
 
     plot = panel.createPlot("Sin")
     plot.setFunc(plotInput)
+
+    panel2 = tabs.createTab('TAB 2')
+    // panel2 = new Panel({
+    //     retractable: true,
+    //     theme: "sublime",
+    //     title: "MIGUI DEMO 2",
+    //     w: widthPanel,
+    //     x: WIDTH,
+    //     y: 0,
+    //     font: fontPanel,
+    // })
+    panel2.createText("COOL TITLE 2", true)
+    panel2.createText("Enter number between 0 and 255 below and press enter")
+    ip2 = panel2.createInput("Enter value ")
+    ip2.setFunc(setval)
+    panel2.createSeparator()
+    panel2.createText("Enter number between 0 and 255 below and press enter")
+    ip3 = panel2.createInput("Enter value ")
+    ip3.setFunc(setval)
+    panel2.createSeparator()
+
+    tabs.createTab('TAB 3')
+    tabs.createTab('EVEN MORE TABS')
+    tabs.createTab('ONE MORE')
+
+    
 }
 
 
@@ -103,26 +143,10 @@ function adios(){
     console.log("adios")
 }
 
-// function mouseClicked(){
-//     // if(mouseX < WIDTH){
-//     //     panel2 = new Panel({
-//     //         x: mouseX,
-//     //         y: mouseY,
-//     //         theme: 'techno'
-//     //     })
-//     //     panel2.createInput()
-//     //     panel2.inputs[0].active = true
-//     // }
-
-//     panel2 = new Input(mouseX, mouseY, "Enter name of pin", () => {
-//         name = panel2.getText()
-//         panel2 = null
-//     }, [23, 177, 173], [9, 35, 39])
-// }
-
 let name
 
 let n = 0
+let showingPanel = 0
 
 function draw(){
     background(back)
@@ -146,18 +170,16 @@ function draw(){
     fill(cp.getColor()) 
     ellipse(WIDTH*0.66, HEIGHT*0.66, 100, 100)
 
-
-    panel.update()
-    panel.show()
-
-    if(panel2){
-        panel2.active = true
-        panel2.update()
-        panel2.show()
+    if(keyIsPressed && mouseIsPressed){
+        tabs.reposition(mouseX, mouseY)
     }
 
-    
-    
+    // panel.update()
+    // panel.show()
+
+    tabs.update()
+    tabs.show()
+
 
     // fill(255, 150)
     // noStroke()
