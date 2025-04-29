@@ -2,6 +2,8 @@
 //Miguel Rodríguez
 //
 
+//DO NOT USE THIS, INSTEAD USE THE MIGUI VERSION
+
 p5.disableFriendlyErrors = true
 const WIDTH = 600
 const HEIGHT = 600

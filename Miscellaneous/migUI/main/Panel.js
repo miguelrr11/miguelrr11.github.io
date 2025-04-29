@@ -1,7 +1,7 @@
 //UI library for p5 projects
 //Miguel Rodríguez
 //06-09-2024
-//v2
+//v2.2 (tabs and plot update)
 
 let bordeMIGUI = 1
 let text_FontMIGUI
