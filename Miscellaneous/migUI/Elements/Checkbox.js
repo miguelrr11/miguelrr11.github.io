@@ -6,7 +6,8 @@ class Checkbox{
 		this.pos = createVector(x, y)
 		this.state = state
 		this.name = title
-		this.title = getClippedTextMIGUI(title, clipping_length_normalMIGUI)
+		//this.title = getClippedTextMIGUI(title, clipping_length_normalMIGUI)
+		this.title = title
 		this.func = undefined
 		this.arg = false
 		this.textSize = text_SizeMIGUI-1

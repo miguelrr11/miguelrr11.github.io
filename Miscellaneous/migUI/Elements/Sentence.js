@@ -1,13 +1,14 @@
 class Sentence{
-	constructor(x, y, words, isTitle, lightCol, darkCol){
+	constructor(x, y, words, isTitle, bold, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
 		this.pos = createVector(x, y)
 		this.name = words
-		this.words = words
+		this.words = (words)
 		this.isTitle = isTitle
-		this.textSize = this.isTitle ? title_SizeMIGUI : text_SizeMIGUI-2
+		this.textSize = this.isTitle ? title_SizeMIGUI : text_SizeMIGUI-1
+		this.bold = bold	
 		this.func = undefined
 
 		let newlinesN = words.split('\n').length
@@ -18,6 +19,7 @@ class Sentence{
 			this.height += textHeight(newlines[i])
 		}
 		this.height *= 1.2
+		this.w = 0
 	}
 
 	setFunc(func){
@@ -48,6 +50,7 @@ class Sentence{
 
 	show(){
 		push()
+		textAlign(LEFT, TOP)
 		if(this.func) this.words = this.func()
 		if(this.isTitle){
 			push()
@@ -55,21 +58,30 @@ class Sentence{
 			stroke(this.transCol)
 			strokeWeight(1)
 			textSize(this.textSize)
-			text(this.words, this.pos.x - bordeMIGUI, this.pos.y + 15)
+			text((this.words), this.pos.x - bordeMIGUI, this.pos.y, this.w-20, this.h)
 			fill(this.transCol)
-			text(this.words, this.pos.x - bordeMIGUI + 3, this.pos.y + 13)
+			text((this.words), this.pos.x - bordeMIGUI+1, this.pos.y-1, this.w-20, this.h)
 			pop()
 		}
 		else{
-			noStroke()
+			if(this.bold){
+				strokeWeight(.85)
+				stroke(this.lightCol)
+			}
 			fill(this.lightCol)
 			textSize(this.textSize)
-			text(this.words, this.pos.x - bordeMIGUI, this.pos.y + 10)
+			text((this.words), this.pos.x - bordeMIGUI, this.pos.y, this.w-20, this.h)
+			fill(this.transCol)
 		}
+		pop()
+		//debug
+		// push()
 		// fill(255, 0, 0)
 		// noStroke()
 		// ellipse(this.pos.x, this.pos.y, 4)
 		// ellipse(this.pos.x, this.pos.y + this.height, 4)
-		pop()
+		// stroke(255, 0, 0)
+		// line(this.pos.x, this.pos.y, this.pos.x, this.pos.y + this.height)
+		// pop()
 	}
 }

@@ -14,7 +14,7 @@ class OptionPicker{
 		this.func = undefined
 		this.arg = false
 
-		this.w = picker_width
+		this.w = WIDTH_OPTIONPICKER
 		this.h = 17
 
 		this.rad = radMIGUI
@@ -126,8 +126,8 @@ class OptionPicker{
 		fill(this.darkCol)
 		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 		this.setSFtext(false)
-        let option = getClippedTextMIGUI(this.options[this.selectedIndex%this.options.length], 10)
-		text(option, this.pos.x + this.w * 0.5, this.pos.y + this.h / 2)
+        let option = getClippedTextMIGUI(this.options[this.selectedIndex%this.options.length], this.w)
+		text(option, this.pos.x + this.w * 0.5, this.pos.y + this.h / 2 + 1)
 
 		//rect con -
 		let off = 0
@@ -146,8 +146,8 @@ class OptionPicker{
 
 		noStroke()
 		this.setSFtext(false)
-		textAlign(LEFT, TOP)
-		text(this.text, this.pos.x + this.w + 10, this.pos.y + 1)
+		textAlign(LEFT, CENTER)
+		text(this.text, this.pos.x + this.w + 10, this.pos.y + this.h / 2 )
 		
 		//text(this.text, this.pos.x + bordeMIGUI+text_offset_xMIGUI, this.pos.y + this.h*0.75)
 

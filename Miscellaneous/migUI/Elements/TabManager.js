@@ -10,11 +10,14 @@ class TabManager{
         this.panel = new Panel(options)     //main panel only for dislaying the tabs buttons
         this.panel.automaticHeight = false
         this.panel.h = 50 + TAB_HEIGHT
+        //this.panel.lastElementPos.x -= 16
 
         this.options.title = ''
+        //this.options.y = this.panel.pos.y + this.panel.h
 
         this.lastPos = createVector(this.panel.pos.x, this.panel.h-TAB_HEIGHT-1)
         this.w = this.panel.w
+        this.Ylines = []
     }
 
     reposition(x, y){
@@ -24,6 +27,9 @@ class TabManager{
         this.panel.reposition(x, y)
         this.lastPos.x += dx
 		this.lastPos.y += dy
+        for(let i = 0; i < this.Ylines.length; i++){
+            this.Ylines[i] += dy
+        }
     }
 
     changeActiveButtons(tab){
@@ -43,16 +49,19 @@ class TabManager{
 
     createTab(name){
         let panelOfTab = new Panel(this.options)
-        //panelOfTab.reposition(this.panel.pos.x, this.panel.h + this.panel.pos.y)
+        //always on screen
+        
+        panelOfTab.reposition(this.panel.pos.x, this.panel.h + this.panel.pos.y)
         let tab = new Tab(name, panelOfTab, this.lastPos, this)
         
         this.tabs.push(tab)
-        this.activeTab = tab
+        if(this.tabs.length == 1) this.activeTab = tab
         
 
         let button = this.panel.createButton(tab.name, true)
-        this.panel.h = this.panel.buttons[this.panel.buttons.length-1].pos.y+TAB_HEIGHT+15-this.panel.pos.y
-        button.setRoundedCorners(true, true, true, true)
+        this.panel.h = this.panel.buttons[this.panel.buttons.length-1].pos.y+TAB_HEIGHT+1-this.panel.pos.y
+        panelOfTab.h = Math.min(panelOfTab.h, height - this.panel.h - this.panel.pos.y)
+        button.setRoundedCorners(true, true, false, false)
         button.setFunc(() => {
             this.activeTab = tab
             this.changeActiveButtons(tab)
@@ -60,7 +69,10 @@ class TabManager{
         
         
         tab.button = button
-        this.changeActiveButtons(tab)
+        if(this.tabs.length == 1) this.changeActiveButtons(tab)
+        if(button.pos.y != this.lastPos.y){
+            this.Ylines.push(button.pos.y+button.h+1)
+        }
         this.lastPos = button.pos.copy()
         this.repositionAllPanels()
         return panelOfTab
@@ -79,10 +91,20 @@ class TabManager{
         }
     }
 
+    showLinesTabs(){
+        push()
+        stroke(this.panel.lightCol)
+        for(let yl of this.Ylines){
+            line(this.panel.pos.x+1, yl, this.panel.pos.x + this.panel.w, yl)
+        }
+        pop()
+    }
+
     show(){
         if(this.activeTab){
             this.activeTab.show()
         }
         this.panel.show()
+        this.showLinesTabs()
     }
 }

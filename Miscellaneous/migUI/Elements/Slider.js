@@ -21,7 +21,7 @@ class Slider{
 		this.rad = radMIGUI
 
 		this.height = this.h + 1
-		this.height += (this.showValue || this.title) != "" ? 17 : 0
+		this.height += (this.showValue || this.title) != "" ? 20 : 0
 
 		this.value = origin
 		this.setValue(origin)

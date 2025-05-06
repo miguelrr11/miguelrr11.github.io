@@ -14,6 +14,9 @@ let clipping_length_normalMIGUI = 20
 let clipping_length_titleMIGUI = 11
 let picker_width = 100
 
+const WIDTH_OPTIONPICKER = 170
+const WIDTH_NUMBERPICKER = 100
+
 /*
 200 - 20
 150 - 14
@@ -202,16 +205,19 @@ class Panel{
 	        needsNewLine = true;
 	    }
 
+		
 	    if (needsNewLine) {
 	        if (this.lastElementAdded.constructor.name !== "Checkbox") {
 	            //this.lastElementPos.y += 5;
 	        }
 	        newX = this.lastElementPos.x;
 	        newY = this.lastElementPos.y;
-	       
 	    }
+		let off = this.padding*5
+		let maxLength = Math.min(8 + textWidth(title), newX + this.w - newX - off)
+		let newTitle = getClippedTextByPixelsMIGUI(title, maxLength, text_SizeMIGUI-1)
 
-	    const checkbox = new Checkbox(newX, newY, title, state, this.lightCol, this.darkCol, this.transCol);
+	    const checkbox = new Checkbox(newX, newY, newTitle, state, this.lightCol, this.darkCol, this.transCol);
 	    this.checkboxes.push(checkbox);
 	    this.lastElementAdded = checkbox;
 	    if(needsNewLine) this.lastElementPos.y += checkbox.height + this.padding
@@ -224,7 +230,7 @@ class Panel{
 
 	createSlider(min, max, origin, title = "", showValue = false){
 		let posSlider = this.lastElementPos.copy()
-		if(title != "" || showValue) posSlider.y += 15
+		if(title != "" || showValue) posSlider.y += 20
 		if(this.lastElementAdded.constructor.name != "Slider"){
 			// posSlider.y += 5
 			// this.lastElementPos.y += 5
@@ -246,14 +252,15 @@ class Panel{
 		return slider
 	}
 
-	createText(words = "", isTitle = false){
+	createText(words = "", isTitle = false, bold = false){
 		//if(this.lastElementAdded.constructor.name != "Sentence") this.lastElementPos.y += 5
 		//if(isTitle) this.lastElementPos.y += 5
 		let spacedWords = wrapText(words, this.w, isTitle ? title_SizeMIGUI : text_SizeMIGUI)
 		let sentence = new Sentence(this.lastElementPos.x,
 									this.lastElementPos.y,
-									spacedWords, isTitle, 
+									spacedWords, isTitle, bold,
 									this.lightCol, this.darkCol, this.transCol)
+		sentence.w = this.w
 		
 		this.lastElementPos.y += sentence.height + this.padding
 		
@@ -309,7 +316,7 @@ class Panel{
 	    let needsNewLine = false;
 
 	    if (this.lastBU) {
-			const off = creatingTab ? 3 : 10
+			const off = creatingTab ? 0 : 10
 	        const lastCBLength = this.lastBU.length + off 
 	        newX = this.lastBU.pos.x + lastCBLength
 			
@@ -335,12 +342,12 @@ class Panel{
 	        
 	    }
 		
-		let button = new Button(newX, newY, sentence,  this.lightCol, this.darkCol, this.transCol)
+		let button = new Button(newX, newY, sentence,  this.lightCol, this.darkCol, this)
 		if(creatingTab){
 			button.h = TAB_HEIGHT
 			button.textSize = text_SizeMIGUI-3
 		}
-		if(needsNewLine) this.lastElementPos.y += button.height
+		if(needsNewLine) this.lastElementPos.y += button.height - 2
 		if(needsNewLine && !creatingTab) this.lastElementPos.y += this.padding
 		this.buttons.push(button)
 		this.lastElementAdded = button
@@ -352,9 +359,13 @@ class Panel{
 	}
 
 	createColorPicker(sentence = [], def = undefined){
+		let off = this.padding*5
+		let maxLength = Math.min(8 + textWidth(sentence), this.lastElementPos.x + this.w - this.lastElementPos.x - off)
+		let newTitle = getClippedTextByPixelsMIGUI(sentence, maxLength, text_SizeMIGUI-1)
+
 		let colorPicker = new ColorPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
-										  sentence,  def, 
+										  newTitle,  def, 
 										  this.lightCol, this.darkCol, this.transCol)
 		this.lastElementPos.y += colorPicker.height + this.padding
 		this.colorPickers.push(colorPicker)
@@ -368,9 +379,13 @@ class Panel{
 
 	createNumberPicker(sentence = "", min = undefined, max = undefined, delta = 1,
 					   def = undefined){
+		let off = this.padding*5
+		let maxLength = Math.min(WIDTH_NUMBERPICKER, this.lastElementPos.x + this.w - this.lastElementPos.x - off - WIDTH_NUMBERPICKER)
+		let newTitle = getClippedTextByPixelsMIGUI(sentence, maxLength, text_SizeMIGUI-2)
+
 		let numberPicker = new NumberPicker(this.lastElementPos.x, 
 										  this.lastElementPos.y,
-										  sentence, min, max, delta, def,
+										  newTitle, min, max, delta, def,
 										  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 25
 		this.lastElementPos.y += numberPicker.height + this.padding
@@ -399,9 +414,13 @@ class Panel{
 	}
 
 	createOptionPicker(sentence = "", options = []){
+		let off = this.padding*5
+		let maxLength = Math.min(WIDTH_OPTIONPICKER, this.lastElementPos.x + this.w - this.lastElementPos.x - off - WIDTH_OPTIONPICKER)
+		let newTitle = getClippedTextByPixelsMIGUI(sentence, maxLength, text_SizeMIGUI-2)
+
 		let optionPicker = new OptionPicker(this.lastElementPos.x, 
 								this.lastElementPos.y,
-								sentence, options, 
+								newTitle, options, 
 								this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 25
 		this.lastElementPos.y += optionPicker.height + this.padding
@@ -605,7 +624,7 @@ class Panel{
 		this.beingHoveredText = false
 
 		push()
-		if(this.automaticHeight) this.h = this.lastElementPos.y + 10
+		if(this.automaticHeight) this.h = this.lastElementPos.y + this.padding - this.pos.y
 		translate(bordeMIGUI*0.5, bordeMIGUI*0.5)
 
 		//fondo
@@ -618,12 +637,12 @@ class Panel{
 			cursor(ARROW)
 			return
 		}
-		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI, 0, 0, radMIGUI, radMIGUI)
+		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI)
 		//Titulo
-		textSize(title_SizeMIGUI)
+		textSize(title_SizeMIGUI+3)
 		stroke([...this.lightCol, 140])
 		fill([...this.lightCol, 110])
-		strokeWeight(2)
+		strokeWeight(1.5)
 		text(this.title, this.titlePos.x + 2, this.titlePos.y + 2)
 		fill(this.lightCol)
 		stroke(this.darkCol)
@@ -777,4 +796,15 @@ function wrapText(text, maxWidth = this.w, tSize = text_SizeMIGUI) {
 
 function textHeight() {
     return textAscent() + textDescent();
+}
+
+function getClippedTextByPixelsMIGUI(text, length, tSize = text_SizeMIGUI){
+	textSize(tSize)
+	let clippedText = text
+	let i = 0
+	while(textWidth(clippedText) > length && i < text.length){
+		clippedText = text.slice(0, text.length - i)
+		i++
+	}
+	return clippedText
 }

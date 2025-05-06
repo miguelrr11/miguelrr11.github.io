@@ -19,7 +19,7 @@ class NumberPicker{
 		this.value = def != undefined ? constrain(def, this.min, this.max) : 0
 		this.delta = delta ? delta : 1
 
-		this.w = picker_width
+		this.w = WIDTH_NUMBERPICKER
 		this.h = 17
 
 		this.rad = radMIGUI

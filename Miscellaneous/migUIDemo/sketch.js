@@ -87,7 +87,7 @@ function setup(){
     th = panel.createSelect(["spiderman", "sublime", "blossom", "techno"], "techno")
     th.setFunc(f => {panel.setTheme(th.getSelected())})
     
-    np1 = panel.createNumberPicker("Add circ.", 0, 22, 1, 1)
+    np1 = panel.createNumberPicker("Add circles", 0, 22, 1, 1)
     np1.setFunc(npMinus, true)
 
     opp = panel.createOptionPicker("Plot input", ['sin', 'random', 'noise'])
