@@ -31,8 +31,8 @@ let maxHealthCell = 1        //vida de los bloques normales
 let maxHealthCellMat = 10    //vida de los bloques de materiales
 let baseHpCellExp = 20       //vida de los barriles explosivos
 
-let coolDownMovement = 1 //frames
-let coolDownMining = 1 //frames (nunca menor que 2 porque sino no se ve el efecto de minado)
+let coolDownMovement = 10 //frames
+let coolDownMining = 10 //frames (nunca menor que 2 porque sino no se ve el efecto de minado)
 
 let transitioning = false
 let transitionFrames = 30

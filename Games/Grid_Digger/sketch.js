@@ -22,6 +22,7 @@ function preload(){
     imgNexo1 = loadImage('images/shoe.png')
     imgNexo2 = loadImage('images/pickaxe.png')
     imgNexo3 = loadImage('images/sensor.png')
+    loadAllSounds()
 }
 
 function setup(){
@@ -33,7 +34,7 @@ function setup(){
     anims = new AnimationManager()
     initLighting()
     initMinimap()
-    loadAllSounds()
+    
     //loadAllImages()
     initTopo()
 
