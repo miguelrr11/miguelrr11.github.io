@@ -1,16 +1,37 @@
+
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/addons/p5.sound.min.js"></script>
-    <link rel="stylesheet" type="text/css" href="style.css">
-    <meta charset="utf-8" />
+    <meta charset="UTF-8" />
+    <style>
+      body {
+        margin: 0;
+      }
 
+      #wrapper {
+        display: flex;
+        align-items: flex-start;
+      }
+
+      #stats {
+        padding: 10px;
+        font-family: monospace;
+        min-width: 150px;
+      }
+    </style>
   </head>
   <body>
-    <main>
-    </main>
+    <div id="wrapper">
+      <div id="canvas-holder"></div>
+      <div id="stats">
+        <p id="live-timer"></p> <!-- ⏱ live timer -->
+      </div>
+    </div>
+    
     <script src="sketch.js"></script>
     <script src="spot.js"></script>
   </body>
 </html>
+

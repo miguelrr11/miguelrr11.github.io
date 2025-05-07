@@ -1,49 +1,46 @@
-class Step{
-  constructor(x, y){
-    this.x = x
-    this.y = y
-    this.tried = false
-  }
-}
+const DIRECTIONS = [
+  { x: 1, y: 0 },
+  { x: -1, y: 0 },
+  { x: 0, y: 1 },
+  { x: 0, y: -1 }
+];
 
-function allOptions() {
-    return [new Step(1, 0), new Step(-1, 0), new Step(0, 1), new Step(0, -1)];
-}
-
-class Spot{
-  constructor(i, j){
-    this.i = i
-    this.j = j
-    this.x = i * widthN
-    this.y = j * widthN
-    this.options = allOptions()
-    this.visited = false
+class Spot {
+  constructor(i, j) {
+      this.i = i;
+      this.j = j;
+      this.x = i * widthN + widthN / 2;
+      this.y = j * widthN + widthN / 2;
+      this.visited = false;
+      this.options = DIRECTIONS.map(d => ({ ...d, tried: false }));
   }
-  
-  clear(){
+
+  clear() {
     this.visited = false;
-    this.options = allOptions();
+    for (let dir of this.options) {
+      dir.tried = false;
+    }
   }
   
-  chooseNext(){
-    let available = []
-    for(let s of this.options){
-      let nx = this.i + s.x
-      let ny = this.j + s.y
-      if(!s.tried && 
-         nx >= 0 && nx <= n-1 && 
-         ny >= 0 && ny <= n-1 && 
-         !board[nx][ny].visited) available.push(s)
-    }
-    
-    if(available.length > 0){
-      let op = random(available)
-      op.tried = true
-      return board[this.i + op.x][this.j + op.y];
-    }
-    
-    return undefined
-    
+
+  chooseNext() {
+      const available = this.options.filter(dir => {
+          if (dir.tried) return false;
+          const nx = this.i + dir.x;
+          const ny = this.j + dir.y;
+          return (
+              nx >= 0 && nx < n &&
+              ny >= 0 && ny < n &&
+              !board[nx][ny].visited
+          );
+      });
+
+      if (available.length > 0) {
+          const choice = random(available);
+          choice.tried = true;
+          return board[this.i + choice.x][this.j + choice.y];
+      }
+
+      return undefined;
   }
-  
 }

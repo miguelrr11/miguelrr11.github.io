@@ -53,9 +53,9 @@ let filter = [
 ]
 function activation(x){
     //return constrainn(x, 0, 1)
-    return Math.sin(x)
+    //return Math.sin(x)
     //return x
-    //return Math.tanh(x)
+    return Math.tanh(x)
     //return -1/Math.pow(2, (Math.pow(x, 2)))+1;
     //return Math.pow(x, 2)
 }
