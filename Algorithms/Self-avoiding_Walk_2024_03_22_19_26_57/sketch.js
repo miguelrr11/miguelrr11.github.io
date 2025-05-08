@@ -4,7 +4,7 @@
 
 const WIDTH = 600
 const HEIGHT = 600
-let n = 3
+let n = 2
 let widthN = WIDTH / n
 let path = []
 let board = []
@@ -17,6 +17,7 @@ let startTime = 0;
 let statsDiv;
 let liveTimer;
 let elapsedCpuTime = 0;
+let slider, btnSkip
 
 
 p5.disableFriendlyErrors = true // esta linea es magica
@@ -28,14 +29,14 @@ function reset() {
     sumBoard = [];
     widthN = WIDTH / n;
     initB();
-    let mid = 0
+    let mid = Math.floor(n / 2);
     let spot = board[mid][mid];
     sumBoard[mid][mid]++;
     maxSum = 1;
     path.push(spot);
     spot.visited = true;
     startTime = millis();
-    steps_per_update *= 10
+    //steps_per_update *= 10
     steps_per_update = constrain(steps_per_update, 1, 750000)
     elapsedCpuTime = 0;
 }
@@ -44,6 +45,14 @@ function reset() {
 
 function setup() {
     let canvas = createCanvas(WIDTH, HEIGHT);
+    slider = createSlider(1, 750000, 1);
+    slider.position(WIDTH + 5, 5);
+    btnSkip = createButton('Skip');
+    btnSkip.position(WIDTH + 150, 5);
+    btnSkip.mousePressed(() => {
+        n++
+        reset()
+    })
     canvas.parent('canvas-holder');
     statsDiv = select('#stats');
     liveTimer = createP();            // create at the bottom
@@ -68,6 +77,7 @@ function initB() {
 
 function draw() {
     let cpuTimeStart = performance.now();
+    steps_per_update = slider.value();
 
     for (let i = 0; i < steps_per_update; i++) {
         let current = path[path.length - 1];
@@ -93,7 +103,7 @@ function draw() {
     
 
     background(0);
-    if (mouseIsPressed) drawSumBoard();
+    if (mouseIsPressed && mouseX < WIDTH) drawSumBoard();
     if (path.length == n * n) {
         let elapsed = elapsedCpuTime / 1000; // convert to seconds
         timeData.push({ n: n, time: elapsed });
