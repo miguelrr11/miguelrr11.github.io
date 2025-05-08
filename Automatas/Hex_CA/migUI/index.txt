@@ -9,9 +9,8 @@
 <script src="migUI/Elements/NumberPicker.js"></script>
 <script src="migUI/Elements/OptionPicker.js"></script>
 <script src="migUI/Elements/Plot.js"></script>
-<script src="migUI/Elements/Tab.js"></script>
-<script src="migUI/Elements/TabManager.js"></script>
 
-async function setup(){
-    let fontPanel = await loadFont("migUI/main/bnr.ttf")
+let fontPanel;
+function preload(){
+    fontPanel = loadFont("migUI/main/bnr.ttf")
 }
