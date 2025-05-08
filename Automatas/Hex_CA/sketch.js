@@ -159,7 +159,7 @@ async function setup(){
 
     panel = new Panel({
         x: 0,
-        theme: 'dark',
+        theme: 'techno',
         title: 'Hexagonal CA',
         font: fontPanel,
         h: 300,
@@ -196,6 +196,9 @@ async function setup(){
             inputAct.error()
         }
     }, true)
+
+    panel.createSeparator()
+    panel.createText('Warning: Flashing Lights')
     
 
 
@@ -252,7 +255,6 @@ function updateGridTexture() {
 
 function draw(){
     background(0)
-
     update()    
     updateGridTexture();
     gridBuffer.shader(gridShader);
@@ -285,6 +287,7 @@ function update(){
         }
     }
 }
+
 
 function drawGrid(){
     push()
