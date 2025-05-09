@@ -28,6 +28,8 @@ class Slider{
 
 		this.beingHovered = false
 		this.beingPressed = false		
+
+		this.integer = false
 	}
 
 	setFunc(func, arg = false){
@@ -39,9 +41,11 @@ class Slider{
 		if(this.func) this.arg ? this.func(this.value) : this.func()
 	}
 
-	reposition(x, y, w = undefined, h = undefined){
-		this.pos = createVector(x, y)
-		this.sliderPos = createVector(x, y)
+	reposition(x = undefined, y = undefined, w = undefined, h = undefined){
+		if(x != undefined) this.pos.x = x
+		if(y != undefined) this.pos.y = y
+		this.sliderPos.x = this.pos.x
+		this.sliderPos.y = this.pos.y
 		if(this.title != "" || this.showValue) this.sliderPos.y += 15
 		this.w = w || this.w
 		this.h = h || this.h
@@ -52,7 +56,7 @@ class Slider{
 
 	setValue(value){
 		if(isNaN(value)) value = 0
-		this.value = value
+		this.value = this.integer ? Math.round(value) : value
 		this.value = constrain(this.value, this.min, this.max)
 		this.valuePosX = mappMIGUI(this.value, this.min, this.max, this.pos.x, this.pos.x + this.w)
 	}
@@ -62,21 +66,39 @@ class Slider{
 	}
 
 	getBound(){
-		let value, valuePosX
+		let value, valuePosX;
 		if(mouseX > this.pos.x + this.w){
-			value = this.max
-			valuePosX = this.pos.x + this.w
+			value = this.max;
+			valuePosX = this.pos.x + this.w;
 		}
 		else if(mouseX < this.pos.x){
-			value = this.min
-			valuePosX = this.pos.x
+			value = this.min;
+			valuePosX = this.pos.x;
 		}
-		else{
-			valuePosX = mouseX
-			value = mappMIGUI(this.valuePosX, this.pos.x, this.pos.x+this.w, this.min, this.max)
+		else {
+			valuePosX = mouseX;
+			value = mappMIGUI(
+							valuePosX,
+							this.pos.x,
+							this.pos.x + this.w,
+							this.min,
+							this.max
+						);
+			if(this.integer){
+			value = Math.round(value);
+			value = constrain(value, this.min, this.max);
+			valuePosX = mappMIGUI(
+							value,
+							this.min,
+							this.max,
+							this.pos.x,
+							this.pos.x + this.w
+						);
+			}
 		}
-		return [value, valuePosX]
+		return [value, valuePosX];
 	}
+	  
 
 	evaluate(){
 		this.beingHovered = inBoundsMIGUI(mouseX, mouseY, this.sliderPos.x, this.sliderPos.y, this.w+bordeMIGUI, this.h+bordeMIGUI)

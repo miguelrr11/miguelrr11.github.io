@@ -127,6 +127,7 @@ class OptionPicker{
 		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 		this.setSFtext(false)
         let option = getClippedTextMIGUI(this.options[this.selectedIndex%this.options.length], this.w)
+		//let option = this.options[this.selectedIndex%this.options.length]
 		text(option, this.pos.x + this.w * 0.5, this.pos.y + this.h / 2 + 1)
 
 		//rect con -
