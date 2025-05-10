@@ -47,17 +47,59 @@ function filterLink(link, targetUrl, targetHost, targetPath) {
 // - Starts with a default "Introduction" section.
 // - When an <h3> is found, a new section is created using the h3 text as the title.
 // - Links encountered are filtered and added to the latest section.
+// Main function: fetches the page, extracts links, and groups them by section title,
+// now returning objects with both the URL and a text snippet around the link.
 async function extractAndFilterLinksCategorized(targetUrl) {
+  // Helper to grab a snippet of words around the link text
+  function getContext(node, wordsBefore = 20, wordsAfter = 50) {
+    const parentText = node.parentElement?.textContent || '';
+    const baseText = parentText.trim();
+    const allWords = baseText.split(/\s+/);
+    const linkText = node.textContent.trim();
+    const linkWords = linkText.split(/\s+/);
+  
+    // Helper to clean ellipses and compare
+    const isOnlyLink = snippet =>
+      snippet.replace(/\.\.\./g, '').trim() === linkText;
+  
+    // 1) Exact-sequence pass
+    let idx = allWords.findIndex((w, i) =>
+      w === linkWords[0] &&
+      allWords.slice(i, i + linkWords.length).join(' ') === linkText
+    );
+    if (idx >= 0) {
+      const start = Math.max(0, idx - wordsBefore);
+      const end = Math.min(allWords.length, idx + linkWords.length + wordsAfter);
+      const snippet = '...' + allWords.slice(start, end).join(' ') + '...';
+      return isOnlyLink(snippet) ? undefined : snippet;
+    }
+  
+    // 2) Raw-text pass
+    const pos = baseText.indexOf(linkText);
+    if (pos >= 0) {
+      const preWords = baseText.slice(0, pos).trim().split(/\s+/);
+      const postWords = baseText.slice(pos + linkText.length).trim().split(/\s+/);
+      const startWords = preWords.slice(-wordsBefore);
+      const endWords = postWords.slice(0, wordsAfter);
+      const snippet = '...' + [...startWords, ...linkWords, ...endWords].join(' ') + '...';
+      return isOnlyLink(snippet) ? undefined : snippet;
+    }
+  
+    // 3) If we can’t find any context, give up
+    return undefined;
+  }
+  
+  
+  
+
   try {
     const proxyUrl = `https://corsproxy.io/?url=`;
-    //const proxyUrl = `https://api.cors.lol/?url=`;
-    //const proxyUrl = `https://api.allorigins.win/get?url=`;
     const url = encodeURIComponent(targetUrl);
     const response = await fetch(proxyUrl + url);
 
     if (!response.ok) {
       throw new Error(`HTTP error! Status: ${response.status}`);
-  }
+    }
 
     const contentType = response.headers.get('Content-Type');
     if (!contentType || !contentType.includes('text/html')) {
@@ -68,7 +110,6 @@ async function extractAndFilterLinksCategorized(targetUrl) {
     const parser = new DOMParser();
     const doc = parser.parseFromString(html, 'text/html');
 
-    // Determine target host and path for filtering purposes
     const target = new URL(targetUrl);
     const targetHost = target.host;
     const targetPath = target.pathname;
@@ -78,39 +119,37 @@ async function extractAndFilterLinksCategorized(targetUrl) {
     let currentSection = { title: "Introduction", links: [] };
     sections.push(currentSection);
 
-    // Select all h3 and h2 and anchor elements in document order
-    const nodes = doc.querySelectorAll('h3, a[href], h2, h1');
+    // Walk through headings and links in document order
+    const nodes = doc.querySelectorAll('h1, h2, h3, a[href]');
     for (const node of nodes) {
-      let tagName = node.tagName.toLowerCase();
-      if (tagName === 'h3' || tagName === 'h2' || tagName === 'h1') {
+      const tag = node.tagName.toLowerCase();
+      if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
         const title = node.textContent.trim();
         if (isCategory(title)) {
-          console.log(title);
-          currentSection = { title: title, links: [] };
+          currentSection = { title, links: [] };
           sections.push(currentSection);
-        } 
-        else {
-          console.log('out ', title);
-          currentSection = undefined
+        } else {
+          currentSection = undefined; // ignore links until next valid heading
         }
-      } 
-      else if (tagName === 'a' && currentSection) {
+      } else if (tag === 'a' && currentSection) {
         const href = node.getAttribute('href');
         const filteredLink = filterLink(href, targetUrl, targetHost, targetPath);
-        if (filteredLink && !currentSection.links.includes(filteredLink)) {
-          currentSection.links.push(filteredLink);
-          console.log('title ' + currentSection.title + ' link ', filteredLink);
+        // only add each URL once per section
+        if (filteredLink && !currentSection.links.some(l => l.url === filteredLink)) {
+          const context = getContext(node, 10, 20);
+          currentSection.links.push({ url: filteredLink, context });
         }
       }
     }
-    
 
+    // Return only sections that actually have links
+    console.log(sections.filter(section => section.links.length > 0))
     return sections.filter(section => section.links.length > 0);
-  } 
-  catch (error) {
-    throw new Error()
+  } catch (error) {
+    throw new Error(error.message || 'Error extracting links');
   }
 }
+
 
 function isCategory(str){
   let notCategories = [

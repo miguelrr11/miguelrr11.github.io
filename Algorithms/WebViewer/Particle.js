@@ -3,7 +3,7 @@ const MAX_RADIUS_PARTICLE = 10
 const minDistanceGrowSq = 50 * 50
 
 class Particle{
-	constructor(x, y, pinned, id, str = '', parent){
+	constructor(x, y, pinned, id, str = '', parent, ctx = undefined){
 		this.pos = createVector(x, y)
 		this.prevPos = createVector(x, y)
 		this.acc = createVector(0, 0)
@@ -11,6 +11,7 @@ class Particle{
 		this.id = id
 		this.radius = RADIUS_PARTICLE
 		this.link = str
+		this.ctx = ctx
 		this.str = removeBarrabaja(getLastPartOfLink(decodeURIComponent(str)))
 		this.plainStr = undefined
 		this.parent = parent
