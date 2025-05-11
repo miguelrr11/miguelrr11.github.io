@@ -179,6 +179,44 @@ function getAllStr() {
     return str;
 }
 
+function getWrappedTextHeight(txt, maxW) {
+    // Determine line height (fallback to textSize)
+    let lh = textLeading() || textSize();
+  
+    // Break into chunks on explicit newlines:
+    let paragraphs = txt.split('\n');
+    let lines = [];
+  
+    paragraphs.forEach(para => {
+      if (para === '') {
+        // explicit blank line
+        lines.push('');
+      } else {
+        // wrap this paragraph
+        let words = para.split(' ');
+        let current = '';
+  
+        for (let w of words) {
+          let test = current ? current + ' ' + w : w;
+          if (textWidth(test) > maxW) {
+            lines.push(current);
+            current = w;
+          } else {
+            current = test;
+          }
+        }
+  
+        // push any leftover text
+        if (current) {
+          lines.push(current);
+        }
+      }
+    });
+  
+    // total height = number of lines × line-height
+    return lines.length * lh;
+}
+
 // ===================
 // Other Utilities
 // ===================

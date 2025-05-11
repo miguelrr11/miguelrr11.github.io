@@ -62,8 +62,7 @@ function updateTopo() {
 }
 
 function showTopo() {
-    let col = curCol.topographic  //is just a number
-    ctx.strokeStyle =    "rgb(" + col + "," + col + "," + col + ")";
+    ctx.strokeStyle = "rgb(255, 255, 255)";
     ctx.lineWidth = zoom >= 1
         ? mapp(zoom, 1, MAX_ZOOM, 1.25, 2.5)
         : mapp(zoom, MIN_ZOOM, 1, 0.5, 1.25);
