@@ -6,7 +6,7 @@ const WIDTH = 600
 const HEIGHT = 600
 let board = []
 let new_board = []
-let n = 160
+let n = 300
 let tam_cell = WIDTH/n
 let ruleSet = []
 let windxy
@@ -14,16 +14,34 @@ let range = 60
 let count = 0
 
 function preload(){
-    convertFile('ruleset.txt')
-}
+    let xhr = new XMLHttpRequest();
+    nombreArchivo = 'ruleSet.txt'; // Cambia esto por la ruta de tu archivo
 
+  xhr.onload = function() {
+    if (xhr.status === 200) {
+      let contenido = xhr.responseText;
+      let lineas = contenido.split('\n');
+
+      lineas.forEach(function(linea) {
+        let numeroStr = linea.trim().toString();
+        // Verifica si la longitud de la cadena es de 6 dígitos
+        if (numeroStr.length === 6 && /^\d+$/.test(numeroStr)) {
+          ruleSet.push(numeroStr); // Almacena el número como cadena
+        }
+      });
+    }
+  };
+
+  xhr.open('GET', nombreArchivo);
+  xhr.send();
+}
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     background(0)
     noStroke()
-    frameRate()
-
+    density = pixelDensity()
+    adjustedWidth = width * density;
     windxy = floor(n/2)
 
     for(let i = 0; i < n; i++){
@@ -59,34 +77,32 @@ function setup(){
     }
 
     
-    
-    drawBoard(board)
-    
 }
 
 function draw(){
-    background(0, 5)
-    for(let i = 0; i < n; i++){
-        for(let j = 0; j < n; j++){
-            new_board[i][j] = getNewState(i, j)
+    background(0)
+    noStroke()
+
+    for(let j = 0; j < 5; j++){
+        for(let i = 0; i < n; i++){
+            for(let j = 0; j < n; j++){
+                new_board[i][j] = getNewState(i, j)
+            }
+        }
+    
+        board = new_board
+        new_board = []
+        for(let i = 0; i < n; i++){
+            new_board[i] = []
+            for(let j = 0; j < n; j++){
+                new_board[i][j] = 0
+            }
         }
     }
-
-    drawBoard(new_board)
-
-    for(let i = 0; i < n; i++){
-        for(let j = 0; j < n; j++){
-            board[i][j] = new_board[i][j];
-            new_board[i][j] = 0;
-        }
-    }
-    if(count == 13){
-        range += 2
-        count = 0
-        range = constrain(range, 0, n-2)
-    }
-
-    count++
+    
+    loadPixels()
+    drawBoard(board)
+    updatePixels()
     
 }
 
@@ -99,8 +115,6 @@ function getNewStateAux(c, t, r, b, l){
         let Rr = getIntPos(rule, 3)
         let Br = getIntPos(rule, 2)
         let Lr = getIntPos(rule, 1)
-        console.log(rule)
-        console.log(Cr, Tr, Rr, Br, Lr)
         if(Cr == c && Tr == t && Rr == r && Br == b && Lr == l){
             return getIntPos(rule, 0)
         }
@@ -150,51 +164,35 @@ function getIntPos(num, pos){
 
 function drawBoard(mat){
     fill(255)
-    for(let i = windxy-range/2; i < windxy+range/2; i++){
-        for(let j = windxy-range/2; j < windxy+range/2; j++){
+    noStroke()
+    let col;
+    for(let i = 0; i < n; i++){
+        for(let j = 0; j < n; j++){
             switch (mat[i][j]){
             case 0: continue
-            case 1: fill(0, 0, 255)
+            case 1:
+                col = [0, 0, 255]
                 break
-            case 2: fill(255, 0, 0)
+            case 2:
+                col = [255, 0, 0]
                 break
-            case 3: fill(0, 255, 0)
+            case 3: 
+                col = [0, 255, 0]
                 break
-            case 4: fill(255, 255, 0)
+            case 4:
+                col = [255, 255, 0]
                 break
-            case 5: fill(255, 0, 255)
+            case 5:
+                col = [255, 0, 255]
                 break
-            case 6 : fill(255, 255, 255)
+            case 6 : 
+                col = [255, 255, 255]
                 break
-            case 7 : fill(100, 100, 255)
+            case 7 :
+                col = [100, 100, 255]
                 break
             }
-            rect(i*tam_cell, j*tam_cell, tam_cell, tam_cell)
+            drawFastRect(i*tam_cell, j*tam_cell, tam_cell, tam_cell, col[0], col[1], col[2])
         }
     }
 }
-
-function convertFile(nombreArchivo) {
-  let xhr = new XMLHttpRequest();
-
-  xhr.onload = function() {
-    if (xhr.status === 200) {
-      let contenido = xhr.responseText;
-      let lineas = contenido.split('\n');
-
-      lineas.forEach(function(linea) {
-        let numeroStr = linea.trim().toString();
-        // Verifica si la longitud de la cadena es de 6 dígitos
-        if (numeroStr.length === 6 && /^\d+$/.test(numeroStr)) {
-          ruleSet.push(numeroStr); // Almacena el número como cadena
-        }
-      });
-    }
-  };
-
-  xhr.open('GET', nombreArchivo);
-  xhr.send();
-
-
-}
-
