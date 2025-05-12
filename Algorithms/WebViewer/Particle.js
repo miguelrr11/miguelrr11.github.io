@@ -158,6 +158,7 @@ class Particle{
 	}
 
 	showText(doNotShorten, defSize = false){
+		if(!this.str) return
 		if((hoveredParticle && hoveredParticle != this && !mouseIsPressed) ) return
 		let yOff = 10
 		strokeWeight(1.5)
