@@ -48,7 +48,7 @@ const absoluteSeparationDistance = 70
 
 let textBoxes = new Map()
 let WIDTH_TB = 200
-let D_TB = 150
+let D_TB = 50
 
 let offsetsText = []
 let mousePos

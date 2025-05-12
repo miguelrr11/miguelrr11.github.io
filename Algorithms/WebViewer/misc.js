@@ -85,7 +85,8 @@ function getWrappedTextHeight(txt, maxW) {
       if (para === '') {
         // explicit blank line
         lines.push('');
-      } else {
+      }
+       else {
         // wrap this paragraph
         let words = para.split(' ');
         let current = '';
@@ -95,9 +96,8 @@ function getWrappedTextHeight(txt, maxW) {
           if (textWidth(test) > maxW) {
             lines.push(current);
             current = w;
-          } else {
-            current = test;
-          }
+          } 
+          else current = test;
         }
   
         // push any leftover text

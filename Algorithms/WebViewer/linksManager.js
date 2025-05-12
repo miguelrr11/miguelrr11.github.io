@@ -41,15 +41,17 @@ function filterLink(link, targetUrl, targetHost, targetPath) {
   return urlObj.toString();
 }
 
-
 // Main function: fetches the page, extracts links, and groups them by section title.
-// The grouping is based on encountering <h3> tags in document order.
-// - Starts with a default "Introduction" section.
-// - When an <h3> is found, a new section is created using the h3 text as the title.
-// - Links encountered are filtered and added to the latest section.
-// Main function: fetches the page, extracts links, and groups them by section title,
-// now returning objects with both the URL and a text snippet around the link.
-async function extractAndFilterLinksCategorized(targetUrl) {
+// - Starts with a default "Introduction" section for links.
+// - When an <h3> is found, a new section is created using the h3 text as the title (if valid category).
+// - Links encountered are filtered and added to the latest section, with context snippets.
+// - After link extraction, an "Images" section is built by scraping 'a.mw-file-description' anchors:
+//   • Finds up to `maxImages` image description anchors in <figure typeof="mw:File/Thumb"> elements
+//   • For each, fetches the image's File page, parses it, and extracts the actual image URL from the fullMedia section
+//   • Captures the surrounding <figcaption> as the context
+//   • Logs all steps via console.log for debugging
+
+async function extractAndFilterLinksCategorized(targetUrl, maxImages = 5) {
   // Helper to grab a snippet of words around the link text
   function getContext(node, wordsBefore = 20, wordsAfter = 50) {
     const parentText = node.parentElement?.textContent || '';
@@ -57,15 +59,11 @@ async function extractAndFilterLinksCategorized(targetUrl) {
     const allWords = baseText.split(/\s+/);
     const linkText = node.textContent.trim();
     const linkWords = linkText.split(/\s+/);
-  
-    // Helper to clean ellipses and compare
-    const isOnlyLink = snippet =>
-      snippet.replace(/\.\.\./g, '').trim() === linkText;
-  
-    // 1) Exact-sequence pass
+    const isOnlyLink = snippet => snippet.replace(/\.\.\./g, '').trim() === linkText;
+
+    // Exact-sequence pass
     let idx = allWords.findIndex((w, i) =>
-      w === linkWords[0] &&
-      allWords.slice(i, i + linkWords.length).join(' ') === linkText
+      w === linkWords[0] && allWords.slice(i, i + linkWords.length).join(' ') === linkText
     );
     if (idx >= 0) {
       const start = Math.max(0, idx - wordsBefore);
@@ -73,8 +71,8 @@ async function extractAndFilterLinksCategorized(targetUrl) {
       const snippet = '...' + allWords.slice(start, end).join(' ') + '...';
       return isOnlyLink(snippet) ? undefined : snippet;
     }
-  
-    // 2) Raw-text pass
+
+    // Raw-text pass
     const pos = baseText.indexOf(linkText);
     if (pos >= 0) {
       const preWords = baseText.slice(0, pos).trim().split(/\s+/);
@@ -84,71 +82,58 @@ async function extractAndFilterLinksCategorized(targetUrl) {
       const snippet = '...' + [...startWords, ...linkWords, ...endWords].join(' ') + '...';
       return isOnlyLink(snippet) ? undefined : snippet;
     }
-  
-    // 3) If we can’t find any context, give up
+
     return undefined;
   }
-  
-  
-  
 
   try {
     const proxyUrl = `https://corsproxy.io/?url=`;
-    const url = encodeURIComponent(targetUrl);
-    const response = await fetch(proxyUrl + url);
-
-    if (!response.ok) {
-      throw new Error(`HTTP error! Status: ${response.status}`);
-    }
-
-    const contentType = response.headers.get('Content-Type');
-    if (!contentType || !contentType.includes('text/html')) {
-      throw new Error('Expected HTML response but got ' + contentType);
-    }
+    const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
+    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+    const contentType = response.headers.get('Content-Type') || '';
+    if (!contentType.includes('text/html')) throw new Error('Expected HTML but got ' + contentType);
 
     const html = await response.text();
-    const parser = new DOMParser();
-    const doc = parser.parseFromString(html, 'text/html');
-
+    const doc = new DOMParser().parseFromString(html, 'text/html');
     const target = new URL(targetUrl);
-    const targetHost = target.host;
-    const targetPath = target.pathname;
+    const protoHost = `${target.protocol}//${target.host}`;
 
-    // Start with an "Introduction" section
+    // Link extraction sections
     const sections = [];
-    let currentSection = { title: "Introduction", links: [] };
+    let currentSection = { title: 'Introduction', links: [] };
     sections.push(currentSection);
-
-    // Walk through headings and links in document order
     const nodes = doc.querySelectorAll('h1, h2, h3, a[href]');
     for (const node of nodes) {
       const tag = node.tagName.toLowerCase();
-      if (tag === 'h1' || tag === 'h2' || tag === 'h3') {
+      if (['h1','h2','h3'].includes(tag)) {
         const title = node.textContent.trim();
-        if (isCategory(title)) {
-          currentSection = { title, links: [] };
-          sections.push(currentSection);
-        } else {
-          currentSection = undefined; // ignore links until next valid heading
-        }
+        currentSection = isCategory(title)
+          ? (sections[sections.push({ title, links: [] }) - 1])
+          : undefined;
       } else if (tag === 'a' && currentSection) {
         const href = node.getAttribute('href');
-        const filteredLink = filterLink(href, targetUrl, targetHost, targetPath);
-        // only add each URL once per section
-        if (filteredLink && !currentSection.links.some(l => l.url === filteredLink)) {
-          const context = getContext(node, 10, 20);
-          currentSection.links.push({ url: filteredLink, context });
+        const filtered = filterLink(href, targetUrl, target.host, target.pathname);
+        if (filtered && !currentSection.links.some(l => l.url === filtered)) {
+          let context = getContext(node, 10, 20)
+          if(context) context = context.replace(/\[[^\]]*]/g, "")
+          currentSection.links.push({ url: filtered, context });
         }
       }
     }
 
-    // Return only sections that actually have links
-    console.log(sections.filter(section => section.links.length > 0))
-    return sections.filter(section => section.links.length > 0);
+    // Images section scraping 'a.mw-file-description'
+    const imagesSection = { title: 'Images', links: [] };
+
+    imagesSection.links = await extractImagesFast(targetUrl, maxImages);
+
+    if (imagesSection.links.length) sections.push(imagesSection);
+    return sections.filter(sec => sec.links.length > 0);
+
   } catch (error) {
-    throw new Error(error.message || 'Error extracting links');
+    throw new Error(error.message || 'Error extracting links and images');
   }
 }
+
 
 
 function isCategory(str){
@@ -194,4 +179,53 @@ function isCategory(str){
     if(cat == str) return false
   }
   return true
+}
+
+async function extractImagesFast(targetUrl, maxImages = 2) {
+  const proxy = url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+  const html = await fetch(proxy(targetUrl)).then(r => r.text());
+  const doc = new DOMParser().parseFromString(html, 'text/html');
+
+  // 1) Gather file titles from the page
+  const anchors = Array.from(
+    doc.querySelectorAll('figure[typeof="mw:File/Thumb"] a.mw-file-description')
+  ).slice(0, maxImages);
+  const titles = anchors
+    .map(a => a.getAttribute('href'))
+    .filter(h => h?.startsWith('/wiki/File:'))
+    .map(h => decodeURIComponent(h.replace('/wiki/', '')));
+
+  // 2) Batch-fetch real URLs via API
+  const imageUrls = await fetchImageUrls(titles, maxImages);
+
+  // 3) Extract captions from the original DOM (no extra fetch!)
+  const captions = anchors.map(a =>
+    a.closest('figure')?.querySelector('figcaption')?.textContent.trim() || ''
+  );
+
+  return imageUrls.map((url, i) => ({ url, context: captions[i] }));
+}
+
+async function fetchImageUrls(fileTitles, maxImages = 2) {
+  const proxy = url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+  // MediaWiki limits ~50 titles per call
+  const chunkSize = 50;
+  const urls = [];
+  for (let i = 0; i < fileTitles.length && urls.length < maxImages; i += chunkSize) {
+    const chunk = fileTitles.slice(i, i + chunkSize);
+    const apiUrl = `https://en.wikipedia.org/w/api.php` +
+      `?action=query&titles=${chunk.map(encodeURIComponent).join('|')}` +
+      `&prop=imageinfo&iiprop=url&format=json&origin=*`;
+    const res = await fetch(proxy(apiUrl));
+    if (!res.ok) throw new Error(res.statusText);
+    const data = await res.json();
+    for (const page of Object.values(data.query.pages)) {
+      if (page.imageinfo && page.imageinfo[0].url) {
+        urls.push(page.imageinfo[0].url);
+        if (urls.length >= maxImages) break;
+      }
+    }
+  }
+  console.log('Fetched image URLs:', urls);
+  return urls;
 }

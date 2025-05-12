@@ -25,7 +25,6 @@ function createGraph(link, p) {
             let primordial = p
             primordial.isParent = true;
             primordial.isPinned = true;
-            console.log(primordial)
             primordials.push(primordial);
             for(let i = 0; i < categories.length; i++) {
                 initFirstGraphCategorized(categories[i].links, categories[i].title, primordial, categories.length == 1);
@@ -183,6 +182,7 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
         let y2 = pos.y + Math.sin(deltaAngle * i) * radius
         let particle = new Particle(p1.pos.x, p1.pos.y, true, particles.length, links[i].url, p1, links[i].context)
         particle.color = col
+        if(title == 'Images') particle.setImage()
         newParticles.push(particle)
         let constraint = new Constraint(p1, particle, radius)
         constraints.push(constraint)
@@ -261,7 +261,7 @@ function findParticleByLink(link) {
 function findAllParticlesByLink(link) {
     let arr = []
     for(let p of particles) {
-        if(p.link == link.url) arr.push(p)
+        if(p.link == link) arr.push(p)
     }
     return arr
 }

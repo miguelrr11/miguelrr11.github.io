@@ -17,6 +17,7 @@ class Particle{
 		this.parent = parent
 		this.angle = 0
 		this.isParent = false
+		this.isImage = false
 		this.color = color(255)
 		this.siblings = []
 		this.sqRadius = this.radius * this.radius
@@ -24,6 +25,12 @@ class Particle{
 		this.relations = []
 		this.children = []
 		this.out = false
+		this.image = undefined
+	}
+
+	setImage(){
+		this.isImage = true
+		if(this.link) this.image = loadImage(this.link)
 	}
 
 	removeInertia(){

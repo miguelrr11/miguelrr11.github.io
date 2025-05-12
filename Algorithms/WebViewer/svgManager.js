@@ -8,7 +8,6 @@ function parseSVG(svg) {
             paths.push(parsedPath);
         }
     }
-    console.log(paths)
 
     let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
 

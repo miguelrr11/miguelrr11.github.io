@@ -45,7 +45,7 @@ function mouseDragged() {
 }
 
 function doubleClicked() {
-    if(hoveredParticle && !hoveredParticle.isParent && hoveredParticle.link) {
+    if(hoveredParticle && !hoveredParticle.isParent && hoveredParticle.link && !hoveredParticle.isImage) {
         let existingPri = existsPrimordial(hoveredParticle.link)
         if(existingPri != undefined) {
             hoveredParticle.isPinned = true
@@ -121,5 +121,6 @@ function windowResized() {
     btnHelp.x = 20
     btnHelp.y = HEIGHT - 70
     initTopo()
+    if(started) btnCenter.bool = true
     resizeCanvas(windowWidth, windowHeight);
 }

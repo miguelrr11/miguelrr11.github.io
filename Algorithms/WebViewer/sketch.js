@@ -177,7 +177,12 @@ function draw() {
 
     if(winningParticle) winningParticle.showWin()
     if(started) showGraph()
-    for(let [key, tb] of textBoxes) showTextBox(tb)
+    for(let [key, tb] of textBoxes){ 
+        let shoudlDelete = showTextBox(tb, tb.closing)
+        if(shoudlDelete) {
+            textBoxes.delete(key)
+        }
+    }
     if(btnHelp.bool || helpTB.closing){
         let shouldDelete = showTextBox(helpTB, helpTB.closing) 
         helpTB.particle.update(0.01)
@@ -203,14 +208,20 @@ function draw() {
         if(!parent) return
         let d = dist(parent.pos.x, parent.pos.y, draggedParticle.pos.x, draggedParticle.pos.y)
         if(d > D_TB) {
+            let wTB = WIDTH_TB
+            if(draggedParticle.isImage) {
+                if(!draggedParticle.image) draggedParticle.setImage()
+                wTB = WIDTH_TB * .5
+            }
             let tb = {
                 text: draggedParticle.ctx,
                 particle: draggedParticle,
-                w: WIDTH_TB,
+                w: wTB,
                 counter: 0,
+                closing: false,
             }
             textBoxes.set(draggedParticle, tb)
-            draggedParticle.isPinned = true
+            //draggedParticle.isPinned = true
         }
     }
     

@@ -98,7 +98,14 @@ let goalSvg = {
 }
 
 let helpTB = {
-    text: 'Click on the nodes to visit them. The goal is to find the article in the fewest clicks possible.Click \non the nodes to visit them. The goal is t\no find the article in the fewest clicks possible.Click on the nodes to visit them. The goal is to find the article in the fewest clicks pos\nsible.Click on the nodes to visit them. The goal is to find the article in the fewest clicks possible.Click on the nodes to visit them. The goal is to find the article in the fewest clicks possible.',
+    text:   'WELCOME TO WEB VIEWER\n\n'+
+
+            'First paste a Wikipedia link into the input field and press Enter.\n\n'+
+            'Every link present in the article will be extracted and organized by the section they appear in.\n\n'+
+            'Each link will become a particle, grouped under its corresponding section.\n\n'+
+            'Click and drag a particle outwards to reveal the exact context where that link appeared in the article.\n\n'+
+            'Double-click a category particle to open its Wikipedia page and the associated category.\n\n'+
+            'Double-click a link particle to map its links into the visualization.',
     particle: undefined,
     w: WIDTH_TB*2,
     counter: 0,
@@ -162,7 +169,7 @@ function drawHelp(x, y, size, btn, col, secCol) {
     btn.cooldown--
     if(mouseIsPressed && btn.hovering && !btn.bool && btn.cooldown <= 0 && !helpTB.closing){
         btn.bool = true
-        helpTB.particle = new Particle(300 + 20, HEIGHT - 250, true)
+        helpTB.particle = new Particle(300 + 20, HEIGHT - 450, true)
         helpTB.counter = 0
         btn.cooldown = 30
     }
@@ -281,6 +288,10 @@ function drawColorMode(x, y, size, btn, col) {
 }
 
 function showTextBox(tb, closing = false) {
+    if(tb.particle != draggedParticle) tb.closing = true
+    if(tb.particle.isImage){
+       return showImageBox(tb, closing)
+    }
     push();
     let shouldDelete = false
     closing ? tb.counter = lerp(tb.counter, 0, 0.1) : 
@@ -292,15 +303,14 @@ function showTextBox(tb, closing = false) {
         shouldDelete = true
     }
     let counterPercent = tb.counter * 0.01
-    tb.particle.radius = counterPercent * RADIUS_PARTICLE
     let w = Math.max(tb.w * (counterPercent), 20)
     let tbPos = tb.particle.pos.copy()
     tbPos.x -= Math.max((tb.w / 2) * (counterPercent), 20)
     tbPos.y -= offsetTB
     let innerW = Math.max(w - offsetTB * 8, 20)
-    textSize(tb.counter * .1)
+    textSize(tb.counter * .10)
     let textH = getWrappedTextHeight(tb.text, innerW);
-    tb.h = (textH + offsetTB * 12) * (counterPercent)
+    tb.h = (textH + offsetTB * 14) * (counterPercent)
 
     let trans = 255 * (counterPercent)
     fill(curCol.background, trans);
@@ -309,7 +319,7 @@ function showTextBox(tb, closing = false) {
 
     noFill();
     stroke(curCol.topographic, trans);
-    strokeWeight(1.5);
+    strokeWeight(1.5 * counterPercent);
     rect(tbPos.x + offsetTB, tbPos.y + offsetTB,
         w - offsetTB * 2, tb.h - offsetTB * 2,
         radiusTextBox - 1);
@@ -318,10 +328,72 @@ function showTextBox(tb, closing = false) {
     fill(curCol.partTextStroke, trans);
     text(tb.text,
         tbPos.x + offsetTB * 4,
-        tbPos.y + offsetTB * 7,
+        tbPos.y + offsetTB * 10,
         innerW);
 
     pop();
+    tb.particle.show()
+    return shouldDelete
+}
+
+function showImageBox(tb, closing = false) {
+    push()
+    let img = tb.particle.image
+    let shouldDelete = false
+    closing ? tb.counter = lerp(tb.counter, 0, 0.1) : 
+              tb.counter = lerp(tb.counter, 100, 0.1)
+    if(tb.counter > 100) {
+        tb.counter = 100
+    }
+    if(closing && tb.counter < 1) {
+        shouldDelete = true
+    }
+    let counterPercent = tb.counter * 0.01
+
+    let w = Math.max(tb.w * (tb.counter * 0.01), 0)
+    let aspectRatio = img.width / img.height
+    let h = w / aspectRatio
+    let tbPos = tb.particle.pos.copy()
+    
+    
+    let wRect = w + offsetTB * 8
+    let hRect = h + offsetTB * 8
+
+    tbPos.x -= wRect/2
+    tbPos.y -= offsetTB
+
+    let innerW = Math.max(wRect - offsetTB * 8, 20)
+    textSize(tb.counter * .075)
+    let textH = getWrappedTextHeight(tb.text, innerW);
+    let hTxt = hRect
+    hRect += textH + offsetTB * 2
+
+    let trans = 255 * (counterPercent)
+    fill(curCol.background, trans);
+    noStroke();
+    rect(tbPos.x, tbPos.y, wRect, hRect, radiusTextBox);
+
+    noFill();
+    stroke(curCol.topographic, trans);
+    strokeWeight(1.5);
+    rect(tbPos.x + offsetTB, tbPos.y + offsetTB,
+        wRect - offsetTB * 2, hRect - offsetTB * 2,
+        radiusTextBox - 1);
+
+    image(img, 
+        tbPos.x + offsetTB * 4,
+        tbPos.y + offsetTB * 4,
+        w,
+        h,
+    )
+
+    noStroke();
+    fill(curCol.partTextStroke, trans);
+    text(tb.text,
+        tbPos.x + offsetTB * 4,
+        tbPos.y + hTxt,
+        innerW);
+    pop()
     tb.particle.show()
     return shouldDelete
 }
