@@ -142,7 +142,12 @@ class Particle{
 			fillCol[3] = 1;
 		}
 		let rad = bool ? this.radius * 2.5 : this.radius * 2;
-		customCircle(this.pos.x, this.pos.y, rad / 2, strokeCol, fillCol, 2)
+		customCircle(this.pos.x, this.pos.y, rad * .5, strokeCol, fillCol, 2)
+		if((this.ctx != undefined && this.ctx != null) || this.isImage){ 
+			let fillCol2 = dupeColorArr(this.color, -23);
+			if(trans) fillCol2[3] = 0.15
+			customCircle(this.pos.x, this.pos.y, rad * .2, [0, 0, 0, 0], fillCol2, 2)
+		}
 		
 		if((this.isParent || bool)){
 			this.showCircleHovered()
@@ -191,6 +196,10 @@ class Particle{
 		// noStroke()
 		// circle(this.pos.x, this.pos.y, this.radius * 2)
 		gradientCircle(this.pos.x, this.pos.y, this.radius, [this.color, this.color, this.color, color(255, 150)])
+		if((this.ctx != undefined && this.ctx != null) || this.isImage){ 
+			let fillCol2 = dupeColorArr(this.color, -23);
+			customCircle(this.pos.x, this.pos.y, this.radius * .5, [0, 0, 0, 0], fillCol2, 2)
+		}
 	}
 
 	//shows lines between particles with the same link as this one
@@ -269,8 +278,8 @@ function dupeColor(col){
 	return color(col.levels[0], col.levels[1], col.levels[2], col.levels[3])
 }
 
-function dupeColorArr(col){
-	return [col.levels[0], col.levels[1], col.levels[2], col.levels[3]]
+function dupeColorArr(col, delta = 0){
+	return [col.levels[0] + delta, col.levels[1] + delta, col.levels[2] + delta, col.levels[3] + delta]
 }
 
 function customCircle(x, y, r, strokeCol, fillCol, strokeW = 1){
