@@ -1,6 +1,11 @@
 const RADIUS_PARTICLE = 5
 const MAX_RADIUS_PARTICLE = 10
+const R_OUT = RADIUS_PARTICLE + 50
+const SEP_DIST = RADIUS_PARTICLE * 2 + 50
 const minDistanceGrowSq = 50 * 50
+const SEP_STRENGTH = 25
+const FRICTION = 0.94
+const INTERVAL_CLOSEST = 2
 
 class Particle{
 	constructor(x, y, pinned, id, str = '', parent, ctx = undefined){
@@ -24,6 +29,7 @@ class Particle{
 		this.constraint = undefined
 		this.relations = []
 		this.children = []
+		this.closest = []
 		this.out = false
 		this.image = undefined
 	}
@@ -50,11 +56,10 @@ class Particle{
 
 	setOut(){
 		let [minX, maxX, minY, maxY] = currentEdges
-		let r = this.radius + 50
-		this.out = this.pos.x < minX - r ||
-		this.pos.x > maxX + r || 
-		this.pos.y < minY - r || 
-		this.pos.y > maxY + r
+		this.out = this.pos.x < minX - R_OUT ||
+		this.pos.x > maxX + R_OUT || 
+		this.pos.y < minY - R_OUT || 
+		this.pos.y > maxY + R_OUT
 	}
 
 	update(sqTimeStep){
@@ -64,11 +69,14 @@ class Particle{
 			return
 		}
         if (!this.isPinned) {
-        	let vel = p5.Vector.sub(this.pos, this.prevPos).mult(0.97)
+        	let vel = p5.Vector.sub(this.pos, this.prevPos).mult(FRICTION)
 			this.prevPos = this.pos.copy()
 			this.pos.add(p5.Vector.add(vel, this.acc.copy().mult(sqTimeStep)))
 			this.acc = createVector(0, 0)
         }
+		if((this.id % INTERVAL_CLOSEST) == REM_FRAMECOUNT_CLOSEST) {
+			this.closest = getTwoClosestParticles(this.siblings, this)
+		}
 	}
 
 	updateHovering(){
@@ -104,7 +112,7 @@ class Particle{
 		}
 	}
 
-	repel(particles, separationDistance = this.radius*2 + 50) {
+	repel(particles, separationDistance = SEP_DIST) {
 		if(this.isPinned) return
 		if(this.out){
 			this.removeInertia()
@@ -117,10 +125,9 @@ class Particle{
 
 				if (distance < separationDistance) {
 					if(distance == 0) distance = 0.1
-					// Normalize and scale the force so that closer particles are pushed away stronger
-					let strength = (separationDistance - distance) / separationDistance; // 0-1 strength
+					let strength = (separationDistance - distance) / separationDistance; 
 					diff.normalize();
-					diff.mult(strength*5);
+					diff.mult(strength*SEP_STRENGTH);
 					this.applyForce(diff);
 				}
 			}
@@ -143,15 +150,15 @@ class Particle{
 		}
 		let rad = bool ? this.radius * 2.5 : this.radius * 2;
 		customCircle(this.pos.x, this.pos.y, rad * .5, strokeCol, fillCol, 2)
-		if((this.ctx != undefined && this.ctx != null) || this.isImage){ 
+		if(((this.ctx != undefined && this.ctx != null) || this.isImage) && zoom > 0.75){ 
 			let fillCol2 = dupeColorArr(this.color, -23);
 			if(trans) fillCol2[3] = 0.15
 			customCircle(this.pos.x, this.pos.y, rad * .2, [0, 0, 0, 0], fillCol2, 2)
 		}
 		
 		if((this.isParent || bool)){
-			this.showCircleHovered()
 			this.showText(bool)
+			this.showCircleHovered()
 		}
 		pop()
 		return 

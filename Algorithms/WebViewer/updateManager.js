@@ -74,11 +74,15 @@ function updateReset() {
 
 function updateGraph() {
     let bool = zoom > 0.2
-    for(let p of particles) {
+    for(let i = 0; i < particles.length; i++) {
+        let p = particles[i]
         p.setOut()
         if(bool) {
-            p.repel(p.siblings)
-            p.update(0.01)
+            if(p.closest.length == 0) p.closest = getTwoClosestParticles(p.siblings, p)
+            if(p.closest[0] && p.closest[1]) {
+                p.repel(p.closest)
+                p.update(0.01)      
+            }
         }
         p.updateHovering()
     }
@@ -140,4 +144,26 @@ function updateAnimations() {
             removeConstraint(p)
         }
     }
+}
+
+function getTwoClosestParticles(particles, p){
+    let closest = null
+    let secondClosest = null
+    let minDist = Infinity
+    let secondMinDist = Infinity
+    for(let other of particles){
+        if(other == p) continue
+        let d = squaredDistance(p.pos.x, p.pos.y, other.pos.x, other.pos.y)
+        if(d < minDist){
+            secondClosest = closest
+            secondMinDist = minDist
+            closest = other
+            minDist = d
+        }
+        else if(d < secondMinDist){
+            secondClosest = other
+            secondMinDist = d
+        }
+    }
+    return [closest, secondClosest]
 }

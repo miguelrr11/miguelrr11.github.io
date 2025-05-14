@@ -20,22 +20,28 @@ function createConnection(p1, p2) {
 }
 
 function createGraph(link, p) {
-    return extractAndFilterLinksCategorized(link)
-        .then(categories => {
-            let primordial = p
-            primordial.isParent = true;
-            primordial.isPinned = true;
-            primordials.push(primordial);
-            for(let i = 0; i < categories.length; i++) {
-                initFirstGraphCategorized(categories[i].links, categories[i].title, primordial, categories.length == 1);
-            }
-            btnCenter.bool = true
-            checkEndGame()
-        })
-        .catch(err => {
-            throw err;
+    return extractAndFilterLinksCategorized(link, MAX_IMGS, 
+        (imgSection, allSections) => {
+            // add image‐nodes to your graph here:
+            initFirstGraphCategorized(imgSection.links, 'Images', p, /* last? */ false);
+            console.log('Image section:', imgSection);
+            // or however you want to merge them in
+            checkEndGame();
+        }
+    )
+    .then(linkSections => {
+        // draw the link sections right away:
+        p.isParent = p.isPinned = true;
+        primordials.push(p);
+        linkSections.forEach((sec, i) => {
+            initFirstGraphCategorized(sec.links, sec.title, p, linkSections.length === 1);
         });
+        btnCenter.bool = true;
+        checkEndGame();
+    })
+    .catch(err => { throw err; });
 }
+
 
 function getP(p) {
     REST_DISTANCE = 250
@@ -205,6 +211,7 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
     }
     p1.children = siblings
     particles.push(p1)
+
 }
 
 function showRelationsHovered() {

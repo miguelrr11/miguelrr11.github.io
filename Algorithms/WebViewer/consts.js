@@ -52,3 +52,7 @@ let D_TB = 50
 
 let offsetsText = []
 let mousePos
+
+let MAX_IMGS = 100
+
+let REM_FRAMECOUNT_CLOSEST = 0

@@ -2,7 +2,7 @@
 // Miguel Rodríguez Rodríguez 
 // 14-03-2025
 
-let resolution        = 8;          // subdivisions per cell (higher = smoother)
+let resolution        = 4;          // subdivisions per cell (higher = smoother)
 let noiseZoom         = 300;        // noise sampling scale (higher = bigger features)
 let noiseMovementSpeed = 0.00007;   // how fast the noise field animates (higher = faster)
 let steps = 15                      // number of contour lines

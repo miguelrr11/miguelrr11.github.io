@@ -4,6 +4,8 @@
 
 p5.disableFriendlyErrors = true
 
+let fpsArr = []
+
 function preload() {
     font = loadFont('bnr.ttf')
     btnGit.svgData = loadXML('github.svg')
@@ -114,8 +116,9 @@ function setup() {
 
 function draw() {
     background(curCol.background)
+    REM_FRAMECOUNT_CLOSEST = frameCount % INTERVAL_CLOSEST
 
-    if(particles.length > MAX_PARTICLE_COUNT && removeAnimations.length == 0) removeCluster()
+    //if(particles.length > MAX_PARTICLE_COUNT && removeAnimations.length == 0) removeCluster()
 
     if(btnCenter.bool) {
         // xOff = lerpp(xOff, 0, 0.1)
@@ -202,28 +205,43 @@ function draw() {
     pop()
 
     if(draggedParticle) {
-        if(draggedParticle.ctx == undefined || draggedParticle.ctx == '') return
-        if(textBoxes.has(draggedParticle)) return
-        let parent = draggedParticle.parent
+        let dP = draggedParticle
+        if(dP.ctx == undefined || dP.ctx == '') return
+        if(textBoxes.has(dP)) return
+        let parent = dP.parent
         if(!parent) return
-        let d = dist(parent.pos.x, parent.pos.y, draggedParticle.pos.x, draggedParticle.pos.y)
+        let d = dist(parent.pos.x, parent.pos.y, dP.pos.x, dP.pos.y) 
+                - dP.constraint.baseLength
         if(d > D_TB) {
             let wTB = WIDTH_TB
-            if(draggedParticle.isImage) {
-                if(!draggedParticle.image) draggedParticle.setImage()
+            if(dP.isImage) {
+                if(!dP.image) dP.setImage()
                 wTB = WIDTH_TB * .5
             }
             let tb = {
-                text: draggedParticle.ctx,
-                particle: draggedParticle,
+                text: dP.ctx,
+                particle: dP,
                 w: wTB,
                 counter: 0,
                 closing: false,
             }
-            textBoxes.set(draggedParticle, tb)
-            //draggedParticle.isPinned = true
+            textBoxes.set(dP, tb)
+            //dP.isPinned = true
         }
     }
     
+    //showFps()
 
+}
+
+function showFps() {
+    fpsArr.push(frameRate())
+    if(fpsArr.length > 20) fpsArr.shift()
+    let avgFps = fpsArr.reduce((a, b) => a + b) / fpsArr.length
+    let fpsText = Math.round(avgFps)
+    push()
+    fill(255)
+    noStroke()
+    text(fpsText, 20, 20)
+    pop()
 }
