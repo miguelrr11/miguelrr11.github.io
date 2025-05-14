@@ -42,6 +42,8 @@ let maxMultSlider
 
 let skipFrames = 0
 
+let variableValues = false
+
 const coords = [
     [[-2, -2], [2, -2], [2, 2], [-2, 2]], 
     [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [2, -1], [1, 2], [2, 1]], 
@@ -221,6 +223,12 @@ function setup(){
     maxMultP.position(145*2-15, HEIGHT + 33)
     maxMultSlider = createSlider(0, 10, 5, 1)
 
+    let varB = createCheckbox("Chainging Values")
+    varB.position(145*3-30, HEIGHT + 48)
+    varB.changed(() => {
+        variableValues = varB.checked()
+    })
+
     textAlign(CENTER)
     textSize(15)
     textFont("Gill Sans")
@@ -250,6 +258,12 @@ function clearGrid(){
 
 function draw(){
     if(frameCount % 2 == skipFrames) background("#090044")
+
+    if(variableValues){
+        for(let i = 0; i < codes.length; i++){
+            codes[i].mult += Math.sin(frameCount/100 + i) * 0.05
+        }
+    }
 
     if(nNeihSlider.value() != Ncodes){
         Ncodes = nNeihSlider.value()

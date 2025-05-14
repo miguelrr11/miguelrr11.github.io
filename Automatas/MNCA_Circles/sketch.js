@@ -21,7 +21,6 @@ let populateGridButton
 let select
 let resetRandomValButton
 
-
 let skipFrames = 0
 
 
