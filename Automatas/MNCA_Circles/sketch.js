@@ -2,11 +2,11 @@
 //Miguel Rodríguez
 //03-09-2024
 
-const WIDTH = 800
-const HEIGHT = 800
+const WIDTH = 750
+const HEIGHT = 750
 const colCell = "#ff632a"
 const colBack = "#ffbf00"
-let N = 200
+let N = 150
 
 let grid = []
 let next_grid = []
@@ -98,23 +98,21 @@ function getSums(cx, cy) {
     let sum1 = 0;
     let sum2 = 0;
 
-    // Combine coords1 and coords2 into a single loop
-    for (let i = 0; i < coords1.length || i < coords2.length; i++) {
-        if (i < coords1.length) {
-            let x1 = cx + coords1[i][0];
-            let y1 = cy + coords1[i][1];
-            if (x1 >= 0 && x1 < N-1 && y1 >= 0 && y1 < N-1 && grid[x1][y1] == 1) {
-                sum1++;
-            }
+    for (let i = 0; i < coords1.length; i++) {
+        let x1 = mod(cx + coords1[i][0], N);
+        let y1 = mod(cy + coords1[i][1], N);
+        if (grid[x1][y1] == 1) {
+            sum1++;
         }
+    }
 
-        if (i < coords2.length) {
-            let x2 = cx + coords2[i][0];
-            let y2 = cy + coords2[i][1];
-            if (x2 >= 0 && x2 < N-1 && y2 >= 0 && y2 < N-1 && grid[x2][y2] == 1) {
-                sum2++;
-            }
+    for (let i = 0; i < coords2.length; i++) {
+        let x2 = mod(cx + coords2[i][0], N);
+        let y2 = mod(cy + coords2[i][1], N);
+        if (grid[x2][y2] == 1) {
+            sum2++;
         }
+        
     }
 
     let totalSum = sum1 + sum2;
@@ -163,7 +161,8 @@ function setup(){
     panel.addButton("Clear", clearGrid)
     panel.addButton("Skip Even", toggleSkipFrames)
     panel.addButton("Randomize", setRandomVal)
-    panel.addText()
+    panel.addCheckbox(false, "Dynamic")
+    //panel.addText()
     //frameRate(1)
     //noLoop()
 
@@ -177,6 +176,7 @@ function setup(){
     setRandomVal()
 
 }
+
 
 function toggleSkipFrames(){
     if(skipFrames == 0){ 
@@ -205,11 +205,16 @@ function clearGrid(){
 
 function draw(){
     if(frameCount % 2 == skipFrames) background(colCell)
+    dynamic = panel.isChecked('Dynamic')
     
     for(let i = 0; i < 16; i++){
         randomVal[i] = panel.getValue(i)
+        if(dynamic){ 
+            randomVal[i] += Math.sin(frameCount/(i+1) + i) * 0.01
+            panel.setValue(i, randomVal[i])
+        }
     }
-    panel.setText(0, "FPS: " + round(frameRate()))
+    //panel.setText(0, "FPS: " + round(frameRate()))
 
     noStroke()
     fill(colCell)
@@ -239,7 +244,6 @@ function draw(){
     for(let i = 0; i < N; i++){ 
         for(let j = 0; j < N; j++){
             let sums = getSums(i, j)
-            //console.log(sums[0], sums[1])
             next_grid[i][j] = decideOutput(sums, grid[i][j], "Random")
         }
     }
@@ -256,4 +260,6 @@ function draw(){
 
 }
 
-
+function mod(n, m) {
+    return ((n % m) + m) % m;
+}

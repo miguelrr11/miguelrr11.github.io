@@ -91,7 +91,7 @@ class Panel{
 								posSlider.x, posSlider.y,
 								min, max, origin, title, showValue,
 								this.lightCol, this.darkCol, this.transCol)
-		if(title == "" && !showValue) this.lastElementPos.y += 30
+		if(title == "" && !showValue) this.lastElementPos.y += 25
 		else this.lastElementPos.y += 45
 		this.sliders.push(slider)
 		this.lastElementAdded = slider
@@ -140,7 +140,7 @@ class Panel{
 		let button = new Button(this.lastElementPos.x,
 							  this.lastElementPos.y, words, func,
 							  this.lightCol, this.darkCol, this.transCol)
-		this.lastElementPos.y += 35
+		this.lastElementPos.y += 25
 		this.buttons.push(button)
 		this.lastElementAdded = button
 	}
@@ -304,7 +304,7 @@ class Checkbox{
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
+		this.pos = createVector(x-7, y)
 		this.state = state
 		this.title = getClippedTextMIGUI(title, 9)
 
@@ -360,8 +360,8 @@ class Slider{
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
-		this.sliderPos = createVector(sx, sy)
+		this.pos = createVector(x-7, y)
+		this.sliderPos = createVector(sx-7, sy)
 		this.showValue = showValue
 		//if(title != "" || showValue) this.sliderPos.y += 17
 		this.min = min
@@ -371,7 +371,7 @@ class Slider{
 		this.title = getClippedTextMIGUI(title, 9)
 
 		this.w = 138
-		this.h = 16
+		this.h = 13
 
 		this.value = origin
 		this.setValue(origin)
@@ -449,7 +449,7 @@ class Sentence{
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
+		this.pos = createVector(x-7, y)
 		this.words = words
 		this.isTitle = isTitle
 	}
@@ -631,7 +631,7 @@ class Button{
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
-		this.pos = createVector(x, y)
+		this.pos = createVector(x-7, y)
 		if(func.name != "retractMenu") this.text = getClippedTextMIGUI(text, 12)
 		else this.text = text
 
@@ -641,7 +641,7 @@ class Button{
 		this.func = func
 		this.w = text.length * 12.5
 		this.w = constrain(this.w, 20, 138)
-		this.h = 25
+		this.h = 18
 	}
 
 	setText(text){
@@ -685,7 +685,7 @@ class Button{
 		noStroke()
 		fill(this.lightCol)
 		if(this.beingHovered && mouseIsPressed) fill(this.darkCol)
-		textSize(text_SizeMIGUI-2)
+		textSize(text_SizeMIGUI-5)
 		text(this.text, this.pos.x + bordeMIGUI+3, this.pos.y + this.h*0.7)
 		pop()
 	}
