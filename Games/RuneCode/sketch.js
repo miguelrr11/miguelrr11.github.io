@@ -3,14 +3,14 @@
 //
 
 p5.disableFriendlyErrors = true
-const WIDTH = 600
+const WIDTH = 800
 const HEIGHT = 750
 const WIDTH_UI = 430
 
 let runeBooks = []
-let runeGroups = [1, 1]
+let runeGroups = [5, 5]
 let baseRadius = 200
-let padding = 100
+let padding = 120
 
 let speedRot = 0
 
@@ -27,8 +27,13 @@ let currentEdges = [0, WIDTH, 0, HEIGHT]
 let mousePos 
 let finalPos = {x:0, y:0}
 
+let minPos, maxPos
+
 let panelReplaceLeft = []
 let panelReplaceRight = []
+
+let nParticles = 1000
+let particles = []
 
 let fonts = new Map()
 
@@ -42,6 +47,7 @@ function mouseDragged() {
     yOff += dy;
     prevMouseX = mouseX;
     prevMouseY = mouseY;
+    selectedRuneBook = null
 }
 
 function mouseReleased() {
@@ -140,7 +146,13 @@ async function setup(){
     fonts.set('Regular', f5)
 
     runeBooks = layoutRuneBooks(runeGroups, baseRadius, padding, {x:0, y:0})
+    setMinMax()
     selectedRuneBook = runeBooks[0]
+
+    for(let i = 0; i < nParticles; i++){
+        let p = new Particle(random(minPos.x, maxPos.x), random(minPos.y, maxPos.y))
+        particles.push(p)
+    }
 
     initPanelReplace()
 }
@@ -150,6 +162,9 @@ function draw(){
 
     currentEdges = getEdges()
     mousePos = getRelativePos(mouseX, mouseY)
+
+    updateOrbit(runeGroups, baseRadius, padding)
+    setMinMax()
 
     if(selectedRuneBook){
         const tx = selectedRuneBook.pos.x;
@@ -170,6 +185,15 @@ function draw(){
         runeBook.update()
         runeBook.show()
     }
+    for(let p of particles){
+        p.update()
+        p.show()
+    }
+
+    rectMode(CORNERS)
+    stroke(0, 100)
+    noFill()
+    //rect(minPos.x, maxPos.y, maxPos.x, minPos.y)
     pop()
     
     noStroke()
@@ -179,7 +203,7 @@ function draw(){
     showSelectedRuneBookMenu()
     showReplaceRuneMenu()
     
-    updateOrbit(runeGroups, baseRadius, padding)
+    
 }
 
 function getEdges() {
@@ -279,22 +303,12 @@ function layoutRuneBooks(counts, baseRadius = 275, padding = 100, center = { x: 
   const runeBooks = [];
   const levels = counts.length;
 
-  // No groups? nothing to do.
   if (levels === 0) return runeBooks;
-
-  // Precompute the “cluster” radii at each level so that
-  // siblings (at all depths) never collide.
-  // clusterR[ i ] = the radius of the circle on which
-  // the level-i clusters sit, wrapping their children.
   const clusterR = [];
 
   if (levels > 1) {
-    // At the very bottom, we treat each RuneBook as a circle of
-    // radius (baseRadius + padding) when computing its parent-group's size:
     clusterR[levels - 1] = baseRadius + padding;
 
-    // Bubble up: for each higher level, total diameter needed
-    // = (child-cluster-radius * 2) * number-of-children
     for (let i = levels - 2; i >= 0; i--) {
       const nChildren = counts[i + 1];
       const childRad   = clusterR[i + 1];
@@ -302,13 +316,11 @@ function layoutRuneBooks(counts, baseRadius = 275, padding = 100, center = { x: 
     }
   }
 
-  // Recursive placer:
   function recurse(level, cx, cy) {
     const n = counts[level];
     const angleStep = TWO_PI / n;
-    const startAng  = -HALF_PI;  // so the first item is at “12 o’clock”
+    const startAng  = -HALF_PI; 
 
-    // If not the last level, place sub–clusters:
     if (level < levels - 1) {
       const rad = clusterR[level];
       for (let i = 0; i < n; i++) {
@@ -318,7 +330,6 @@ function layoutRuneBooks(counts, baseRadius = 275, padding = 100, center = { x: 
         recurse(level + 1, x, y);
       }
 
-    // Leaf level: place actual RuneBooks:
     } else {
       for (let j = 0; j < n; j++) {
         const θ = angleStep * j + startAng;
@@ -331,7 +342,6 @@ function layoutRuneBooks(counts, baseRadius = 275, padding = 100, center = { x: 
     }
   }
 
-  // Kick it off at the global center:
   recurse(0, center.x, center.y);
 
   return runeBooks;
@@ -422,3 +432,18 @@ function drawBar(x, y, w, h, wFill){
     if(wFill > 0) rect(x+off, y+off, wFill-off*2, h-off*2, 7)
 }
 
+function setMinMax(){
+    let minX = Infinity
+    let maxX = -Infinity
+    let minY = Infinity
+    let maxY = -Infinity
+    for(let runeBook of runeBooks){
+        if(runeBook.pos.x < minX) minX = runeBook.pos.x
+        if(runeBook.pos.x > maxX) maxX = runeBook.pos.x
+        if(runeBook.pos.y < minY) minY = runeBook.pos.y
+        if(runeBook.pos.y > maxY) maxY = runeBook.pos.y 
+    }
+    let padd = 500
+    minPos = createVector(minX-padd, minY-padd)
+    maxPos = createVector(maxX+padd, maxY+padd)
+}
