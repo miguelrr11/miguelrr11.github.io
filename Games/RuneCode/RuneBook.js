@@ -5,7 +5,7 @@ const BUT_H = 25
 
 class RuneBook{
     constructor(x, y){
-        this.runes = Array.from({ length: Math.max(Math.floor(Math.random() * 20), 1) }, () => new Rune());
+        this.runes = Array.from({ length: Math.max(Math.floor(Math.random() * 14), 1) }, () => new Rune());
         this.runeIndex = 0
         this.runeIndexViz = this.runeIndex   //future
         this.pos = createVector(x, y)
@@ -27,7 +27,7 @@ class RuneBook{
 
         this.id = null
 
-        this.buttons = this.createButtons()
+        this.createButtons()
     }
 
     createButtons(){
@@ -41,11 +41,13 @@ class RuneBook{
         for(let i = 0; i < this.runes.length; i++){
             let bLeft = new Button(x, y, wButton, hButton, LEFT_RUNES[this.runes[i].left], LEFT_RUNES_COLS[this.runes[i].left])
             let bRight = new Button(x + wButton + horPadding, y, wButton, hButton, RIGHT_RUNES[this.runes[i].right], RIGHT_RUNES_COLS[this.runes[i].right])
+            bLeft.setProperties(this, i, 'left')
+            bRight.setProperties(this, i, 'right')
             buttons.push(bLeft)
             buttons.push(bRight)
             y += hButton + verPadding
         }
-        return buttons
+        this.buttons = buttons
     }
 
     mouseInBounds(){

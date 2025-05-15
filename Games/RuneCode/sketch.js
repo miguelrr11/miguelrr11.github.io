@@ -4,10 +4,11 @@
 
 p5.disableFriendlyErrors = true
 const WIDTH = 600
-const HEIGHT = 600
+const HEIGHT = 750
+const WIDTH_UI = 430
 
 let runeBooks = []
-let runeGroups = [1, 6]
+let runeGroups = [1, 1]
 let baseRadius = 200
 let padding = 100
 
@@ -20,10 +21,14 @@ let prevMouseY = 0
 let zoom = 1
 
 let selectedRuneBook = null
+let selectedButton = null
 
 let currentEdges = [0, WIDTH, 0, HEIGHT]
 let mousePos 
 let finalPos = {x:0, y:0}
+
+let panelReplaceLeft = []
+let panelReplaceRight = []
 
 let fonts = new Map()
 
@@ -63,20 +68,64 @@ function mouseWheel(event) {
     return false;
 }
 
-function mouseClicked() {
-    if(mouseX > WIDTH) return
-    for(let runeBook of runeBooks){
-        if(runeBook.out) continue
-        if(runeBook.mouseInBounds()){
-            selectedRuneBook = runeBook
-            return
+function mousePressed() {
+    let selected = false
+    if(mouseX < WIDTH){
+        for(let runeBook of runeBooks){
+            if(runeBook.out) continue
+            if(runeBook.mouseInBounds()){
+                selectedRuneBook = runeBook
+                selected = true
+                break
+            }
         }
     }
-    selectedRuneBook = null
+    
+    else{
+        if(selectedRuneBook){
+            for(let b of selectedRuneBook.buttons){
+                if(b.isMouseOver()){
+                    selectedButton = b
+                    break
+                }
+            }
+        }
+    }
+    
+}
+
+function initPanelReplace(){
+    let x = WIDTH + 270
+    let y = 260
+    let w = BUT_W
+    let h = BUT_H
+    for(let i = 0; i < LEFT_RUNES.length; i++){
+        let b = new FunctionalButton(x, y, w, h, LEFT_RUNES[i], LEFT_RUNES_COLS[i])
+        b.setFunc(() => {
+            if(selectedButton){
+                selectedButton.runebook.runes[selectedButton.runeIndex].left = i
+                selectedButton.runebook.createButtons()
+            }
+        })
+        panelReplaceLeft.push(b)
+        y += h + 10
+    }
+    y = 260
+    for(let i = 0; i < RIGHT_RUNES.length; i++){
+        let b = new FunctionalButton(x, y, w, h, RIGHT_RUNES[i], RIGHT_RUNES_COLS[i])
+        b.setFunc(() => {
+            if(selectedButton){
+                selectedButton.runebook.runes[selectedButton.runeIndex].right = i
+                selectedButton.runebook.createButtons()
+            }
+        })
+        panelReplaceRight.push(b)
+        y += h + 10
+    }
 }
 
 async function setup(){
-    createCanvas(WIDTH+250, HEIGHT)
+    createCanvas(WIDTH+WIDTH_UI, HEIGHT)
 
     let f1 = await loadFont('fonts/Cool_HV_Comp.otf')
     let f2 = await loadFont('fonts/Cool_IT.otf')
@@ -92,6 +141,8 @@ async function setup(){
 
     runeBooks = layoutRuneBooks(runeGroups, baseRadius, padding, {x:0, y:0})
     selectedRuneBook = runeBooks[0]
+
+    initPanelReplace()
 }
 
 function draw(){
@@ -123,9 +174,10 @@ function draw(){
     
     noStroke()
     fill('#33415c')
-    rect(WIDTH, 0, 250, HEIGHT)
+    rect(WIDTH, 0, WIDTH_UI, HEIGHT)
 
     showSelectedRuneBookMenu()
+    showReplaceRuneMenu()
     
     updateOrbit(runeGroups, baseRadius, padding)
 }
@@ -339,6 +391,26 @@ function showSelectedRuneBookMenu(){
     translate(-WIDTH, 0)
     selectedRuneBook.drawInstructions()
 
+    pop()
+}
+
+function showReplaceRuneMenu(){
+    if(!selectedButton) return
+    push()
+    translate(WIDTH, 0)
+    let y = 246
+    let x = 270
+    textAlign(LEFT)
+    fill(255)
+    noStroke()
+    textSize(20)
+    textFont(fonts.get('Italic'))
+    text('Replace with:', x, y)
+    translate(-WIDTH, 0)
+    let panel = selectedButton.side == 'left' ? panelReplaceLeft : panelReplaceRight
+    for(let b of panel){
+        b.show()
+    }
     pop()
 }
 
