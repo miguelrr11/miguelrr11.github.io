@@ -1,3 +1,6 @@
+const RAD_RUNEBOOK = 80
+const R_OUT = RAD_RUNEBOOK + 50
+
 class RuneBook{
     constructor(x, y){
         this.runes = Array.from({ length: 7 }, () => new Rune());
@@ -5,14 +8,28 @@ class RuneBook{
         this.runeIndexViz = this.runeIndex   //future
         this.pos = createVector(x, y)
         this.wall = 100
-        this.radius = 80
+        this.radius = RAD_RUNEBOOK
 
         this.hand = 0
         this.handViz = this.hand
-        this.radiusHand = 65
+        this.radiusHand = RAD_RUNEBOOK - 15
+
+        this.out = false
+        this.beat = 0
+    }
+
+    mouseInBounds(){
+        let d = dist(mousePos.x, mousePos.y, this.pos.x, this.pos.y)
+        if(d < this.radius){
+            return true
+        }
+        return false
     }
 
     update(){
+        this.beat = Math.sin(frameCount * 0.25)
+        this.setOut()
+
         this.runeIndexViz = lerp(this.runeIndexViz, this.runeIndex, 0.08)
         if(Math.abs(this.runeIndex - this.runeIndexViz) < 0.01) {
             this.fetch()
@@ -44,11 +61,21 @@ class RuneBook{
         this.runes[this.runeIndexViz % this.runes.length].execute()
     }
 
+    setOut(){
+		let [minX, maxX, minY, maxY] = currentEdges
+		this.out = this.pos.x < minX - R_OUT ||
+		this.pos.x > maxX + R_OUT || 
+		this.pos.y < minY - R_OUT || 
+		this.pos.y > maxY + R_OUT
+	}
+
     show(){
+        if(this.out) return
         push()
         translate(this.pos.x, this.pos.y)
         noStroke()
-        fill(74, 170, 211, mapp(this.wall, 0, 100, 20, 80))
+        if(this != selectedRuneBook) fill(74, 170, 211, mapp(this.wall, 0, 100, 20, 80))
+        else fill(74, 170, 211, mapp(this.beat, -PI, PI, 0, 120))
         ellipse(0, 0, this.radius * 2)
 
         push()

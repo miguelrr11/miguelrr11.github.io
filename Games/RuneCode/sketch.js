@@ -7,15 +7,21 @@ const WIDTH = 600
 const HEIGHT = 600
 
 let runeBooks = []
-let runeGroups = [3, 5]
+let runeGroups = [3, 5, 7]
 let baseRadius = 200
-let padding = 50
+let padding = 100
 
 let xOff = 0
 let yOff = 0
 let prevMouseX = 0
 let prevMouseY = 0
 let zoom = 1
+
+let selectedRuneBook = null
+
+let currentEdges = [0, WIDTH, 0, HEIGHT]
+let mousePos 
+let finalPos = {x:0, y:0}
 
 function mouseDragged() {
     if(!prevMouseX) prevMouseX = mouseX
@@ -40,33 +46,36 @@ function mouseWheel(event) {
     zoom = Math.max(0.01, Math.min(zoom, 3));
     xOff = mouseX - worldX * zoom;
     yOff = mouseY - worldY * zoom;
+    if(selectedRuneBook){
+        const tx = selectedRuneBook.pos.x;
+        const ty = selectedRuneBook.pos.y;
+        const cx = WIDTH/2;
+        const cy = HEIGHT/2;
+        finalPos.x = cx - tx * zoom;
+        finalPos.y = cy - ty * zoom;
+    }
     return false;
+}
+
+function mouseClicked() {
+    for(let runeBook of runeBooks){
+        if(runeBook.out) continue
+        if(runeBook.mouseInBounds()){
+            selectedRuneBook = runeBook
+            const tx = selectedRuneBook.pos.x;
+            const ty = selectedRuneBook.pos.y;
+            const cx = WIDTH/2;
+            const cy = HEIGHT/2;
+            finalPos.x = cx - tx * zoom;
+            finalPos.y = cy - ty * zoom;
+            return
+        }
+    }
+    selectedRuneBook = null
 }
 
 function setup(){
     createCanvas(WIDTH+250, HEIGHT)
-
-    // let mult = (TWO_PI / nRuneBooks)
-    // for(let i = 0; i < nRuneBooks; i++){
-    //     let angle = (mult * i) - HALF_PI
-    //     let x = Math.cos(angle) * 150 + WIDTH / 2
-    //     let y = Math.sin(angle) * 150 + HEIGHT / 2
-    //     runeBooks.push(new RuneBook(x, y))
-    // }
-
-    // let mult = (TWO_PI / nGroups)
-    // for(let i = 0; i < nGroups; i++){
-    //     let angle = (mult * i) - HALF_PI
-    //     let sx = Math.cos(angle) * radBig
-    //     let sy = Math.sin(angle) * radBig
-    //     let mult2 = (TWO_PI / nRuneBooks)
-    //     for(let j = 0; j < nRuneBooks; j++){
-    //         let angle = (mult2 * j) - (mult * i)
-    //         let x = Math.cos(angle) * radSmall + sx
-    //         let y = Math.sin(angle) * radSmall + sy
-    //         runeBooks.push(new RuneBook(x, y))
-    //     }
-    // }
 
     runeBooks = layoutRuneBooks(runeGroups, baseRadius, padding, {x:0, y:0})
 }
@@ -74,20 +83,48 @@ function setup(){
 function draw(){
     background('#f5ebe0')
 
+    currentEdges = getEdges()
+    mousePos = getRelativePos(mouseX, mouseY)
+
+    if(selectedRuneBook){
+        xOff = lerp(xOff, finalPos.x, 0.1)
+        yOff = lerp(yOff, finalPos.y, 0.1)
+    }
+    
+
+    push()
     translate(xOff, yOff)
     scale(zoom)
-
     for(let runeBook of runeBooks){
         runeBook.update()
         runeBook.show()
     }
+    pop()
     
-    push()
     noStroke()
     fill('#33415c')
-    //rect(WIDTH, 0, 250, HEIGHT)
-    pop()
+    rect(WIDTH, 0, 250, HEIGHT)
+    
     updateOrbit(runeGroups, baseRadius, padding)
+}
+
+function getEdges() {
+    let minX = (0 - xOff) / zoom
+    let maxX = (WIDTH - xOff) / zoom
+    let minY = (0 - yOff) / zoom
+    let maxY = (HEIGHT - yOff) / zoom
+    return [
+        minX,
+        maxX,
+        minY,
+        maxY
+    ]
+}
+
+function getRelativePos(x, y){
+    let worldX = (x - xOff) / zoom;
+    let worldY = (y - yOff) / zoom;
+    return createVector(worldX, worldY);
 }
 
 function updateOrbit(counts, baseRadius = 275, padding = 100) {
@@ -224,3 +261,4 @@ function layoutRuneBooks(counts, baseRadius = 275, padding = 100, center = { x: 
 
   return runeBooks;
 }
+

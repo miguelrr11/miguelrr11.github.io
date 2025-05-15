@@ -269,4 +269,10 @@ function draw(){
     translate(xOff, yOff)
     scale(zoom)
 }
+
+function getRelativePos(x, y){
+    let worldX = (x - xOff) / zoom;
+    let worldY = (y - yOff) / zoom;
+    return createVector(worldX, worldY);
+}
 */
