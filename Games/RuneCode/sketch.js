@@ -7,9 +7,11 @@ const WIDTH = 600
 const HEIGHT = 600
 
 let runeBooks = []
-let runeGroups = [3, 5, 7]
+let runeGroups = [1, 6]
 let baseRadius = 200
 let padding = 100
+
+let speedRot = 0
 
 let xOff = 0
 let yOff = 0
@@ -23,7 +25,10 @@ let currentEdges = [0, WIDTH, 0, HEIGHT]
 let mousePos 
 let finalPos = {x:0, y:0}
 
+let fonts = new Map()
+
 function mouseDragged() {
+    if(mouseX > WIDTH) return
     if(!prevMouseX) prevMouseX = mouseX
     if(!prevMouseY) prevMouseY = mouseY
     let dx = mouseX - prevMouseX; // Change in mouse X
@@ -40,6 +45,7 @@ function mouseReleased() {
 }
 
 function mouseWheel(event) {
+    if(mouseX > WIDTH) return
     let worldX = (mouseX - xOff) / zoom;
     let worldY = (mouseY - yOff) / zoom;
     zoom += event.delta / 1000;
@@ -58,26 +64,34 @@ function mouseWheel(event) {
 }
 
 function mouseClicked() {
+    if(mouseX > WIDTH) return
     for(let runeBook of runeBooks){
         if(runeBook.out) continue
         if(runeBook.mouseInBounds()){
             selectedRuneBook = runeBook
-            const tx = selectedRuneBook.pos.x;
-            const ty = selectedRuneBook.pos.y;
-            const cx = WIDTH/2;
-            const cy = HEIGHT/2;
-            finalPos.x = cx - tx * zoom;
-            finalPos.y = cy - ty * zoom;
             return
         }
     }
     selectedRuneBook = null
 }
 
-function setup(){
+async function setup(){
     createCanvas(WIDTH+250, HEIGHT)
 
+    let f1 = await loadFont('fonts/Cool_HV_Comp.otf')
+    let f2 = await loadFont('fonts/Cool_IT.otf')
+    let f3 = await loadFont('fonts/Cool_MD_Comp.otf')
+    let f4 = await loadFont('fonts/Cool_TA_Comp.otf')
+    let f5 = await loadFont('fonts/Cool.otf')
+
+    fonts.set('Heavy', f1)
+    fonts.set('Italic', f2)
+    fonts.set('Medium', f3)
+    fonts.set('Thin', f4)
+    fonts.set('Regular', f5)
+
     runeBooks = layoutRuneBooks(runeGroups, baseRadius, padding, {x:0, y:0})
+    selectedRuneBook = runeBooks[0]
 }
 
 function draw(){
@@ -87,6 +101,12 @@ function draw(){
     mousePos = getRelativePos(mouseX, mouseY)
 
     if(selectedRuneBook){
+        const tx = selectedRuneBook.pos.x;
+        const ty = selectedRuneBook.pos.y;
+        const cx = WIDTH/2;
+        const cy = HEIGHT/2;
+        finalPos.x = cx - tx * zoom;
+        finalPos.y = cy - ty * zoom;
         xOff = lerp(xOff, finalPos.x, 0.1)
         yOff = lerp(yOff, finalPos.y, 0.1)
     }
@@ -104,6 +124,8 @@ function draw(){
     noStroke()
     fill('#33415c')
     rect(WIDTH, 0, 250, HEIGHT)
+
+    showSelectedRuneBookMenu()
     
     updateOrbit(runeGroups, baseRadius, padding)
 }
@@ -150,7 +172,7 @@ function updateOrbit(counts, baseRadius = 275, padding = 100) {
   }
 
   // 3) How much to rotate this frame:
-  const speed     = 0.0001;
+  const speed     = speedRot;
   const rotAmount = HALF_PI * frameCount * speed;
 
   // 4) Recursive walker:
@@ -201,7 +223,6 @@ function updateOrbit(counts, baseRadius = 275, padding = 100) {
   recurse(0, 0, 0, 0, []);
 }
 
-
 function layoutRuneBooks(counts, baseRadius = 275, padding = 100, center = { x: 0, y: 0 }) {
   const runeBooks = [];
   const levels = counts.length;
@@ -251,7 +272,9 @@ function layoutRuneBooks(counts, baseRadius = 275, padding = 100, center = { x: 
         const θ = angleStep * j + startAng;
         const x = cx + Math.cos(θ) * baseRadius;
         const y = cy + Math.sin(θ) * baseRadius;
-        runeBooks.push(new RuneBook(x, y));
+        let rb = new RuneBook(x, y);
+        rb.id = runeBooks.length;
+        runeBooks.push(rb);
       }
     }
   }
@@ -260,5 +283,70 @@ function layoutRuneBooks(counts, baseRadius = 275, padding = 100, center = { x: 
   recurse(0, center.x, center.y);
 
   return runeBooks;
+}
+
+function showSelectedRuneBookMenu(){
+    if(!selectedRuneBook) return
+    let y = 35
+    let padding = 0
+    let x = 10
+    let wBar = 250 - 20
+    let hBar = 30
+
+    push()
+    translate(WIDTH, 0)
+
+    // Title of runebook
+    textSize(35)
+    textAlign(LEFT)
+    textFont(fonts.get('Medium'))
+    fill(255)
+    text('Runebook #' + selectedRuneBook.id , x, y)
+    y += textAscent() + padding
+    
+    // Title of energy
+    textSize(18)
+    text('Mana', x, y)
+    y += textAscent() * .8 + padding
+
+    //Energy bar
+    noFill()
+    stroke(255)
+    strokeWeight(3)
+    drawBar(x, y, wBar, hBar, mapp(selectedRuneBook.energy, 0, 100, 0, wBar))
+    y += hBar*2 + padding
+
+    // Title of energy
+    fill(255)
+    text('Shield', x, y)
+    y += textAscent() * .8 + padding
+
+    //Energy bar
+    noFill()
+    stroke(255)
+    strokeWeight(3)
+    drawBar(x, y, wBar, hBar, mapp(selectedRuneBook.wall, 0, 100, 0, wBar))
+    y += hBar*3 + padding
+
+    // Instructions title
+    noStroke()
+    fill(255)
+    textSize(20)
+    textFont(fonts.get('Italic'))
+    text('Runes', x, y)
+
+    // Instructions board
+    translate(-WIDTH, 0)
+    selectedRuneBook.drawInstructions()
+
+    pop()
+}
+
+function drawBar(x, y, w, h, wFill){
+    rect(x, y, w, h, 10)
+    fill(255, 150)
+    let off = 3
+    noStroke()
+    if(wFill > 0) rect(x+off, y+off, wFill-off*2, h-off*2, 7)
 }
 

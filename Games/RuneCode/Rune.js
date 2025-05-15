@@ -14,8 +14,14 @@ class Rune{
         this.trans = 255
     }
 
+
     execute(){
         this.trans = 0
+        this.hp --
+        if(this.hp <= 0){
+            this.hp = 0
+            return undefined
+        }
         return `${LEFT_RUNES[this.left]} ${RIGHT_RUNES[this.right]}`
     }
 
@@ -24,8 +30,10 @@ class Rune{
         push()
         noStroke()
         fill([...LEFT_RUNES_COLS[this.left], this.trans])
+        if(this.hp == 0) fill(80)
         ellipse(startX, startY, 6)
         fill([...RIGHT_RUNES_COLS[this.right], this.trans])
+        if(this.hp == 0) fill(80)
         ellipse(endX, endY, 6)
         pop()
     }

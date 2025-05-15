@@ -1,21 +1,51 @@
 const RAD_RUNEBOOK = 80
 const R_OUT = RAD_RUNEBOOK + 50
+const BUT_W = 95
+const BUT_H = 25
 
 class RuneBook{
     constructor(x, y){
-        this.runes = Array.from({ length: 7 }, () => new Rune());
+        this.runes = Array.from({ length: Math.max(Math.floor(Math.random() * 20), 1) }, () => new Rune());
         this.runeIndex = 0
         this.runeIndexViz = this.runeIndex   //future
         this.pos = createVector(x, y)
-        this.wall = 100
+
+        this.wall = 100         //wall hp
+        this.energy = 100       //energy
+
         this.radius = RAD_RUNEBOOK
+        this.runeRadius = mapp(this.runes.length, 1, 15, 15, 9)
 
         this.hand = 0
         this.handViz = this.hand
         this.radiusHand = RAD_RUNEBOOK - 15
 
+        this.trans = 255
+
         this.out = false
         this.beat = 0
+
+        this.id = null
+
+        this.buttons = this.createButtons()
+    }
+
+    createButtons(){
+        let buttons = []
+        let wButton = BUT_W
+        let hButton = BUT_H
+        let horPadding = 10
+        let verPadding = 10
+        let x = WIDTH + 40
+        let y = 260
+        for(let i = 0; i < this.runes.length; i++){
+            let bLeft = new Button(x, y, wButton, hButton, LEFT_RUNES[this.runes[i].left], LEFT_RUNES_COLS[this.runes[i].left])
+            let bRight = new Button(x + wButton + horPadding, y, wButton, hButton, RIGHT_RUNES[this.runes[i].right], RIGHT_RUNES_COLS[this.runes[i].right])
+            buttons.push(bLeft)
+            buttons.push(bRight)
+            y += hButton + verPadding
+        }
+        return buttons
     }
 
     mouseInBounds(){
@@ -27,10 +57,12 @@ class RuneBook{
     }
 
     update(){
-        this.beat = Math.sin(frameCount * 0.25)
+        this.beat = Math.sin(frameCount * 0.1)
+        this.trans += 10
+
         this.setOut()
 
-        this.runeIndexViz = lerp(this.runeIndexViz, this.runeIndex, 0.08)
+        this.runeIndexViz = lerp(this.runeIndexViz, this.runeIndex, 0.05)
         if(Math.abs(this.runeIndex - this.runeIndexViz) < 0.01) {
             this.fetch()
         }
@@ -39,6 +71,15 @@ class RuneBook{
         if(Math.abs(this.runeIndex - this.runeIndexViz) < 0.01) {
             this.fetchHand()
         }
+
+        if(this.energy <= 0){
+            this.energy = 0
+            this.die()
+        }
+    }
+
+    die(){
+        return
     }
 
     //absoulte position
@@ -59,6 +100,8 @@ class RuneBook{
         this.runeIndexViz = this.runeIndex
         this.runeIndex++
         this.runes[this.runeIndexViz % this.runes.length].execute()
+        this.energy--
+        this.trans = 0
     }
 
     setOut(){
@@ -96,7 +139,7 @@ class RuneBook{
         pop()
 
         stroke(248, 150, 30)
-        strokeWeight(17)
+        strokeWeight(this.runeRadius + 5)
         length = 45
         let ang = ((TWO_PI / this.runes.length) * this.handViz) - HALF_PI
         let eX = Math.cos(ang) * length
@@ -107,8 +150,7 @@ class RuneBook{
         strokeWeight(3)
         line(eX, eY, endXHand, endYHand)
 
-        strokeWeight(12)
-        stroke('#CE4760')
+        
         let mult = (TWO_PI / this.runes.length)
         for(let i = 0; i < this.runes.length; i++){
             let angle = (mult * i) - HALF_PI
@@ -116,6 +158,11 @@ class RuneBook{
             let endY = Math.sin(angle) * length
             let startX = Math.cos(angle) * 25
             let startY = Math.sin(angle) * 25
+            strokeWeight(this.runeRadius)
+            stroke(80)
+            line(startX, startY, endX, endY)
+            strokeWeight(mapp(this.runes[i].hp, 0, 100, 0, this.runeRadius))
+            stroke('#CE4760')
             line(startX, startY, endX, endY)
             this.runes[i].show(startX, startY, endX, endY)
         }
@@ -139,5 +186,22 @@ class RuneBook{
        
 
         pop()
+    }
+
+    drawInstructions(){
+        push()
+        
+        fill(255, 0, 0, this.trans)
+        noStroke()
+        let x = WIDTH + 20
+        let y = this.buttons[(Math.floor(this.runeIndex) % this.runes.length) * 2].y + BUT_H * .5
+        ellipse(x, y, 20)
+        
+        fill(220, 0, 0, this.trans)
+        rect(x + 17, y - BUT_H * .5 - 3,
+            BUT_W * 2 + 16, BUT_H + 6, 12
+        )
+        pop()
+        for(let b of this.buttons) b.show()
     }
 }
