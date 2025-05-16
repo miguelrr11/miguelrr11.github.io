@@ -6,9 +6,12 @@ class Particle{
         this.pos = createVector(x, y)
         let angle = Math.random() * TWO_PI
         this.vel = createVector(Math.cos(angle), Math.sin(angle))
+        this.speed = 1
         this.out = false
         this.dead = false
         this.insideRuneBook = false
+        this.rnd = Math.random() * 1000
+        this.rnd2 = Math.random() * 1000
     }
 
     die(){
@@ -17,7 +20,7 @@ class Particle{
 
     // true if the particle is outside the rune book
     checkCollisionOutideRuneBook(){
-        return squaredDistance(this.pos.x, this.pos.y, this.insideRuneBook.pos.x, this.insideRuneBook.pos.y) > SQ_BOTH_RADII
+        return squaredDistance(this.pos.x, this.pos.y, this.insideRuneBook.pos.x, this.insideRuneBook.pos.y) >= SQ_BOTH_RADII
     }
 
     // returns the rune book if the particle is inside it
@@ -44,6 +47,13 @@ class Particle{
     updateMovement(){
         if(this.dead) return
         this.pos.add(this.vel)
+        //really small deviation
+        const maxDev = 0.01
+        let devX = (noise(this.pos.x * 0.1 + this.rnd) - 0.5) * 2 * maxDev
+        let devY = (noise(this.pos.y * 0.1 + this.rnd2) - 0.5) * 2 * maxDev
+        this.vel.x += devX
+        this.vel.y += devY
+        this.vel.setMag(this.speed)
         this.edges()
         this.setOut()
     }
@@ -97,8 +107,9 @@ class AttackParticle extends Particle{
             let collisionRB = this.checkCollisionRuneBooks()
             if(collisionRB){
                 let rand = Math.random()
-                if(rand < PROB_PENETRATE){
+                if(rand <= PROB_PENETRATE){
                     this.insideRuneBook = collisionRB
+                    this.speed = 0.7
                 }
                 else{
                     let dir = p5.Vector.sub(this.pos, collisionRB.pos)
@@ -107,13 +118,21 @@ class AttackParticle extends Particle{
                 }
             }
         }
-        else{
-            this.collision = this.checkCollisionOutideRuneBook()
-            if(this.collision){
-                this.vel.mult(-1)
-                this.insideRuneBook.hit()
+        else {
+            let rb = this.insideRuneBook;
+            let delta = p5.Vector.sub(rb.pos, rb.oldPos);
+            this.pos.add(delta);
+            // rebota al centro del rune book con una pequeña desviación
+            if (this.checkCollisionOutideRuneBook()) {
+                const toCenter = p5.Vector.sub(rb.pos, this.pos).normalize()
+                const maxDev = PI / 12;            
+                const deviation = random(-maxDev, maxDev);
+                toCenter.rotate(deviation);
+                this.vel = toCenter.mult(this.speed);
+                this.insideRuneBook.hit();
             }
         }
+
     }
 
     show(){

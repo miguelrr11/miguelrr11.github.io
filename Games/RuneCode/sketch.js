@@ -12,7 +12,7 @@ let runeGroups = [6, 3]
 let baseRadius = 150
 let padding = 420
 
-let speedRot = 0.0001
+let speedRot = 0.00015
 
 let xOff = 0
 let yOff = 0
@@ -288,10 +288,12 @@ function getRelativePos(x, y){
 }
 
 function updateOrbit(counts, baseRadius = 275, padding = 100) {
+    for(let rb of runeBooks){
+        rb.oldPos = rb.pos.copy()
+    }
   const levels = counts.length;
   if (levels === 0) return;
 
-  // 1) Recompute the “cluster” radii so siblings never collide:
   const clusterR = [];
   if (levels > 1) {
     clusterR[levels - 1] = baseRadius + padding;
@@ -301,19 +303,14 @@ function updateOrbit(counts, baseRadius = 275, padding = 100) {
     }
   }
 
-  // 2) Build a multiplier array so we can compute a unique
-  //    linear index for any leaf at runtime:
-  //    multipliers[l] = product of counts[l+1]…counts[last]
   const multipliers = Array(levels).fill(1);
   for (let l = levels - 2; l >= 0; l--) {
     multipliers[l] = multipliers[l + 1] * counts[l + 1];
   }
 
-  // 3) How much to rotate this frame:
   const speed     = speedRot;
   const rotAmount = HALF_PI * frameCount * speed;
 
-  // 4) Recursive walker:
   function recurse(level, cx, cy, parentBaseAngle, pathIndices) {
     const n        = counts[level];
     const step     = TWO_PI / n;
@@ -323,16 +320,14 @@ function updateOrbit(counts, baseRadius = 275, padding = 100) {
       const baseAngle = step * i;
 
       if (level < levels - 1) {
-        // ─── place sub-cluster center ───
         const angle = baseAngle + signGroup * rotAmount;
         const d     = clusterR[level];
         const x0    = cx + Math.cos(angle) * d;
         const y0    = cy + Math.sin(angle) * d;
         recurse(level + 1, x0, y0, baseAngle, pathIndices.concat(i));
 
-      } else {
-        // ─── place actual runebooks ───
-        // child-rings spin opposite their parent:
+      } 
+      else {
         const parentSign = (((level - 1) % 2) === 0) ? -1 : 1;
         const leafRot    = -parentSign * rotAmount;
 
@@ -342,14 +337,12 @@ function updateOrbit(counts, baseRadius = 275, padding = 100) {
           const x        = cx + Math.cos(ang) * baseRadius;
           const y        = cy + Math.sin(ang) * baseRadius;
 
-          // compute the 1D index in runeBooks:
           const fullPath = pathIndices.concat(j);
           let idx = 0;
           for (let l = 0; l < levels; l++) {
             idx += fullPath[l] * multipliers[l];
           }
 
-          // now safe to assign:
           runeBooks[idx].pos.x = x;
           runeBooks[idx].pos.y = y;
         }

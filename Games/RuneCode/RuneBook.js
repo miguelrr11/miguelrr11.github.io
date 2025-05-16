@@ -17,9 +17,11 @@ let startingRunes = [
 class RuneBook{
     constructor(x, y){
         this.runes = Array.from({ length: startingRunes.length }, (_, i) => new Rune(startingRunes[i][0], startingRunes[i][1]));
+        //this.runes = Array.from({ length: Math.floor(Math.random() * 14) }, (_, i) => new Rune());
         this.runeIndex = 0
         this.runeIndexViz = this.runeIndex   //future
         this.pos = createVector(x, y)
+        this.oldPos = this.pos.copy()
 
         this.shield = 100         //shield hp
         this.energy = 100       //energy

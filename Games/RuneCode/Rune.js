@@ -2,10 +2,10 @@
 // RPOS should be the third element in the array (getText function)
 
 const LEFT_RUNES = ['ATTACK', 'WRITE', 'READ', 'ABSORB', 'REPAIR', 'GO TO', 'NONE']
-const RIGHT_RUNES = ['MANA', 'SHARD', 'RPOS 0 to 0', 'SHIELD', 'WEAK', 'SPELL', 'NONE']
+const RIGHT_RUNES = ['MANA', 'SHARD', 'RPOS 0 to 0', 'SHIELD', 'WEAK', 'SPELL', 'INWARD', 'OUTWARD', 'NONE']
 
 const LEFT_RUNES_COLS = [[144, 227, 154], [248, 150, 30], [67, 170, 139], [39, 125, 161], [99, 132, 117], [67, 170, 139], [40, 40, 40]]
-const RIGHT_RUNES_COLS = [[99, 132, 117], [39, 125, 161], [197, 195, 94], [67, 170, 139], [144, 227, 154], [39, 125, 161], [40, 40, 40]]
+const RIGHT_RUNES_COLS = [[99, 132, 117], [39, 125, 161], [197, 195, 94], [67, 170, 139], [144, 227, 154], [39, 125, 161], [144, 227, 154], [248, 150, 30], [40, 40, 40]]
 
 class Rune{
     constructor(left, right){
