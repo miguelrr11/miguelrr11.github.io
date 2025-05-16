@@ -8,7 +8,7 @@ const HEIGHT = 750
 const WIDTH_UI = 430
 
 let runeBooks = []
-let runeGroups = [5, 5]
+let runeGroups = [1]
 let baseRadius = 200
 let padding = 120
 
@@ -32,8 +32,12 @@ let minPos, maxPos
 let panelReplaceLeft = []
 let panelReplaceRight = []
 
-let nParticles = 1000
-let particles = []
+let nParticlesAttack = 50
+let nParticlesFood = 50
+let attackParticles = []
+let foodParticles = []
+
+let rPosGlobal = {from: 0, to: 0}
 
 let fonts = new Map()
 
@@ -74,7 +78,7 @@ function mouseWheel(event) {
     return false;
 }
 
-function mousePressed() {
+function mouseClicked() {
     let selected = false
     if(mouseX < WIDTH){
         for(let runeBook of runeBooks){
@@ -101,10 +105,11 @@ function mousePressed() {
 }
 
 function initPanelReplace(){
-    let x = WIDTH + 270
+    let x = WIDTH + 290
     let y = 260
     let w = BUT_W
     let h = BUT_H
+    let bMinusFrom, bPlusFrom, bMinusTo, bPlusTo, bRpos
     for(let i = 0; i < LEFT_RUNES.length; i++){
         let b = new FunctionalButton(x, y, w, h, LEFT_RUNES[i], LEFT_RUNES_COLS[i])
         b.setFunc(() => {
@@ -119,15 +124,49 @@ function initPanelReplace(){
     y = 260
     for(let i = 0; i < RIGHT_RUNES.length; i++){
         let b = new FunctionalButton(x, y, w, h, RIGHT_RUNES[i], RIGHT_RUNES_COLS[i])
+        if(i == 2) bRpos = b
         b.setFunc(() => {
             if(selectedButton){
                 selectedButton.runebook.runes[selectedButton.runeIndex].right = i
+                if(i == 2){
+                    selectedButton.runebook.runes[selectedButton.runeIndex].setRelPos(rPosGlobal.from, rPosGlobal.to)
+                }
                 selectedButton.runebook.createButtons()
             }
         })
         panelReplaceRight.push(b)
         y += h + 10
     }
+    let wHalf = ((w) / 2) - 5
+    bMinusFrom = new FunctionalButton(x, y, wHalf, h, '- from', [30, 30, 30])
+    bPlusFrom = new FunctionalButton(x + wHalf + 10, y, wHalf, h, '+ from', [30, 30, 30])
+    bMinusFrom.setFunc(() => {
+        rPosGlobal.from--
+    })
+    bPlusFrom.setFunc(() => {
+        rPosGlobal.from++
+    })
+    bMinusFrom.textSize = 17
+    bPlusFrom.textSize = 17
+
+    y += h + 10
+
+    bMinusTo = new FunctionalButton(x, y, wHalf, h, '- to', [30, 30, 30])
+    bPlusTo = new FunctionalButton(x + wHalf + 10, y, wHalf, h, '+ to', [30, 30, 30])
+    bMinusTo.setFunc(() => {
+        rPosGlobal.to--
+    })
+    bPlusTo.setFunc(() => {
+        rPosGlobal.to++
+    })
+    bMinusTo.textSize = 17
+    bPlusTo.textSize = 17
+    
+    panelReplaceRight.push(bPlusFrom)
+    panelReplaceRight.push(bMinusFrom)
+    panelReplaceRight.push(bPlusTo)
+    panelReplaceRight.push(bMinusTo)
+
 }
 
 async function setup(){
@@ -149,11 +188,16 @@ async function setup(){
     setMinMax()
     selectedRuneBook = runeBooks[0]
 
-    for(let i = 0; i < nParticles; i++){
-        let p = new Particle(random(minPos.x, maxPos.x), random(minPos.y, maxPos.y))
-        particles.push(p)
+    for(let i = 0; i < nParticlesAttack; i++){
+        let pos = getRandomPosParticle()
+        let pA = new AttackParticle(pos.x, pos.y)
+        attackParticles.push(pA)
     }
-
+    for(let i = 0; i < nParticlesFood; i++){
+        let pos = getRandomPosParticle()
+        let pF = new FoodParticle(pos.x, pos.y)
+        foodParticles.push(pF)
+    }
     initPanelReplace()
 }
 
@@ -185,9 +229,27 @@ function draw(){
         runeBook.update()
         runeBook.show()
     }
-    for(let p of particles){
+    for(let i = attackParticles.length - 1; i >= 0; i--){
+        let p = attackParticles[i]
         p.update()
         p.show()
+        if(p.dead){
+            attackParticles.splice(i, 1)
+            let pos = getRandomPosParticle()
+            let pA = new AttackParticle(pos.x, pos.y)
+            attackParticles.push(pA)
+        }
+    }
+    for(let i = foodParticles.length - 1; i >= 0; i--){
+        let p = foodParticles[i]
+        p.update()
+        p.show()
+        if(p.dead){
+            foodParticles.splice(i, 1)
+            let pos = getRandomPosParticle()
+            let pF = new FoodParticle(pos.x, pos.y)
+            foodParticles.push(pF)
+        }
     }
 
     rectMode(CORNERS)
@@ -352,7 +414,7 @@ function showSelectedRuneBookMenu(){
     let y = 35
     let padding = 0
     let x = 10
-    let wBar = 250 - 20
+    let wBar = 260
     let hBar = 30
 
     push()
@@ -387,7 +449,7 @@ function showSelectedRuneBookMenu(){
     noFill()
     stroke(255)
     strokeWeight(3)
-    drawBar(x, y, wBar, hBar, mapp(selectedRuneBook.wall, 0, 100, 0, wBar))
+    drawBar(x, y, wBar, hBar, mapp(selectedRuneBook.shield, 0, 100, 0, wBar))
     y += hBar*3 + padding
 
     // Instructions title
@@ -409,7 +471,7 @@ function showReplaceRuneMenu(){
     push()
     translate(WIDTH, 0)
     let y = 246
-    let x = 270
+    let x = 290
     textAlign(LEFT)
     fill(255)
     noStroke()
@@ -447,3 +509,10 @@ function setMinMax(){
     minPos = createVector(minX-padd, minY-padd)
     maxPos = createVector(maxX+padd, maxY+padd)
 }
+
+function getRandomPosParticle(){
+    let angle = random(TWO_PI)
+    let radius = (maxPos.x - minPos.x) * .5
+    let pos = createVector(Math.cos(angle) * radius, Math.sin(angle) * radius)
+    return pos
+}   

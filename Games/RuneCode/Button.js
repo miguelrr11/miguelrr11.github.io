@@ -6,6 +6,8 @@ class Button{
         this.h = height
         this.text = text
         this.color = col
+        this.textSize = 18
+        this.data = 0
     }
 
     setFunc(func){
@@ -48,7 +50,7 @@ class Button{
         fill(255)
         noStroke()
         textAlign(CENTER, CENTER)
-        textSize((hover && mouseIsPressed) ? 22 : 20)
+        textSize((hover && mouseIsPressed) ? 22 : this.textSize)
         text(this.text, this.x + this.w / 2, this.y + this.h / 2 + 1.5)
         pop()
     }
@@ -58,6 +60,7 @@ class FunctionalButton extends Button{
     constructor(x, y, width, height, text, col, textColor){
         super(x, y, width, height, text, col, textColor)
         this.func = undefined
+        this.isActive = false
     }
 
     setFunc(func){
@@ -66,8 +69,12 @@ class FunctionalButton extends Button{
 
     show(){
         push()
-        if(this.isMouseOver() && mouseIsPressed){ 
+        if(this.isMouseOver() && mouseIsPressed && !this.isActive){ 
+            this.isActive = true
             this.execute()
+        }
+        if(!mouseIsPressed){
+            this.isActive = false
         }
         noStroke()
         fill(this.color)
@@ -75,7 +82,13 @@ class FunctionalButton extends Button{
         fill(255)
         noStroke()
         textAlign(CENTER, CENTER)
-        textSize(20)
+        textSize(this.textSize)
+        if(this.text.includes('RPOS')){
+            this.text = 'RPOS ' + rPosGlobal.from + ' to ' + rPosGlobal.to
+            if(rPosGlobal.from > 9 || rPosGlobal.to > 9 || rPosGlobal.from < -9 || rPosGlobal.to < -9){
+                this.textSize = 16.5
+            }
+        }
         text(this.text, this.x + this.w / 2, this.y + this.h / 2 + 1.5)
         pop()
     }

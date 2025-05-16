@@ -1,7 +1,9 @@
 const RAD_RUNEBOOK = 80
 const R_OUT = RAD_RUNEBOOK + 50
-const BUT_W = 95
+const BUT_W = 110
 const BUT_H = 25
+
+const SQ_BOTH_RADII = (RAD_RUNEBOOK + R_PART) * (RAD_RUNEBOOK + R_PART)
 
 class RuneBook{
     constructor(x, y){
@@ -10,7 +12,7 @@ class RuneBook{
         this.runeIndexViz = this.runeIndex   //future
         this.pos = createVector(x, y)
 
-        this.wall = 100         //wall hp
+        this.shield = 100         //shield hp
         this.energy = 100       //energy
 
         this.radius = RAD_RUNEBOOK
@@ -26,6 +28,7 @@ class RuneBook{
         this.beat = 0
 
         this.id = null
+        this.attackShow = null
 
         this.createButtons()
     }
@@ -39,8 +42,8 @@ class RuneBook{
         let x = WIDTH + 40
         let y = 260
         for(let i = 0; i < this.runes.length; i++){
-            let bLeft = new Button(x, y, wButton, hButton, LEFT_RUNES[this.runes[i].left], LEFT_RUNES_COLS[this.runes[i].left])
-            let bRight = new Button(x + wButton + horPadding, y, wButton, hButton, RIGHT_RUNES[this.runes[i].right], RIGHT_RUNES_COLS[this.runes[i].right])
+            let bLeft = new Button(x, y, wButton, hButton, this.runes[i].getText('left'), LEFT_RUNES_COLS[this.runes[i].left])
+            let bRight = new Button(x + wButton + horPadding, y, wButton, hButton, this.runes[i].getText('right'), RIGHT_RUNES_COLS[this.runes[i].right])
             bLeft.setProperties(this, i, 'left')
             bRight.setProperties(this, i, 'right')
             buttons.push(bLeft)
@@ -54,6 +57,24 @@ class RuneBook{
         let d = dist(mousePos.x, mousePos.y, this.pos.x, this.pos.y)
         if(d < this.radius){
             return true
+        }
+        return false
+    }
+
+    checkForFood(){
+        for(let fp of foodParticles){
+            if(squaredDistance(this.pos.x, this.pos.y, fp.pos.x, fp.pos.y) < SQ_BOTH_RADII){
+                return fp
+            }
+        }
+        return false
+    }
+
+    checkForShard(){
+        for(let sp of attackParticles){
+            if(squaredDistance(this.pos.x, this.pos.y, sp.pos.x, sp.pos.y) < SQ_BOTH_RADII){
+                return sp
+            }
         }
         return false
     }
@@ -78,10 +99,20 @@ class RuneBook{
             this.energy = 0
             this.die()
         }
+        if(this.shield <= 0){
+            this.shield = 0
+            this.die()
+        }
+        this.shield = constrain(this.shield, 0, 100)
+        this.energy = constrain(this.energy, 0, 100)
     }
 
     die(){
         return
+    }
+
+    hit(){
+        this.shield--
     }
 
     //absoulte position
@@ -101,9 +132,80 @@ class RuneBook{
     fetch(){
         this.runeIndexViz = this.runeIndex
         this.runeIndex++
-        this.runes[this.runeIndexViz % this.runes.length].execute()
+        let rune = this.runes[this.runeIndex % this.runes.length]
+        let [left, right] = rune.execute()
+        if(left == 'ABSORB' && right == 'MANA'){
+            let food = this.checkForFood()
+            if(food){
+                this.energy += (100 - this.energy) * 0.3
+                this.attackShow = {
+                    pos: food.pos.copy(),
+                    timer: 60
+                }
+                food.die()
+            }
+        }
+        else if(left == 'ATTACK'){
+            if(right == 'SHARD'){
+                let shard = this.checkForShard()
+                if(shard){
+                    this.attackShow = {
+                        pos: shard.pos.copy(),
+                        timer: 60
+                    }
+                    shard.die()
+                }
+            }
+            else if(right == 'MANA'){
+                let food = this.checkForFood()
+                if(food){
+                    this.attackShow = {
+                        pos: food.pos.copy(),
+                        timer: 60
+                    }
+                    food.die()
+                }
+            }
+            else if(right == 'SHIELD'){
+                this.shield -= 10
+            }
+        }
+        else if(left == 'REPAIR'){
+            if(right == 'SHIELD'){
+                this.shield += (100 - this.shield) * 0.3
+            }
+            if(right == 'SPELL'){
+                this.runes[this.hand].repair()
+            }
+
+        }
+        else if(left == 'GO TO'){
+            if(right == 'WEAK'){
+                let index = this.getWeakestRune()
+                this.moveHand(index)
+            }
+            else if(right.includes('RPOS')){
+                let from = rune.startPos
+                let to = rune.endPos
+                if(from == to){
+                    this.moveHand((from + this.hand) % this.runes.length)
+                }
+            }
+        }
         this.energy--
         this.trans = 0
+    }
+
+    getWeakestRune(){
+        let min = 100
+        let index = -1
+        for(let i = 0; i < this.runes.length; i++){
+            if(this.runes[i].hp < min){
+                min = this.runes[i].hp
+                index = i
+            }
+        }
+        return index
     }
 
     setOut(){
@@ -119,7 +221,7 @@ class RuneBook{
         push()
         translate(this.pos.x, this.pos.y)
         noStroke()
-        if(this != selectedRuneBook) fill(74, 170, 211, mapp(this.wall, 0, 100, 20, 80))
+        if(this != selectedRuneBook) fill(74, 170, 211, mapp(this.shield, 0, 100, 20, 80))
         else fill(74, 170, 211, mapp(this.beat, -PI, PI, 0, 120))
         ellipse(0, 0, this.radius * 2)
 
@@ -182,12 +284,20 @@ class RuneBook{
 
         noFill()
         stroke(74, 170, 211)
-        strokeWeight(mapp(this.wall, 0, 100, 0, 5))
+        strokeWeight(mapp(this.shield, 0, 100, 0, 5))
         ellipse(0, 0, this.radius * 2)
 
-       
-
         pop()
+
+        if(this.attackShow){
+            this.attackShow.timer = lerp(this.attackShow.timer, 0, 0.1)
+            stroke(249, 175, 55, mapp(this.attackShow.timer, 0, 60, 0, 255))
+            strokeWeight(3)
+            line(endXHand + this.pos.x, endYHand + this.pos.y, this.attackShow.pos.x, this.attackShow.pos.y)
+            if(this.attackShow.timer < 0.1){
+                this.attackShow = null
+            }
+        }
     }
 
     drawInstructions(){
