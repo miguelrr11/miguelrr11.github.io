@@ -8,9 +8,9 @@ const LEFT_RUNES_COLS = [[144, 227, 154], [248, 150, 30], [67, 170, 139], [39, 1
 const RIGHT_RUNES_COLS = [[99, 132, 117], [39, 125, 161], [197, 195, 94], [67, 170, 139], [144, 227, 154], [39, 125, 161], [40, 40, 40]]
 
 class Rune{
-    constructor(){
-        this.left = constrain(Math.floor(Math.random() * LEFT_RUNES.length), 0, LEFT_RUNES.length - 2)
-        this.right = constrain(Math.floor(Math.random() * RIGHT_RUNES.length), 0, RIGHT_RUNES.length - 2)
+    constructor(left, right){
+        this.left = left != undefined ? left : constrain(Math.floor(Math.random() * LEFT_RUNES.length), 0, LEFT_RUNES.length - 2)
+        this.right = right != undefined ? right : constrain(Math.floor(Math.random() * RIGHT_RUNES.length), 0, RIGHT_RUNES.length - 2)
 
         this.hp = 100
         this.startPos = 0

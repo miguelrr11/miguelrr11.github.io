@@ -8,11 +8,11 @@ const HEIGHT = 750
 const WIDTH_UI = 430
 
 let runeBooks = []
-let runeGroups = [1]
-let baseRadius = 200
-let padding = 120
+let runeGroups = [6, 3]
+let baseRadius = 150
+let padding = 420
 
-let speedRot = 0
+let speedRot = 0.0001
 
 let xOff = 0
 let yOff = 0
@@ -32,8 +32,8 @@ let minPos, maxPos
 let panelReplaceLeft = []
 let panelReplaceRight = []
 
-let nParticlesAttack = 50
-let nParticlesFood = 50
+let nParticlesAttack = 350
+let nParticlesFood = 350
 let attackParticles = []
 let foodParticles = []
 

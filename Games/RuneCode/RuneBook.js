@@ -5,9 +5,18 @@ const BUT_H = 25
 
 const SQ_BOTH_RADII = (RAD_RUNEBOOK + R_PART) * (RAD_RUNEBOOK + R_PART)
 
+let startingRunes = [
+    [4, 3],
+    [5, 4],
+    [4, 5],
+    [0, 1],
+    [3, 0],
+    [3, 0]
+]
+
 class RuneBook{
     constructor(x, y){
-        this.runes = Array.from({ length: Math.max(Math.floor(Math.random() * 14), 1) }, () => new Rune());
+        this.runes = Array.from({ length: startingRunes.length }, (_, i) => new Rune(startingRunes[i][0], startingRunes[i][1]));
         this.runeIndex = 0
         this.runeIndexViz = this.runeIndex   //future
         this.pos = createVector(x, y)
