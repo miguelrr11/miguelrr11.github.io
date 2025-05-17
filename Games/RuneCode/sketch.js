@@ -225,9 +225,13 @@ function draw(){
     push()
     translate(xOff, yOff)
     scale(zoom)
-    for(let runeBook of runeBooks){
+    for(let i = runeBooks.length - 1; i >= 0; i--){
+        let runeBook = runeBooks[i]
         runeBook.update()
         runeBook.show()
+        if(runeBook.dead){
+            runeBooks.splice(i, 1)
+        }
     }
     for(let i = attackParticles.length - 1; i >= 0; i--){
         let p = attackParticles[i]
@@ -342,9 +346,10 @@ function updateOrbit(counts, baseRadius = 275, padding = 100) {
           for (let l = 0; l < levels; l++) {
             idx += fullPath[l] * multipliers[l];
           }
-
-          runeBooks[idx].pos.x = x;
-          runeBooks[idx].pos.y = y;
+            if(runeBooks[idx] != undefined){
+            runeBooks[idx].pos.x = x;
+            runeBooks[idx].pos.y = y;
+            }
         }
       }
     }

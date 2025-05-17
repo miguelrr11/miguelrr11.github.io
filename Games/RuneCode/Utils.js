@@ -60,6 +60,10 @@ function getRadius(circumference) {
     return circumference / (2 * Math.PI);
 }
 
+function mod(n, m) {
+    return ((n % m) + m) % m;
+}
+
 
 // ===================
 // Color Utilities
