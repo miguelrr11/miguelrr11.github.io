@@ -48,14 +48,14 @@ class Rune{
         return [LEFT_RUNES[this.left], RIGHT_RUNES[this.right]]
     }
 
-    show(startX, startY, endX, endY){
-        this.trans += 10
+    show(startX, startY, endX, endY, trans = undefined){
         push()
+        let finalTrans = trans != undefined ? trans : this.trans
         noStroke()
-        fill([...LEFT_RUNES_COLS[this.left], this.trans])
+        fill([...LEFT_RUNES_COLS[this.left], finalTrans])
         if(this.hp == 0) fill(80)
         ellipse(startX, startY, 6)
-        fill([...RIGHT_RUNES_COLS[this.right], this.trans])
+        fill([...RIGHT_RUNES_COLS[this.right], finalTrans])
         if(this.hp == 0) fill(80)
         ellipse(endX, endY, 6)
         pop()

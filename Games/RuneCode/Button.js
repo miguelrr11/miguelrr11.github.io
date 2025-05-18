@@ -1,12 +1,12 @@
 class Button{
-    constructor(x, y, width, height, text, col, textColor){
+    constructor(x, y, width, height, text, col){
         this.x = x
         this.y = y
         this.w = width
         this.h = height
         this.text = text
         this.color = col
-        this.textSize = 18
+        this.textSize = mapp(this.h, BUT_H, 0, 18, 10)
         this.data = 0
     }
 

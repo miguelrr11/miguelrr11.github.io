@@ -27,6 +27,7 @@ class Particle{
     checkCollisionRuneBooks(){
         for(let i = 0; i < runeBooks.length; i++){
             let rb = runeBooks[i]
+            if(!rb) continue
             let d = squaredDistance(this.pos.x, this.pos.y, rb.pos.x, rb.pos.y)
             if(d < SQ_BOTH_RADII){
                 runeBooks[i].hit()
@@ -46,8 +47,11 @@ class Particle{
 
     updateMovement(){
         if(this.dead) return
+        if(this.insideRuneBook && this.insideRuneBook.dead){
+            this.out = true
+            this.insideRuneBook = undefined
+        }
         this.pos.add(this.vel)
-        //really small deviation
         const maxDev = 0.01
         let devX = (noise(this.pos.x * 0.1 + this.rnd) - 0.5) * 2 * maxDev
         let devY = (noise(this.pos.y * 0.1 + this.rnd2) - 0.5) * 2 * maxDev

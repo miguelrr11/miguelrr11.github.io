@@ -6,6 +6,7 @@ p5.disableFriendlyErrors = true
 const WIDTH = 800
 const HEIGHT = 750
 const WIDTH_UI = 430
+const RUNES_SELECTED_Y = 265
 
 let runeBooks = []
 let runeGroups = [6, 3]
@@ -22,6 +23,7 @@ let zoom = 1
 
 let selectedRuneBook = null
 let selectedButton = null
+let focused = false
 
 let currentEdges = [0, WIDTH, 0, HEIGHT]
 let mousePos 
@@ -51,7 +53,7 @@ function mouseDragged() {
     yOff += dy;
     prevMouseX = mouseX;
     prevMouseY = mouseY;
-    selectedRuneBook = null
+    focused = false
 }
 
 function mouseReleased() {
@@ -82,10 +84,12 @@ function mouseClicked() {
     let selected = false
     if(mouseX < WIDTH){
         for(let runeBook of runeBooks){
+            if(!runeBook) continue
             if(runeBook.out) continue
             if(runeBook.mouseInBounds()){
                 selectedRuneBook = runeBook
                 selected = true
+                focused = true
                 break
             }
         }
@@ -106,7 +110,7 @@ function mouseClicked() {
 
 function initPanelReplace(){
     let x = WIDTH + 290
-    let y = 260
+    let y = RUNES_SELECTED_Y + 10
     let w = BUT_W
     let h = BUT_H
     let bMinusFrom, bPlusFrom, bMinusTo, bPlusTo, bRpos
@@ -121,7 +125,7 @@ function initPanelReplace(){
         panelReplaceLeft.push(b)
         y += h + 10
     }
-    y = 260
+    y = RUNES_SELECTED_Y + 10
     for(let i = 0; i < RIGHT_RUNES.length; i++){
         let b = new FunctionalButton(x, y, w, h, RIGHT_RUNES[i], RIGHT_RUNES_COLS[i])
         if(i == 2) bRpos = b
@@ -206,11 +210,12 @@ function draw(){
 
     currentEdges = getEdges()
     mousePos = getRelativePos(mouseX, mouseY)
+    if(selectedRuneBook && selectedRuneBook.dead) selectedRuneBook = null
 
     updateOrbit(runeGroups, baseRadius, padding)
     setMinMax()
 
-    if(selectedRuneBook){
+    if(selectedRuneBook && focused){
         const tx = selectedRuneBook.pos.x;
         const ty = selectedRuneBook.pos.y;
         const cx = WIDTH/2;
@@ -227,10 +232,11 @@ function draw(){
     scale(zoom)
     for(let i = runeBooks.length - 1; i >= 0; i--){
         let runeBook = runeBooks[i]
+        if(!runeBook) continue
         runeBook.update()
         runeBook.show()
         if(runeBook.dead){
-            runeBooks.splice(i, 1)
+            runeBooks[i] = undefined
         }
     }
     for(let i = attackParticles.length - 1; i >= 0; i--){
@@ -293,6 +299,7 @@ function getRelativePos(x, y){
 
 function updateOrbit(counts, baseRadius = 275, padding = 100) {
     for(let rb of runeBooks){
+        if(!rb) continue
         rb.oldPos = rb.pos.copy()
     }
   const levels = counts.length;
@@ -448,8 +455,23 @@ function showSelectedRuneBookMenu(){
     stroke(255)
     strokeWeight(3)
     drawBar(x, y, wBar, hBar, mapp(selectedRuneBook.shield, 0, 100, 0, wBar))
-    y += hBar*3 + padding
+    y += hBar*2 + padding
 
+    fill(255)
+    text('Memory: ', x, y)
+    let auxX = x + textWidth('Memory: ') + 20
+    let auxY = y - 5
+    for(let rune of selectedRuneBook.memory){
+        let colLeft = LEFT_RUNES_COLS[rune[0]]
+        let colRight = RIGHT_RUNES_COLS[rune[1]]
+        fill(colLeft)
+        ellipse(auxX, auxY, 7)
+        fill(colRight)
+        ellipse(auxX + 10, auxY, 7)
+        auxX += 25
+    }
+
+    y = RUNES_SELECTED_Y
     // Instructions title
     noStroke()
     fill(255)
@@ -468,7 +490,7 @@ function showReplaceRuneMenu(){
     if(!selectedButton) return
     push()
     translate(WIDTH, 0)
-    let y = 246
+    let y = RUNES_SELECTED_Y
     let x = 290
     textAlign(LEFT)
     fill(255)
@@ -498,6 +520,7 @@ function setMinMax(){
     let minY = Infinity
     let maxY = -Infinity
     for(let runeBook of runeBooks){
+        if(!runeBook) continue
         if(runeBook.pos.x < minX) minX = runeBook.pos.x
         if(runeBook.pos.x > maxX) maxX = runeBook.pos.x
         if(runeBook.pos.y < minY) minY = runeBook.pos.y

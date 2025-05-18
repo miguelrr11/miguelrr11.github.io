@@ -17,7 +17,7 @@ let startingRunes = [
 class RuneBook{
     constructor(x, y){
         this.runes = Array.from({ length: startingRunes.length }, (_, i) => new Rune(startingRunes[i][0], startingRunes[i][1]));
-        //this.runes = Array.from({ length: Math.floor(Math.random() * 14 + 1) }, () => new Rune());
+        //this.runes = Array.from({ length: Math.floor(Math.random() * 34 + 1) }, () => new Rune());
         this.runeIndex = 0
         this.runeIndexViz = this.runeIndex   //future
         this.pos = createVector(x, y)
@@ -27,7 +27,7 @@ class RuneBook{
         this.energy = 100       //energy
 
         this.radius = RAD_RUNEBOOK
-        this.runeRadius = mapp(this.runes.length, 1, 15, 15, 9)
+        this.runeRadius = mapp(this.runes.length, 1, 15, 15, 10, true)
 
         this.hand = 0
         this.handViz = this.hand
@@ -43,31 +43,50 @@ class RuneBook{
 
         this.id = null
         this.attackShow = null
+        this.deadCounter = -1
         this.dead = false
 
-        this.memory = [[6, 8], [6, 8], [6, 8]]
+        this.memory = []
 
+        this.buttonHeight = BUT_H
         this.createButtons()
     }
 
-    createButtons(){
-        let buttons = []
-        let wButton = BUT_W
-        let hButton = BUT_H
-        let horPadding = 10
-        let verPadding = 10
-        let x = WIDTH + 40
-        let y = 260
-        for(let i = 0; i < this.runes.length; i++){
-            let bLeft = new Button(x, y, wButton, hButton, this.runes[i].getText('left'), LEFT_RUNES_COLS[this.runes[i].left])
-            let bRight = new Button(x + wButton + horPadding, y, wButton, hButton, this.runes[i].getText('right'), RIGHT_RUNES_COLS[this.runes[i].right])
-            bLeft.setProperties(this, i, 'left')
-            bRight.setProperties(this, i, 'right')
-            buttons.push(bLeft)
-            buttons.push(bRight)
-            y += hButton + verPadding
+    createButtons() {
+        const MAX_RUNES = 14;
+        let buttons = [];
+        let wButton = BUT_W;
+        let hButton = BUT_H;   
+        let horPadding = 10;
+        let verPadding = 10;
+        let x = WIDTH + 40;
+
+        const totalRunes = this.runes.length;
+
+        const yStart = RUNES_SELECTED_Y + verPadding;
+        const yEnd = HEIGHT - verPadding;
+        const availableHeight = yEnd - yStart;
+
+        if (totalRunes > MAX_RUNES) {
+            const totalWeight = (2.5 * totalRunes + (totalRunes - 1))
+            verPadding = availableHeight / totalWeight
+            hButton = 2.5 * verPadding
+            this.buttonHeight = hButton
         }
-        this.buttons = buttons
+
+        let y = RUNES_SELECTED_Y + verPadding;
+
+        for (let i = 0; i < totalRunes; i++) {
+            const bLeft = new Button(x, y, wButton, hButton, this.runes[i].getText('left'), LEFT_RUNES_COLS[this.runes[i].left]);
+            const bRight = new Button(x + wButton + horPadding, y, wButton, hButton, this.runes[i].getText('right'), RIGHT_RUNES_COLS[this.runes[i].right]);
+            bLeft.setProperties(this, i, 'left');
+            bRight.setProperties(this, i, 'right');
+            buttons.push(bLeft);
+            buttons.push(bRight);
+            y += hButton + verPadding;
+        }
+
+        this.buttons = buttons;
     }
 
     mouseInBounds(){
@@ -125,7 +144,7 @@ class RuneBook{
     }
 
     die(){
-        this.dead = true
+        if(this.deadCounter == -1) this.deadCounter = 60 * 2
     }
 
     hit(){
@@ -239,11 +258,22 @@ class RuneBook{
                         //introduce the runes of the memory into this.runes at the position of the hand
                         let newRunes = this.getNewRunesFromMemory()
                         let index = mod(from + this.hand + 1, this.runes.length)
-                        console.log(index)
                         this.runes = insertAtIndex(index, this.runes, newRunes)
                         this.runeIndex = indexOf(rune, this.runes)
                         this.createButtons()
                     }
+                }
+            }
+            else if(this.handSide == 'OUTWARD'){
+                // create moving runebook
+            }
+        }
+        else if(left == 'READ'){
+            if(this.handSide == 'INWARD'){
+                if(right.includes('RPOS')){
+                    let from = rune.startPos
+                    let to = rune.endPos
+                    this.memory = copyRunesToMemory(this.runes, this.hand, from, to)
                 }
             }
         }
@@ -287,6 +317,18 @@ class RuneBook{
         if(this.handTransGoing == 'OUTWARD') this.handTrans[1] = lerp(this.handTrans[1], 255, 0.1)
         else this.handTrans[1] = lerp(this.handTrans[1], 0, 0.1)
 
+        let transDead = 255
+        if(this.deadCounter > 0){
+            let vel = 0.05
+            this.deadCounter = lerp(this.deadCounter, 0, vel)
+            this.radius = lerp(this.radius, 0, vel)
+            this.radiusHand = lerp(this.radiusHand, 0, vel)
+            this.handTrans[0] = lerp(this.handTrans[0], 0, vel)
+            this.handTrans[1] = lerp(this.handTrans[1], 0, vel)
+            transDead = mapp(this.deadCounter, 0, 60 * 2, 0, 255)
+        }
+        if(this.deadCounter <= 1 && this.deadCounter > 0) this.dead = true
+
         push()
         translate(this.pos.x, this.pos.y)
         noStroke()
@@ -296,15 +338,16 @@ class RuneBook{
 
         push()
         noFill()
-        stroke(249, 175, 55)
+        stroke(249, 175, 55, transDead)
         strokeWeight(3)
         ellipse(0, 0, this.radiusHand * 2)
         let angleHand = ((TWO_PI / this.runes.length) * this.handViz) - HALF_PI
         let length = this.radiusHand
+        if(this.deadCounter > 0) length = mapp(this.deadCounter, 0, 60 * 2, 0, this.radiusHand)
         let endXHand = Math.cos(angleHand) * length
         let endYHand = Math.sin(angleHand) * length
         noStroke()
-        fill(248, 150, 30)
+        fill(248, 150, 30, transDead)
         translate(endXHand, endYHand)
         rotate(angleHand+0.8)
         rectMode(CENTER)
@@ -315,13 +358,16 @@ class RuneBook{
         // inward hand
         if(this.handTrans[0] > 1){
             length = 45
+            let length2 = 25
+            if(this.deadCounter > 0) length2 = mapp(this.deadCounter, 0, 60 * 2, 0, 25)
+            if(this.deadCounter > 0) length = mapp(this.deadCounter, 0, 60 * 2, 0, 45)
             stroke(248, 150, 30, this.handTrans[0])
             strokeWeight(this.runeRadius + 5)
             let ang = ((TWO_PI / this.runes.length) * this.handViz) - HALF_PI
             let eX = Math.cos(ang) * length
             let eY = Math.sin(ang) * length
-            let sX = Math.cos(ang) * 25
-            let sY = Math.sin(ang) * 25
+            let sX = Math.cos(ang) * length2
+            let sY = Math.sin(ang) * length2
             line(sX, sY, eX, eY)
             strokeWeight(3)
             line(eX, eY, endXHand, endYHand)
@@ -330,6 +376,7 @@ class RuneBook{
         // outward hand
         if(this.handTrans[1] > 1){
             length = 30
+            if(this.deadCounter > 0) length = mapp(this.deadCounter, 0, 60 * 2, 0, 30)
             stroke(248, 150, 30, this.handTrans[1])
             strokeWeight(this.runeRadius + 5)
             let ang = ((TWO_PI / this.runes.length) * this.handViz) - HALF_PI
@@ -344,35 +391,38 @@ class RuneBook{
         
 
         length = 45
+        let length2 = 25
+        if(this.deadCounter > 0) length2 = mapp(this.deadCounter, 0, 60 * 2, 0, 25)
+        if(this.deadCounter > 0) length = mapp(this.deadCounter, 0, 60 * 2, 0, 45)
         let mult = (TWO_PI / this.runes.length)
         for(let i = 0; i < this.runes.length; i++){
             let angle = (mult * i) - HALF_PI
             let endX = Math.cos(angle) * length
             let endY = Math.sin(angle) * length
-            let startX = Math.cos(angle) * 25
-            let startY = Math.sin(angle) * 25
+            let startX = Math.cos(angle) * length2
+            let startY = Math.sin(angle) * length2
             strokeWeight(this.runeRadius)
-            stroke(80)
+            stroke(80, transDead)
             line(startX, startY, endX, endY)
             strokeWeight(mapp(this.runes[i].hp, 0, 100, 0, this.runeRadius))
-            stroke('#CE4760')
+            stroke(206, 71, 96, transDead)
             line(startX, startY, endX, endY)
-            this.runes[i].show(startX, startY, endX, endY)
+            this.runes[i].show(startX, startY, endX, endY, transDead)
         }
 
-
-        fill(80)
+        fill(80, transDead)
         noStroke()
         ellipse(0, 0, 30)
-        fill(255, 30, 80)
+        fill(255, 30, 80, transDead)
         let angle = ((TWO_PI / this.runes.length) * this.runeIndexViz) - HALF_PI
         length = 9
+        if(this.deadCounter > 0) length = mapp(this.deadCounter, 0, 60 * 2, 0, 9)
         let endX = Math.cos(angle) * length
         let endY = Math.sin(angle) * length
         ellipse(endX, endY, 8)
 
         noFill()
-        stroke(74, 170, 211)
+        stroke(74, 170, 211, transDead)
         strokeWeight(mapp(this.shield, 0, 100, 0, 5))
         ellipse(0, 0, this.radius * 2)
 
@@ -396,16 +446,16 @@ class RuneBook{
         fill(255, 0, 0, this.trans)
         noStroke()
         let x = WIDTH + 20
-        let y = this.buttons[(Math.floor(this.runeIndex) % this.runes.length) * 2].y + BUT_H * .5
+        let y = this.buttons[(Math.floor(this.runeIndex) % this.runes.length) * 2].y + this.buttonHeight * .5
         ellipse(x, y, 20)
         
         fill(220, 0, 0, this.trans)
-        rect(x + 17, y - BUT_H * .5 - 3,
-            BUT_W * 2 + 16, BUT_H + 6, 12
+        rect(x + 17, y - this.buttonHeight * .5 - 3,
+            BUT_W * 2 + 16, this.buttonHeight + 6, 12
         )
 
         fill(248, 150, 30)
-        y = this.buttons[(Math.floor(this.hand) % this.runes.length) * 2].y + BUT_H * .5
+        y = this.buttons[(Math.floor(this.hand) % this.runes.length) * 2].y + this.buttonHeight * .5
         ellipse(x, y, 10)
         pop()
         for(let b of this.buttons) b.show()
@@ -427,4 +477,14 @@ function indexOf(rune, runesArray) {
         }
     }
     return -1;
+}
+
+function copyRunesToMemory(runes, hand, relPosStart, relPosEnd) {
+    const len = runes.length;
+    const result = [];
+    for (let i = relPosStart; i <= relPosEnd; i++) {
+        const index = (hand + i + len) % len;
+        result.push([runes[index].left, runes[index].right]);
+    }
+    return result;
 }
