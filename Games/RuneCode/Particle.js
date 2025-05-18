@@ -18,6 +18,23 @@ class Particle{
         this.dead = true
     }
 
+    transport() {
+        while (true) {
+            let randomPos = createVector(random(minPos.x, maxPos.x), random(minPos.y, maxPos.y));
+            let insideAny = false;
+            for (let rb of runeBooks) {
+                if (rb && squaredDistance(randomPos.x, randomPos.y, rb.pos.x, rb.pos.y) <= (SQ_BOTH_RADII + 0)) {
+                    insideAny = true;
+                    break;
+                }
+            }
+            if (!insideAny) {
+                this.pos = randomPos.copy();
+                break;
+            }
+        }
+    }
+
     // true if the particle is outside the rune book
     checkCollisionOutideRuneBook(){
         return squaredDistance(this.pos.x, this.pos.y, this.insideRuneBook.pos.x, this.insideRuneBook.pos.y) >= SQ_BOTH_RADII
@@ -51,6 +68,7 @@ class Particle{
             this.out = true
             this.insideRuneBook = undefined
         }
+       //if(Math.random() < 0.01) this.transport()
         this.pos.add(this.vel)
         const maxDev = 0.01
         let devX = (noise(this.pos.x * 0.1 + this.rnd) - 0.5) * 2 * maxDev
@@ -60,11 +78,6 @@ class Particle{
         this.vel.setMag(this.speed)
         this.edges()
         this.setOut()
-    }
-
-    transport(){
-        this.pos.x = random(minPos.x, maxPos.x)
-        this.pos.y = random(minPos.y, maxPos.y)
     }
 
     edges(){

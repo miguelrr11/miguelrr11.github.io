@@ -309,6 +309,17 @@ class RuneBook{
 		this.pos.y > maxY + R_OUT
 	}
 
+    setDead(){
+        this.dead = true
+        let mult = (TWO_PI / this.runes.length)
+        for(let i = 0; i < this.runes.length; i++){
+            let angle = (mult * i)
+            let par = new AttackParticle(this.pos.x, this.pos.y)
+            par.vel = createVector(Math.cos(angle), Math.sin(angle))
+            attackParticles.push(par)
+        }
+    }
+
     show(){
         if(this.out) return
 
@@ -327,7 +338,7 @@ class RuneBook{
             this.handTrans[1] = lerp(this.handTrans[1], 0, vel)
             transDead = mapp(this.deadCounter, 0, 60 * 2, 0, 255)
         }
-        if(this.deadCounter <= 1 && this.deadCounter > 0) this.dead = true
+        if(this.deadCounter <= 1 && this.deadCounter > 0) this.setDead()
 
         push()
         translate(this.pos.x, this.pos.y)
