@@ -2,11 +2,14 @@ const RAD_RUNEBOOK = 80
 const R_OUT = RAD_RUNEBOOK + 50
 const BUT_W = 110
 const BUT_H = 25
+const MAX_SHIELD = 100
 
 const SQ_BOTH_RADII = (RAD_RUNEBOOK + R_PART) * (RAD_RUNEBOOK + R_PART)
 
 let startingRunes = [
+    [5, 7],
     [4, 3],
+    [5, 6],
     [5, 4],
     [4, 5],
     [0, 1],
@@ -18,12 +21,12 @@ class RuneBook{
     constructor(x, y){
         this.runes = Array.from({ length: startingRunes.length }, (_, i) => new Rune(startingRunes[i][0], startingRunes[i][1]));
         //this.runes = Array.from({ length: Math.floor(Math.random() * 34 + 1) }, () => new Rune());
-        this.runeIndex = 0
+        this.runeIndex = Math.floor(Math.random() * this.runes.length)
         this.runeIndexViz = this.runeIndex   //future
         this.pos = createVector(x, y)
         this.oldPos = this.pos.copy()
 
-        this.shield = 100       //shield hp
+        this.shield = MAX_SHIELD       //shield hp
         this.energy = 100       //energy
 
         this.radius = RAD_RUNEBOOK
@@ -139,7 +142,7 @@ class RuneBook{
             this.shield = 0
             this.die()
         }
-        this.shield = constrain(this.shield, 0, 100)
+        this.shield = constrain(this.shield, 0, MAX_SHIELD)
         this.energy = constrain(this.energy, 0, 100)
     }
 
@@ -170,12 +173,7 @@ class RuneBook{
         this.runeIndexViz = this.runeIndex
         this.runeIndex++
         let rune = this.runes[this.runeIndex % this.runes.length]
-        let result = rune.execute()
-        let left, right
-        if(result != undefined){
-            left = result[0]
-            right = result[1]
-        }
+        let [left, right] = rune.execute()
         if(left == 'ABSORB' && right == 'MANA'){
             let food = this.checkForFood()
             if(food){
@@ -188,7 +186,7 @@ class RuneBook{
             }
         }
         else if(left == 'ATTACK'){
-            if(right == 'SHARD'){
+            if(right == 'SHARD' && this.handSide == 'INWARD'){
                 let shard = this.checkForShard()
                 if(shard){
                     this.attackShow = {
@@ -198,7 +196,7 @@ class RuneBook{
                     shard.die()
                 }
             }
-            else if(right == 'MANA'){
+            else if(right == 'MANA' && this.handSide == 'INWARD'){
                 let food = this.checkForFood()
                 if(food){
                     this.attackShow = {
@@ -208,10 +206,10 @@ class RuneBook{
                     food.die()
                 }
             }
-            else if(right == 'SHIELD'){
+            else if(right == 'SHIELD' && this.handSide == 'OUTWARD'){
                 this.shield -= 10
             }
-            else if(right == 'SPELL'){
+            else if(right == 'SPELL' && this.handSide == 'INWARD'){
                 let index = this.hand
                 this.runes.splice(index, 1)
                 this.runeIndex = indexOf(rune, this.runes)
@@ -219,10 +217,10 @@ class RuneBook{
             }
         }
         else if(left == 'REPAIR'){
-            if(right == 'SHIELD'){
-                this.shield += (100 - this.shield) * 0.3
+            if(right == 'SHIELD' && this.handSide == 'OUTWARD'){
+                this.shield += (MAX_SHIELD - this.shield) * 0.3
             }
-            if(right == 'SPELL'){
+            if(right == 'SPELL' && this.handSide == 'INWARD'){
                 this.runes[this.hand].repair()
             }
 
@@ -320,6 +318,19 @@ class RuneBook{
         }
     }
 
+    isRepairingSpell(i){
+        return this.runes[this.runeIndex % this.runes.length].getText('right') == 'SPELL' && 
+               this.runes[this.runeIndex % this.runes.length].getText('left') == 'REPAIR' && 
+               this.handSide == 'INWARD' &&
+               this.hand == i
+    }
+
+    isRepairingShield(){
+        return this.runes[this.runeIndex % this.runes.length].getText('right') == 'SHIELD' && 
+               this.runes[this.runeIndex % this.runes.length].getText('left') == 'REPAIR' && 
+               this.handSide == 'OUTWARD'
+    }
+
     show(){
         if(this.out) return
 
@@ -343,7 +354,7 @@ class RuneBook{
         push()
         translate(this.pos.x, this.pos.y)
         noStroke()
-        if(this != selectedRuneBook) fill(74, 170, 211, mapp(this.shield, 0, 100, 20, 80))
+        if(this != selectedRuneBook) fill(74, 170, 211, mapp(this.shield, 0, MAX_SHIELD, 20, 80))
         else fill(74, 170, 211, mapp(this.beat, -PI, PI, 0, 120))
         ellipse(0, 0, this.radius * 2)
 
@@ -417,6 +428,7 @@ class RuneBook{
             line(startX, startY, endX, endY)
             strokeWeight(mapp(this.runes[i].hp, 0, 100, 0, this.runeRadius))
             stroke(206, 71, 96, transDead)
+            if(this.isRepairingSpell(i)) stroke(206, 71, 96, mapp(this.beat, -PI, PI, 0, 255))
             line(startX, startY, endX, endY)
             this.runes[i].show(startX, startY, endX, endY, transDead)
         }
@@ -434,7 +446,8 @@ class RuneBook{
 
         noFill()
         stroke(74, 170, 211, transDead)
-        strokeWeight(mapp(this.shield, 0, 100, 0, 5))
+        if(this.isRepairingShield()) stroke(74, 170, 211, mapp(this.beat, -PI, PI, 0, 255))
+        strokeWeight(mapp(this.shield, 0, MAX_SHIELD, 0, 5))
         ellipse(0, 0, this.radius * 2)
 
         pop()

@@ -13,7 +13,7 @@ let runeGroups = [6, 3]
 let baseRadius = 150
 let padding = 420
 
-let speedRot = 0.00015
+let speedRot = 0.00012
 
 let xOff = 0
 let yOff = 0
@@ -34,8 +34,8 @@ let minPos, maxPos
 let panelReplaceLeft = []
 let panelReplaceRight = []
 
-let nParticlesAttack = 350
-let nParticlesFood = 350
+let nParticlesAttack = 500
+let nParticlesFood = 500
 let attackParticles = []
 let foodParticles = []
 
@@ -88,6 +88,7 @@ function mouseClicked() {
             if(runeBook.out) continue
             if(runeBook.mouseInBounds()){
                 selectedRuneBook = runeBook
+                selectedButton = null
                 selected = true
                 focused = true
                 break
@@ -454,7 +455,7 @@ function showSelectedRuneBookMenu(){
     noFill()
     stroke(255)
     strokeWeight(3)
-    drawBar(x, y, wBar, hBar, mapp(selectedRuneBook.shield, 0, 100, 0, wBar))
+    drawBar(x, y, wBar, hBar, mapp(selectedRuneBook.shield, 0, MAX_SHIELD, 0, wBar))
     y += hBar*2 + padding
 
     fill(255)

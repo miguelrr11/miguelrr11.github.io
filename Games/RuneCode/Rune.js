@@ -5,7 +5,7 @@ const LEFT_RUNES = ['ATTACK', 'WRITE', 'READ', 'ABSORB', 'REPAIR', 'GO TO', 'NON
 const RIGHT_RUNES = ['MANA', 'SHARD', 'RPOS 0 to 0', 'SHIELD', 'WEAK', 'SPELL', 'INWARD', 'OUTWARD', 'NONE']
 
 const LEFT_RUNES_COLS = [[248, 150, 30], [206, 71, 96], [206, 71, 96], [39, 125, 161], [99, 132, 117], [67, 170, 139], [40, 40, 40]]
-const RIGHT_RUNES_COLS = [[100, 223, 223], [123, 44, 191], [197, 195, 94], [74, 170, 211], [236, 91, 120], [206, 71, 96], [248, 150, 30], [248, 150, 30], [40, 40, 40]]
+const RIGHT_RUNES_COLS = [[100, 223, 223], [123, 44, 191], [197, 195, 94], [74, 170, 211], [236, 91, 120], [186, 61, 86], [248, 150, 30], [248, 150, 30], [40, 40, 40]]
 
 class Rune{
     constructor(left, right){
@@ -40,10 +40,10 @@ class Rune{
 
     execute(){
         this.trans = 0
-        this.hp -= random(0.8, 1.2)
+        this.hp -= random(5, 8)
         if(this.hp <= 0){
             this.hp = 0
-            return undefined
+            return ['NONE', 'NONE']
         }
         return [LEFT_RUNES[this.left], RIGHT_RUNES[this.right]]
     }

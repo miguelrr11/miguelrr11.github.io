@@ -42,9 +42,6 @@ class Button{
                 this.execute()
             }
         }
-        // if(!this.isMouseOver() && selectedButton == this && mouseIsPressed){
-        //     selectedButton = undefined
-        // }
         fill(this.color)
         rect(this.x, this.y, this.w, this.h, 10)
         fill(255)

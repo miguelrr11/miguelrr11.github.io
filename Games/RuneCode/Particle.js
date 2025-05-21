@@ -114,11 +114,13 @@ class AttackParticle extends Particle{
         super(x, y)
         //this.vel.mult(2)
         this.out = false
+        this.coolDown = 0
     }
 
     // some shards penetrate the shield and just bounce inside the rune book
     update(){
         this.updateMovement()
+        this.coolDown--
         
         if(!this.insideRuneBook){
             let collisionRB = this.checkCollisionRuneBooks()
@@ -142,11 +144,14 @@ class AttackParticle extends Particle{
             // rebota al centro del rune book con una pequeña desviación
             if (this.checkCollisionOutideRuneBook()) {
                 const toCenter = p5.Vector.sub(rb.pos, this.pos).normalize()
-                const maxDev = PI / 12;            
-                const deviation = random(-maxDev, maxDev);
-                toCenter.rotate(deviation);
-                this.vel = toCenter.mult(this.speed);
-                this.insideRuneBook.hit();
+                const maxDev = PI / 12
+                const deviation = random(-maxDev, maxDev)
+                toCenter.rotate(deviation)
+                this.vel = toCenter.mult(this.speed)
+                if(this.coolDown <= 0) {
+                    this.insideRuneBook.hit()
+                    this.coolDown = 60
+                }
             }
         }
 
