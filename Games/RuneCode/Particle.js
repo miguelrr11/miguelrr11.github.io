@@ -1,5 +1,8 @@
 const R_PART = 5
 const PROB_PENETRATE = 0.05
+const PROB_TRANSPORT = 0.001
+const TOTAL_TIME_TRANS = 60
+const HALF_TIME_TRANS = TOTAL_TIME_TRANS * 0.5
 
 class Particle{
     constructor(x, y){
@@ -12,6 +15,8 @@ class Particle{
         this.insideRuneBook = false
         this.rnd = Math.random() * 1000
         this.rnd2 = Math.random() * 1000
+
+        this.transportCounter = 0
     }
 
     die(){
@@ -29,8 +34,7 @@ class Particle{
                 }
             }
             if (!insideAny) {
-                this.pos = randomPos.copy();
-                break;
+                return randomPos.copy()
             }
         }
     }
@@ -42,13 +46,14 @@ class Particle{
 
     // returns the rune book if the particle is inside it
     checkCollisionRuneBooks(){
-        for(let i = 0; i < runeBooks.length; i++){
-            let rb = runeBooks[i]
+        let rbs = runeBooks
+        for(let i = 0; i < rbs.length; i++){
+            let rb = rbs[i]
             if(!rb) continue
             let d = squaredDistance(this.pos.x, this.pos.y, rb.pos.x, rb.pos.y)
             if(d < SQ_BOTH_RADII){
-                runeBooks[i].hit()
-                return runeBooks[i]
+                rbs[i].hit()
+                return rbs[i]
             }
         }
         return false
@@ -64,11 +69,17 @@ class Particle{
 
     updateMovement(){
         if(this.dead) return
+        if(Math.random() < PROB_TRANSPORT && !this.insideRuneBook) this.transportCounter = TOTAL_TIME_TRANS
+        if(this.transportCounter > 0){
+            this.transportCounter--
+            if(this.transportCounter == HALF_TIME_TRANS){
+                this.pos = this.transport()
+            }
+        }
         if(this.insideRuneBook && this.insideRuneBook.dead){
             this.out = true
             this.insideRuneBook = undefined
         }
-       //if(Math.random() < 0.01) this.transport()
         this.pos.add(this.vel)
         const maxDev = 0.01
         let devX = (noise(this.pos.x * 0.1 + this.rnd) - 0.5) * 2 * maxDev
@@ -100,12 +111,7 @@ class Particle{
         }
     }
 
-    show(){
-        if(this.out) return
-        stroke(150)
-        strokeWeight(R_PART)
-        point(this.pos.x, this.pos.y)
-    }
+
 }
 
 // SHARDS
@@ -160,10 +166,13 @@ class AttackParticle extends Particle{
     show(){
         if(this.out) return
         stroke(123, 44, 191, 150)
-        strokeWeight(R_PART + 2)
+        let mult = this.transportCounter > 0 ? (this.transportCounter > HALF_TIME_TRANS ? 
+            mapp(this.transportCounter, TOTAL_TIME_TRANS, HALF_TIME_TRANS, 1, 0) : 
+            mapp(this.transportCounter, 0, HALF_TIME_TRANS, 1, 0)) : 1
+        strokeWeight((R_PART + 2) * mult)
         point(this.pos.x, this.pos.y)
         stroke(90, 24, 154, 200)
-        strokeWeight(R_PART - 1)
+        strokeWeight((R_PART - 1) * mult)
         point(this.pos.x, this.pos.y)
     }
 }
@@ -183,10 +192,13 @@ class FoodParticle extends Particle{
     show(){
         if(this.out) return
         stroke(114, 239, 221, 150)
-        strokeWeight(R_PART + 2)
+        let mult = this.transportCounter > 0 ? (this.transportCounter > HALF_TIME_TRANS ? 
+            mapp(this.transportCounter, TOTAL_TIME_TRANS, HALF_TIME_TRANS, 1, 0) : 
+            mapp(this.transportCounter, 0, HALF_TIME_TRANS, 1, 0)) : 1
+        strokeWeight((R_PART + 2) * mult)
         point(this.pos.x, this.pos.y)
         stroke(100, 223, 223, 200)
-        strokeWeight(R_PART - 1)
+        strokeWeight((R_PART - 1) * mult)
         point(this.pos.x, this.pos.y)
     }
 }

@@ -13,6 +13,8 @@ class Rune{
         this.right = right != undefined ? right : constrain(Math.floor(Math.random() * RIGHT_RUNES.length), 0, RIGHT_RUNES.length - 2)
 
         this.hp = 100
+        this.artificial = false
+
         this.startPos = 0
         this.endPos = 0
 

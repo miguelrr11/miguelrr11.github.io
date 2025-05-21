@@ -34,9 +34,15 @@ let minPos, maxPos
 let panelReplaceLeft = []
 let panelReplaceRight = []
 let newRuneButtonActive = false
+let createURBButton 
+let creatingURB = false
+let urb
+let urbs = []
+let startPostionURB = null
+let stopPostionURB = null
 
-let nParticlesAttack = 500
-let nParticlesFood = 500
+let nParticlesAttack = 350
+let nParticlesFood = 350
 let attackParticles = []
 let foodParticles = []
 
@@ -45,6 +51,15 @@ let rPosGlobal = {from: 0, to: 0}
 let fonts = new Map()
 
 function mouseDragged() {
+    if(creatingURB){
+        if(!startPostionURB && mouseX < WIDTH){
+            startPostionURB = createVector(mouseX, mouseY)
+        }
+        else{
+            stopPostionURB = createVector(mouseX, mouseY)
+        }
+        return
+    }
     if(mouseX > WIDTH) return
     if(!prevMouseX) prevMouseX = mouseX
     if(!prevMouseY) prevMouseY = mouseY
@@ -60,6 +75,11 @@ function mouseDragged() {
 function mouseReleased() {
     prevMouseX = undefined
     prevMouseY = undefined
+    if(creatingURB){
+        spawnURB()
+    }
+    startPostionURB = null
+    stopPostionURB = null
 }
 
 function mouseWheel(event) {
@@ -82,7 +102,6 @@ function mouseWheel(event) {
 }
 
 function mouseClicked() {
-    let selected = false
     if(mouseX < WIDTH){
         for(let runeBook of runeBooks){
             if(!runeBook) continue
@@ -100,6 +119,14 @@ function mouseClicked() {
     else{
         if(selectedRuneBook){
             for(let b of selectedRuneBook.buttons){
+                if(b.isMouseOver()){
+                    selectedButton = b
+                    break
+                }
+            }
+        }
+        if(urb){
+            for(let b of urb.buttons){
                 if(b.isMouseOver()){
                     selectedButton = b
                     break
@@ -173,6 +200,11 @@ function initPanelReplace(){
     panelReplaceRight.push(bPlusTo)
     panelReplaceRight.push(bMinusTo)
 
+    createURBButton = new FunctionalButton(x + 10, 10, 120, h, 'Create URB', '#447A9C')
+    createURBButton.setFunc(() => {
+        creatingURB = true
+        urb = new URB(0, 0)
+    })
 }
 
 async function setup(){
@@ -209,7 +241,6 @@ async function setup(){
 
 function draw(){
     background('#f5ebe0')
-    //background(50)
 
     currentEdges = getEdges()
     mousePos = getRelativePos(mouseX, mouseY)
@@ -233,6 +264,10 @@ function draw(){
     push()
     translate(xOff, yOff)
     scale(zoom)
+    for(let ur of urbs){
+        ur.update()
+        ur.show()
+    }
     for(let i = runeBooks.length - 1; i >= 0; i--){
         let runeBook = runeBooks[i]
         if(!runeBook) continue
@@ -275,10 +310,20 @@ function draw(){
     fill('#33415c')
     rect(WIDTH, 0, WIDTH_UI, HEIGHT)
 
-    showSelectedRuneBookMenu()
+    if(!creatingURB){
+        showSelectedRuneBookMenu()
+    }
+    else{ 
+        if(startPostionURB && stopPostionURB){ 
+            stroke(50)
+            strokeWeight(3)
+            line(startPostionURB.x, startPostionURB.y, stopPostionURB.x, stopPostionURB.y)
+            let angle = atan2(startPostionURB.y - stopPostionURB.y, startPostionURB.x - stopPostionURB.x)
+            drawArrowTip(stopPostionURB.x, stopPostionURB.y, angle, 20)
+        }
+        showCreatingURBMenu()
+    }
     showReplaceRuneMenu()
-    
-    
 }
 
 function getEdges() {
@@ -433,7 +478,7 @@ function showSelectedRuneBookMenu(){
     textAlign(LEFT)
     textFont(fonts.get('Medium'))
     fill(255)
-    text('Runebook #' + selectedRuneBook.id , x, y)
+    text('Rune Book #' + selectedRuneBook.id , x, y)
     y += textAscent() + padding
     
     // Title of energy
@@ -486,6 +531,7 @@ function showSelectedRuneBookMenu(){
     translate(-WIDTH, 0)
     selectedRuneBook.drawInstructions()
 
+    createURBButton.show()
     pop()
 }
 
@@ -517,6 +563,46 @@ function drawBar(x, y, w, h, wFill){
     if(wFill > 0) rect(x+off, y+off, wFill-off*2, h-off*2, 7)
 }
 
+function showCreatingURBMenu(){
+    if(!creatingURB) return
+    let y = 35
+    let padding = 0
+    let x = 10
+
+    push()
+    translate(WIDTH, 0)
+
+    // Title of runebook
+    textSize(35)
+    textAlign(LEFT)
+    textFont(fonts.get('Medium'))
+    fill(255)
+    text('Creating URB', x, y)
+    let auxX = textWidth('Creating URB') + 20
+    textSize(20)
+    text('(Unidentified Rune Book)', x + auxX, y)
+    y += textAscent() + padding
+
+    textSize(18)
+    text('An URB is special type of rune book that has the ability to inyect its own runes into other Rune Books.\n\nOnce you are happy with your design, simply click and drag in the direction you want to spawn it.', x, y, WIDTH_UI - padding*7)
+
+
+
+    y = RUNES_SELECTED_Y
+    // Instructions title
+    noStroke()
+    fill(255)
+    textSize(20)
+    textFont(fonts.get('Italic'))
+    text('Runes', x, y)
+
+    // Instructions board
+    translate(-WIDTH, 0)
+    urb.drawInstructions()
+
+    pop()
+}
+
 function setMinMax(){
     let minX = Infinity
     let maxX = -Infinity
@@ -540,3 +626,35 @@ function getRandomPosParticle(){
     let pos = createVector(Math.cos(angle) * radius, Math.sin(angle) * radius)
     return pos
 }   
+
+function spawnURB(){
+    if(!urb || !startPostionURB) return
+    let pos = getRelativePos(mouseX, mouseY)
+    urb.pos.x = pos.x
+    urb.pos.y = pos.y
+    let angle = atan2(stopPostionURB.y - startPostionURB.y, stopPostionURB.x - startPostionURB.x)
+    urb.vel = createVector(Math.cos(angle), Math.sin(angle))
+    urb.vel.mult(1.5)
+    urb.angle = angle + HALF_PI
+    creatingURB = false
+    urbs.push(urb)
+    urb = null
+}
+
+function inyectRunes(urb, rb){
+    let newRunes = urb.runes
+    for(let r of newRunes){
+        r.artificial = true
+    }
+    let index = mod(rb.hand + 1, rb.runes.length)
+    rb.runes = insertAtIndex(index, rb.runes, newRunes)
+    rb.runeIndex = indexOf(rb.runes[rb.runeIndex % rb.runes.length], rb.runes)
+    rb.createButtons()
+    // delete urb from urbs
+    for(let i = 0; i < urbs.length; i++){
+        if(urbs[i] == urb){
+            urbs.splice(i, 1)
+            break
+        }
+    }
+}

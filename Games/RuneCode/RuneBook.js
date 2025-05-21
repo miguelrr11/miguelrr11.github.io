@@ -1,10 +1,12 @@
 const RAD_RUNEBOOK = 80
 const R_OUT = RAD_RUNEBOOK + 50
+const RAD_NUCLEUS = 15
 const BUT_W = 110
 const BUT_H = 25
 const MAX_SHIELD = 100
 
 const SQ_BOTH_RADII = (RAD_RUNEBOOK + R_PART) * (RAD_RUNEBOOK + R_PART)
+const SQ_URB_RB_RADII = (RAD_RUNEBOOK + RAD_NUCLEUS) * (RAD_RUNEBOOK + RAD_NUCLEUS)
 
 let startingRunes = [
     [5, 7],
@@ -66,7 +68,7 @@ class RuneBook{
         let verPadding = 10;
         let x = WIDTH + 40;
 
-        const totalRunes = this.runes.length + 1;
+        const totalRunes = this.runes.length + 2;
 
         const yStart = RUNES_SELECTED_Y + verPadding;
         const yEnd = HEIGHT - verPadding;
@@ -81,7 +83,7 @@ class RuneBook{
 
         let y = RUNES_SELECTED_Y + verPadding;
 
-        for (let i = 0; i < totalRunes - 1; i++) {
+        for (let i = 0; i < totalRunes - 2; i++) {
             const bLeft = new Button(x, y, wButton, hButton, this.runes[i].getText('left'), LEFT_RUNES_COLS[this.runes[i].left]);
             const bRight = new Button(x + wButton + horPadding, y, wButton, hButton, this.runes[i].getText('right'), RIGHT_RUNES_COLS[this.runes[i].right]);
             bLeft.setProperties(this, i, 'left');
@@ -514,7 +516,20 @@ class RuneBook{
 
         fill(248, 150, 30)
         y = this.buttons[(Math.floor(this.hand) % this.runes.length) * 2].y + this.buttonHeight * .5
-        ellipse(x, y, 10)
+        ellipse(x, y, 14)
+
+        fill(10, 215, 40)
+        for(let i = 0; i < this.runes.length; i++){
+            if(this.runes[i].artificial){
+                let y = this.buttons[(Math.floor(i) % this.runes.length) * 2].y + this.buttonHeight * .5
+                push()
+                translate(x, y)
+                rotate(0.8) 
+                rectMode(CENTER)
+                rect(0, 0, 8, 8)
+                pop()
+            }
+        }
         pop()
         for(let b of this.buttons) b.show()
     }
@@ -545,4 +560,83 @@ function copyRunesToMemory(runes, hand, relPosStart, relPosEnd) {
         result.push([runes[index].left, runes[index].right]);
     }
     return result;
+}
+
+class URB extends RuneBook{
+    constructor(x, y){
+        super(x, y)
+        this.runes = [new Rune(LEFT_RUNES.length - 1, RIGHT_RUNES.length - 1)]
+        this.runeIndex = 0
+        this.createButtons()
+
+        this.vel = createVector(0, 0)
+        this.angle = 0
+    }
+
+    update(){
+        this.pos.add(this.vel)
+        this.edges()
+        this.checkCollisionRuneBooks()
+    }
+
+    checkCollisionRuneBooks(){
+        for(let rb of runeBooks){
+            if(squaredDistance(this.pos.x, this.pos.y, rb.pos.x, rb.pos.y) < SQ_URB_RB_RADII){
+                inyectRunes(this, rb)
+            }
+        }
+    }
+
+    edges(){
+        let minX = minPos.x  
+        let maxX = maxPos.x
+        let minY = minPos.y
+        let maxY = maxPos.y
+        let r = this.radius
+        if(this.pos.x < minX + r) {
+            this.pos.x = maxX - r
+        }
+        else if(this.pos.x > maxX - r) {
+            this.pos.x = minX + r
+        }
+        if(this.pos.y < minY + r) {
+            this.pos.y = maxY - r
+        }
+        else if(this.pos.y > maxY - r) {
+            this.pos.y = minY + r
+        }
+    }
+
+    show(){
+        if(this.out) return
+
+        let transDead = 255
+
+        push()
+        translate(this.pos.x, this.pos.y)
+        rotate(this.angle)
+
+        let length = 45
+        let length2 = 25
+        let mult = (TWO_PI / this.runes.length)
+        for(let i = 0; i < this.runes.length; i++){
+            let angle = (mult * i) - HALF_PI
+            let endX = Math.cos(angle) * length
+            let endY = Math.sin(angle) * length
+            let startX = Math.cos(angle) * length2
+            let startY = Math.sin(angle) * length2
+            strokeWeight(this.runeRadius)
+            stroke(80, transDead)
+            line(startX, startY, endX, endY)
+            strokeWeight(mapp(this.runes[i].hp, 0, 100, 0, this.runeRadius))
+            stroke(206, 71, 96, transDead)
+            line(startX, startY, endX, endY)
+            this.runes[i].show(startX, startY, endX, endY, transDead)
+        }
+        fill(80, transDead)
+        noStroke()
+        ellipse(0, 0, RAD_NUCLEUS * 2)
+        pop()
+
+    }
 }
