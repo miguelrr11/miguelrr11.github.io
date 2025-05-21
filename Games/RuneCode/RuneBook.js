@@ -1,3 +1,5 @@
+//BUG: al crear urbs desde rbs, no se ponen bien los indices de RPOS (estan todos en 0)
+
 const RAD_RUNEBOOK = 80
 const R_OUT = RAD_RUNEBOOK + 50
 const RAD_NUCLEUS = 15
@@ -270,7 +272,7 @@ class RuneBook{
                 let from = rune.startPos
                 let to = rune.endPos
                 if(from == to){
-                    this.moveHand((from + this.hand) % this.runes.length)
+                    this.moveHand((from + this.runeIndex) % this.runes.length)
                 }
             }
             else if(right == 'INWARD'){
@@ -284,14 +286,13 @@ class RuneBook{
         }
         else if(left == 'WRITE'){
             if(this.handSide == 'INWARD'){
-                //write the memory to its runes
                 if(right.includes('RPOS')){
                     let from = rune.startPos
                     let to = rune.endPos
                     if(from == to){
                         //introduce the runes of the memory into this.runes at the position of the hand
                         let newRunes = this.getNewRunesFromMemory()
-                        let index = mod(from + this.hand + 1, this.runes.length)
+                        let index = mod(from + this.runeIndex + 1, this.runes.length)
                         this.runes = insertAtIndex(index, this.runes, newRunes)
                         this.runeIndex = indexOf(rune, this.runes)
                         this.createButtons()
@@ -299,7 +300,17 @@ class RuneBook{
                 }
             }
             else if(this.handSide == 'OUTWARD'){
-                // create moving runebook
+                let newUrb = new URB(0, 0)
+                newUrb.runes = this.getNewRunesFromMemory()
+                let angle = random(TWO_PI)
+                newUrb.angle = angle
+                let x = this.pos.x + Math.cos(newUrb.angle) * (this.radius + 20)
+                let y = this.pos.y + Math.sin(newUrb.angle) * (this.radius + 20)
+                newUrb.vel = createVector(Math.cos(newUrb.angle), Math.sin(newUrb.angle))
+                newUrb.vel.mult(1.5)
+                newUrb.angle = Math.atan2(newUrb.vel.y, newUrb.vel.x) + HALF_PI
+                newUrb.pos = createVector(x, y)
+                urbs.push(newUrb)
             }
         }
         else if(left == 'READ'){
@@ -307,7 +318,7 @@ class RuneBook{
                 if(right.includes('RPOS')){
                     let from = rune.startPos
                     let to = rune.endPos
-                    this.memory = copyRunesToMemory(this.runes, this.hand, from, to)
+                    this.memory = copyRunesToMemory(this.runes, this.runeIndex, from, to)
                 }
             }
         }
@@ -581,7 +592,7 @@ class URB extends RuneBook{
 
     checkCollisionRuneBooks(){
         for(let rb of runeBooks){
-            if(squaredDistance(this.pos.x, this.pos.y, rb.pos.x, rb.pos.y) < SQ_URB_RB_RADII){
+            if(rb && squaredDistance(this.pos.x, this.pos.y, rb.pos.x, rb.pos.y) < SQ_URB_RB_RADII){
                 inyectRunes(this, rb)
             }
         }
