@@ -90,3 +90,41 @@ class FunctionalButton extends Button{
         pop()
     }
 }
+
+class NewRuneButton extends Button{
+    constructor(x, y, width, height, text, col, textColor){
+        super(x, y, width, height, text, col, textColor)
+        this.func = undefined
+        this.isActive = false
+    }
+
+    setFunc(func){
+        this.func = func
+    }
+
+    show(){
+        push()
+        if(this.isMouseOver() && mouseIsPressed && !newRuneButtonActive){ 
+            newRuneButtonActive = true
+            this.execute()
+        }
+        if(!mouseIsPressed){
+            newRuneButtonActive = false
+        }
+        noStroke()
+        fill(this.color)
+        rect(this.x, this.y, this.w, this.h, 10)
+        fill(255)
+        noStroke()
+        textAlign(CENTER, CENTER)
+        textSize(this.textSize)
+        if(this.text.includes('RPOS')){
+            this.text = 'RPOS ' + rPosGlobal.from + ' to ' + rPosGlobal.to
+            if(rPosGlobal.from > 9 || rPosGlobal.to > 9 || rPosGlobal.from < -9 || rPosGlobal.to < -9){
+                this.textSize = 16.5
+            }
+        }
+        text(this.text, this.x + this.w / 2, this.y + this.h / 2 + 1.5)
+        pop()
+    }
+}

@@ -28,6 +28,8 @@ class RuneBook{
 
         this.shield = MAX_SHIELD       //shield hp
         this.energy = 100       //energy
+        this.goalShield = this.shield
+        this.goalEnergy = this.energy
 
         this.radius = RAD_RUNEBOOK
         this.runeRadius = mapp(this.runes.length, 1, 15, 15, 10, true)
@@ -56,7 +58,7 @@ class RuneBook{
     }
 
     createButtons() {
-        const MAX_RUNES = 14;
+        const MAX_RUNES = 13;
         let buttons = [];
         let wButton = BUT_W;
         let hButton = BUT_H;   
@@ -64,7 +66,7 @@ class RuneBook{
         let verPadding = 10;
         let x = WIDTH + 40;
 
-        const totalRunes = this.runes.length;
+        const totalRunes = this.runes.length + 1;
 
         const yStart = RUNES_SELECTED_Y + verPadding;
         const yEnd = HEIGHT - verPadding;
@@ -79,7 +81,7 @@ class RuneBook{
 
         let y = RUNES_SELECTED_Y + verPadding;
 
-        for (let i = 0; i < totalRunes; i++) {
+        for (let i = 0; i < totalRunes - 1; i++) {
             const bLeft = new Button(x, y, wButton, hButton, this.runes[i].getText('left'), LEFT_RUNES_COLS[this.runes[i].left]);
             const bRight = new Button(x + wButton + horPadding, y, wButton, hButton, this.runes[i].getText('right'), RIGHT_RUNES_COLS[this.runes[i].right]);
             bLeft.setProperties(this, i, 'left');
@@ -88,6 +90,35 @@ class RuneBook{
             buttons.push(bRight);
             y += hButton + verPadding;
         }
+        const bNewRune = new NewRuneButton(x, y, wButton * 2 + horPadding, hButton, 'NEW RUNE', [50]);
+        bNewRune.setProperties(this);
+        bNewRune.setFunc(() => {
+            this.runes.push(new Rune(LEFT_RUNES.length - 1, RIGHT_RUNES.length - 1))
+            this.createButtons()
+        })
+        buttons.push(bNewRune);
+        y += hButton + verPadding;
+
+        const bDeleteRune = new NewRuneButton(x, y, wButton * 2 + horPadding, hButton, 'DELETE RUNE', [50]);
+        bDeleteRune.setProperties(this);
+        bDeleteRune.setFunc(() => {
+            if(selectedButton){
+                let index = indexOf(selectedButton.runebook.runes[selectedButton.runeIndex], selectedButton.runebook.runes)
+                if(index != -1 && this.runes.length > 1){
+                    this.runes.splice(index, 1)
+                    this.runeIndex = indexOf(this.runes[this.runeIndex % this.runes.length], this.runes)
+                    selectedButton = undefined
+                }
+                else if(index != -1 && this.runes.length == 1){
+                    this.runes[0].left = LEFT_RUNES.length - 1
+                    this.runes[0].right = RIGHT_RUNES.length - 1
+                    this.runeIndex = 0
+                    selectedButton = undefined
+                }
+            }
+            this.createButtons()
+        })
+        buttons.push(bDeleteRune);
 
         this.buttons = buttons;
     }
@@ -122,6 +153,9 @@ class RuneBook{
         this.beat = Math.sin(frameCount * 0.1)
         this.trans += 10
 
+        this.shield = lerp(this.shield, this.goalShield, 0.05)
+        this.energy = lerp(this.energy, this.goalEnergy, 0.05)
+
         this.setOut()
 
         this.runeIndexViz = lerp(this.runeIndexViz, this.runeIndex, 0.05)
@@ -134,16 +168,16 @@ class RuneBook{
             this.fetchHand()
         }
 
-        if(this.energy <= 0){
-            this.energy = 0
+        if(this.goalEnergy <= 0){
+            this.goalEnergy = 0
             this.die()
         }
         if(this.shield <= 0){
             this.shield = 0
             this.die()
         }
-        this.shield = constrain(this.shield, 0, MAX_SHIELD)
-        this.energy = constrain(this.energy, 0, 100)
+        this.goalShield = constrain(this.goalShield, 0, MAX_SHIELD)
+        this.goalEnergy = constrain(this.goalEnergy, 0, 100)
     }
 
     die(){
@@ -151,7 +185,7 @@ class RuneBook{
     }
 
     hit(){
-        this.shield--
+        this.goalShield--
     }
 
     //absoulte position
@@ -177,7 +211,7 @@ class RuneBook{
         if(left == 'ABSORB' && right == 'MANA'){
             let food = this.checkForFood()
             if(food){
-                this.energy += (100 - this.energy) * 0.3
+                this.goalEnergy += (100 - this.goalEnergy) * 0.3
                 this.attackShow = {
                     pos: food.pos.copy(),
                     timer: 30
@@ -207,7 +241,7 @@ class RuneBook{
                 }
             }
             else if(right == 'SHIELD' && this.handSide == 'OUTWARD'){
-                this.shield -= 10
+                this.goalShield -= 10
             }
             else if(right == 'SPELL' && this.handSide == 'INWARD'){
                 let index = this.hand
@@ -218,7 +252,7 @@ class RuneBook{
         }
         else if(left == 'REPAIR'){
             if(right == 'SHIELD' && this.handSide == 'OUTWARD'){
-                this.shield += (MAX_SHIELD - this.shield) * 0.3
+                this.goalShield += (MAX_SHIELD - this.goalShield) * 0.3
             }
             if(right == 'SPELL' && this.handSide == 'INWARD'){
                 this.runes[this.hand].repair()
@@ -275,7 +309,7 @@ class RuneBook{
                 }
             }
         }
-        this.energy--
+        this.goalEnergy--
         this.trans = 0
     }
 

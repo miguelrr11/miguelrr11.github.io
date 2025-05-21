@@ -33,6 +33,7 @@ let minPos, maxPos
 
 let panelReplaceLeft = []
 let panelReplaceRight = []
+let newRuneButtonActive = false
 
 let nParticlesAttack = 500
 let nParticlesFood = 500
@@ -208,6 +209,7 @@ async function setup(){
 
 function draw(){
     background('#f5ebe0')
+    //background(50)
 
     currentEdges = getEdges()
     mousePos = getRelativePos(mouseX, mouseY)
