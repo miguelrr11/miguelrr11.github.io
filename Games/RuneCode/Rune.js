@@ -31,6 +31,14 @@ class Rune{
         }
     }
 
+    dupe(){
+        let newRune = new Rune(this.left, this.right)
+        newRune.artificial = this.artificial
+        newRune.startPos = this.startPos
+        newRune.endPos = this.endPos
+        return newRune
+    }
+
     setRelPos(startPos, endPos){
         this.startPos = startPos
         this.endPos = endPos
@@ -62,4 +70,15 @@ class Rune{
         ellipse(endX, endY, 6)
         pop()
     }
+}
+
+function getColorByWord(word){
+    if(LEFT_RUNES.includes(word)){
+        return LEFT_RUNES_COLS[LEFT_RUNES.indexOf(word)]
+    }
+    else if(RIGHT_RUNES.includes(word)){
+        return RIGHT_RUNES_COLS[RIGHT_RUNES.indexOf(word)]
+    }
+    else if(word == 'HANDSIDE') return [248, 150, 30]
+    return [40, 40, 40]
 }

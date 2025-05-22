@@ -13,6 +13,93 @@ let runeGroups = [6, 3]
 let baseRadius = 150
 let padding = 420
 
+const helpEntries = [
+  {
+    left:  'ABSORB',
+    right: 'MANA',
+    handSide: 'ANY',
+    description: 'If food is found: gains 30% of missing energy'
+  },
+  {
+    left:  'ATTACK',
+    right: 'SHARD',
+    handSide: 'INWARD',
+    description: 'If shard is found: kills shard.'
+  },
+  {
+    left:  'ATTACK',
+    right: 'MANA',
+    handSide: 'INWARD',
+    description: 'If mana is found: kills mana.'
+  },
+  {
+    left:  'ATTACK',
+    right: 'SHIELD',
+    handSide: 'OUTWARD',
+    description: 'Reduces shield by 10.'
+  },
+  {
+    left:  'ATTACK',
+    right: 'SPELL',
+    handSide: 'INWARD',
+    description: 'Removes rune at the hands position.'
+  },
+  {
+    left:  'REPAIR',
+    right: 'SHIELD',
+    handSide: 'OUTWARD',
+    description: 'Increases shield by 30% of missing shield.'
+  },
+  {
+    left:  'REPAIR',
+    right: 'SPELL',
+    handSide: 'INWARD',
+    description: 'Repairs the rune at the hands position.'
+  },
+  {
+    left:  'GO TO',
+    right: 'WEAK',
+    handSide: 'INWARD',
+    description: 'Moves hand to weakest rune.'
+  },
+  {
+    left:  'GO TO',
+    right: 'RPOS',
+    handSide: 'ANY',
+    description: 'If from == to: moves hand to (hand + startPos) % runes.length.'
+  },
+  {
+    left:  'GO TO',
+    right: 'INWARD',
+    handSide: 'ANY',
+    description: 'Sets the hands side to INWARD.'
+  },
+  {
+    left:  'GO TO',
+    right: 'OUTWARD',
+    handSide: 'ANY',
+    description: 'Sets the hands side to OUTWARD.'
+  },
+  {
+    left:  'WRITE',
+    right: 'RPOS',
+    handSide: 'INWARD',
+    description: 'If from == to: inserts memory runes at the hands position.'
+  },
+  {
+    left:  'WRITE',
+    right: 'ANY',
+    handSide: 'OUTWARD',
+    description: 'Spawns new URB with memory runes.'
+  },
+  {
+    left:  'READ',
+    right: 'RPOS',
+    handSide: 'INWARD',
+    description: 'Copy runes [(hand + from):(hand + to)] to memory.'
+  }
+];
+
 let speedRot = 0.00012
 
 let xOff = 0
@@ -24,6 +111,7 @@ let zoom = 1
 let selectedRuneBook = null
 let selectedButton = null
 let focused = false
+let showingHelp = false
 
 let currentEdges = [0, WIDTH, 0, HEIGHT]
 let mousePos 
@@ -35,6 +123,10 @@ let panelReplaceLeft = []
 let panelReplaceRight = []
 let newRuneButtonActive = false
 let createURBButton 
+let cancelURBButton
+let helpButton
+let helpLeftButtons = []
+let helpShowingCommand = 'ATTACK'
 let creatingURB = false
 let urb
 let urbs = []
@@ -200,11 +292,71 @@ function initPanelReplace(){
     panelReplaceRight.push(bPlusTo)
     panelReplaceRight.push(bMinusTo)
 
-    createURBButton = new FunctionalButton(x + 10, 10, 120, h, 'Create URB', '#447A9C')
+    createURBButton = new FunctionalButton(x + 10, 40, 120, h, 'Create URB', '#447A9C')
     createURBButton.setFunc(() => {
         creatingURB = true
+        selectedButton = null
         urb = new URB(0, 0)
     })
+
+    cancelURBButton = new FunctionalButton(x + 45, HEIGHT - 35, 80, h, 'Cancel', '#447A9C')
+    cancelURBButton.setFunc(() => {
+        creatingURB = false
+        selectedButton = null
+        urb = null
+    })
+
+    helpButton = new FunctionalButton(x + 10, 10, 120, h, 'Help', '#447A9C')
+    helpButton.setFunc(() => {
+        showingHelp = true
+        selectedButton = null
+    })
+
+    x = WIDTH + 10
+    y = 65
+    let attackButton = new FunctionalButton(x + 10, y, 120, h, 'ATTACK', [248, 150, 30])
+    attackButton.setFunc(() => {
+        helpShowingCommand = 'ATTACK'
+    })
+    helpLeftButtons.push(attackButton)
+    y += h + 10
+    let writeButton = new FunctionalButton(x + 10, y, 120, h, 'WRITE', [206, 71, 96])
+    writeButton.setFunc(() => {
+        helpShowingCommand = 'WRITE'
+    })
+    helpLeftButtons.push(writeButton)
+    y += h + 10
+    let readButton = new FunctionalButton(x + 10, y, 120, h, 'READ', [206, 71, 96])
+    readButton.setFunc(() => {
+        helpShowingCommand = 'READ'
+    })
+    helpLeftButtons.push(readButton)
+    x += 130
+    y = 65
+    let absorbButton = new FunctionalButton(x + 10, y, 120, h, 'ABSORB', [39, 125, 161])
+    absorbButton.setFunc(() => {
+        helpShowingCommand = 'ABSORB'
+    })
+    helpLeftButtons.push(absorbButton)
+    y += h + 10
+    let repairButton = new FunctionalButton(x + 10, y, 120, h, 'REPAIR', [99, 132, 117])
+    repairButton.setFunc(() => {
+        helpShowingCommand = 'REPAIR'
+    })
+    helpLeftButtons.push(repairButton)
+    y += h + 10
+    let goToButton = new FunctionalButton(x + 10, y, 120, h, 'GO TO', [67, 170, 139])  
+    goToButton.setFunc(() => {
+        helpShowingCommand = 'GO TO'
+    })
+    helpLeftButtons.push(goToButton)
+
+    let helpBackButton = new FunctionalButton(WIDTH + WIDTH_UI - 90, HEIGHT - 35, 80, h, 'Back', '#447A9C')
+    helpBackButton.setFunc(() => {
+        showingHelp = false
+        selectedButton = null
+    })
+    helpLeftButtons.push(helpBackButton)
 }
 
 async function setup(){
@@ -310,7 +462,7 @@ function draw(){
     fill('#33415c')
     rect(WIDTH, 0, WIDTH_UI, HEIGHT)
 
-    if(!creatingURB){
+    if(!creatingURB && !showingHelp){
         showSelectedRuneBookMenu()
     }
     else{ 
@@ -324,6 +476,7 @@ function draw(){
         showCreatingURBMenu()
     }
     showReplaceRuneMenu()
+    showHelp()
 }
 
 function getEdges() {
@@ -530,7 +683,7 @@ function showSelectedRuneBookMenu(){
     // Instructions board
     translate(-WIDTH, 0)
     selectedRuneBook.drawInstructions()
-
+    helpButton.show()
     createURBButton.show()
     pop()
 }
@@ -599,9 +752,62 @@ function showCreatingURBMenu(){
     // Instructions board
     translate(-WIDTH, 0)
     urb.drawInstructions()
-
+    cancelURBButton.show()
     pop()
 }
+
+function showHelp() {
+    if (!showingHelp) return;
+
+    for(let b of helpLeftButtons){
+        b.show()
+    }
+
+    let x = 10;
+    let y = 35;
+    const padding = 20;
+
+    push();
+    translate(WIDTH, 0);
+
+    // Title
+    textSize(35);
+    textAlign(LEFT);
+    textFont(fonts.get('Medium'));
+    fill(255);
+    text('Help', x, y);
+    y += textAscent() + padding + 120;
+    x += 10;
+
+    helpEntries.forEach(entry => {
+        if(entry.left == helpShowingCommand){
+            textSize(25);
+            let auxX = x;
+
+            fill(getColorByWord(entry.left));
+            text(entry.left, auxX, y);
+            auxX += textWidth(entry.left) + 20;
+
+            fill(getColorByWord(entry.right));
+            text(entry.right, auxX, y);
+            auxX += textWidth(entry.right) + 20;
+
+            fill(getColorByWord(entry.handSide));
+            text(entry.handSide, auxX, y);
+
+            y += textAscent();
+
+            textSize(22);
+            fill(255);
+            text(entry.description, x, y);
+
+            y += textAscent() + padding;
+        }
+    });
+
+    pop();
+}
+
 
 function setMinMax(){
     let minX = Infinity
@@ -636,9 +842,9 @@ function spawnURB(){
     urb.vel = createVector(Math.cos(angle), Math.sin(angle))
     urb.vel.mult(1.5)
     urb.angle = angle + HALF_PI
-    creatingURB = false
     urbs.push(urb)
-    urb = null
+    //creatingURB = false
+    urb = new URB()
 }
 
 function inyectRunes(urb, rb){

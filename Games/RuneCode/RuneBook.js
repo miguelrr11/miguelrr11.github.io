@@ -1,5 +1,3 @@
-//BUG: al crear urbs desde rbs, no se ponen bien los indices de RPOS (estan todos en 0)
-
 const RAD_RUNEBOOK = 80
 const R_OUT = RAD_RUNEBOOK + 50
 const RAD_NUCLEUS = 15
@@ -30,8 +28,8 @@ class RuneBook{
         this.pos = createVector(x, y)
         this.oldPos = this.pos.copy()
 
-        this.shield = MAX_SHIELD       //shield hp
-        this.energy = 100       //energy
+        this.shield = MAX_SHIELD        //shield hp
+        this.energy = 100               //energy
         this.goalShield = this.shield
         this.goalEnergy = this.energy
 
@@ -264,7 +262,7 @@ class RuneBook{
 
         }
         else if(left == 'GO TO'){
-            if(right == 'WEAK'){
+            if(right == 'WEAK' && this.handSide == 'INWARD'){
                 let index = this.getWeakestRune()
                 this.moveHand(index)
             }
@@ -329,7 +327,10 @@ class RuneBook{
     getNewRunesFromMemory(){
         let newRunes = []
         for(let i = 0; i < this.memory.length; i++){
-            newRunes.push(new Rune(this.memory[i][0], this.memory[i][1]))
+            let newRune = new Rune(this.memory[i][0], this.memory[i][1])
+            newRune.startPos = this.memory[i][2]
+            newRune.endPos = this.memory[i][3]
+            newRunes.push(newRune)
         }
         return newRunes
     }
@@ -568,7 +569,7 @@ function copyRunesToMemory(runes, hand, relPosStart, relPosEnd) {
     const result = [];
     for (let i = relPosStart; i <= relPosEnd; i++) {
         const index = (hand + i + len) % len;
-        result.push([runes[index].left, runes[index].right]);
+        result.push([runes[index].left, runes[index].right, runes[index].startPos, runes[index].endPos]);
     }
     return result;
 }
