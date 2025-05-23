@@ -118,6 +118,10 @@ class NewRuneButton extends Button{
         }
         noStroke()
         fill(this.color)
+        if(this.isMouseOver()){
+            stroke(255)
+            strokeWeight(mouseIsPressed ? 3.5 : 2)
+        }
         rect(this.x, this.y, this.w, this.h, 10)
         fill(255)
         noStroke()

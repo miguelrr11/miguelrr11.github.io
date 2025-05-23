@@ -119,11 +119,15 @@ let finalPos = {x:0, y:0}
 
 let minPos, maxPos
 
+let savedURBS = []
 let panelReplaceLeft = []
 let panelReplaceRight = []
 let newRuneButtonActive = false
 let createURBButton 
+let createURBinput
+let loadURBButton
 let cancelURBButton
+let cancelLoadURBButton
 let helpButton
 let helpLeftButtons = []
 let helpShowingCommand = 'ATTACK'
@@ -132,6 +136,9 @@ let urb
 let urbs = []
 let startPostionURB = null
 let stopPostionURB = null
+let saveButton
+let loadingURB = false
+let savedURBbuttons = []
 
 let nParticlesAttack = 350
 let nParticlesFood = 350
@@ -209,7 +216,7 @@ function mouseClicked() {
     }
     
     else{
-        if(selectedRuneBook){
+        if(selectedRuneBook && !loadingURB && !creatingURB && !showingHelp){ 
             for(let b of selectedRuneBook.buttons){
                 if(b.isMouseOver()){
                     selectedButton = b
@@ -299,11 +306,23 @@ function initPanelReplace(){
         urb = new URB(0, 0)
     })
 
+    loadURBButton = new FunctionalButton(x + 10, 70, 120, h, 'Load URB', '#447A9C')
+    loadURBButton.setFunc(() => {
+        loadingURB = true
+        selectedButton = null
+    })
+
     cancelURBButton = new FunctionalButton(x + 45, HEIGHT - 35, 80, h, 'Cancel', '#447A9C')
     cancelURBButton.setFunc(() => {
         creatingURB = false
         selectedButton = null
         urb = null
+    })
+
+    cancelLoadURBButton = new FunctionalButton(x + 45, HEIGHT - 35, 80, h, 'Cancel', '#447A9C')
+    cancelLoadURBButton.setFunc(() => {
+        loadingURB = false
+        selectedButton = null
     })
 
     helpButton = new FunctionalButton(x + 10, 10, 120, h, 'Help', '#447A9C')
@@ -357,6 +376,78 @@ function initPanelReplace(){
         selectedButton = null
     })
     helpLeftButtons.push(helpBackButton)
+
+    createURBinput = new Input(WIDTH + 10, 200, 'Name your URB (optional)', [255, 255, 255], [51, 65, 92])
+    createURBinput.h = BUT_H
+    createURBinput.w = 200
+
+    saveButton = new FunctionalButton(WIDTH + 10 + 200 + 10, 200, 70, BUT_H, 'Save', '#447A9C')
+    saveButton.setFunc(() => {
+        if(urb){
+            let name = createURBinput.getText()
+            if(name == '') name = 'URB'
+            saveURB(urb, name)
+            initLoadURBButtons()
+        }
+    })
+}
+
+function saveURB(urb, name){
+    let data = {
+        name: name,
+        runes: urb.runes.map(r => {
+            return {
+                left: r.left,
+                right: r.right,
+                startPos: r.startPos,
+                endPos: r.endPos,
+            }
+        })
+    }
+    savedURBS.push(data)
+    storeItem('savedURBS', JSON.stringify(savedURBS))
+}
+
+function initLoadData(){
+    let aux = getItem('savedURBS')
+    if(!aux){
+        storeItem('savedURBS', JSON.stringify([]))
+    }
+    else{
+        savedURBS = JSON.parse(aux)
+        initLoadURBButtons()
+    }
+}
+
+function loadURB(urbString){
+    creatingURB = true
+    loadingURB = false
+    urb = new URB(0, 0)
+    urb.runes = []
+    for(let i = 0; i < urbString.runes.length; i++){
+        let r = new Rune(urbString.runes[i].left, urbString.runes[i].right)
+        r.setRelPos(urbString.runes[i].startPos, urbString.runes[i].endPos)
+        urb.runes.push(r)
+    }
+    //if(!urb.hasNoneLast()) urb.runes.push(new Rune(LEFT_RUNES.length - 1, RIGHT_RUNES.length - 1))
+    urb.createButtons()
+    let clippedName = urbString.name.length > 25 ? urbString.name.substring(0, 25) + '...' : urbString.name
+    urb.name = clippedName
+}
+
+function initLoadURBButtons(){
+    let x = WIDTH + 10
+    let y = 70
+    savedURBbuttons = []
+    for(let i = 0; i < savedURBS.length; i++){
+        let clippedName = savedURBS[i].name.length > 20 ? savedURBS[i].name.substring(0, 18) + '...' : savedURBS[i].name
+        let b = new FunctionalButton(x, y, 150, BUT_H, clippedName, '#447A9C')
+        b.setFunc(() => {
+            loadURB(savedURBS[i])
+        })
+        savedURBbuttons.push(b)
+        y += BUT_H + 10
+    }
 }
 
 async function setup(){
@@ -389,6 +480,7 @@ async function setup(){
         foodParticles.push(pF)
     }
     initPanelReplace()
+    initLoadData()
 }
 
 function draw(){
@@ -462,7 +554,7 @@ function draw(){
     fill('#33415c')
     rect(WIDTH, 0, WIDTH_UI, HEIGHT)
 
-    if(!creatingURB && !showingHelp){
+    if(!creatingURB && !showingHelp && !loadingURB){
         showSelectedRuneBookMenu()
     }
     else{ 
@@ -477,6 +569,7 @@ function draw(){
     }
     showReplaceRuneMenu()
     showHelp()
+    showLoadURBMenu()
 }
 
 function getEdges() {
@@ -685,6 +778,7 @@ function showSelectedRuneBookMenu(){
     selectedRuneBook.drawInstructions()
     helpButton.show()
     createURBButton.show()
+    loadURBButton.show()
     pop()
 }
 
@@ -733,26 +827,31 @@ function showCreatingURBMenu(){
     text('Creating URB', x, y)
     let auxX = textWidth('Creating URB') + 20
     textSize(20)
-    text('(Unidentified Rune Book)', x + auxX, y)
+    urb.name ? text('(' + urb.name + ')', x + auxX, y) : text('(Unidentified Rune Book)', x + auxX, y)
     y += textAscent() + padding
 
     textSize(18)
     text('An URB is special type of rune book that has the ability to inyect its own runes into other Rune Books.\n\nOnce you are happy with your design, simply click and drag in the direction you want to spawn it.', x, y, WIDTH_UI - padding*7)
 
-
-
-    y = RUNES_SELECTED_Y
-    // Instructions title
+    y += textAscent() * 8 + padding
     noStroke()
     fill(255)
     textSize(20)
     textFont(fonts.get('Italic'))
+    text('Name', x, y)
+
+    y = RUNES_SELECTED_Y
+    // Instructions title
     text('Runes', x, y)
 
     // Instructions board
     translate(-WIDTH, 0)
     urb.drawInstructions()
     cancelURBButton.show()
+    createURBinput.evaluate()
+    createURBinput.update()
+    createURBinput.show()
+    saveButton.show()
     pop()
 }
 
@@ -778,6 +877,9 @@ function showHelp() {
     text('Help', x, y);
     y += textAscent() + padding + 120;
     x += 10;
+    textSize(25);
+    text('LEFT     -      RIGHT   -    HAND SIDE', x, y);
+    y += textAscent() + padding;
 
     helpEntries.forEach(entry => {
         if(entry.left == helpShowingCommand){
@@ -808,6 +910,37 @@ function showHelp() {
     pop();
 }
 
+function showLoadURBMenu(){
+    if(!loadingURB) return
+    push();
+    translate(WIDTH, 0);
+    let x = 10
+    let y = 35
+    // Title
+    textSize(35);
+    textAlign(LEFT);
+    textFont(fonts.get('Medium'));
+    fill(255);
+    text('Load saved URBs', x, y);
+    pop()
+
+    for(let b of savedURBbuttons){
+        b.show()
+        //draw runes of the URB as small circles
+        let auxX = b.x + b.w + 10
+        let auxY = b.y + b.h/2
+        for(let rune of savedURBS[savedURBbuttons.indexOf(b)].runes){
+            let colLeft = LEFT_RUNES_COLS[rune.left]
+            let colRight = RIGHT_RUNES_COLS[rune.right]
+            fill(colLeft)
+            ellipse(auxX, auxY, 7)
+            fill(colRight)
+            ellipse(auxX + 10, auxY, 7)
+            auxX += 25
+        }
+    }
+    cancelLoadURBButton.show()
+}
 
 function setMinMax(){
     let minX = Infinity

@@ -125,6 +125,15 @@ class RuneBook{
         this.buttons = buttons;
     }
 
+    hasNoneLast(){
+        if(this.runes.length == 0) return false
+        let lastRune = this.runes[this.runes.length - 1]
+        if(lastRune.left == LEFT_RUNES.length - 1 && lastRune.right == RIGHT_RUNES.length - 1){
+            return true
+        }
+        return false
+    }
+
     mouseInBounds(){
         let d = dist(mousePos.x, mousePos.y, this.pos.x, this.pos.y)
         if(d < this.radius){
@@ -583,6 +592,8 @@ class URB extends RuneBook{
 
         this.vel = createVector(0, 0)
         this.angle = 0
+
+        this.name = undefined
     }
 
     update(){
