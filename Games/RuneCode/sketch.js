@@ -831,7 +831,7 @@ function showCreatingURBMenu(){
     y += textAscent() + padding
 
     textSize(18)
-    text('An URB is special type of rune book that has the ability to inyect its own runes into other Rune Books.\n\nOnce you are happy with your design, simply click and drag in the direction you want to spawn it.', x, y, WIDTH_UI - padding*7)
+    text('An URB is special type of rune book that has the ability to inyect its own runes into other Rune Books.\n\nOnce you are happy with your design, simply click and drag in the direction you want to spawn it. You can also save it for later use.', x, y, WIDTH_UI - padding*7)
 
     y += textAscent() * 8 + padding
     noStroke()
