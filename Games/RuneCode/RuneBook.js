@@ -179,11 +179,11 @@ class RuneBook{
             this.fetchHand()
         }
 
-        if(this.goalEnergy <= 0){
+        if(this.goalEnergy <= 0.1){
             this.goalEnergy = 0
             this.die()
         }
-        if(this.shield <= 0){
+        if(this.goalShield <= 0.1){
             this.shield = 0
             this.die()
         }
@@ -219,15 +219,17 @@ class RuneBook{
         this.runeIndex++
         let rune = this.runes[this.runeIndex % this.runes.length]
         let [left, right] = rune.execute()
-        if(left == 'ABSORB' && right == 'MANA'){
-            let food = this.checkForFood()
-            if(food){
-                this.goalEnergy += (100 - this.goalEnergy) * 0.3
-                this.attackShow = {
-                    pos: food.pos.copy(),
-                    timer: 30
+        if(left == 'ABSORB'){
+            if(right == 'MANA'){
+                let food = this.checkForFood()
+                if(food){
+                    this.goalEnergy += (100 - this.goalEnergy) * 0.3
+                    this.attackShow = {
+                        pos: food.pos.copy(),
+                        timer: 30
+                    }
+                    food.die()
                 }
-                food.die()
             }
         }
         else if(left == 'ATTACK'){
@@ -275,7 +277,7 @@ class RuneBook{
                 let index = this.getWeakestRune()
                 this.moveHand(index)
             }
-            else if(right.includes('RPOS')){
+            else if(right == 'RPOS'){
                 let from = rune.from
                 let to = rune.to
                 if(from == to){
@@ -293,7 +295,7 @@ class RuneBook{
         }
         else if(left == 'WRITE'){
             if(this.handSide == 'INWARD'){
-                if(right.includes('RPOS')){
+                if(right == 'RPOS'){
                     let from = rune.from
                     let to = rune.to
                     if(from == to){
@@ -322,10 +324,28 @@ class RuneBook{
         }
         else if(left == 'READ'){
             if(this.handSide == 'INWARD'){
-                if(right.includes('RPOS')){
+                if(right == 'RPOS'){
                     let from = rune.from
                     let to = rune.to
                     this.memory = copyRunesToMemory(this.runes, this.runeIndex, from, to)
+                }
+            }
+        }
+        else if(left == 'LOOP'){
+            if(this.handSide == 'INWARD'){
+                if(right == 'RPOS'){
+                    let from = rune.from  //relative position which the loop starts (only negative values)
+                    let to = rune.to      
+                    if(from < 0){
+                        if(to == 0){
+                            rune.restoreLoop()
+                        }
+                        else{
+                            this.runeIndex = mod(from + this.runeIndex - 1, this.runes.length)
+                            rune.doIter()
+                        }
+                        this.createButtons()   //just to update the text of rel pos (lower n iter)
+                    }
                 }
             }
         }

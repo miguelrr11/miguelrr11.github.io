@@ -66,7 +66,7 @@ const helpEntries = [
     left:  'GO TO',
     right: 'RPOS',
     handSide: 'ANY',
-    description: 'If from == to: moves hand to (hand + from) % runes.length.'
+    description: 'If start == end: moves hand to (head + start) % runes.length.'
   },
   {
     left:  'GO TO',
@@ -84,7 +84,7 @@ const helpEntries = [
     left:  'WRITE',
     right: 'RPOS',
     handSide: 'INWARD',
-    description: 'If from == to: inserts memory runes at the hands position.'
+    description: 'If start == end: inserts memory runes at the heads position.'
   },
   {
     left:  'WRITE',
@@ -96,7 +96,13 @@ const helpEntries = [
     left:  'READ',
     right: 'RPOS',
     handSide: 'INWARD',
-    description: 'Copy runes [(hand + from):(hand + to)] to memory.'
+    description: 'Copy runes [(start + end):(head + end)] to memory.'
+  },
+  {
+    left:  'LOOP',
+    right: 'RPOS',
+    handSide: 'INWARD',
+    description: 'Loops to head + start, end times (start must be negative).'
   }
 ];
 
@@ -258,7 +264,7 @@ function initPanelReplace(){
         let b = new FunctionalButton(x, y, w, h, LEFT_RUNES[i], LEFT_RUNES_COLS[i])
         b.setFunc(() => {
             if(selectedButton){
-                selectedButton.runebook.runes[selectedButton.runeIndex].left = i
+                selectedButton.runebook.runes[selectedButton.runeIndex].setLeft(i)
                 selectedButton.runebook.createButtons()
             }
         })
@@ -271,7 +277,7 @@ function initPanelReplace(){
         if(i == 2) bRpos = b
         b.setFunc(() => {
             if(selectedButton){
-                selectedButton.runebook.runes[selectedButton.runeIndex].right = i
+                selectedButton.runebook.runes[selectedButton.runeIndex].setRight(i)
                 if(i == 2){
                     selectedButton.runebook.runes[selectedButton.runeIndex].setRelPos(rPosGlobal.from, rPosGlobal.to)
                 }
@@ -282,23 +288,23 @@ function initPanelReplace(){
         y += h + 10
     }
     let wHalf = ((w) / 2) - 5
-    bMinusFrom = new FunctionalButton(x, y, wHalf, h, '- from', [30, 30, 30])
-    bPlusFrom = new FunctionalButton(x + wHalf + 10, y, wHalf, h, '+ from', [30, 30, 30])
+    bMinusFrom = new FunctionalButton(x, y, wHalf, h, '- start', [30, 30, 30])
+    bPlusFrom = new FunctionalButton(x + wHalf + 10, y, wHalf, h, '- end', [30, 30, 30])
     bMinusFrom.setFunc(() => {
         rPosGlobal.from--
     })
     bPlusFrom.setFunc(() => {
-        rPosGlobal.from++
+        rPosGlobal.to--
     })
     bMinusFrom.textSize = 17
     bPlusFrom.textSize = 17
 
     y += h + 10
 
-    bMinusTo = new FunctionalButton(x, y, wHalf, h, '- to', [30, 30, 30])
-    bPlusTo = new FunctionalButton(x + wHalf + 10, y, wHalf, h, '+ to', [30, 30, 30])
+    bMinusTo = new FunctionalButton(x, y, wHalf, h, '+ start', [30, 30, 30])
+    bPlusTo = new FunctionalButton(x + wHalf + 10, y, wHalf, h, '+ end', [30, 30, 30])
     bMinusTo.setFunc(() => {
-        rPosGlobal.to--
+        rPosGlobal.from++
     })
     bPlusTo.setFunc(() => {
         rPosGlobal.to++
@@ -381,6 +387,13 @@ function initPanelReplace(){
         helpShowingCommand = 'GO TO'
     })
     helpLeftButtons.push(goToButton)
+    x += 130
+    y = 65
+    let loopButton = new FunctionalButton(x + 10, y, 120, h, 'LOOP', [153, 217, 140])
+    loopButton.setFunc(() => {
+        helpShowingCommand = 'LOOP'
+    })
+    helpLeftButtons.push(loopButton)
 
     let helpBackButton = new FunctionalButton(WIDTH + WIDTH_UI - 90, HEIGHT - 35, 80, h, 'Back', '#447A9C')
     helpBackButton.setFunc(() => {
@@ -1023,7 +1036,6 @@ function spawnURB(){
     urbToBeAdded.vel.mult(1.5)
     urbToBeAdded.angle = angle + HALF_PI
     urbs.push(urbToBeAdded)
-    //urb = urbToBeAdded.dupe()
 }
 
 function inyectRunes(urb, rb){
