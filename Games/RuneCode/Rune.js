@@ -8,15 +8,15 @@ const LEFT_RUNES_COLS = [[248, 150, 30], [206, 71, 96], [206, 71, 96], [39, 125,
 const RIGHT_RUNES_COLS = [[100, 223, 223], [123, 44, 191], [197, 195, 94], [74, 170, 211], [236, 91, 120], [186, 61, 86], [248, 150, 30], [248, 150, 30], [40, 40, 40]]
 
 class Rune{
-    constructor(left, right){
+    constructor(left, right, startPos, endPos){
         this.left = left != undefined ? left : constrain(Math.floor(Math.random() * LEFT_RUNES.length), 0, LEFT_RUNES.length - 2)
         this.right = right != undefined ? right : constrain(Math.floor(Math.random() * RIGHT_RUNES.length), 0, RIGHT_RUNES.length - 2)
 
         this.hp = 100
         this.artificial = false
 
-        this.startPos = 0
-        this.endPos = 0
+        this.startPos = startPos != undefined ? startPos : 0
+        this.endPos = endPos != undefined ? endPos : 0
 
         this.trans = 255
     }

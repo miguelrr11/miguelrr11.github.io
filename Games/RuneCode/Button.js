@@ -66,9 +66,10 @@ class FunctionalButton extends Button{
 
     show(){
         push()
-        if(this.isMouseOver() && mouseIsPressed && !this.isActive){ 
+        if(this.isMouseOver() && mouseIsPressed && !this.isActive && !buttonActivated){ 
             this.isActive = true
             this.execute()
+            buttonActivated = true
         }
         if(!mouseIsPressed){
             this.isActive = false

@@ -596,6 +596,20 @@ class URB extends RuneBook{
         this.name = undefined
     }
 
+    dupe(){
+        let newUrb = new URB(this.pos.x, this.pos.y)
+        newUrb.runes = this.runes.map(rune => new Rune(rune.left, rune.right, rune.startPos, rune.endPos));
+        newUrb.runeIndex = this.runeIndex
+        newUrb.hand = this.hand
+        newUrb.handSide = this.handSide
+        newUrb.handTrans = [...this.handTrans]
+        newUrb.radius = this.radius
+        newUrb.radiusHand = this.radiusHand
+        newUrb.vel = this.vel.copy()
+        newUrb.angle = this.angle
+        return newUrb
+    }
+
     update(){
         this.pos.add(this.vel)
         this.edges()

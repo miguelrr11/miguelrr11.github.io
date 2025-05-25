@@ -253,7 +253,7 @@ class Input {
         else {
             text(
                 this.placeholder,
-                this.pos.x + bordeMIGUI + text_offset_xMIGUI,
+                this.pos.x + bordeMIGUI + text_offset_xMIGUI + 4,
                 this.pos.y + this.h * 0.5
             )
         }
@@ -264,7 +264,7 @@ class Input {
             let x =
                 textWidth(
                     this.sentence.substring(this.firstCursor, this.firstCursor + this.relCursorPos)
-                ) + this.pos.x + 4
+                ) + this.pos.x + 8
             let midY = this.pos.y + this.h * 0.5;
             let dy = Math.sin(frameCount / 25) * (this.h - 6) * 0.5;
             line(x, midY + dy, x, midY - dy);

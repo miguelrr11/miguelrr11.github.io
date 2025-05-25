@@ -119,6 +119,11 @@ let finalPos = {x:0, y:0}
 
 let minPos, maxPos
 
+let statusMessageCreate = {
+    text: '',
+    timer: 0
+}
+let buttonActivated = false
 let savedURBS = []
 let panelReplaceLeft = []
 let panelReplaceRight = []
@@ -139,6 +144,7 @@ let stopPostionURB = null
 let saveButton
 let loadingURB = false
 let savedURBbuttons = []
+let savedURBbuttonsDelete = []
 
 let nParticlesAttack = 350
 let nParticlesFood = 350
@@ -174,6 +180,7 @@ function mouseDragged() {
 function mouseReleased() {
     prevMouseX = undefined
     prevMouseY = undefined
+    buttonActivated = false
     if(creatingURB){
         spawnURB()
     }
@@ -234,6 +241,11 @@ function mouseClicked() {
         }
     }
     
+}
+
+function setStatusMessageCreate(text, time = 60*3){
+    statusMessageCreate.text = text
+    statusMessageCreate.timer = time
 }
 
 function initPanelReplace(){
@@ -385,7 +397,6 @@ function initPanelReplace(){
     saveButton.setFunc(() => {
         if(urb){
             let name = createURBinput.getText()
-            if(name == '') name = 'URB'
             saveURB(urb, name)
             initLoadURBButtons()
         }
@@ -393,6 +404,16 @@ function initPanelReplace(){
 }
 
 function saveURB(urb, name){
+    if(name == ''){
+        setStatusMessageCreate('URB name cannot be empty!')
+        return
+    }
+    for(let i = 0; i < savedURBS.length; i++){
+        if(savedURBS[i].name == name){
+            setStatusMessageCreate('URB with that name already exists!')
+            return
+        }
+    }
     let data = {
         name: name,
         runes: urb.runes.map(r => {
@@ -439,13 +460,21 @@ function initLoadURBButtons(){
     let x = WIDTH + 10
     let y = 70
     savedURBbuttons = []
+    savedURBbuttonsDelete = []
     for(let i = 0; i < savedURBS.length; i++){
         let clippedName = savedURBS[i].name.length > 20 ? savedURBS[i].name.substring(0, 18) + '...' : savedURBS[i].name
-        let b = new FunctionalButton(x, y, 150, BUT_H, clippedName, '#447A9C')
+        let b = new FunctionalButton(x + 35, y, 150, BUT_H, clippedName, '#447A9C')
         b.setFunc(() => {
             loadURB(savedURBS[i])
         })
         savedURBbuttons.push(b)
+        let deleteB = new FunctionalButton(x, y, BUT_H, BUT_H, 'X', getColorByWord('SPELL'))
+        deleteB.setFunc(() => {
+            savedURBS.splice(i, 1)
+            storeItem('savedURBS', JSON.stringify(savedURBS))
+            initLoadURBButtons()
+        })
+        savedURBbuttonsDelete.push(deleteB)
         y += BUT_H + 10
     }
 }
@@ -852,6 +881,18 @@ function showCreatingURBMenu(){
     createURBinput.update()
     createURBinput.show()
     saveButton.show()
+    statusMessageCreate.timer--
+    if(statusMessageCreate.timer > 0){
+        push()
+        if(statusMessageCreate.timer > 60*2) fill(255)
+        else fill(255, mapp(statusMessageCreate.timer, 0, 60*2, 0, 255))
+        textSize(10)
+        textFont(fonts.get('Italic'))
+        textAlign(LEFT, CENTER)
+        text(statusMessageCreate.text, saveButton.x + saveButton.w + 10, saveButton.y + saveButton.h*.5, 
+            100)
+        pop()
+    }
     pop()
 }
 
@@ -939,6 +980,9 @@ function showLoadURBMenu(){
             auxX += 25
         }
     }
+    for(let b of savedURBbuttonsDelete){
+        b.show()
+    }
     cancelLoadURBButton.show()
 }
 
@@ -969,15 +1013,20 @@ function getRandomPosParticle(){
 function spawnURB(){
     if(!urb || !startPostionURB) return
     let pos = getRelativePos(mouseX, mouseY)
-    urb.pos.x = pos.x
-    urb.pos.y = pos.y
+    let urbToBeAdded = urb.dupe()
+    urbToBeAdded.pos = pos.copy()
     let angle = atan2(stopPostionURB.y - startPostionURB.y, stopPostionURB.x - startPostionURB.x)
-    urb.vel = createVector(Math.cos(angle), Math.sin(angle))
-    urb.vel.mult(1.5)
-    urb.angle = angle + HALF_PI
-    urbs.push(urb)
-    //creatingURB = false
-    urb = new URB()
+    urbToBeAdded.runes = urb.runes.map(r => {
+        let newRune = new Rune(r.left, r.right)
+        newRune.setRelPos(r.startPos, r.endPos)
+        return newRune
+    }
+    )
+    urbToBeAdded.vel = createVector(Math.cos(angle), Math.sin(angle))
+    urbToBeAdded.vel.mult(1.5)
+    urbToBeAdded.angle = angle + HALF_PI
+    urbs.push(urbToBeAdded)
+    //urb = urbToBeAdded.dupe()
 }
 
 function inyectRunes(urb, rb){
@@ -985,9 +1034,9 @@ function inyectRunes(urb, rb){
     for(let r of newRunes){
         r.artificial = true
     }
-    let index = mod(rb.hand + 1, rb.runes.length)
+    let index = mod(rb.runeIndex + 1, rb.runes.length)
     rb.runes = insertAtIndex(index, rb.runes, newRunes)
-    rb.runeIndex = indexOf(rb.runes[rb.runeIndex % rb.runes.length], rb.runes)
+    rb.runeIndex = mod(index, rb.runes.length)
     rb.createButtons()
     // delete urb from urbs
     for(let i = 0; i < urbs.length; i++){
