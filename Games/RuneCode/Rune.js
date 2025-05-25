@@ -1,22 +1,22 @@
 // NONE should be the last element in the array
 // RPOS should be the third element in the array (getText function)
 
-const LEFT_RUNES = ['ATTACK', 'WRITE', 'READ', 'ABSORB', 'REPAIR', 'GO TO', 'NONE']
+const LEFT_RUNES = ['ATTACK', 'WRITE', 'READ', 'ABSORB', 'REPAIR', 'GO TO', 'LOOP', 'NONE']
 const RIGHT_RUNES = ['MANA', 'SHARD', 'RPOS 0 to 0', 'SHIELD', 'WEAK', 'SPELL', 'INWARD', 'OUTWARD', 'NONE']
 
-const LEFT_RUNES_COLS = [[248, 150, 30], [206, 71, 96], [206, 71, 96], [39, 125, 161], [99, 132, 117], [67, 170, 139], [40, 40, 40]]
+const LEFT_RUNES_COLS = [[248, 150, 30], [206, 71, 96], [206, 71, 96], [39, 125, 161], [99, 132, 117], [67, 170, 139], [153, 217, 140], [40, 40, 40]]
 const RIGHT_RUNES_COLS = [[100, 223, 223], [123, 44, 191], [197, 195, 94], [74, 170, 211], [236, 91, 120], [186, 61, 86], [248, 150, 30], [248, 150, 30], [40, 40, 40]]
 
 class Rune{
-    constructor(left, right, startPos, endPos){
+    constructor(left, right, from, to){
         this.left = left != undefined ? left : constrain(Math.floor(Math.random() * LEFT_RUNES.length), 0, LEFT_RUNES.length - 2)
         this.right = right != undefined ? right : constrain(Math.floor(Math.random() * RIGHT_RUNES.length), 0, RIGHT_RUNES.length - 2)
 
         this.hp = 100
         this.artificial = false
 
-        this.startPos = startPos != undefined ? startPos : 0
-        this.endPos = endPos != undefined ? endPos : 0
+        this.from = from != undefined ? from : 0
+        this.to = to != undefined ? to : 0
 
         this.trans = 255
     }
@@ -26,7 +26,7 @@ class Rune{
             return LEFT_RUNES[this.left]
         }
         else if(side == 'right'){
-            if(RIGHT_RUNES[this.right].includes('RPOS')) return 'RPOS ' + this.startPos + ' to ' + this.endPos
+            if(RIGHT_RUNES[this.right].includes('RPOS')) return 'RPOS ' + this.from + ' to ' + this.to
             return RIGHT_RUNES[this.right]
         }
     }
@@ -34,14 +34,14 @@ class Rune{
     dupe(){
         let newRune = new Rune(this.left, this.right)
         newRune.artificial = this.artificial
-        newRune.startPos = this.startPos
-        newRune.endPos = this.endPos
+        newRune.from = this.from
+        newRune.to = this.to
         return newRune
     }
 
-    setRelPos(startPos, endPos){
-        this.startPos = startPos
-        this.endPos = endPos
+    setRelPos(from, to){
+        this.from = from
+        this.to = to
     }
 
     repair(){

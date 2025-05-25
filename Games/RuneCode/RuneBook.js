@@ -276,8 +276,8 @@ class RuneBook{
                 this.moveHand(index)
             }
             else if(right.includes('RPOS')){
-                let from = rune.startPos
-                let to = rune.endPos
+                let from = rune.from
+                let to = rune.to
                 if(from == to){
                     this.moveHand((from + this.runeIndex) % this.runes.length)
                 }
@@ -294,8 +294,8 @@ class RuneBook{
         else if(left == 'WRITE'){
             if(this.handSide == 'INWARD'){
                 if(right.includes('RPOS')){
-                    let from = rune.startPos
-                    let to = rune.endPos
+                    let from = rune.from
+                    let to = rune.to
                     if(from == to){
                         //introduce the runes of the memory into this.runes at the position of the hand
                         let newRunes = this.getNewRunesFromMemory()
@@ -306,7 +306,7 @@ class RuneBook{
                     }
                 }
             }
-            else if(this.handSide == 'OUTWARD'){
+            else if(this.handSide == 'OUTWARD' && this.memory.length > 0){
                 let newUrb = new URB(0, 0)
                 newUrb.runes = this.getNewRunesFromMemory()
                 let angle = random(TWO_PI)
@@ -323,8 +323,8 @@ class RuneBook{
         else if(left == 'READ'){
             if(this.handSide == 'INWARD'){
                 if(right.includes('RPOS')){
-                    let from = rune.startPos
-                    let to = rune.endPos
+                    let from = rune.from
+                    let to = rune.to
                     this.memory = copyRunesToMemory(this.runes, this.runeIndex, from, to)
                 }
             }
@@ -336,9 +336,7 @@ class RuneBook{
     getNewRunesFromMemory(){
         let newRunes = []
         for(let i = 0; i < this.memory.length; i++){
-            let newRune = new Rune(this.memory[i][0], this.memory[i][1])
-            newRune.startPos = this.memory[i][2]
-            newRune.endPos = this.memory[i][3]
+            let newRune = new Rune(this.memory[i][0], this.memory[i][1], this.memory[i][2], this.memory[i][3])
             newRunes.push(newRune)
         }
         return newRunes
@@ -578,7 +576,7 @@ function copyRunesToMemory(runes, hand, relPosStart, relPosEnd) {
     const result = [];
     for (let i = relPosStart; i <= relPosEnd; i++) {
         const index = (hand + i + len) % len;
-        result.push([runes[index].left, runes[index].right, runes[index].startPos, runes[index].endPos]);
+        result.push([runes[index].left, runes[index].right, runes[index].from, runes[index].to]);
     }
     return result;
 }
@@ -598,7 +596,7 @@ class URB extends RuneBook{
 
     dupe(){
         let newUrb = new URB(this.pos.x, this.pos.y)
-        newUrb.runes = this.runes.map(rune => new Rune(rune.left, rune.right, rune.startPos, rune.endPos));
+        newUrb.runes = this.runes.map(rune => new Rune(rune.left, rune.right, rune.from, rune.to));
         newUrb.runeIndex = this.runeIndex
         newUrb.hand = this.hand
         newUrb.handSide = this.handSide

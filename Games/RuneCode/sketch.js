@@ -66,7 +66,7 @@ const helpEntries = [
     left:  'GO TO',
     right: 'RPOS',
     handSide: 'ANY',
-    description: 'If from == to: moves hand to (hand + startPos) % runes.length.'
+    description: 'If from == to: moves hand to (hand + from) % runes.length.'
   },
   {
     left:  'GO TO',
@@ -420,8 +420,8 @@ function saveURB(urb, name){
             return {
                 left: r.left,
                 right: r.right,
-                startPos: r.startPos,
-                endPos: r.endPos,
+                from: r.from,
+                to: r.to,
             }
         })
     }
@@ -446,8 +446,7 @@ function loadURB(urbString){
     urb = new URB(0, 0)
     urb.runes = []
     for(let i = 0; i < urbString.runes.length; i++){
-        let r = new Rune(urbString.runes[i].left, urbString.runes[i].right)
-        r.setRelPos(urbString.runes[i].startPos, urbString.runes[i].endPos)
+        let r = new Rune(urbString.runes[i].left, urbString.runes[i].right, urbString.runes[i].from, urbString.runes[i].to)
         urb.runes.push(r)
     }
     //if(!urb.hasNoneLast()) urb.runes.push(new Rune(LEFT_RUNES.length - 1, RIGHT_RUNES.length - 1))
@@ -1017,11 +1016,9 @@ function spawnURB(){
     urbToBeAdded.pos = pos.copy()
     let angle = atan2(stopPostionURB.y - startPostionURB.y, stopPostionURB.x - startPostionURB.x)
     urbToBeAdded.runes = urb.runes.map(r => {
-        let newRune = new Rune(r.left, r.right)
-        newRune.setRelPos(r.startPos, r.endPos)
+        let newRune = new Rune(r.left, r.right, r.from, r.to)
         return newRune
-    }
-    )
+    })
     urbToBeAdded.vel = createVector(Math.cos(angle), Math.sin(angle))
     urbToBeAdded.vel.mult(1.5)
     urbToBeAdded.angle = angle + HALF_PI
