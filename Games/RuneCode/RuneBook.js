@@ -4,6 +4,7 @@ const RAD_NUCLEUS = 15
 const BUT_W = 110
 const BUT_H = 25
 const MAX_SHIELD = 100
+const MANA_COST = 1.5
 
 const SQ_BOTH_RADII = (RAD_RUNEBOOK + R_PART) * (RAD_RUNEBOOK + R_PART)
 const SQ_URB_RB_RADII = (RAD_RUNEBOOK + RAD_NUCLEUS) * (RAD_RUNEBOOK + RAD_NUCLEUS)
@@ -19,10 +20,15 @@ let startingRunes = [
     [3, 0]
 ]
 
+// let startingRunes = [
+//     [5, 7]
+// ]
+
 class RuneBook{
     constructor(x, y){
         this.runes = Array.from({ length: startingRunes.length }, (_, i) => new Rune(startingRunes[i][0], startingRunes[i][1]));
         //this.runes = Array.from({ length: Math.floor(Math.random() * 34 + 1) }, () => new Rune());
+        //this.runes = Array.from({ length: Math.floor(Math.random() * 34 + 1) }, (_, i) => new Rune(Math.random() > 0.5 ? 5 : 6, 2, -Math.floor(Math.random() * 15) - 1, Math.floor(Math.random() * 15) - 1));
         this.runeIndex = Math.floor(Math.random() * this.runes.length)
         this.runeIndexViz = this.runeIndex   //future
         this.pos = createVector(x, y)
@@ -57,6 +63,10 @@ class RuneBook{
 
         this.buttonHeight = BUT_H
         this.createButtons()
+    }
+
+    setRunesWidth(){
+        this.runeRadius = Math.max(3, mapp(this.runes.length, 1, 15, 15, 10, true));
     }
 
     createButtons() {
@@ -304,6 +314,7 @@ class RuneBook{
                         let index = mod(from + this.runeIndex + 1, this.runes.length)
                         this.runes = insertAtIndex(index, this.runes, newRunes)
                         this.runeIndex = indexOf(rune, this.runes)
+                        this.setRunesWidth()
                         this.createButtons()
                     }
                 }
@@ -349,7 +360,7 @@ class RuneBook{
                 }
             }
         }
-        this.goalEnergy--
+        this.goalEnergy -= MANA_COST
         this.trans = 0
     }
 
@@ -540,6 +551,11 @@ class RuneBook{
 
     drawInstructions(){
         if(this.runes.length == 0) return
+        if(this.constructor.name == 'URB'){
+            this.showLoops()
+            for(let b of this.buttons) b.show()
+            return
+        }
         push()
         
         fill(255, 0, 0, this.trans)
@@ -570,8 +586,115 @@ class RuneBook{
             }
         }
         pop()
+        this.showLoops()
         for(let b of this.buttons) b.show()
+        
     }
+
+    showLoops() {
+        const loops = [];
+        const n = this.runes.length;
+        for(let i = 0; i < n; i++) {
+            const r = this.runes[i];
+            if(LEFT_RUNES[r.left] === 'LOOP' && RIGHT_RUNES[r.right] === 'RPOS' && r.from < 0) {
+                const idx = mod(r.from + i, n);
+                const y1 = this.buttons[mod(i, n) * 2].y + this.buttonHeight * 0.5;
+                const y2 = this.buttons[mod(idx, n) * 2].y + this.buttonHeight * 0.5;
+                loops.push({
+                    from: y1,
+                    to: y2,
+                    color: RIGHT_RUNES_COLS[this.runes[idx].right]
+                });
+            }
+        }
+        if(!loops.length) return;
+        const btn = this.buttons[1];
+        const edgeX = btn.x + btn.w;
+        const baseX = edgeX + 10;
+        // first: draw and remove any zero-length loops
+        const normalLoops = [];
+        loops.forEach(l => {
+            if(l.from === l.to) {
+                // just a short horizontal, one “spacing” out and back
+                const spacing = 25;
+                strokeWeight(3.5);
+                stroke(arrayColorToP2color(getColorByWord('RPOS')));
+                line(edgeX, l.from, edgeX + spacing, l.from);
+                stroke(l.color);
+                line(edgeX + spacing, l.from, edgeX, l.from);
+            }
+            else {
+                normalLoops.push(l);
+            }
+        });
+        if(!normalLoops.length) return;
+        // assign each normal loop a “column” to avoid overlap
+        const ends = [];
+        normalLoops.forEach(l => {
+            const start = Math.min(l.from, l.to),
+                end = Math.max(l.from, l.to);
+            const ci = ends.findIndex(e => e <= start);
+            if(ci < 0) {
+                ends.push(end);
+                l.column = ends.length - 1;
+            }
+            else {
+                ends[ci] = end;
+                l.column = ci;
+            }
+        });
+        const spacing = 25 / ends.length;
+        const radius = Math.min(10, this.runeRadius);
+        const diameter = radius * 2;
+        push();
+        noFill();
+        strokeWeight(3.5);
+        const rposCol = arrayColorToP2color(getColorByWord('RPOS'));
+        normalLoops.forEach(({
+            from,
+            to,
+            color,
+            column
+        }) => {
+            const x = baseX + column * spacing;
+            const centerX = x - radius;
+            // trim the vertical line ends
+            const f = from > to ? from - radius : from + radius;
+            const t = from > to ? to + radius : to - radius;
+            // vertical “loop” line
+            stroke(color);
+            gradientLine(x, f, x, t, [rposCol, arrayColorToP2color(color)]);
+            // quarter-arcs
+            stroke(rposCol);
+            if(from > to) {
+                arc(centerX, from - radius, diameter, diameter, 0, HALF_PI);
+            }
+            else {
+                arc(centerX, from + radius, diameter, diameter, -HALF_PI, 0);
+            }
+            stroke(color);
+            if(from > to) {
+                arc(centerX, to + radius, diameter, diameter, -HALF_PI, 0);
+            }
+            else {
+                arc(centerX, to - radius, diameter, diameter, 0, HALF_PI);
+            }
+            // horizontals back to the button
+            stroke(rposCol);
+            line(centerX, from, edgeX, from);
+            stroke(color);
+            line(centerX, to, edgeX, to);
+        });
+        pop();
+    }
+
+}
+
+function arrayColorToP2color(arr) {
+    if(arr[3] != undefined) return color(arr[0], arr[1], arr[2], arr[3]);
+    if(arr[2] != undefined) return color(arr[0], arr[1], arr[2]);
+    if(arr[1] != undefined) return color(arr[0], arr[1]);
+    return color(arr[0]);
 }
 
 function insertAtIndex(startIndex, original, auxiliary) {

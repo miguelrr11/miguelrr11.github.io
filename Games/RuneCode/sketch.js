@@ -5,13 +5,20 @@
 p5.disableFriendlyErrors = true
 const WIDTH = 800
 const HEIGHT = 750
-const WIDTH_UI = 430
+const WIDTH_UI = 450
 const RUNES_SELECTED_Y = 265
 
 let runeBooks = []
 let runeGroups = [6, 3]
 let baseRadius = 150
 let padding = 420
+
+let multRG = runeGroups.reduce((a, b) => a * b, 1)
+
+let nParticlesAttack = multRG * 20
+let nParticlesFood = multRG * 20
+let attackParticles = []
+let foodParticles = []
 
 const helpEntries = [
   {
@@ -152,10 +159,7 @@ let loadingURB = false
 let savedURBbuttons = []
 let savedURBbuttonsDelete = []
 
-let nParticlesAttack = 350
-let nParticlesFood = 350
-let attackParticles = []
-let foodParticles = []
+
 
 let rPosGlobal = {from: 0, to: 0}
 
@@ -255,7 +259,7 @@ function setStatusMessageCreate(text, time = 60*3){
 }
 
 function initPanelReplace(){
-    let x = WIDTH + 290
+    let x = WIDTH + 310
     let y = RUNES_SELECTED_Y + 10
     let w = BUT_W
     let h = BUT_H
@@ -292,9 +296,11 @@ function initPanelReplace(){
     bPlusFrom = new FunctionalButton(x + wHalf + 10, y, wHalf, h, '- end', [30, 30, 30])
     bMinusFrom.setFunc(() => {
         rPosGlobal.from--
+        setLocalPos(rPosGlobal.from, rPosGlobal.to)
     })
     bPlusFrom.setFunc(() => {
         rPosGlobal.to--
+        setLocalPos(rPosGlobal.from, rPosGlobal.to)
     })
     bMinusFrom.textSize = 17
     bPlusFrom.textSize = 17
@@ -305,9 +311,11 @@ function initPanelReplace(){
     bPlusTo = new FunctionalButton(x + wHalf + 10, y, wHalf, h, '+ end', [30, 30, 30])
     bMinusTo.setFunc(() => {
         rPosGlobal.from++
+        setLocalPos(rPosGlobal.from, rPosGlobal.to)
     })
     bPlusTo.setFunc(() => {
         rPosGlobal.to++
+        setLocalPos(rPosGlobal.from, rPosGlobal.to)
     })
     bMinusTo.textSize = 17
     bPlusTo.textSize = 17
@@ -442,6 +450,21 @@ function saveURB(urb, name){
     storeItem('savedURBS', JSON.stringify(savedURBS))
 }
 
+function setLocalPos(from, to){
+    if(selectedButton && !creatingURB){
+        if(RIGHT_RUNES[selectedRuneBook.runes[selectedButton.runeIndex].right] == 'RPOS'){
+            selectedButton.runebook.runes[selectedButton.runeIndex].setRelPos(from, to)
+            selectedButton.runebook.createButtons()
+        }
+    }
+    if(creatingURB){
+        if(RIGHT_RUNES[urb.runes[selectedButton.runeIndex].right] == 'RPOS'){
+            urb.runes[selectedButton.runeIndex].setRelPos(from, to)
+            urb.createButtons()
+        }
+    }
+}
+
 function initLoadData(){
     let aux = getItem('savedURBS')
     if(!aux){
@@ -492,7 +515,10 @@ function initLoadURBButtons(){
 }
 
 async function setup(){
-    createCanvas(WIDTH+WIDTH_UI, HEIGHT)
+    let canvas = createCanvas(WIDTH+WIDTH_UI, HEIGHT)
+    let x = (windowWidth - width) / 2;
+    let y = (windowHeight - height) / 2;
+    canvas.position(x, y);
 
     let f1 = await loadFont('fonts/Cool_HV_Comp.otf')
     let f2 = await loadFont('fonts/Cool_IT.otf')
@@ -828,7 +854,7 @@ function showReplaceRuneMenu(){
     push()
     translate(WIDTH, 0)
     let y = RUNES_SELECTED_Y
-    let x = 290
+    let x = panelReplaceLeft[0].x
     textAlign(LEFT)
     fill(255)
     noStroke()
@@ -1045,7 +1071,8 @@ function inyectRunes(urb, rb){
     }
     let index = mod(rb.runeIndex + 1, rb.runes.length)
     rb.runes = insertAtIndex(index, rb.runes, newRunes)
-    rb.runeIndex = mod(index, rb.runes.length)
+    rb.runeIndex = mod(index - 1, rb.runes.length)
+    rb.setRunesWidth()
     rb.createButtons()
     // delete urb from urbs
     for(let i = 0; i < urbs.length; i++){
