@@ -398,9 +398,9 @@ class Panel{
 		return numberPicker
 	}
 
-	createPlot(title = ''){
+	createPlot(title = 'Plot', nSeries = 1){
 		let plot = new Plot(this.lastElementPos.x, 
-							this.lastElementPos.y, title,
+							this.lastElementPos.y, title, nSeries,
 							this.lightCol, this.darkCol)
 		plot.title = title
 		this.plots.push(plot)
@@ -481,7 +481,7 @@ class Panel{
 		for(let b of this.colorPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol; b.saturation = this.transCol}
 		for(let b of this.numberPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
 		for(let b of this.optionPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
-		for(let b of this.plots)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
+		for(let b of this.plots)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol; b.transCol2 = [...this.lightCol, 30];}
 	}
 
 	setTheme(theme){
@@ -807,4 +807,21 @@ function getClippedTextByPixelsMIGUI(text, length, tSize = text_SizeMIGUI){
 		i++
 	}
 	return clippedText
+}
+
+function randomizeColorMIGUI(col, amt) {
+    if (col[0] != undefined) return col.map(c => c + randomm(-amt, amt));
+    else if (col._color.coords.length == 4)
+        return color(col._color.coords[0] + randomm(-amt, amt), col._color.coords[1] + randomm(-amt, amt), col._color.coords[2] + randomm(-amt, amt), col._color.coords[3]);
+    else if (col._color.coords.length == 3)
+        return color(col._color.coords[0] + randomm(-amt, amt), col._color.coords[1] + randomm(-amt, amt), col._color.coords[2] + randomm(-amt, amt));
+    else if (col._color.coords.length == 1)
+        return color(col._color.coords[0] + randomm(-amt, amt));
+    else if (col._color.coords.length == 2)
+        return color(col._color.coords[0] + randomm(-amt, amt), col._color.coords[1] + randomm(-amt, amt));
+    return col._color.coords.map(c => c + randomm(-amt, amt));
+}
+
+function randomm(start, stop) {
+    return Math.random() * (stop - start) + start;
 }

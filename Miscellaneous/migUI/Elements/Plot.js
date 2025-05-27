@@ -1,7 +1,7 @@
 
 
 class Plot {
-    constructor(x, y, title, lightCol, darkCol) {
+    constructor(x, y, title, nSeries, lightCol, darkCol) {
         this.title = title;
         this.lightCol = lightCol;
         this.darkCol = darkCol;
@@ -25,9 +25,17 @@ class Plot {
         this.yEnd = this.plotPos.y + this.plotMargin;
         this.midY = (this.yStart + this.yEnd) * 0.5;
 
-        this.data = [];
-        this.history = [];
-        this.limitData = 3000;
+        this.series = new Array(nSeries).fill().map((_, i) => ({
+            data: [],
+            history: [],
+            maxData: 0,
+            minData: 0,
+            maxDataH: 0,
+            minDataH: 0,
+            col: i == 0 ? lightCol : randomizeColorMIGUI(lightCol, 70)
+        }));
+
+        this.limitData = 100;
         this.limitHistory = 15000;
         this.whenSkip = 300
 
@@ -43,10 +51,18 @@ class Plot {
         document.addEventListener('wheel', (e) => {
             if (this.hovering()) {
                 this.limitData = constrain(this.limitData * (e.deltaY < 0 ? 1.1 : 0.9), 10, 10000);
-                this.data = this.history.slice(-this.limitData);
+                for(let series of this.series) {
+                    series.data = series.history.slice(-this.limitData);
+                }
             }
             e.preventDefault();
         }, { passive: false });
+    }
+
+    setColors(colors){
+        for(let i = 0; i < this.series.length; i++){
+            this.series[i].col = colors[i] || this.series[i].col;
+        }
     }
 
     setFunc(func) {
@@ -72,18 +88,41 @@ class Plot {
         this.midY = (this.yStart + this.yEnd) * 0.5;
     }
 
-    feed(n) {
+    addSeries(){
+        let nZeros = this.series[0].data.length;
+        this.series.push({
+            data: Array(nZeros).fill(undefined),
+            history: Array(nZeros).fill(undefined),
+            maxData: 0,
+            minData: 0,
+            maxDataH: 0,
+            minDataH: 0,
+            col: [this.lightCol[0] + Math.random() * 70, 
+                  this.lightCol[1] + Math.random() * 70, 
+                  this.lightCol[2] + Math.random() * 70]
+        });
+    }
+
+    feed(n, idx = 0) {
         if (n == null || isNaN(n)) return;
-        this.data.push(n);
-        this.history.push(n);
 
-        if (this.data.length > this.limitData) this.data.shift();
-        if (this.history.length > this.limitHistory) this.history.shift();
+        let series = this.series[idx];
+        if (!series) return
 
-        this.maxData = Math.max(...this.data);
-        this.minData = Math.min(...this.data);
-        this.maxDataH = Math.max(...this.history);
-        this.minDataH = Math.min(...this.history);
+        series.data.push(n);
+        series.history.push(n);
+
+        if (series.data.length > this.limitData) series.data.shift();
+        if (series.history.length > this.limitHistory) series.history.shift();
+
+        const { min: minData, max: maxData } = computeMinMax(series.data);
+        series.minData = minData;
+        series.maxData = maxData;
+
+        const { min: minDataH, max: maxDataH } = computeMinMax(series.history);
+        series.minDataH = minDataH;
+        series.maxDataH = maxDataH;
+
     }
 
     getSimpleInt(n) {
@@ -97,8 +136,8 @@ class Plot {
         return (n / 1e9).toFixed(2) + "B";
     }
 
-    drawCurve(values, minVal, maxVal) {
-        stroke(this.lightCol);
+    drawCurve(values, minVal, maxVal, col) {
+        stroke(col);
         noFill();
     
         const len = values.length;
@@ -109,23 +148,17 @@ class Plot {
     
         beginShape();
         for (let i = 0; i < len; i += skip) {
-            let x = mappMIGUI(i, 0, len - 1, this.xStart, this.xEnd);
-    
-            let avg = 0;
-            if (constantLine) {
-                avg = 0; // irrelevant
-            } else {
-                let count = 0;
-                for (let j = i; j < i + skip && j < len; j++) {
-                    avg += values[j];
-                    count++;
-                }
-                avg /= count;
+            if(values[i] == undefined) {
+                endShape();
+                beginShape();
+                continue;
             }
+
+            let x = map(i, 0, len - 1, this.xStart, this.xEnd);
     
             let y = constantLine
                 ? this.midY
-                : mappMIGUI(avg, minVal, maxVal, this.yStart, this.yEnd);
+                : map(values[i], minVal, maxVal, this.yStart, this.yEnd);
     
             vertex(x, y);
         }
@@ -134,11 +167,21 @@ class Plot {
     
 
     showPlot() {
-        this.drawCurve(this.data, this.minData, this.maxData);
+        this.maxData = Math.max(...this.series.map(s => s.maxData));
+        this.minData = Math.min(...this.series.map(s => s.minData));
+        for(let i = 0; i < this.series.length; i++) {
+            let data = this.series[i].data;
+            this.drawCurve(data, this.minData, this.maxData, this.series[i].col);
+        }
     }
 
     showHistory() {
-        this.drawCurve(this.history, this.minDataH, this.maxDataH);
+        this.minDataH = Math.min(...this.series.map(s => s.minDataH));
+        this.maxDataH = Math.max(...this.series.map(s => s.maxDataH));
+        for(let i = 0; i < this.series.length; i++) {
+            let data = this.series[i].history;
+            this.drawCurve(data, this.minDataH, this.maxDataH, this.series[i].col);
+        }
     }
 
     hovering() {
@@ -148,13 +191,13 @@ class Plot {
 
     showLabels() {
         if (!this.hovering()) return;
-
+        let data = this.series[0].data;
         push();
         rectMode(CENTER);
         const showHist = mouseIsPressed || this.permanentPressed;
         const max = this.getSimpleInt(showHist ? this.maxDataH : this.maxData);
         const min = this.getSimpleInt(showHist ? this.minDataH : this.minData);
-        const curVal = this.data[this.data.length - 1];
+        const curVal = data[data.length - 1];
         const cur = this.getSimpleInt(curVal);
 
         const textSizeUsed = text_SizeMIGUI - 3;
@@ -186,9 +229,28 @@ class Plot {
         pop();
     }
 
+    feedZeroes() {
+        //get the SERIES with the larget history, not the length, the array
+        let maxHistory = this.series.reduce((max, series) => {
+            return series.history.length > max.history.length ? series : max;
+        }
+        , this.series[0]);
+        for(let i = 0; i < this.series.length; i++){
+            let series = this.series[i];
+            let len = series.history.length
+            let rem = maxHistory.history.length - len;
+            if (rem > 0) {
+                for (let j = 0; j < rem; j++) {
+                    series.history.push(undefined);
+                }
+            }
+            series.data = series.history.slice(-series.data.length);
+        }
+    }
+
     show() {
         if (this.func) this.feed(this.func());
-
+        this.feedZeroes()
         push();
         strokeWeight(bordeMIGUI);
 
@@ -216,6 +278,15 @@ class Plot {
         }
         pop();
 
+        
         this.showLabels();
     }
+}
+
+function computeMinMax(array) {
+    const filtered = array.filter(v => v !== undefined);
+    return {
+        min: filtered.length ? Math.min(...filtered) : undefined,
+        max: filtered.length ? Math.max(...filtered) : undefined
+    };
 }

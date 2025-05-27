@@ -104,6 +104,7 @@ class TabManager{
         if(this.activeTab){
             this.activeTab.show()
         }
+        this.panel.changeColors(this.activeTab.panel.darkCol, this.activeTab.panel.lightCol)
         this.panel.show()
         this.showLinesTabs()
     }

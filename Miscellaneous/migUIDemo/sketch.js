@@ -23,18 +23,12 @@ let tabs
 
 let fontPanel
 
-function preload(){
-    fontPanel = loadFont("../migUI/main/bnr.ttf")
-}
+let feed1, feed2
 
 
-
-// function keyPressed(){
-//     showingPanel = (showingPanel + 1) % 2
-// }
-
-function setup(){
+async function setup(){
     createCanvas(WIDTH+widthPanel, HEIGHT)
+    fontPanel = await loadFont("../migUI/main/bnr.ttf")
 
     tabs = new TabManager({
         retractable: false,
@@ -90,9 +84,8 @@ function setup(){
     np1 = panel.createNumberPicker("Add circles", 0, 22, 1, 1)
     np1.setFunc(npMinus, true)
 
-    opp = panel.createOptionPicker("Plot input", ['sin', 'random', 'noise'])
 
-    plot = panel.createPlot("Sin")
+    plot = panel.createPlot("Plot", 4)
     plot.setFunc(plotInput)
 
     panel2 = tabs.createTab('TAB 2')
@@ -119,6 +112,14 @@ function setup(){
     tabs.createTab('EVEN MORE TABS')
     tabs.createTab('ONE MORE')
 
+    feed1 = panel.createCheckbox("feed sin", true)
+    feed2 = panel.createCheckbox("feed cos", false)
+    feed3 = panel.createCheckbox("feed noi", false)
+    feed4 = panel.createCheckbox("feed ran", false)
+
+    plot.setColors([
+        255, 180, 120, 70 
+    ])
     
 }
 
@@ -177,6 +178,11 @@ function draw(){
     // panel.update()
     // panel.show()
 
+    if(feed1.isChecked()) plot.feed(Math.sin(frameCount * 0.01) * 100)
+    if(feed2.isChecked()) plot.feed(Math.cos(frameCount * 0.01) * 50, 1)
+    if(feed3.isChecked()) plot.feed(noise(frameCount * 0.01) * 100, 2)
+    if(feed4.isChecked()) plot.feed(random() * 100, 3)
+
     tabs.update()
     tabs.show()
 
@@ -195,10 +201,11 @@ function draw(){
 }
 
 function plotInput(){
+    return
     switch(opp.getSelected()){
         case 'sin':
             plot.title = "Sin"
-            n = sin(frameCount * 0.05) * 100
+            n = sin(frameCount * 0.01) * 100
             break
         case 'random':
             plot.title = "Random"

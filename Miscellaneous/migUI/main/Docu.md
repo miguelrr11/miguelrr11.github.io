@@ -139,11 +139,14 @@ Similar to the Number Picker, this allows to select text options.
 
 ### Plot
 A simple plot that displays the inputed values
-- **`panel.createPlot([title])`**: Creates a plot.
-  - `title` (`string`, optional): Label for the plot.
+- **`panel.createPlot([title], [nSeries])`**: Creates a plot.
+  - `title` (`string`, optional): Label for the plot, defaults to "Plot".
+  - `nSeries` (`number`, optional): Number of series in the plot, defaults to 1.
   - **Returns**: `Plot` instance.
 
-- **`plot.feed(value)`**: Adds a value to the plot.
+- **`plot.feed(value, [idx])`**: Adds a value to the series of index idx, defaults to 0.
+- **`plot.addSeries()`**: Adds a new series to the plot.
+- **`plot.setColors(colors)`**: Sets the colors of all series in the plot. `colors` should be an array of hex strings, RGB arrays or p5 color objects.
 
 ### Separator
 Creates a visual separator between elements.
@@ -171,7 +174,7 @@ Creates a visual separator between elements.
 | `Option Picker`        | On value change          | The selected option      |
 | `Color Picker`         | On value change           | The color selected as an array      |
 | `Sentence`             | Every frame the text of the element will be changed to whatever the function returns         |-      |
-| `Plot`                 | Every frame the returned value of the function will be fed to the plot         |-      |
+| `Plot`                 | Every frame the returned value of the function will be fed to the first series of the plot         |-      |
 
 
 
