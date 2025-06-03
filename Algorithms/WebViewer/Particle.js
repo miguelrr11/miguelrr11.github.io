@@ -8,7 +8,7 @@ const FRICTION = 0.94
 const INTERVAL_CLOSEST = 2
 
 class Particle{
-	constructor(x, y, pinned, id, str = '', parent, ctx = undefined){
+        constructor(x, y, pinned, id, str = '', parent, ctx = undefined){
 		this.pos = createVector(x, y)
 		this.prevPos = createVector(x, y)
 		this.acc = createVector(0, 0)
@@ -29,10 +29,12 @@ class Particle{
 		this.constraint = undefined
 		this.relations = []
 		this.children = []
-		this.closest = []
-		this.out = false
-		this.image = undefined
-	}
+                this.closest = []
+                this.out = false
+                this.image = undefined
+                this._cachedTextStrokeCol = dupeColor(curCol.partTextStroke)
+                this._cachedTextStrokeBase = curCol.partTextStroke
+        }
 
 	setImage(){
 		this.isImage = true
@@ -44,9 +46,16 @@ class Particle{
 		this.acc = createVector(0, 0)
 	}
 
-	applyForce(force){
-		if(!this.isPinned) this.acc.add(force)
-	}
+        applyForce(force){
+                if(!this.isPinned) this.acc.add(force)
+        }
+
+        updateCachedColors(){
+                if(this._cachedTextStrokeBase !== curCol.partTextStroke){
+                        this._cachedTextStrokeCol = dupeColor(curCol.partTextStroke)
+                        this._cachedTextStrokeBase = curCol.partTextStroke
+                }
+        }
 
 	getRelativePos(x, y){
 		let worldX = (x - xOff) / zoom;
@@ -192,12 +201,12 @@ class Particle{
 			fill(curCol.partFillRectText, transRect)
 			noStroke()
 			rect(this.pos.x, this.pos.y + yOff, w + offsetsText[0], h + offsetsText[0], offsetsText[1])
-			let col = dupeColor(curCol.partTextStroke)
-			col.setAlpha(transText)
-			fill(col)
-			text(str, this.pos.x, this.pos.y + yOff)
-		}
-	}
+                        this.updateCachedColors()
+                        this._cachedTextStrokeCol.setAlpha(transText)
+                        fill(this._cachedTextStrokeCol)
+                        text(str, this.pos.x, this.pos.y + yOff)
+                }
+        }
 
 	showCircleHovered(){
 		// fill(this.color)
