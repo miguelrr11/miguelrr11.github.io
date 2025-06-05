@@ -35,16 +35,6 @@ function getFinalPosAux(direction, start, minDistance, radius, randomSep) {
 
 function centerGraph() {
     let [minXp, maxXp, minYp, maxYp] = getMinMaxPos()
-    let [minXe, maxXe, minYe, maxYe] = getEdges()
-    //sets the zoom to fit the graph in the screen
-    let widthP = maxXp - minXp
-    let heightP = maxYp - minYp
-    let widthE = maxXe - minXe
-    let heightE = maxYe - minYe
-    let zoomX = widthE / widthP
-    let zoomY = heightE / heightP
-    //zoom = min(zoomX, zoomY)
-    //sets the offset to center the graph
     let centerX = (maxXp + minXp) / 2
     let centerY = (maxYp + minYp) / 2
     let xOffAux = (WIDTH / 2) - centerX * zoom
@@ -141,17 +131,43 @@ function getEdges() {
 
 function changeColorMode() {
     if(curColMode == 'light') {
-        curCol = darkModeColors
         curColMode = 'dark'
         input.setColors([255, 255, 255], [0, 0, 0])
         btnColorMode.str = 'Light Mode'
         btnColorMode.bool = false
     }
     else {
-        curCol = lightModeColors
         curColMode = 'light'
         input.setColors([0, 0, 0], [255, 255, 255])
         btnColorMode.str = 'Dark Mode'
         btnColorMode.bool = true
     }
+}
+
+function lerpColorMap(fromMap, toMap, amt) {
+    let result = {};
+
+    for (let key in fromMap) {
+        const a = fromMap[key];
+        const b = toMap[key];
+
+        if (typeof a === 'number' && typeof b === 'number') {
+            result[key] = lerp(a, b, amt);
+        }
+
+        else if (a instanceof p5.Color && b instanceof p5.Color) {
+            result[key] = lerpColor(a, b, amt);
+        }
+
+        else if (Array.isArray(a) && Array.isArray(b)) {
+            result[key] = a.map((val, i) => lerp(val, b[i], amt));
+        }
+
+        else {
+            result[key] = a;
+            console.warn(`lerpColorMap: Unsupported type for key "${key}", using fromMap value`);
+        }
+    }
+
+    return result;
 }

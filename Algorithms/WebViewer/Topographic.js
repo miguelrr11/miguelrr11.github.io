@@ -23,7 +23,7 @@ in draw():
 modify these to change the look:
     resolution         = 8;          // subdivisions per cell (higher = smoother)
     noiseZoom          = 300;        // noise sampling scale (higher = bigger features)
-    noiseMovementSpeed = 0.00007;   // how fast the noise field animates (higher = faster)
+    noiseMovementSpeed = 0.00007;    // how fast the noise field animates (higher = faster)
     steps              = 15;         // number of contour lines
 */
 

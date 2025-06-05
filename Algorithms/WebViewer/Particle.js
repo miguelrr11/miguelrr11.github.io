@@ -29,11 +29,11 @@ class Particle{
 		this.constraint = undefined
 		this.relations = []
 		this.children = []
-                this.closest = []
-                this.out = false
-                this.image = undefined
-                this._cachedTextStrokeCol = dupeColor(curCol.partTextStroke)
-                this._cachedTextStrokeBase = curCol.partTextStroke
+		this.closest = []
+		this.out = false
+		this.image = undefined
+		this._cachedTextStrokeCol = dupeColor(curCol.partTextStroke)
+		this._cachedTextStrokeBase = curCol.partTextStroke
         }
 
 	setImage(){

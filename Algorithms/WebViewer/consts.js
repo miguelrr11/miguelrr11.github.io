@@ -43,6 +43,7 @@ let darkModeColors
 let lightModeColors
 let curCol
 let curColMode
+let curColLerp
 
 const absoluteSeparationDistance = 70
 

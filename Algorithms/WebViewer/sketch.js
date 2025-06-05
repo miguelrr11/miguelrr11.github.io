@@ -44,9 +44,9 @@ function setup() {
     ]
 
     darkModeColors = {
-        background: (25),
+        background: 25,
         topographic: 50,
-        btnStrokeStart: (50),
+        btnStrokeStart: (90),
         btnStrokeStop: (200),
         btnFill: 255,
         btnTextMax: 200,
@@ -58,7 +58,7 @@ function setup() {
     }
 
     lightModeColors = {
-        background: (230),
+        background: 230,
         topographic: 211,
         btnStrokeStart: (200),
         btnStrokeStop: (120),
@@ -73,7 +73,7 @@ function setup() {
 
     curCol = darkModeColors
     curColMode = 'dark'
-    //curCol = darkModeColors
+    curColLerp = 0
 
     textFont(font)
 
@@ -109,11 +109,25 @@ function setup() {
     initTopo()
 }
 
+function updateColorState() {
+    let target = curColMode === 'dark' ? 0 : 1;
+    if (abs(curColLerp - target) > 0.01) {
+        curColLerp = lerp(curColLerp, target, 0.3);
+        curCol = lerpColorMap(darkModeColors, lightModeColors, curColLerp);
+    } 
+    else {
+        curColLerp = target;
+        curCol = (target === 0) ? darkModeColors : lightModeColors;
+    }
+}
+
+
 function draw() {
     background(curCol.background)
     REM_FRAMECOUNT_CLOSEST = frameCount % INTERVAL_CLOSEST
-
     //if(particles.length > MAX_PARTICLE_COUNT && removeAnimations.length == 0) removeCluster()
+
+    updateColorState()
 
     if(btnCenter.bool) {
         zoom = lerpp(zoom, getTargetZoom(), 0.05)
