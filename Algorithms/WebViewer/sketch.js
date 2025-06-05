@@ -9,7 +9,6 @@ let fpsArr = []
 function preload() {
     font = loadFont('bnr.ttf')
     btnGit.svgData = loadXML('github.svg')
-    //goalSvg.data = loadXML('Untitled-2.svg')
 }
 
 function setup() {
@@ -31,10 +30,6 @@ function setup() {
     btnGit.paths = pathsGit
     btnGit.centerX = cxGit
     btnGit.centerY = cyGit
-    // let [pathsGoal, cxGoal, cyGoal] = parseSVG(goalSvg.data)
-    // goalSvg.paths = pathsGoal
-    // goalSvg.centerX = cxGoal
-    // goalSvg.centerY = cyGoal
     textFont('Arial')
 
     colors = [
@@ -121,8 +116,6 @@ function draw() {
     //if(particles.length > MAX_PARTICLE_COUNT && removeAnimations.length == 0) removeCluster()
 
     if(btnCenter.bool) {
-        // xOff = lerpp(xOff, 0, 0.1)
-        // yOff = lerpp(yOff, 0, 0.1)
         zoom = lerpp(zoom, getTargetZoom(), 0.05)
         let [finalxOff, finalyOff] = centerGraph()
         xOff = lerpp(xOff, finalxOff, 0.1)

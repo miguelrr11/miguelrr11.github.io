@@ -1,3 +1,8 @@
+// BUG: se crashea cuando un rune se muere y justo el hand está en ese rune:
+/*
+Unhandled Promise Rejection: TypeError: undefined is not an object (evaluating 'this.runes[this.runeIndex % this.runes.length].getText')
+*/
+
 const RAD_RUNEBOOK = 80
 const R_OUT = RAD_RUNEBOOK + 50
 const RAD_NUCLEUS = 15
