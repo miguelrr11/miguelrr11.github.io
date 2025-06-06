@@ -35,7 +35,7 @@ class Plot {
             col: i == 0 ? lightCol : randomizeColorMIGUI(lightCol, 70)
         }));
 
-        this.limitData = 100;
+        this.limitData = 500;
         this.limitHistory = 15000;
         this.whenSkip = 300
 
