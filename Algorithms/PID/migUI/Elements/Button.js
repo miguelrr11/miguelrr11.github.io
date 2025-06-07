@@ -64,10 +64,10 @@ class Button{
 
 	setText(text, resize = false){
 		this.text = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
-		// if(resize){
-		// 	this.w = getPixelLength(this.text, this.textSize) + 8
-		// 	this.w = constrain(this.w, 20, width_elementsMIGUI)
-		// }
+		if(resize){
+			textSize(this.textSize)
+			this.w = textWidth(this.text) + 8
+		}
 	}
 
 

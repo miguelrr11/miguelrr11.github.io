@@ -13,7 +13,7 @@ el cart tiene dos posiciones goal:
 
 p5.disableFriendlyErrors = true
 const WIDTH = 900
-const HEIGHT = 600
+const HEIGHT = 650
 const WIDTH_UI = 250
 
 const MAX_ACC = 200
@@ -43,8 +43,8 @@ let stash = {
 let goal = spawner.x
 
 let kp = 1
-let ki = 1
-let kd = 1
+let ki = 0
+let kd = 0
 
 let integral = 0
 let derivative = 0
@@ -52,7 +52,30 @@ let prevError = goal - cart.x
 let error
 
 let panel
-let plotAcc, plotVars
+let plotAcc, plotErr, plotInt, plotDer
+let btTime
+let resetOnSettingsChange = false
+let measureTime = false
+let currentTime = 0
+let highscore = undefined
+
+function reset(){
+    cart.x = WIDTH / 2
+    cart.v = 0
+    cart.amt = 0
+    stash.amt = 0
+    goal = spawner.x
+    integral = 0
+    derivative = 0
+    prevError = goal - cart.x
+    currentTime = 0
+    particles = []
+
+    plotAcc.clear()
+    plotErr.clear()
+    plotInt.clear()
+    plotDer.clear()
+}
 
 async function setup(){
     createCanvas(WIDTH + WIDTH_UI, HEIGHT)
@@ -67,17 +90,55 @@ async function setup(){
         h: HEIGHT,
         automaticHeight: false
     })
-    plotAcc = panel.createPlot('Acceleration')
-    plotAcc.reposition(undefined, undefined, undefined, 150)
+    //min, max, origin, [title], [showValue]
+    let skp = panel.createSlider(0, 10, 1, 'Kp', true)
+    skp.setValue(kp)
+    skp.setFunc((value) => {
+        kp = value
+        if(resetOnSettingsChange) reset()
+    }, true)
+    let ski = panel.createSlider(0, 10, 1, 'Ki', true)
+    ski.setValue(ki)
+    ski.setFunc((value) => {
+        ki = value
+        if(resetOnSettingsChange) reset()
+    }, true)
+    let skd = panel.createSlider(0, 10, 1, 'Kd', true)
+    skd.setValue(kd)
+    skd.setFunc((value) => {
+        kd = value
+        if(resetOnSettingsChange) reset()
+    }, true)
 
-    plotVars = panel.createPlot('Variables', 3)
-    plotVars.reposition(undefined, plotAcc.pos.y + plotAcc.height + 20, undefined, 150)
+    let rb = panel.createCheckbox('Reset on Settings Change', false)
+    rb.setFunc((value) => {
+        resetOnSettingsChange = value
+    }, true)
+
+    plotAcc = panel.createPlot('Acceleration')
+    plotErr = panel.createPlot('Error (P)')
+    plotInt = panel.createPlot('Integral (I)')
+    plotDer = panel.createPlot('Derivative (D)')
+
+    plotAcc.setMaxMinAbs(200, -200)
+    plotErr.setMaxMinAbs(200, -200)
+    plotInt.setMaxMinAbs(200, -200)
+    plotDer.setMaxMinAbs(200, -200)
+
+    btTime = panel.createButton('Measure Time')
+    btTime.setFunc(() => {
+        measureTime = !measureTime
+        btTime.setText(measureTime ? 'Stop Measuring' : 'Measure Time', true)
+        if(measureTime) reset()
+    })
+
 }
 
 function draw(){
     background(255)
     dt = deltaTime * 0.001
-    let a = updatePID()
+    let drag = cart.amt == 100 ? 5 : 1
+    let a = updatePID() / drag
     cart.v += a * dt
     cart.x += cart.v * dt
     
@@ -88,12 +149,40 @@ function draw(){
     showCart()
     showSpawner()
     showStash() 
-    updateGoal()
+    
 
     plotAcc.feed(a)
-    plotVars.feed(error, 0)
-    plotVars.feed(integral, 1)
-    plotVars.feed(derivative, 2)
+    plotErr.feed(error)
+    plotInt.feed(integral)
+    plotDer.feed(derivative)
+
+    if(highscore !== undefined){
+        push()
+        fill(0)
+        noStroke()
+        textAlign(LEFT, TOP)
+        textSize(17)
+        text('Highscore: ' + highscore.toFixed(2) + 's', 10, 15)
+        pop()
+    }
+
+    if(measureTime){
+        currentTime += dt
+        if(cart.amt == 0 && goal == stash.x){
+            if(highscore === undefined || currentTime < highscore) highscore = currentTime
+            measureTime = false
+            btTime.setText('Measure Time', true)
+        }
+        push()
+        fill(0)
+        noStroke()
+        textAlign(LEFT, TOP)
+        textSize(17)
+        text('Time: ' + currentTime.toFixed(2) + 's', 10, 40)
+        pop()
+    }
+
+    updateGoal()
 
     panel.update()
     panel.show()
@@ -110,9 +199,11 @@ function updatePID(){
 function updateGoal(){
     if(cart.amt >= 100 && goal == spawner.x){
         goal = stash.x
+        inertia = 0
     }
     else if(cart.amt == 0 && goal == stash.x){
         goal = spawner.x
+        inertia = 0
     }
 }
 
@@ -176,12 +267,12 @@ function isCartAboveStash(){
 function udpateSpawner(){
     let isBelow = isCartBelowSpawner()
     if(!isBelow){
-        coolDownSpawner = 15
+        coolDownSpawner = 5
         return
     }
     if(coolDownSpawner > 0 && isBelow) coolDownSpawner--
     if(coolDownSpawner == 0){
-        coolDownSpawner = 15
+        coolDownSpawner = 5
         let particle = {
             x: spawner.x + random(-7, 7),
             y: spawner.y + 15,
@@ -195,12 +286,12 @@ function updateStash(){
     if(cart.amt == 0) return
     let isAbove = isCartAboveStash()
     if(!isAbove){
-        coolDownStash = 15
+        coolDownStash = 5
         return
     }
     if(coolDownStash > 0 && isAbove) coolDownStash--
     if(coolDownStash == 0){
-        coolDownStash = 15
+        coolDownStash = 5
         let particle = {
             x: stash.x + random(-7, 7),
             y: cart.y,

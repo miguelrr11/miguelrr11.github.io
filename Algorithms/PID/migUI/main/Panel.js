@@ -743,8 +743,13 @@ function inBoundsMIGUI(x, y, a, b, w, h){
 	return x < a+w && x > a && y < b+h && y > b
 }
 
-function mappMIGUI(value, start1, stop1, start2, stop2){
+function mappMIGUI(value, start1, stop1, start2, stop2, clamp = false){
+	if(clamp) return constrainnMIGUI(start2 + ( (value - start1) / (stop1 - start1) ) * (stop2 - start2), start2, stop2);
     return start2 + ( (value - start1) / (stop1 - start1) ) * (stop2 - start2); 
+}
+
+function constrainnMIGUI(value, min, max) {
+    return Math.min(Math.max(value, min), max);
 }
 
 function getRoundedValueMIGUI(value){
