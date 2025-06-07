@@ -35,7 +35,7 @@ class Plot {
             col: i == 0 ? lightCol : randomizeColorMIGUI(lightCol, 70)
         }));
 
-        this.limitData = 100;
+        this.limitData = 500;
         this.limitHistory = 15000;
         this.whenSkip = 300
 
@@ -57,6 +57,29 @@ class Plot {
             }
             e.preventDefault();
         }, { passive: false });
+
+        this.absMax = undefined
+        this.absMin = undefined;
+    }
+
+    clear(){
+        for(let i = 0; i < this.series.length; i++){
+            this.series[i].data = [];
+            this.series[i].history = [];
+            this.series[i].maxData = 0;
+            this.series[i].minData = 0;
+            this.series[i].maxDataH = 0;
+            this.series[i].minDataH = 0;
+        }
+        this.maxData = 0;
+        this.minData = 0;
+        this.maxDataH = 0;
+        this.minDataH = 0;
+    }
+
+    setMaxMinAbs(max, min) {
+        this.absMax = max;
+        this.absMin = min;
     }
 
     setColors(colors){
@@ -138,11 +161,12 @@ class Plot {
         return (n / 1e9).toFixed(2) + "B";
     }
 
-    drawCurve(values, minVal, maxVal, col) {
+    drawCurve(values, minVal, maxVal, col, showingHistory = false) {
         stroke(col);
         noFill();
     
-        const len = values.length;
+        //const len = values.length;
+        const len = showingHistory ? this.limitHistory : this.limitData;
         if (len === 0) return;
     
         const skip = len > this.whenSkip ? Math.ceil(len / this.whenSkip) : 1;
@@ -156,12 +180,14 @@ class Plot {
                 continue;
             }
 
-            let x = map(i, 0, len - 1, this.xStart, this.xEnd);
-    
+            let x = mappMIGUI(i, 0, len - 1, this.xStart, this.xEnd);
+            
+            let val = constrainnMIGUI(values[i], minVal, maxVal);
             let y = constantLine
                 ? this.midY
-                : map(values[i], minVal, maxVal, this.yStart, this.yEnd);
-    
+                : mappMIGUI(val, minVal, maxVal, this.yStart, this.yEnd);
+            
+
             vertex(x, y);
         }
         endShape();
@@ -169,8 +195,8 @@ class Plot {
     
 
     showPlot() {
-        this.maxData = Math.max(...this.series.map(s => s.maxData));
-        this.minData = Math.min(...this.series.map(s => s.minData));
+        this.maxData = this.absMax ? this.absMax : Math.max(...this.series.map(s => s.maxData));
+        this.minData = this.absMin ? this.absMin : Math.min(...this.series.map(s => s.minData));
         for(let i = 0; i < this.series.length; i++) {
             let data = this.series[i].data;
             this.drawCurve(data, this.minData, this.maxData, this.series[i].col);
@@ -178,11 +204,11 @@ class Plot {
     }
 
     showHistory() {
-        this.minDataH = Math.min(...this.series.map(s => s.minDataH));
-        this.maxDataH = Math.max(...this.series.map(s => s.maxDataH));
+        this.maxDataH = this.absMax ? this.absMax : Math.max(...this.series.map(s => s.maxDataH));
+        this.minDataH = this.absMin ? this.absMin : Math.min(...this.series.map(s => s.minDataH));
         for(let i = 0; i < this.series.length; i++) {
             let data = this.series[i].history;
-            this.drawCurve(data, this.minDataH, this.maxDataH, this.series[i].col);
+            this.drawCurve(data, this.minDataH, this.maxDataH, this.series[i].col, true);
         }
     }
 
@@ -213,9 +239,9 @@ class Plot {
         const yMin = this.plotPos.y + this.h - h;
         const yCur = (this.maxData === this.minData)
             ? (yMin + yMax) / 2
-            : map(curVal, showHist ? this.minDataH : this.minData,
+            : mappMIGUI(curVal, showHist ? this.minDataH : this.minData,
                           showHist ? this.maxDataH : this.maxData,
-                          yMin, yMax);
+                          yMax, yMin, true);
 
         const drawLabel = (txt, y, bg) => {
             fill(bg);
@@ -288,7 +314,7 @@ class Plot {
 function computeMinMax(array) {
     const filtered = array.filter(v => v !== undefined);
     return {
-        min: filtered.length ? Math.min(...filtered) : undefined,
-        max: filtered.length ? Math.max(...filtered) : undefined
+        min: this.absMin ? this.absMin : (filtered.length ? Math.min(...filtered) : undefined),
+        max: this.absMax ? this.absMax : (filtered.length ? Math.max(...filtered) : undefined)
     };
 }
