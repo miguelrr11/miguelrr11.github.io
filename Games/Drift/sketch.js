@@ -15,7 +15,7 @@ let ice = {
 let carImg
 let animations = []
 let panel
-let showDebug = false;
+let showDebug
 
 let labels = [
         { label: 'Move Speed', min: minmaxMoveSpeed.min, max: minmaxMoveSpeed.max },
@@ -29,7 +29,7 @@ let labels = [
 
 async function setup(){
     createCanvas(WIDTH + WIDTH_UI, HEIGHT)
-    car = new Car(randomCar);
+    car = new Car(superCar);
     frameRate(60);
     carImg = await loadImage('carimg.png');
     panel = new Panel({
@@ -38,7 +38,7 @@ async function setup(){
         w: WIDTH_UI,
         retractable: true,
         title: "Car Controls",
-        theme: 'mono'
+        darkCol: [0, 0, 0, 70]
     })
     let s1 = panel.createSlider(labels[0].min, labels[0].max, car.moveSpeed, labels[0].label, true);
     let s2 = panel.createSlider(labels[1].min, labels[1].max, car.maxSpeed, labels[1].label, true);
@@ -54,8 +54,28 @@ async function setup(){
     s5.setFunc((value) => car.traction = value);
     s6.setFunc((value) => car.deltaSteerMult = value);
     s7.setFunc((value) => car.latDrag = value);
-    let b = panel.createCheckbox("Show Debug")
-    b.setFunc((arg) => showDebug = arg, true);
+    let cb = panel.createCheckbox("Allow Back Drift", car.allowBackDrift);
+    cb.setFunc((arg) => car.allowBackDrift = arg);
+    let cb2 = panel.createCheckbox("Continuous Drifting", car.continuousDrift);
+    cb2.setFunc((arg) => car.continuousDrift = arg);
+    let b = panel.createCheckbox("Show Debug", true)
+    b.setFunc((arg) => showDebug = arg);
+    showDebug = b.isChecked();
+    panel.createSeparator()
+    let pos = panel.createText()
+    let moveForce = panel.createText()
+    let speed = panel.createText()
+    let angle = panel.createText()
+    let acc = panel.createText()
+    let latAcc = panel.createText()
+    let latSpeed = panel.createText()
+    pos.setFunc(() => `Position: ${car.position.x.toFixed(2)}, ${car.position.y.toFixed(2)}`);
+    moveForce.setFunc(() => `Move Force: ${car.moveForce.x.toFixed(2)}, ${car.moveForce.y.toFixed(2)}`);
+    angle.setFunc(() => `Angle: ${(car.angle%PI).toFixed(2)}`);
+    acc.setFunc(() => `Acceleration: ${car.acc.toFixed(2)}`);
+    latAcc.setFunc(() => `Lateral Acceleration: ${car.latAcc.toFixed(2)}`);
+    latSpeed.setFunc(() => `Lateral Speed: ${car.latSpeed.toFixed(2)}`);
+    speed.setFunc(() => `Speed: ${car.moveForce.mag().toFixed(2)}`);
 }
 
 function draw() {

@@ -25,7 +25,7 @@ class Checkbox{
 		this.rad = radMIGUI
 	}
 
-	setFunc(func, arg = false){
+	setFunc(func, arg = true){
 		this.func = func
 		this.arg = arg
 	}

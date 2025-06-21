@@ -1,5 +1,6 @@
-const carWidth = 25;
-const carHeight = 48;
+const tamult = 1.5
+const carWidth = 25 * tamult;
+const carHeight = 48 * tamult;
 
 class Car {
     constructor(properties = {}) {
@@ -10,7 +11,9 @@ class Car {
             steerAngle = 4, 
             traction = 0.25,
             deltaSteerMult = 0.4,
-            latDrag = 0.9
+            latDrag = 0.9,
+            allowBackDrift = true,
+            continuousDrift = false
         } = properties;
 
         this.moveSpeed = moveSpeed; 
@@ -20,6 +23,8 @@ class Car {
         this.traction = traction;
         this.deltaSteerMult = deltaSteerMult
         this.latDrag = latDrag; 
+        this.allowBackDrift = allowBackDrift
+        this.continuousDrift = continuousDrift;
 
         this.position = createVector(WIDTH/2, HEIGHT / 2);
         this.moveForce = createVector(0, 0);
@@ -28,6 +33,7 @@ class Car {
         this.latAcc = 0
         this.latSpeed = 0
         this.slipThreshold = 0.3;
+        
 
         this.skidLeft = [];
         this.skidRight = [];
@@ -68,8 +74,8 @@ class Car {
         //if (keyIsDown(DOWN_ARROW))  vInput = -1;
         let forward = p5.Vector.fromAngle(this.angle);
         this.acc += vInput * 0.1
-        if(!keys.UP_ARROW){
-            this.acc *= 0.7
+        if(!keys.UP_ARROW && (!this.continuousDrift || (!keys.LEFT_ARROW && !keys.RIGHT_ARROW))) {
+            this.acc *= this.drag
         }
         if(keys.DOWN_ARROW) {
             this.acc -= 0.1;
@@ -98,12 +104,27 @@ class Car {
         let steerRad = radians(this.steerAngle);
         this.angle += this.latSpeed * speed * steerRad * dt * this.traction;
         // -- 3) Drag & speed limit
-        let drag = this.latSpeed == 0 ? this.drag : 0.999
-        this.moveForce.mult(drag);
+        this.moveForce.mult(this.drag);
         this.moveForce.limit(this.maxSpeed);
         forward = p5.Vector.fromAngle(this.angle);
-        let dir = p5.Vector.lerp(this.moveForce.copy().normalize(), forward, this.traction * dt).normalize();
+        let dir = p5.Vector.lerp(
+            this.moveForce.copy().normalize(), 
+            forward, 
+            this.traction * dt).normalize();
         this.moveForce = dir.mult(this.moveForce.mag());
+
+        if (!this.allowBackDrift) {
+            // compute how much of moveForce is along forward
+            let forwardComp = p5.Vector.dot(this.moveForce, forward);
+            if (forwardComp < 0) {
+                // remove the backward projection, keep only lateral component
+                this.moveForce = p5.Vector.sub(
+                    this.moveForce,
+                    p5.Vector.mult(forward, forwardComp)
+                );
+            }
+        }
+
         this.calculateTirePositions(forward);
         if(this.moveForce.mag() > 0 || keys.DOWN_ARROW) {
             let velNorm = this.moveForce.copy().normalize();
@@ -117,13 +138,19 @@ class Car {
                     this.skidRight.shift();
                 }
                 // add skid animation
-                addAnimationDrift.call(this, this.leftTire.x, this.leftTire.y);
-                addAnimationDrift.call(this, this.rightTire.x, this.rightTire.y);
+                for(let i = 0; i < 3; i++){
+                    addAnimationDrift.call(this, this.leftTire.x, this.leftTire.y);
+                    addAnimationDrift.call(this, this.rightTire.x, this.rightTire.y);
+                }
             }
             else if(this.skidLeft[this.skidLeft.length - 1]) {
                 this.addSepSkid()
             }
         }
+        let fumesPos = p5.Vector.lerp(this.leftTire, this.rightTire, 0.2)
+        fumesPos.x += randomm(-2, 2);
+        fumesPos.y += randomm(-2, 2);
+        addAnimationIdle.call(this, fumesPos.x, fumesPos.y);
         this.edges();
     }
 
@@ -145,7 +172,7 @@ class Car {
         push();
         strokeWeight(2);
         stroke(0, 0, 255, 120);
-        line(this.position.x, this.position.y, this.position.x + this.moveForce.x * 10, this.position.y + this.moveForce.y * 5);
+        line(this.position.x, this.position.y, this.position.x + this.moveForce.x * 5, this.position.y + this.moveForce.y * 5);
         stroke(255, 0, 0, 120);
         line(this.position.x, this.position.y, this.position.x + Math.cos(this.angle) * 50, this.position.y + Math.sin(this.angle) * 50);
     }
@@ -158,7 +185,7 @@ class Car {
         translate(this.position.x, this.position.y)
         rotate(this.angle + HALF_PI);
         imageMode(CENTER);
-        image(carImg, 0, 0, 25, 47);
+        image(carImg, 0, 0, carWidth, carHeight);
         // rectMode(CENTER);
         // fill(0, 0, 0, 100);
         // rect(0, 0, carWidth, carHeight);
@@ -184,16 +211,39 @@ class Car {
     }
 }
 
-function addAnimationDrift(x, y){
-    if(Math.random() < 0.1) return; // reduce frequency of skid particles
+
+function addAnimationIdle(x, y){
+    if(Math.random() < 0.3) return; // reduce frequency of skid particles
     let dir = p5.Vector.fromAngle(this.angle).normalize().mult(-1)
     let grey = random(50, 170)
     let particle = new Particle(
         x,
         y,
         [grey, grey, grey], // color
+        50, // lifespan
+        dir.mult(0.6), // vel
+        createVector(0, 0), // acc
+        0.99, // friction
+        0,
+        0,
+        random(2, 6), // size
+        'ellipse', // shape
+        false
+    )
+    particle.trans = random(25, 140)
+    animations.push(particle)
+}
+
+function addAnimationDrift(x, y){
+    if(Math.random() < 0.1) return; // reduce frequency of skid particles
+    let dir = p5.Vector.fromAngle(this.angle).normalize().mult(-1)
+    let grey = random(50, 170)
+    let particle = new Particle(
+        x + random(-5, 5),
+        y + random(-5, 5),
+        [grey, grey, grey], // color
         100, // lifespan
-        dir.mult(this.moveForce.mag() * 0.025), // vel
+        dir.mult(this.moveForce.mag() * 0.035), // vel
         createVector(0, 0), // acc
         0.97, // friction
         0,

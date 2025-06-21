@@ -2,7 +2,7 @@
 const minmaxMoveSpeed = { min: 10, max: 35 };
 const minmaxMaxSpeed = { min: 20, max: 50 };
 const minmaxDrag = { min: 0.5, max: 1 };
-const minmaxSteerAngle = { min: 1, max: 5 };
+const minmaxSteerAngle = { min: 1, max: 10 };
 const minmaxTraction = { min: 0, max: 0.4 };
 const minmaxDeltaSteerMult = { min: 0, max: 0.5 };
 const minmaxLatDrag = { min: 0, max: 1 };
@@ -13,7 +13,7 @@ const superCar = {
     maxSpeed : 30,
     drag : 0.95,                // how quickly the car slows down when not accelerating
     steerAngle : 4,             // how quickly the car can turn
-    traction : 0.25,            // how much grip the tires have
+    traction : 0.25,            // how quickly the car can recover from a skid
     deltaSteerMult : 0.4,       // how quickly the steering angle changes
     latDrag : 0.9,              // lateral drag, how quickly the car slows down when not accelerating
 }

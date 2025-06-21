@@ -21,11 +21,6 @@ class Particle{
     }
 
     update(){
-        //set the acceleration so the particle goes towards the player
-        if(this.followPlayer){
-            let dir = createVector(((player.pos.x+.5)*cellPixelSize) - this.pos.x, ((player.pos.y+.5)*cellPixelSize) - this.pos.y).normalize()
-            this.acc = dir.mult(0.35)
-        }
         this.vel.add(this.acc)
         this.vel.mult(this.friction)
         this.pos.add(this.vel)
