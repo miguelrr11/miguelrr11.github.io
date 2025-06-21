@@ -1,5 +1,5 @@
-class NumberPicker{
-	constructor(x, y, text, min, max, delta, def, lightCol, darkCol){
+class OptionPicker{
+	constructor(x, y, text, options, lightCol, darkCol){
 		this.darkCol = darkCol
 		this.lightCol = lightCol
 		this.transCol = [...lightCol, 100]
@@ -14,15 +14,14 @@ class NumberPicker{
 		this.func = undefined
 		this.arg = false
 
-		this.min = min != undefined ? min : -Infinity
-		this.max = max != undefined ? max : Infinity
-		this.value = def != undefined ? constrain(def, this.min, this.max) : 0
-		this.delta = delta ? delta : 1
-
-		this.w = WIDTH_NUMBERPICKER
+		this.w = WIDTH_OPTIONPICKER
 		this.h = 17
 
 		this.rad = radMIGUI
+
+        this.options = options
+		if(this.options.length == 0) this.options.push('')
+        this.selectedIndex = 0
 
 		this.sectionW = 20
 
@@ -33,13 +32,13 @@ class NumberPicker{
 		this.disabled = false
 	}
 
-	setFunc(func, arg = true){
+	setFunc(func, arg = false){
 		this.func = func
 		this.arg = arg
 	}
 
 	execute(){
-		if(this.func) this.arg ? this.func(this.value) : this.func()
+		if(this.func) this.arg ? this.func(this.getSelected()) : this.func()
 	}
 
 	reposition(x, y, w = undefined, h = undefined){
@@ -51,12 +50,12 @@ class NumberPicker{
 		this.height = this.h
 	}
 
-	setValue(value){
-		this.value = value
+	getSelected(){
+		return this.options[this.selectedIndex%this.options.length]
 	}
 
-	getValue(){
-		return this.value
+	getSelectedIndex(){
+		return this.selectedIndex
 	}
 
 	disable(){
@@ -81,19 +80,16 @@ class NumberPicker{
 		if(this.disabled) return false
 
 		if((this.beingHoveredMinus || this.beingHoveredPlus) && mouseIsPressed && !this.beingPressed){ 
-			//ver donde se ha presionado, si en el + o en el -
+			//ver donde se ha presionado, si en el < o en el >
 			if(this.beingHoveredMinus){
-				this.value -= this.delta
-				this.value = round(this.value, 3)
-				if(this.value >= this.min) this.execute()
-				this.value = constrain(this.value, this.min, this.max)
-				
+				this.selectedIndex--
+				if(this.selectedIndex < 0) this.selectedIndex = this.options.length-1
+				this.execute()
 			}
 			if(this.beingHoveredPlus){
-				this.value += this.delta
-				this.value = round(this.value, 3)
-				if(this.value <= this.max) this.execute()
-				this.value = constrain(this.value, this.min, this.max)
+				this.selectedIndex++
+				if(this.selectedIndex > this.options.length - 1) this.selectedIndex = 0
+				this.execute()
 			}
 			this.beingPressed = true
 			return true
@@ -105,6 +101,7 @@ class NumberPicker{
 	}
 
 	setSF(bool){
+		noStroke()
 		bool && !this.disabled ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
 		this.disabled ? stroke(this.transCol) : stroke(this.lightCol)
 		bool ? fill(this.transCol) : fill(this.darkCol)
@@ -118,9 +115,7 @@ class NumberPicker{
 		textSize(this.textSize+1)
 		if(bool && mouseIsPressed) fill(this.darkCol)
 		this.disabled ? fill(this.transCol) : fill(this.lightCol)
-		
 	}
-
 
 	show(){
 		push()
@@ -131,25 +126,28 @@ class NumberPicker{
 		fill(this.darkCol)
 		rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
 		this.setSFtext(false)
-		text(this.value, this.pos.x + this.w * 0.5, this.pos.y + this.h / 2)
+        let option = getClippedTextMIGUI(this.options[this.selectedIndex%this.options.length], this.w)
+		text(option, this.pos.x + this.w * 0.5, this.pos.y + this.h / 2 + 1)
 
 		//rect con -
+		let off = 0
 		this.setSF(this.beingHoveredMinus)
-		rect(this.pos.x, this.pos.y, this.sectionW, this.h, this.rad, 0, 0, this.rad)
+		rect(this.pos.x+off, this.pos.y+off, this.sectionW-off*2, this.h-off*2, this.rad, 0, 0, this.rad)
 		this.setSFtext(this.beingHoveredMinus)
-		text('-', this.pos.x + this.sectionW / 2, this.pos.y + this.h / 2)
+		text('<', this.pos.x + this.sectionW / 2, this.pos.y + this.h / 2)
 
 
 		//rect con +
+		
 		this.setSF(this.beingHoveredPlus)
-		rect(this.pos.x+this.w-this.sectionW, this.pos.y, this.sectionW, this.h, 0, this.rad, this.rad, 0)
+		rect(this.pos.x+this.w-this.sectionW+off, this.pos.y+off, this.sectionW-off*2, this.h-off*2, 0, this.rad, this.rad, 0)
 		this.setSFtext(this.beingHoveredPlus)
-		text('+', this.pos.x+this.w-this.sectionW/2, this.pos.y + this.h / 2)
+		text('>', this.pos.x+this.w-this.sectionW/2, this.pos.y + this.h / 2)
 
 		noStroke()
 		this.setSFtext(false)
 		textAlign(LEFT, CENTER)
-		text(this.text, this.pos.x + this.w + 10, this.pos.y + this.h/2)
+		text(this.text, this.pos.x + this.w + 10, this.pos.y + this.h / 2 )
 		
 		//text(this.text, this.pos.x + bordeMIGUI+text_offset_xMIGUI, this.pos.y + this.h*0.75)
 

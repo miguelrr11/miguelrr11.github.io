@@ -33,7 +33,7 @@ class NumberPicker{
 		this.disabled = false
 	}
 
-	setFunc(func, arg = true){
+	setFunc(func, arg = false){
 		this.func = func
 		this.arg = arg
 	}

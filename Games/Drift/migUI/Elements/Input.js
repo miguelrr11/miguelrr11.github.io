@@ -37,7 +37,7 @@ class Input {
         document.addEventListener("paste", this.handlePaste.bind(this));
     }
     
-    setFunc(func, arg = true) {
+    setFunc(func, arg = false) {
         this.func = func
         this.arg = arg
     }

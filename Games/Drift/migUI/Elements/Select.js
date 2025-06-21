@@ -27,7 +27,7 @@ class Select{
 		this.rad = radMIGUI
 	}
 
-	setFunc(func, arg = true){
+	setFunc(func, arg = false){
 		this.func = func
 		this.arg = arg
 	}

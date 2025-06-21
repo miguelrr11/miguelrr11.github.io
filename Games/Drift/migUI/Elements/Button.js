@@ -40,7 +40,7 @@ class Button{
 		this.corners = [this.rad, this.rad, this.rad, this.rad]
 	}
 
-	setFunc(func, arg = true){
+	setFunc(func, arg = false){
 		this.func = func
 		this.arg = arg
 	}
