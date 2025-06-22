@@ -7,7 +7,8 @@ const WIDTH = 1200
 const HEIGHT = 700
 const WIDTH_UI = 250
 
-let car
+let car, policeCars = []
+let nPoliceCars = 100
 let ice = {
     pos: {x: WIDTH / 2, y: HEIGHT / 2 },
     rad: 150,
@@ -30,6 +31,11 @@ let labels = [
 async function setup(){
     createCanvas(WIDTH + WIDTH_UI, HEIGHT)
     car = new Car(superCar);
+    for(let i = 0; i < nPoliceCars; i++) {
+        let properties = getRandomPoliceCar();
+        let policeCar = new PoliceCar(properties, car);
+        policeCars.push(policeCar);
+    }
     frameRate(60);
     carImg = await loadImage('carimg.png');
     panel = new Panel({
@@ -40,6 +46,7 @@ async function setup(){
         title: "Car Controls",
         darkCol: [0, 0, 0, 70]
     })
+    panel.padding = 7
     let s1 = panel.createSlider(labels[0].min, labels[0].max, car.moveSpeed, labels[0].label, true);
     let s2 = panel.createSlider(labels[1].min, labels[1].max, car.maxSpeed, labels[1].label, true);
     let s3 = panel.createSlider(labels[2].min, labels[2].max, car.drag, labels[2].label, true);
@@ -58,10 +65,14 @@ async function setup(){
     cb.setFunc((arg) => car.allowBackDrift = arg);
     let cb2 = panel.createCheckbox("Continuous Drifting", car.continuousDrift);
     cb2.setFunc((arg) => car.continuousDrift = arg);
+    let cb3 = panel.createCheckbox("Always Moving", car.alwaysMoving);
+    cb3.setFunc((arg) => car.alwaysMoving = arg);
+
+    panel.createSeparator()
+
     let b = panel.createCheckbox("Show Debug", true)
     b.setFunc((arg) => showDebug = arg);
     showDebug = b.isChecked();
-    panel.createSeparator()
     let pos = panel.createText()
     let moveForce = panel.createText()
     let speed = panel.createText()
@@ -69,26 +80,39 @@ async function setup(){
     let acc = panel.createText()
     let latAcc = panel.createText()
     let latSpeed = panel.createText()
+    let slipAngle = panel.createText()
     pos.setFunc(() => `Position: ${car.position.x.toFixed(2)}, ${car.position.y.toFixed(2)}`);
     moveForce.setFunc(() => `Move Force: ${car.moveForce.x.toFixed(2)}, ${car.moveForce.y.toFixed(2)}`);
-    angle.setFunc(() => `Angle: ${(car.angle%PI).toFixed(2)}`);
+    angle.setFunc(() => `Angle: ${degrees(car.angle%PI).toFixed(0)}`);
     acc.setFunc(() => `Acceleration: ${car.acc.toFixed(2)}`);
     latAcc.setFunc(() => `Lateral Acceleration: ${car.latAcc.toFixed(2)}`);
     latSpeed.setFunc(() => `Lateral Speed: ${car.latSpeed.toFixed(2)}`);
     speed.setFunc(() => `Speed: ${car.moveForce.mag().toFixed(2)}`);
+    slipAngle.setFunc(() => `Slip Angle: ${(round(degrees(car.slipAngle%PI)))}`);
 }
 
 function draw() {
     background(200);
 
+    let aux = car.position.y - HEIGHT / 2;
+    translate(0, -car.position.y + HEIGHT / 2);
     car.drawSkids(car.skidLeft);
     car.drawSkids(car.skidRight);
-    manageAnimations();
+    for(let i = 0 ; i < policeCars.length; i++) {
+        policeCars[i].drawSkids(policeCars[i].skidLeft);
+        policeCars[i].drawSkids(policeCars[i].skidRight);
+    }
+    //manageAnimations();
+    for(let i = 0; i < policeCars.length; i++) {
+        policeCars[i].update();
+        policeCars[i].show();
+    }
     car.update();
     car.show();
 
     if (showDebug) car.showDebug();
 
+    translate(0, aux);
     panel.update();
     panel.show();
 }

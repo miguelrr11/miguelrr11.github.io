@@ -13,11 +13,12 @@ class Car {
             deltaSteerMult = 0.4,
             latDrag = 0.9,
             allowBackDrift = true,
-            continuousDrift = false
+            continuousDrift = true
         } = properties;
 
         this.moveSpeed = moveSpeed; 
         this.maxSpeed = maxSpeed;
+        this.maxSpeedTurbo = maxSpeed * 1.3
         this.drag = drag;
         this.steerAngle = steerAngle; 
         this.traction = traction;
@@ -33,11 +34,13 @@ class Car {
         this.latAcc = 0
         this.latSpeed = 0
         this.slipThreshold = 0.3;
+        this.slipAngle = 0; 
+        this.alwaysMoving = true
         
 
         this.skidLeft = [];
         this.skidRight = [];
-        this.maxSkidPoints = 100;
+        this.maxSkidPoints = 70;
         this.leftTire = createVector(0, 0);
         this.rightTire = createVector(0, 0);;
     }
@@ -53,35 +56,45 @@ class Car {
     edges(){
         if(this.position.x < 0){ this.position.x = width; this.addSepSkid()}
         if(this.position.x > width) {this.position.x = 0;  this.addSepSkid()}
-        if(this.position.y < 0) {this.position.y = height;  this.addSepSkid()}
-        if(this.position.y > height) {this.position.y = 0;  this.addSepSkid()}
+        // if(this.position.y < 0) {this.position.y = height;  this.addSepSkid()}
+        // if(this.position.y > height) {this.position.y = 0;  this.addSepSkid()}
     }
-    update() {
-        const dt = deltaTime * 0.01
-        let vInput = 0
-        let keys = {
+
+    getKeys(){
+        return {
             UP_ARROW: keyIsDown(UP_ARROW),
             DOWN_ARROW: keyIsDown(DOWN_ARROW),
             LEFT_ARROW: keyIsDown(LEFT_ARROW),
             RIGHT_ARROW: keyIsDown(RIGHT_ARROW)
         }
+    }
+
+    update() {
+        const dt = deltaTime * 0.01
+        let vInput = 0
+        let keys = this.getKeys()
+        let finalTraction = this.traction;
         if(keys.UP_ARROW){
             vInput = 1;
+            finalTraction = this.traction * .5;
             let midPosTires = p5.Vector.add(this.leftTire, this.rightTire).mult(0.5);
             addAnimationTurbo.call(this, midPosTires.x, midPosTires.y);
-            addAnimationTurbo.call(this, midPosTires.x, midPosTires.y);
+            //addAnimationTurbo.call(this, midPosTires.x, midPosTires.y);
         }
         //if (keyIsDown(DOWN_ARROW))  vInput = -1;
         let forward = p5.Vector.fromAngle(this.angle);
         this.acc += vInput * 0.1
         if(!keys.UP_ARROW && (!this.continuousDrift || (!keys.LEFT_ARROW && !keys.RIGHT_ARROW))) {
             this.acc *= this.drag
+            if(this.alwaysMoving){
+                this.acc = 0.5
+            }
         }
         if(keys.DOWN_ARROW) {
-            this.acc -= 0.1;
+            this.acc = -1;
             this.latAcc -= 0.1;
             addAnimationDrift.call(this, this.leftTire.x, this.leftTire.y);
-            addAnimationDrift.call(this, this.rightTire.x, this.rightTire.y);
+            //addAnimationDrift.call(this, this.rightTire.x, this.rightTire.y);
         }
         this.acc = constrainn(this.acc, -3, 3);
         this.moveForce.add(p5.Vector.mult(forward, this.moveSpeed * this.acc * dt));
@@ -97,20 +110,28 @@ class Car {
             this.latAcc *= this.latDrag
             this.latSpeed *= this.latDrag
         }
-        this.latAcc = constrainn(this.latAcc, -3, 3);
+        this.latAcc = constrainn(this.latAcc, -1, 1);
         if(keys.RIGHT_ARROW || keys.LEFT_ARROW || keys.DOWN_ARROW) this.latSpeed += this.latAcc * dt
-        this.latSpeed = constrainn(this.latSpeed, -1, 1);
+        let aux = 1
+        this.latSpeed = constrainn(this.latSpeed, -aux, aux);
         let speed = this.moveForce.mag();
         let steerRad = radians(this.steerAngle);
-        this.angle += this.latSpeed * speed * steerRad * dt * this.traction;
+        // let rotSpeed = speed < 0.01 ? 0 : (1/Math.pow(speed, 0.5)) * 100
+        // rotSpeed = constrainn(rotSpeed, 0, 50)
+        this.angle += this.latSpeed * speed * steerRad * dt * finalTraction;
         // -- 3) Drag & speed limit
         this.moveForce.mult(this.drag);
-        this.moveForce.limit(this.maxSpeed);
+        (keys.UP_ARROW) ? this.moveForce.limit(this.maxSpeedTurbo) : this.moveForce.limit(this.maxSpeed);
         forward = p5.Vector.fromAngle(this.angle);
-        let dir = p5.Vector.lerp(
+        let dir = keys.DOWN_ARROW ? 
+        p5.Vector.lerp(
+            this.moveForce.copy().normalize(), 
+            this.moveForce.copy().normalize(), 
+            finalTraction * dt).normalize() : 
+        p5.Vector.lerp(
             this.moveForce.copy().normalize(), 
             forward, 
-            this.traction * dt).normalize();
+            finalTraction * dt).normalize();
         this.moveForce = dir.mult(this.moveForce.mag());
 
         if (!this.allowBackDrift) {
@@ -128,8 +149,8 @@ class Car {
         this.calculateTirePositions(forward);
         if(this.moveForce.mag() > 0 || keys.DOWN_ARROW) {
             let velNorm = this.moveForce.copy().normalize();
-            let slipAngle = p5.Vector.angleBetween(velNorm, forward);
-            if(Math.abs(slipAngle) > this.slipThreshold || keys.DOWN_ARROW) {
+            this.slipAngle = p5.Vector.angleBetween(velNorm, forward);
+            if(Math.abs(this.slipAngle) > this.slipThreshold || keys.DOWN_ARROW) {
                 this.skidLeft.push(this.leftTire.copy());
                 this.skidRight.push(this.rightTire.copy());
                 // clamp size
@@ -138,7 +159,7 @@ class Car {
                     this.skidRight.shift();
                 }
                 // add skid animation
-                for(let i = 0; i < 3; i++){
+                for(let i = 0; i < 1; i++){
                     addAnimationDrift.call(this, this.leftTire.x, this.leftTire.y);
                     addAnimationDrift.call(this, this.rightTire.x, this.rightTire.y);
                 }
@@ -178,24 +199,12 @@ class Car {
     }
 
     show() {
-        // skid marks on ground plane
-        
-        // draw car body
         push();
         translate(this.position.x, this.position.y)
         rotate(this.angle + HALF_PI);
         imageMode(CENTER);
         image(carImg, 0, 0, carWidth, carHeight);
-        // rectMode(CENTER);
-        // fill(0, 0, 0, 100);
-        // rect(0, 0, carWidth, carHeight);
         pop();
-
-        // push()
-        // fill(0, 255, 0)
-        // ellipse(this.leftTire.x, this.leftTire.y, 10, 10)
-        // ellipse(this.rightTire.x, this.rightTire.y, 10, 10)
-        // pop()
     }
     drawSkids(arr) {
         strokeWeight(5);

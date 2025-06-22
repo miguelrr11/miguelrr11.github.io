@@ -4,7 +4,7 @@ const minmaxMaxSpeed = { min: 20, max: 50 };
 const minmaxDrag = { min: 0.5, max: 1 };
 const minmaxSteerAngle = { min: 1, max: 10 };
 const minmaxTraction = { min: 0, max: 0.4 };
-const minmaxDeltaSteerMult = { min: 0, max: 0.5 };
+const minmaxDeltaSteerMult = { min: 0, max: 1 };
 const minmaxLatDrag = { min: 0, max: 1 };
 
 
@@ -14,7 +14,7 @@ const superCar = {
     drag : 0.95,                // how quickly the car slows down when not accelerating
     steerAngle : 4,             // how quickly the car can turn
     traction : 0.25,            // how quickly the car can recover from a skid
-    deltaSteerMult : 0.4,       // how quickly the steering angle changes
+    deltaSteerMult : 0.4,       // how quickly the steering angle changes (steering sensitivity)
     latDrag : 0.9,              // lateral drag, how quickly the car slows down when not accelerating
 }
 
@@ -36,6 +36,44 @@ const driftCar = {
     traction : 0.35,
     deltaSteerMult : 0.05,
     latDrag : 0.8
+}
+
+const police = {
+    moveSpeed : 18,
+    maxSpeed : 28,
+    drag : 0.93,
+    steerAngle : 5,
+    traction : 0.2,
+    deltaSteerMult : 0.5,
+    latDrag : 0.85,
+    allowBackDrift: false,      
+    continuousDrift: true        
+}
+
+function getRandomPoliceCar(){
+    return {
+        moveSpeed : police.moveSpeed + randomm(-1, 1),
+        maxSpeed : police.maxSpeed + randomm(-1, 1),
+        drag : police.drag + randomm(-0.06, 0.06),
+        steerAngle : police.steerAngle + randomm(-0.5, 0.5),
+        traction : police.traction + randomm(-0.05, 0.05),
+        deltaSteerMult : police.deltaSteerMult + randomm(-0.2, 0.2),
+        latDrag : police.latDrag + randomm(-0.05, 0.05),
+        allowBackDrift: police.allowBackDrift,
+        continuousDrift: police.continuousDrift
+    }
+}
+
+function getRandomCar(){
+    return {
+        moveSpeed : randomm(minmaxMoveSpeed.min, minmaxMoveSpeed.max),
+        maxSpeed : randomm(minmaxMaxSpeed.min, minmaxMaxSpeed.max),
+        drag : randomm(minmaxDrag.min, minmaxDrag.max),
+        steerAngle : randomm(minmaxSteerAngle.min, minmaxSteerAngle.max),
+        traction : randomm(minmaxTraction.min, minmaxTraction.max),
+        deltaSteerMult : randomm(minmaxDeltaSteerMult.min, minmaxDeltaSteerMult.max),
+        latDrag : randomm(minmaxLatDrag.min, minmaxLatDrag.max)
+    }
 }
 
 const randomCar = {
