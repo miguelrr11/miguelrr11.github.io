@@ -85,20 +85,18 @@ class Car {
         let forward = p5.Vector.fromAngle(this.angle);
         this.acc += vInput * 0.1
         if(!keys.UP_ARROW && (!this.continuousDrift || (!keys.LEFT_ARROW && !keys.RIGHT_ARROW))) {
-            this.acc *= this.drag
+            //this.acc *= this.drag
             if(this.alwaysMoving){
                 this.acc = 0.5
             }
+            else this.acc = 0
         }
-        if(keys.DOWN_ARROW) {
+        if(keys.DOWN_ARROW && !this.alwaysMoving) {
             this.acc = -1;
             this.latAcc -= 0.1;
             addAnimationDrift.call(this, this.leftTire.x, this.leftTire.y);
             //addAnimationDrift.call(this, this.rightTire.x, this.rightTire.y);
         }
-        this.acc = constrainn(this.acc, -3, 3);
-        this.moveForce.add(p5.Vector.mult(forward, this.moveSpeed * this.acc * dt));
-        this.position.add(p5.Vector.mult(this.moveForce, dt));
         
         let deltaSteer = 0;
         if(keys.RIGHT_ARROW) deltaSteer = 1;
@@ -120,8 +118,9 @@ class Car {
         // rotSpeed = constrainn(rotSpeed, 0, 50)
         this.angle += this.latSpeed * speed * steerRad * dt * finalTraction;
         // -- 3) Drag & speed limit
-        this.moveForce.mult(this.drag);
-        (keys.UP_ARROW) ? this.moveForce.limit(this.maxSpeedTurbo) : this.moveForce.limit(this.maxSpeed);
+        this.moveForce.mult(this.drag)
+        if(speed > this.maxSpeed && !keys.UP_ARROW) this.moveForce.mult(0.97)
+        else this.moveForce.limit(this.maxSpeedTurbo);
         forward = p5.Vector.fromAngle(this.angle);
         let dir = keys.DOWN_ARROW ? 
         p5.Vector.lerp(
@@ -146,6 +145,15 @@ class Car {
             }
         }
 
+        this.acc = constrainn(this.acc, -3, 3);
+        this.moveForce.add(p5.Vector.mult(forward, this.moveSpeed * this.acc * dt));
+        this.position.add(p5.Vector.mult(this.moveForce, dt));
+        this.edges();
+
+        this.addAnimations(forward, keys);
+    }
+
+    addAnimations(forward, keys){
         this.calculateTirePositions(forward);
         if(this.moveForce.mag() > 0 || keys.DOWN_ARROW) {
             let velNorm = this.moveForce.copy().normalize();
@@ -172,10 +180,9 @@ class Car {
         fumesPos.x += randomm(-2, 2);
         fumesPos.y += randomm(-2, 2);
         addAnimationIdle.call(this, fumesPos.x, fumesPos.y);
-        this.edges();
     }
 
-    calculateTirePositions(forward) {
+    calculateTirePositions() {
         // rear‐corner offsets in local space
         let halfL = carHeight / 3,
             halfW = carWidth / 3;

@@ -11,7 +11,7 @@ const minmaxLatDrag = { min: 0, max: 1 };
 const superCar = {
     moveSpeed : 20,
     maxSpeed : 30,
-    drag : 0.95,                // how quickly the car slows down when not accelerating
+    drag : 0.98,                // how quickly the car slows down when not accelerating
     steerAngle : 4,             // how quickly the car can turn
     traction : 0.25,            // how quickly the car can recover from a skid
     deltaSteerMult : 0.4,       // how quickly the steering angle changes (steering sensitivity)

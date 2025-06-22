@@ -8,7 +8,7 @@ const HEIGHT = 700
 const WIDTH_UI = 250
 
 let car, policeCars = []
-let nPoliceCars = 100
+let nPoliceCars = 5
 let ice = {
     pos: {x: WIDTH / 2, y: HEIGHT / 2 },
     rad: 150,
@@ -102,7 +102,7 @@ function draw() {
         policeCars[i].drawSkids(policeCars[i].skidLeft);
         policeCars[i].drawSkids(policeCars[i].skidRight);
     }
-    //manageAnimations();
+    manageAnimations();
     for(let i = 0; i < policeCars.length; i++) {
         policeCars[i].update();
         policeCars[i].show();
