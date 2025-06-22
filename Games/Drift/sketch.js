@@ -13,7 +13,7 @@ let ice = {
     pos: {x: WIDTH / 2, y: HEIGHT / 2 },
     rad: 150,
 }
-let carImg
+let carImg, policeCarImg
 let animations = []
 let panel
 let showDebug
@@ -38,6 +38,7 @@ async function setup(){
     }
     frameRate(60);
     carImg = await loadImage('carimg.png');
+    policeCarImg = await loadImage('police.png');
     panel = new Panel({
         x: WIDTH,
         automaticHeight: false,

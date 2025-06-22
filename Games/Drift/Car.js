@@ -12,7 +12,7 @@ class Car {
             traction = 0.25,
             deltaSteerMult = 0.4,
             latDrag = 0.9,
-            allowBackDrift = true,
+            allowBackDrift = false,
             continuousDrift = true
         } = properties;
 
@@ -35,7 +35,7 @@ class Car {
         this.latSpeed = 0
         this.slipThreshold = 0.3;
         this.slipAngle = 0; 
-        this.alwaysMoving = true
+        this.alwaysMoving = false
         
 
         this.skidLeft = [];
@@ -69,75 +69,103 @@ class Car {
         }
     }
 
-    update() {
+    update(){
+        let driftForce = this.getForceDrift()
+        
+        this.position.add(driftForce);
+        this.edges();
+
+        this.addAnimations();
+    }
+
+    getForceDrift() {
         const dt = deltaTime * 0.01
+
+        // ——— INPUT & TURBO ———
         let vInput = 0
         let keys = this.getKeys()
+        let isDrifting = keys.LEFT_ARROW || keys.RIGHT_ARROW
         let finalTraction = this.traction;
-        if(keys.UP_ARROW){
+        if (keys.UP_ARROW) {
             vInput = 1;
-            finalTraction = this.traction * .5;
+            finalTraction = this.traction * 0.5;
             let midPosTires = p5.Vector.add(this.leftTire, this.rightTire).mult(0.5);
             addAnimationTurbo.call(this, midPosTires.x, midPosTires.y);
-            //addAnimationTurbo.call(this, midPosTires.x, midPosTires.y);
         }
-        //if (keyIsDown(DOWN_ARROW))  vInput = -1;
+        else if (keys.DOWN_ARROW) {
+            vInput = -1;
+            finalTraction = this.traction * 0.5;
+        }
+
+        // ——— ACCELERATION & BRAKING ———
         let forward = p5.Vector.fromAngle(this.angle);
         this.acc += vInput * 0.1
-        if(!keys.UP_ARROW && (!this.continuousDrift || (!keys.LEFT_ARROW && !keys.RIGHT_ARROW))) {
-            //this.acc *= this.drag
-            if(this.alwaysMoving){
+
+        if (!keys.UP_ARROW && (!this.continuousDrift || (!keys.LEFT_ARROW && !keys.RIGHT_ARROW)) && !keys.DOWN_ARROW) {
+            if (this.alwaysMoving) {
                 this.acc = 0.5
+            } 
+            else {
+                this.acc = 0
+                this.moveForce.mult(this.drag)
             }
-            else this.acc = 0
         }
-        if(keys.DOWN_ARROW && !this.alwaysMoving) {
-            this.acc = -1;
-            this.latAcc -= 0.1;
-            addAnimationDrift.call(this, this.leftTire.x, this.leftTire.y);
-            //addAnimationDrift.call(this, this.rightTire.x, this.rightTire.y);
-        }
-        
+
+
+        // ——— STEERING INPUT & LATERAL ACCELERATION ———
         let deltaSteer = 0;
-        if(keys.RIGHT_ARROW) deltaSteer = 1;
-        if(keys.LEFT_ARROW) deltaSteer = -1;
-        if(this.latAcc < 0 && deltaSteer > 0) this.latAcc = 0;
-        if(this.latAcc > 0 && deltaSteer < 0) this.latAcc = 0;
+        if (keys.RIGHT_ARROW) deltaSteer = 1;
+        if (keys.LEFT_ARROW)  deltaSteer = -1;
+
+        if (this.latAcc < 0 && deltaSteer > 0) this.latAcc = 0;
+        if (this.latAcc > 0 && deltaSteer < 0) this.latAcc = 0;
+
         this.latAcc += deltaSteer * this.deltaSteerMult;
-        if(!keys.RIGHT_ARROW && !keys.LEFT_ARROW) {
+
+        if (!keys.RIGHT_ARROW && !keys.LEFT_ARROW) {
             this.latAcc *= this.latDrag
             this.latSpeed *= this.latDrag
         }
+
         this.latAcc = constrainn(this.latAcc, -1, 1);
-        if(keys.RIGHT_ARROW || keys.LEFT_ARROW || keys.DOWN_ARROW) this.latSpeed += this.latAcc * dt
-        let aux = 1
-        this.latSpeed = constrainn(this.latSpeed, -aux, aux);
+        if (isDrifting || keys.DOWN_ARROW) {
+            this.latSpeed += this.latAcc * dt
+        }
+        this.latSpeed = constrainn(this.latSpeed, -1, 1);
+
+        // ——— ROTATION ———
         let speed = this.moveForce.mag();
         let steerRad = radians(this.steerAngle);
-        // let rotSpeed = speed < 0.01 ? 0 : (1/Math.pow(speed, 0.5)) * 100
-        // rotSpeed = constrainn(rotSpeed, 0, 50)
         this.angle += this.latSpeed * speed * steerRad * dt * finalTraction;
-        // -- 3) Drag & speed limit
-        this.moveForce.mult(this.drag)
-        if(speed > this.maxSpeed && !keys.UP_ARROW) this.moveForce.mult(0.97)
-        else this.moveForce.limit(this.maxSpeedTurbo);
+
+        // ——— DRAG & SPEED LIMIT ———
+        // this.moveForce.mult(this.drag)
+        if (speed > this.maxSpeed && !keys.UP_ARROW && !keys.DOWN_ARROW) {
+            this.moveForce.mult(0.92);
+        } 
+        else {
+            this.moveForce.limit(this.maxSpeedTurbo)
+        }
+
+        // ——— RE-DIRECTION ———
         forward = p5.Vector.fromAngle(this.angle);
-        let dir = keys.DOWN_ARROW ? 
-        p5.Vector.lerp(
-            this.moveForce.copy().normalize(), 
-            this.moveForce.copy().normalize(), 
-            finalTraction * dt).normalize() : 
-        p5.Vector.lerp(
-            this.moveForce.copy().normalize(), 
-            forward, 
-            finalTraction * dt).normalize();
+        let dir = (keys.DOWN_ARROW && !isDrifting) ?
+            p5.Vector.lerp(
+                this.moveForce.copy().normalize(),
+                this.moveForce.copy().normalize(),
+                finalTraction * dt
+            ).normalize() :
+            p5.Vector.lerp(
+                this.moveForce.copy().normalize(),
+                forward,
+                finalTraction * dt
+            ).normalize();
         this.moveForce = dir.mult(this.moveForce.mag());
 
-        if (!this.allowBackDrift) {
-            // compute how much of moveForce is along forward
+        // ——— BACK-DRIFT BLOCKING ———
+        if (!this.allowBackDrift && this.acc > 0) {
             let forwardComp = p5.Vector.dot(this.moveForce, forward);
             if (forwardComp < 0) {
-                // remove the backward projection, keep only lateral component
                 this.moveForce = p5.Vector.sub(
                     this.moveForce,
                     p5.Vector.mult(forward, forwardComp)
@@ -145,15 +173,18 @@ class Car {
             }
         }
 
-        this.acc = constrainn(this.acc, -3, 3);
+        // ——— APPLY THRUST & FINAL SPEED CLAMP ———
+        this.acc = constrainn(this.acc, -1, 1);
         this.moveForce.add(p5.Vector.mult(forward, this.moveSpeed * this.acc * dt));
-        this.position.add(p5.Vector.mult(this.moveForce, dt));
-        this.edges();
+        this.moveForce.limit(this.maxSpeedTurbo);
 
-        this.addAnimations(forward, keys);
+        return this.moveForce.copy().mult(dt);
     }
 
-    addAnimations(forward, keys){
+
+    addAnimations(){
+        let forward = p5.Vector.fromAngle(this.angle);
+        let keys = this.getKeys();
         this.calculateTirePositions(forward);
         if(this.moveForce.mag() > 0 || keys.DOWN_ARROW) {
             let velNorm = this.moveForce.copy().normalize();
