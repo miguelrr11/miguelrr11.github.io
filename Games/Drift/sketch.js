@@ -43,12 +43,14 @@ async function setup(){
     frameRate(60);
     carImg = await loadImage('carimg.png');
     policeCarImg = await loadImage('police.png');
+    let fontP = await loadFont("migUI/main/bnr.ttf")
     tabs = new TabManager({
         x: WIDTH,
         automaticHeight: false,
         w: WIDTH_UI,
         title: "Car Controls",
-        darkCol: [0, 0, 0, 70]
+        darkCol: [0, 0, 0, 70],
+        font: fontP,
     })
     panel = tabs.createTab('Car Controls');
     stats = tabs.createTab('Stats');
@@ -67,7 +69,7 @@ async function setup(){
     s5.setFunc((value) => car.traction = value);
     s6.setFunc((value) => car.deltaSteerMult = value);
     s7.setFunc((value) => car.latDrag = value);
-    let cb = panel.createCheckbox("Allow Back Drift", car.allowBackDrift);
+    let cb = panel.createCheckbox("Allow Back Drifting", car.allowBackDrift);
     cb.setFunc((arg) => car.allowBackDrift = arg);
     let cb2 = panel.createCheckbox("Continuous Drifting", car.continuousDrift);
     cb2.setFunc((arg) => car.continuousDrift = arg);
@@ -110,6 +112,7 @@ async function setup(){
     pl.setFunc(() => frameRate().toFixed(2));
     pl.setMaxMinAbs(60, 0)
     pl.setLimitData(60)
+    pl.showValueInTitle = true;
 
     let nChange = policeOptions.createNumberPicker("Number of Police Cars", 0, 20, 1, nPoliceCars)
     nChange.setFunc((value) => {

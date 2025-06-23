@@ -42,12 +42,21 @@ class Car {
         this.counterDrift = 0;
         this.miniTurboCounter = 0
         this.currentTurboProportion = 1
+        this.miniTurboProportions = [1.2, 1.5, 2];
+        this.miniTurboDurations = [1, 1.5, 1.9]; 
+        this.miniTurboTimeRequired = [7, 25, 40]
+        this.miniTurboTractions = [0.4, 0.3, 0.15];
+
+        this.minTraction = Math.min(...this.miniTurboTractions);
+        this.maxTraction = Math.max(...this.miniTurboTractions);
 
         this.skidLeft = [];
         this.skidRight = [];
         this.maxSkidPoints = 70;
         this.leftTire = createVector(0, 0);
-        this.rightTire = createVector(0, 0);;
+        this.rightTire = createVector(0, 0);
+        this.driftCenter = createVector(0, 0);
+        this.lastPositions = [createVector(0, 0), createVector(0, 0), createVector(0, 0), createVector(0, 0), createVector(0, 0)];
     }
 
     addSepSkid() {
@@ -78,11 +87,18 @@ class Car {
         let driftForce = this.getForceDrift()
         
         this.position.add(driftForce);
+        // ——— UPDATE LAST POSITIONS FOR DRIFT CENTER CALCULATION ———
+        this.lastPositions[4] = this.lastPositions[3];
+        this.lastPositions[3] = this.lastPositions[2];
+        this.lastPositions[2] = this.lastPositions[1];
+        this.lastPositions[1] = this.lastPositions[0];
+        this.lastPositions[0] = this.position.copy();
         this.edges();
 
         this.addAnimations();
     }
 
+    // Esta funcion calcula la fuerza final del coche
     getForceDrift() {
         const dt = deltaTime * 0.01
 
@@ -97,12 +113,22 @@ class Car {
             vInput = -1;
         }
 
-        if(isDrifting){
+        // ——— CONTROL ANGLE OF DRIFT ———
+        if(isDrifting) {
             if(keys.UP_ARROW) this.actualTraction -= 0.05 * dt;
             else if(keys.DOWN_ARROW) this.actualTraction += 0.05 * dt;
-            this.actualTraction = constrainn(this.actualTraction, this.traction * 0.5, this.traction * 1.5)
+            let mint, maxt  
+            if(this.miniTurboCounter > 0) {
+                mint = this.traction * this.minTraction;
+                maxt = this.traction * this.maxTraction;
+            }
+            else {
+                mint = this.traction * 0.5;
+                maxt = this.traction * 1.5;
+            }
+            this.actualTraction = constrainn(this.actualTraction, mint, maxt);
         }
-        else this.actualTraction = lerp(this.actualTraction, this.traction, 0.1);
+        else if(this.miniTurboCounter == 0) this.actualTraction = lerp(this.actualTraction, this.traction, 0.1);
 
         let finalTraction = this.actualTraction
 
@@ -114,6 +140,7 @@ class Car {
         if (!keys.UP_ARROW && (!this.continuousDrift || (!keys.LEFT_ARROW && !keys.RIGHT_ARROW)) && !keys.DOWN_ARROW) {
             if (this.alwaysMoving) {
                 this.acc = 0.5
+                this.moveForce.limit(this.maxSpeed * this.currentTurboProportion);
             } 
             else {
                 this.acc = 0
@@ -146,6 +173,7 @@ class Car {
         // ——— ROTATION ———
         let speed = this.moveForce.mag();
         let steerRad = radians(this.steerAngle);
+        let prevAngle = this.angle;
         this.angle += (this.latSpeed * speed * steerRad * dt * finalTraction);
 
         // ——— DRAG & SPEED LIMIT ———
@@ -180,13 +208,16 @@ class Car {
             }
         }
 
-        
-
         // ——— APPLY THRUST & FINAL SPEED CLAMP ———
         this.acc = constrainn(this.acc, -1, 1);
         this.moveForce.add(p5.Vector.mult(forward, this.moveSpeed * this.acc * dt));
         if(this.miniTurboCounter == 0) this.moveForce.limit(this.maxSpeedTurbo * this.currentTurboProportion);
 
+        // ——— DRIFT CENTER CALCULATION ———
+        this.setDriftCenter()
+    
+
+        // ——— MINI TURBO CALCULATIONS ———
         if(this.counterDrift > 0 && !isDrifting && this.miniTurboCounter == 0) {
             this.getMiniTurbo();
         }
@@ -201,33 +232,47 @@ class Car {
         }
 
         // ——— MINI TURBO DRIFTING CALCULATIONS ———
-        let isActuallyDrfiting = isDrifting && !keys.DOWN_ARROW && !keys.UP_ARROW && speed > 15 && this.miniTurboCounter == 0
+        let isActuallyDrfiting = isDrifting && speed > 15 && this.miniTurboCounter == 0
         this.counterDrift = isActuallyDrfiting ? this.counterDrift + dt : 0
 
         return this.moveForce.copy().mult(dt);
     }
 
-    getMiniTurbo(){
-        if(this.counterDrift > 50){
-            this.moveForce.normalize().mult(this.maxSpeedTurbo * 2);
-            this.latAcc = 0;
-            this.currentTurboProportion = 2
-            this.miniTurboCounter = 60 * 2
-        }
-        else if(this.counterDrift > 30){
-            this.moveForce.normalize().mult(this.maxSpeedTurbo * 1.5);
-            this.latAcc = 0;
-            this.currentTurboProportion = 1.5
-            this.miniTurboCounter = 60 * 1.6
-        }
-        else if(this.counterDrift > 10){
-            this.moveForce.normalize().mult(this.maxSpeedTurbo * 1.2);
-            this.latAcc = 0;
-            this.currentTurboProportion = 1.2
-            this.miniTurboCounter = 60 * 1.2
-        }
-        else this.currentTurboProportion = 1;
+    setDriftCenter(){
+        let c1 = findCircleCenter(
+            this.lastPositions[0],
+            this.lastPositions[1],
+            this.lastPositions[2]
+        );
+        let c2 = findCircleCenter(
+            this.lastPositions[1],
+            this.lastPositions[2],
+            this.lastPositions[3]
+        );
+        let c3 = findCircleCenter(
+            this.lastPositions[2],
+            this.lastPositions[3],
+            this.lastPositions[4]
+        );
+        this.driftCenter = createVector(
+            (c1.x + c2.x + c3.x) / 3,
+            (c1.y + c2.y + c3.y) / 3
+        );
     }
+
+    getMiniTurbo() {
+        for (let i = this.miniTurboTimeRequired.length - 1; i >= 0; i--) {
+            if (this.counterDrift > this.miniTurboTimeRequired[i]) {
+                this.latAcc = 0;
+                this.actualTraction = this.traction * this.miniTurboTractions[i];
+                this.currentTurboProportion = this.miniTurboProportions[i];
+                this.miniTurboCounter = 60 * this.miniTurboDurations[i];
+                return;
+            }
+        }
+        this.currentTurboProportion = 1;
+    }
+
 
 
     addAnimations(){
@@ -300,6 +345,11 @@ class Car {
         line(this.position.x, this.position.y, this.position.x + this.moveForce.x * 5, this.position.y + this.moveForce.y * 5);
         stroke(255, 0, 0, 120);
         line(this.position.x, this.position.y, this.position.x + Math.cos(this.angle) * 50, this.position.y + Math.sin(this.angle) * 50);
+        strokeWeight(6)
+        stroke(0, 255, 0, 70);
+        point(this.driftCenter.x, this.driftCenter.y);
+        strokeWeight(2)
+        line(this.position.x, this.position.y, this.driftCenter.x, this.driftCenter.y);
     }
 
     show() {
@@ -427,4 +477,41 @@ function addAnimationTurbo(x, y) {
 
     particle.trans = random(200, 255);
     if(animations.length <= ANIM_CAP) animations.push(particle);
+}
+
+
+function findCircleCenter(p1, p2, p3) {
+  const ax = p1.x, ay = p1.y;
+  const bx = p2.x, by = p2.y;
+  const cx = p3.x, cy = p3.y;
+
+  // Determinant
+  const D = 2 * (
+    ax * (by - cy) +
+    bx * (cy - ay) +
+    cx * (ay - by)
+  );
+  if (abs(D) < 1e-10) {
+    return createVector(-1, -1); // Points are collinear or too close
+  }
+
+  // Squares for reuse
+  const a2 = ax*ax + ay*ay;
+  const b2 = bx*bx + by*by;
+  const c2 = cx*cx + cy*cy;
+
+  // Circumcenter formula
+  const ux = (
+    a2 * (by - cy) +
+    b2 * (cy - ay) +
+    c2 * (ay - by)
+  ) / D;
+
+  const uy = (
+    a2 * (cx - bx) +
+    b2 * (ax - cx) +
+    c2 * (bx - ax)
+  ) / D;
+
+  return createVector(ux, uy);
 }

@@ -179,9 +179,6 @@ class Panel{
 	    textAlign(LEFT);
 	}
 
-	updateLastPos(){
-
-	}
 
 	createCheckbox(title = "", state = false) {
 	    let newX, newY;
@@ -214,6 +211,7 @@ class Panel{
 	        newY = this.lastElementPos.y;
 	    }
 		let off = this.padding*5
+		textSize(text_SizeMIGUI-1)
 		let maxLength = Math.min(8 + textWidth(title), newX + this.w - newX - off)
 		let newTitle = getClippedTextByPixelsMIGUI(title, maxLength, text_SizeMIGUI-1)
 

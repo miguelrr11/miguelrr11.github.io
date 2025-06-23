@@ -93,7 +93,8 @@ class TabManager{
 
     showLinesTabs(){
         push()
-        stroke(this.panel.lightCol)
+        strokeWeight(1)
+        stroke(...this.panel.lightCol, 150)
         for(let yl of this.Ylines){
             line(this.panel.pos.x+1, yl, this.panel.pos.x + this.panel.w, yl)
         }

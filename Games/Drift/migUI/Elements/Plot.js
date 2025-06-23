@@ -15,6 +15,8 @@ class Plot {
         this.pos = { x, y };
         this.plotPos = { x, y: y + this.plotOffset };
 
+        this.showValueInTitle = false;
+
         this.height = 80;
         this.h = this.height - this.plotOffset;
         this.w = width_elementsMIGUI;
@@ -306,7 +308,8 @@ class Plot {
             fill(this.lightCol);
             textAlign(LEFT, CENTER);
             textSize(text_SizeMIGUI - 1);
-            text(this.title, this.pos.x, this.pos.y + 7);
+            let title = this.showValueInTitle ? `${this.title}: ${this.getSimpleInt(this.series[0].data[this.series[0].data.length - 1])}` : this.title;
+            text(title, this.pos.x, this.pos.y + 7);
         }
         pop();
 
