@@ -7,6 +7,8 @@ const WIDTH = 1200
 const HEIGHT = 700
 const WIDTH_UI = 250
 
+const backCol = 130
+
 let car, policeCars = []
 let nPoliceCars = 5
 let ice = {
@@ -44,7 +46,7 @@ async function setup(){
         automaticHeight: false,
         w: WIDTH_UI,
         retractable: true,
-        title: "Car Controls",
+        //title: "Car Controls",
         darkCol: [0, 0, 0, 70]
     })
     panel.padding = 7
@@ -74,7 +76,7 @@ async function setup(){
     let b = panel.createCheckbox("Show Debug", true)
     b.setFunc((arg) => showDebug = arg);
     showDebug = b.isChecked();
-    let pos = panel.createText()
+    //let pos = panel.createText()
     let moveForce = panel.createText()
     let speed = panel.createText()
     let angle = panel.createText()
@@ -82,7 +84,9 @@ async function setup(){
     let latAcc = panel.createText()
     let latSpeed = panel.createText()
     let slipAngle = panel.createText()
-    pos.setFunc(() => `Position: ${car.position.x.toFixed(2)}, ${car.position.y.toFixed(2)}`);
+    let driftCounter = panel.createText()
+    let miniTurboCounter = panel.createText()
+    //pos.setFunc(() => `Position: ${car.position.x.toFixed(2)}, ${car.position.y.toFixed(2)}`);
     moveForce.setFunc(() => `Move Force: ${car.moveForce.x.toFixed(2)}, ${car.moveForce.y.toFixed(2)}`);
     angle.setFunc(() => `Angle: ${degrees(car.angle%PI).toFixed(0)}`);
     acc.setFunc(() => `Acceleration: ${car.acc.toFixed(2)}`);
@@ -90,10 +94,12 @@ async function setup(){
     latSpeed.setFunc(() => `Lateral Speed: ${car.latSpeed.toFixed(2)}`);
     speed.setFunc(() => `Speed: ${car.moveForce.mag().toFixed(2)}`);
     slipAngle.setFunc(() => `Slip Angle: ${(round(degrees(car.slipAngle%PI)))}`);
+    driftCounter.setFunc(() => `Drift Counter: ${car.counterDrift.toFixed(2)}`);
+    miniTurboCounter.setFunc(() => `Mini Turbo Counter: ${car.miniTurboCounter.toFixed(2)}`);
 }
 
 function draw() {
-    background(200);
+    background(backCol);
 
     let aux = car.position.y - HEIGHT / 2;
     translate(0, -car.position.y + HEIGHT / 2);

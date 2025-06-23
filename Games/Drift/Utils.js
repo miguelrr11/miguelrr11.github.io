@@ -146,6 +146,14 @@ function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {
     }
 }
 
+function drawTriangle(tam) {
+    beginShape();
+    vertex(-tam / 2, -tam / 2);
+    vertex(tam / 2, -tam / 2);
+    vertex(0, tam / 2);
+    endShape();
+}
+
 // ===================
 // String Utilities
 // ===================

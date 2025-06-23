@@ -36,7 +36,10 @@ class Car {
         this.slipThreshold = 0.3;
         this.slipAngle = 0; 
         this.alwaysMoving = false
-        
+
+        this.counterDrift = 0;
+        this.miniTurboCounter = 0
+        this.currentTurboProportion = 0
 
         this.skidLeft = [];
         this.skidRight = [];
@@ -86,11 +89,9 @@ class Car {
         let keys = this.getKeys()
         let isDrifting = keys.LEFT_ARROW || keys.RIGHT_ARROW
         let finalTraction = this.traction;
-        if (keys.UP_ARROW) {
+        if (keys.UP_ARROW || this.miniTurboCounter > 0) {
             vInput = 1;
             finalTraction = this.traction * 0.5;
-            let midPosTires = p5.Vector.add(this.leftTire, this.rightTire).mult(0.5);
-            addAnimationTurbo.call(this, midPosTires.x, midPosTires.y);
         }
         else if (keys.DOWN_ARROW) {
             vInput = -1;
@@ -142,9 +143,6 @@ class Car {
         // this.moveForce.mult(this.drag)
         if (speed > this.maxSpeed && !keys.UP_ARROW && !keys.DOWN_ARROW) {
             this.moveForce.mult(0.92);
-        } 
-        else {
-            this.moveForce.limit(this.maxSpeedTurbo)
         }
 
         // ——— RE-DIRECTION ———
@@ -163,7 +161,7 @@ class Car {
         this.moveForce = dir.mult(this.moveForce.mag());
 
         // ——— BACK-DRIFT BLOCKING ———
-        if (!this.allowBackDrift && this.acc > 0) {
+        if (!this.allowBackDrift && this.acc >= 0) {
             let forwardComp = p5.Vector.dot(this.moveForce, forward);
             if (forwardComp < 0) {
                 this.moveForce = p5.Vector.sub(
@@ -173,12 +171,53 @@ class Car {
             }
         }
 
+        
+
         // ——— APPLY THRUST & FINAL SPEED CLAMP ———
         this.acc = constrainn(this.acc, -1, 1);
         this.moveForce.add(p5.Vector.mult(forward, this.moveSpeed * this.acc * dt));
-        this.moveForce.limit(this.maxSpeedTurbo);
+        if(this.miniTurboCounter == 0) this.moveForce.limit(this.maxSpeedTurbo);
+
+        if(this.counterDrift > 0 && !isDrifting && this.miniTurboCounter == 0) {
+            this.getMiniTurbo();
+        }
+        else if(this.miniTurboCounter > 0) {
+            this.miniTurboCounter = Math.max(0, this.miniTurboCounter - 1);
+            if(this.miniTurboCounter == 0) {
+                this.currentTurboProportion = 1;
+            }
+            else{
+                this.moveForce.setMag(this.maxSpeedTurbo * this.currentTurboProportion);
+            }
+        }
+
+        // ——— MINI TURBO DRIFTING CALCULATIONS ———
+        let isActuallyDrfiting = isDrifting && !keys.DOWN_ARROW && !keys.UP_ARROW && speed > 15 && this.miniTurboCounter == 0
+        this.counterDrift = isActuallyDrfiting ? this.counterDrift + dt : 0
 
         return this.moveForce.copy().mult(dt);
+    }
+
+    getMiniTurbo(){
+        if(this.counterDrift > 50){
+            this.moveForce.normalize().mult(this.maxSpeedTurbo * 2);
+            this.latAcc = 0;
+            this.currentTurboProportion = 2
+            this.miniTurboCounter = 60 * 2
+        }
+        else if(this.counterDrift > 30){
+            this.moveForce.normalize().mult(this.maxSpeedTurbo * 1.5);
+            this.latAcc = 0;
+            this.currentTurboProportion = 1.5
+            this.miniTurboCounter = 60 * 1.6
+        }
+        else if(this.counterDrift > 10){
+            this.moveForce.normalize().mult(this.maxSpeedTurbo * 1.2);
+            this.latAcc = 0;
+            this.currentTurboProportion = 1.2
+            this.miniTurboCounter = 60 * 1.2
+        }
+        else this.currentTurboProportion = 1;
     }
 
 
@@ -211,6 +250,24 @@ class Car {
         fumesPos.x += randomm(-2, 2);
         fumesPos.y += randomm(-2, 2);
         addAnimationIdle.call(this, fumesPos.x, fumesPos.y);
+        let midPosTires = p5.Vector.add(this.leftTire, this.rightTire).mult(0.5);
+        if (keys.UP_ARROW) {
+            for(let i = 0; i < 2; i++) addAnimationTurbo.call(this, midPosTires.x, midPosTires.y);
+        }
+        if(this.miniTurboCounter > 0) {
+            let iter = Math.floor(this.miniTurboCounter / 20);
+            for(let i = 0; i < iter; i++) addAnimationTurbo.call(this, midPosTires.x, midPosTires.y);
+        }
+        let many = 3
+        if(this.counterDrift >= 50) {
+            for(let i = 0; i < many; i++) addAnimationMiniTurbo.call(this, midPosTires.x, midPosTires.y, 3);
+        }
+        else if(this.counterDrift >= 30) {
+            for(let i = 0; i < many; i++) addAnimationMiniTurbo.call(this, midPosTires.x, midPosTires.y, 2);
+        }
+        else if(this.counterDrift >= 10) {
+            for(let i = 0; i < many; i++) addAnimationMiniTurbo.call(this, midPosTires.x, midPosTires.y, 1);
+        }
     }
 
     calculateTirePositions() {
@@ -250,7 +307,7 @@ class Car {
             let p = arr[i],
                 q = arr[i + 1];
             if(p && q) {
-                stroke(mapp(i, 0, arr.length - 1, 190, 50));
+                stroke(mapp(i, 0, arr.length - 1, backCol, 50));
                 line(p.x, p.y + 1, q.x, q.y + 1);
             }
         }
@@ -303,28 +360,62 @@ function addAnimationDrift(x, y){
     animations.push(particle)
 }
 
-function addAnimationTurbo(x, y){
+function addAnimationMiniTurbo(x, y, level){
     if(Math.random() < 0.1) return; // reduce frequency of skid particles
-    let dir = p5.Vector.fromAngle(this.angle).normalize().mult(-1)
-    if(Math.random() < 0.15){
-        let mult = Math.random() < 0.5 ? 1 : -1;
-        dir.rotate(0.4 * mult);
+    let dir = this.moveForce.copy().normalize().mult(-1);
+    let col
+    if(level == 1) col = lerppColor([208, 1, 0], [250, 163, 7], random())
+    else if(level == 2) col = lerppColor([0, 119, 182], [173, 232, 244], random())
+    else if(level == 3) col = lerppColor([161, 0, 242], [244, 192, 244], random())
+    let randVar = Math.random() < 0.15
+    if(randVar){
+        col = [255, 255, 255]
+        dir.mult(0.5)
     }
-    let col = lerppColor([208, 1, 0], [250, 163, 7], random())
     let particle = new Particle(
         x + random(-5, 5),
         y + random(-5, 5),
         col, // color
-        15, // lifespan
-        dir.mult(this.moveForce.mag() * 0.15), // vel
+        randVar ? 10 : 10, // lifespan
+        dir, // vel
         createVector(0, 0), // acc
-        1, // friction
+        randVar ? 0.8 : 0.96, // friction
         0,
-        0,
-        random(2, 14), // size
-        'ellipse', // shape
+        0.2,
+        randVar ? 6 : random(10, 15), // size
+        'triangle', // shape
         false
     )
-    particle.trans = random(200, 255)
     animations.push(particle)
+}
+
+function addAnimationTurbo(x, y) {
+    if (Math.random() < 0.1) return
+    let dir = p5.Vector.fromAngle(this.angle).normalize().mult(-1);
+    if (Math.random() < 0.22) {
+        let mult = Math.random() < 0.5 ? 1 : -1;
+        dir.rotate(0.4 * mult);
+    }
+    let offsetDistance = random(-10, 10);
+    let offset = dir.copy().mult(offsetDistance)
+    let posX = x + offset.x;
+    let posY = y + offset.y;
+    let col = lerppColor([208, 1, 0], [250, 163, 7], random());
+    let particle = new Particle(
+        posX,
+        posY,
+        col,
+        15,
+        dir.copy().mult(this.moveForce.mag() * 0.15),
+        createVector(0, 0),
+        1,
+        0,
+        0,
+        random(2, 14),
+        'ellipse',
+        false
+    );
+
+    particle.trans = random(200, 255);
+    animations.push(particle);
 }

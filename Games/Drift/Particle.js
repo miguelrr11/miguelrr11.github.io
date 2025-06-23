@@ -17,7 +17,7 @@ class Particle{
     }
 
     dead(){
-        return this.lifespan <= 0
+        return this.lifespan <= 0 || this.trans <= 10
     }
 
     update(){
