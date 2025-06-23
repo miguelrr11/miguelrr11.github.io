@@ -86,6 +86,7 @@ async function setup(){
     let acc = stats.createText()
     let latAcc = stats.createText()
     let latSpeed = stats.createText()
+    let actualTraction = stats.createText()
     let slipAngle = stats.createText()
     let driftCounter = stats.createText()
     let miniTurboCounter = stats.createText()
@@ -102,6 +103,7 @@ async function setup(){
     driftCounter.setFunc(() => `Drift Counter: ${car.counterDrift.toFixed(2)}`);
     miniTurboCounter.setFunc(() => `Mini Turbo Counter: ${car.miniTurboCounter.toFixed(2)}`);
     nanims.setFunc(() => `Particles: ${animations.length}`);
+    actualTraction.setFunc(() => `Actual Traction: ${car.actualTraction.toFixed(2)}`);
     
     stats.createSeparator();
     let pl = stats.createPlot("FPS")

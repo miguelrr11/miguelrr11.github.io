@@ -27,6 +27,8 @@ class Car {
         this.allowBackDrift = allowBackDrift
         this.continuousDrift = continuousDrift;
 
+        this.actualTraction = this.traction
+
         this.position = createVector(WIDTH/2, HEIGHT / 2);
         this.moveForce = createVector(0, 0);
         this.angle = 0; 
@@ -88,15 +90,21 @@ class Car {
         let vInput = 0
         let keys = this.getKeys()
         let isDrifting = keys.LEFT_ARROW || keys.RIGHT_ARROW
-        let finalTraction = this.traction;
         if (keys.UP_ARROW || this.miniTurboCounter > 0) {
             vInput = 1;
-            finalTraction = this.traction * 0.5;
         }
-        else if (keys.DOWN_ARROW) {
+        else if (keys.DOWN_ARROW && !isDrifting) {
             vInput = -1;
-            finalTraction = this.traction * 0.5;
         }
+
+        if(isDrifting){
+            if(keys.UP_ARROW) this.actualTraction -= 0.05 * dt;
+            else if(keys.DOWN_ARROW) this.actualTraction += 0.05 * dt;
+            this.actualTraction = constrainn(this.actualTraction, this.traction * 0.5, this.traction * 1.5)
+        }
+        else this.actualTraction = lerp(this.actualTraction, this.traction, 0.1);
+
+        let finalTraction = this.actualTraction
 
 
         // ——— ACCELERATION & BRAKING ———
