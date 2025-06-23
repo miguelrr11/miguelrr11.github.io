@@ -39,7 +39,7 @@ class Car {
 
         this.counterDrift = 0;
         this.miniTurboCounter = 0
-        this.currentTurboProportion = 0
+        this.currentTurboProportion = 1
 
         this.skidLeft = [];
         this.skidRight = [];
@@ -98,6 +98,7 @@ class Car {
             finalTraction = this.traction * 0.5;
         }
 
+
         // ——— ACCELERATION & BRAKING ———
         let forward = p5.Vector.fromAngle(this.angle);
         this.acc += vInput * 0.1
@@ -137,12 +138,12 @@ class Car {
         // ——— ROTATION ———
         let speed = this.moveForce.mag();
         let steerRad = radians(this.steerAngle);
-        this.angle += this.latSpeed * speed * steerRad * dt * finalTraction;
+        this.angle += (this.latSpeed * speed * steerRad * dt * finalTraction);
 
         // ——— DRAG & SPEED LIMIT ———
         // this.moveForce.mult(this.drag)
-        if (speed > this.maxSpeed && !keys.UP_ARROW && !keys.DOWN_ARROW) {
-            this.moveForce.mult(0.92);
+        if (speed > this.maxSpeedTurbo && !keys.UP_ARROW && !keys.DOWN_ARROW) {
+            this.moveForce.mult(this.drag);
         }
 
         // ——— RE-DIRECTION ———
@@ -176,7 +177,7 @@ class Car {
         // ——— APPLY THRUST & FINAL SPEED CLAMP ———
         this.acc = constrainn(this.acc, -1, 1);
         this.moveForce.add(p5.Vector.mult(forward, this.moveSpeed * this.acc * dt));
-        if(this.miniTurboCounter == 0) this.moveForce.limit(this.maxSpeedTurbo);
+        if(this.miniTurboCounter == 0) this.moveForce.limit(this.maxSpeedTurbo * this.currentTurboProportion);
 
         if(this.counterDrift > 0 && !isDrifting && this.miniTurboCounter == 0) {
             this.getMiniTurbo();
@@ -324,7 +325,7 @@ function addAnimationIdle(x, y){
         x,
         y,
         [grey, grey, grey], // color
-        50, // lifespan
+        25, // lifespan
         dir.mult(0.6), // vel
         createVector(0, 0), // acc
         0.99, // friction
@@ -335,7 +336,7 @@ function addAnimationIdle(x, y){
         false
     )
     particle.trans = random(25, 140)
-    animations.push(particle)
+    if(animations.length <= ANIM_CAP) animations.push(particle)
 }
 
 function addAnimationDrift(x, y){
@@ -357,7 +358,7 @@ function addAnimationDrift(x, y){
         false
     )
     particle.trans = random(100, 200)
-    animations.push(particle)
+    if(animations.length <= ANIM_CAP) animations.push(particle)
 }
 
 function addAnimationMiniTurbo(x, y, level){
@@ -386,7 +387,7 @@ function addAnimationMiniTurbo(x, y, level){
         'triangle', // shape
         false
     )
-    animations.push(particle)
+    if(animations.length <= ANIM_CAP) animations.push(particle)
 }
 
 function addAnimationTurbo(x, y) {
@@ -417,5 +418,5 @@ function addAnimationTurbo(x, y) {
     );
 
     particle.trans = random(200, 255);
-    animations.push(particle);
+    if(animations.length <= ANIM_CAP) animations.push(particle);
 }

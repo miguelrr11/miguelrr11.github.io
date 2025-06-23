@@ -82,6 +82,10 @@ class Plot {
         this.absMin = min;
     }
 
+    setLimitData(limit) {
+        this.limitData = constrain(limit, 10, 10000);
+    }
+
     setColors(colors){
         for(let i = 0; i < this.series.length; i++){
             this.series[i].col = colors[i] || this.series[i].col;
@@ -195,8 +199,8 @@ class Plot {
     
 
     showPlot() {
-        this.maxData = this.absMax ? this.absMax : Math.max(...this.series.map(s => s.maxData));
-        this.minData = this.absMin ? this.absMin : Math.min(...this.series.map(s => s.minData));
+        this.maxData = this.absMax != undefined ? this.absMax : Math.max(...this.series.map(s => s.maxData));
+        this.minData = this.absMin != undefined ? this.absMin : Math.min(...this.series.map(s => s.minData));
         for(let i = 0; i < this.series.length; i++) {
             let data = this.series[i].data;
             this.drawCurve(data, this.minData, this.maxData, this.series[i].col);
@@ -204,8 +208,8 @@ class Plot {
     }
 
     showHistory() {
-        this.maxDataH = this.absMax ? this.absMax : Math.max(...this.series.map(s => s.maxDataH));
-        this.minDataH = this.absMin ? this.absMin : Math.min(...this.series.map(s => s.minDataH));
+        this.maxDataH = this.absMax != undefined ? this.absMax : Math.max(...this.series.map(s => s.maxDataH));
+        this.minDataH = this.absMin != undefined ? this.absMin : Math.min(...this.series.map(s => s.minDataH));
         for(let i = 0; i < this.series.length; i++) {
             let data = this.series[i].history;
             this.drawCurve(data, this.minDataH, this.maxDataH, this.series[i].col, true);
@@ -232,7 +236,7 @@ class Plot {
         textSize(textSizeUsed);
 
         const h = textAscent() * 2 - 5;
-        const bgCol = [...this.darkCol, 200];
+        const bgCol = [this.darkCol[0], this.darkCol[1], this.darkCol[2], 200];
         const x = this.plotPos.x + this.w - textWidth(max) / 2 - 12;
 
         const yMax = this.plotPos.y + h;
@@ -314,7 +318,7 @@ class Plot {
 function computeMinMax(array) {
     const filtered = array.filter(v => v !== undefined);
     return {
-        min: this.absMin ? this.absMin : (filtered.length ? Math.min(...filtered) : undefined),
-        max: this.absMax ? this.absMax : (filtered.length ? Math.max(...filtered) : undefined)
+        min: this.absMin != undefined ? this.absMin : (filtered.length ? Math.min(...filtered) : undefined),
+        max: this.absMax != undefined ? this.absMax : (filtered.length ? Math.max(...filtered) : undefined)
     };
 }

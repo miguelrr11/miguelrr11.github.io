@@ -7,17 +7,19 @@ const WIDTH = 1200
 const HEIGHT = 700
 const WIDTH_UI = 250
 
+const ANIM_CAP = 1000
+
 const backCol = 130
 
 let car, policeCars = []
-let nPoliceCars = 5
+let nPoliceCars = 0
 let ice = {
     pos: {x: WIDTH / 2, y: HEIGHT / 2 },
     rad: 150,
 }
 let carImg, policeCarImg
 let animations = []
-let panel
+let tabs, panel, stats, policeOptions
 let showDebug
 
 let labels = [
@@ -41,15 +43,16 @@ async function setup(){
     frameRate(60);
     carImg = await loadImage('carimg.png');
     policeCarImg = await loadImage('police.png');
-    panel = new Panel({
+    tabs = new TabManager({
         x: WIDTH,
         automaticHeight: false,
         w: WIDTH_UI,
-        retractable: true,
-        //title: "Car Controls",
+        title: "Car Controls",
         darkCol: [0, 0, 0, 70]
     })
-    panel.padding = 7
+    panel = tabs.createTab('Car Controls');
+    stats = tabs.createTab('Stats');
+    policeOptions = tabs.createTab('Police Options');
     let s1 = panel.createSlider(labels[0].min, labels[0].max, car.moveSpeed, labels[0].label, true);
     let s2 = panel.createSlider(labels[1].min, labels[1].max, car.maxSpeed, labels[1].label, true);
     let s3 = panel.createSlider(labels[2].min, labels[2].max, car.drag, labels[2].label, true);
@@ -76,17 +79,19 @@ async function setup(){
     let b = panel.createCheckbox("Show Debug", true)
     b.setFunc((arg) => showDebug = arg);
     showDebug = b.isChecked();
-    //let pos = panel.createText()
-    let moveForce = panel.createText()
-    let speed = panel.createText()
-    let angle = panel.createText()
-    let acc = panel.createText()
-    let latAcc = panel.createText()
-    let latSpeed = panel.createText()
-    let slipAngle = panel.createText()
-    let driftCounter = panel.createText()
-    let miniTurboCounter = panel.createText()
-    //pos.setFunc(() => `Position: ${car.position.x.toFixed(2)}, ${car.position.y.toFixed(2)}`);
+    let pos = stats.createText()
+    let moveForce = stats.createText()
+    let speed = stats.createText()
+    let angle = stats.createText()
+    let acc = stats.createText()
+    let latAcc = stats.createText()
+    let latSpeed = stats.createText()
+    let slipAngle = stats.createText()
+    let driftCounter = stats.createText()
+    let miniTurboCounter = stats.createText()
+    stats.createSeparator();
+    let nanims = stats.createText()
+    pos.setFunc(() => `Position: ${car.position.x.toFixed(2)}, ${car.position.y.toFixed(2)}`);
     moveForce.setFunc(() => `Move Force: ${car.moveForce.x.toFixed(2)}, ${car.moveForce.y.toFixed(2)}`);
     angle.setFunc(() => `Angle: ${degrees(car.angle%PI).toFixed(0)}`);
     acc.setFunc(() => `Acceleration: ${car.acc.toFixed(2)}`);
@@ -96,6 +101,30 @@ async function setup(){
     slipAngle.setFunc(() => `Slip Angle: ${(round(degrees(car.slipAngle%PI)))}`);
     driftCounter.setFunc(() => `Drift Counter: ${car.counterDrift.toFixed(2)}`);
     miniTurboCounter.setFunc(() => `Mini Turbo Counter: ${car.miniTurboCounter.toFixed(2)}`);
+    nanims.setFunc(() => `Particles: ${animations.length}`);
+    
+    stats.createSeparator();
+    let pl = stats.createPlot("FPS")
+    pl.setFunc(() => frameRate().toFixed(2));
+    pl.setMaxMinAbs(60, 0)
+    pl.setLimitData(60)
+
+    let nChange = policeOptions.createNumberPicker("Number of Police Cars", 0, 20, 1, nPoliceCars)
+    nChange.setFunc((value) => {
+        nPoliceCars = value;
+        if (policeCars.length < nPoliceCars) {
+            for (let i = policeCars.length; i < nPoliceCars; i++) {
+                let properties = getRandomPoliceCar();
+                let policeCar = new PoliceCar(properties, car);
+                policeCar.position.x = car.position.x + randomm(-WIDTH / 2, WIDTH / 2);
+                policeCar.position.y = car.position.y + randomm(-HEIGHT / 2, HEIGHT / 2);
+                policeCar.angle = car.angle + randomm(-PI, PI);
+                policeCars.push(policeCar);
+            }
+        } else if (policeCars.length > nPoliceCars) {
+            policeCars.splice(nPoliceCars, policeCars.length - nPoliceCars);
+        }
+    });
 }
 
 function draw() {
@@ -110,18 +139,19 @@ function draw() {
         policeCars[i].drawSkids(policeCars[i].skidRight);
     }
     manageAnimations();
+    car.update();
+    car.show();
     for(let i = 0; i < policeCars.length; i++) {
         policeCars[i].update();
         policeCars[i].show();
     }
-    car.update();
-    car.show();
+    
 
     if (showDebug) car.showDebug();
 
     translate(0, aux);
-    panel.update();
-    panel.show();
+    tabs.update();
+    tabs.show();
 }
 
 function manageAnimations() {
