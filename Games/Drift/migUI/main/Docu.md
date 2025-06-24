@@ -162,6 +162,7 @@ Creates a visual separator between elements.
 - **`el.disable()`**: Disables the element. (Enabled by default)
 - **`el.enable()`**: Enables the element.
 - **`el.reposition(x, y, [w], [h])`**: Repositions the element in a given x and y and optionally modifies its dimensions
+- **`el.setHoverText(text)`**: sets the text that will be displayed when hovering over the element.
 - **`el.setFunc(func, [arg = false])`**: binds a function to the element. If `arg` is set to true, the function will be called with an argument. Here are the details:
 | Element           | Function execution          | Argument            |
 |-------------------|-----------------------------|---------------------|

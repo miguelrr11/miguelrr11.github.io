@@ -16,6 +16,7 @@ let picker_width = 100
 
 const WIDTH_OPTIONPICKER = 170
 const WIDTH_NUMBERPICKER = 100
+const HOVER_TIME_MIGUI = 40
 
 /*
 200 - 20
@@ -161,6 +162,8 @@ class Panel{
 	        this.darkCol
 	    );
 
+		this.retractButton.panel = this
+
 		this.retractButton.setFunc(() => {
 			this.isRetracted = !this.isRetracted;
 			this.retractButton.text = this.isRetracted ? " Expand Menu" : " Retract Menu";
@@ -179,9 +182,6 @@ class Panel{
 	    textAlign(LEFT);
 	}
 
-	updateLastPos(){
-
-	}
 
 	createCheckbox(title = "", state = false) {
 	    let newX, newY;
@@ -214,10 +214,12 @@ class Panel{
 	        newY = this.lastElementPos.y;
 	    }
 		let off = this.padding*5
+		textSize(text_SizeMIGUI-1)
 		let maxLength = Math.min(8 + textWidth(title), newX + this.w - newX - off)
 		let newTitle = getClippedTextByPixelsMIGUI(title, maxLength, text_SizeMIGUI-1)
 
 	    const checkbox = new Checkbox(newX, newY, newTitle, state, this.lightCol, this.darkCol, this.transCol);
+		checkbox.panel = this
 	    this.checkboxes.push(checkbox);
 	    this.lastElementAdded = checkbox;
 	    if(needsNewLine) this.lastElementPos.y += checkbox.height + this.padding
@@ -240,6 +242,7 @@ class Panel{
 								posSlider.x, posSlider.y,
 								min, max, origin, title, showValue,
 								this.lightCol, this.darkCol, this.transCol) //<= === 
+		slider.panel = this
 		// if(title == "" && !showValue) this.lastElementPos.y += 22
 		// else this.lastElementPos.y += 37
 		this.lastElementPos.y += slider.height + this.padding
@@ -261,6 +264,7 @@ class Panel{
 									spacedWords, isTitle, bold,
 									this.lightCol, this.darkCol, this.transCol)
 		sentence.w = this.w
+		sentence.panel = this
 		
 		this.lastElementPos.y += sentence.height + this.padding
 		
@@ -285,6 +289,8 @@ class Panel{
 		//this.lastElementPos.y += (select.options.length*20) + 10
 		this.lastElementPos.y += select.height + this.padding
 
+		select.panel = this
+
 		this.selects.push(select)
 		this.lastElementAdded = select
 
@@ -301,6 +307,8 @@ class Panel{
 							  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 30
 		this.lastElementPos.y += input.height + this.padding
+
+		input.panel = this
 
 		this.inputs.push(input)
 		this.lastElementAdded = input
@@ -343,6 +351,7 @@ class Panel{
 	    }
 		
 		let button = new Button(newX, newY, sentence,  this.lightCol, this.darkCol, this)
+		button.panel = this
 		if(creatingTab){
 			button.h = TAB_HEIGHT
 			button.textSize = text_SizeMIGUI-3
@@ -368,6 +377,7 @@ class Panel{
 										  newTitle,  def, 
 										  this.lightCol, this.darkCol, this.transCol)
 		this.lastElementPos.y += colorPicker.height + this.padding
+		colorPicker.panel = this
 		this.colorPickers.push(colorPicker)
 		this.lastElementAdded = colorPicker
 
@@ -389,6 +399,7 @@ class Panel{
 										  this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 25
 		this.lastElementPos.y += numberPicker.height + this.padding
+		numberPicker.panel = this
 		this.numberPickers.push(numberPicker)
 		this.lastElementAdded = numberPicker
 
@@ -403,6 +414,7 @@ class Panel{
 							this.lastElementPos.y, title, nSeries,
 							this.lightCol, this.darkCol)
 		plot.title = title
+		plot.panel = this
 		this.plots.push(plot)
 		this.lastElementAdded = plot
 
@@ -424,6 +436,7 @@ class Panel{
 								this.lightCol, this.darkCol, this.transCol)
 		//this.lastElementPos.y += 25
 		this.lastElementPos.y += optionPicker.height + this.padding
+		optionPicker.panel = this
 		this.optionPickers.push(optionPicker)
 		this.lastElementAdded = optionPicker
 
@@ -648,6 +661,7 @@ class Panel{
 		stroke(this.darkCol)
 		text(this.title, this.titlePos.x, this.titlePos.y)
 
+
 		for(let b of this.checkboxes) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.sliders) this.beingHoveredHand = b.show() || this.beingHoveredHand 
 		for(let b of this.sentences) b.show()
@@ -656,7 +670,7 @@ class Panel{
 		for(let b of this.buttons) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.numberPickers) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.optionPickers) this.beingHoveredHand = b.show() || this.beingHoveredHand
-		for(let b of this.plots) b.show()
+		for(let b of this.plots) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.colorPickers){ 
 			this.beingHoveredHand = b.show() || this.beingHoveredHand
 			if(b.isChoosing) this.activeCP = b
@@ -671,8 +685,8 @@ class Panel{
 		if(this.activeCP) this.activeCP.show()
 		pop()
 
-		if(this.beingHoveredHand) cursor(HAND)
-		else if(this.beingHoveredText) cursor(TEXT)
+		if(this.beingHoveredHand) {cursor(HAND); this.beingHoveredHand.showHoveredText()}
+		else if(this.beingHoveredText) {cursor(TEXT); this.beingHoveredText.showHoveredText()}
 		else cursor(ARROW) 	//esta linea puede interferir si el usuario quiere cambiar el cursor
 
 		pop()
@@ -712,7 +726,7 @@ function drawGradientRainbow(x, y, w, h){
 		let hue = map(i, 0, numStops, 0, 360);
 		let color = `hsl(${hue}, 100%, 50%)`;
 
-		gradient.addColorStop(i / numStops, color);
+		gradient.addColorStop(i / (numStops), color);
 	}
 	ctx.fillStyle = gradient;
 	ctx.fillRect(x, y, w, h);
@@ -727,7 +741,26 @@ function hexToRgbMIGUI(hex) {
   ] : null;
 }
 
-
+function showHoveredTextMIGUI(textHover, ogpanel){
+	if(!textHover || textHover == "") return
+	push()
+	let w = ogpanel.w * 0.8
+	fill(255, 255, 255, 200)
+	stroke(0, 0, 0, 100)
+	strokeWeight(1)
+	textSize(text_SizeMIGUI-2)
+	textAlign(LEFT, TOP)
+	let bbox = textFont().textBounds(textHover, mouseX, mouseY, w);
+	let off = 5
+	let x = bbox.x - off
+	let y = bbox.y - off
+	if(x + bbox.w + off*2 > width) x = width - bbox.w - off*2
+	if(y + bbox.h + off*2 > height) y = height - bbox.h - off*2
+	rect(x, y, bbox.w + off*2, bbox.h + off*2, 5);
+	fill(0)
+	text(textHover, x + off, y + off, w)
+	pop()
+}
 
 
 function getClippedTextSEMIGUI(text, start, end){

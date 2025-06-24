@@ -6,7 +6,7 @@ p5.disableFriendlyErrors = true
 const WIDTH = 600
 const HEIGHT = 800
 
-let panel
+let panel, panel2
 let back = 100
 
 let cb1, cb2, cb3
@@ -52,22 +52,31 @@ async function setup(){
     cb1 = panel.createCheckbox("RED", false)
     cb2 = panel.createCheckbox("Green", false)
     cb3 = panel.createCheckbox("Blue!", false)
+    cb1.setHoverText("Click to toggle red")
+    cb2.setHoverText("Click to toggle green")
+    cb3.setHoverText("Click to toggle blue")
 
     cp = panel.createColorPicker("color pick me")
+    cp.setHoverText("Click to pick a color")
 
     sl1 = panel.createSlider(0, 255, 100, "R", true)
     sl2 = panel.createSlider(0, 255, 0, "G", true)
     sl3 = panel.createSlider(0, 255, 0, "B", true)
+    sl1.setHoverText("Click to set red value")
+    sl2.setHoverText("Click to set green value")
+    sl3.setHoverText("Click to set blue value")
 
     tt = panel.createText("COOL TITLE", true)
 
-    ss = panel.createSelect(["COOL", "AMAZING", "FABULOUS"], "COOL")  
+    ss = panel.createSelect(["COOL", "AMAZING", "FABULOUS"], "COOL")
+    ss.setHoverText("Click to select a value")
 
     panel.createSeparator()
 
     panel.createText("Enter number between 0 and 255 below and press enter")
     ip = panel.createInput("Enter value ")
     ip.setFunc(setval)
+    ip.setHoverText("Click to set value for slider 1")
 
     panel.createSeparator()
 
@@ -77,16 +86,22 @@ async function setup(){
     bt.setFunc(f => back = 0)
     bt2.setFunc(f => back = 125)
     bt3.setFunc(f => back = 255)
+    bt.setHoverText("Click to set background to black")
+    bt2.setHoverText("Click to set background to grey")
+    bt3.setHoverText("Click to set background to white")
 
     th = panel.createSelect(["spiderman", "sublime", "blossom", "techno"], "techno")
     th.setFunc(f => {panel.setTheme(th.getSelected())})
+    th.setHoverText("Click to change theme")
     
     np1 = panel.createNumberPicker("Add circles", 0, 22, 1, 1)
+    np1.setHoverText("Click to add circles")
     np1.setFunc(npMinus, true)
 
 
     plot = panel.createPlot("Plot", 4)
     plot.setFunc(plotInput)
+    plot.setHoverText("The plot shows values for sin, cos, noise and random")
 
     panel2 = tabs.createTab('TAB 2')
     // panel2 = new Panel({
@@ -102,6 +117,7 @@ async function setup(){
     panel2.createText("Enter number between 0 and 255 below and press enter")
     ip2 = panel2.createInput("Enter value ")
     ip2.setFunc(setval)
+    ip2.setHoverText("Click to set value for slider 1")
     panel2.createSeparator()
     panel2.createText("Enter number between 0 and 255 below and press enter")
     ip3 = panel2.createInput("Enter value ")

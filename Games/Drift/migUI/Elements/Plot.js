@@ -315,7 +315,32 @@ class Plot {
 
         
         this.showLabels();
-    }
+
+        let hoveringBounds = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
+		this.readyToShow = false
+		if(this.hoverText && hoveringBounds && !mouseIsPressed){
+			this.hoveringCounter++
+			if(this.hoveringCounter > HOVER_TIME_MIGUI){
+				this.readyToShow = true
+			}
+		}
+		else if(this.hoverText && (!hoveringBounds || mouseIsPressed)){
+			this.hoveringCounter = 0
+		}
+
+		return hoveringBounds ? this : false
+	}
+
+	setHoverText(text){
+		this.hoverText = text
+		this.hoveringCounter = 0
+		this.readyToShow = false
+	}
+
+	showHoveredText(){
+		if(!this.readyToShow) return
+		showHoveredTextMIGUI(this.hoverText, this.panel)
+	}
 }
 
 function computeMinMax(array) {

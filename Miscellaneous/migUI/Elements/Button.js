@@ -40,7 +40,7 @@ class Button{
 		this.corners = [this.rad, this.rad, this.rad, this.rad]
 	}
 
-	setFunc(func, arg = true){
+	setFunc(func, arg = false){
 		this.func = func
 		this.arg = arg
 	}
@@ -121,8 +121,31 @@ class Button{
 		// ellipse(this.pos.x, this.pos.y, 5)
 		// ellipse(this.pos.x, this.pos.y + this.height, 5)
 
+		let hoveringBounds = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.height)
+		this.readyToShow = false
+		if(this.hoverText && hoveringBounds && !mouseIsPressed){
+			this.hoveringCounter++
+			if(this.hoveringCounter > HOVER_TIME_MIGUI){
+				this.readyToShow = true
+			}
+		}
+		else if(this.hoverText && (!hoveringBounds || mouseIsPressed)){
+			this.hoveringCounter = 0
+		}
+
 		pop()
-		return this.beingHovered
+		return this.beingHovered ? this : false
+	}
+
+	setHoverText(text){
+		this.hoverText = text
+		this.hoveringCounter = 0
+		this.readyToShow = false
+	}
+
+	showHoveredText(){
+		if(!this.readyToShow) return
+		showHoveredTextMIGUI(this.hoverText, this.panel)
 	}
 }
 

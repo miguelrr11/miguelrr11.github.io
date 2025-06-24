@@ -83,5 +83,6 @@ class Sentence{
 		// stroke(255, 0, 0)
 		// line(this.pos.x, this.pos.y, this.pos.x, this.pos.y + this.height)
 		// pop()
+		return false
 	}
 }

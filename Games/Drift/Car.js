@@ -39,13 +39,13 @@ class Car {
         this.slipAngle = 0; 
         this.alwaysMoving = false
 
-        this.counterDrift = 0;
+        this.counterDrift = 0
         this.miniTurboCounter = 0
         this.currentTurboProportion = 1
-        this.miniTurboProportions = [1.2, 1.5, 2];
-        this.miniTurboDurations = [1, 1.5, 1.9]; 
+        this.miniTurboProportions = [1.2, 1.5, 2]
+        this.miniTurboDurations = [1, 1.5, 1.9]
         this.miniTurboTimeRequired = [7, 25, 40]
-        this.miniTurboTractions = [0.4, 0.3, 0.15];
+        this.miniTurboTractions = [0.4, 0.3, 0.15]
 
         this.minTraction = Math.min(...this.miniTurboTractions);
         this.maxTraction = Math.max(...this.miniTurboTractions);
@@ -53,10 +53,15 @@ class Car {
         this.skidLeft = [];
         this.skidRight = [];
         this.maxSkidPoints = 70;
-        this.leftTire = createVector(0, 0);
-        this.rightTire = createVector(0, 0);
-        this.driftCenter = createVector(0, 0);
-        this.lastPositions = [createVector(0, 0), createVector(0, 0), createVector(0, 0), createVector(0, 0), createVector(0, 0)];
+        this.leftTire =         createVector(0, 0);
+        this.rightTire =        createVector(0, 0);
+        this.driftCenter =      createVector(0, 0);
+        this.lastPositions = [  createVector(0, 0), 
+                                createVector(0, 0), 
+                                createVector(0, 0), 
+                                createVector(0, 0), 
+                                createVector(0, 0)
+                            ];
     }
 
     addSepSkid() {
@@ -128,7 +133,7 @@ class Car {
             }
             this.actualTraction = constrainn(this.actualTraction, mint, maxt);
         }
-        else if(this.miniTurboCounter == 0) this.actualTraction = lerp(this.actualTraction, this.traction, 0.1);
+        else if(this.miniTurboCounter == 0) this.actualTraction = lerpp(this.actualTraction, this.traction, 0.1);
 
         let finalTraction = this.actualTraction
 
@@ -312,16 +317,16 @@ class Car {
             let iter = Math.floor(this.miniTurboCounter / 20);
             for(let i = 0; i < iter; i++) addAnimationTurbo.call(this, midPosTires.x, midPosTires.y);
         }
-        let many = 3
-        if(this.counterDrift >= 50) {
-            for(let i = 0; i < many; i++) addAnimationMiniTurbo.call(this, midPosTires.x, midPosTires.y, 3);
+        let iter = 3;
+        for (let i = this.miniTurboTimeRequired.length - 1; i >= 0; i--) {
+            if (this.counterDrift >= this.miniTurboTimeRequired[i]) {
+                for (let j = 0; j < iter; j++) {
+                    addAnimationMiniTurbo.call(this, midPosTires.x, midPosTires.y, i + 1);
+                }
+                break;
+            }
         }
-        else if(this.counterDrift >= 30) {
-            for(let i = 0; i < many; i++) addAnimationMiniTurbo.call(this, midPosTires.x, midPosTires.y, 2);
-        }
-        else if(this.counterDrift >= 10) {
-            for(let i = 0; i < many; i++) addAnimationMiniTurbo.call(this, midPosTires.x, midPosTires.y, 1);
-        }
+
     }
 
     calculateTirePositions() {
@@ -342,14 +347,20 @@ class Car {
         push();
         strokeWeight(2);
         stroke(0, 0, 255, 120);
-        line(this.position.x, this.position.y, this.position.x + this.moveForce.x * 5, this.position.y + this.moveForce.y * 5);
+        let endX = this.position.x + this.moveForce.x * 5
+        let endY = this.position.y + this.moveForce.y * 5
+        line(this.position.x, this.position.y, endX, endY);
+        let angle = Math.atan2(this.moveForce.y, this.moveForce.x) + PI
+        drawArrowTip(endX, endY, angle, 6)
         stroke(255, 0, 0, 120);
-        line(this.position.x, this.position.y, this.position.x + Math.cos(this.angle) * 50, this.position.y + Math.sin(this.angle) * 50);
+        endX = this.position.x + Math.cos(this.angle) * 50;
+        endY = this.position.y + Math.sin(this.angle) * 50;
+        line(this.position.x, this.position.y, endX, endY);
         strokeWeight(6)
         stroke(0, 255, 0, 70);
         point(this.driftCenter.x, this.driftCenter.y);
         strokeWeight(2)
-        line(this.position.x, this.position.y, this.driftCenter.x, this.driftCenter.y);
+        drawDashedLine(this.position.x, this.position.y, this.driftCenter.x, this.driftCenter.y);
     }
 
     show() {
@@ -423,9 +434,10 @@ function addAnimationMiniTurbo(x, y, level){
     if(Math.random() < 0.1) return; // reduce frequency of skid particles
     let dir = this.moveForce.copy().normalize().mult(-1);
     let col
-    if(level == 1) col = lerppColor([208, 1, 0], [250, 163, 7], random())
-    else if(level == 2) col = lerppColor([0, 119, 182], [173, 232, 244], random())
-    else if(level == 3) col = lerppColor([161, 0, 242], [244, 192, 244], random())
+    if(level == 1) col = lerppColor([208, 1, 0], [250, 163, 7], Math.random())
+    else if(level == 2) col = lerppColor([0, 119, 182], [173, 232, 244], Math.random())
+    else if(level == 3) col = lerppColor([161, 0, 242], [244, 192, 244], Math.random())
+    else col = [Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255)];
     let randVar = Math.random() < 0.15
     if(randVar){
         col = [255, 255, 255]

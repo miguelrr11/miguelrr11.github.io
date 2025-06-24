@@ -268,10 +268,33 @@ class Input {
             let dy = Math.sin(frameCount / 25) * (this.h - 6) * 0.5;
             line(x, midY + dy, x, midY - dy);
         }
-        pop()
+        
+        let hoveringBounds = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.height)
+		this.readyToShow = false
+		if(this.hoverText && hoveringBounds && !mouseIsPressed){
+			this.hoveringCounter++
+			if(this.hoveringCounter > HOVER_TIME_MIGUI){
+				this.readyToShow = true
+			}
+		}
+		else if(this.hoverText && (!hoveringBounds || mouseIsPressed)){
+			this.hoveringCounter = 0
+		}
 
-        return this.beingHovered
-    }
+		pop()
+		return this.beingHovered ? this : false
+	}
+
+	setHoverText(text){
+		this.hoverText = text
+		this.hoveringCounter = 0
+		this.readyToShow = false
+	}
+
+	showHoveredText(){
+		if(!this.readyToShow) return
+		showHoveredTextMIGUI(this.hoverText, this.panel)
+	}
 }
 
 function getClippedTextByWidth(str, startIndex, maxWidth) {

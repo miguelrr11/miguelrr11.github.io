@@ -63,6 +63,7 @@ async function setup(){
     let s6 = panel.createSlider(labels[5].min, labels[5].max, car.deltaSteerMult, labels[5].label, true);
     let s7 = panel.createSlider(labels[6].min, labels[6].max, car.latDrag, labels[6].label, true);
     s1.setFunc((value) => car.moveSpeed = value);
+    s1.setHoverText("This slider controls the speed at which the car moves forward or backward.");
     s2.setFunc((value) => car.maxSpeed = value);
     s3.setFunc((value) => car.drag = value);
     s4.setFunc((value) => car.steerAngle = value);

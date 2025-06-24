@@ -15,6 +15,8 @@ class Plot {
         this.pos = { x, y };
         this.plotPos = { x, y: y + this.plotOffset };
 
+        this.showValueInTitle = false;
+
         this.height = 80;
         this.h = this.height - this.plotOffset;
         this.w = width_elementsMIGUI;
@@ -80,6 +82,10 @@ class Plot {
     setMaxMinAbs(max, min) {
         this.absMax = max;
         this.absMin = min;
+    }
+
+    setLimitData(limit) {
+        this.limitData = constrain(limit, 10, 10000);
     }
 
     setColors(colors){
@@ -195,8 +201,8 @@ class Plot {
     
 
     showPlot() {
-        this.maxData = this.absMax ? this.absMax : Math.max(...this.series.map(s => s.maxData));
-        this.minData = this.absMin ? this.absMin : Math.min(...this.series.map(s => s.minData));
+        this.maxData = this.absMax != undefined ? this.absMax : Math.max(...this.series.map(s => s.maxData));
+        this.minData = this.absMin != undefined ? this.absMin : Math.min(...this.series.map(s => s.minData));
         for(let i = 0; i < this.series.length; i++) {
             let data = this.series[i].data;
             this.drawCurve(data, this.minData, this.maxData, this.series[i].col);
@@ -204,8 +210,8 @@ class Plot {
     }
 
     showHistory() {
-        this.maxDataH = this.absMax ? this.absMax : Math.max(...this.series.map(s => s.maxDataH));
-        this.minDataH = this.absMin ? this.absMin : Math.min(...this.series.map(s => s.minDataH));
+        this.maxDataH = this.absMax != undefined ? this.absMax : Math.max(...this.series.map(s => s.maxDataH));
+        this.minDataH = this.absMin != undefined ? this.absMin : Math.min(...this.series.map(s => s.minDataH));
         for(let i = 0; i < this.series.length; i++) {
             let data = this.series[i].history;
             this.drawCurve(data, this.minDataH, this.maxDataH, this.series[i].col, true);
@@ -232,7 +238,7 @@ class Plot {
         textSize(textSizeUsed);
 
         const h = textAscent() * 2 - 5;
-        const bgCol = [...this.darkCol, 200];
+        const bgCol = [this.darkCol[0], this.darkCol[1], this.darkCol[2], 200];
         const x = this.plotPos.x + this.w - textWidth(max) / 2 - 12;
 
         const yMax = this.plotPos.y + h;
@@ -302,19 +308,45 @@ class Plot {
             fill(this.lightCol);
             textAlign(LEFT, CENTER);
             textSize(text_SizeMIGUI - 1);
-            text(this.title, this.pos.x, this.pos.y + 7);
+            let title = this.showValueInTitle ? `${this.title}: ${this.getSimpleInt(this.series[0].data[this.series[0].data.length - 1])}` : this.title;
+            text(title, this.pos.x, this.pos.y + 7);
         }
         pop();
 
         
         this.showLabels();
-    }
+
+        let hoveringBounds = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
+		this.readyToShow = false
+		if(this.hoverText && hoveringBounds && !mouseIsPressed){
+			this.hoveringCounter++
+			if(this.hoveringCounter > HOVER_TIME_MIGUI){
+				this.readyToShow = true
+			}
+		}
+		else if(this.hoverText && (!hoveringBounds || mouseIsPressed)){
+			this.hoveringCounter = 0
+		}
+
+		return hoveringBounds ? this : false
+	}
+
+	setHoverText(text){
+		this.hoverText = text
+		this.hoveringCounter = 0
+		this.readyToShow = false
+	}
+
+	showHoveredText(){
+		if(!this.readyToShow) return
+		showHoveredTextMIGUI(this.hoverText, this.panel)
+	}
 }
 
 function computeMinMax(array) {
     const filtered = array.filter(v => v !== undefined);
     return {
-        min: this.absMin ? this.absMin : (filtered.length ? Math.min(...filtered) : undefined),
-        max: this.absMax ? this.absMax : (filtered.length ? Math.max(...filtered) : undefined)
+        min: this.absMin != undefined ? this.absMin : (filtered.length ? Math.min(...filtered) : undefined),
+        max: this.absMax != undefined ? this.absMax : (filtered.length ? Math.max(...filtered) : undefined)
     };
 }
