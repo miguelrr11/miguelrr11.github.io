@@ -37,7 +37,7 @@ class Car {
         this.latSpeed = 0
         this.slipThreshold = 0.3;
         this.slipAngle = 0; 
-        this.alwaysMoving = false
+        this.alwaysMoving = true
 
         this.counterDrift = 0
         this.miniTurboCounter = 0
@@ -238,7 +238,7 @@ class Car {
 
         // ——— MINI TURBO DRIFTING CALCULATIONS ———
         let isActuallyDrfiting = isDrifting && speed > 15 && this.miniTurboCounter == 0
-        this.counterDrift = isActuallyDrfiting ? this.counterDrift + dt : 0
+        this.counterDrift = isActuallyDrfiting ? this.counterDrift + 0.1 : 0
 
         return this.moveForce.copy().mult(dt);
     }
@@ -284,6 +284,7 @@ class Car {
         let forward = p5.Vector.fromAngle(this.angle);
         let keys = this.getKeys();
         this.calculateTirePositions(forward);
+        let addedSkid = false;
         if(this.moveForce.mag() > 0 || keys.DOWN_ARROW) {
             let velNorm = this.moveForce.copy().normalize();
             this.slipAngle = p5.Vector.angleBetween(velNorm, forward);
@@ -297,11 +298,12 @@ class Car {
                 }
                 // add skid animation
                 for(let i = 0; i < 1; i++){
+                    addedSkid = true;
                     addAnimationDrift.call(this, this.leftTire.x, this.leftTire.y);
                     addAnimationDrift.call(this, this.rightTire.x, this.rightTire.y);
                 }
             }
-            else if(this.skidLeft[this.skidLeft.length - 1]) {
+            else if(this.skidLeft[this.skidLeft.length - 1] || !addedSkid) {
                 this.addSepSkid()
             }
         }
@@ -318,15 +320,39 @@ class Car {
             for(let i = 0; i < iter; i++) addAnimationTurbo.call(this, midPosTires.x, midPosTires.y);
         }
         let iter = 3;
+        let level = 0;
         for (let i = this.miniTurboTimeRequired.length - 1; i >= 0; i--) {
             if (this.counterDrift >= this.miniTurboTimeRequired[i]) {
                 for (let j = 0; j < iter; j++) {
+                    level = i + 1;
                     addAnimationMiniTurbo.call(this, midPosTires.x, midPosTires.y, i + 1);
                 }
                 break;
             }
         }
 
+        if(this instanceof PoliceCar) return;
+        if(this.counterDrift % 5 < 0.1 && this.counterDrift > 5) {
+            let anim = new TextAnim(Math.floor(this.counterDrift).toString());
+            let col1 = [214, 40, 40],
+                col2 = [252, 191, 73];
+            if(level == 1){ 
+                col1 = turbo1col1;
+                col2 = turbo1col2;
+            }
+            else if(level == 2){ 
+                col1 = turbo2col1;
+                col2 = turbo2col2;
+            }
+            else if(level == 3){ 
+                col1 = turbo3col1;
+                col2 = turbo3col2;
+            }
+            anim.pos = createVector(midPosTires.x, midPosTires.y - 20);
+            anim.col1 = col1;
+            anim.col2 = col2;
+            textAnimations.push(anim)
+        }
     }
 
     calculateTirePositions() {
@@ -358,6 +384,7 @@ class Car {
         line(this.position.x, this.position.y, endX, endY);
         strokeWeight(6)
         stroke(0, 255, 0, 70);
+        this.driftCenter.limit(2000);
         point(this.driftCenter.x, this.driftCenter.y);
         strokeWeight(2)
         drawDashedLine(this.position.x, this.position.y, this.driftCenter.x, this.driftCenter.y);
@@ -377,7 +404,7 @@ class Car {
             let p = arr[i],
                 q = arr[i + 1];
             if(p && q) {
-                stroke(mapp(i, 0, arr.length - 1, backCol, 50));
+                stroke(lerppColor([0, 0, 0], backCol, 1 - i/arr.length));
                 line(p.x, p.y + 1, q.x, q.y + 1);
             }
         }
@@ -430,13 +457,15 @@ function addAnimationDrift(x, y){
     if(animations.length <= ANIM_CAP) animations.push(particle)
 }
 
+
+
 function addAnimationMiniTurbo(x, y, level){
     if(Math.random() < 0.1) return; // reduce frequency of skid particles
     let dir = this.moveForce.copy().normalize().mult(-1);
     let col
-    if(level == 1) col = lerppColor([208, 1, 0], [250, 163, 7], Math.random())
-    else if(level == 2) col = lerppColor([0, 119, 182], [173, 232, 244], Math.random())
-    else if(level == 3) col = lerppColor([161, 0, 242], [244, 192, 244], Math.random())
+    if(level == 1) col = lerppColor(turbo1col1, turbo1col2, Math.random())
+    else if(level == 2) col = lerppColor(turbo2col1, turbo2col2, Math.random())
+    else if(level == 3) col = lerppColor(turbo3col1, turbo3col2, Math.random())
     else col = [Math.floor(Math.random() * 255), Math.floor(Math.random() * 255), Math.floor(Math.random() * 255)];
     let randVar = Math.random() < 0.15
     if(randVar){

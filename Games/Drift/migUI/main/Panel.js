@@ -16,7 +16,7 @@ let picker_width = 100
 
 const WIDTH_OPTIONPICKER = 170
 const WIDTH_NUMBERPICKER = 100
-const HOVER_TIME_MIGUI = 40
+const HOVER_TIME_MIGUI = 70
 
 /*
 200 - 20

@@ -9,7 +9,7 @@ const WIDTH_UI = 250
 
 const ANIM_CAP = 1000
 
-const backCol = 130
+const backCol = [153, 217, 140]
 
 let car, policeCars = []
 let nPoliceCars = 0
@@ -19,8 +19,17 @@ let ice = {
 }
 let carImg, policeCarImg
 let animations = []
-let tabs, panel, stats, policeOptions
-let showDebug
+let textAnimations = []
+let tabs, panel, stats, options
+let showDebug, showParticles
+let textAnimFont
+
+const turbo1col1 = [208, 1, 0];
+const turbo1col2 = [250, 163, 7];
+const turbo2col1 = [0, 119, 182];
+const turbo2col2 = [173, 232, 244];
+const turbo3col1 = [161, 0, 242];
+const turbo3col2 = [244, 192, 244];
 
 let labels = [
         { label: 'Move Speed', min: minmaxMoveSpeed.min, max: minmaxMoveSpeed.max },
@@ -44,6 +53,7 @@ async function setup(){
     carImg = await loadImage('carimg.png');
     policeCarImg = await loadImage('police.png');
     let fontP = await loadFont("migUI/main/bnr.ttf")
+    textAnimFont = await loadFont("comic.ttf");
     tabs = new TabManager({
         x: WIDTH,
         automaticHeight: false,
@@ -54,7 +64,7 @@ async function setup(){
     })
     panel = tabs.createTab('Car Controls');
     stats = tabs.createTab('Stats');
-    policeOptions = tabs.createTab('Police Options');
+    options = tabs.createTab('Options');
     let s1 = panel.createSlider(labels[0].min, labels[0].max, car.moveSpeed, labels[0].label, true);
     let s2 = panel.createSlider(labels[1].min, labels[1].max, car.maxSpeed, labels[1].label, true);
     let s3 = panel.createSlider(labels[2].min, labels[2].max, car.drag, labels[2].label, true);
@@ -64,22 +74,33 @@ async function setup(){
     let s7 = panel.createSlider(labels[6].min, labels[6].max, car.latDrag, labels[6].label, true);
     s1.setFunc((value) => car.moveSpeed = value);
     s1.setHoverText("This slider controls the speed at which the car moves forward or backward.");
-    s2.setFunc((value) => car.maxSpeed = value);
+    s2.setFunc((value) => {car.maxSpeed = value; car.maxSpeedTurbo = value * 1.3;});
+    s2.setHoverText("This slider controls the maximum speed the car can reach.");
     s3.setFunc((value) => car.drag = value);
+    s3.setHoverText("This slider controls the drag force applied to the car, affecting how quickly it slows down.");
     s4.setFunc((value) => car.steerAngle = value);
+    s4.setHoverText("This slider controls the maximum angle the car can steer, affecting its turning radius.");
     s5.setFunc((value) => car.traction = value);
+    s5.setHoverText("This slider controls the traction of the car, affecting how well it can grip the road.");
     s6.setFunc((value) => car.deltaSteerMult = value);
+    s6.setHoverText("This slider controls the multiplier for the steering angle based on the car's speed, affecting how responsive the steering is at different speeds.");
     s7.setFunc((value) => car.latDrag = value);
+    s7.setHoverText("This slider controls the lateral inertia drag, affecting how quickly the car can change direction.");
     let cb = panel.createCheckbox("Allow Back Drifting", car.allowBackDrift);
     cb.setFunc((arg) => car.allowBackDrift = arg);
+    cb.setHoverText("If checked, the car can completely oversteer and start going backwards.");
+    
     let cb2 = panel.createCheckbox("Continuous Drifting", car.continuousDrift);
     cb2.setFunc((arg) => car.continuousDrift = arg);
+    cb2.setHoverText("If checked, the car will not slow down while drfiting");
     let cb3 = panel.createCheckbox("Always Moving", car.alwaysMoving);
     cb3.setFunc((arg) => car.alwaysMoving = arg);
+    cb3.setHoverText("If checked, the car will always be moving, even when not pressing any keys.");
 
     panel.createSeparator()
 
     let b = panel.createCheckbox("Show Debug", true)
+    b.setHoverText("If checked, the car will show debug lines: forward direction, force direction and center of drift.");
     b.setFunc((arg) => showDebug = arg);
     showDebug = b.isChecked();
     let pos = stats.createText()
@@ -115,7 +136,7 @@ async function setup(){
     pl.setLimitData(60)
     pl.showValueInTitle = true;
 
-    let nChange = policeOptions.createNumberPicker("Number of Police Cars", 0, 20, 1, nPoliceCars)
+    let nChange = options.createNumberPicker("Police Cars", 0, 20, 1, nPoliceCars)
     nChange.setFunc((value) => {
         nPoliceCars = value;
         if (policeCars.length < nPoliceCars) {
@@ -131,6 +152,11 @@ async function setup(){
             policeCars.splice(nPoliceCars, policeCars.length - nPoliceCars);
         }
     });
+
+    let showParticlesCheck = options.createCheckbox("Show Particles", true);
+    showParticlesCheck.setFunc((arg) => showParticles = arg);
+    showParticles = showParticlesCheck.isChecked();
+
 }
 
 function draw() {
@@ -161,11 +187,21 @@ function draw() {
 }
 
 function manageAnimations() {
+    if(!showParticles){
+        animations = [];
+        return;
+    }
     for (let i = animations.length - 1; i >= 0; i--) {
         animations[i].update();
         animations[i].show();
         if (animations[i].dead()) {
             animations.splice(i, 1);
+        }
+    }
+    for (let i = textAnimations.length - 1; i >= 0; i--) {
+        textAnimations[i].show();
+        if (textAnimations[i].finished()) {
+            textAnimations.splice(i, 1);
         }
     }
 }
