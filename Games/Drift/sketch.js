@@ -10,6 +10,7 @@ const WIDTH_UI = 250
 const ANIM_CAP = 1000
 
 const backCol = [153, 217, 140]
+let road
 
 let car, policeCars = []
 let nPoliceCars = 0
@@ -21,7 +22,7 @@ let carImg, policeCarImg
 let animations = []
 let textAnimations = []
 let tabs, panel, stats, options
-let showDebug, showParticles
+let showDebug, showParticles, showRoad
 let textAnimFont
 
 const turbo1col1 = [208, 1, 0];
@@ -43,6 +44,7 @@ let labels = [
 
 async function setup(){
     createCanvas(WIDTH + WIDTH_UI, HEIGHT)
+    road = proceduralRoad();
     car = new Car(superCar);
     for(let i = 0; i < nPoliceCars; i++) {
         let properties = getRandomPoliceCar();
@@ -99,10 +101,29 @@ async function setup(){
 
     panel.createSeparator()
 
+    let bRand = panel.createButton("Randomize Car");
+    bRand.setFunc(() => {
+        let prop = getRandomCar();
+        car.setProperties(prop);
+        s1.setValue(prop.moveSpeed);
+        s2.setValue(prop.maxSpeed);
+        s3.setValue(prop.drag);
+        s4.setValue(prop.steerAngle);   
+        s5.setValue(prop.traction);
+        s6.setValue(prop.deltaSteerMult);
+        s7.setValue(prop.latDrag);
+    });
+
+    panel.createSeparator()
+
     let b = panel.createCheckbox("Show Debug", true)
     b.setHoverText("If checked, the car will show debug lines: forward direction, force direction and center of drift.");
     b.setFunc((arg) => showDebug = arg);
     showDebug = b.isChecked();
+    let b2 = panel.createCheckbox("Show Road", true)
+    b2.setHoverText("If checked, the road will be drawn.");
+    b2.setFunc((arg) => showRoad = arg);
+    showRoad = b2.isChecked();
     let pos = stats.createText()
     let moveForce = stats.createText()
     let speed = stats.createText()
@@ -164,6 +185,7 @@ function draw() {
 
     let aux = car.position.y - HEIGHT / 2;
     translate(0, -car.position.y + HEIGHT / 2);
+    if(showRoad) drawRoad()
     car.drawSkids(car.skidLeft);
     car.drawSkids(car.skidRight);
     for(let i = 0 ; i < policeCars.length; i++) {
@@ -206,3 +228,92 @@ function manageAnimations() {
     }
 }
 
+function proceduralRoad(){
+    let deltaY = 250
+    let numY = 1000
+    let values = []
+    for(let i = 0; i < numY; i++){
+        let y = i * deltaY + randomm(-deltaY / 4, deltaY / 4)
+        let amp = randomm(600, WIDTH/2)
+        let x = noise(i * randomm(80, 200)) * amp - amp * 0.5 + WIDTH / 2;
+        if(Math.random() < 0.1) x = randomm(0, WIDTH);
+        values.push(createVector(x, y));
+    }
+    values = drawBezierPath(values, 100, 10);
+    return values;
+}
+
+function drawRoad(){
+    strokeCap(ROUND);
+    stroke(90);
+    strokeWeight(170);
+    noFill();
+
+    function isHere(p){ return Math.abs(-p.y - car.position.y) <= HEIGHT / 2 + 500;}
+
+    beginShape();
+    for (let p of road) {
+        if (!isHere(p)) continue;
+        vertex(p.x, -p.y);
+    }
+    endShape();
+
+    stroke(50);
+    strokeWeight(150);
+
+    beginShape();
+    for (let p of road) {
+        if (!isHere(p)) continue;
+        vertex(p.x, -p.y);
+    }
+    endShape();
+
+    stroke(255);
+    strokeWeight(5);
+
+    beginShape();
+    for (let p of road) {
+        if (!isHere(p)) continue;
+        vertex(p.x, -p.y);
+    }
+    endShape();
+}
+
+function drawBezierPath(points, curveSize, resolution) {
+  if (points.length < 1) return
+  if (points.length < 3) {
+    line(points[0].x, points[0].y, points[1].x, points[1].y)
+    //console.error("Need at least 3 points to draw a Bezier curve");
+    return;
+  }
+
+  let drawPoints = [];
+  drawPoints.push(points[0]);
+
+  for (let i = 1; i < points.length - 1; i++) {
+    let targetPoint = points[i];
+    let targetDir = p5.Vector.sub(points[i], points[i - 1]).normalize();
+    let dstToTarget = p5.Vector.dist(points[i], points[i - 1]);
+    let dstToCurveStart = Math.max(dstToTarget - curveSize, dstToTarget / 2);
+
+    let nextTargetDir = p5.Vector.sub(points[i + 1], points[i]).normalize();
+    let nextLineLength = p5.Vector.dist(points[i + 1], points[i]);
+
+    let curveStartPoint = p5.Vector.add(points[i - 1], targetDir.mult(dstToCurveStart));
+    let curveEndPoint = p5.Vector.add(targetPoint, nextTargetDir.mult(Math.min(curveSize, nextLineLength / 2)));
+
+    for (let j = 0; j < resolution; j++) {
+      let t = j / (resolution - 1);
+      let a = p5.Vector.lerp(curveStartPoint, targetPoint, t);
+      let b = p5.Vector.lerp(targetPoint, curveEndPoint, t);
+      let p = p5.Vector.lerp(a, b, t);
+
+      if (drawPoints.length === 0 || p.dist(drawPoints[drawPoints.length - 1]) > 0.001) {
+        drawPoints.push(p);
+      }
+    }
+  }
+  drawPoints.push(points[points.length - 1]);
+
+  return drawPoints;
+}

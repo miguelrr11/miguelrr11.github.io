@@ -64,6 +64,32 @@ class Car {
                             ];
     }
 
+    setProperties(properties = {}) {
+        const {
+            moveSpeed = 20,
+            maxSpeed = 30,
+            drag = 0.95,
+            steerAngle = 4, 
+            traction = 0.25,
+            deltaSteerMult = 0.4,
+            latDrag = 0.9,
+            allowBackDrift = false,
+            continuousDrift = true
+        } = properties;
+
+        this.moveSpeed = moveSpeed; 
+        this.maxSpeed = maxSpeed;
+        this.maxSpeedTurbo = maxSpeed * 1.3
+        this.drag = drag;
+        this.steerAngle = steerAngle; 
+        this.traction = traction;
+        this.deltaSteerMult = deltaSteerMult
+        this.latDrag = latDrag; 
+        this.allowBackDrift = allowBackDrift
+        this.continuousDrift = continuousDrift;
+        this.actualTraction = this.traction
+    }
+
     addSepSkid() {
         this.skidLeft.push(undefined);
         this.skidRight.push(undefined);
@@ -383,8 +409,8 @@ class Car {
         endY = this.position.y + Math.sin(this.angle) * 50;
         line(this.position.x, this.position.y, endX, endY);
         strokeWeight(6)
-        stroke(0, 255, 0, 70);
-        this.driftCenter.limit(2000);
+        stroke(30, 200, 10, 190);
+        if(dist(this.driftCenter.x, this.driftCenter.y, this.position.x, this.position.y) > 500) return
         point(this.driftCenter.x, this.driftCenter.y);
         strokeWeight(2)
         drawDashedLine(this.position.x, this.position.y, this.driftCenter.x, this.driftCenter.y);
@@ -404,7 +430,7 @@ class Car {
             let p = arr[i],
                 q = arr[i + 1];
             if(p && q) {
-                stroke(lerppColor([0, 0, 0], backCol, 1 - i/arr.length));
+                stroke(0, 0, 0, (i/arr.length) * 200);
                 line(p.x, p.y + 1, q.x, q.y + 1);
             }
         }
