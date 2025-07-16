@@ -53,8 +53,10 @@ class Car {
         this.skidLeft = [];
         this.skidRight = [];
         this.maxSkidPoints = 70;
-        this.leftTire =         createVector(0, 0);
-        this.rightTire =        createVector(0, 0);
+        this.leftBackTire =     createVector(0, 0);
+        this.rightBackTire =    createVector(0, 0);
+        this.leftFrontTire =    createVector(0, 0);
+        this.rightFrontTire =   createVector(0, 0);
         this.driftCenter =      createVector(0, 0);
         this.lastPositions = [  createVector(0, 0), 
                                 createVector(0, 0), 
@@ -130,10 +132,11 @@ class Car {
 
         let col = this.checkCollisions()
         if(col){
-            this.moveForce.mult(0.5);
+            this.moveForce.mult(0.05);
             this.acc = 0;
             this.latAcc = 0;
             this.latSpeed = 0;
+            this.miniTurboCounter = 0
         }
     }
 
@@ -278,21 +281,26 @@ class Car {
     }
 
     checkCollisions(){
-        let size = carWidth / 2;
-        let x = this.position.x - size / 2;
-        let y = this.position.y - size / 2;
-        let w = size;
-        let h = size;
-
+        let tires = [
+            this.leftBackTire,
+            this.rightBackTire,
+            this.leftFrontTire,
+            this.rightFrontTire]
         for (let i = 0; i < obstacles.length; i++) {
             if (!obstacles[i]) continue;
             for (let j = 0; j < obstacles[i].length; j++) {
                 if (!obstacles[i][j]) continue;
                 let obs = obstacles[i][j];
-                if (obs.pos.x + obs.w > x && obs.pos.x < x + w &&
-                    obs.pos.y + obs.h > y && obs.pos.y < y + h) {
-                    obstacles[i][j] = undefined; // remove obstacle
-                    return true;
+                for(let tire of tires){
+                    let x = tire.x,
+                        y = tire.y;
+                    if(inBounds(x, y, obs.pos.x - obs.w * 0.5, obs.pos.y - obs.h * 0.5, obs.w, obs.h)){
+                        if(!obs.broken){
+                            obs.broken = true;
+                            return true;
+                        }
+                        return false; // already broken
+                    }
                 }
             }
         }
@@ -339,14 +347,15 @@ class Car {
     addAnimations(){
         let forward = p5.Vector.fromAngle(this.angle);
         let keys = this.getKeys();
-        this.calculateTirePositions(forward);
+        this.calculateBackTirePositions(forward);
+        this.calculateFrontTirePositions(forward);
         let addedSkid = false;
         if(this.moveForce.mag() > 0 || keys.DOWN_ARROW) {
             let velNorm = this.moveForce.copy().normalize();
             this.slipAngle = p5.Vector.angleBetween(velNorm, forward);
             if(Math.abs(this.slipAngle) > this.slipThreshold || keys.DOWN_ARROW) {
-                this.skidLeft.push(this.leftTire.copy());
-                this.skidRight.push(this.rightTire.copy());
+                this.skidLeft.push(this.leftBackTire.copy());
+                this.skidRight.push(this.rightBackTire.copy());
                 // clamp size
                 if(this.skidLeft.length > this.maxSkidPoints) {
                     this.skidLeft.shift();
@@ -355,19 +364,19 @@ class Car {
                 // add skid animation
                 for(let i = 0; i < 1; i++){
                     addedSkid = true;
-                    addAnimationDrift.call(this, this.leftTire.x, this.leftTire.y);
-                    addAnimationDrift.call(this, this.rightTire.x, this.rightTire.y);
+                    addAnimationDrift.call(this, this.leftBackTire.x, this.leftBackTire.y);
+                    addAnimationDrift.call(this, this.rightBackTire.x, this.rightBackTire.y);
                 }
             }
             else if(this.skidLeft[this.skidLeft.length - 1] || !addedSkid) {
                 this.addSepSkid()
             }
         }
-        let fumesPos = p5.Vector.lerp(this.leftTire, this.rightTire, 0.2)
+        let fumesPos = p5.Vector.lerp(this.leftBackTire, this.rightBackTire, 0.2)
         fumesPos.x += randomm(-2, 2);
         fumesPos.y += randomm(-2, 2);
         addAnimationIdle.call(this, fumesPos.x, fumesPos.y);
-        let midPosTires = p5.Vector.add(this.leftTire, this.rightTire).mult(0.5);
+        let midPosTires = p5.Vector.add(this.leftBackTire, this.rightBackTire).mult(0.5);
         if (keys.UP_ARROW) {
             for(let i = 0; i < 2; i++) addAnimationTurbo.call(this, midPosTires.x, midPosTires.y);
         }
@@ -411,7 +420,20 @@ class Car {
         }
     }
 
-    calculateTirePositions() {
+    calculateFrontTirePositions() {
+        // rear‐corner offsets in local space
+        let halfL = carHeight / 3,
+            halfW = carWidth / 3;
+        let leftLocal = createVector(halfL, -halfW);
+        let rightLocal = createVector(halfL, halfW);
+        // rotate into world space
+        leftLocal.rotate(this.angle).add(this.position);
+        rightLocal.rotate(this.angle).add(this.position);
+        this.leftFrontTire = leftLocal.copy();
+        this.rightFrontTire = rightLocal.copy();
+    }
+
+    calculateBackTirePositions() {
         // rear‐corner offsets in local space
         let halfL = carHeight / 3,
             halfW = carWidth / 3;
@@ -420,9 +442,11 @@ class Car {
         // rotate into world space
         leftLocal.rotate(this.angle).add(this.position);
         rightLocal.rotate(this.angle).add(this.position);
-        this.leftTire = leftLocal.copy();
-        this.rightTire = rightLocal.copy();
+        this.leftBackTire = leftLocal.copy();
+        this.rightBackTire = rightLocal.copy();
     }
+
+    
 
     showDebug() {
         //shwos lines of forward and lateral forces
@@ -440,10 +464,23 @@ class Car {
         line(this.position.x, this.position.y, endX, endY);
         strokeWeight(6)
         stroke(30, 200, 10, 190);
-        if(dist(this.driftCenter.x, this.driftCenter.y, this.position.x, this.position.y) > 500) return
-        point(this.driftCenter.x, this.driftCenter.y);
-        strokeWeight(2)
-        drawDashedLine(this.position.x, this.position.y, this.driftCenter.x, this.driftCenter.y);
+        if(dist(this.driftCenter.x, this.driftCenter.y, this.position.x, this.position.y) < 500){
+            point(this.driftCenter.x, this.driftCenter.y);
+            strokeWeight(2)
+            drawDashedLine(this.position.x, this.position.y, this.driftCenter.x, this.driftCenter.y);
+        }
+        push()
+        strokeWeight(10)
+        stroke(255, 0, 0);
+        point(this.position.x, this.position.y)
+        stroke(255)
+        strokeWeight(6);
+        point(this.leftBackTire.x, this.leftBackTire.y);
+        point(this.rightBackTire.x, this.rightBackTire.y);
+        point(this.leftFrontTire.x, this.leftFrontTire.y);    
+        point(this.rightFrontTire.x, this.rightFrontTire.y);
+        pop()
+        
     }
 
     show() {

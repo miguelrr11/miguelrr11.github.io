@@ -203,6 +203,8 @@ function draw() {
         policeCars[i].update();
         policeCars[i].show();
     }
+
+    
     
 
     if (showDebug) car.showDebug();
@@ -323,6 +325,7 @@ function drawBezierPath(points, curveSize, resolution) {
 }
 
 let sizeObstacle = 200;
+let minSizeObstacle = 65;
 function generateObstacles(){
     let obstacles = []
     for(let y = 0; y < sizeObstacle * 1000; y += sizeObstacle){
@@ -332,8 +335,9 @@ function generateObstacles(){
                 let pos = createVector(x, -y);
                 obstacles[y][x] = {
                     pos: pos,
-                    w: randomGaussian(sizeObstacle * 1, sizeObstacle * 0.3),
-                    h: randomGaussian(sizeObstacle * 1, sizeObstacle * 0.3),
+                    w: constrainn(randomGaussian(sizeObstacle * 1, sizeObstacle * 0.3), minSizeObstacle, sizeObstacle),
+                    h: constrainn(randomGaussian(sizeObstacle * 1, sizeObstacle * 0.3), minSizeObstacle, sizeObstacle),
+                    broken: false,
                 };
             }
         }
@@ -348,15 +352,31 @@ function drawObstacles() {
     let endY = (car.position.y + 400 + HEIGHT / 2);
     startY = Math.floor(startY / sizeObstacle) * sizeObstacle * -1
     endY = Math.ceil(endY / sizeObstacle) * sizeObstacle * -1
-    console.log(startY, endY);
+    let sum = 0
+    imageMode(CENTER);
     for( let y = endY; y < startY; y += sizeObstacle) {
         for (let x = 0; x < WIDTH; x += sizeObstacle) {
             if (obstacles[y] && obstacles[y][x]) {
                 let obs = obstacles[y][x];
                 if (obs) {
+                    sum++
+                    if(obs.broken){
+                        obs.w = lerpp(obs.w, 0, 0.05);
+                        obs.h = lerpp(obs.h, 0, 0.05);
+                    }
                     image(cajaImg, obs.pos.x, obs.pos.y, obs.w, obs.h);
+                    if(obs.broken && obs.w < 0.1) {
+                        obstacles[y][x] = undefined; 
+                    }
+                    // push()
+                    // noFill()
+                    // stroke(255, 0, 0)
+                    // rectMode(CENTER);
+                    // rect(obs.pos.x, obs.pos.y, obs.w, obs.h);
+                    // pop()
                 }
             }
         }
     }
+    
 }
