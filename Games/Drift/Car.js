@@ -127,6 +127,14 @@ class Car {
         this.edges();
 
         this.addAnimations();
+
+        let col = this.checkCollisions()
+        if(col){
+            this.moveForce.mult(0.5);
+            this.acc = 0;
+            this.latAcc = 0;
+            this.latSpeed = 0;
+        }
     }
 
     // Esta funcion calcula la fuerza final del coche
@@ -267,6 +275,28 @@ class Car {
         this.counterDrift = isActuallyDrfiting ? this.counterDrift + 0.1 : 0
 
         return this.moveForce.copy().mult(dt);
+    }
+
+    checkCollisions(){
+        let size = carWidth / 2;
+        let x = this.position.x - size / 2;
+        let y = this.position.y - size / 2;
+        let w = size;
+        let h = size;
+
+        for (let i = 0; i < obstacles.length; i++) {
+            if (!obstacles[i]) continue;
+            for (let j = 0; j < obstacles[i].length; j++) {
+                if (!obstacles[i][j]) continue;
+                let obs = obstacles[i][j];
+                if (obs.pos.x + obs.w > x && obs.pos.x < x + w &&
+                    obs.pos.y + obs.h > y && obs.pos.y < y + h) {
+                    obstacles[i][j] = undefined; // remove obstacle
+                    return true;
+                }
+            }
+        }
+        return false;
     }
 
     setDriftCenter(){

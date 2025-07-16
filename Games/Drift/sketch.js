@@ -12,13 +12,14 @@ const ANIM_CAP = 1000
 const backCol = [153, 217, 140]
 let road
 
-let car, policeCars = []
+let car, policeCars = [], obstacles
 let nPoliceCars = 0
 let ice = {
     pos: {x: WIDTH / 2, y: HEIGHT / 2 },
     rad: 150,
 }
-let carImg, policeCarImg
+
+let carImg, policeCarImg, cajaImg
 let animations = []
 let textAnimations = []
 let tabs, panel, stats, options
@@ -45,7 +46,9 @@ let labels = [
 async function setup(){
     createCanvas(WIDTH + WIDTH_UI, HEIGHT)
     road = proceduralRoad();
+    obstacles = generateObstacles();
     car = new Car(superCar);
+    cajaImg = await loadImage('caja.png');
     for(let i = 0; i < nPoliceCars; i++) {
         let properties = getRandomPoliceCar();
         let policeCar = new PoliceCar(properties, car);
@@ -120,7 +123,7 @@ async function setup(){
     b.setHoverText("If checked, the car will show debug lines: forward direction, force direction and center of drift.");
     b.setFunc((arg) => showDebug = arg);
     showDebug = b.isChecked();
-    let b2 = panel.createCheckbox("Show Road", true)
+    let b2 = panel.createCheckbox("Show Road", false)
     b2.setHoverText("If checked, the road will be drawn.");
     b2.setFunc((arg) => showRoad = arg);
     showRoad = b2.isChecked();
@@ -186,6 +189,7 @@ function draw() {
     let aux = car.position.y - HEIGHT / 2;
     translate(0, -car.position.y + HEIGHT / 2);
     if(showRoad) drawRoad()
+    drawObstacles();
     car.drawSkids(car.skidLeft);
     car.drawSkids(car.skidRight);
     for(let i = 0 ; i < policeCars.length; i++) {
@@ -316,4 +320,43 @@ function drawBezierPath(points, curveSize, resolution) {
   drawPoints.push(points[points.length - 1]);
 
   return drawPoints;
+}
+
+let sizeObstacle = 200;
+function generateObstacles(){
+    let obstacles = []
+    for(let y = 0; y < sizeObstacle * 1000; y += sizeObstacle){
+        obstacles[y] = []
+        for(let x = 0; x < WIDTH; x += sizeObstacle){
+            if(Math.random() < .25){
+                let pos = createVector(x, -y);
+                obstacles[y][x] = {
+                    pos: pos,
+                    w: randomGaussian(sizeObstacle * 1, sizeObstacle * 0.3),
+                    h: randomGaussian(sizeObstacle * 1, sizeObstacle * 0.3),
+                };
+            }
+        }
+    }
+    return obstacles
+}
+
+function drawObstacles() {
+    fill(200, 0, 0);
+    noStroke();
+    let startY = (car.position.y - 400 - HEIGHT / 2);
+    let endY = (car.position.y + 400 + HEIGHT / 2);
+    startY = Math.floor(startY / sizeObstacle) * sizeObstacle * -1
+    endY = Math.ceil(endY / sizeObstacle) * sizeObstacle * -1
+    console.log(startY, endY);
+    for( let y = endY; y < startY; y += sizeObstacle) {
+        for (let x = 0; x < WIDTH; x += sizeObstacle) {
+            if (obstacles[y] && obstacles[y][x]) {
+                let obs = obstacles[y][x];
+                if (obs) {
+                    image(cajaImg, obs.pos.x, obs.pos.y, obs.w, obs.h);
+                }
+            }
+        }
+    }
 }
