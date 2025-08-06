@@ -57,7 +57,7 @@ function getCodedInput(input){
     console.log("Offsets: " + offset1, offset2, offset3)
     let codedInput = ""
     for (let i = 0; i < input.length; i++) {
-        turnRotors()
+        
         codedInput += getCodedChar(input.charAt(i))
         
     }
@@ -66,7 +66,7 @@ function getCodedInput(input){
 
 // Encrypt/decrypt single character
 function getCodedChar(char){
-
+    turnRotors()
     char = char.toUpperCase()
     if (!char.match(/[A-Z]/)) return char // ignore non-letter input
 
