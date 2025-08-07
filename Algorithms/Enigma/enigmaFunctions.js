@@ -2,6 +2,10 @@ let offset1 = 0
 let offset2 = 0
 let offset3 = 0
 
+let goalOff1 = 0
+let goalOff2 = 0
+let goalOff3 = 0
+
 // Base rotor wirings
 const baseFirstRotor = "EKMFLGDQVZNTOWYHXUSPAIBRCJ"
 const baseSecondRotor = "AJDKSIRUXBLHWTMCQGZNPYFVOE"
