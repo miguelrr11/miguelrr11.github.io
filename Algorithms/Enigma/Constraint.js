@@ -1,4 +1,4 @@
-const REST_DISTANCE = 12
+const REST_DISTANCE = 4
 
 class Constraint{
 	constructor(p1, p2){

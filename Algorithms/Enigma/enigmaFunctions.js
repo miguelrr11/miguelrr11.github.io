@@ -20,13 +20,21 @@ const baseThirdRotorInv = "TAGBPCSDQEUFVNZHYIXJWLRKOM"
 const notchFirst  = 'Q';  
 const notchSecond = 'E';
 
-// Plugboard (bidirectional)
+
 let plugBoard = new Map()
 
-// Add a bidirectional plugboard pair
+
 function addPlug(a, b) {
     plugBoard.set(a, b)
     plugBoard.set(b, a)
+}
+
+function removePlug(a){
+    if (plugBoard.has(a)) {
+        let b = plugBoard.get(a);
+        plugBoard.delete(a);
+        plugBoard.delete(b);
+    }
 }
 
 // Reset rotor offsets

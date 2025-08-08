@@ -47,6 +47,9 @@ let buttonReplace
 let buttonReplaceOn = false
 
 let plugging = undefined
+let reverse = false
+let anglePlug = Math.PI / 4
+let lastPlug = undefined
 
 function mouseReleased(){
     buttonReplaceOn = false
@@ -90,16 +93,16 @@ function draw(){
         physicalConnections[physicalConnections.length - 1].moving.pos.y = mouseY
     }
     for(let connection of physicalConnections){
-        push()
-        for(let particle of connection.particles){
-            particle.applyForce(createVector(0, 10)) // gravity
-            particle.update(deltaTime * 0.01)
+        for(let i = 0; i < 1; i++){
+            for(let particle of connection.particles){
+                particle.applyForce(createVector(0, 10)) // gravity
+                particle.update(deltaTime * 0.01)
+            }
+            for(let constraint of connection.constraints){
+                constraint.satisfy()
+            }
         }
-        pop()
         push()
-        for(let constraint of connection.constraints){
-            constraint.satisfy()
-        }
         let lamp = isActiveConn(connection.charA) || isActiveConn(connection.charB)
         if(lamp){
             if(lamp.going == 'up'){
@@ -133,21 +136,73 @@ function mouseClicked(){
             if(inBounds(mouseX, mouseY, button.x, button.y, wPlug, hPlug)){
                 if(plugging && !button.plugged){
                     addPlug(plugging.char, button.char)
+                    anglePlug = PI * 2.5
+                    lastPlug = button.char
                     plugging.plugged = true
                     button.plugged = true
-                    //createPhysicalConnection(plugging, button)
                     let lastConnection = physicalConnections[physicalConnections.length - 1]
-                    let lastParticle = lastConnection.particles[lastConnection.particles.length - 1]
-                    lastConnection.moving = lastParticle
+                    let lastParticle = !reverse ? lastConnection.particles[lastConnection.particles.length - 1] : lastConnection.particles[0]
                     lastParticle.isPinned = true
                     lastParticle.pos = createVector(button.x + wPlug * 0.5, button.y + hPlug * 0.5)
-                    lastConnection.charB = button.char
+                    if(!reverse) lastConnection.charB = button.char
+                    else lastConnection.charA = button.char
                     plugging = undefined
                 }
                 else if(!plugging && !button.plugged){
+                    anglePlug = PI * 2.5
+                    lastPlug = button.char
                     plugging = button
                     button.plugged = true
                     createPhysicalConnection(plugging)
+                }
+                else if(!plugging && button.plugged){
+                    //removePlug(button.char)
+                    button.plugged = false
+                    // set plugging to the other button of the connection
+                    for(let [a, b] of plugBoard.entries()){
+                        if(a == button.char || b == button.char){
+                            plugging = plugButtons.find(btn => btn.char === (a == button.char ? b : a));
+                            break;
+                        }
+                    }
+                    removePlug(button.char)
+                    for(let i = physicalConnections.length - 1; i >= 0; i--){
+                        let connection = physicalConnections[i]
+                        if(connection.charA == button.char){
+                            let lastParticle = connection.particles[0]
+                            connection.moving = lastParticle
+                            reverse = true
+                            //put that connection at the end of the array
+                            physicalConnections.push(physicalConnections.splice(i, 1)[0]);
+                            break
+                        }
+                        else if(connection.charB == button.char){
+                            let lastParticle = connection.particles[connection.particles.length - 1]
+                            connection.moving = lastParticle
+                            reverse = false
+                            physicalConnections.push(physicalConnections.splice(i, 1)[0]);
+                            break
+                        }
+                    }
+                }
+                else if(plugging && button.plugged){
+                    //check if button is the same as plugging
+                    if(button.char == plugging.char){
+                        //remove connection
+                        removePlug(button.char)
+                        button.plugged = false
+                        plugging.plugged = false    
+                        plugging = undefined
+                        //find connection and remove it
+                        for(let i = physicalConnections.length - 1; i >= 0; i--){
+                            let connection = physicalConnections[i]
+                            if(connection.charA == button.char || connection.charB == button.char){
+                                physicalConnections.splice(i, 1)
+                                break
+                            }
+                        }
+                        reverse = false
+                    }
                 }
             }
         }
@@ -320,6 +375,10 @@ function drawKeys(){
 }
 
 function drawPlugs(){
+
+    if(anglePlug > PI /4) anglePlug = lerpp(anglePlug, PI / 4, 0.2)
+    else anglePlug = PI / 4
+
     push()
     fill(70)
     rect(0, yPlugs, WIDTH, HEIGHT)
@@ -437,6 +496,15 @@ function drawUI(){
     drawArrowTip(buttonReplace.pos.x, buttonReplace.pos.y - buttonReplace.size * 0.3, PI / 2, buttonReplace.size * 0.3)
     line(buttonReplace.pos.x, buttonReplace.pos.y - buttonReplace.size * 0.3,
          buttonReplace.pos.x, buttonReplace.pos.y + buttonReplace.size * 0.3)
+
+    noStroke()
+    fill(darkCol)
+    textSize(11.5)
+    textAlign(LEFT, TOP)
+    let plugPairs = Array.from(plugBoard.entries());
+    let plugText = plugPairs.map(pair => `${pair[0]}${pair[1]}`).join(' ');
+    rectMode(CORNER)
+    text('Plugboard: ' +plugText, WIDTH + 30, HEIGHT - 45, WIDTHUI - 60);
 
     pop()
 }
@@ -607,15 +675,24 @@ function drawPlug(plug){
     fill(180)
     ellipse(plug.x + wPlug * 0.5, plug.y + hPlug * 0.5, wPlug * 0.6)
     stroke(130)
-    line(plug.x + wPlug * 0.5 - 5, plug.y + hPlug * 0.5 - 5, 
-            plug.x + wPlug * 0.5 + 5, plug.y + hPlug * 0.5 + 5);
+    let centerX = plug.x + wPlug * 0.5
+    let centerY = plug.y + hPlug * 0.5
+    let angle = plug.char == lastPlug ? anglePlug : PI / 4
+    let length = 12
+
+    let x1 = centerX + cos(angle) * (length * 0.5)
+    let y1 = centerY + sin(angle) * (length * 0.5)
+    let x2 = centerX - cos(angle) * (length * 0.5)
+    let y2 = centerY - sin(angle) * (length * 0.5)
+
+    line(x1, y1, x2, y2)
     pop()
 }
 
 function createPhysicalConnection(p1){
     let pos1 = createVector(p1.x + wPlug * 0.5, p1.y + hPlug * 0.5)
     let pos2 = createVector(mouseX, mouseY)
-    let nParticles = 20
+    let nParticles = 40
     let particles = []
     let constraints = []
     for(let i = 0; i < nParticles; i++){
