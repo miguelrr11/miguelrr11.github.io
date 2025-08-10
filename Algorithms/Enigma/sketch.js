@@ -10,28 +10,35 @@ const WIDTHUI = 400
 const wPlug = 37
 const hPlug = 78
 
+let canvas
+
 let font
 
-let darkCol = '#432818'
-let lightCol = '#D0B784'
-let medCol = '#99582a'
+const darkCol = '#432818'
+const lightCol = '#D0B784'
+const medCol = '#99582a'
 
 const yRotors = 0
 const yLamps = 100
 const yKeys = 300
 const yPlugs = 550
 
-let desc = 'La máquina Enigma fue desarrollada por la firma alemana Scherbius para proteger las comunicaciones militares y navales en la Segunda Guerra Mundial. Su funcionamiento se basa en un conjunto de rotores intercambiables y un panel de conexiones que, al pasar corriente eléctrica por distintos circuitos, transforma cada letra de un mensaje en otra de forma polialfabética; al aplicar la misma configuración de rotores y conexiones en receptores idénticos, es posible descifrar el mensaje.'
+let selectedRotor = 0
 
-let keys = ['Q', 'W', 'E', 'R', 'T', 'Z', 'U', 'I', 'O',    
+const desc = 'La máquina Enigma fue desarrollada por la firma alemana Scherbius para proteger las comunicaciones militares y navales en la Segunda Guerra Mundial. Su funcionamiento se basa en un conjunto de rotores intercambiables y un panel de conexiones que, al pasar corriente eléctrica por distintos circuitos, transforma cada letra de un mensaje en otra de forma polialfabética; al aplicar la misma configuración de rotores y conexiones en receptores idénticos, es posible descifrar el mensaje.'
+
+const keys = ['Q', 'W', 'E', 'R', 'T', 'Z', 'U', 'I', 'O',    
                'A', 'S', 'D', 'F', 'G', 'H', 'J', 'K',
             'P', 'Y', 'X', 'C', 'V', 'B', 'N', 'M', 'L'
 ]
 
-let order = [17, 23, 5, 18, 20, 26, 21, 9, 15, 
+const order = [17, 23, 5, 18, 20, 26, 21, 9, 15, 
                 1, 19, 4, 6, 7, 8, 10, 11,
              16, 25, 24, 3, 22, 2, 14, 13, 12 
 ]
+
+let transformation = [' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ']
+
 
 let physicalConnections = []
 
@@ -57,22 +64,53 @@ function mouseReleased(){
 
 function keyPressed(){
     let char = key.toUpperCase()
+    if(keyCode == 8){
+        if(inputText.length > 0){
+            inputText = inputText.slice(0, -1)
+            outputText = outputText.slice(0, -1)
+            inverseTurnRotors()
+        }
+        return
+    }
     for(let button of keyButtons){
         if(button.char == char){
             inputChar(button)
             button.time = 15
         }
     }
+    if((keyCode == 38 || keyCode == 40) && selectedRotor != 0){
+        if(selectedRotor == 3){
+            if(keyCode == 38) offset1 = (offset1 + 1) % 26
+            else offset1 = (offset1 - 1 + 26) % 26
+        }
+        if(selectedRotor == 2){
+            if(keyCode == 38) offset2 = (offset2 + 1) % 26
+            else offset2 = (offset2 - 1 + 26) % 26
+        }
+        if(selectedRotor == 1){
+            if(keyCode == 38) offset3 = (offset3 + 1) % 26
+            else offset3 = (offset3 - 1 + 26) % 26
+        }
+    }
 }
 
 async function setup(){
-    createCanvas(WIDTH + WIDTHUI, HEIGHT)
+    canvas = createCanvas(WIDTH + WIDTHUI, HEIGHT)
+    let x = (windowWidth - width) / 2;
+    let y = (windowHeight - height) / 2;
+    canvas.position(x, y);
     font = await loadFont('font.otf')
     textFont(font)
 
     createButtons()
     createPlugButtons()
     createButtonReplace()
+}
+
+function windowResized() {
+    let x = (windowWidth - width) / 2;
+    let y = (windowHeight - height) / 2;
+    canvas.position(x, y); 
 }
 
 function draw(){
@@ -222,12 +260,19 @@ function drawRotors(){
     let s1 = createVector(x - spacing - sizeSq, y)
     let s2 = createVector(x, y)
     let s3 = createVector(x + spacing + sizeSq, y)
+    let sh = sizeSq * 0.5
+    let inB1 = inBounds(mouseX, mouseY, s1.x-sh, s1.y-sh, sizeSq, sizeSq)
+    let inB2 = inBounds(mouseX, mouseY, s2.x-sh, s2.y-sh, sizeSq, sizeSq)
+    let inB3 = inBounds(mouseX, mouseY, s3.x-sh, s3.y-sh, sizeSq, sizeSq)
     rectMode(CENTER)
+    strokeWeight(2)
 
+    
     rect(s2.x, s2.y, sizeSq, sizeSq, 4)
     rect(s1.x, s1.y, sizeSq, sizeSq, 4)
     rect(s3.x, s3.y, sizeSq, sizeSq, 4)
 
+    noStroke()
     fill(255)
     textSize(25)
     textFont(font)
@@ -253,6 +298,29 @@ function drawRotors(){
     let sp3 = (yLamps - sizeSq) * 0.5
     rect(0, 0, WIDTH, sp3)
     rect(0, yLamps - sp3, WIDTH, yLamps)
+
+    rectMode(CENTER)
+    noFill()
+    
+    
+    if(inB1 || selectedRotor == 1){ 
+        stroke(150)
+        if(mouseIsPressed) selectedRotor = 1
+        if(selectedRotor == 1) stroke(255)
+        rect(s1.x, s1.y, sizeSq, sizeSq, 4)
+    }
+    if(inB2 || selectedRotor == 2){ 
+        stroke(150)
+        if(mouseIsPressed) selectedRotor = 2
+        if(selectedRotor == 2) stroke(255)
+        rect(s2.x, s2.y, sizeSq, sizeSq, 4)
+    }
+    if(inB3 || selectedRotor == 3){
+        stroke(150)
+        if(mouseIsPressed) selectedRotor = 3
+        if(selectedRotor == 3) stroke(255)
+        rect(s3.x, s3.y, sizeSq, sizeSq, 4)
+    }
 
     pop()
 }
@@ -426,7 +494,7 @@ function drawPlugs(){
 
     pop()
 }
-
+let transformationPhases = ['Plug', 'Rotor 1', 'Rotor 2', 'Rotor 3', 'Reflector', 'Rotor 3I', 'Rotor 2I', 'Rotor 1I', 'Plug']
 function drawUI(){
     push()
 
@@ -465,20 +533,71 @@ function drawUI(){
     strokeWeight(1.5)
     push()
     rectMode(CORNER)
-    rect(WIDTH + 30, 350, WIDTHUI - 60, 200)
+    rect(WIDTH + 30, 350, WIDTHUI - 60, 150)
     pop()
+
+    stroke(darkCol)
+    strokeWeight(3)
+    line(WIDTH + 50, 520, WIDTH + 50, 610)
+    drawArrowTip(WIDTH + 50, 610, -PI / 2, 20)
+
+    strokeWeight(1.5)
+    noStroke()
+    fill(darkCol)
+    textSize(17)
+    let wChar = textWidth('A')
+    let hChar = -6
+    push()
+    for(let i = 0; i < 5; i++){
+        noStroke()
+        fill(darkCol)
+        textSize(17)
+        textAlign(LEFT)
+        text(transformation[i], WIDTH + 70 + wChar * 7 * i, 525)
+        textSize(10)
+        textAlign(CENTER)
+        if(i < 4) text(transformationPhases[i], WIDTH + 70 + wChar * 7 * (i + 0.5), 512)
+        else {
+            textAlign(RIGHT)
+            text(transformationPhases[i], WIDTH + 70 + wChar * 7 * (i) - 10, 550)
+        } 
+        stroke(40)
+        if(i < 4) drawArrow('right', WIDTH + 70 + wChar * (i + 0.25) * 7, 525 - hChar)
+        else drawArrow('down', WIDTH + 70 + wChar * (i) * 7 + wChar * 0.5, 550 + hChar, 22)
+    }
+    let startX = WIDTH + 70 + wChar * 7 * 4
+    for (let i = 5; i < transformation.length; i++) {
+        let pos = i - 5
+        let x = startX - wChar * 7 * pos;
+
+        noStroke()
+        fill(darkCol)
+        textSize(17)
+        textAlign(LEFT)
+        text(transformation[i], x, 575);
+        textSize(10)
+        textAlign(CENTER)
+        if(i < transformation.length - 1) text(transformationPhases[i], x - wChar * 2.5, 590);
+
+        if (i < transformation.length - 1) {
+            stroke(40)
+            drawArrow('left', x - wChar * 0.5, 575 - hChar);
+        }
+    }
+    pop()
+
 
     textSize(18)
     fill(darkCol)
     noStroke()
-    text('TEXTO ENCRIPTADO', WIDTH + 30, 580)
+    text('TEXTO ENCRIPTADO', WIDTH + 30, 580 + 50)
     textSize(15)
-    text(outputText, WIDTH + WIDTHUI * 0.5, 605, WIDTHUI-70)
+    text(outputText, WIDTH + WIDTHUI * 0.5, 605 + 50, WIDTHUI-70)
     noFill()
     stroke(darkCol)
     strokeWeight(1.5)
     rectMode(CORNER)
-    rect(WIDTH + 30, 600, WIDTHUI - 60, 200)
+    rect(WIDTH + 30, 600 + 50, WIDTHUI - 60, 150)
 
     let inB = inBounds(mouseX, mouseY, buttonReplace.pos.x - buttonReplace.size * 0.5, buttonReplace.pos.y - buttonReplace.size * 0.5, buttonReplace.size, buttonReplace.size)
     if(inB){
@@ -504,9 +623,28 @@ function drawUI(){
     let plugPairs = Array.from(plugBoard.entries());
     let plugText = plugPairs.map(pair => `${pair[0]}${pair[1]}`).join(' ');
     rectMode(CORNER)
-    text('Plugboard: ' +plugText, WIDTH + 30, HEIGHT - 45, WIDTHUI - 60);
+    text('Plugboard: ' + plugText, WIDTH + 30, HEIGHT - 45, WIDTHUI - 60);
+
+    
 
     pop()
+}
+
+function drawArrow(direction, x, y, length = 45){
+    let tip = 10
+    if(direction == 'right'){
+        line(x, y, x + length, y);
+        drawArrowTip(x + length, y, PI, tip);
+    } else if(direction == 'up'){
+        line(x, y, x, y - length);
+        drawArrowTip(x, y - length, PI / 2, tip);
+    } else if(direction == 'down'){
+        line(x, y, x, y + length);
+        drawArrowTip(x, y + length, -PI / 2, tip);
+    } else if(direction == 'left'){
+        line(x, y, x - length, y);
+        drawArrowTip(x - length, y, 0, tip);
+    }
 }
 
 function createButtons(){
@@ -722,7 +860,7 @@ function createPhysicalConnection(p1){
 }
 
 function createButtonReplace(){
-    let pos = createVector(width - 45, HEIGHT - 275)
+    let pos = createVector(width - 45, HEIGHT - 275 + 50)
     let size = 30
     buttonReplace = {
         pos, 
