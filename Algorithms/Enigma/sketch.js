@@ -13,6 +13,7 @@ const hPlug = 78
 let canvas
 
 let font
+let offY = 0
 
 // const darkCol = '#432818'
 // const lightCol = '#D0B784'
@@ -122,6 +123,11 @@ async function setup(){
     canvas.position(x, y);
     font = await loadFont('font.otf')
     textFont(font)
+
+    //if browser is safari set offT to -5
+    if(navigator.userAgent.indexOf('Safari') > -1 && navigator.userAgent.indexOf('Chrome') == -1){
+        offY = -2
+    }
 
     createButtons()
     createPlugButtons()
@@ -406,7 +412,7 @@ function drawLamps(){
         //noStroke()
         strokeWeight(1.5)
         stroke(210)
-        text(keys[i], x, y + 3)
+        text(keys[i], x, y + 3 + offY)
 
         x += sp1
         if(i == 8){ 
@@ -486,7 +492,7 @@ function drawKeys(){
         fill(250)
         noStroke()
         button.state == 'pressed' ? textSize(25) : textSize(30)
-        text(button.char, button.x, button.y + 3)
+        text(button.char, button.x, button.y + 3 + offY)
     }
 
     textAlign(LEFT)
@@ -588,16 +594,16 @@ function drawUI(){
     line(WIDTH + 30, 80, width - 30, 80)
 
     noStroke()
-    textSize(13.5)
+    textSize(13)
     textAlign(LEFT, TOP)
     text(desc, WIDTH + WIDTHUI * 0.5, 95, WIDTHUI-70)
 
     textWrap(CHAR)
 
     textSize(18)
-    text('TEXTO DE ENTRADA', WIDTH + 30, 330)
+    text('TEXTO DE ENTRADA', WIDTH + 30, 330 + offY)
     textSize(15)
-    text(inputText, WIDTH + WIDTHUI * 0.5, 355, WIDTHUI-70)
+    text(inputText, WIDTH + WIDTHUI * 0.5, 355 + offY, WIDTHUI-70)
     noFill()
     stroke(darkCol)
     strokeWeight(1.5)
@@ -626,13 +632,13 @@ function drawUI(){
         fill(darkCol)
         textSize(17)
         textAlign(LEFT)
-        text(transformation[i], WIDTH + 70 + wChar * 7 * i, 525)
+        text(transformation[i], WIDTH + 70 + wChar * 7 * i, 525 + offY)
         textSize(10)
         textAlign(CENTER)
-        if(i < 4) text(transformationPhases[i], WIDTH + 70 + wChar * 7 * (i + 0.5), 512)
+        if(i < 4) text(transformationPhases[i], WIDTH + 70 + wChar * 7 * (i + 0.5), 512 + offY)
         else {
             textAlign(RIGHT)
-            text(transformationPhases[i], WIDTH + 70 + wChar * 7 * (i) - 10, 552)
+            text(transformationPhases[i], WIDTH + 70 + wChar * 7 * (i) - 10, 552 + offY)
         } 
         stroke(darkCol)
         if(i < 4) drawArrow('right', WIDTH + 70 + wChar * (i + 0.25) * 7, 525 - hChar)
@@ -651,10 +657,10 @@ function drawUI(){
         fill(darkCol)
         textSize(17)
         textAlign(LEFT)
-        text(transformation[i], x + 1, 575);
+        text(transformation[i], x + 1, 575 + offY);
         textSize(10)
         textAlign(CENTER)
-        if(i < transformation.length - 1) text(transformationPhases[i], x - wChar * 2.5, 593);
+        if(i < transformation.length - 1) text(transformationPhases[i], x - wChar * 2.5, 593 + offY);
 
         if (i < transformation.length - 1) {
             stroke(darkCol)
