@@ -14,8 +14,10 @@ let canvas
 
 let font
 
-const darkCol = '#432818'
-const lightCol = '#D0B784'
+// const darkCol = '#432818'
+// const lightCol = '#D0B784'
+const darkCol = 230
+const lightCol = 30
 const medCol = '#99582a'
 
 const yRotors = 0
@@ -24,6 +26,9 @@ const yKeys = 300
 const yPlugs = 550
 
 let selectedRotor = 0
+
+let transformationPhases = ['Conexión', 'Rotor 1', 'Rotor 2', 'Rotor 3', 'Reflector', 'Rotor 3\nInverso', 'Rotor 2\nInverso', 'Rotor 1\nInverso', 'Conexión']
+
 
 const desc = 'La máquina Enigma fue desarrollada por la firma alemana Scherbius para proteger las comunicaciones militares y navales en la Segunda Guerra Mundial. Su funcionamiento se basa en un conjunto de rotores intercambiables y un panel de conexiones que, al pasar corriente eléctrica por distintos circuitos, transforma cada letra de un mensaje en otra de forma polialfabética; al aplicar la misma configuración de rotores y conexiones en receptores idénticos, es posible descifrar el mensaje.'
 
@@ -76,7 +81,14 @@ function keyPressed(){
         if(button.char == char){
             inputChar(button)
             button.time = 15
+            return
         }
+    }
+    if(keyCode == 32){
+        inputText += ' '
+        outputText += ' '
+        turnRotors()
+        return
     }
     if((keyCode == 38 || keyCode == 40) && selectedRotor != 0){
         if(selectedRotor == 3){
@@ -92,6 +104,15 @@ function keyPressed(){
             else offset3 = (offset3 - 1 + 26) % 26
         }
     }
+    else if(isPrintableKey(char)){
+        inputText += char
+        outputText += char
+        turnRotors()
+    }
+}
+
+function isPrintableKey(char) {
+    return char.length === 1 && char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126;
 }
 
 async function setup(){
@@ -105,6 +126,18 @@ async function setup(){
     createButtons()
     createPlugButtons()
     createButtonReplace()
+
+    document.addEventListener("paste", handlePaste)
+}
+
+function handlePaste(event) {
+    event.preventDefault();
+    let clipboardData = event.clipboardData || window.clipboardData;
+    if (clipboardData) {
+        let clipboardContent = clipboardData.getData("text")
+        inputText += clipboardContent
+        outputText += getCodedInput(clipboardContent)
+    }
 }
 
 function windowResized() {
@@ -114,6 +147,7 @@ function windowResized() {
 }
 
 function draw(){
+    if(!focused) return
     background(0)
 
     noStroke()
@@ -247,6 +281,7 @@ function mouseClicked(){
     }
 }
 
+
 function drawRotors(){
     push()
     fill(40)
@@ -322,6 +357,14 @@ function drawRotors(){
         rect(s3.x, s3.y, sizeSq, sizeSq, 4)
     }
 
+
+
+
+    fill(140)
+    textAlign(LEFT)
+    noStroke()
+    textSize(10)
+    text('Rotores', 13, yRotors + 15)
     pop()
 }
 
@@ -343,13 +386,13 @@ function drawLamps(){
         let activeLamp = isActiveLamp(keys[i])
         if(activeLamp){
             if(activeLamp.going == 'up'){
-                activeLamp.time = lerpp(activeLamp.time, 100, 0.2)
-                fill(activeLamp.time, activeLamp.time, 0)
+                activeLamp.time = lerpp(activeLamp.time, 100, 0.08)
+                fill(activeLamp.time * 1.2, activeLamp.time * 1.2, 0)
                 if(activeLamp.time > 90) activeLamp.going = 'down'
             }
             else{
-                activeLamp.time = lerpp(activeLamp.time, 0, 0.2)
-                fill(activeLamp.time, activeLamp.time, 0)
+                activeLamp.time = lerpp(activeLamp.time, 0, 0.05)
+                fill(activeLamp.time * 1.2, activeLamp.time * 1.2, 0)
                 if(activeLamp.time < 30) activeLamp = undefined
             }
             if(activeLamp == undefined) fill(30)
@@ -377,6 +420,13 @@ function drawLamps(){
     }
 
     cleanLamps()
+
+    fill(140)
+    textAlign(LEFT)
+    noStroke()
+    textSize(10)
+    text('Lámparas', 13, yLamps - 15)
+
 
     pop()
 }
@@ -429,7 +479,7 @@ function drawKeys(){
 
         fill(30)
         stroke(150)
-        button.state == 'none' ? strokeWeight(3) : strokeWeight(5)
+        button.state == 'none' ? strokeWeight(4) : strokeWeight(5.5)
         size = button.state == 'pressed' ? 52 : 60
         ellipse(button.x, button.y, size, size)
 
@@ -438,6 +488,13 @@ function drawKeys(){
         button.state == 'pressed' ? textSize(25) : textSize(30)
         text(button.char, button.x, button.y + 3)
     }
+
+    textAlign(LEFT)
+    fill(140)
+    noStroke()
+    textSize(10)
+    text('Teclado', 13, yKeys + 15)
+
 
     pop()
 }
@@ -492,9 +549,16 @@ function drawPlugs(){
         }
     }
 
+    textAlign(LEFT)
+    fill(140)
+    noStroke()
+    textSize(10)
+    text('Conexiones', 13, yPlugs + 15)
+
     pop()
+
 }
-let transformationPhases = ['Plug', 'Rotor 1', 'Rotor 2', 'Rotor 3', 'Reflector', 'Rotor 3I', 'Rotor 2I', 'Rotor 1I', 'Plug']
+
 function drawUI(){
     push()
 
@@ -506,6 +570,12 @@ function drawUI(){
     rectMode(CENTER)
     fill(lightCol)
     rect(WIDTH + WIDTHUI * 0.5, HEIGHT *0.5, WIDTHUI - 30, HEIGHT - 30)
+    push()
+    noFill()
+    stroke(lightCol)
+    strokeWeight(2.5)
+    rect(WIDTH + WIDTHUI * 0.5, HEIGHT * 0.5, WIDTHUI - 15, HEIGHT - 15)
+    pop()
 
     textFont(font)
     textAlign(CENTER, CENTER)
@@ -538,8 +608,8 @@ function drawUI(){
 
     stroke(darkCol)
     strokeWeight(3)
-    line(WIDTH + 50, 520, WIDTH + 50, 610)
-    drawArrowTip(WIDTH + 50, 610, -PI / 2, 20)
+    line(WIDTH + 40, 520, WIDTH + 40, 610)
+    drawArrowTip(WIDTH + 40, 610, -PI / 2, 20)
 
     strokeWeight(1.5)
     noStroke()
@@ -549,6 +619,9 @@ function drawUI(){
     let hChar = -6
     push()
     for(let i = 0; i < 5; i++){
+        noFill()
+        stroke(darkCol)
+        ellipse(WIDTH + 70 + wChar * 7 * i + 5, 525 - hChar + 1, 23)
         noStroke()
         fill(darkCol)
         textSize(17)
@@ -559,9 +632,9 @@ function drawUI(){
         if(i < 4) text(transformationPhases[i], WIDTH + 70 + wChar * 7 * (i + 0.5), 512)
         else {
             textAlign(RIGHT)
-            text(transformationPhases[i], WIDTH + 70 + wChar * 7 * (i) - 10, 550)
+            text(transformationPhases[i], WIDTH + 70 + wChar * 7 * (i) - 10, 552)
         } 
-        stroke(40)
+        stroke(darkCol)
         if(i < 4) drawArrow('right', WIDTH + 70 + wChar * (i + 0.25) * 7, 525 - hChar)
         else drawArrow('down', WIDTH + 70 + wChar * (i) * 7 + wChar * 0.5, 550 + hChar, 22)
     }
@@ -570,17 +643,21 @@ function drawUI(){
         let pos = i - 5
         let x = startX - wChar * 7 * pos;
 
+        noFill()
+        stroke(darkCol)
+        ellipse(x + 6, 575 - hChar, 23)
         noStroke()
+
         fill(darkCol)
         textSize(17)
         textAlign(LEFT)
-        text(transformation[i], x, 575);
+        text(transformation[i], x + 1, 575);
         textSize(10)
         textAlign(CENTER)
-        if(i < transformation.length - 1) text(transformationPhases[i], x - wChar * 2.5, 590);
+        if(i < transformation.length - 1) text(transformationPhases[i], x - wChar * 2.5, 593);
 
         if (i < transformation.length - 1) {
-            stroke(40)
+            stroke(darkCol)
             drawArrow('left', x - wChar * 0.5, 575 - hChar);
         }
     }
@@ -623,7 +700,8 @@ function drawUI(){
     let plugPairs = Array.from(plugBoard.entries());
     let plugText = plugPairs.map(pair => `${pair[0]}${pair[1]}`).join(' ');
     rectMode(CORNER)
-    text('Plugboard: ' + plugText, WIDTH + 30, HEIGHT - 45, WIDTHUI - 60);
+    textWrap(WORD)
+    text('Conexiones: ' + plugText, WIDTH + 30, HEIGHT - 45, WIDTHUI - 60);
 
     
 
@@ -860,8 +938,8 @@ function createPhysicalConnection(p1){
 }
 
 function createButtonReplace(){
-    let pos = createVector(width - 45, HEIGHT - 275 + 50)
-    let size = 30
+    let pos = createVector(width - 40, HEIGHT - 275 + 60)
+    let size = 20
     buttonReplace = {
         pos, 
         size

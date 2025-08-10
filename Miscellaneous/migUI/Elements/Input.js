@@ -34,7 +34,7 @@ class Input {
         this.widthLimit = this.w - 8
 
         document.addEventListener("keyup", this.evaluateKey.bind(this))
-        document.addEventListener("paste", this.handlePaste.bind(this));
+        document.addEventListener("paste", this.handlePaste.bind(this))
     }
     
     setFunc(func, arg = false) {

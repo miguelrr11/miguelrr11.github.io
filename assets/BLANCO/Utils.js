@@ -224,6 +224,10 @@ function getWrappedTextHeight(txt, maxW) {
     return lines.length * lh;
 }
 
+function isPrintableKey(char) {
+    return char.length === 1 && char.charCodeAt(0) >= 32 && char.charCodeAt(0) <= 126;
+}
+
 // ===================
 // Other Utilities
 // ===================
