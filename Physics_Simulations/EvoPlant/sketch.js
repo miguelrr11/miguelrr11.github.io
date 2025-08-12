@@ -5,6 +5,7 @@
 p5.disableFriendlyErrors = true
 const WIDTH = 750
 const HEIGHT = 750
+const WIDTH_UI = 300
 
 let sun
 let rad1 = 40
@@ -21,7 +22,7 @@ const RAD_PLANT_TO_SUN_SQ = RAD_PLANT_TO_SUN * RAD_PLANT_TO_SUN
 let ctx
 let iters
 let totalIters = 0
-const MAX_ITERS = 8000
+const MAX_ITERS = 6000
 let gen = 0
 
 const TABLE_SIZE = 1024
@@ -29,6 +30,10 @@ const TWO_PI = Math.PI * 2
 const cosTable = new Float32Array(TABLE_SIZE)
 const sinTable = new Float32Array(TABLE_SIZE)
 
+let panel
+let textGen
+let plotCurEnergy
+let plotEnergy
 
 function getCircularPos(n, radius){
     let angle = map(n, 0, nPlantsPerGen, 0, TWO_PI);
@@ -37,8 +42,8 @@ function getCircularPos(n, radius){
     return createVector(x, y);
 }
 
-function setup(){
-    let canvas = createCanvas(WIDTH, HEIGHT)
+async function setup(){
+    let canvas = createCanvas(WIDTH + WIDTH_UI, HEIGHT)
     ctx = canvas.elt.getContext('2d');
     sun = createVector(WIDTH / 2, HEIGHT / 2)
     for(let i = 0; i < nPlantsPerGen+1; i++){
@@ -51,8 +56,30 @@ function setup(){
         sinTable[i] = Math.sin(angle);
     }
     totalPlantsCreated = plants.length;
-    iters = 10
+    iters = 50
     MAX_TURNS = nPlantsPerGen * 2 
+
+    let fontPanel = await loadFont("migUI/main/bnr.ttf")
+    panel = new Panel({
+        x: WIDTH,
+        w: WIDTH_UI,
+        h: HEIGHT,
+        font: fontPanel,
+        theme: 'light',
+        automaticHeight: false,
+        title: 'EVOPLANTS'
+    })
+    panel.createSeparator()
+
+    textGen = panel.createText('Generation ' + gen, true)
+    plotCurEnergy = panel.createPlot('Current Mean Energy')
+    plotCurEnergy.setLimitData(MAX_ITERS / 10)
+
+    panel.createSeparator()
+
+    panel.createText('Progress')
+    plotEnergy = panel.createPlot('Mean Energy Over Generations')
+    plotEnergy.setLimitData(20)
 }
 
 function draw(){
@@ -96,7 +123,8 @@ function draw(){
 
     fill(0)
     noStroke()
-    text('Mean Energy: ' + Math.floor(plants.reduce((sum, plant) => sum + plant.energy, 0) / plants.length), 10, 20)
+    let meanEnergy = plants.reduce((sum, plant) => sum + plant.energy, 0) / plants.length;
+    text('Mean Energy: ' + Math.floor(meanEnergy), 10, 20)
     text('Iterations per frame: ' + iters, 10, 40)
     text('Average FPS: ' + Math.floor(avgFps), 10, 60)
     //sum of all stem lengths
@@ -119,9 +147,15 @@ function draw(){
     if(totalIters >= MAX_ITERS){
         next()
     }
+
+    textGen.setText('Generation ' + gen)
+    plotCurEnergy.feed(meanEnergy)
+    panel.update()
+    panel.show()
 }
 
 function next(){
+    let meanEnergy = plants.reduce((sum, plant) => sum + plant.energy, 0) / plants.length;
     plants.sort((a, b) => b.getFitness() - a.getFitness())
     let survivors = plants.slice(0, plants.length / 2)
     let elites = plants.slice(0, 2)
@@ -146,6 +180,8 @@ function next(){
     }
     
     gen++
+    plotCurEnergy.clear()
+    plotEnergy.feed(meanEnergy)
 }
 
 function crossRanges(rangesA, rangesB){

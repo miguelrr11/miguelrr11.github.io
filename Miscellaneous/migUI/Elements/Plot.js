@@ -117,6 +117,8 @@ class Plot {
         this.yStart = this.plotPos.y + this.h - this.plotMargin;
         this.yEnd = this.plotPos.y + this.plotMargin;
         this.midY = (this.yStart + this.yEnd) * 0.5;
+
+        this.lastY = this.midY;
     }
 
     addSeries(){
@@ -195,6 +197,7 @@ class Plot {
             
 
             vertex(x, y);
+            this.lastY = y
         }
         endShape();
     }
@@ -243,11 +246,12 @@ class Plot {
 
         const yMax = this.plotPos.y + h;
         const yMin = this.plotPos.y + this.h - h;
-        const yCur = (this.maxData === this.minData)
-            ? (yMin + yMax) / 2
-            : mappMIGUI(curVal, showHist ? this.minDataH : this.minData,
-                          showHist ? this.maxDataH : this.maxData,
-                          yMax, yMin, true);
+        // const yCur = (this.maxData === this.minData)
+        //     ? (yMin + yMax) / 2
+        //     : mappMIGUI(curVal, showHist ? this.minDataH : this.minData,
+        //                   showHist ? this.maxDataH : this.maxData,
+        //                   yMin, yMax, true);
+        const yCur = constrainn(this.lastY, yMax, yMin);
 
         const drawLabel = (txt, y, bg) => {
             fill(bg);
