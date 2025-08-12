@@ -1,6 +1,7 @@
 const AGE_MAX = 1500
 const MIN_W = 2
 const MAX_W = 10
+let MAX_TURNS = 10
 
 class Section{
     constructor(pos, angle, ratio, ranges){
@@ -11,7 +12,7 @@ class Section{
         this.dead = false
         this.ratio = ratio ? ratio : 1
         this.rnd = random(0, 1)
-        this.turn = Math.floor(Math.random() * 20)
+        this.turn = Math.floor(Math.random() * MAX_TURNS)
 
         this.a = constrainn(this.age / AGE_MAX, 0, 1)
         this.ranges = ranges
@@ -35,7 +36,7 @@ class Section{
     }
 
     updateVars(){
-        if((frameCount + this.turn) % 20 != 0) return
+        if((frameCount + this.turn) % MAX_TURNS != 0) return
         this.a = constrainn(this.age / AGE_MAX, 0, 1)
         this.r = lerpp(this.ranges[0], this.ranges[1], this.a)
         this.g = lerpp(this.ranges[2], this.ranges[3], this.a)
@@ -53,12 +54,16 @@ class Section{
 
         this.updateVars()
 
-        const endX = Math.cos(this.angle) * this.long + this.pos.x
-        const endY = Math.sin(this.angle) * this.long + this.pos.y
+        const endX = fastCos(this.angle) * this.long + this.pos.x;
+        const endY = fastSin(this.angle) * this.long + this.pos.y;
 
-        stroke(this.r, this.g, this.b)
-        strokeWeight(this.w)
-        line(this.pos.x, this.pos.y, endX, endY)
+
+        ctx.beginPath();
+        ctx.strokeStyle = `rgb(${this.r}, ${this.g}, ${this.b})`;
+        ctx.lineWidth = this.w;                                  
+        ctx.moveTo(this.pos.x, this.pos.y);                      
+        ctx.lineTo(endX, endY);                                  
+        ctx.stroke();    
     }
 
 }

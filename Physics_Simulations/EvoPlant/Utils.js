@@ -64,6 +64,35 @@ function mod(n, m) {
     return ((n % m) + m) % m;
 }
 
+function squaredDistance(x1, y1, x2, y2) {
+    return (x2 - x1) ** 2 + (y2 - y1) ** 2;
+}
+
+// ===================
+// Look-up angle tables
+// ===================
+
+// const TABLE_SIZE = 1024
+// const TWO_PI = Math.PI * 2
+// const cosTable = new Float32Array(TABLE_SIZE)
+// const sinTable = new Float32Array(TABLE_SIZE)
+
+// Meter en setup
+for (let i = 0; i < TABLE_SIZE; i++) {
+    const angle = (i / TABLE_SIZE) * TWO_PI;
+    cosTable[i] = Math.cos(angle);
+    sinTable[i] = Math.sin(angle);
+}
+
+function fastCos(angle) {
+    let idx = Math.floor((angle % TWO_PI + TWO_PI) % TWO_PI / TWO_PI * TABLE_SIZE);
+    return cosTable[idx];
+}
+
+function fastSin(angle) {
+    let idx = Math.floor((angle % TWO_PI + TWO_PI) % TWO_PI / TWO_PI * TABLE_SIZE);
+    return sinTable[idx];
+}
 
 // ===================
 // Color Utilities
