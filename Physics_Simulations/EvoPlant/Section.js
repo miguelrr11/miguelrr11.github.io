@@ -1,4 +1,4 @@
-const AGE_MAX = 1000
+const AGE_MAX = 1150
 const MIN_W = 2
 const MAX_W = 10
 let MAX_TURNS = 10
@@ -20,7 +20,7 @@ class Section{
         this.g = lerpp(this.ranges[2], this.ranges[3], this.a)
         this.b = lerpp(this.ranges[4], this.ranges[5], this.a)
         this.w = lerpp(MIN_W, MAX_W, this.a*this.a)
-
+        this.energy = getEnergy(this.pos)
     }
 
     getLastPos(){

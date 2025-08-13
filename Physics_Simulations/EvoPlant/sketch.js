@@ -60,7 +60,7 @@ async function setup(){
         sinTable[i] = Math.sin(angle);
     }
     totalPlantsCreated = plants.length;
-    iters = 50
+    iters = 20
     MAX_TURNS = floor(nPlantsPerGen * 0.5)
 
     let fontPanel = await loadFont("migUI/main/bnr.ttf")
@@ -73,12 +73,13 @@ async function setup(){
         automaticHeight: false,
         title: 'EVOPLANTS'
     })
+    panel.createText('This is an plant evolution simulation where growth towards the sun adapts through genes')
     panel.createSeparator()
 
     textGen = panel.createText('Generation ' + gen, true)
     textGen.setFunc(() => 'Generation ' + gen + ': ' + round(totalIters/MAX_ITERS * 100, 0) + '%')
     plotCurEnergy = panel.createPlot('Current Mean Energy')
-    plotCurEnergy.setLimitData(MAX_ITERS / 10)
+    plotCurEnergy.setLimitData(MAX_ITERS / 25)
 
     panel.createSeparator()
 
@@ -138,7 +139,7 @@ function draw(){
     const total = allSections.length;
     let eff = total > 1 ? ((total - n) / (total - 1)) * 100 : 100;
     eff = Math.max(0, Math.min(100, Math.round(eff)));
-    textEff.setText(`${n}/${total} (${eff}% efficiency)`);
+    textEff.setText(`[Debug]\nBatch Rendering Efficiency: ${eff}%`);
 
     pop()
 
@@ -152,14 +153,15 @@ function draw(){
     fill(0, 10)
     ellipse(sun.x, sun.y, rad1*2)
 
-    if(totalIters >= MAX_ITERS){
-        next()
-    }
+    
 
     textGen.setText('Generation ' + gen)
     plotCurEnergy.feed(meanEnergy)
     for(let i = 0; i < plants.length; i++){
         //plotAllEnergy.feed(plants[i].energy, i)
+    }
+    if(totalIters >= MAX_ITERS){
+        next()
     }
     panel.update()
     panel.show()
