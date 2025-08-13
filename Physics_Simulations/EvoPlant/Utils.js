@@ -68,6 +68,14 @@ function squaredDistance(x1, y1, x2, y2) {
     return (x2 - x1) ** 2 + (y2 - y1) ** 2;
 }
 
+function ceilToHalf(x) {
+  return Math.ceil(x * 2) / 2;
+}
+
+function floorToHalf(x) {
+  return ((x * 2) | 0) / 2;
+}
+
 // ===================
 // Look-up angle tables
 // ===================

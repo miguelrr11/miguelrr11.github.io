@@ -16,7 +16,7 @@ let fps = Array(10).fill(60)
 let oldfps = 60
 let totalPlantsCreated = 0
 
-const nPlantsPerGen = 16
+const nPlantsPerGen = 20
 
 const RAD_PLANT_TO_SUN = 350
 const RAD_PLANT_TO_SUN_SQ = RAD_PLANT_TO_SUN * RAD_PLANT_TO_SUN
@@ -35,9 +35,10 @@ const cosTable = new Float32Array(TABLE_SIZE)
 const sinTable = new Float32Array(TABLE_SIZE)
 
 let panel
-let textGen
+let textGen, textEff
 let plotCurEnergy, plotAllEnergy
 let plotEnergy, plotPrecision, plotAngle, plotAngleMult
+
 
 function getCircularPos(n, radius){
     let angle = map(n, 0, nPlantsPerGen, 0, TWO_PI);
@@ -60,7 +61,7 @@ async function setup(){
     }
     totalPlantsCreated = plants.length;
     iters = 50
-    MAX_TURNS = nPlantsPerGen * 2 
+    MAX_TURNS = floor(nPlantsPerGen * 0.5)
 
     let fontPanel = await loadFont("migUI/main/bnr.ttf")
     panel = new Panel({
@@ -78,7 +79,6 @@ async function setup(){
     textGen.setFunc(() => 'Generation ' + gen + ': ' + round(totalIters/MAX_ITERS * 100, 0) + '%')
     plotCurEnergy = panel.createPlot('Current Mean Energy')
     plotCurEnergy.setLimitData(MAX_ITERS / 10)
-    plotAllEnergy = panel.createPlot('Current Energies')
 
     panel.createSeparator()
 
@@ -95,6 +95,8 @@ async function setup(){
     let fpstext = panel.createText('')
     fpstext.reposition(WIDTH - 20, 5)
     fpstext.setFunc(() => Math.floor(fps.reduce((a, b) => a + b, 0) / fps.length))
+
+    textEff = panel.createText()
 
     for(let i = 0; i < nPlantsPerGen+1; i++){
         let pos = getCircularPos(i, RAD_PLANT_TO_SUN);
@@ -113,60 +115,42 @@ function draw(){
     fps.shift()
     fps.push(frameRate())
     let avgFps = fps.reduce((a, b) => a + b, 0) / fps.length;
-    // if(oldfps < avgFps || avgFps < 30){
-    //     iters = constrain(iters-1, 1, 100)
-    // }
-    // else if(avgFps > 55) iters = constrain(iters+1, 1, 100)
     oldfps = avgFps;
 
-    
 
-    //iters = ceil(map(mouseX, 0, WIDTH, 1, 100))
-
+    let allSections = []
+    let numBatches = 0
     for(let i = 0; i < iters; i++){
         totalIters++
+        allSections = []
         for(let j = plants.length-1; j > 0; j--){
             let plant = plants[j]
             plant.update()
             plant.show()
+            allSections.push(...plant.stem)
             if(!plant.dead) alive = true
             else plants.splice(j, 1)
         }
-        
+        numBatches = renderSectionsBatched(allSections)
     }
 
-    // sun.x = WIDTH / 2 + Math.cos(frameCount * 0.01 * floor(iters)) * 200;
-    // sun.y = HEIGHT / 2 + Math.sin(frameCount * 0.01 * floor(iters)) * 200;
+    const n = numBatches;
+    const total = allSections.length;
+    let eff = total > 1 ? ((total - n) / (total - 1)) * 100 : 100;
+    eff = Math.max(0, Math.min(100, Math.round(eff)));
+    textEff.setText(`${n}/${total} (${eff}% efficiency)`);
 
-    // if(!alive){ 
-    //     plants.push(new Plant());
-    //     totalPlantsCreated++
-    // }
     pop()
 
 
     fill(0)
     noStroke()
     let meanEnergy = plants.reduce((sum, plant) => sum + plant.energy, 0) / plants.length;
-    // text('Mean Energy: ' + Math.floor(meanEnergy), 10, 20)
-    // text('Iterations per frame: ' + iters, 10, 40)
-    // text('Average FPS: ' + Math.floor(avgFps), 10, 60)
-    // //sum of all stem lengths
-    // let totalLength = plants.reduce((sum, plant) => sum + plant.stem.reduce((s, sec) => s + sec.long, 0), 0);
-    // text('Total Plants Created: ' + totalPlantsCreated, 10, 80)
-    // text('Total Plants Alive: ' + plants.length, 10, 100)
-    // text('Total Stem Length: ' + Math.floor(totalLength), 10, 120)
-    // //get mean fitness
-    // let meanFitness = plants.reduce((sum, plant) => sum + plant.getBeauty(), 0) / plants.length;
-    // text('Mean Fitness: ' + meanFitness.toFixed(2), 10, 140)
-    // text('Total iters: ' + totalIters + '/' + MAX_ITERS, 10, 160)
 
 
     noStroke()
     fill(0, 10)
     ellipse(sun.x, sun.y, rad1*2)
-    // ellipse(sun.x, sun.y, rad2*2)
-    // ellipse(sun.x, sun.y, rad3*2)
 
     if(totalIters >= MAX_ITERS){
         next()
@@ -175,7 +159,7 @@ function draw(){
     textGen.setText('Generation ' + gen)
     plotCurEnergy.feed(meanEnergy)
     for(let i = 0; i < plants.length; i++){
-        plotAllEnergy.feed(plants[i].energy, i)
+        //plotAllEnergy.feed(plants[i].energy, i)
     }
     panel.update()
     panel.show()
@@ -215,7 +199,7 @@ function next(){
     gen++
     
     plotCurEnergy.clear()
-    plotAllEnergy.clear(true)
+
     plotEnergy.feed(meanEnergy)
     plotAngle.feed(meanAngle)
     plotPrecision.feed(meanPrecision)

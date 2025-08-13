@@ -32,7 +32,7 @@ class Plant{
         this.offsprings = []
         this.id = idCounter
         idCounter++
-        plotAllEnergy.addSeries()
+        //plotAllEnergy.addSeries()
     }
 
 
@@ -127,10 +127,57 @@ class Plant{
     show(){
         for(let i = this.stem.length - 1; i >= 0; i--){
             let sec = this.stem[i]
-            sec.show()
+            sec.update()
             if(sec.age > AGE_MAX){
                 this.stem.splice(i, 1)
             }
         }
     }
+}
+
+const numColors = 12
+let colorsBuc = 256/numColors
+function bucketizeColor(r,g,b){
+    const Q = x => Math.floor(x / colorsBuc) * colorsBuc;
+    return `${Q(r)},${Q(g)},${Q(b)}`; // "r,g,b"
+}
+function bucketizeWidth(w){
+    return Math.floor(w)
+}
+function renderSectionsBatched(sections){
+    const batches = new Map(); // key: "r,g,b|w" 
+    for (let s of sections) {
+        if (s.outOfBounds || s.dead) continue;
+
+        const x1 = s.pos.x, y1 = s.pos.y;
+        const x2 = fastCos(s.angle) * s.long + x1;
+        const y2 = fastSin(s.angle) * s.long + y1;
+
+        const colorKey = bucketizeColor(s.r, s.g, s.b); 
+        const widthKey = bucketizeWidth(s.w);
+        const key = `${colorKey}|${widthKey}`;
+
+        let arr = batches.get(key);
+        if (!arr) { 
+            arr = []; 
+            batches.set(key, arr); 
+        }
+        arr.push(x1, y1, x2, y2);
+    }
+    ctx.lineJoin = 'miter'
+    for (const [key, lines] of batches) {
+        const [rgb, wStr] = key.split('|');
+        ctx.beginPath();
+        ctx.strokeStyle = `rgb(${rgb})`;
+        ctx.lineWidth = Number(wStr);
+        // opcional: ctx.lineCap = 'butt'; ctx.lineJoin = 'miter'; (más rápidos)
+        //ctx.lineCap = 'butt'
+        
+        for (let i = 0; i < lines.length; i += 4) {
+            ctx.moveTo(lines[i], lines[i+1]);
+            ctx.lineTo(lines[i+2], lines[i+3]);
+        }
+        ctx.stroke();
+    }
+    return batches.size
 }

@@ -151,8 +151,9 @@ class Plot {
         let series = this.series[idx];
         if (!series) return
 
-        series.data.push(n);
-        series.history.push(n);
+        let input = n > 100 ? Math.floor(n) : n;
+        series.data.push(input);
+        series.history.push(input);
 
         if (series.data.length > this.limitData) series.data.shift();
         if (series.history.length > this.limitHistory) series.history.shift();
@@ -191,10 +192,13 @@ class Plot {
     
         beginShape();
         for (let i = 0; i < len; i += skip) {
+            while(values[i] == undefined && i < len) {
+                i += skip
+            }
             if(values[i] == undefined) {
                 endShape();
                 beginShape();
-                continue;
+                continue
             }
 
             let x = mappMIGUI(i, 0, len - 1, this.xStart, this.xEnd);

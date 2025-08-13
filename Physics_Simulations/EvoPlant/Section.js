@@ -1,4 +1,4 @@
-const AGE_MAX = 1500
+const AGE_MAX = 1000
 const MIN_W = 2
 const MAX_W = 10
 let MAX_TURNS = 10
@@ -44,26 +44,36 @@ class Section{
         this.w = lerpp(MIN_W, MAX_W, this.a*this.a)
     }
 
-    show(){
+    // show(){
 
+    //     this.age += 0.1
+
+    //     if(this.pos.x < 0 || this.pos.x > WIDTH || this.pos.y < 0 || this.pos.y > HEIGHT){
+    //         return
+    //     }
+
+    //     this.updateVars()
+
+    //     const endX = fastCos(this.angle) * this.long + this.pos.x;
+    //     const endY = fastSin(this.angle) * this.long + this.pos.y;
+
+
+    //     ctx.beginPath();
+    //     ctx.strokeStyle = `rgb(${this.r}, ${this.g}, ${this.b})`;
+    //     ctx.lineWidth = this.w;                                  
+    //     ctx.moveTo(this.pos.x, this.pos.y);                      
+    //     ctx.lineTo(endX, endY);                                  
+    //     ctx.stroke();    
+    // }
+
+    update(){
         this.age += 0.1
 
-        if(this.pos.x < 0 || this.pos.x > WIDTH || this.pos.y < 0 || this.pos.y > HEIGHT){
+        if(this.outOfBounds){
             return
         }
 
         this.updateVars()
-
-        const endX = fastCos(this.angle) * this.long + this.pos.x;
-        const endY = fastSin(this.angle) * this.long + this.pos.y;
-
-
-        ctx.beginPath();
-        ctx.strokeStyle = `rgb(${this.r}, ${this.g}, ${this.b})`;
-        ctx.lineWidth = this.w;                                  
-        ctx.moveTo(this.pos.x, this.pos.y);                      
-        ctx.lineTo(endX, endY);                                  
-        ctx.stroke();    
     }
 
 }
