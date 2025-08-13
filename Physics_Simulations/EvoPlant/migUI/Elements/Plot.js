@@ -15,7 +15,7 @@ class Plot {
         this.pos = { x, y };
         this.plotPos = { x, y: y + this.plotOffset };
 
-        this.showValueInTitle = false;
+        this.showValueInTitle = true;
 
         this.height = 80;
         this.h = this.height - this.plotOffset;
@@ -64,14 +64,23 @@ class Plot {
         this.absMin = undefined;
     }
 
-    clear(){
-        for(let i = 0; i < this.series.length; i++){
-            this.series[i].data = [];
-            this.series[i].history = [];
-            this.series[i].maxData = 0;
-            this.series[i].minData = 0;
-            this.series[i].maxDataH = 0;
-            this.series[i].minDataH = 0;
+    setShowValueInTitle(arg){
+        this.showValueInTitle = arg;
+    }
+
+    clear(deep = false){
+        if(deep){
+            this.series = []
+        }
+        else{
+            for(let i = 0; i < this.series.length; i++){
+                this.series[i].data = [];
+                this.series[i].history = [];
+                this.series[i].maxData = 0;
+                this.series[i].minData = 0;
+                this.series[i].maxDataH = 0;
+                this.series[i].minDataH = 0;
+            }
         }
         this.maxData = 0;
         this.minData = 0;
@@ -122,7 +131,7 @@ class Plot {
     }
 
     addSeries(){
-        let nZeros = this.series[0].data.length;
+        let nZeros = this.series.length > 0 ? this.series[0].data.length : 0
         this.series.push({
             data: Array(nZeros).fill(undefined),
             history: Array(nZeros).fill(undefined),
@@ -290,11 +299,15 @@ class Plot {
         if (this.func) this.feed(this.func());
         this.feedZeroes()
         push();
+
+        let hasData = this.series.length > 0
+
         strokeWeight(bordeMIGUI);
 
-        if ((this.hovering() && mouseIsPressed) || this.permanentPressed) {
+        if (((this.hovering() && mouseIsPressed) || this.permanentPressed) && hasData) {
             this.showHistory();
-        } else {
+        } 
+        else if(hasData) {
             this.showPlot();
         }
 
@@ -312,7 +325,7 @@ class Plot {
             fill(this.lightCol);
             textAlign(LEFT, CENTER);
             textSize(text_SizeMIGUI - 1);
-            let title = this.showValueInTitle ? `${this.title}: ${this.getSimpleInt(this.series[0].data[this.series[0].data.length - 1])}` : this.title;
+            let title = this.showValueInTitle && hasData ? `${this.title}: ${this.getSimpleInt(this.series[0].data[this.series[0].data.length - 1])}` : this.title;
             text(title, this.pos.x, this.pos.y + 7);
         }
         pop();

@@ -15,14 +15,18 @@ let plants = []
 let fps = Array(10).fill(60)
 let oldfps = 60
 let totalPlantsCreated = 0
-const nPlantsPerGen = 30
+
+const nPlantsPerGen = 16
+
 const RAD_PLANT_TO_SUN = 350
 const RAD_PLANT_TO_SUN_SQ = RAD_PLANT_TO_SUN * RAD_PLANT_TO_SUN
+
+let sigmaMax, sigmaMin
 
 let ctx
 let iters
 let totalIters = 0
-const MAX_ITERS = 6000
+const MAX_ITERS = 15000
 let gen = 0
 
 const TABLE_SIZE = 1024
@@ -32,8 +36,8 @@ const sinTable = new Float32Array(TABLE_SIZE)
 
 let panel
 let textGen
-let plotCurEnergy
-let plotEnergy
+let plotCurEnergy, plotAllEnergy
+let plotEnergy, plotPrecision, plotAngle, plotAngleMult
 
 function getCircularPos(n, radius){
     let angle = map(n, 0, nPlantsPerGen, 0, TWO_PI);
@@ -46,10 +50,9 @@ async function setup(){
     let canvas = createCanvas(WIDTH + WIDTH_UI, HEIGHT)
     ctx = canvas.elt.getContext('2d');
     sun = createVector(WIDTH / 2, HEIGHT / 2)
-    for(let i = 0; i < nPlantsPerGen+1; i++){
-        let pos = getCircularPos(i, RAD_PLANT_TO_SUN);
-        plants.push(new Plant(pos));
-    }
+    sigmaMax = radians(60);
+    sigmaMin = radians(2);
+    
     for (let i = 0; i < TABLE_SIZE; i++) {
         const angle = (i / TABLE_SIZE) * TWO_PI;
         cosTable[i] = Math.cos(angle);
@@ -72,14 +75,35 @@ async function setup(){
     panel.createSeparator()
 
     textGen = panel.createText('Generation ' + gen, true)
+    textGen.setFunc(() => 'Generation ' + gen + ': ' + round(totalIters/MAX_ITERS * 100, 0) + '%')
     plotCurEnergy = panel.createPlot('Current Mean Energy')
     plotCurEnergy.setLimitData(MAX_ITERS / 10)
+    plotAllEnergy = panel.createPlot('Current Energies')
 
     panel.createSeparator()
 
-    panel.createText('Progress')
-    plotEnergy = panel.createPlot('Mean Energy Over Generations')
+    panel.createText('Progress over generations', true)
+    plotEnergy = panel.createPlot('Mean Energy')
     plotEnergy.setLimitData(20)
+    plotPrecision = panel.createPlot('Mean Precision')
+    plotPrecision.setLimitData(20)
+    plotAngle = panel.createPlot('Mean Max Turn Angle')
+    plotAngle.setLimitData(20)
+    plotAngleMult = panel.createPlot('Mean Angle Mult')
+    plotAngleMult.setLimitData(20)
+
+    let fpstext = panel.createText('')
+    fpstext.reposition(WIDTH - 20, 5)
+    fpstext.setFunc(() => Math.floor(fps.reduce((a, b) => a + b, 0) / fps.length))
+
+    for(let i = 0; i < nPlantsPerGen+1; i++){
+        let pos = getCircularPos(i, RAD_PLANT_TO_SUN);
+        plants.push(new Plant(pos));
+    }
+}
+let showPlot = true
+function keyPressed(){
+    showPlot = !showPlot
 }
 
 function draw(){
@@ -124,18 +148,18 @@ function draw(){
     fill(0)
     noStroke()
     let meanEnergy = plants.reduce((sum, plant) => sum + plant.energy, 0) / plants.length;
-    text('Mean Energy: ' + Math.floor(meanEnergy), 10, 20)
-    text('Iterations per frame: ' + iters, 10, 40)
-    text('Average FPS: ' + Math.floor(avgFps), 10, 60)
-    //sum of all stem lengths
-    let totalLength = plants.reduce((sum, plant) => sum + plant.stem.reduce((s, sec) => s + sec.long, 0), 0);
-    text('Total Plants Created: ' + totalPlantsCreated, 10, 80)
-    text('Total Plants Alive: ' + plants.length, 10, 100)
-    text('Total Stem Length: ' + Math.floor(totalLength), 10, 120)
-    //get mean fitness
-    let meanFitness = plants.reduce((sum, plant) => sum + plant.getBeauty(), 0) / plants.length;
-    text('Mean Fitness: ' + meanFitness.toFixed(2), 10, 140)
-    text('Total iters: ' + totalIters + '/' + MAX_ITERS, 10, 160)
+    // text('Mean Energy: ' + Math.floor(meanEnergy), 10, 20)
+    // text('Iterations per frame: ' + iters, 10, 40)
+    // text('Average FPS: ' + Math.floor(avgFps), 10, 60)
+    // //sum of all stem lengths
+    // let totalLength = plants.reduce((sum, plant) => sum + plant.stem.reduce((s, sec) => s + sec.long, 0), 0);
+    // text('Total Plants Created: ' + totalPlantsCreated, 10, 80)
+    // text('Total Plants Alive: ' + plants.length, 10, 100)
+    // text('Total Stem Length: ' + Math.floor(totalLength), 10, 120)
+    // //get mean fitness
+    // let meanFitness = plants.reduce((sum, plant) => sum + plant.getBeauty(), 0) / plants.length;
+    // text('Mean Fitness: ' + meanFitness.toFixed(2), 10, 140)
+    // text('Total iters: ' + totalIters + '/' + MAX_ITERS, 10, 160)
 
 
     noStroke()
@@ -150,15 +174,22 @@ function draw(){
 
     textGen.setText('Generation ' + gen)
     plotCurEnergy.feed(meanEnergy)
+    for(let i = 0; i < plants.length; i++){
+        plotAllEnergy.feed(plants[i].energy, i)
+    }
     panel.update()
     panel.show()
 }
 
 function next(){
     let meanEnergy = plants.reduce((sum, plant) => sum + plant.energy, 0) / plants.length;
+    let meanAngle = plants.reduce((sum, plant) => sum + plant.gen.max_turn_angle, 0) / plants.length;
+    let meanPrecision = plants.reduce((sum, plant) => sum + plant.gen.precision_light, 0) / plants.length;
+    let meanAngleMult = plants.reduce((sum, plant) => sum + plant.gen.angle_mult, 0) / plants.length;
+    idCounter = 0
     plants.sort((a, b) => b.getFitness() - a.getFitness())
     let survivors = plants.slice(0, plants.length / 2)
-    let elites = plants.slice(0, 2)
+    let elites = plants.slice(0, 1)
     for(let i = 0; i < elites.length; i++){
         for(let j = 0; j < 2; j++) survivors.push(elites[i]);
     }
@@ -174,14 +205,21 @@ function next(){
     }
     plants = newGenPlants
     totalIters = 0
-    if(gen > 10){
-        sun.x = WIDTH / 2 + random(-150, 150)
-        sun.y = HEIGHT / 2 + random(-150, 150)
-    }
+    // if(gen > 10){
+    //     sun.x = WIDTH / 2 + random(-150, 150)
+    //     sun.y = HEIGHT / 2 + random(-150, 150)
+    // }
+
     
+
     gen++
+    
     plotCurEnergy.clear()
+    plotAllEnergy.clear(true)
     plotEnergy.feed(meanEnergy)
+    plotAngle.feed(meanAngle)
+    plotPrecision.feed(meanPrecision)
+    plotAngleMult.feed(meanAngleMult)
 }
 
 function crossRanges(rangesA, rangesB){

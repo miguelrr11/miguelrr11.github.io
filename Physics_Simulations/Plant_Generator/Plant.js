@@ -7,9 +7,9 @@ GENES PLANTA
 - ¿Probabilidad de ramificacion?
 */
 
-const MAX_SECTIONS = 100
+const MAX_SECTIONS = 500
 const MAX_ENERGY = Infinity
-const MAX_OFFSPRINGS = 3
+const MAX_OFFSPRINGS = 5
 
 let idCounter = 0
 
@@ -17,9 +17,9 @@ class Plant{
     constructor(pos, ranges){
         this.gen = {
             long_sec: random(3, 22),
-            prob_repro: random(0.0003, 0.0005),
-            precision_light: random(0, 0.2),     //1 is max precision, 0 lowest random(0.2, 05)
-            angle_mult: random(0.01, 0.3),         //1 is max aperture (best) random(0.3, 0.5),      
+            prob_repro: random(0.0001, 0.0005),
+            precision_light: random(0, 1),     //1 is max precision, 0 lowest random(0.2, 05)
+            angle_mult: random(0.01, 1),         //1 is max aperture (best) random(0.3, 0.5),      
             growth_rate: random(0.005, 0.03),
             max_turn_angle: random(20, 120)
         }
@@ -32,7 +32,7 @@ class Plant{
         this.offsprings = []
         this.id = idCounter
         idCounter++
-        plotAllEnergy.addSeries()
+        this.parent = undefined
     }
 
 
@@ -83,32 +83,37 @@ class Plant{
         let lastSec = this.stem[this.stem.length - 1]
         let lastPos = lastSec.getLastPos()
 
-        this.energy -= (this.gen.growth_rate * 0.25)
-        this.energy += this.getEnergy(lastPos)
-        this.energy = Math.min(this.energy, MAX_ENERGY)
-        if(this.energy < 0){ 
-            this.dead = true
-            lastSec.dead = true
-        }
         lastSec.grow(this.gen.growth_rate)
 
         if(!this.dead && lastSec.long > this.gen.long_sec){
             let oldAngle = lastSec.angle
             let newAngle = this.getNewAngle(oldAngle, lastPos)
-            this.stem.push(new Section(createVector(lastPos.x, lastPos.y), newAngle, 1/this.stem.length, this.ranges))
+            this.stem.push(new Section(lastPos, newAngle, 1/this.stem.length, this.ranges))
             if(this.stem.length > MAX_SECTIONS){
                 this.stem.shift()
             }
         }
 
         if(Math.random() < this.gen.prob_repro && this.stem.length > 1 && !this.dead && this.offsprings.length < MAX_OFFSPRINGS){
-            let newPlant = new Plant(lastPos, this.ranges.map(color => Math.min(Math.max(color + random(-10, 10), 0), 255)))
+            let newPlant = new Plant(lastPos, this.ranges)
             totalPlantsCreated++
             newPlant.gen = this.getNewGen()
             newPlant.gen.prob_repro *= 0.1
             newPlant.energy = this.energy
+            newPlant.parent = this
             plants.push(newPlant)
             this.offsprings.push(newPlant)
+        }
+    }
+
+    dieOffsprings(){
+        this.dead = true
+        if(this.offsprings.length > 0){
+            for(let i = 0; i < this.offsprings.length; i++){
+                let off = this.offsprings[i];
+                off.dead = true;
+                off.dieOffsprings();
+            }
         }
     }
 
@@ -127,10 +132,57 @@ class Plant{
     show(){
         for(let i = this.stem.length - 1; i >= 0; i--){
             let sec = this.stem[i]
-            sec.show()
+            sec.update()
             if(sec.age > AGE_MAX){
                 this.stem.splice(i, 1)
             }
         }
     }
+}
+
+
+
+function bucketizeColor(r,g,b, buckets=32){
+    const Q = x => Math.floor(x / (256/buckets)) * Math.floor(256/buckets);
+    return `${Q(r)},${Q(g)},${Q(b)}`; // "r,g,b"
+}
+function bucketizeWidth(w){
+    return Math.floor(w)
+}
+function renderSectionsBatched(sections){
+    const batches = new Map(); // key: "r,g,b|w" 
+    for (let s of sections) {
+        if (s.outOfBounds || s.dead) continue;
+
+        const x1 = s.pos.x, y1 = s.pos.y;
+        const x2 = fastCos(s.angle) * s.long + x1;
+        const y2 = fastSin(s.angle) * s.long + y1;
+
+        const colorKey = bucketizeColor(s.r, s.g, s.b, 36); 
+        const widthKey = bucketizeWidth(s.w);
+        const key = `${colorKey}|${widthKey}`;
+
+        let arr = batches.get(key);
+        if (!arr) { 
+            arr = []; 
+            batches.set(key, arr); 
+        }
+        arr.push(x1, y1, x2, y2);
+    }
+    ctx.lineJoin = 'miter'
+    for (const [key, lines] of batches) {
+        const [rgb, wStr] = key.split('|');
+        ctx.beginPath();
+        ctx.strokeStyle = `rgb(${rgb})`;
+        ctx.lineWidth = Number(wStr);
+        // opcional: ctx.lineCap = 'butt'; ctx.lineJoin = 'miter'; (más rápidos)
+        //ctx.lineCap = 'butt'
+        
+        for (let i = 0; i < lines.length; i += 4) {
+            ctx.moveTo(lines[i], lines[i+1]);
+            ctx.lineTo(lines[i+2], lines[i+3]);
+        }
+        ctx.stroke();
+    }
+    console.log('Batches: ' + batches.size);
 }
