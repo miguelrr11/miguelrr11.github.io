@@ -16,7 +16,7 @@ let fps = Array(10).fill(60)
 let oldfps = 60
 let totalPlantsCreated = 0
 
-const nPlantsPerGen = 20
+const nPlantsPerGen = 12 * 2
 
 const RAD_PLANT_TO_SUN = 350
 const RAD_PLANT_TO_SUN_SQ = RAD_PLANT_TO_SUN * RAD_PLANT_TO_SUN
@@ -24,15 +24,19 @@ const RAD_PLANT_TO_SUN_SQ = RAD_PLANT_TO_SUN * RAD_PLANT_TO_SUN
 let sigmaMax, sigmaMin
 
 let ctx
-let iters
+let iters = 50
 let totalIters = 0
-const MAX_ITERS = 15000
+const MAX_ITERS = 18000
 let gen = 0
+const rnd = randomm(0.1, 0.7)
 
 const TABLE_SIZE = 1024
 const TWO_PI = Math.PI * 2
 const cosTable = new Float32Array(TABLE_SIZE)
 const sinTable = new Float32Array(TABLE_SIZE)
+
+const colorBack = 240
+const colorDead = 30
 
 let panel
 let textGen, textEff
@@ -60,8 +64,8 @@ async function setup(){
         sinTable[i] = Math.sin(angle);
     }
     totalPlantsCreated = plants.length;
-    iters = 20
-    MAX_TURNS = floor(nPlantsPerGen * 0.5)
+    //MAX_TURNS = floor(nPlantsPerGen * 0.5)
+    MAX_TURNS = 10
 
     let fontPanel = await loadFont("migUI/main/bnr.ttf")
     panel = new Panel({
@@ -110,7 +114,7 @@ function keyPressed(){
 }
 
 function draw(){
-    background(240)
+    background(colorBack)
     push()
     console.log()
     fps.shift()
@@ -128,12 +132,13 @@ function draw(){
             let plant = plants[j]
             plant.update()
             plant.show()
-            allSections.push(...plant.stem)
+            if(i == iters-1) allSections.push(...plant.stem)
             if(!plant.dead) alive = true
             else plants.splice(j, 1)
         }
-        numBatches = renderSectionsBatched(allSections)
+        
     }
+    numBatches = renderSectionsBatched(allSections) 
 
     const n = numBatches;
     const total = allSections.length;
