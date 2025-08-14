@@ -23,6 +23,8 @@ let sigmaMax, sigmaMin
 
 let ctx
 
+let rnd = 0.2
+
 const TABLE_SIZE = 1024
 const TWO_PI = Math.PI * 2
 const cosTable = new Float32Array(TABLE_SIZE)
@@ -91,13 +93,13 @@ function draw(){
             let plant = plants[j]
             plant.update()
             plant.show()
-            allSections.push(...plant.stem)
+            if(i == iters - 1) allSections.push(...plant.stem)
             if(!plant.dead) alive = true
             else plants.splice(j, 1)
         }
-        renderSectionsBatched(allSections)
+        
     }
-    console.log('Sections: ' + allSections.length)
+    renderSectionsBatched(allSections)
     pop()
 
     //orbit sun

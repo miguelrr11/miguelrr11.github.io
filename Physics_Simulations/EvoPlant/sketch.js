@@ -4,7 +4,7 @@
 
 p5.disableFriendlyErrors = true
 const WIDTH = 750
-const HEIGHT = 750
+const HEIGHT = 800
 const WIDTH_UI = 300
 
 let sun
@@ -12,23 +12,26 @@ let rad1 = 40
 let rad2 = 75
 let rad3 = 125
 let plants = []
+let flowers = []
 let fps = Array(10).fill(60)
 let oldfps = 60
 let totalPlantsCreated = 0
 
-const nPlantsPerGen = 12 * 2
+const nPlantsPerGen = 12
 
+const INNER_RAD_SUN_SQ = rad1 * rad1
 const RAD_PLANT_TO_SUN = 350
 const RAD_PLANT_TO_SUN_SQ = RAD_PLANT_TO_SUN * RAD_PLANT_TO_SUN
 
 let sigmaMax, sigmaMin
 
 let ctx
-let iters = 50
+let iters = 75
 let totalIters = 0
 const MAX_ITERS = 18000
 let gen = 0
-const rnd = randomm(0.1, 0.7)
+let rnd = randomm(0.1, .75)
+let rnd2 = randomm(2, 4)
 
 const TABLE_SIZE = 1024
 const TWO_PI = Math.PI * 2
@@ -41,7 +44,7 @@ const colorDead = 30
 let panel
 let textGen, textEff
 let plotCurEnergy, plotAllEnergy
-let plotEnergy, plotPrecision, plotAngle, plotAngleMult
+let plotEnergy, plotPrecision, plotAngle, plotAngleMult, plotLong
 
 
 function getCircularPos(n, radius){
@@ -49,6 +52,11 @@ function getCircularPos(n, radius){
     let x = WIDTH / 2 + cos(angle + 0.1) * radius;
     let y = HEIGHT / 2 + sin(angle + 0.1) * radius;
     return createVector(x, y);
+}
+
+function addFlower(pos, ranges){
+    flowers.push(new Flower(pos, ranges));
+    if(flowers.length > 100) flowers.shift();
 }
 
 async function setup(){
@@ -89,13 +97,15 @@ async function setup(){
 
     panel.createText('Progress over generations', true)
     plotEnergy = panel.createPlot('Mean Energy')
-    plotEnergy.setLimitData(20)
+    plotEnergy.setLimitData(40)
     plotPrecision = panel.createPlot('Mean Precision')
-    plotPrecision.setLimitData(20)
+    plotPrecision.setLimitData(40)
     plotAngle = panel.createPlot('Mean Max Turn Angle')
-    plotAngle.setLimitData(20)
+    plotAngle.setLimitData(40)
     plotAngleMult = panel.createPlot('Mean Angle Mult')
-    plotAngleMult.setLimitData(20)
+    plotAngleMult.setLimitData(40)
+    plotLong = panel.createPlot('Mean Section Length')
+    plotLong.setLimitData(40)
 
     let fpstext = panel.createText('')
     fpstext.reposition(WIDTH - 20, 5)
@@ -103,10 +113,11 @@ async function setup(){
 
     textEff = panel.createText()
 
-    for(let i = 0; i < nPlantsPerGen+1; i++){
+    for(let i = 0; i < nPlantsPerGen; i++){
         let pos = getCircularPos(i, RAD_PLANT_TO_SUN);
         plants.push(new Plant(pos));
     }
+
 }
 let showPlot = true
 function keyPressed(){
@@ -128,7 +139,7 @@ function draw(){
     for(let i = 0; i < iters; i++){
         totalIters++
         allSections = []
-        for(let j = plants.length-1; j > 0; j--){
+        for(let j = plants.length-1; j >= 0; j--){
             let plant = plants[j]
             plant.update()
             plant.show()
@@ -144,7 +155,7 @@ function draw(){
     const total = allSections.length;
     let eff = total > 1 ? ((total - n) / (total - 1)) * 100 : 100;
     eff = Math.max(0, Math.min(100, Math.round(eff)));
-    textEff.setText(`[Debug]\nBatch Rendering Efficiency: ${eff}%`);
+    textEff.setText(`Batch Rendering Efficiency: ${eff}%`);
 
     pop()
 
@@ -157,6 +168,8 @@ function draw(){
     noStroke()
     fill(0, 10)
     ellipse(sun.x, sun.y, rad1*2)
+
+    for(let flower of flowers) flower.show()
 
     
 
@@ -177,6 +190,7 @@ function next(){
     let meanAngle = plants.reduce((sum, plant) => sum + plant.gen.max_turn_angle, 0) / plants.length;
     let meanPrecision = plants.reduce((sum, plant) => sum + plant.gen.precision_light, 0) / plants.length;
     let meanAngleMult = plants.reduce((sum, plant) => sum + plant.gen.angle_mult, 0) / plants.length;
+    let meanLong = plants.reduce((sum, plant) => sum + plant.gen.long_sec, 0) / plants.length;
     idCounter = 0
     plants.sort((a, b) => b.getFitness() - a.getFitness())
     let survivors = plants.slice(0, plants.length / 2)
@@ -211,6 +225,7 @@ function next(){
     plotAngle.feed(meanAngle)
     plotPrecision.feed(meanPrecision)
     plotAngleMult.feed(meanAngleMult)
+    plotLong.feed(meanLong)
 }
 
 function crossRanges(rangesA, rangesB){

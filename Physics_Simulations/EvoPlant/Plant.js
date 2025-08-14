@@ -22,8 +22,8 @@ class Plant{
         this.gen = {
             long_sec: constrain(round(randomGaussian(14, 5)), 4, 25) * mult,
             prob_repro: random(0.0003, 0.0005),
-            precision_light: random(0, 0.1),     //1 is max precision, 0 lowest random(0.2, 05)
-            angle_mult: random(0.01, 0.2),         //1 is max aperture (best) random(0.3, 0.5),      
+            precision_light: random(0, 0.1),     //1 is max precision, 0 lowest
+            angle_mult: random(0.01, 0.2),         //1 is max aperture (best) 
             growth_rate: random(0.005, 0.03) * mult,
             max_turn_angle: random(20, 120)
         }
@@ -36,6 +36,9 @@ class Plant{
         this.offsprings = []
         this.id = idCounter
         this.energyAcumulator = 0
+        this.primordial = true
+        this.flowered = false
+        this.radRnd = random(INNER_RAD_SUN_SQ)
         idCounter++
         //plotAllEnergy.addSeries()
     }
@@ -85,6 +88,14 @@ class Plant{
         let lastSec = this.stem[this.stem.length - 1]
         let lastPos = lastSec.getLastPos()
 
+        if(!this.primordial && !this.flowered){
+            if(squaredDistance(lastPos.x, lastPos.y, sun.x, sun.y) < INNER_RAD_SUN_SQ - this.radRnd){
+                this.flowered = true
+                addFlower(lastPos, lastSec.ranges)
+            }
+        }
+        
+
         this.energy -= (this.gen.growth_rate * 0.5)
         this.energy -= this.stem.length * 0.01
         this.energy -= this.offsprings.length * 0.05
@@ -95,13 +106,13 @@ class Plant{
             this.dead = true
             lastSec.dead = true
         }
-        lastSec.grow(this.gen.growth_rate)
+        if(!this.flowered) lastSec.grow(this.gen.growth_rate)
 
-        if(!this.dead && lastSec.long > this.gen.long_sec){
+        if(!this.flowered && !this.dead && lastSec.long > this.gen.long_sec){
             let oldAngle = lastSec.angle
             let newAngle = this.getNewAngle(oldAngle, lastPos)
             this.stem.push(new Section(createVector(lastPos.x, lastPos.y), newAngle, 1/this.stem.length, this.ranges))
-            this.energyAcumulator += this.getEnergy(lastPos) * mapp(this.gen.long_sec, 4, 25, rnd, 1)
+            this.energyAcumulator += this.getEnergy(lastPos) * mapp(this.gen.long_sec, 4, 25, rnd, rnd2)
             if(this.stem.length > MAX_SECTIONS){
                 let old = this.stem.shift()
                 this.energyAcumulator -= this.getEnergy(old.pos)
@@ -115,6 +126,7 @@ class Plant{
             newPlant.gen = this.getNewGen()
             newPlant.gen.prob_repro *= 0.1
             newPlant.energy = this.energy
+            newPlant.primordial = false
             plants.push(newPlant)
             this.offsprings.push(newPlant)
         }
