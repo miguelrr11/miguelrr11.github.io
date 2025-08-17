@@ -3,12 +3,13 @@
 //17-08-2025
 
 p5.disableFriendlyErrors = true
-const WIDTH = 600
-const HEIGHT = 600
+const WIDTH = 800
+const HEIGHT = 800
 
 const NwordsOutput = 500
 let markovChain
 let countChain
+let output
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
@@ -19,11 +20,23 @@ function setup(){
     countChain = sortChain(countChain)
     generateProbabilities(chain)
     markovChain = chain
-    let outputText = generateText(chain)
-    console.log(outputText);
+    output = generateText(chain)
+    console.log(output);
     
     chain = sortChain(chain)
     console.log(chain)
+
+
+    background(0)
+    fill(255)
+    noStroke()
+    textSize(25)
+    text('Don Quijote generado con cadenas de Markov', 10, 30)
+    textSize(20)
+    text('Las cadenas de Markov son un modelo probabilístico en el que cada palabra depende solo de la anterior, para generar, en este caso, nuevo texto a partir del libro de Don Quijote. ', 10, 40, WIDTH - 20)
+    textSize(15)
+    text(output, 10, 120, WIDTH - 20)
+    noLoop()
 }
 
 function sortChain(chain){
@@ -35,7 +48,7 @@ function sortChain(chain){
 }
 
 function draw(){
-    background(0)
+
 }
 
 function generateText(chain){
