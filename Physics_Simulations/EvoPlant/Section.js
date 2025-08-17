@@ -1,4 +1,5 @@
 const AGE_MAX = 1500
+const AGE_MAX_ENERGY = AGE_MAX * 0.8
 const MIN_W = 2
 const MAX_W = 10
 let MAX_TURNS = 10

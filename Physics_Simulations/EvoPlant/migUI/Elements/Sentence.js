@@ -25,7 +25,7 @@ class Sentence{
 		this.pos = createVector(x, y)
 
 		textSize(this.textSize)
-		this.height = textFont().textBounds(words, x, y, this.w-20).h
+		this.height = textFont().textBounds(this.words, x, y, this.w-20).h
 	}
 
 	getText(){

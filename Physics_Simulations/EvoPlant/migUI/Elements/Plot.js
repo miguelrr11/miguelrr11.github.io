@@ -169,6 +169,7 @@ class Plot {
     }
 
     getSimpleInt(n) {
+        if(n == undefined || n == null || isNaN(n)) return 'N/A';
         if (n === 0) return "0";
         const abs = Math.abs(n);
         if (abs < 0.001) return n.toExponential(2);

@@ -2,9 +2,8 @@
 //Miguel Rodríguez
 //11-08-2025
 
-//TODO: make an UI to start the simulation with some options
-//Implement 'stuck' genes, so plants can't evolve that stat
-
+//TODO: draw in plots the max and min values
+//TODO: if gen se queda sin plantas, reiniciar
 /*
 Opciones de simulacion
 - N plantas
@@ -28,6 +27,16 @@ let fps = Array(10).fill(60)
 let oldfps = 60
 let totalPlantsCreated = 0
 let startedSim = false
+
+// [0] is min, [1] is max, [2] is blocked
+let genRanges = {
+    long_sec: [4, 25, false],
+    prob_repro: [0.0003, 0.0005, false],
+    precision_light: [0, 0.1, false],
+    angle_mult: [0.01, 0.2, false],
+    growth_rate: [0.001, 0.03, false],
+    max_turn_angle: [20, 120, false]
+}
 
 let nPlantsPerGen = 12
 
@@ -100,16 +109,24 @@ async function setup(){
     panel = tabs.createTab('INTRO')
     panelOpt = tabs.createTab('OPTIONS')
     panelSim = tabs.createTab('SIMULATION')
+    panel.createText('INTRODUCTION', true)
     panel.createText('This is an plant evolution simulation where growth towards the sun adapts through 6 genes.\n\nPlants grow slowly section by section. Sections try to find the sun until they grow enough, then another section takes over. The closer to the sun, the more energy the plant receives, if it reaches 0 it dies.\n\nWhen all plants try their best, the better plants reproduce mixing their genes and try again.\n\nThese are the genes:\n\n- [long_sec]: maximum length of a section.\n\n- [prob_repro]: probability of a plant branching into a new plant.\n\n- [precision_light]: determines the angular error when aiming at the sun.\n\n- [angle_mult]: a multiplier that affects the the angluar movement.\n\n- [growth rate]: the rate at which sections grow.\n\n- [max_turn_angle]: maximum angle of turn')
     panel.createSeparator()
 
     createOptionsSimUI()
+    createStartedSimUI()
 
+    
+
+}
+
+function startSim(){
     for(let i = 0; i < nPlantsPerGen; i++){
         let pos = getCircularPos(i, RAD_PLANT_TO_SUN);
         plants.push(new Plant(pos));
     }
-
+    startedSim = true
+    console.log(plants)
 }
 
 function createOptionsSimUI(){
@@ -119,22 +136,71 @@ function createOptionsSimUI(){
     let np = panelOpt.createNumberPicker('Plants', 2, 30, 1, 10)
     np.setFunc((arg) => {nPlantsPerGen = arg})
     
-    panelOpt.separate()
+    panelOpt.createSeparator()
+    panelOpt.createText('These are the ranges of the genes that will be used to create the first plants. You can block a gene so plants can\'t evolve it.')
 
-    panelOpt.createText('Starting gen ranges', true)
 
-    panelOpt.createText('Section length')
-    panelOpt.createText('Probability of reproduction')
-    panelOpt.createText('Precision towards the sun')
-    panelOpt.createText('Agility in angle movement')
-    panelOpt.createText('Growth rate')
-    panelOpt.createText('Max turn angle')
+    let text1 = panelOpt.createText('Section length')
+    text1.setFunc(() => {return `long_sec: [${round(min1.getValue())} - ${round(min2.getValue())}]`})
+    let min1 = panelOpt.createSlider(4, 25, 4)
+    min1.setFunc((arg) => {genRanges.long_sec[0] = arg})
+    let min2 = panelOpt.createSlider(4, 25, 25)
+    min2.setFunc((arg) => {genRanges.long_sec[1] = arg})
+    let cb1 = panelOpt.createCheckbox('Block gene');
+    cb1.setFunc((arg) => {genRanges.long_sec[2] = arg})
+
+    let text2 = panelOpt.createText('Probability of reproduction')
+    text2.setFunc(() => {return `prob_repro: [${round(min3.getValue(), 5)} - ${round(min4.getValue(), 5)}]`})
+    let min3 = panelOpt.createSlider(0.0003, 0.0005, 0.0003)
+    min3.setFunc((arg) => {genRanges.prob_repro[0] = arg})
+    let min4 = panelOpt.createSlider(0.0003, 0.0005, 0.0005)
+    min4.setFunc((arg) => {genRanges.prob_repro[1] = arg})
+    let cb2 = panelOpt.createCheckbox('Block gene');
+    cb2.setFunc((arg) => {genRanges.prob_repro[2] = arg})
+
+    let text3 = panelOpt.createText('Precision light')
+    text3.setFunc(() => {return `precision_light: [${round(min5.getValue(), 2)} - ${round(min6.getValue(), 2)}]`})
+    let min5 = panelOpt.createSlider(0, 1, 0)
+    min5.setFunc((arg) => {genRanges.precision_light[0] = arg})
+    let min6 = panelOpt.createSlider(0, 1, 0.1)
+    min6.setFunc((arg) => {genRanges.precision_light[1] = arg})
+    let cb3 = panelOpt.createCheckbox('Block gene');
+    cb3.setFunc((arg) => {genRanges.precision_light[2] = arg})
+
+    let text4 = panelOpt.createText('Angle multiplier')
+    text4.setFunc(() => {return `angle_mult: [${round(min7.getValue(), 3)} - ${round(min8.getValue(), 3)}]`})
+    let min7 = panelOpt.createSlider(0.01, 1, 0.01)
+    min7.setFunc((arg) => {genRanges.angle_mult[0] = arg})
+    let min8 = panelOpt.createSlider(0.01, 1, 0.2)
+    min8.setFunc((arg) => {genRanges.angle_mult[1] = arg})
+    let cb4 = panelOpt.createCheckbox('Block gene');
+    cb4.setFunc((arg) => {genRanges.angle_mult[2] = arg})
+
+    let text5 = panelOpt.createText('Growth rate')
+    text5.setFunc(() => {return `growth_rate: [${round(min9.getValue(), 4)} - ${round(min10.getValue(), 4)}]`})
+    let min9 = panelOpt.createSlider(0.003, 0.03, 0.003)
+    min9.setFunc((arg) => {genRanges.growth_rate[0] = arg})
+    let min10 = panelOpt.createSlider(0.003, 0.03, 0.05)
+    min10.setFunc((arg) => {
+        genRanges.growth_rate[1] = arg
+    })
+    let cb5 = panelOpt.createCheckbox('Block gene');
+    cb5.setFunc((arg) => {genRanges.growth_rate[2] = arg})
+
+    let text6 = panelOpt.createText('Max turn angle')
+    text6.setFunc(() => {return `max_turn_angle: [${round(min11.getValue())} - ${round(min12.getValue())}]`})
+    let min11 = panelOpt.createSlider(20, 120, 20)
+    min11.setFunc((arg) => {genRanges.max_turn_angle[0] = arg})
+    let min12 = panelOpt.createSlider(20, 120, 120)
+    min12.setFunc((arg) => {genRanges.max_turn_angle[1] = arg})
+    let cb6 = panelOpt.createCheckbox('Block gene');
+    cb6.setFunc((arg) => {genRanges.max_turn_angle[2] = arg})
+
+    
 
 }
 
 function createStartedSimUI(){
-    panelSim.lastElementPos.x = 767
-    panelSim.lastElementPos.y = 121.8
     textGen = panelSim.createText('Generation ' + gen, true)
     textGen.setFunc(() => 'Generation ' + gen + ': ' + round(totalIters/MAX_ITERS * 100, 0) + '%')
     plotCurEnergy = panelSim.createPlot('Current Mean Energy')
@@ -157,6 +223,13 @@ function createStartedSimUI(){
     let fpstext = panelSim.createText('')
     fpstext.reposition(WIDTH - 20, 5)
     fpstext.setFunc(() => Math.floor(fps.reduce((a, b) => a + b, 0) / fps.length))
+
+    let simSpeed = panelSim.createSlider(2, 500, 75, 'Sim Speed', true)
+    simSpeed.setFunc((arg) => {iters = ceil(arg)})
+
+    let buttonStart = panelSim.createButton('Start')
+    buttonStart.setFunc(() => {startSim()})
+    buttonStart.reposition(WIDTH + WIDTH_UI - buttonStart.w- 10, 70)
 
     textEff = panelSim.createText()
 }
@@ -278,24 +351,24 @@ function crossRanges(rangesA, rangesB){
 
 function crossGen(genA, genB){
     let gen = {
-        long_sec: Math.random() < 0.5 ? 
+        long_sec: genRanges.long_sec[2] ? genA.long_sec : (Math.random() < 0.5 ? 
         genA.long_sec + random(-0.5, 0.5) : 
-        genB.long_sec + random(-0.5, 0.5),
-        prob_repro: Math.random() < 0.5 ? 
+        genB.long_sec + random(-0.5, 0.5)),
+        prob_repro: genRanges.prob_repro[2] ? genA.prob_repro : (Math.random() < 0.5 ? 
         genA.prob_repro + random(-0.00005, 0.00005) : 
-        genB.prob_repro + random(-0.00005, 0.00005),
-        precision_light: Math.random() < 0.5 ? 
+        genB.prob_repro + random(-0.00005, 0.00005)),
+        precision_light: genRanges.precision_light[2] ? genA.precision_light : (Math.random() < 0.5 ? 
         genA.precision_light + random(-0.05, 0.05) : 
-        genB.precision_light + random(-0.05, 0.05),
-        angle_mult: Math.random() < 0.5 ? 
+        genB.precision_light + random(-0.05, 0.05)),
+        angle_mult: genRanges.angle_mult[2] ? genA.angle_mult : (Math.random() < 0.5 ? 
         genA.angle_mult + random(-0.05, 0.05) : 
-        genB.angle_mult + random(-0.05, 0.05),
-        growth_rate: Math.random() < 0.5 ? 
+        genB.angle_mult + random(-0.05, 0.05)),
+        growth_rate: genRanges.growth_rate[2] ? genA.growth_rate : (Math.random() < 0.5 ? 
         genA.growth_rate + random(-0.001, 0.001) : 
-        genB.growth_rate + random(-0.001, 0.001),
-        max_turn_angle: Math.random() < 0.5 ? 
+        genB.growth_rate + random(-0.001, 0.001)),
+        max_turn_angle: genRanges.max_turn_angle[2] ? genA.max_turn_angle : (   Math.random() < 0.5 ? 
         genA.max_turn_angle + random(-10, 10) : 
-        genB.max_turn_angle + random(-10, 10)
+        genB.max_turn_angle + random(-10, 10))
     }
     return clampGen(gen);
 }
