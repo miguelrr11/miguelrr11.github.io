@@ -2,6 +2,9 @@
 //Miguel Rodríguez
 //11-08-2025
 
+//TODO: make an UI to start the simulation with some options
+//Implement 'stuck' genes, so plants can't evolve that stat
+
 p5.disableFriendlyErrors = true
 const WIDTH = 750
 const HEIGHT = 800
