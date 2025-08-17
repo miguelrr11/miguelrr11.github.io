@@ -5,6 +5,14 @@
 //TODO: make an UI to start the simulation with some options
 //Implement 'stuck' genes, so plants can't evolve that stat
 
+/*
+Opciones de simulacion
+- N plantas
+- Rangos spawn genes
+- Bloquear genes
+
+*/
+
 p5.disableFriendlyErrors = true
 const WIDTH = 750
 const HEIGHT = 800
@@ -19,8 +27,9 @@ let flowers = []
 let fps = Array(10).fill(60)
 let oldfps = 60
 let totalPlantsCreated = 0
+let startedSim = false
 
-const nPlantsPerGen = 12
+let nPlantsPerGen = 12
 
 const INNER_RAD_SUN_SQ = rad1 * rad1
 const RAD_PLANT_TO_SUN = 350
@@ -44,7 +53,7 @@ const sinTable = new Float32Array(TABLE_SIZE)
 const colorBack = 240
 const colorDead = 30
 
-let panel
+let panel, panelOpt, panelSim, tabs
 let textGen, textEff
 let plotCurEnergy, plotAllEnergy
 let plotEnergy, plotPrecision, plotAngle, plotAngleMult, plotLong
@@ -79,7 +88,7 @@ async function setup(){
     MAX_TURNS = 10
 
     let fontPanel = await loadFont("migUI/main/bnr.ttf")
-    panel = new Panel({
+    tabs = new TabManager({
         x: WIDTH,
         w: WIDTH_UI,
         h: HEIGHT,
@@ -88,33 +97,13 @@ async function setup(){
         automaticHeight: false,
         title: 'EVOPLANTS'
     })
-    panel.createText('This is an plant evolution simulation where growth towards the sun adapts through genes')
+    panel = tabs.createTab('INTRO')
+    panelOpt = tabs.createTab('OPTIONS')
+    panelSim = tabs.createTab('SIMULATION')
+    panel.createText('This is an plant evolution simulation where growth towards the sun adapts through 6 genes.\n\nPlants grow slowly section by section. Sections try to find the sun until they grow enough, then another section takes over. The closer to the sun, the more energy the plant receives, if it reaches 0 it dies.\n\nWhen all plants try their best, the better plants reproduce mixing their genes and try again.\n\nThese are the genes:\n\n- [long_sec]: maximum length of a section.\n\n- [prob_repro]: probability of a plant branching into a new plant.\n\n- [precision_light]: determines the angular error when aiming at the sun.\n\n- [angle_mult]: a multiplier that affects the the angluar movement.\n\n- [growth rate]: the rate at which sections grow.\n\n- [max_turn_angle]: maximum angle of turn')
     panel.createSeparator()
 
-    textGen = panel.createText('Generation ' + gen, true)
-    textGen.setFunc(() => 'Generation ' + gen + ': ' + round(totalIters/MAX_ITERS * 100, 0) + '%')
-    plotCurEnergy = panel.createPlot('Current Mean Energy')
-    plotCurEnergy.setLimitData(MAX_ITERS / 25)
-
-    panel.createSeparator()
-
-    panel.createText('Progress over generations', true)
-    plotEnergy = panel.createPlot('Mean Energy')
-    plotEnergy.setLimitData(40)
-    plotPrecision = panel.createPlot('Mean Precision')
-    plotPrecision.setLimitData(40)
-    plotAngle = panel.createPlot('Mean Max Turn Angle')
-    plotAngle.setLimitData(40)
-    plotAngleMult = panel.createPlot('Mean Angle Mult')
-    plotAngleMult.setLimitData(40)
-    plotLong = panel.createPlot('Mean Section Length')
-    plotLong.setLimitData(40)
-
-    let fpstext = panel.createText('')
-    fpstext.reposition(WIDTH - 20, 5)
-    fpstext.setFunc(() => Math.floor(fps.reduce((a, b) => a + b, 0) / fps.length))
-
-    textEff = panel.createText()
+    createOptionsSimUI()
 
     for(let i = 0; i < nPlantsPerGen; i++){
         let pos = getCircularPos(i, RAD_PLANT_TO_SUN);
@@ -122,6 +111,56 @@ async function setup(){
     }
 
 }
+
+function createOptionsSimUI(){
+    panelOpt.createText('Sim Options', true)
+
+    panelOpt.createText('Starting Plants')
+    let np = panelOpt.createNumberPicker('Plants', 2, 30, 1, 10)
+    np.setFunc((arg) => {nPlantsPerGen = arg})
+    
+    panelOpt.separate()
+
+    panelOpt.createText('Starting gen ranges', true)
+
+    panelOpt.createText('Section length')
+    panelOpt.createText('Probability of reproduction')
+    panelOpt.createText('Precision towards the sun')
+    panelOpt.createText('Agility in angle movement')
+    panelOpt.createText('Growth rate')
+    panelOpt.createText('Max turn angle')
+
+}
+
+function createStartedSimUI(){
+    panelSim.lastElementPos.x = 767
+    panelSim.lastElementPos.y = 121.8
+    textGen = panelSim.createText('Generation ' + gen, true)
+    textGen.setFunc(() => 'Generation ' + gen + ': ' + round(totalIters/MAX_ITERS * 100, 0) + '%')
+    plotCurEnergy = panelSim.createPlot('Current Mean Energy')
+    plotCurEnergy.setLimitData(MAX_ITERS / 25)
+
+    panelSim.createSeparator()
+
+    panelSim.createText('Progress over generations', true)
+    plotEnergy = panelSim.createPlot('Mean Energy')
+    plotEnergy.setLimitData(40)
+    plotPrecision = panelSim.createPlot('Mean Precision')
+    plotPrecision.setLimitData(40)
+    plotAngle = panelSim.createPlot('Mean Max Turn Angle')
+    plotAngle.setLimitData(40)
+    plotAngleMult = panelSim.createPlot('Mean Angle Mult')
+    plotAngleMult.setLimitData(40)
+    plotLong = panelSim.createPlot('Mean Section Length')
+    plotLong.setLimitData(40)
+
+    let fpstext = panelSim.createText('')
+    fpstext.reposition(WIDTH - 20, 5)
+    fpstext.setFunc(() => Math.floor(fps.reduce((a, b) => a + b, 0) / fps.length))
+
+    textEff = panelSim.createText()
+}
+
 let showPlot = true
 function keyPressed(){
     showPlot = !showPlot
@@ -129,63 +168,59 @@ function keyPressed(){
 
 function draw(){
     background(colorBack)
-    push()
-    console.log()
-    fps.shift()
-    fps.push(frameRate())
-    let avgFps = fps.reduce((a, b) => a + b, 0) / fps.length;
-    oldfps = avgFps;
+
+    if(startedSim){
+        push()
+        fps.shift()
+        fps.push(frameRate())
+        let avgFps = fps.reduce((a, b) => a + b, 0) / fps.length;
+        oldfps = avgFps;
 
 
-    let allSections = []
-    let numBatches = 0
-    for(let i = 0; i < iters; i++){
-        totalIters++
-        allSections = []
-        for(let j = plants.length-1; j >= 0; j--){
-            let plant = plants[j]
-            plant.update()
-            plant.show()
-            if(i == iters-1) allSections.push(...plant.stem)
-            if(!plant.dead) alive = true
-            else plants.splice(j, 1)
+        let allSections = []
+        let numBatches = 0
+        for(let i = 0; i < iters; i++){
+            totalIters++
+            allSections = []
+            for(let j = plants.length-1; j >= 0; j--){
+                let plant = plants[j]
+                plant.update()
+                plant.show()
+                if(i == iters-1) allSections.push(...plant.stem)
+                if(!plant.dead) alive = true
+                else plants.splice(j, 1)
+            }
+            
         }
-        
+        numBatches = renderSectionsBatched(allSections) 
+
+        const n = numBatches;
+        const total = allSections.length;
+        let eff = total > 1 ? ((total - n) / (total - 1)) * 100 : 100;
+        eff = Math.max(0, Math.min(100, Math.round(eff)));
+        textEff.setText(`Batch Rendering Efficiency: ${eff}%`);
+        pop()
+
+        fill(0)
+        noStroke()
+        let meanEnergy = plants.reduce((sum, plant) => sum + plant.energy, 0) / plants.length;
+
+        noStroke()
+        fill(0, 10)
+        ellipse(sun.x, sun.y, rad1*2)
+
+        for(let flower of flowers) flower.show()
+
+        textGen.setText('Generation ' + gen)
+        plotCurEnergy.feed(meanEnergy)
+        if(totalIters >= MAX_ITERS){
+            next()
+        }
     }
-    numBatches = renderSectionsBatched(allSections) 
-
-    const n = numBatches;
-    const total = allSections.length;
-    let eff = total > 1 ? ((total - n) / (total - 1)) * 100 : 100;
-    eff = Math.max(0, Math.min(100, Math.round(eff)));
-    textEff.setText(`Batch Rendering Efficiency: ${eff}%`);
-
-    pop()
 
 
-    fill(0)
-    noStroke()
-    let meanEnergy = plants.reduce((sum, plant) => sum + plant.energy, 0) / plants.length;
-
-
-    noStroke()
-    fill(0, 10)
-    ellipse(sun.x, sun.y, rad1*2)
-
-    for(let flower of flowers) flower.show()
-
-    
-
-    textGen.setText('Generation ' + gen)
-    plotCurEnergy.feed(meanEnergy)
-    for(let i = 0; i < plants.length; i++){
-        //plotAllEnergy.feed(plants[i].energy, i)
-    }
-    if(totalIters >= MAX_ITERS){
-        next()
-    }
-    panel.update()
-    panel.show()
+    tabs.update()
+    tabs.show()
 }
 
 function next(){

@@ -260,7 +260,7 @@ class Panel{
 		//if(isTitle) this.lastElementPos.y += 5
 		let spacedWords = wrapText(words, this.w, isTitle ? title_SizeMIGUI : text_SizeMIGUI)
 		let sentence = new Sentence(this.lastElementPos.x,
-									this.lastElementPos.y,
+									this.lastElementPos.y, this.w,
 									spacedWords, isTitle, bold,
 									this.lightCol, this.darkCol, this.transCol)
 		sentence.w = this.w
