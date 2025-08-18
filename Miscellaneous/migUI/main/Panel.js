@@ -5,7 +5,7 @@
 
 let bordeMIGUI = 1
 let text_FontMIGUI
-let text_SizeMIGUI = 15
+let text_SizeMIGUI = 14
 let title_SizeMIGUI = text_SizeMIGUI * 1.3
 let radMIGUI = 3.5
 let text_offset_xMIGUI = 2
@@ -558,6 +558,8 @@ class Panel{
 	update(){
 		
 		push()
+		for(let c of this.plots) c.update()
+			
 		if(this.activeCP && !this.isRetracted){ 
 			this.activeCP.show()
 			let bool = this.activeCP.evaluate()
@@ -612,6 +614,7 @@ class Panel{
 			this.isInteracting = c
 			return
 		}
+		
 
 
 		
