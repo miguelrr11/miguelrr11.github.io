@@ -1,12 +1,13 @@
-const AGE_MAX = 1500
+const AGE_MAX = 1200
 const AGE_MAX_ENERGY = AGE_MAX * 0.8
 const MIN_W = 2
 const MAX_W = 10
-let MAX_TURNS = 10
 
 class Section{
     constructor(pos, angle, ratio, ranges){
         this.pos = pos ? pos : createVector(random(0, WIDTH), random(HEIGHT - 200, HEIGHT))
+        this.insideSun = squaredDistance(this.pos.x, this.pos.y, sun.x, sun.y) < INNER_RAD_SUN_SQ
+        this.lastPos = this.pos.copy()
         this.angle = angle ? angle : random(-PI, PI)
         this.long = 0
         this.age = 0
@@ -33,10 +34,9 @@ class Section{
     }
 
     getLastPos(){
-        return createVector(
-            Math.cos(this.angle) * this.long + this.pos.x,
-            Math.sin(this.angle) * this.long + this.pos.y
-        )   
+        this.lastPos.x = fastCos(this.angle) * this.long + this.pos.x;
+        this.lastPos.y = fastSin(this.angle) * this.long + this.pos.y;
+        return this.lastPos
     }
 
     grow(delta){
@@ -45,7 +45,6 @@ class Section{
     }
 
     updateVars(){
-        if((frameCount + this.turn) % MAX_TURNS != 0) return
         if(this.dead){
             this.alpha = lerpp(this.alpha, 0, 0.01)
             return
@@ -57,31 +56,8 @@ class Section{
         this.w = lerpp(MIN_W, MAX_W, this.a*this.a)
     }
 
-    // show(){
-
-    //     this.age += 0.1
-
-    //     if(this.pos.x < 0 || this.pos.x > WIDTH || this.pos.y < 0 || this.pos.y > HEIGHT){
-    //         return
-    //     }
-
-    //     this.updateVars()
-
-    //     const endX = fastCos(this.angle) * this.long + this.pos.x;
-    //     const endY = fastSin(this.angle) * this.long + this.pos.y;
-
-
-    //     ctx.beginPath();
-    //     ctx.strokeStyle = `rgb(${this.r}, ${this.g}, ${this.b})`;
-    //     ctx.lineWidth = this.w;                                  
-    //     ctx.moveTo(this.pos.x, this.pos.y);                      
-    //     ctx.lineTo(endX, endY);                                  
-    //     ctx.stroke();    
-    // }
-
     update(){
         this.age += 0.1
-       // if(this.dead) this.dieTimer--
 
         if(this.outOfBounds){
             return

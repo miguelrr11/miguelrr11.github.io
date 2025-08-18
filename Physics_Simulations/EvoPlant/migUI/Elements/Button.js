@@ -14,16 +14,9 @@ class Button{
 		this.beingHovered = false
 		this.beingPressed = false
 
-		// if((func && func.name != "retractMenu") || func == undefined){ 
-		// 	textSize(this.textSize)
-		// 	this.w = textWidth(this.text) + 8
-		// }
-		// else this.w = 20
-
 		textSize(this.textSize)
 		this.w = textWidth(this.text) + 8
 
-		//this.w = constrain(this.w, 10, width_elementsMIGUI)
 		this.h = 20
 
 		this.length = this.w

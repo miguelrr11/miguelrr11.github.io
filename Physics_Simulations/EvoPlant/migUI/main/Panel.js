@@ -558,6 +558,8 @@ class Panel{
 	update(){
 		
 		push()
+		for(let c of this.plots) c.update()
+			
 		if(this.activeCP && !this.isRetracted){ 
 			this.activeCP.show()
 			let bool = this.activeCP.evaluate()
@@ -612,6 +614,7 @@ class Panel{
 			this.isInteracting = c
 			return
 		}
+		
 
 
 		

@@ -2,7 +2,7 @@
 //Miguel Rodríguez
 //11-08-2025
 
-//TODO: draw in plots the max and min values
+//TODO: implement separate race mixing
 //TODO: if gen se queda sin plantas, reiniciar
 /*
 Opciones de simulacion
@@ -13,8 +13,8 @@ Opciones de simulacion
 */
 
 p5.disableFriendlyErrors = true
-const WIDTH = 750
-const HEIGHT = 800
+const WIDTH = 850
+const HEIGHT = 850
 const WIDTH_UI = 300
 
 let sun
@@ -38,7 +38,7 @@ let genRanges = {
     max_turn_angle: [20, 120, false]
 }
 
-let nPlantsPerGen = 12
+let nPlantsPerGen = 100
 
 const INNER_RAD_SUN_SQ = rad1 * rad1
 const RAD_PLANT_TO_SUN = 350
@@ -46,10 +46,10 @@ const RAD_PLANT_TO_SUN_SQ = RAD_PLANT_TO_SUN * RAD_PLANT_TO_SUN
 
 let sigmaMax, sigmaMin
 
-let ctx
+let ctx, canvas
 let iters = 75
 let totalIters = 0
-const MAX_ITERS = 18000
+let MAX_ITERS = 18000
 let gen = 0
 let rnd = randomm(0.1, .75)
 let rnd2 = randomm(2, 4)
@@ -62,10 +62,22 @@ const sinTable = new Float32Array(TABLE_SIZE)
 const colorBack = 240
 const colorDead = 30
 
-let panel, panelOpt, panelSim, tabs
+let panel, panelOpt, panelSim, panelSp, tabs
 let textGen, textEff
-let plotCurEnergy, plotAllEnergy
+let plotCurEnergy, plotCurPlants
 let plotEnergy, plotPrecision, plotAngle, plotAngleMult, plotLong
+
+function restart(){
+    plants = []
+    flowers = []
+    totalPlantsCreated = 0
+    gen = 0
+    rnd = randomm(0.1, .75)
+    rnd2 = randomm(2, 4)
+    let plots = [plotCurEnergy, plotCurPlants, plotEnergy, plotPrecision, plotAngle, plotAngleMult, plotLong]
+    plots.forEach(p => p.clear())
+    startedSim = false
+}
 
 
 function getCircularPos(n, radius){
@@ -81,7 +93,7 @@ function addFlower(pos, ranges){
 }
 
 async function setup(){
-    let canvas = createCanvas(WIDTH + WIDTH_UI, HEIGHT)
+    canvas = createCanvas(WIDTH + WIDTH_UI, HEIGHT)
     ctx = canvas.elt.getContext('2d');
     sun = createVector(WIDTH / 2, HEIGHT / 2)
     sigmaMax = radians(60);
@@ -109,15 +121,14 @@ async function setup(){
     panel = tabs.createTab('INTRO')
     panelOpt = tabs.createTab('OPTIONS')
     panelSim = tabs.createTab('SIMULATION')
+    panelSp = tabs.createTab('SPECIATION')
     panel.createText('INTRODUCTION', true)
     panel.createText('This is an plant evolution simulation where growth towards the sun adapts through 6 genes.\n\nPlants grow slowly section by section. Sections try to find the sun until they grow enough, then another section takes over. The closer to the sun, the more energy the plant receives, if it reaches 0 it dies.\n\nWhen all plants try their best, the better plants reproduce mixing their genes and try again.\n\nThese are the genes:\n\n- [long_sec]: maximum length of a section.\n\n- [prob_repro]: probability of a plant branching into a new plant.\n\n- [precision_light]: determines the angular error when aiming at the sun.\n\n- [angle_mult]: a multiplier that affects the the angluar movement.\n\n- [growth rate]: the rate at which sections grow.\n\n- [max_turn_angle]: maximum angle of turn')
     panel.createSeparator()
 
     createOptionsSimUI()
     createStartedSimUI()
-
-    
-
+    createSpeciationUI()
 }
 
 function startSim(){
@@ -126,16 +137,32 @@ function startSim(){
         plants.push(new Plant(pos));
     }
     startedSim = true
-    console.log(plants)
+
+    POP_SIZE = nPlantsPerGen
+
+    initSimSp(plants, {
+        deltaThreshold: 2,
+        weights: DEFAULT_WEIGHTS,
+        stalenessCap: 25,
+        minChildrenFloor: 2,
+        floorMinSize: 5,
+        crossSpeciesProb: 0.05,
+        tournamentK: 3,
+    });
+    
+    startGen()
+
+    console.log('Number of species: ' + speciator.species.length)
 }
 
 function createOptionsSimUI(){
     panelOpt.createText('Sim Options', true)
 
-    panelOpt.createText('Starting Plants')
-    let np = panelOpt.createNumberPicker('Plants', 2, 30, 1, 10)
+    let np = panelOpt.createNumberPicker('Starting Plants', 2, 100, 3, 100)
     np.setFunc((arg) => {nPlantsPerGen = arg})
-    
+    let nIters = panelOpt.createSlider(5000, 25000, 18000, 'Iterations per Generation', true)
+    nIters.setFunc((arg) => {MAX_ITERS = floor(arg)})
+
     panelOpt.createSeparator()
     panelOpt.createText('These are the ranges of the genes that will be used to create the first plants. You can block a gene so plants can\'t evolve it.')
 
@@ -205,22 +232,34 @@ function createStartedSimUI(){
     textGen.setFunc(() => 'Generation ' + gen + ': ' + round(totalIters/MAX_ITERS * 100, 0) + '%')
     plotCurEnergy = panelSim.createPlot('Current Mean Energy')
     plotCurEnergy.setLimitData(MAX_ITERS / 25)
+    plotCurEnergy.lock()
+    plotCurEnergy.reposition(undefined, undefined, 265)
+
+    plotCurPlants = panelSim.createPlot('Current Plants')
+    plotCurPlants.setLimitData(MAX_ITERS / 25)
+    plotCurPlants.lock()
+    plotCurPlants.reposition(undefined, undefined, 265)
 
     panelSim.createSeparator()
 
     panelSim.createText('Progress over generations', true)
-    plotEnergy = panelSim.createPlot('Mean Energy')
-    plotEnergy.setLimitData(40)
-    plotPrecision = panelSim.createPlot('Mean Precision')
-    plotPrecision.setLimitData(40)
-    plotAngle = panelSim.createPlot('Mean Max Turn Angle')
-    plotAngle.setLimitData(40)
-    plotAngleMult = panelSim.createPlot('Mean Angle Mult')
-    plotAngleMult.setLimitData(40)
-    plotLong = panelSim.createPlot('Mean Section Length')
-    plotLong.setLimitData(40)
 
-    let fpstext = panelSim.createText('')
+    plotEnergy = panelSim.createPlot('Mean Energy', 3)
+    plotPrecision = panelSim.createPlot('Mean Precision', 3)
+    plotAngle = panelSim.createPlot('Mean Max Turn Angle', 3)
+    plotAngleMult = panelSim.createPlot('Mean Angle Mult', 3)
+    plotLong = panelSim.createPlot('Mean Section Length', 3)
+
+    let plots = [plotEnergy, plotPrecision, plotAngle, plotAngleMult, plotLong]
+
+    for(let plot of plots){
+        plot.setLimitData(40)
+        plot.lock()
+        plot.setColorsMinMax(1, 2)
+        plot.reposition(undefined, undefined, 265)
+    }
+
+    let fpstext = tabs.panel.createText('')
     fpstext.reposition(WIDTH - 20, 5)
     fpstext.setFunc(() => Math.floor(fps.reduce((a, b) => a + b, 0) / fps.length))
 
@@ -228,15 +267,29 @@ function createStartedSimUI(){
     simSpeed.setFunc((arg) => {iters = ceil(arg)})
 
     let buttonStart = panelSim.createButton('Start')
-    buttonStart.setFunc(() => {startSim()})
-    buttonStart.reposition(WIDTH + WIDTH_UI - buttonStart.w- 10, 70)
+    buttonStart.setFunc(() => {
+        if(!startedSim) {
+            startSim()
+            buttonStart.setText('Restart', true)
+        }
+        else{
+            restart()
+            buttonStart.setText('Start', true)
+        }
+    })
+    buttonStart.reposition(WIDTH + WIDTH_UI - buttonStart.w - 20, 70)
 
     textEff = panelSim.createText()
 }
 
-let showPlot = true
-function keyPressed(){
-    showPlot = !showPlot
+function createSpeciationUI(){
+    plotSp = panelSp.createPlot('Species')
+    plotSp.ctx = ctx
+    plotSp.clear(true)
+    console.log(plotSp)
+    plotSp.isAreaChart = true
+    plotSp.reposition(undefined, undefined, 265, 265)
+    plotSp.lock()
 }
 
 function draw(){
@@ -286,6 +339,7 @@ function draw(){
 
         textGen.setText('Generation ' + gen)
         plotCurEnergy.feed(meanEnergy)
+        plotCurPlants.feed(plants.length)
         if(totalIters >= MAX_ITERS){
             next()
         }
@@ -302,24 +356,55 @@ function next(){
     let meanPrecision = plants.reduce((sum, plant) => sum + plant.gen.precision_light, 0) / plants.length;
     let meanAngleMult = plants.reduce((sum, plant) => sum + plant.gen.angle_mult, 0) / plants.length;
     let meanLong = plants.reduce((sum, plant) => sum + plant.gen.long_sec, 0) / plants.length;
+
+    let minEnergy = plants.reduce((min, plant) => Math.min(min, plant.energy), Infinity);
+    let maxEnergy = plants.reduce((max, plant) => Math.max(max, plant.energy), -Infinity);
+
+    let minAngle = plants.reduce((min, plant) => Math.min(min, plant.gen.max_turn_angle), Infinity);
+    let maxAngle = plants.reduce((max, plant) => Math.max(max, plant.gen.max_turn_angle), -Infinity);
+
+    let minPrecision = plants.reduce((min, plant) => Math.min(min, plant.gen.precision_light), Infinity);
+    let maxPrecision = plants.reduce((max, plant) => Math.max(max, plant.gen.precision_light), -Infinity);
+
+    let minAngleMult = plants.reduce((min, plant) => Math.min(min, plant.gen.angle_mult), Infinity);
+    let maxAngleMult = plants.reduce((max, plant) => Math.max(max, plant.gen.angle_mult), -Infinity);
+
+    let minLong = plants.reduce((min, plant) => Math.min(min, plant.gen.long_sec), Infinity);
+    let maxLong = plants.reduce((max, plant) => Math.max(max, plant.gen.long_sec), -Infinity);
+
     idCounter = 0
-    plants.sort((a, b) => b.getFitness() - a.getFitness())
-    let survivors = plants.slice(0, plants.length / 2)
-    let elites = plants.slice(0, 1)
-    for(let i = 0; i < elites.length; i++){
-        for(let j = 0; j < 2; j++) survivors.push(elites[i]);
+
+    let maxFitness = -Infinity
+    for(let plant of plants){
+        if(plant.getFitness() > maxFitness) maxFitness = plant.getFitness()
     }
-    let newGenPlants = []
-    for(let i = 0; i < nPlantsPerGen+1; i++){
-        let parentA = random(survivors);
-        let parentB = random(survivors);
-        let gen = crossGen(parentA.gen, parentB.gen)
-        let ranges = crossRanges(parentA.ranges, parentB.ranges)
-        let newPlant = new Plant(getCircularPos(i, RAD_PLANT_TO_SUN), ranges);
-        newPlant.gen = gen
-        newGenPlants.push(newPlant);
+    for(let plant of plants){
+        plant.fitness = plant.getFitness() / maxFitness
     }
-    plants = newGenPlants
+    
+    endGen()
+
+    startGen()
+
+    plotSp.title = 'Species: ' + speciator.species.length
+
+    // plants.sort((a, b) => b.getFitness() - a.getFitness())
+    // let survivors = plants.slice(0, plants.length / 2)
+    // let elites = plants.slice(0, 1)
+    // for(let i = 0; i < elites.length; i++){
+    //     for(let j = 0; j < 2; j++) survivors.push(elites[i]);
+    // }
+    // let newGenPlants = []
+    // for(let i = 0; i < nPlantsPerGen+1; i++){
+    //     let parentA = random(survivors);
+    //     let parentB = random(survivors);
+    //     let gen = crossGen(parentA.gen, parentB.gen)
+    //     let ranges = crossRanges(parentA.ranges, parentB.ranges)
+    //     let newPlant = new Plant(getCircularPos(i, RAD_PLANT_TO_SUN), ranges);
+    //     newPlant.gen = gen
+    //     newGenPlants.push(newPlant);
+    // }
+    // plants = newGenPlants
     totalIters = 0
     // if(gen > 10){
     //     sun.x = WIDTH / 2 + random(-150, 150)
@@ -331,12 +416,28 @@ function next(){
     gen++
     
     plotCurEnergy.clear()
+    plotCurPlants.clear()
 
-    plotEnergy.feed(meanEnergy)
-    plotAngle.feed(meanAngle)
-    plotPrecision.feed(meanPrecision)
-    plotAngleMult.feed(meanAngleMult)
-    plotLong.feed(meanLong)
+    plotEnergy.feed(meanEnergy, 0)
+    plotAngle.feed(meanAngle, 0)
+    plotPrecision.feed(meanPrecision, 0)
+    plotAngleMult.feed(meanAngleMult, 0)
+    plotLong.feed(meanLong, 0)
+
+    plotEnergy.feed(minEnergy, 1)
+    plotEnergy.feed(maxEnergy, 2)
+
+    plotAngle.feed(minAngle, 1)
+    plotAngle.feed(maxAngle, 2)
+
+    plotPrecision.feed(minPrecision, 1)
+    plotPrecision.feed(maxPrecision, 2)
+
+    plotAngleMult.feed(minAngleMult, 1)
+    plotAngleMult.feed(maxAngleMult, 2)
+
+    plotLong.feed(minLong, 1)
+    plotLong.feed(maxLong, 2)
 }
 
 function crossRanges(rangesA, rangesB){

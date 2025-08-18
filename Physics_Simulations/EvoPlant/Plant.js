@@ -10,8 +10,8 @@ GENES PLANTA
 const MAX_SECTIONS = 100
 const MAX_ENERGY = Infinity
 const MAX_OFFSPRINGS = 3
-const MIN_ENERGY_REPRO = 300
-const COST_ENERGY_REPRO = 100
+const MIN_ENERGY_REPRO = 400
+const COST_ENERGY_REPRO = 150
 
 const mult = 1
 
@@ -27,6 +27,7 @@ class Plant{
             growth_rate: random(genRanges.growth_rate[0], genRanges.growth_rate[1]) * mult,
             max_turn_angle: random(genRanges.max_turn_angle[0], genRanges.max_turn_angle[1])
         }   
+        this.vec = undefined
         this.ranges = ranges ? ranges : Array(6).fill().map((_, i) => {
             return Math.floor(Math.random() * 255)
         })
@@ -40,7 +41,12 @@ class Plant{
         this.flowered = false
         this.radRnd = random(INNER_RAD_SUN_SQ)
         idCounter++
+        this.fitness = 0
         //plotAllEnergy.addSeries()
+    }
+
+    restartPos(pos){
+        this.stem = [new Section(pos, undefined, undefined, this.ranges)]
     }
 
 
@@ -96,11 +102,11 @@ class Plant{
         }
         
         let oldSections = 0
-        for(let sec of this.stem){
-            if(sec.age > AGE_MAX_ENERGY){
-                oldSections++;
-            }
-        }
+        // for(let sec of this.stem){
+        //     if(sec.age > AGE_MAX_ENERGY){
+        //         oldSections++;
+        //     }
+        // }
 
         this.energy -= (this.gen.growth_rate * 0.5)
         this.energy -= (this.stem.length - oldSections) * 0.01
@@ -125,7 +131,7 @@ class Plant{
             }
         }
 
-        if(this.energy > MIN_ENERGY_REPRO && Math.random() < this.gen.prob_repro && this.stem.length > 1 && !this.dead && this.offsprings.length < MAX_OFFSPRINGS){
+        if(Math.random() < this.gen.prob_repro && this.energy > MIN_ENERGY_REPRO && this.stem.length > 1 && !this.dead && this.offsprings.length < MAX_OFFSPRINGS){
             let newPlant = new Plant(lastPos, this.ranges.map(color => Math.min(Math.max(color + random(-10, 10), 0), 255)))
             this.energy -= COST_ENERGY_REPRO
             totalPlantsCreated++
@@ -169,14 +175,44 @@ function getEnergy(pos){
     let val = mapp(d, 0, RAD_PLANT_TO_SUN_SQ, 1, 0)
     return val*val
 }
-const numColors = 12;
-let colorsBuc = 256/numColors;
 
-function bucketizeColor(r,g,b,a=1){
-    const Q = x => Math.floor(x / colorsBuc) * colorsBuc;
-    const Qa = Math.round(a * 100) / 100;
-    return `${Q(r)},${Q(g)},${Q(b)},${Qa}`;
+// --- CONFIG ---
+let numColors = 12;
+let colorsBuc = 256 / numColors;
+
+// --- LUTs ---
+const RGB_LUT = new Float32Array(256);    // numeric bucket value per 0..255
+const RGB_STR_LUT = new Array(256);       // same but stringified to avoid toString cost
+const ALPHA_LUT = new Float32Array(101);  // 0.00..1.00 in 0.01 steps
+
+function rebuildLUTs() {
+    for (let i = 0; i < 256; i++) {
+        const v = Math.floor(i / colorsBuc) * colorsBuc; 
+        RGB_LUT[i] = v;
+        RGB_STR_LUT[i] = String(v); 
+    }
+    for (let i = 0; i <= 100; i++) {
+        ALPHA_LUT[i] = i / 100; 
+    }
 }
+
+rebuildLUTs();
+
+const clamp255i = x => (x <= 0 ? 0 : x >= 255 ? 255 : x | 0);
+
+// --- Fast bucketizer using LUTs ---
+function bucketizeColor(r, g, b, a = 1) {
+    const ri = clamp255i(r);
+    const gi = clamp255i(g);
+    const bi = clamp255i(b);
+
+    let ai = (a * 100 + 0.5) | 0;
+    if (ai < 0) ai = 0;
+    else if (ai > 100) ai = 100;
+
+    return `${RGB_STR_LUT[ri]},${RGB_STR_LUT[gi]},${RGB_STR_LUT[bi]},${ALPHA_LUT[ai]}`;
+}
+
 
 function bucketizeWidth(w){
     return Math.floor(w);
@@ -186,7 +222,7 @@ function renderSectionsBatched(sections){
     const batches = new Map(); // key: "r,g,b,a|w" 
 
     for (let s of sections) {
-        if (s.outOfBounds) continue;
+        if (s.outOfBounds || s.insideSun) continue;
         if (s.dead) s.dieTimer--;
 
         const x1 = s.pos.x, y1 = s.pos.y;
