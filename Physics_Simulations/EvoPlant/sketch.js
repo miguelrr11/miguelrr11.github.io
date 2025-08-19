@@ -2,15 +2,12 @@
 //Miguel Rodríguez
 //11-08-2025
 
-//TODO: implement separate race mixing
-//TODO: if gen se queda sin plantas, reiniciar
-/*
-Opciones de simulacion
-- N plantas
-- Rangos spawn genes
-- Bloquear genes
+//TODO: poner tambien los 2 genes que faltan en las graficas, y hacerlas cuadradas para que quepan
+//TODO: poner mas graficas en el tab de ESPECIE
+//TODO: actualizar el color de cada series del plot de especies segun el color de las plantas de esa especie (cada 10 gens o algo asi)
+//TODO: cambiar el fondo que es to feo
+//IDEA: en vez de bloquear la evolucion de los genes, poner un slider de 0 a 2 que afecta a la mutacion de cada gen
 
-*/
 
 p5.disableFriendlyErrors = true
 const WIDTH = 850
@@ -65,7 +62,7 @@ const colorDead = 30
 let panel, panelOpt, panelSim, panelSp, tabs
 let textGen, textEff
 let plotCurEnergy, plotCurPlants
-let plotEnergy, plotPrecision, plotAngle, plotAngleMult, plotLong
+let plotEnergy, plotPrecision, plotAngle, plotAngleMult, plotLong, plotGrowth, plotProbRepro, plotSp
 
 function restart(){
     plants = []
@@ -74,7 +71,7 @@ function restart(){
     gen = 0
     rnd = randomm(0.1, .75)
     rnd2 = randomm(2, 4)
-    let plots = [plotCurEnergy, plotCurPlants, plotEnergy, plotPrecision, plotAngle, plotAngleMult, plotLong]
+    let plots = [plotCurEnergy, plotCurPlants, plotEnergy, plotPrecision, plotAngle, plotAngleMult, plotLong, plotGrowth, plotProbRepro, plotSp]
     plots.forEach(p => p.clear())
     startedSim = false
 }
@@ -141,13 +138,6 @@ function startSim(){
     POP_SIZE = nPlantsPerGen
 
     initSimSp(plants, {
-        deltaThreshold: 2,
-        weights: DEFAULT_WEIGHTS,
-        stalenessCap: 25,
-        minChildrenFloor: 2,
-        floorMinSize: 5,
-        crossSpeciesProb: 0.05,
-        tournamentK: 3,
     });
     
     startGen()
@@ -244,19 +234,35 @@ function createStartedSimUI(){
 
     panelSim.createText('Progress over generations', true)
 
-    plotEnergy = panelSim.createPlot('Mean Energy', 3)
-    plotPrecision = panelSim.createPlot('Mean Precision', 3)
-    plotAngle = panelSim.createPlot('Mean Max Turn Angle', 3)
-    plotAngleMult = panelSim.createPlot('Mean Angle Mult', 3)
-    plotLong = panelSim.createPlot('Mean Section Length', 3)
+    plotEnergy = panelSim.createPlot('Energy', 3)
+    plotPrecision = panelSim.createPlot('Precision', 3)
+    plotAngle = panelSim.createPlot('Max Turn Angle', 3)
+    plotAngleMult = panelSim.createPlot('Angle Mult', 3)
+    plotLong = panelSim.createPlot('Section Length', 3)
+    plotGrowth = panelSim.createPlot('Growth Rate', 3)
+    plotProbRepro = panelSim.createPlot('Prob Repro', 3)
 
-    let plots = [plotEnergy, plotPrecision, plotAngle, plotAngleMult, plotLong]
+    plotEnergy.setLimitData(40)
+    plotEnergy.lock()
+    plotEnergy.setColorsMinMax(1, 2)
+    plotEnergy.reposition(undefined, undefined, 265)
 
-    for(let plot of plots){
+    let plots = [plotPrecision, plotAngle, plotAngleMult, plotLong, plotGrowth, plotProbRepro]
+
+    for(let i = 0; i < plots.length; i++){
+        let plot = plots[i]
         plot.setLimitData(40)
         plot.lock()
         plot.setColorsMinMax(1, 2)
-        plot.reposition(undefined, undefined, 265)
+        plot.showValueInTitle = false
+        //make them square and fit in a matrix 2x6
+        //separate them from each other
+        let spacingX = 45
+        let spacingY = 10
+        let col = i % 2
+        let row = Math.floor(i / 2)
+        let sizePlot = 110
+        plot.reposition(col * sizePlot + WIDTH + 15 + col * spacingX, row * sizePlot + 420 + row * spacingY, sizePlot, sizePlot)
     }
 
     let fpstext = tabs.panel.createText('')
@@ -265,6 +271,7 @@ function createStartedSimUI(){
 
     let simSpeed = panelSim.createSlider(2, 500, 75, 'Sim Speed', true)
     simSpeed.setFunc((arg) => {iters = ceil(arg)})
+    simSpeed.reposition(WIDTH + 15, HEIGHT - 60)
 
     let buttonStart = panelSim.createButton('Start')
     buttonStart.setFunc(() => {
@@ -356,6 +363,8 @@ function next(){
     let meanPrecision = plants.reduce((sum, plant) => sum + plant.gen.precision_light, 0) / plants.length;
     let meanAngleMult = plants.reduce((sum, plant) => sum + plant.gen.angle_mult, 0) / plants.length;
     let meanLong = plants.reduce((sum, plant) => sum + plant.gen.long_sec, 0) / plants.length;
+    let meanGrowth = plants.reduce((sum, plant) => sum + plant.gen.growth_rate, 0) / plants.length;
+    let meanProbRepro = plants.reduce((sum, plant) => sum + plant.gen.prob_repro, 0) / plants.length;
 
     let minEnergy = plants.reduce((min, plant) => Math.min(min, plant.energy), Infinity);
     let maxEnergy = plants.reduce((max, plant) => Math.max(max, plant.energy), -Infinity);
@@ -371,6 +380,12 @@ function next(){
 
     let minLong = plants.reduce((min, plant) => Math.min(min, plant.gen.long_sec), Infinity);
     let maxLong = plants.reduce((max, plant) => Math.max(max, plant.gen.long_sec), -Infinity);
+
+    let minGrowth = plants.reduce((min, plant) => Math.min(min, plant.gen.growth_rate), Infinity);
+    let maxGrowth = plants.reduce((max, plant) => Math.max(max, plant.gen.growth_rate), -Infinity);
+
+    let minProbRepro = plants.reduce((min, plant) => Math.min(min, plant.gen.prob_repro), Infinity);
+    let maxProbRepro = plants.reduce((max, plant) => Math.max(max, plant.gen.prob_repro), -Infinity);
 
     idCounter = 0
 
@@ -423,6 +438,8 @@ function next(){
     plotPrecision.feed(meanPrecision, 0)
     plotAngleMult.feed(meanAngleMult, 0)
     plotLong.feed(meanLong, 0)
+    plotGrowth.feed(meanGrowth, 0)
+    plotProbRepro.feed(meanProbRepro, 0)
 
     plotEnergy.feed(minEnergy, 1)
     plotEnergy.feed(maxEnergy, 2)
@@ -438,14 +455,20 @@ function next(){
 
     plotLong.feed(minLong, 1)
     plotLong.feed(maxLong, 2)
+
+    plotGrowth.feed(minGrowth, 1)
+    plotGrowth.feed(maxGrowth, 2)
+
+    plotProbRepro.feed(minProbRepro, 1)
+    plotProbRepro.feed(maxProbRepro, 2)
 }
 
 function crossRanges(rangesA, rangesB){
     let newRanges = []
     for(let i = 0; i < rangesA.length; i++){
         newRanges[i] = Math.random() < 0.5 ?
-        constrain(rangesA[i] + random(-10, 10), 0, 255) :
-        constrain(rangesB[i] + random(-10, 10), 0, 255)
+        constrain(rangesA[i] + random(-5, 5), 0, 255) :
+        constrain(rangesB[i] + random(-5, 5), 0, 255)
     }
     return newRanges
 }

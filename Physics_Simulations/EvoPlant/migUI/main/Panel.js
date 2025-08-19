@@ -502,7 +502,7 @@ class Panel{
 			this.changeColors("#000000", "#ffffff")
 		}
 		else if(theme == "light"){
-			this.changeColors("#ebf4f5", "#9bafd9")
+			this.changeColors("#ebf4f5", "#728cc6")
 		}
 		else if(theme == "dark"){
 			this.changeColors("#27293C", "#757E93")

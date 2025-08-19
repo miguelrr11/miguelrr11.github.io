@@ -119,6 +119,23 @@ class Plot {
                 this.series[i].minDataH = 0;
             }
         }
+        this._area = {
+            dirty: true,
+            // geometry & sampling
+            n: 0,
+            step: 1,
+            xDec: new Float32Array(0), // decimated x pixels
+            // per series y-bounds (pixel-space), decimated
+            upY: [],   // Array<Float32Array>
+            lowY: [],  // Array<Float32Array>
+            // styles
+            fills: [], // Array<string>
+            // canvas mapping
+            sy0: 0, syK: 1,
+            // cache keys
+            chartX: 0, chartY: 0, chartW: 0, chartH: 0,
+            baseline: 0
+        };
         this.maxData = 0;
         this.minData = 0;
         this.maxDataH = 0;
@@ -140,6 +157,14 @@ class Plot {
         s.data = s.history.slice(-dl);
         }
         this.markAreaDirty && this.markAreaDirty();
+    }
+
+    setColorIdx(colors, idx){
+        let series = this.series.find(s => s.id === idx);
+        if (series) {
+            series.col = colors;
+        }
+        this.markAreaDirty();
     }
 
 
@@ -268,8 +293,9 @@ class Plot {
         if(n == undefined || n == null || isNaN(n)) return 'N/A';
         if (n === 0) return "0";
         const abs = Math.abs(n);
-        if (abs < 0.001) return n.toExponential(2);
-        if (abs < 1) return n.toFixed(4);
+        if (abs < 0.00001) return n.toExponential(4);
+        if (abs < 0.001) return n.toFixed(4);
+        if (abs < 1) return n.toFixed(2);
         if (abs < 1000) return Math.floor(n);
         if (abs < 1e6) return (n / 1e3).toFixed(2) + "K";
         if (abs < 1e9) return (n / 1e6).toFixed(2) + "M";
@@ -306,7 +332,7 @@ class Plot {
         }
     }
 
-    drawCurve(values, minVal, maxVal, col, showingHistory = false) {
+    drawCurve(values, minVal, maxVal, col, showingHistory = false, firstSeries) {
         stroke(col);
         noFill();
     
@@ -337,7 +363,7 @@ class Plot {
             
 
             vertex(x, y);
-            this.lastY = y
+            if(firstSeries) this.lastY = y
         }
         endShape();
     }
@@ -367,7 +393,7 @@ class Plot {
         }
         for(let i = 0; i < this.series.length; i++) {
             let data = this.series[i].data;
-            this.drawCurve(data, this.minData, this.maxData, this.series[i].col);
+            this.drawCurve(data, this.minData, this.maxData, this.series[i].col, false, i == 0);
         }
     }
 
@@ -380,7 +406,7 @@ class Plot {
         }
         for(let i = 0; i < this.series.length; i++) {
             let data = this.series[i].history;
-            this.drawCurve(data, this.minDataH, this.maxDataH, this.series[i].col, true);
+            this.drawCurve(data, this.minDataH, this.maxDataH, this.series[i].col, true, i == 0);
         }
     }
 

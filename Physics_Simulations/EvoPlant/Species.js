@@ -32,16 +32,16 @@ class Species {
 
 class Speciator {
   constructor({
-    deltaThreshold = 0.6,
+    deltaThreshold = 2.5,
     weights = DEFAULT_WEIGHTS,
     metric = "euclidean",
-    stalenessCap = 15,
+    stalenessCap = Infinity,
     minChildrenFloor = 2,        // floor for decent-sized species
     floorMinSize = 5,            // species needs at least this many members to qualify for the floor
     tinyShareCutoff = 0.02,      // <2% adjusted share -> a strike
     tinyShareStrikesToCull = 10,  // cull after 5 consecutive tiny shares
-    crossSpeciesProb = 0.05,     // optional diversity
-    tournamentK = 3,
+    crossSpeciesProb = 0.01,     // optional diversity
+    tournamentK = 5,
   } = {}) {
     this.deltaThreshold = deltaThreshold;
     this.weights = weights;
@@ -67,9 +67,6 @@ class Speciator {
     for (let i = 0; i < this.species.length; i++) {
       const sp = this.species[i];
       const d = dstnce(v, sp.centroid, this.weights, this.metric);
-    //   console.log('-----')
-    //   console.log(v, sp.centroid, this.weights, this.metric)
-    //   console.log(d)
       if (d < bestD) { bestD = d; bestIdx = i; }
     }
 
@@ -103,15 +100,30 @@ class Speciator {
     }
   }
 
+  updateFitness(){
+    let meanFit = 0
+    for(let species of this.species){
+      for(let member of species.members){
+        meanFit += member.getFitness() ?? 0;
+      }
+      meanFit /= Math.max(1, species.members.length);
+      species.bestFitness = Math.max(species.bestFitness, meanFit);
+    }
+  }
+
   // Update staleness; returns {totalAdj, perSpeciesAdj: Map}
   updateStalenessAndShares() {
+    this.updateFitness()
     // prevBestFitness vs bestFitness
+    //console.log('------------------------')
     for (const sp of this.species) {
       if (sp.bestFitness > sp.prevBestFitness) {
         sp.staleness = 0;
         sp.prevBestFitness = sp.bestFitness;
+        //console.log('resetting staleness: ' + sp.id + " (" + sp.staleness + ")");
       } 
       else {
+        //console.log('adding staleness: ' + sp.id + " (" + sp.staleness + ")");
         sp.staleness += 1;
       }
     }
@@ -123,7 +135,7 @@ class Speciator {
       const sz = Math.max(1, sp.members.length);
       let adj = 0;
       for (const p of sp.members) {
-        const f = p.fitness ?? 0;
+        const f = p.getFitness() ?? 0;
         adj += f / sz;
       }
       perSpeciesAdj.set(sp.id, adj);
@@ -145,11 +157,10 @@ class Speciator {
   cullExtinct() {
     for(let i = this.species.length - 1; i >= 0; i--){
         const species = this.species[i];
-        // if(species.members.length === 0 || species.staleness > this.stalenessCap || species.lowShareStrike >= this.tinyShareStrikesToCull){
-        if(species.members.length === 0){
+         if(species.members.length === 0 || species.staleness > this.stalenessCap || species.lowShareStrike >= this.tinyShareStrikesToCull){
+        //if(species.members.length === 0){
             this.species.splice(i, 1);
-            //plotSp.removeSeries(species.id);
-            console.log('extinct')
+            console.log('extinct, reason: ' + (species.members.length === 0 ? 'empty' : species.staleness > this.stalenessCap ? 'stale' : 'low share'));
         }
     }
 //     this.species = this.species.filter(sp => {
@@ -262,6 +273,8 @@ function startGen() {
     }
   }
 
+  speciator.cullExtinct();
+
   updateSpeciesPlot()
 }
 
@@ -292,11 +305,22 @@ function endGen() {
 
 function updateSpeciesPlot(){
     let sum = 0
+    let rgb = [0, 0, 0]
     for(let species of speciator.species){
         plotSp.feed(species.members.length, species.id)
         sum += species.members.length
+        for(let member of species.members){
+            rgb[0] += member.ranges[1]
+            rgb[1] += member.ranges[3]
+            rgb[2] += member.ranges[5]
+        }
+        rgb[0] /= species.members.length + random(1, 2)
+        rgb[1] /= species.members.length + random(1, 2)
+        rgb[2] /= species.members.length + random(1, 2)
+        plotSp.setColorIdx(rgb, species.id)
+        rgb = [0, 0, 0]
     }
-    console.log('Total species members:', sum);
+
 }
 
 // -------------------------------------------
@@ -314,6 +338,7 @@ function reproduce(popSize, perSpeciesAdj, totalAdj) {
 
   // 1) Allocate offspring per species
   const budgets = speciator.allocateChildren(popSize, elites.length, perSpeciesAdj, totalAdj);
+  console.log('budgets:', budgets);
 
     // --- Cull species that received zero children this generation ---
     (function cullZeroBudget() {
@@ -343,7 +368,8 @@ function reproduce(popSize, perSpeciesAdj, totalAdj) {
       if (doCross && speciator.species.length > 1) {
         const mateSp = nearestOtherSpecies(sp);
         parentB = selectParent(mateSp.members, speciator.tournamentK);
-      } else {
+      } 
+      else {
         // same species partner
         let tries = 0;
         while (parentB === parentA && tries++ < 5) {
@@ -368,8 +394,6 @@ function reproduce(popSize, perSpeciesAdj, totalAdj) {
 
   // ensure vec is ready for next gen’s start
   for (const p of nextPop) p.vec = toVector(p.gen, genRanges);
-
-  console.log('Next population:', nextPop.length);
 
   return nextPop;
 }
@@ -421,10 +445,10 @@ function mutantFrom(p, mutScale = 1.0) {
     // small Gaussian-ish tweaks in your units (reuse your clampGen afterward)
     const g = baby.gen;
     g.long_sec        += random(-0.5, 0.5) * mutScale;
-    g.prob_repro      += random(-0.00005, 0.00005) * mutScale;
+    g.prob_repro      += random(-0.0001, 0.0001) * mutScale;
     g.precision_light += random(-0.05, 0.05) * mutScale;
     g.angle_mult      += random(-0.05, 0.05) * mutScale;
-    g.growth_rate     += random(-0.001, 0.001) * mutScale;
+    g.growth_rate     += random(-0.0003, 0.0003) * mutScale;
     g.max_turn_angle  += random(-10, 10) * mutScale;
     baby.gen = clampGen(g);
     baby.vec = toVector(baby.gen, genRanges);

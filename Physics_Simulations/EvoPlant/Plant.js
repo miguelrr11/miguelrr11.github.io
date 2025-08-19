@@ -177,7 +177,7 @@ function getEnergy(pos){
 }
 
 // --- CONFIG ---
-let numColors = 12;
+let numColors = 24;
 let colorsBuc = 256 / numColors;
 
 // --- LUTs ---
