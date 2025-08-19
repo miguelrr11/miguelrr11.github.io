@@ -26,13 +26,6 @@ Demonstration of the WFC (overlapping method) with user-created tiles, inspired 
 
 ---
 
-### [Music Visualizer](https://miguelrr11.github.io/Algorithms/Music_Visualizer/)
-Real-time music visualization using frequency data to generate graphics.
-
-![Music Visualizer](assets/MusicViz.png)
-
----
-
 ### [WikiGraph](https://miguelrr11.github.io/Algorithms/WebViewer/)
 Interactive Wikipedia article explorer.
 
