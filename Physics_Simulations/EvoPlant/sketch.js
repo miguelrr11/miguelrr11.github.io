@@ -2,9 +2,7 @@
 //Miguel Rodríguez
 //11-08-2025
 
-//TODO: poner tambien los 2 genes que faltan en las graficas, y hacerlas cuadradas para que quepan
 //TODO: poner mas graficas en el tab de ESPECIE
-//TODO: actualizar el color de cada series del plot de especies segun el color de las plantas de esa especie (cada 10 gens o algo asi)
 //TODO: cambiar el fondo que es to feo
 //IDEA: en vez de bloquear la evolucion de los genes, poner un slider de 0 a 2 que afecta a la mutacion de cada gen
 
@@ -120,7 +118,7 @@ async function setup(){
     panelSim = tabs.createTab('SIMULATION')
     panelSp = tabs.createTab('SPECIATION')
     panel.createText('INTRODUCTION', true)
-    panel.createText('This is an plant evolution simulation where growth towards the sun adapts through 6 genes.\n\nPlants grow slowly section by section. Sections try to find the sun until they grow enough, then another section takes over. The closer to the sun, the more energy the plant receives, if it reaches 0 it dies.\n\nWhen all plants try their best, the better plants reproduce mixing their genes and try again.\n\nThese are the genes:\n\n- [long_sec]: maximum length of a section.\n\n- [prob_repro]: probability of a plant branching into a new plant.\n\n- [precision_light]: determines the angular error when aiming at the sun.\n\n- [angle_mult]: a multiplier that affects the the angluar movement.\n\n- [growth rate]: the rate at which sections grow.\n\n- [max_turn_angle]: maximum angle of turn')
+    panel.createText('This is an plant evolution simulation where growth towards the sun adapts through 6 genes.\n\nPlants grow slowly section by section. Sections try to find the sun until they grow enough, then another section takes over. The closer to the sun, the more energy the plant receives, if it reaches 0 it dies.\n\nWhen all plants try their best, the better plants reproduce mixing their genes and try again.\n\nThese are the genes:\n\n- [long_sec]: maximum length of a section.\n\n- [prob_repro]: probability of a plant branching into a new plant.\n\n- [precision_light]: determines the angular error when aiming at the sun.\n\n- [angle_mult]: a multiplier that affects the angular movement.\n\n- [growth rate]: the rate at which sections grow.\n\n- [max_turn_angle]: maximum angle of turn')
     panel.createSeparator()
 
     createOptionsSimUI()
@@ -148,7 +146,7 @@ function startSim(){
 function createOptionsSimUI(){
     panelOpt.createText('Sim Options', true)
 
-    let np = panelOpt.createNumberPicker('Starting Plants', 2, 100, 3, 100)
+    let np = panelOpt.createNumberPicker('Starting Plants', 2, 200, 5, 100)
     np.setFunc((arg) => {nPlantsPerGen = arg})
     let nIters = panelOpt.createSlider(5000, 25000, 18000, 'Iterations per Generation', true)
     nIters.setFunc((arg) => {MAX_ITERS = floor(arg)})
@@ -513,7 +511,7 @@ function clampGen(gen){
         prob_repro: constrain(gen.prob_repro, 0.0003, 0.0005),
         precision_light: constrain(gen.precision_light, 0, 1),
         angle_mult: constrain(gen.angle_mult, 0.01, 1),
-        growth_rate: constrain(gen.growth_rate, 0.005, 0.03),
+        growth_rate: constrain(gen.growth_rate, 0.005, 0.05),
         max_turn_angle: constrain(gen.max_turn_angle, 20, 120)
     }
 }
