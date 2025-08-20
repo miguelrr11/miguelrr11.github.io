@@ -146,7 +146,7 @@ A simple plot that displays the inputed values
 
 - **`plot.feed(value, [idx])`**: Adds a value to the series of index idx, defaults to 0.
 - **`plot.addSeries()`**: Adds a new series to the plot.
-- **`plot.setColors(colors)`**: Sets the colors of all series in the plot. `colors` should be an array of hex strings, RGB arrays or p5 color objects.
+- **`plot.setColors(color)`**: Sets the colors of all series in the plot. `color` should be a hex string, an RGB array or a p5 color object.
 
 ### Separator
 Creates a visual separator between elements.
@@ -161,7 +161,7 @@ Creates a visual separator between elements.
 ### Common functionalities for all elements
 - **`el.disable()`**: Disables the element. (Enabled by default)
 - **`el.enable()`**: Enables the element.
-- **`el.reposition(x, y, [w], [h])`**: Repositions the element in a given x and y and optionally modifies its dimensions
+- **`el.reposition([x], [y], [w], [h])`**: Repositions the element in a given x and y and optionally modifies its dimensions
 - **`el.setHoverText(text)`**: sets the text that will be displayed when hovering over the element.
 - **`el.setFunc(func, [arg = false])`**: binds a function to the element. If `arg` is set to true, the function will be called with an argument. Here are the details:
 | Element           | Function execution          | Argument            |
