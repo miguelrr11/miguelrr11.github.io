@@ -4,7 +4,6 @@ let connecting = undefined
 let deletingConnections = undefined
 
 function keyPressed(){
-    graph.evaluate();
     if(keyCode == 68){
         if(state == undefined) state = 'deleting'
         else state = undefined
