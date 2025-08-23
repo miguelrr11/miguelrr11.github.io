@@ -3,16 +3,16 @@
 //20-08-2025
 
 p5.disableFriendlyErrors = true
-const WIDTH = 800
+const WIDTH = 1300
 const HEIGHT = 800
 
-let graph
-
-
+let graph, partMan
+let playing = false
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     graph = new Graph();
+    partMan = new ParticleManager();
 
     createBar()
 }
@@ -26,6 +26,9 @@ function draw(){
     if(state) text(state, 10, 20)
 
     graph.show();
+    if(playing) graph.evaluate();
+    partMan.updateParticles();
+    partMan.drawParticles();
     showBar()
     showInputManager()
 }
@@ -68,29 +71,71 @@ function createBar(){
     let buttonCondMore = new Button(createVector(W_BUTTON * 11, HEIGHT - H_BUTTON), '>', () => {
         graph.addNode(new NodeCondMore(floor(random(10))));
     });
-
-    buttons.push(buttonConst);
-    buttons.push(buttonVar);
-    buttons.push(buttonSum);
-    buttons.push(buttonSub);
-    buttons.push(buttonMul);
-    buttons.push(buttonDiv);
-    buttons.push(buttonSqrt);
-    buttons.push(buttonLog);
-    buttons.push(buttonExp);
-    buttons.push(buttonCondEq);
-    buttons.push(buttonCondLess);
-    buttons.push(buttonCondMore);
-
-    let buttonSim = new Button(createVector(W_BUTTON * 0, 0), 'Sim', () => {
-        graph.evaluate()
+    let buttonRnd = new Button(createVector(W_BUTTON * 12, HEIGHT - H_BUTTON), 'rnd', () => {
+        graph.addNode(new NodeRnd());
     });
-    let buttonReset = new Button(createVector(W_BUTTON * 1, 0), 'Reset', () => {
+    let buttonParticulate = new Button(createVector(W_BUTTON * 13, HEIGHT - H_BUTTON), 'Part', () => {
+        graph.addNode(new NodeParticulate());
+    });
+    let buttonEmitter = new Button(createVector(W_BUTTON * 14, HEIGHT - H_BUTTON), 'Emitter', () => {
+        graph.addNode(new NodeEmitter());
+    });
+
+    let buttonsNodes = [buttonConst, buttonVar, buttonSum, buttonSub, buttonMul, buttonDiv, buttonSqrt, buttonLog, buttonExp, buttonCondEq, buttonCondLess, buttonCondMore, buttonRnd, buttonParticulate, buttonEmitter];
+
+    let acum = buttonsNodes[0].w;
+    for(let i = 1; i < buttonsNodes.length; i++){
+        buttonsNodes[i].pos.x = acum;
+        acum += buttonsNodes[i].w;
+    }
+
+    buttons.push(...buttonsNodes);
+
+    let buttonSim = new Button(createVector(W_BUTTON * 0, 0), 'Pause', () => {
+        if(!playing){ 
+            playing = true;
+            buttonSim.label = 'Pause';
+        }
+        else{
+            playing = false;
+            buttonSim.label = 'Play';
+        }
+
+    });
+    buttonSim.label = 'Play'
+    let buttonStep = new Button(createVector(W_BUTTON * 1, 0), 'Step', () => {
+        if(!playing){
+            graph.evaluate();
+        }
+    });
+    let buttonReset = new Button(createVector(W_BUTTON * 2, 0), 'Reset', () => {
         graph.reset()
     });
+    let buttonClear = new Button(createVector(W_BUTTON * 3, 0), 'Clear', () => {
+        graph = new Graph();
+    });
+    let buttonSave = new Button(createVector(W_BUTTON * 4, 0), 'Save', () => {
+        if(graph.nodes.length == 0 && graph.connections.length == 0) return;
+        let json = graph.stringify();
+        localStorage.setItem('graph', json);
+    });
+    let buttonLoad = new Button(createVector(W_BUTTON * 5, 0), 'Load', () => {
+        let json = localStorage.getItem('graph');
+        if(json){
+            graph.reconstruct(json);
+        }
+    });
 
-    buttons.push(buttonSim);
-    buttons.push(buttonReset);
+    let buttonsControl = [buttonSim, buttonStep, buttonReset, buttonClear, buttonSave, buttonLoad];
+
+    acum = buttonsControl[0].w;
+    for(let i = 1; i < buttonsControl.length; i++){
+        buttonsControl[i].pos.x = acum;
+        acum += buttonsControl[i].w;
+    }
+
+    buttons.push(...buttonsControl);
+    
 }
 
 function showBar(){
