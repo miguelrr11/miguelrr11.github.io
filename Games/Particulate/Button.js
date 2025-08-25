@@ -1,5 +1,5 @@
 const W_BUTTON = 60
-const H_BUTTON = 60
+const H_BUTTON = 40
 
 class Button{
     constructor(pos, label, callback){

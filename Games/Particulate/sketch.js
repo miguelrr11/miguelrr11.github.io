@@ -11,6 +11,8 @@ const HEIGHT = 800
 let graph, partMan
 let playing = false
 
+let NodeID = 0;
+
 let font
 
 async function setup(){
@@ -25,7 +27,8 @@ async function setup(){
 
 
 function draw(){
-    background(240)
+    background(VERY_LIGHT_COL)
+    showGrid()
 
     fill(0)
     noStroke()
@@ -89,8 +92,17 @@ function createBar(){
     let buttonChooser = new Button(createVector(W_BUTTON * 15, HEIGHT - H_BUTTON), 'Chooser', () => {
         graph.addNode(new NodeChooser());
     });
+    let buttonPow = new Button(createVector(W_BUTTON * 16, HEIGHT - H_BUTTON), 'Power', () => {
+        graph.addNode(new NodePow());
+    });
+    let buttonSin = new Button(createVector(W_BUTTON * 17, HEIGHT - H_BUTTON), 'Sin', () => {
+        graph.addNode(new NodeSin());
+    });
+    let buttonCos = new Button(createVector(W_BUTTON * 18, HEIGHT - H_BUTTON), 'Cos', () => {
+        graph.addNode(new NodeCos());
+    });
 
-    let buttonsNodes = [buttonConst, buttonVar, buttonSum, buttonSub, buttonMul, buttonDiv, buttonSqrt, buttonLog, buttonExp, buttonCondEq, buttonCondLess, buttonCondMore, buttonRnd, buttonParticulate, buttonEmitter, buttonChooser];
+    let buttonsNodes = [buttonConst, buttonVar, buttonSum, buttonSub, buttonMul, buttonDiv, buttonSqrt, buttonLog, buttonExp, buttonCondEq, buttonCondLess, buttonCondMore, buttonRnd, buttonParticulate, buttonEmitter, buttonChooser, buttonPow, buttonSin, buttonCos];
 
     let acum = buttonsNodes[0].w;
     for(let i = 1; i < buttonsNodes.length; i++){
@@ -153,3 +165,13 @@ function showBar(){
     }
 }
 
+function showGrid(){
+    stroke(LIGHT_COL);
+    strokeWeight(2);
+    for(let x = 0; x < width; x += GRID_SIZE){
+        line(x, 0, x, height);
+    }
+    for(let y = 0; y < height; y += GRID_SIZE){
+        line(0, y, width, y);
+    }
+}

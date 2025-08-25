@@ -2,13 +2,14 @@ class Node{
     constructor(){
         this.pos = createVector(random(50, width - 50), random(50, height - 50));
         this.width = 70
-        this.id = Node.id++;
+        this.id = NodeID++
         this.moved = false
         this.highlight = false
 
         this.col = LIGHT_COL        //color for pin symbol
         this.txsize = 30
-        this.tags = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
+        this.inputTags = undefined
+        this.outputTags = undefined
     }
 
     static id = 0;
@@ -18,6 +19,15 @@ class Node{
         this.pos.y = Math.round(y / SNAP_PIXEL_SIZE) * SNAP_PIXEL_SIZE;
     }
 
+    acceptsConnection(side, index){
+        if(side == 'output') return true
+        for(let connection of graph.connections){
+            if(side == 'input' && connection.toNode == this && connection.toPort == index) return false;
+            if(side == 'output' && connection.fromNode == this && connection.fromPort == index) return false;
+        }
+        return true;
+    }
+
     reset(){
         for(let i = 0; i < this.inputs.length; i++){
             this.inputs[i] = undefined;
@@ -25,6 +35,10 @@ class Node{
         for(let i = 0; i < this.outputs.length; i++){
             this.outputs[i] = undefined;
         }
+    }
+
+    setInput(index, value){
+        this.inputs[index] = value;
     }
 
     getPinPos(pinIndex, side){
@@ -47,6 +61,7 @@ class Node{
     }
 
     checkUndefinedInputs(){
+        //return false
         for(let inp of this.inputs){
             if(inp === undefined){
                 for(let i = 0; i < this.outputs.length; i++){
@@ -74,10 +89,12 @@ class Node{
                 noStroke()
                 square(pos.x, pos.y, RAD_PIN*1.4)
             }
-            noStroke()
-            fill(20)
-            textSize(17)
-            text(this.tags[i], pos.x + RAD_PIN + 5, pos.y)
+            if(this.inputTags && this.inputTags[i]) {
+                noStroke()
+                fill(20)
+                textSize(17)
+                text(this.inputTags[i], pos.x + RAD_PIN + 5, pos.y)
+            }
         }
         for(let i = 0; i < this.outputs.length; i++){
             fill(LIGHT_COL)
@@ -88,6 +105,15 @@ class Node{
                 fill(DARK_COL)
                 noStroke()
                 square(pos.x, pos.y, RAD_PIN*1.4)
+            }
+            if(this.outputTags && this.outputTags[i]) {
+                push()
+                textAlign(RIGHT)
+                fill(20)
+                noStroke()
+                textSize(17)
+                text(this.outputTags[i], pos.x - RAD_PIN - 5, pos.y)
+                pop()
             }
         }
         fill(VERY_DARK_COL)
@@ -126,7 +152,7 @@ class Node{
         textSize(20)
         fill(40)
         noStroke()
-        text(this.outputs[0] !== undefined ? round(this.outputs[0], 2) : '?', this.pos.x + this.width * 0.5, this.pos.y + this.height * 0.5)
+        text(this.outputs[0] !== undefined ? round(this.outputs[0], 1) : '?', this.pos.x + this.width * 0.5, this.pos.y + this.height * 0.5)
     }
 
     show(){
@@ -192,7 +218,7 @@ class NodeSum extends Node{
     }
 
     evaluate(){
-        if(this.checkUndefinedInputs()) return
+        //if(this.checkUndefinedInputs()) return
 
         let sum = 0;
         for(let i = 0; i < this.inputs.length; i++){
@@ -248,12 +274,13 @@ class NodeDivide extends Node{
     constructor(){
         super();
         this.inputs = new Array(2);
-        this.outputs = new Array(1);
+        this.outputs = new Array(2);
 
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = '/'
         this.col = '#FBF8CC'
+        this.outputTags = ['/', '%'];
     }
 
     evaluate(){
@@ -261,6 +288,73 @@ class NodeDivide extends Node{
 
         if(this.inputs[0] !== undefined && this.inputs[1] !== undefined){
             this.outputs[0] = this.inputs[0] / this.inputs[1];
+            this.outputs[1] = this.inputs[0] % this.inputs[1];
+        }
+    }
+}
+
+class NodePow extends Node{
+    constructor(){
+        super();
+        this.inputs = new Array(2);
+        this.outputs = new Array(1);
+
+        this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
+
+        this.symbol = '^'
+        this.col = '#fbcce7ff'
+        this.inputTags = ['exp', 'base']
+    }
+
+    evaluate(){
+        if(this.checkUndefinedInputs()) return
+
+        if(this.inputs[0] !== undefined && this.inputs[1] !== undefined){
+            this.outputs[0] = Math.pow(this.inputs[1], this.inputs[0]);
+        }
+    }
+}
+
+class NodeSin extends Node{
+    constructor(){
+        super();
+        this.inputs = new Array(1);
+        this.outputs = new Array(1);
+
+        this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
+
+        this.symbol = 'sin'
+        this.col = '#ccedfb'
+        this.txsize = 18
+    }
+
+    evaluate(){
+        if(this.checkUndefinedInputs()) return
+
+        if(this.inputs[0] !== undefined){
+            this.outputs[0] = Math.sin(this.inputs[0]);
+        }
+    }
+}
+
+class NodeCos extends Node{
+    constructor(){
+        super();
+        this.inputs = new Array(1);
+        this.outputs = new Array(1);
+
+        this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
+
+        this.symbol = 'cos'
+        this.col = '#ccedfb'
+        this.txsize = 18
+    }
+
+    evaluate(){
+        if(this.checkUndefinedInputs()) return
+
+        if(this.inputs[0] !== undefined){
+            this.outputs[0] = Math.cos(this.inputs[0]);
         }
     }
 }
@@ -349,7 +443,7 @@ class NodeRnd extends Node{
 class NodeChooser extends Node{
     constructor(){
         super();
-        this.inputs = new Array(2);
+        this.inputs = new Array(1);
         this.outputs = new Array(1);
 
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
@@ -357,16 +451,64 @@ class NodeChooser extends Node{
         this.symbol = '->'
     }
 
-    evaluate(){
-        //if(this.checkUndefinedInputs()) return
+    setInput(index, value){
+        if(value !== undefined){
+            this.inputs[0] = value;
+        }
+    }
 
+    acceptsConnection(side, index){
+        return true;
+    }
+
+    evaluate(){
         if(this.inputs[0] !== undefined){
             this.outputs[0] = this.inputs[0]
         }
-        else if(this.inputs[1] !== undefined){
-            this.outputs[0] = this.inputs[1]
-        }
         else this.outputs[0] = undefined
+    }
+
+    showPins(){
+        push()
+        fill(LIGHT_COL)
+        stroke(DARK_COL)
+        rectMode(CENTER)
+        textAlign(LEFT)
+        for(let i = 0; i < 1; i++){
+            let pos = {x: this.pos.x, y: this.pos.y + this.height / 2}
+            fill(LIGHT_COL)
+            stroke(VERY_DARK_COL)
+            circle(pos.x, pos.y, RAD_PIN*2)
+            if(isPinConnected(this, 'input', i)){ 
+                fill(DARK_COL)
+                noStroke()
+                circle(pos.x, pos.y, RAD_PIN*1.4)
+            }
+            noStroke()
+            fill(20)
+            textSize(17)
+            text(this.inputTags[i], pos.x + RAD_PIN + 5, pos.y)
+        }
+        for(let i = 0; i < 1; i++){
+            fill(LIGHT_COL)
+            stroke(VERY_DARK_COL)
+            let pos = this.getPinPos(i, 'output')
+            square(pos.x, pos.y, RAD_PIN*2)
+            if(isPinConnected(this, 'output', i)){
+                fill(DARK_COL)
+                noStroke()
+                square(pos.x, pos.y, RAD_PIN*1.4)
+            }
+        }
+        fill(VERY_DARK_COL)
+        noStroke()
+        let r = selected == this ? SIZE_PIXEL * 1.5 : SIZE_PIXEL
+        showCircle(this.pos.x + this.width / 2, this.pos.y, 7, r);
+
+        fill(this.col)
+        noStroke()
+        ellipse(this.pos.x + this.width / 2, this.pos.y, 23)
+        pop()
     }
 }
 
@@ -491,7 +633,7 @@ class NodeParticulate extends Node{
         this.inputs = new Array(7);     //color and size
         this.outputs = new Array(1);
 
-        this.tags = ['Color', 'Size', 'Vel_X', 'Vel_Y', 'Acc_X', 'Acc_Y', 'Count']
+        this.inputTags = ['Color', 'Size', 'Vel_X', 'Vel_Y', 'Acc_X', 'Acc_Y', 'Count']
 
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
         //this.width = 100
@@ -528,7 +670,7 @@ class NodeEmitter extends Node{
 
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
         this.symbol = 'E'
-        this.tags = ['Properties']
+        this.inputTags = ['Properties']
 
         this.NtoSpawn = 1;
         this.bucket = []

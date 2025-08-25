@@ -2,7 +2,9 @@ const HEIGHT_NODE = 30
 const RAD_PIN = 8
 const SIZE_PIXEL = 2
 const SNAP_PIXEL_SIZE = 10
+const GRID_SIZE = 70 + 8
 
+const VERY_LIGHT_COL = 240
 const LIGHT_COL = 225
 const MED_COL = 190
 const DARK_COL = 140

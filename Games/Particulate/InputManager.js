@@ -75,7 +75,7 @@ function mouseClicked(){
                 state = undefined
                 return
             }
-            if(pin != undefined && !isPinConnected(pin.node, pin.side, pin.index) && pin.side != connecting.side){
+            if(pin != undefined && pin.node.acceptsConnection(pin.side, pin.index) && pin.side != connecting.side){
                 if(connecting.side == 'input'){
                     let newConn = new Connection(pin.node, pin.index, connecting.node, connecting.index)
                     graph.addConnection(newConn)
