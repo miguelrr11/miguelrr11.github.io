@@ -96,6 +96,18 @@ class Graph{
                 case 'NodeEmitter':
                     node = new NodeEmitter();
                     break;
+                case 'NodeChooser':
+                    node = new NodeChooser();
+                    break;
+                case 'NodeCondMore':
+                    node = new NodeCondMore();
+                    break;
+                case 'NodeCondLess':
+                    node = new NodeCondLess();
+                    break;
+                case 'NodeCondEqual':
+                    node = new NodeCondEqual();
+                    break;
             }
             node.id = nodeData.id;
             node.inputs = nodeData.inputs;
@@ -115,9 +127,15 @@ class Graph{
 
 
     show(){
+        push()
+        noStroke()
+        rectMode(CENTER)
         for(let connection of this.connections){
-            connection.show();
+            connection.update()
+            connection.highlight ? fill(VERY_DARK_COL) : fill(MED_COL)
+            showConnection(connection.pixels, connection.highlight ? SIZE_PIXEL * 1.5 : SIZE_PIXEL)
         }
+        pop()
         for(let node of this.nodes){
             node.show();
         }

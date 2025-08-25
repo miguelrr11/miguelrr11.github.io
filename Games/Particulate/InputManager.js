@@ -1,7 +1,13 @@
 let state = undefined
 let dragging = undefined
+let offX = 0
+let offY = 0
 let connecting = undefined
 let deletingConnections = undefined
+
+let selected = undefined
+let highlightedConns = new Set()
+let highlightedNodes = new Set()
 
 function keyPressed(){
     if(keyCode == 68){
@@ -13,7 +19,31 @@ function keyPressed(){
 
 function mouseReleased(){
     if(state == 'dragNode') state = undefined
-    dragging = undefined
+    if(dragging){ 
+        dragging.moved = false
+        dragging.move(mouseX + offX, mouseY + offY);
+        dragging = undefined
+        offX = 0
+        offY = 0
+    }
+    unselectNode();
+}
+
+function selectNode(node){
+    selected = node
+    let high = getAllConnectionsFromNodeBoth(node);
+    highlightedConns = high.connections;
+    highlightedNodes = high.nodes;
+    for(let conn of highlightedConns) conn.highlight = true;
+    for(let n of highlightedNodes) n.highlight = true;
+}
+
+function unselectNode(){
+    for(let conn of highlightedConns) conn.highlight = false;
+    for(let node of highlightedNodes) node.highlight = false;
+    highlightedConns.clear();
+    highlightedNodes.clear();
+    selected = undefined;
 }
 
 function mouseClicked(){
@@ -75,13 +105,22 @@ function mouseClicked(){
         deletingConnections = undefined
         return
     }
+    if(state == undefined){
+        for(let i = graph.nodes.length - 1; i >= 0; i--){
+            let node = graph.nodes[i]
+            if(inBounds(mouseX, mouseY, node.pos.x, node.pos.y, node.width, node.height)){
+                selectNode(node);
+                return
+            }
+        }
+        selected = undefined
+    }
 }
 
 function mouseDragged(){
     // dragging already dragging node
     if(dragging){
-        dragging.pos.x = mouseX - dragging.width / 2;
-        dragging.pos.y = mouseY - dragging.height / 2;
+        dragging.move(mouseX + offX, mouseY + offY);
         return
     }
 
@@ -100,12 +139,17 @@ function mouseDragged(){
 
     // check if we are dragging a node
     if((state == undefined || state == 'dragNode') && !connecting){
-        for(let node of graph.nodes){
+        unselectNode();
+        for(let i = graph.nodes.length - 1; i >= 0; i--){
+            let node = graph.nodes[i]
             if(inBounds(mouseX, mouseY, node.pos.x, node.pos.y, node.width, node.height)){
-                node.pos.x = mouseX - node.width / 2;
-                node.pos.y = mouseY - node.height / 2;
+                offX = node.pos.x - mouseX
+                offY = node.pos.y - mouseY;
+                node.move(mouseX + offX, mouseY + offY);
+                node.moved = true
                 state = 'dragNode'
                 dragging = node
+                selectNode(node)
                 return
             }
         }
@@ -120,14 +164,16 @@ function mouseDragged(){
 
 function showInputManager(){
     if(connecting){
-        stroke(20, 230, 40)
         let pos = connecting.node.getPinPos(connecting.index, connecting.side)
-        line(pos.x, pos.y, mouseX, mouseY)
+        fill(VERY_DARK_COL)
+        noStroke()
+        showConnection(pixelateLine(pos, {x: mouseX, y: mouseY}))
     }
     if(deletingConnections){
         deletingConnections.to.x = mouseX;
         deletingConnections.to.y = mouseY;
-        stroke(255, 0, 0)
-        line(deletingConnections.from.x, deletingConnections.from.y, deletingConnections.to.x, deletingConnections.to.y)
+        fill(255, 0, 0)
+        noStroke()
+        showConnection(pixelateLine(deletingConnections.from, deletingConnections.to))
     }
 }

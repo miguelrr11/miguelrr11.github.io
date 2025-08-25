@@ -2,6 +2,8 @@
 //Miguel Rodríguez
 //20-08-2025
 
+// TODO: hacer un node con 2 entradas y su ouput sea la entrada que no sea undefined
+
 p5.disableFriendlyErrors = true
 const WIDTH = 1300
 const HEIGHT = 800
@@ -9,8 +11,12 @@ const HEIGHT = 800
 let graph, partMan
 let playing = false
 
-function setup(){
+let font
+
+async function setup(){
     createCanvas(WIDTH, HEIGHT)
+    font = await loadFont('DSfont.ttf')
+    textFont(font)
     graph = new Graph();
     partMan = new ParticleManager();
 
@@ -19,7 +25,7 @@ function setup(){
 
 
 function draw(){
-    background(255)
+    background(240)
 
     fill(0)
     noStroke()
@@ -35,10 +41,10 @@ function draw(){
 
 let buttons = []
 function createBar(){
-    let buttonConst = new Button(createVector(0, HEIGHT - H_BUTTON), 'N', () => {
+    let buttonConst = new Button(createVector(0, HEIGHT - H_BUTTON), 'Constant', () => {
         graph.addNode(new NodeConstant(floor(random(10))));
     });
-    let buttonVar = new Button(createVector(W_BUTTON * 1, HEIGHT - H_BUTTON), 'Var', () => {
+    let buttonVar = new Button(createVector(W_BUTTON * 1, HEIGHT - H_BUTTON), 'Variable', () => {
         graph.addNode(new NodeVariable());
     });
     let buttonSum = new Button(createVector(W_BUTTON * 2, HEIGHT - H_BUTTON), '+', () => {
@@ -71,17 +77,20 @@ function createBar(){
     let buttonCondMore = new Button(createVector(W_BUTTON * 11, HEIGHT - H_BUTTON), '>', () => {
         graph.addNode(new NodeCondMore(floor(random(10))));
     });
-    let buttonRnd = new Button(createVector(W_BUTTON * 12, HEIGHT - H_BUTTON), 'rnd', () => {
+    let buttonRnd = new Button(createVector(W_BUTTON * 12, HEIGHT - H_BUTTON), 'Random', () => {
         graph.addNode(new NodeRnd());
     });
-    let buttonParticulate = new Button(createVector(W_BUTTON * 13, HEIGHT - H_BUTTON), 'Part', () => {
+    let buttonParticulate = new Button(createVector(W_BUTTON * 13, HEIGHT - H_BUTTON), 'Properties', () => {
         graph.addNode(new NodeParticulate());
     });
     let buttonEmitter = new Button(createVector(W_BUTTON * 14, HEIGHT - H_BUTTON), 'Emitter', () => {
         graph.addNode(new NodeEmitter());
     });
+    let buttonChooser = new Button(createVector(W_BUTTON * 15, HEIGHT - H_BUTTON), 'Chooser', () => {
+        graph.addNode(new NodeChooser());
+    });
 
-    let buttonsNodes = [buttonConst, buttonVar, buttonSum, buttonSub, buttonMul, buttonDiv, buttonSqrt, buttonLog, buttonExp, buttonCondEq, buttonCondLess, buttonCondMore, buttonRnd, buttonParticulate, buttonEmitter];
+    let buttonsNodes = [buttonConst, buttonVar, buttonSum, buttonSub, buttonMul, buttonDiv, buttonSqrt, buttonLog, buttonExp, buttonCondEq, buttonCondLess, buttonCondMore, buttonRnd, buttonParticulate, buttonEmitter, buttonChooser];
 
     let acum = buttonsNodes[0].w;
     for(let i = 1; i < buttonsNodes.length; i++){

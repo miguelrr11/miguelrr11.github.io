@@ -3,9 +3,20 @@ class Node{
         this.pos = createVector(random(50, width - 50), random(50, height - 50));
         this.width = 70
         this.id = Node.id++;
+        this.moved = false
+        this.highlight = false
+
+        this.col = LIGHT_COL        //color for pin symbol
+        this.txsize = 30
+        this.tags = ['a', 'b', 'c', 'd', 'e', 'f', 'g']
     }
 
     static id = 0;
+
+    move(x, y){
+        this.pos.x = Math.round(x / SNAP_PIXEL_SIZE) * SNAP_PIXEL_SIZE;
+        this.pos.y = Math.round(y / SNAP_PIXEL_SIZE) * SNAP_PIXEL_SIZE;
+    }
 
     reset(){
         for(let i = 0; i < this.inputs.length; i++){
@@ -48,36 +59,66 @@ class Node{
     }
 
     showPins(){
-        fill(255)
-        stroke(40)
+        push()
+        fill(LIGHT_COL)
+        stroke(DARK_COL)
+        rectMode(CENTER)
+        textAlign(LEFT)
         for(let i = 0; i < this.inputs.length; i++){
             let pos = this.getPinPos(i, 'input')
-            fill(255)
-            stroke(40)
-            ellipse(pos.x, pos.y, RAD_PIN*2)
+            fill(LIGHT_COL)
+            stroke(VERY_DARK_COL)
+            square(pos.x, pos.y, RAD_PIN*2)
             if(isPinConnected(this, 'input', i)){ 
-                fill(40)
+                fill(DARK_COL)
                 noStroke()
-                ellipse(pos.x, pos.y, RAD_PIN*1.4)
+                square(pos.x, pos.y, RAD_PIN*1.4)
             }
+            noStroke()
+            fill(20)
+            textSize(17)
+            text(this.tags[i], pos.x + RAD_PIN + 5, pos.y)
         }
         for(let i = 0; i < this.outputs.length; i++){
-            fill(255)
-            stroke(40)
+            fill(LIGHT_COL)
+            stroke(VERY_DARK_COL)
             let pos = this.getPinPos(i, 'output')
-            ellipse(pos.x, pos.y, RAD_PIN*2)
+            square(pos.x, pos.y, RAD_PIN*2)
             if(isPinConnected(this, 'output', i)){
-                fill(40)
+                fill(DARK_COL)
                 noStroke()
-                ellipse(pos.x, pos.y, RAD_PIN*1.4)
+                square(pos.x, pos.y, RAD_PIN*1.4)
             }
         }
+        fill(VERY_DARK_COL)
+        noStroke()
+        let r = selected == this ? SIZE_PIXEL * 1.5 : SIZE_PIXEL
+        showCircle(this.pos.x + this.width / 2, this.pos.y, 7, r);
+
+        fill(this.col)
+        noStroke()
+        ellipse(this.pos.x + this.width / 2, this.pos.y, 23)
+        pop()
     }
 
     showBox(){
-        fill(210)
-        stroke(40)
+        fill(255)
+        this.highlight ? stroke(VERY_DARK_COL) : stroke(MED_COL)
+        this.highlight ? strokeWeight(2.8) : strokeWeight(2)
+        let off = 3
+        rect(this.pos.x - off, this.pos.y - off, this.width + off * 2, this.height + off * 2)
+        fill(LIGHT_COL)
+        noStroke()
         rect(this.pos.x, this.pos.y, this.width, this.height)
+        
+    }
+
+    showSymbol(){
+        textAlign(CENTER, CENTER)
+        textSize(this.txsize)
+        fill(VERY_DARK_COL)
+        noStroke()
+        text(this.symbol, this.pos.x + this.width * 0.5 + 1, this.pos.y - 3.5);
     }
 
     showText(){
@@ -85,16 +126,16 @@ class Node{
         textSize(20)
         fill(40)
         noStroke()
-        text(this.symbol, this.pos.x + this.width * 0.5, this.pos.y + 10);
         text(this.outputs[0] !== undefined ? round(this.outputs[0], 2) : '?', this.pos.x + this.width * 0.5, this.pos.y + this.height * 0.5)
     }
 
     show(){
         this.showBox();
+        this.showPins();
 
+        this.showSymbol();
         this.showText();
 
-        this.showPins();
     }
 }
 
@@ -109,7 +150,8 @@ class NodeConstant extends Node{
         this.value = value;
         this.outputs[0] = this.value;
 
-        this.symbol = ''
+        this.symbol = 'C'
+        this.col = '#FFCFD2'
     }
 
     evaluate(){
@@ -127,7 +169,8 @@ class NodeVariable extends Node{
 
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
-        this.symbol = 'Var'
+        this.symbol = 'V'
+        this.col = '#FDE4CF'
     }
 
     evaluate(){
@@ -145,6 +188,7 @@ class NodeSum extends Node{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = '+'
+        this.col = '#90DBF4'
     }
 
     evaluate(){
@@ -167,6 +211,7 @@ class NodeSubtract extends Node{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = '-'
+        this.col = '#F1C0E8'
     }
 
     evaluate(){
@@ -187,6 +232,7 @@ class NodeMultiply extends Node{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = '*'
+        this.col = '#B9FBC0'
     }
 
     evaluate(){
@@ -207,6 +253,7 @@ class NodeDivide extends Node{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = '/'
+        this.col = '#FBF8CC'
     }
 
     evaluate(){
@@ -247,6 +294,7 @@ class NodeLog extends Node{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = 'log'
+        this.txsize = 18
     }
 
     evaluate(){
@@ -267,6 +315,7 @@ class NodeExp extends Node{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = 'exp'
+        this.txsize = 18
     }
 
     evaluate(){
@@ -287,12 +336,37 @@ class NodeRnd extends Node{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = 'rnd'
+        this.txsize = 18
     }
 
     evaluate(){
         if(this.checkUndefinedInputs()) return
 
         this.outputs[0] = Math.random();
+    }
+}
+
+class NodeChooser extends Node{
+    constructor(){
+        super();
+        this.inputs = new Array(2);
+        this.outputs = new Array(1);
+
+        this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
+
+        this.symbol = '->'
+    }
+
+    evaluate(){
+        //if(this.checkUndefinedInputs()) return
+
+        if(this.inputs[0] !== undefined){
+            this.outputs[0] = this.inputs[0]
+        }
+        else if(this.inputs[1] !== undefined){
+            this.outputs[0] = this.inputs[1]
+        }
+        else this.outputs[0] = undefined
     }
 }
 
@@ -306,6 +380,8 @@ class NodeCondEqual extends Node{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = '=='
+        this.col = '#98F5E1'
+        this.txsize = 22
     }
 
     
@@ -343,6 +419,7 @@ class NodeCondLess extends Node{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = '<'
+        this.col = '#98F5E1'
     }
 
     
@@ -380,6 +457,7 @@ class NodeCondMore extends Node{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = '>'
+        this.col = '#98F5E1'
     }
 
     
@@ -418,7 +496,7 @@ class NodeParticulate extends Node{
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
         //this.width = 100
 
-        this.symbol = ''
+        this.symbol = 'P'
     }
 
     evaluate(){
@@ -436,48 +514,10 @@ class NodeParticulate extends Node{
         return this.outputs[0];
     }
 
-    showPins(){
-        push()
-        fill(255)
-        stroke(40)
-        textAlign(LEFT, CENTER)
-        textSize(10)
-        for(let i = 0; i < this.inputs.length; i++){
-            let pos = this.getPinPos(i, 'input')
-            fill(255)
-            stroke(40)
-            ellipse(pos.x, pos.y, RAD_PIN*2)
-            if(isPinConnected(this, 'input', i)){ 
-                fill(40)
-                noStroke()
-                ellipse(pos.x, pos.y, RAD_PIN*1.4)
-            }
-            noStroke()
-            fill(20)
-            textSize(14)
-            text(this.tags[i], pos.x + RAD_PIN + 5, pos.y)
-        }
-        for(let i = 0; i < this.outputs.length; i++){
-            fill(255)
-            stroke(40)
-            let pos = this.getPinPos(i, 'output')
-            ellipse(pos.x, pos.y, RAD_PIN*2)
-            if(isPinConnected(this, 'output', i)){
-                fill(40)
-                noStroke()
-                ellipse(pos.x, pos.y, RAD_PIN*1.4)
-            }
-        }
-        pop()
+    showText(){
     }
 
-    showText(){
-        textAlign(CENTER, CENTER)
-        textSize(20)
-        fill(40)
-        noStroke()
-        text(this.symbol, this.pos.x + this.width * 0.5, this.pos.y + 15);
-    }
+
 }
 
 class NodeEmitter extends Node{
@@ -487,7 +527,8 @@ class NodeEmitter extends Node{
         this.outputs = new Array(0);
 
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
-        this.symbol = '→'
+        this.symbol = 'E'
+        this.tags = ['Properties']
 
         this.NtoSpawn = 1;
         this.bucket = []
@@ -518,10 +559,8 @@ class NodeEmitter extends Node{
     }
 
     showText(){
-        textAlign(CENTER, CENTER)
-        textSize(20)
-        fill(40)
-        noStroke()
-        text(this.symbol, this.pos.x + this.width * 0.5, this.pos.y + 15);
+
     }
+
+
 }

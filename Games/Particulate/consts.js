@@ -1,5 +1,12 @@
 const HEIGHT_NODE = 30
-const RAD_PIN = 10
+const RAD_PIN = 8
+const SIZE_PIXEL = 2
+const SNAP_PIXEL_SIZE = 10
+
+const LIGHT_COL = 225
+const MED_COL = 190
+const DARK_COL = 140
+const VERY_DARK_COL = 90
 
 function isPinConnected(node, side, index){
     for(let connection of graph.connections){
