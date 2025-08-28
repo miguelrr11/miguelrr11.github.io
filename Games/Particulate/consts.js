@@ -1,4 +1,4 @@
-const HEIGHT_NODE = 30
+const HEIGHT_NODE = 25
 const RAD_PIN = 8
 const SIZE_PIXEL = 2
 const SNAP_PIXEL_SIZE = 10

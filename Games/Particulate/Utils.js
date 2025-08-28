@@ -128,10 +128,10 @@ function gradientLine(x1, y1, x2, y2, colors) {
 }
 
 function drawArrowTip(x, y, angle, arrowSize = 7) {
-    let x1 = x + Math.cos(angle - PI / 6) * arrowSize;
-    let y1 = y + Math.sin(angle - PI / 6) * arrowSize;
-    let x2 = x + Math.cos(angle + PI / 6) * arrowSize;
-    let y2 = y + Math.sin(angle + PI / 6) * arrowSize;
+    let x1 = x + Math.cos(angle - PI / 5) * arrowSize;
+    let y1 = y + Math.sin(angle - PI / 5) * arrowSize;
+    let x2 = x + Math.cos(angle + PI / 5) * arrowSize;
+    let y2 = y + Math.sin(angle + PI / 5) * arrowSize;
     line(x, y, x1, y1);
     line(x, y, x2, y2);
 }

@@ -1,7 +1,7 @@
 class ParticleManager{
     constructor(){
         this.particles = []
-        this.coolDown = 10
+        this.coolDown = 1
     }
 
     addParticle(options){

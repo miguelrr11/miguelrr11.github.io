@@ -26,7 +26,7 @@ function mouseReleased(){
         offX = 0
         offY = 0
     }
-    unselectNode();
+    //unselectNode();
 }
 
 function selectNode(node){
@@ -110,6 +110,11 @@ function mouseClicked(){
             let node = graph.nodes[i]
             if(inBounds(mouseX, mouseY, node.pos.x, node.pos.y, node.width, node.height)){
                 selectNode(node);
+                return
+            }
+        }
+        for(let button of buttons){
+            if(inBounds(mouseX, mouseY, button.pos.x, button.pos.y, button.w, button.h)){
                 return
             }
         }

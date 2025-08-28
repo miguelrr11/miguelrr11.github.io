@@ -105,15 +105,6 @@ function showCircle(x, y, radius, size = SIZE_PIXEL){
     }
 }
 
-/**
- * Collect connections reachable from `node` following a chosen direction.
- *
- * @param {Object} node            - start node
- * @param {"outputs"|"inputs"|"both"} direction - which way to traverse
- * @param {Array} [connections=[]] - accumulator (returned)
- * @param {Set}   [visited=new Set()] - visited edge set to avoid cycles
- * @returns {Array} connections
- */
 function getAllConnectionsFromNode(node, direction = "both", connections = [], visited = new Set(), nodes = new Set()) {
   for (const conn of graph.connections) {
     let shouldUse = false;

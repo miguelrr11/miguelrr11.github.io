@@ -73,6 +73,21 @@ class Node{
         return false;
     }
 
+    showSymbolPin(){
+        push()
+        rectMode(CENTER)
+        fill(VERY_DARK_COL)
+        noStroke()
+        let r = selected == this ? SIZE_PIXEL * 1.5 : SIZE_PIXEL
+        showCircle(this.pos.x + this.width / 2, this.pos.y, 7, r);
+
+        fill(this.col)
+        noStroke()
+        ellipse(this.pos.x + this.width / 2, this.pos.y, 23)
+        this.showSymbol()
+        pop()
+    }
+
     showPins(){
         push()
         fill(LIGHT_COL)
@@ -301,7 +316,8 @@ class NodePow extends Node{
 
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
-        this.symbol = '^'
+        this.symbol = 'pow'
+        this.txsize = 18
         this.col = '#fbcce7ff'
         this.inputTags = ['exp', 'base']
     }
@@ -367,7 +383,8 @@ class NodeSqrt extends Node{
 
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
-        this.symbol = '√'
+        this.symbol = 'sqrt'
+        this.txsize = 16
     }
 
     evaluate(){
@@ -448,7 +465,7 @@ class NodeChooser extends Node{
 
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
-        this.symbol = '->'
+        this.symbol = '?'
     }
 
     setInput(index, value){
@@ -484,10 +501,6 @@ class NodeChooser extends Node{
                 noStroke()
                 circle(pos.x, pos.y, RAD_PIN*1.4)
             }
-            noStroke()
-            fill(20)
-            textSize(17)
-            text(this.inputTags[i], pos.x + RAD_PIN + 5, pos.y)
         }
         for(let i = 0; i < 1; i++){
             fill(LIGHT_COL)
@@ -513,17 +526,17 @@ class NodeChooser extends Node{
 }
 
 class NodeCondEqual extends Node{
-    constructor(value){
+    constructor(){
         super();
-        this.inputs = new Array(1);
+        this.inputs = new Array(2);  //constant, variable
         this.outputs = new Array(2); // true output, false output
-        this.value = value
 
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
         this.symbol = '=='
         this.col = '#98F5E1'
         this.txsize = 22
+
     }
 
     
@@ -531,12 +544,12 @@ class NodeCondEqual extends Node{
     evaluate(){
         if(this.checkUndefinedInputs()) return
 
-        if(this.inputs[0] == this.value){
-            this.outputs[0] = this.inputs[0];
+        if(this.inputs[1] == this.inputs[0]){
+            this.outputs[0] = this.inputs[1];
             this.outputs[1] = undefined
         } 
         else {
-            this.outputs[1] = this.inputs[0];
+            this.outputs[1] = this.inputs[1];
             this.outputs[0] = undefined
         }
     }
@@ -546,15 +559,28 @@ class NodeCondEqual extends Node{
         textSize(20)
         fill(40)
         noStroke()
-        text(this.symbol + ' ' + this.value, this.pos.x + this.width * 0.5, this.pos.y + 15);
-        text(this.inputs[0] == this.value, this.pos.x + this.width * 0.5, this.pos.y + this.height * 0.5)
+        if(this.inputs[0] == this.inputs[1]){
+            fill(DARK_COL)
+            let posPinInput2 = this.getPinPos(1, 'input');
+            let posPinOutput = this.getPinPos(0, 'output');
+            noStroke()
+            showConnection(pixelateLine(posPinInput2,  posPinOutput));
+        }
+        else{
+            fill(DARK_COL)
+            let posPinInput2 = this.getPinPos(1, 'input');
+            let posPinOutput = this.getPinPos(1, 'output');
+            noStroke()
+            showConnection(pixelateLine(posPinInput2,  posPinOutput))
+
+        }
     }
 }
 
 class NodeCondLess extends Node{
     constructor(value){
         super();
-        this.inputs = new Array(1);
+        this.inputs = new Array(2);
         this.outputs = new Array(2); // true output, false output
         this.value = value
 
@@ -569,12 +595,12 @@ class NodeCondLess extends Node{
     evaluate(){
         if(this.checkUndefinedInputs()) return
 
-        if(this.inputs[0] < this.value){
-            this.outputs[0] = this.inputs[0];
+        if(this.inputs[0] < this.inputs[1]){
+            this.outputs[0] = this.inputs[1];
             this.outputs[1] = undefined
         } 
         else {
-            this.outputs[1] = this.inputs[0];
+            this.outputs[1] = this.inputs[1];
             this.outputs[0] = undefined
         }
     }
@@ -584,15 +610,28 @@ class NodeCondLess extends Node{
         textSize(20)
         fill(40)
         noStroke()
-        text(this.symbol + ' ' + this.value, this.pos.x + this.width * 0.5, this.pos.y + 15);
-        text(this.inputs[0] < this.value, this.pos.x + this.width * 0.5, this.pos.y + this.height * 0.5)
+        if(this.inputs[0] < this.inputs[1]){
+            fill(DARK_COL)
+            let posPinInput2 = this.getPinPos(1, 'input');
+            let posPinOutput = this.getPinPos(0, 'output');
+            noStroke()
+            showConnection(pixelateLine(posPinInput2,  posPinOutput));
+        }
+        else{
+            fill(DARK_COL)
+            let posPinInput2 = this.getPinPos(1, 'input');
+            let posPinOutput = this.getPinPos(1, 'output');
+            noStroke()
+            showConnection(pixelateLine(posPinInput2,  posPinOutput))
+
+        }
     }
 }
 
 class NodeCondMore extends Node{
     constructor(value){
         super();
-        this.inputs = new Array(1);
+        this.inputs = new Array(2);
         this.outputs = new Array(2); // true output, false output
         this.value = value
 
@@ -604,15 +643,15 @@ class NodeCondMore extends Node{
 
     
 
-    evaluate(){
+   evaluate(){
         if(this.checkUndefinedInputs()) return
 
-        if(this.inputs[0] > this.value){
-            this.outputs[0] = this.inputs[0];
+        if(this.inputs[0] > this.inputs[1]){
+            this.outputs[0] = this.inputs[1];
             this.outputs[1] = undefined
         } 
         else {
-            this.outputs[1] = this.inputs[0];
+            this.outputs[1] = this.inputs[1];
             this.outputs[0] = undefined
         }
     }
@@ -622,18 +661,33 @@ class NodeCondMore extends Node{
         textSize(20)
         fill(40)
         noStroke()
-        text(this.symbol + ' ' + this.value, this.pos.x + this.width * 0.5, this.pos.y + 15);
-        text(this.inputs[0] > this.value, this.pos.x + this.width * 0.5, this.pos.y + this.height * 0.5)
+        if(this.inputs[0] > this.inputs[1]){
+            fill(DARK_COL)
+            let posPinInput2 = this.getPinPos(1, 'input');
+            let posPinOutput = this.getPinPos(0, 'output');
+            noStroke()
+            showConnection(pixelateLine(posPinInput2,  posPinOutput));
+        }
+        else{
+            fill(DARK_COL)
+            let posPinInput2 = this.getPinPos(1, 'input');
+            let posPinOutput = this.getPinPos(1, 'output');
+            noStroke()
+            showConnection(pixelateLine(posPinInput2,  posPinOutput))
+
+        }
     }
 }
+
+const propertyTags = ['Color', 'Size', 'Vel_X', 'Vel_Y', 'Acc_X', 'Acc_Y', 'Count'];
 
 class NodeParticulate extends Node{
     constructor(){
         super();
-        this.inputs = new Array(7);     //color and size
+        this.inputs = new Array(1);    
         this.outputs = new Array(1);
 
-        this.inputTags = ['Color', 'Size', 'Vel_X', 'Vel_Y', 'Acc_X', 'Acc_Y', 'Count']
+        this.inputTags = ['Color']
 
         this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
         //this.width = 100
@@ -641,20 +695,49 @@ class NodeParticulate extends Node{
         this.symbol = 'P'
     }
 
-    evaluate(){
-        let count = this.inputs[6] !== undefined ? this.inputs[6] : 1
-        this.outputs[0] = {
-            particle :{
-            pos: createVector(this.pos.x + this.width * 0.5, this.pos.y),
-            vel: createVector(this.inputs[2] !== undefined ? this.inputs[2] : 0, this.inputs[3] !== undefined ? this.inputs[3] : 0),
-            acc: createVector(this.inputs[4] !== undefined ? this.inputs[4] : 0, this.inputs[5] !== undefined ? this.inputs[5] : 1),
-            lifetime: undefined,
-            size: this.inputs[1],
-            color: this.inputs[0]
-        },
-        NtoSpawn: count}
+    evaluate() {
+        const options = {};
+
+        this.inputTags.forEach((tag, index) => {
+            const value = this.inputs[index] !== undefined ? this.inputs[index] : this.getDefault(tag);
+
+            if (tag === 'Vel_X' || tag === 'Vel_Y') {
+                if (!options.vel) options.vel = createVector(0, 0);
+                options.vel[tag === 'Vel_X' ? 'x' : 'y'] = value;
+            } 
+            else if (tag === 'Acc_X' || tag === 'Acc_Y') {
+                if (!options.acc) options.acc = createVector(0, 0);
+                options.acc[tag === 'Acc_X' ? 'x' : 'y'] = value;
+            } 
+            else if (tag === 'Size' || tag === 'Color') {
+                options[tag.toLowerCase()] = value;
+            }
+            else if (tag === 'Count') {
+            }
+        });
+
+
+        const count = this.inputs[this.inputTags.indexOf('Count')] ?? 1;
+        this.outputs[0] = { options, NtoSpawn: count };
+
         return this.outputs[0];
     }
+    
+    addProperty(property){
+        if(!this.inputTags.includes(property)){
+            this.inputTags.push(property);
+            this.inputs.push(undefined);
+            this.height = Math.max(this.inputs.length, this.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
+            this.moved = true
+        }
+    }
+
+    // optional helper for defaults
+    getDefault(tag) {
+        if (tag === 'Acc_Y') return 1;  // as in your original code
+        return undefined;
+    }
+
 
     showText(){
     }
@@ -686,16 +769,16 @@ class NodeEmitter extends Node{
             this.bucket = []
         }
         else {
-            let options = this.inputs[0].particle
+            let options = this.inputs[0].options
             this.bucket.push({
                 pos: createVector(this.pos.x + this.width * 0.5, this.pos.y),
-                vel: createVector(options.vel.x !== undefined ? options.vel.x : 0, 
-                    options.vel.y !== undefined ? options.vel.y : 0),
-                acc: createVector(options.acc.x !== undefined ? options.acc.x : 0, 
-                    options.acc.y !== undefined ? options.acc.y : 1),
+                vel: 'vel' in options ? createVector(options.vel.x !== undefined ? options.vel.x : 0, 
+                    options.vel.y !== undefined ? options.vel.y : 0) : undefined,
+                acc: 'acc' in options ? createVector(options.acc.x !== undefined ? options.acc.x : 0, 
+                    options.acc.y !== undefined ? options.acc.y : 1) : undefined,
                 lifetime: undefined,
-                size: options.size,
-                color: options.color
+                size: 'size' in options ? options.size : undefined,
+                color: 'color' in options ? options.color : undefined
             });
         }
     }
