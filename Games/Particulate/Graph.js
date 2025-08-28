@@ -43,6 +43,7 @@ class Graph{
                 inputs: node.inputs,
                 outputs: node.outputs,
                 value: node.value,
+                inputTags: node.inputTags,
                 pos: { x: round(node.pos.x), y: round(node.pos.y) }
             })),
             connections: this.connections.map(conn => ({
@@ -92,6 +93,8 @@ class Graph{
             node.outputs = nodeData.outputs;
             node.pos = createVector(nodeData.pos.x, nodeData.pos.y);
             node.value = nodeData.value !== undefined ? nodeData.value : random(10);
+            node.inputTags = nodeData.inputTags;
+            node.height =  Math.max(node.inputs.length, node.outputs.length) * (HEIGHT_NODE + 4) + HEIGHT_NODE;
 
             this.addNode(node);
 
