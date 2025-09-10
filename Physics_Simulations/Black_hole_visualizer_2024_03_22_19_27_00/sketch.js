@@ -11,6 +11,8 @@ const c = 5;
 const G = 1;
 let photons = []
 let photonsPrev = []
+let kingPhotonPos = []
+let indexKing = 0
 let sliderM
 
 function setup() {
@@ -30,17 +32,25 @@ function setup() {
   stroke(255, 255, 0, 80)
   strokeWeight(50)
   circle(300, HEIGHT/2, r*6)
-  
-  for(let i = 0; i < 30; i++){
-    photons.push(new Photon(createVector(WIDTH-40, 1.32 + i*10), createVector(-c, 0)))
-    photonsPrev.push(new Photon(createVector(WIDTH-40, 0 + i*10), createVector(-c, 0)))
+
+  let nPhotons = 5000
+  let separation = (HEIGHT / 2) / nPhotons
+
+  indexKing = floor(nPhotons * 0.4999)
+
+  for(let i = 0; i < nPhotons; i++){
+    photons.push(new Photon(createVector(WIDTH-40, 1.32 + i*separation), createVector(-c, 0)))
+    photonsPrev.push(new Photon(createVector(WIDTH-40, 0 + i*separation), createVector(-c, 0)))
+    if(i == indexKing){
+      kingPhotonPos.push(createVector(WIDTH-40, 1.32 + i*separation))
+    }
   }
 }
 
 function draw() {
   
-  stroke(255, 0, 0)
-  strokeWeight(2)
+  stroke(255, 0, 0, 30)
+  strokeWeight(1)
   
   m = sliderM.value()
   
@@ -57,7 +67,23 @@ function draw() {
     p.pos.add(p.vel)
     //p.vel.x = constrain(p.vel.x, -c, -c)
     line(photonsPrev[i].pos.x, photonsPrev[i].pos.y, photons[i].pos.x, photons[i].pos.y)
+    if(i == indexKing){
+      kingPhotonPos.push(createVector(p.pos.x, p.pos.y))
+    }
   }
+
+  if(kingPhotonPos.length > 300){
+    kingPhotonPos.splice(0, 1)
+  }
+
+  stroke(0, 0, 255)
+  strokeWeight(2.5)
+  noFill()
+  beginShape()
+  for(let i = 0; i < kingPhotonPos.length; i++){
+    vertex(kingPhotonPos[i].x, kingPhotonPos[i].y)
+  }
+  endShape()
   
   noStroke()
   fill(0)
