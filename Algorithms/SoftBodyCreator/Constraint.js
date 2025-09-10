@@ -2,7 +2,7 @@ class Constraint{
 	constructor(p1, p2, initialLength = REST_DISTANCE){
 		this.p1 = p1
 		this.p2 = p2
-		this.initialLength = initialLength
+		this.initialLength = 150
 		this.active = true
 		this.currentLength = undefined
 	}
