@@ -23,7 +23,7 @@ function setup() {
   fill(0)
   circle(300, HEIGHT/2, r*2)
   
-  sliderM = createSlider(0, 50000, 1500)
+  sliderM = createSlider(0, 5000, 1500)
   
   noFill()
   stroke(255, 100, 0, 90)
@@ -33,16 +33,16 @@ function setup() {
   strokeWeight(50)
   circle(300, HEIGHT/2, r*6)
 
-  let nPhotons = 5000
-  let separation = (HEIGHT / 2) / nPhotons
+  let nPhotons = 30000
+  let separation = ((HEIGHT / 2)-200) / nPhotons
 
-  indexKing = floor(nPhotons * 0.4999)
+  indexKing = floor(nPhotons * 0.51296)
 
   for(let i = 0; i < nPhotons; i++){
-    photons.push(new Photon(createVector(WIDTH-40, 1.32 + i*separation), createVector(-c, 0)))
+    photons.push(new Photon(createVector(WIDTH-40, 100 + i*separation), createVector(-c, 0)))
     photonsPrev.push(new Photon(createVector(WIDTH-40, 0 + i*separation), createVector(-c, 0)))
     if(i == indexKing){
-      kingPhotonPos.push(createVector(WIDTH-40, 1.32 + i*separation))
+      kingPhotonPos.push(createVector(WIDTH-40, 100 + i*separation))
     }
   }
 }
@@ -53,24 +53,55 @@ function draw() {
   strokeWeight(1)
   
   m = sliderM.value()
-  
-  for(let i = 0; i < photons.length; i++){
-    let p = photons[i]
-    photonsPrev[i].pos = createVector(p.pos.x, p.pos.y)
-    photonsPrev[i].vel = createVector(p.vel.x, p.vel.y)
-    const force = p5.Vector.sub(posBH, p.pos);
-    const R = force.mag();
-    const fg = G * m / (R * R);
-    force.setMag(fg);
-    p.vel.add(force);
-    p.vel.setMag(c);
-    p.pos.add(p.vel)
-    //p.vel.x = constrain(p.vel.x, -c, -c)
-    line(photonsPrev[i].pos.x, photonsPrev[i].pos.y, photons[i].pos.x, photons[i].pos.y)
-    if(i == indexKing){
-      kingPhotonPos.push(createVector(p.pos.x, p.pos.y))
-    }
+
+  // assumes: const f = G * m; and posBH has {x, y}
+  const f = G * m;
+
+  for (let i = 0, n = photons.length; i < n; i++) {
+    const p  = photons[i];
+    const pp = photonsPrev[i];
+
+    // cache current position
+    const px = p.pos.x;
+    const py = p.pos.y;
+
+    // store previous position
+    pp.pos.x = px;
+    pp.pos.y = py;
+
+    // vector from photon -> black hole
+    const dx = posBH.x - px;
+    const dy = posBH.y - py;
+
+    // gravitational force ~ f * r̂ / r^2  ==>  f * (dx,dy) / r^3
+    const r2 = dx * dx + dy * dy;
+    const invR = 1 / Math.sqrt(r2 + 1e-12);   // epsilon avoids div-by-zero
+    const invR3 = invR / (r2 + 1e-12);
+
+    // apply force
+    let vx = p.vel.x + f * dx * invR3;
+    let vy = p.vel.y + f * dy * invR3;
+
+    // renormalize velocity to constant speed c
+    const invV = c / Math.hypot(vx, vy);
+    vx *= invV;
+    vy *= invV;
+
+    // advance position
+    const nx = px + vx;
+    const ny = py + vy;
+
+    // write back
+    p.vel.x = vx; p.vel.y = vy;
+    p.pos.x = nx; p.pos.y = ny;
+
+    // draw segment
+    if(i % 5 === 0) line(pp.pos.x, pp.pos.y, nx, ny);
+
+    // keep "king" trail without createVector
+    if (i === indexKing) kingPhotonPos.push({ x: nx, y: ny });
   }
+
 
   if(kingPhotonPos.length > 300){
     kingPhotonPos.splice(0, 1)
