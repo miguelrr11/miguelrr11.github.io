@@ -18,9 +18,11 @@
 
 
 <body>
- <header>
-     <h1>Welcome to Miguel's p5js projects</h1>
- </header>
+  <div id="font-gate" aria-hidden="true"></div>
+
+  <header>
+      <h1>Welcome to Miguel's p5js projects</h1>
+  </header>
 
  <main>
     
@@ -299,6 +301,25 @@
      <p>2025 -  Miguel Rodríguez</p>
  </footer>
 </body>
+
+<!-- Wait for font -->
+<script>
+  const need = [
+    document.fonts.load('normal 400 1em "Victor Mono"')
+  ];
+
+  const MAX_WAIT_MS = 7000; 
+
+  Promise.race([
+    Promise.all(need),
+    new Promise(resolve => setTimeout(resolve, MAX_WAIT_MS))
+  ]).then(() => {
+    const gate = document.getElementById('font-gate');
+    gate.style.transition = 'opacity .65s ease';
+    gate.style.opacity = '0';
+    gate.addEventListener('transitionend', () => gate.remove(), { once: true });
+  });
+</script>
 
 <!-- Video play on hover -->
 <script>

@@ -1,6 +1,14 @@
 /* Base reset */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+#font-gate {
+  position: fixed;
+  inset: 0;
+  background: #000;
+  z-index: 2147483647; /* above everything */
+  pointer-events: none; /* so it never traps focus */
+}
+
 
 /* wrap your page in a container and raise it */
 .main-content {
