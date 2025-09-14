@@ -185,3 +185,62 @@ a.custom-link:hover { color: #b6b6b6; transform: scale(1.05); }
   p { font-size: 1em; }
   .category-cards-wrapper { column-count: 1; }
 }
+
+/* Search bar (transparent, no backdrop/rectangle) */
+.searchbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: .5rem;
+  align-items: center;
+  padding: .75rem 1rem;
+  background: transparent;          /* ← no black rectangle */
+  backdrop-filter: none;            /* ← remove blur layer */
+  border: none;                     /* ← remove border line */
+}
+
+.searchbar input[type="search"] {
+  width: 100%;
+  font: 500 1rem/1.2 "Victor Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #eaeaea;
+  background: rgba(255,255,255,.06);
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 10px;
+  padding: .7rem .9rem;
+  outline: none;
+}
+/* Style the native clear "×" inside search inputs */
+.searchbar input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  height: 1em;
+  width: 1em;
+  background: none;
+  position: relative;
+  cursor: pointer;
+}
+/* WebKit clear “×” — white, properly encoded SVG */
+.searchbar input[type="search"]::-webkit-search-cancel-button {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 1.1em;
+  height: 1.1em;
+  cursor: pointer;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3E%3Cpath d='M4 4 L16 16 M16 4 L4 16' stroke='%23ffffff' stroke-width='2.2' stroke-linecap='round' fill='none'/%3E%3C/svg%3E") no-repeat center;
+  background-size: 100% 100%;
+}
+
+.searchbar input[type="search"]::placeholder { color: #bdbdbd; }
+.sr-count { margin-left: .25rem; opacity: .85; font-size: .95rem; }
+
+/* REMOVE green outline + featured underline */
+[data-match] { outline: none; }
+.card[data-match="1"] .card-title { text-decoration: none; }
+
+/* Hide empty categories while searching */
+.category-card[data-has-matches="0"] { display: none; }
+
+/* While searching, auto-show hidden sections so they’re filterable */
+body[data-searching="1"] .extra-items { display: block !important; }
+

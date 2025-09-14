@@ -48,9 +48,16 @@
         </a>
     </div>
 
-    
+
 
     <button id="toggleShowAll">Show Hidden Items</button>
+
+    <div class="searchbar" role="search">
+      <input id="projectSearch" type="search" placeholder="Search projects…" aria-label="Search projects" autocomplete="off" />
+    </div>
+
+
+
 
     <div class="category-cards-wrapper">
      <div class="category-card">
@@ -690,6 +697,87 @@ function draw() {
 })();
 </script>
 
+<!-- Search/filter functionality -->
+<script>
+(() => {
+  const $ = (sel, root=document) => root.querySelector(sel);
+  const $$ = (sel, root=document) => [...root.querySelectorAll(sel)];
+
+  const norm = (s) => (s || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{Diacritic}/gu, "");
+
+  const debounce = (fn, ms=120) => { let t; return (...a)=>{ clearTimeout(t); t=setTimeout(()=>fn(...a), ms); }; };
+
+  const searchInput = $("#projectSearch");
+  const countEl     = $("#searchCount");
+
+  // EXCLUDE featured cards completely — they always show
+  // const featured = $$(".cards-wrapper .card"); // no longer used
+
+  // Only filter links inside category cards
+  const linkItems = $$(".category-card a").map(el => ({
+    el,
+    text: norm(el.textContent)
+  }));
+
+  const categoryCards = $$(".category-card");
+
+  function setSearching(on){ document.body.dataset.searching = on ? "1":"0"; }
+  function updateCount(n, q){ countEl.textContent = q ? `${n} result${n===1?"":"s"}` : ""; }
+
+  function clearMatches() {
+    linkItems.forEach(({el}) => el.removeAttribute("data-match"));
+    categoryCards.forEach(card => card.removeAttribute("data-has-matches"));
+  }
+
+  function applyFilter(q) {
+    const qn = norm(q);
+    setSearching(!!qn);
+    clearMatches();
+
+    const perCard = new Map();
+    let total = 0;
+
+    for (const it of linkItems) {
+      const hit = qn && it.text.includes(qn);
+      if (qn) {
+        it.el.style.display = hit ? "" : "none";
+        if (hit) { it.el.dataset.match = "1"; total++; }
+      } else {
+        it.el.style.display = "";
+      }
+      const cat = it.el.closest(".category-card");
+      if (cat) perCard.set(cat, (perCard.get(cat) || 0) + (hit ? 1 : 0));
+    }
+
+    if (qn) {
+      categoryCards.forEach(card => card.dataset.hasMatches = (perCard.get(card) || 0) > 0 ? "1":"0");
+    } else {
+      categoryCards.forEach(card => card.removeAttribute("data-has-matches"));
+    }
+  }
+
+  const runFilter = debounce(applyFilter, 80);
+
+  // React to typing…
+  searchInput?.addEventListener("input", e => runFilter(e.target.value));
+  // …and to the native clear “x” on search inputs (fires 'search')
+  searchInput?.addEventListener("search", e => runFilter(e.target.value));
+
+  // Shortcut: "/" focuses the search
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "/" && !(document.activeElement && /input|textarea/i.test(document.activeElement.tagName))) {
+      e.preventDefault();
+      searchInput?.focus(); searchInput?.select();
+    }
+  });
+
+  // On bfcache restore, re-run
+  window.addEventListener("pageshow", () => runFilter(searchInput?.value || ""));
+})();
+</script>
 
 
 
