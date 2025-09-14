@@ -5,6 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Miguelrr11's p5js Projects</title>
 
+    <script src="https://cdn.jsdelivr.net/npm/p5@1.9.3/lib/p5.min.js"></script>
+    <script src="Topographic.js"></script>
+
     
     <link rel="stylesheet" href="styles.css">
 
@@ -12,6 +15,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Victor+Mono:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
 </head>
+
 
 <body>
  <header>
@@ -282,6 +286,32 @@
      <p>2025 -  Miguel Rodríguez</p>
  </footer>
 </body>
+
+<script>
+let t = 0;
+function setup() {
+  const c = createCanvas(windowWidth, windowHeight);
+  c.style('position','fixed');
+  c.style('inset','0');
+  c.style('z-index','-1');       
+  c.style('pointer-events','none');
+  noStroke();
+  let ctx = drawingContext;
+  console.log(ctx);
+  initTopo(windowHeight, windowWidth, ctx);
+}
+
+function windowResized() {
+  resizeCanvas(windowWidth, windowHeight);
+  resizeTopo(windowWidth, windowHeight);
+}
+
+function draw() {
+  background(0)
+  updateTopo()
+  showTopo()
+}
+</script>
 
 <script>
     document.getElementById('toggleShowAll').addEventListener('click', function() {
@@ -652,6 +682,7 @@
   window.addEventListener("pageshow", (e) => { if (e.persisted) resetAll(); });
 })();
 </script>
+
 
 
 

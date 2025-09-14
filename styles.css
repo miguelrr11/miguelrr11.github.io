@@ -1,6 +1,13 @@
 /* Base reset */
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
+
+/* wrap your page in a container and raise it */
+.main-content {
+  position: relative;    /* creates a stacking context */
+  z-index: 1;            /* above the canvas */
+}
+
 /* Typography */
 
 .victor-mono-regular {
@@ -16,7 +23,6 @@
   font-weight: 700;
   font-style: normal;
 }
-
 
 
 body {
