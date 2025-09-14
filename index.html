@@ -48,6 +48,8 @@
         </a>
     </div>
 
+    
+
     <button id="toggleShowAll">Show Hidden Items</button>
 
     <div class="category-cards-wrapper">
@@ -287,6 +289,7 @@
  </footer>
 </body>
 
+<!-- Topographic Lines Background -->
 <script>
 let t = 0;
 function setup() {
@@ -313,6 +316,7 @@ function draw() {
 }
 </script>
 
+<!-- Show hidden items button -->
 <script>
     document.getElementById('toggleShowAll').addEventListener('click', function() {
         var hiddenItems = document.querySelectorAll('.extra-items');
@@ -327,6 +331,7 @@ function draw() {
     
 </script>
 
+<!-- Hover scramble effect for links with class "matrix-link" -->
 <script>
 (() => {
   const GLYPHS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+-=<>?/\\[]{}";
@@ -470,6 +475,103 @@ function draw() {
 })();
 </script>
 
+<!-- Simplest possible hover scramble effect for links with class "matrix-link" -->
+<script>
+(() => {
+  const GLYPHS = "アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+-=<>?/\\[]{}";
+
+  // --- helpers ---
+  const isSpaceSpan = s => s.dataset.space === "1";
+
+  function splitIntoSpans(el) {
+    if (el._spanned) return;
+    const text = el.textContent;
+    el.dataset.original = text;       // keep plain-text original
+    el.textContent = "";
+    for (const ch of [...text]) {
+      const span = document.createElement("span");
+      if (ch === " ") {
+        span.textContent = "\u00A0";  // NBSP
+        span.dataset.space = "1";
+      } else {
+        span.textContent = ch;
+      }
+      el.appendChild(span);
+    }
+    el._spanned = true;
+  }
+
+  function restoreOriginal(el) {
+    const orig = (el.dataset.original || "").replace(/ /g, "\u00A0");
+    const spans = el.querySelectorAll("span");
+    if (!spans.length) { el.textContent = orig.replace(/\u00A0/g, " "); return; }
+    const chars = [...orig];
+    for (let i = 0; i < spans.length; i++) {
+      if (isSpaceSpan(spans[i])) continue;
+      spans[i].textContent = chars[i] || "";
+      spans[i].style.opacity = ""; // clear any fading
+    }
+  }
+
+  // --- hover scramble ---
+  function startScramble(el) {
+    if (el._scrambling) return;
+    splitIntoSpans(el);
+    el._scrambling = true;
+
+    const spans = el.querySelectorAll("span");
+
+    const tick = () => {
+      if (!el._scrambling) return;
+      for (let i = 0; i < spans.length; i++) {
+        const s = spans[i];
+        if (isSpaceSpan(s)) continue;
+        s.textContent = GLYPHS[(Math.random() * GLYPHS.length) | 0];
+      }
+      el._raf = requestAnimationFrame(tick);
+    };
+    el._raf = requestAnimationFrame(tick);
+  }
+
+  function stopScramble(el, restore = true) {
+    el._scrambling = false;
+    if (el._raf) cancelAnimationFrame(el._raf);
+    el._raf = null;
+    if (restore) restoreOriginal(el);
+  }
+
+  // --- bind once ---
+  function bindMatrixLinks(root = document) {
+    root.querySelectorAll("a.matrix-link").forEach(el => {
+      if (el._bound) return;
+      el._bound = true;
+
+      el.addEventListener("mouseenter", () => startScramble(el));
+      el.addEventListener("focus", () => startScramble(el));
+
+      const stop = () => stopScramble(el, true);
+      el.addEventListener("mouseleave", stop);
+      el.addEventListener("blur", stop);
+      el.addEventListener("click", stop); // ensure stop even if mouseleave doesn't fire
+    });
+  }
+
+  // reset on load + bfcache restore so nothing stays scrambled
+  function resetAll() {
+    document.querySelectorAll("a.matrix-link").forEach(el => stopScramble(el, true));
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", () => { bindMatrixLinks(); resetAll(); });
+  } else {
+    bindMatrixLinks(); resetAll();
+  }
+
+  window.addEventListener("pageshow", (e) => { if (e.persisted) resetAll(); });
+})();
+</script>
+
+<!-- Ambient flicker effect for links with class "ambient-matrix" -->
 <script>
 (() => {
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
@@ -588,100 +690,7 @@ function draw() {
 })();
 </script>
 
-<script>
-(() => {
-  const GLYPHS = "アカサタナハマヤラワ0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+-=<>?/\\[]{}";
 
-  // --- helpers ---
-  const isSpaceSpan = s => s.dataset.space === "1";
-
-  function splitIntoSpans(el) {
-    if (el._spanned) return;
-    const text = el.textContent;
-    el.dataset.original = text;       // keep plain-text original
-    el.textContent = "";
-    for (const ch of [...text]) {
-      const span = document.createElement("span");
-      if (ch === " ") {
-        span.textContent = "\u00A0";  // NBSP
-        span.dataset.space = "1";
-      } else {
-        span.textContent = ch;
-      }
-      el.appendChild(span);
-    }
-    el._spanned = true;
-  }
-
-  function restoreOriginal(el) {
-    const orig = (el.dataset.original || "").replace(/ /g, "\u00A0");
-    const spans = el.querySelectorAll("span");
-    if (!spans.length) { el.textContent = orig.replace(/\u00A0/g, " "); return; }
-    const chars = [...orig];
-    for (let i = 0; i < spans.length; i++) {
-      if (isSpaceSpan(spans[i])) continue;
-      spans[i].textContent = chars[i] || "";
-      spans[i].style.opacity = ""; // clear any fading
-    }
-  }
-
-  // --- hover scramble ---
-  function startScramble(el) {
-    if (el._scrambling) return;
-    splitIntoSpans(el);
-    el._scrambling = true;
-
-    const spans = el.querySelectorAll("span");
-
-    const tick = () => {
-      if (!el._scrambling) return;
-      for (let i = 0; i < spans.length; i++) {
-        const s = spans[i];
-        if (isSpaceSpan(s)) continue;
-        s.textContent = GLYPHS[(Math.random() * GLYPHS.length) | 0];
-      }
-      el._raf = requestAnimationFrame(tick);
-    };
-    el._raf = requestAnimationFrame(tick);
-  }
-
-  function stopScramble(el, restore = true) {
-    el._scrambling = false;
-    if (el._raf) cancelAnimationFrame(el._raf);
-    el._raf = null;
-    if (restore) restoreOriginal(el);
-  }
-
-  // --- bind once ---
-  function bindMatrixLinks(root = document) {
-    root.querySelectorAll("a.matrix-link").forEach(el => {
-      if (el._bound) return;
-      el._bound = true;
-
-      el.addEventListener("mouseenter", () => startScramble(el));
-      el.addEventListener("focus", () => startScramble(el));
-
-      const stop = () => stopScramble(el, true);
-      el.addEventListener("mouseleave", stop);
-      el.addEventListener("blur", stop);
-      el.addEventListener("click", stop); // ensure stop even if mouseleave doesn't fire
-    });
-  }
-
-  // reset on load + bfcache restore so nothing stays scrambled
-  function resetAll() {
-    document.querySelectorAll("a.matrix-link").forEach(el => stopScramble(el, true));
-  }
-
-  if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", () => { bindMatrixLinks(); resetAll(); });
-  } else {
-    bindMatrixLinks(); resetAll();
-  }
-
-  window.addEventListener("pageshow", (e) => { if (e.persisted) resetAll(); });
-})();
-</script>
 
 
 
