@@ -21,7 +21,7 @@
   <div id="font-gate" aria-hidden="true"></div>
 
   <header>
-      <h1>Welcome to Miguel's p5js projects</h1>
+      <h1 class="matrix-link ambient-matrix">Welcome to Miguel's p5js projects</h1>
   </header>
 
  <main>
@@ -54,14 +54,9 @@
       </a>
     </div>
 
-
-
     <div class="searchbar" role="search">
       <input id="projectSearch" type="search" placeholder="Search projects…" aria-label="Search projects" autocomplete="off" />
     </div>
-
-
-
 
     <div class="category-cards-wrapper">
      <div class="category-card">
@@ -285,9 +280,9 @@
      </div>
 
      <div class="category-card">
-         <h2>Github Repository Link</h2>
+         <h2>Github Repository</h2>
          <ul>
-             <li><a href="https://github.com/miguelrr11/miguelrr11.github.io" class="matrix-link ambient-matrix">Repository</a></li>
+             <li><a href="https://github.com/miguelrr11/miguelrr11.github.io" class="matrix-link ambient-matrix">Link</a></li>
          </ul>
      </div>
 
@@ -353,6 +348,10 @@ function windowResized() {
 }
 
 function draw() {
+  if(windowWidth != width || windowHeight != height) {
+    resizeCanvas(windowWidth, windowHeight);
+    resizeTopo(windowWidth, windowHeight);
+  }
   background(0)
   updateTopo()
   showTopo()
@@ -495,7 +494,10 @@ function draw() {
   const msScramble = 50
 
   function bindMatrixLinks(root = document) {
-    const links = root.querySelectorAll("a.matrix-link");
+    let links = root.querySelectorAll("a.matrix-link");
+    let moreLInks = root.querySelectorAll("h1.matrix-link");
+    links = [...links, ...moreLInks];
+    console.log(links)
     links.forEach((el) => {
       if (el._matrixBound) return;
       el._matrixBound = true;
@@ -636,6 +638,11 @@ function draw() {
       el._ambientBound = true;
       startAmbient(el);
     });
+    root.querySelectorAll("h1.ambient-matrix").forEach(el => {
+      if (el._ambientBound) return;
+      el._ambientBound = true;
+      startAmbient(el);
+    });
   }
 
   if (document.readyState === "loading") {
@@ -730,10 +737,6 @@ function draw() {
   window.addEventListener("pageshow", () => runFilter(searchInput?.value || ""));
 })();
 </script>
-
-
-
-
 
 
 </html>
