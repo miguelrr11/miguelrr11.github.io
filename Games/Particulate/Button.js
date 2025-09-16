@@ -18,6 +18,18 @@ class Button{
 
         this.w = 20
         this.h = this.w
+
+        this.darkCol = DARK_COL
+        this.lightCol = LIGHT_COL
+        this.medCol = MED_COL
+        this.veryDarkCol = VERY_DARK_COL
+    }
+
+    setColors(dark, light, med, veryDark){
+        this.darkCol = dark
+        this.lightCol = light
+        this.medCol = med
+        this.veryDarkCol = veryDark
     }
 
     setWidthByLabel(){
@@ -51,15 +63,15 @@ class Button{
         this.update()
         if(this.node) this.node.showSymbolPin()
         else{
-            (this.beingPressed || this.hovered) ? fill(DARK_COL) : fill(LIGHT_COL);
+            (this.beingPressed || this.hovered) ? fill(this.darkCol) : fill(this.lightCol);
             
-            stroke(VERY_DARK_COL);
-            if(this.check && !this.check()) stroke(DARK_COL)
+            stroke(this.veryDarkCol);
+            if(this.check && !this.check()) stroke(this.darkCol)
             this.beingPressed ? strokeWeight(2.5) : strokeWeight(1.5);
             rect(this.pos.x, this.pos.y, this.w, this.h);
             fill(0);
 
-            if(this.check && !this.check()) fill(MED_COL)
+            if(this.check && !this.check()) fill(this.medCol)
             noStroke();
             textSize(this.txsize + 2)
             textAlign(CENTER, CENTER);

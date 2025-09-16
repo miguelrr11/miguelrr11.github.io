@@ -23,9 +23,13 @@ class ParticleManager{
     }
 
     drawParticles(){
+        push()
+        colorMode(HSB, 100, 100, 100, 100)
+        noStroke()
         for(let p of this.particles){
             p.show()
         }
+        pop()
     }
 }
 
@@ -56,11 +60,9 @@ class Particle{
     }
 
     show(){
-        push()
-        colorMode(HSB, 100)
-        noStroke()
-        fill(this.color, 100, 100)
+        let trans = this.age / this.lifetime > TRANSPARENCY_PARTICLE_THRESHOLD ? 
+        map(this.age, this.lifetime * TRANSPARENCY_PARTICLE_THRESHOLD, this.lifetime, 100, 0) : 100
+        fill(this.color, 100, 100, trans)
         ellipse(this.pos.x, this.pos.y, this.size * 2)
-        pop()
     }
 }

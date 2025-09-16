@@ -2,8 +2,6 @@
 //Miguel Rodríguez
 //20-08-2025
 
-// TODO: hacer un node con 2 entradas y su ouput sea la entrada que no sea undefined
-
 p5.disableFriendlyErrors = true
 const WIDTH = GRID_SIZE * 16
 const HEIGHT = GRID_SIZE * 10
@@ -26,6 +24,16 @@ async function setup(){
     createPropertyButtons()
 
     spawnConstants()
+
+    checkLocalData()
+
+    setInterval(() => {
+        if(graph.nodes.length == 0 && graph.connections.length == 0) return;
+        let json = graph.stringify();
+        localStorage.setItem('CurrentGraph', json);
+        console.log('Current Graph saved');
+    }, 1000);
+
 }
 
 
@@ -192,6 +200,15 @@ function createPropertyButtons(){
         button.h = 20
         buttons.push(button);
     }
+    let deleteButton = new Button(createVector(WIDTH - 50, 200), 'X', () => {
+        toggleDelete()
+    })
+    deleteButton.setPos(createVector(WIDTH - 40, HEIGHT - 40));
+    deleteButton.setColors([200, 0, 0], [255, 100, 100], [255, 150, 150], [150, 0, 0])
+    deleteButton.txsize = 15
+    deleteButton.w = 30
+    deleteButton.h = 30
+    buttons.push(deleteButton);
 }
 
 function showBar(){
@@ -216,5 +233,16 @@ function spawnConstants(){
         let node = new NodeConstant(i);
         node.pos = createVector(20, 50 + i * 70);
         graph.addNode(node);
+    }
+}
+
+function checkLocalData(){
+    let json = localStorage.getItem('CurrentGraph');
+    if(json){
+        graph.reconstruct(json);
+    }
+    else{
+        localStorage.setItem('graph', JSON.stringify(saved));
+        graph.reconstruct(JSON.stringify(saved));
     }
 }

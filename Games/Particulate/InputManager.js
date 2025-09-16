@@ -9,33 +9,52 @@ let selected = undefined
 let highlightedConns = new Set()
 let highlightedNodes = new Set()
 
+function toggleDelete(){
+    if(state == undefined){ 
+        state = 'deleting'
+        cursor(CROSS)
+    }
+    else {
+        state = undefined
+        cursor(ARROW)
+    }
+}
+
 function keyPressed(){
     if(keyCode == 68){
-        if(state == undefined) state = 'deleting'
-        else state = undefined
+        toggleDelete()
     }
 }
 
 
 function mouseReleased(){
-    if(state == 'dragNode') state = undefined
+    if(state == 'dragNode'){ 
+        state = undefined
+        cursor(ARROW)
+    }
     if(dragging){ 
+        cursor(ARROW)
         dragging.moved = false
         dragging.move(mouseX + offX, mouseY + offY);
         dragging = undefined
         offX = 0
         offY = 0
     }
+    else if(state != 'deleting') cursor(ARROW)
     //unselectNode();
 }
 
-function selectNode(node){
-    selected = node
+function highLightNode(node){
     let high = getAllConnectionsFromNodeBoth(node);
     highlightedConns = high.connections;
     highlightedNodes = high.nodes;
     for(let conn of highlightedConns) conn.highlight = true;
     for(let n of highlightedNodes) n.highlight = true;
+}
+
+function selectNode(node){
+    selected = node
+    highLightNode(node);
 }
 
 function unselectNode(){
@@ -84,6 +103,7 @@ function mouseClicked(){
                     let newConn = new Connection(connecting.node, connecting.index, pin.node, pin.index)
                     graph.addConnection(newConn)
                 }
+                if(selected) highLightNode(selected);
                 connecting = undefined
                 state = undefined
                 return
@@ -126,6 +146,7 @@ function mouseDragged(){
     // dragging already dragging node
     if(dragging){
         dragging.move(mouseX + offX, mouseY + offY);
+        cursor(HAND)
         return
     }
 
@@ -137,6 +158,7 @@ function mouseDragged(){
                 if(isPinConnected(pin.node, pin.side, pin.index) && pin.side == 'input') return
                 connecting = pin
                 state = 'connecting'
+                cursor(HAND)
                 return
             }
         }
@@ -155,6 +177,7 @@ function mouseDragged(){
                 state = 'dragNode'
                 dragging = node
                 selectNode(node)
+                cursor(HAND)
                 return
             }
         }
