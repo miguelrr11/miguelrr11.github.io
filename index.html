@@ -330,8 +330,9 @@ document.querySelectorAll('.card-video').forEach(video => {
 
 <!-- Topographic Lines Background -->
 <script>
-let t = 0;
 function setup() {
+  pixelDensity(1);
+  frameRate(10)
   const c = createCanvas(windowWidth, windowHeight);
   c.style('position','fixed');
   c.style('inset','0');
@@ -353,25 +354,12 @@ function draw() {
     resizeCanvas(windowWidth, windowHeight);
     resizeTopo(windowWidth, windowHeight);
   }
-  background(0)
-  updateTopo()
+  if(frameCount % 2 == 0){
+    background(0)
+    updateTopo()
+  }
   showTopo()
 }
-</script>
-
-<!-- Show hidden items button -->
-<script>
-    document.getElementById('toggleShowAll').addEventListener('click', function() {
-        var hiddenItems = document.querySelectorAll('.extra-items');
-        var isHidden = Array.from(hiddenItems).every(div => div.style.display === 'none' || div.style.display === '');
-        
-        hiddenItems.forEach(div => {
-            div.style.display = isHidden ? 'block' : 'none';
-        });
-    
-        this.textContent = isHidden ? 'Hide Hidden Items' : 'Show Hidden Items';
-    });
-    
 </script>
 
 <!-- Hover scramble effect for links with class "matrix-link" -->
@@ -581,7 +569,7 @@ function draw() {
         if (s.length === 0) { scheduleNext(); return; }
 
         // Flicker 1–2 random characters (usually 1)
-        const count = Math.random() < 0.18 ? 2 : 1;
+        const count = 1;
         const chosen = new Set();
         for (let k = 0; k < count; k++) {
           let idx = randomInt(0, s.length - 1);
@@ -737,6 +725,21 @@ function draw() {
   // On bfcache restore, re-run
   window.addEventListener("pageshow", () => runFilter(searchInput?.value || ""));
 })();
+</script>
+
+<!-- Show hidden items button -->
+<script>
+    document.getElementById('toggleShowAll').addEventListener('click', function() {
+        var hiddenItems = document.querySelectorAll('.extra-items');
+        var isHidden = Array.from(hiddenItems).every(div => div.style.display === 'none' || div.style.display === '');
+        
+        hiddenItems.forEach(div => {
+            div.style.display = isHidden ? 'block' : 'none';
+        });
+    
+        this.textContent = isHidden ? 'Hide Hidden Items' : 'Show Hidden Items';
+    });
+    
 </script>
 
 

@@ -2,9 +2,8 @@
 // Miguel Rodríguez Rodríguez 
 // 14-03-2025
 
-let resolution        = 4;          // subdivisions per cell (higher = smoother)
-let noiseZoom         = 120;        // noise sampling scale (higher = bigger features)
-let noiseMovementSpeed = 0.000012;   // how fast the noise field animates (higher = faster)
+let noiseZoom         = 140;        // noise sampling scale (higher = bigger features)
+let noiseMovementSpeed = 0.0001;   // how fast the noise field animates (higher = faster)
 let steps = 15                      // number of contour lines
 
 let cellPixelSize, spacing;
@@ -13,6 +12,7 @@ let cellsPerRowTopo, cellsPerColTopo;
 let topoGrid = [];
 
 let col = 65
+let actualCol = 0
 let strokeW = 1.5
 let ctx
 
@@ -27,7 +27,6 @@ in draw():
     showTopo();
 
 modify these to change the look:
-    resolution         = 8;          // subdivisions per cell (higher = smoother)
     noiseZoom          = 300;        // noise sampling scale (higher = bigger features)
     noiseMovementSpeed = 0.00007;    // how fast the noise field animates (higher = faster)
     steps              = 15;         // number of contour lines
@@ -37,20 +36,20 @@ function resizeTopo(w, h) {
     WIDTHtopo = w
     HEIGHTtopo = h
     cellPixelSize = Math.max(WIDTHtopo/cellsPerRow, HEIGHTtopo/cellsPerCol)
-    spacing = cellPixelSize / resolution;
+    spacing = cellPixelSize
 }
 
 function initTopo(w, h, ctxRef) { 
     ctx = ctxRef
     WIDTHtopo = h
     HEIGHTtopo = w
-    cellPixelSize   = 30;
-    spacing         = cellPixelSize / resolution;
+    cellPixelSize   = 10;
+    spacing         = cellPixelSize
 
     cellsPerRow     = Math.floor(WIDTHtopo / cellPixelSize) + 2;
     cellsPerCol     = Math.floor(HEIGHTtopo / cellPixelSize) + 2;
-    cellsPerRowTopo = cellsPerRow * resolution;
-    cellsPerColTopo = cellsPerCol * resolution;
+    cellsPerRowTopo = cellsPerRow
+    cellsPerColTopo = cellsPerCol
 
     topoGrid = Array.from({ length: cellsPerRowTopo }, () => []);
     for (let i = 0; i < cellsPerRowTopo; i++) {
@@ -65,6 +64,7 @@ function initTopo(w, h, ctxRef) {
 }
 
 function updateTopo() {
+    actualCol = lerp(actualCol, col, 0.1)
     const z = frameCount * noiseMovementSpeed;
     for (let i = 0; i < cellsPerRowTopo; i++) {
         for (let j = 0; j < cellsPerColTopo; j++) {
@@ -78,7 +78,7 @@ function updateTopo() {
 }
 
 function showTopo() {
-    ctx.strokeStyle =    "rgb(" + col + "," + col + "," + col + ")";
+    ctx.strokeStyle = "rgb(" + actualCol + "," + actualCol + "," + actualCol + ")";
     ctx.lineWidth = strokeW
 
 
