@@ -1,22 +1,23 @@
-/* Base reset */
 * { box-sizing: border-box; margin: 0; padding: 0; }
+
+html {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.3) transparent; 
+}
+
 
 #font-gate {
   position: fixed;
   inset: 0;
   background: #000;
-  z-index: 2147483647; /* above everything */
-  pointer-events: none; /* so it never traps focus */
+  z-index: 2147483647; 
+  pointer-events: none;
 }
 
-
-/* wrap your page in a container and raise it */
 .main-content {
-  position: relative;    /* creates a stacking context */
-  z-index: 1;            /* above the canvas */
+  position: relative;   
+  z-index: 1;         
 }
-
-/* Typography */
 
 .victor-mono-regular {
   font-family: "Victor Mono", monospace;
@@ -45,17 +46,16 @@ header { text-align: center; margin-bottom: 30px; }
 main { max-width: 1000px; margin: auto; }
 footer { text-align: center; margin-top: 40px; color: #aaa; }
 
-/* Headings & text */
+
 h1, h2 { color: #fff; }
 h1 { font-size: 1.8em; }
 h2 { font-size: 2.2em; margin-bottom: 10px; }
 p { font-size: 0.7em; color: #ccc; }
 
-/* Lists */
 ul { list-style: none; padding: 0; }
 li { margin: 8px 0; }
 
-/* Links */
+
 a {
   font-size: 0.95em;
   text-decoration: none;
@@ -68,14 +68,11 @@ a.custom-link { color: #9b9b9b; font-size: 15px; }
 a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
 
 
-
-
 .category-card:hover { transform: scale(1.02); }
 .category-card h2 { font-size: 1.8em; margin-bottom: 10px; }
 .category-card ul { padding: 0; }
 
 
-/* Alternate category block */
 .category {
   margin-bottom: 40px;
   padding: 20px;
@@ -88,15 +85,13 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 20px;
   margin: 20px 0;
-
-  /* these matter */
-  align-items: stretch;   /* make items stretch to row height */
-  justify-items: stretch; /* fill the column width */
+  align-items: stretch;   
+  justify-items: stretch; 
 }
 
 .category-card {
-  display: flex;          /* lets content expand evenly */
-  flex-direction: column; /* stack heading, list, etc. */
+  display: flex;          
+  flex-direction: column;
   width: auto;
 
   background-color: #1d1d1d;
@@ -107,7 +102,6 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
 }
 
 
-/* optional: tidy spacing inside */
 .category-card h2 { margin-bottom: 10px; }
 .category-card ul { margin: 0; padding: 0; }
 
@@ -124,7 +118,7 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
 
 .card-title { text-align: center; margin-top: 8px; font-size: 1rem; }
 
-/* Featured section title */
+
 .featured-title {
   font-size: 1.2em;
   text-align: center;
@@ -137,17 +131,16 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
   display: inline-block;
 }
 
-/* Each character as its own span */
 .matrix-link span {
-  display: inline-block;            /* avoids layout jitter */
-  transition: opacity 120ms linear; /* quick, smooth fades */
+  display: inline-block;        
+  transition: opacity 120ms linear; 
   will-change: opacity;
 }
 
-/* If your global a:hover sets white and you want to keep card color */
+
 .matrix-link:hover { color: inherit; }
 
-/* Subtle ambient flicker keyframes: fades a few times, ends at 1 */
+
 @keyframes ambientFlicker {
   0%   { opacity: 1; }
   20%  { opacity: 0.6; }
@@ -160,17 +153,17 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
 
 
 .ambient-matrix span {
-  display: inline-block;   /* prevents layout jitter */
+  display: inline-block; 
   will-change: opacity;
 }
 
-/* Class toggled on a character while it flickers */
+
 .ambient-matrix .is-flickering {
   animation: ambientFlicker 2800ms ease-in-out 1;
 }
 
 
-/* Toggle button */
+
 #toggleShowAll {
   background: none;
   border: none;
@@ -178,10 +171,8 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
   cursor: pointer;
   font-size: 12px;
   padding: 0;
-
-  /* Center horizontally */
   display: block;
-  margin: 10px auto 0; /* top margin 10px, auto sides */
+  margin: 10px auto 0; 
 }
 
 #toggleShowAll:hover {
@@ -189,17 +180,14 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
 }
 
 
-/* Category cards grid */
-/* GRID: apply to the actual wrapper in your HTML */
 .cards-wrapper {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
   margin: 20px 0;
-  justify-items: center;       /* prevent stretch */
+  justify-items: center;      
 }
 
-/* CARD: hard-cap at 250x250 and center content */
 .cards-wrapper .card {
   display: inline-block;
   width: 180px;
@@ -219,20 +207,18 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
 }
 
 .cards-wrapper .card-title {
-  margin-top: 8px;          /* sits below video */
+  margin-top: 8px;         
   font-size: 0.95rem;
   text-align: center;
 }
 
 
-/* only apply the small card style outside the grid */
 :not(.cards-wrapper) > .card {
   width: 150px;
   flex: 0 0 150px;
 }
 
 
-/* Responsive: adjust grid columns instead of using column-count */
 @media (max-width: 600px) {
   h1, h2 { font-size: 1.8em; }
   p { font-size: 1em; }
@@ -242,8 +228,6 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
 }
 
 
-
-/* Search bar */
 .searchbar {
   position: sticky;
   top: 0;
@@ -291,4 +275,5 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
 .card[data-match="1"] .card-title { text-decoration: none; }
 .category-card[data-has-matches="0"] { display: none; }
 body[data-searching="1"] .extra-items { display: block !important; }
+
 
