@@ -33,14 +33,11 @@ modify these to change the look:
 */
 
 function resizeTopo(w, h) {
-    WIDTHtopo = w
-    HEIGHTtopo = h
-    cellPixelSize = Math.max(WIDTHtopo/cellsPerRow, HEIGHTtopo/cellsPerCol)
-    spacing = cellPixelSize
+    initTopo(h, w);
 }
 
 function initTopo(w, h, ctxRef) { 
-    ctx = ctxRef
+    if(ctxRef) ctx = ctxRef
     WIDTHtopo = h
     HEIGHTtopo = w
     cellPixelSize   = 10;
