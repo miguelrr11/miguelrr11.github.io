@@ -347,17 +347,12 @@ function setup() {
 function windowResized() {
   resizeCanvas(windowWidth, windowHeight);
   resizeTopo(windowWidth, windowHeight);
+  actualCol = 0
 }
 
 function draw() {
-  if(windowWidth != width || windowHeight != height) {
-    resizeCanvas(windowWidth, windowHeight);
-    resizeTopo(windowWidth, windowHeight);
-  }
-  if(frameCount % 2 == 0){
-    background(0)
-    updateTopo()
-  }
+  background(0)
+  updateTopo()
   showTopo()
 }
 </script>
@@ -486,7 +481,6 @@ function draw() {
     let links = root.querySelectorAll("a.matrix-link");
     let moreLInks = root.querySelectorAll("h1.matrix-link");
     links = [...links, ...moreLInks];
-    console.log(links)
     links.forEach((el) => {
       if (el._matrixBound) return;
       el._matrixBound = true;
