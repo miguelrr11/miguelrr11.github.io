@@ -1,0 +1,2 @@
+const COL_SPOT = [181, 228, 140]
+const COL_SPOT_BORDER = [157, 210, 105]
