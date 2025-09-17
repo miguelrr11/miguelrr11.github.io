@@ -13,6 +13,7 @@ class Input{
 		this.sentence = ""
 		this.clippedSentence = ""
 		this.active = false
+		this.enabled = true
 
 		this.w = width_elementsMIGUI
 		this.h = 20
@@ -28,6 +29,14 @@ class Input{
 		document.addEventListener('keyup', this.evaluateKey.bind(this));
 	}
 
+	enable(){
+		this.enabled = true
+	}
+
+	disable(){
+		this.enabled = false
+	}
+
 	setText(text){
 		this.sentence = text
 		this.cursorPos = this.sentence.length
@@ -36,6 +45,10 @@ class Input{
 		this.setClippedSentence()
 		if(this.clippedSentence.length <= this.sentence.length) this.relCursorPos = this.clippedSentence.length
 		else this.relCursorPos = clipping_length_normalMIGUI
+	}
+
+	setPlaceholder(text){
+		this.placeholder = getClippedTextMIGUI(text, clipping_length_normalMIGUI)
 	}
 
 	getText(){
@@ -55,7 +68,7 @@ class Input{
 
 	evaluateKey(event) {
 	    let c = event.key;
-	    if (this.active) {
+	    if (this.active && this.enabled) {
 	    	this.coolDownBS = 0
 	    	this.frame = 0
 
@@ -169,19 +182,20 @@ class Input{
 		push()
 		fill(this.darkCol)
 		rect(this.pos.x, this.pos.y, this.w, this.h, radMIGUI)
-		this.beingHovered || this.active ? strokeWeight(bordeMIGUI + 1) : strokeWeight(bordeMIGUI)
-		stroke(this.lightCol)
-		this.active ? fill(this.transCol) : fill(this.darkCol)
+		if((this.beingHovered || this.active) && this.enabled) strokeWeight(bordeMIGUI + 1) 
+		else strokeWeight(bordeMIGUI)
+		this.enabled ? stroke(this.lightCol) : stroke(this.darkCol)
+		this.active && this.enabled ? fill(this.transCol) : fill(this.darkCol)
 		rect(this.pos.x, this.pos.y, this.w, this.h, radMIGUI)
 
 		noStroke()
-		fill(this.lightCol)
+		this.enabled ? fill(this.lightCol) : fill(this.transCol)
 		textSize(this.textSize)
 
 		if(this.sentence.length != 0) text(this.clippedSentence, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.h*0.77)
 		else text(this.placeholder, this.pos.x + bordeMIGUI + text_offset_xMIGUI, this.pos.y + this.h*0.75)
 
-		if(this.active && Math.floor(this.frame / 35) % 2 == 0){
+		if(this.active && this.enabled && Math.floor(this.frame / 35) % 2 == 0){
 			stroke(this.lightCol)
 			strokeWeight(2)
 			let relativeCursorPos = this.relCursorPos

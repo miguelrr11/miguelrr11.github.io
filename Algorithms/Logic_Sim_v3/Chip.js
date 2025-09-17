@@ -191,7 +191,8 @@ class Chip{
         // Propagate signals in topological order
         for (let comp of this.orderedComps) {
             if (comp === 'INPUTS') continue;
-            for (let conn of this.connections.filter(conn => this._getComponentOrChip(conn.fromComponent).name === comp)) {
+            for (let conn of this.connections.filter(conn => (this._getComponentOrChip(conn.fromComponent) && 
+                                                              this._getComponentOrChip(conn.fromComponent).name === comp))) {
                 const from = this._getComponentOrChip(conn.fromComponent);
                 const to = this._getComponentOrChip(conn.toComponent);
                 if (from && to && from !== this && to !== this) {

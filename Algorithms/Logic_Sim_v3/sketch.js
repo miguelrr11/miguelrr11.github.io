@@ -153,6 +153,7 @@ function setup() {
         chip.name = name
         chip.col = panel_color.interacted ? panel_color.getColor() : roundNum(Math.random() * 150)
         panel_color.interacted = false
+        console.log(chip)
         let chipString = JSON.stringify(chip)
         savedChips.push(chipString);
         chipRegistry.push(chip);
@@ -170,7 +171,7 @@ function setup() {
             }
         })
 
-        chip = new Chip('chip' + compNames, 2, 1);
+        if(chipStack.length == 0) chip = new Chip('chip' + compNames, 2, 1);
         compNames += 1;
     })
 
@@ -239,7 +240,17 @@ function draw() {
     //panel_fps.setText("FPS: " + fps)
     
     drawMargin()
-    if(chipStack.length == 0) panel_goBack.disable()
+    if(chipStack.length == 0){ 
+        panel_goBack.disable()
+
+        panel_input.enable()
+        panel_input.setPlaceholder("Enter name")
+    }
+    else{
+        panel_input.disable()
+        panel_input.setPlaceholder("Can't save inside chip")
+    }
+        
 
     // if(chipStack.length > 0){
     //     disableButtons()

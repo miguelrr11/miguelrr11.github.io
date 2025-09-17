@@ -67,8 +67,8 @@ class Connection{
 
         //if(from.type == "BUS") this.fromPos = from.path[0]
         //if(to.type == "BUS") this.toPos = to.path[0]
-        if(from.type == "BUS") this.fromPos = this.path[0]
-        if(to.type == "BUS") this.toPos = this.path[this.path.length-1]
+        if(from && from.type == "BUS") this.fromPos = this.path[0]
+        if(to && to.type == "BUS") this.toPos = this.path[this.path.length-1]
     
         //state ? stroke(colorOn) : stroke(colorOff)
         stroke(state === 0 ? colorOff : (state === 1 ? colorOn : colorFloating));
