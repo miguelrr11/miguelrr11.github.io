@@ -2,6 +2,8 @@
 //Miguel Rodriguez
 //09-10-2024
 
+p5.disableFriendlyErrors = true
+
 //chips data
 let chip
 //let chipRegistry = []
@@ -71,12 +73,14 @@ let beingHoveredGlobal = false
 let currentCursorStyle
 let fps = 60
 
-function setup() {
+async function setup() {
     canvas = createCanvas(WIDTH+widthPanel+10, HEIGHT);
     let x = (windowWidth - width) / 2;
     let y = (windowHeight - height) / 2;
     canvas.position(x, y);
     strokeJoin(ROUND);
+
+    let font = await loadFont("migUI/main/mono.ttf");
     panel = new Panel({
         x: WIDTH+10,
         y: 10,
@@ -87,6 +91,13 @@ function setup() {
         darkCol: colorBackMenu,
         title: 'LOGIC SIM'
     })
+    text_FontMIGUI = font
+    if(textFont() != font){
+        textFont(font);
+    }
+    textSize(text_SizeMIGUI);
+    textAlign(LEFT);
+
     panel.createSeparator()
     //panel_fps = panel.createText()
     panel.createText("- Click on an input to start a connection")
@@ -96,29 +107,33 @@ function setup() {
 
     panel.createSeparator()
     panel.createText("Add basic gates:")
-    panel.createButton("AND", (f) => {
+    let andButton = panel.createButton("AND", (f) => {
         chip.addComponent("AND" + compNames, "AND");
         compNames++;
     })
-    panel.createButton("OR", (f) => {
+    andButton.setHoverText('Click to add an AND logic gate')
+    let orButton = panel.createButton("OR", (f) => {
         chip.addComponent("OR" + compNames, "OR");
         compNames++;
     })
-    panel.createButton("NOT", (f) => {
+    orButton.setHoverText('Click to add an OR logic gate')
+    let notButton = panel.createButton("NOT", (f) => {
         chip.addComponent("NOT" + compNames, "NOT");
         compNames++;
     })
-    panel.createButton("BUS", (f) => {
+    notButton.setHoverText('Click to add a NOT logic gate')
+    let busButton = panel.createButton("BUS", (f) => {
         //empezar creacion bus
         creatingBus = true
         // chip.addComponent("BUS" + compNames, "BUS");
         // compNames++;
     })
-    panel.createButton("TRI-STATE BUFFER", (f) => {
+    busButton.setHoverText('Click to start creating a bus.\n- Click in the canvas to create segments\n- Double click to finish')
+    let triButton = panel.createButton("TRI-STATE BUFFER", (f) => {
         chip.addComponent("TRI" + compNames, "TRI");
         compNames++;
     })
-
+    triButton.setHoverText('Click to add a TRI-STATE buffer')
 
     panel.createSeparator()
     //panel.createText("Add DISPLAY:")
@@ -127,6 +142,7 @@ function setup() {
         chip.addComponent("DISPLAY" + compNames, "DISPLAY", "", panel_display_np.getValue());
         compNames++;
     })
+    panel_display_bt.setHoverText('Click to add a display\nIt converts binary to decimal')
 
     panel.createSeparator()
     //panel.createText("Add CLOCK:")
@@ -135,6 +151,7 @@ function setup() {
         chip.addComponent("CLOCK" + compNames, "CLOCK", "", panel_clock_np.getValue());
         compNames++;
     })
+    panel_clock_bt.setHoverText('Click to add a clock')
 
     panel.createSeparator()
     panel.createText("Create CHIP:")
@@ -175,7 +192,6 @@ function setup() {
         compNames += 1;
     })
 
-
     panel.createSeparator()
     panel.createButton("REMOVE ALL components", (f) => {
         chip.components = []
@@ -190,6 +206,7 @@ function setup() {
         movingInput = {node: undefined, off: 0}
         movingOutput = {node: undefined, off: 0}
     })
+    panel.createSeparator()
 
     // panel.createSeparator()
     // panel_edit = panel.createButton("EDIT", (f) => {
@@ -209,6 +226,7 @@ function setup() {
     // })
     // panel_edit.disable()
     panel.separate()
+    panel_route = panel.createText("chip")
     panel_goBack = panel.createButton("Go back", (f) => {
         if(chipStack.length > 0){ 
             chip = chipStack.pop()
@@ -221,7 +239,7 @@ function setup() {
         }
     })
     panel_goBack.disable()
-    panel_route = panel.createText("chip")
+    
     
     panel.createSeparator()
     panel.createText("Add saved chips:")
@@ -645,17 +663,25 @@ function showBus(){
         pop()
     }
     else{
+        let x = mouseX
+        let y = mouseY
+        if(keyIsPressed && keyCode == 16 && pathBus.length > 0){  //SHIFT
+            let prev = pathBus[pathBus.length - 1]
+            let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
+            [x, y] = [dx > dy ? mouseX : prev.x, dx > dy ? prev.y : mouseY ]
+        }
+
         push()
         rectMode(CENTER)
         rect(pathBus[0].x, pathBus[0].y, 12, 12, 3)
-        rect(mouseX, mouseY, 12, 12, 3)
+        rect(x, y, 12, 12, 3)
         stroke(0)
         strokeWeight(5)
         noFill()
 
         let drawPath = []
         for(let p of pathBus) drawPath.push(createVector(p.x, p.y))
-        drawPath.push(createVector(mouseX, mouseY))
+        drawPath.push(createVector(x, y))
         drawBezierPath(drawPath)
 
         pop()

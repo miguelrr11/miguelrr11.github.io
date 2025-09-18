@@ -116,10 +116,6 @@ class Button{
 		textSize(this.textSize)
 		textAlign(CENTER)
 		text(this.text, this.pos.x + this.w/2, this.pos.y + this.h*0.75)
-		//this.w = getSentenceWidth(this.text) + 8
-		// fill(255, 0, 0)
-		// ellipse(this.pos.x, this.pos.y, 5)
-		// ellipse(this.pos.x, this.pos.y + this.height, 5)
 
 		let hoveringBounds = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.height)
 		this.readyToShow = false

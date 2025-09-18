@@ -79,12 +79,31 @@ class Button{
 		textSize(this.textSize)
 		text(this.text, this.pos.x + bordeMIGUI+text_offset_xMIGUI, this.pos.y + this.h*0.75)
 
-		// fill(255, 0, 0)
-		// ellipse(this.pos.x, this.pos.y, 5)
-		// ellipse(this.pos.x, this.pos.y + this.height, 5)
+		let hoveringBounds = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.height)
+		this.readyToShow = false
+		if(this.hoverText && hoveringBounds && !mouseIsPressed){
+			this.hoveringCounter++
+			if(this.hoveringCounter > HOVER_TIME_MIGUI){
+				this.readyToShow = true
+			}
+		}
+		else if(this.hoverText && (!hoveringBounds || mouseIsPressed)){
+			this.hoveringCounter = 0
+		}
 
 		pop()
-		return this.beingHovered
+		return this.beingHovered ? this : false
+	}
+
+	setHoverText(text){
+		this.hoverText = text
+		this.hoveringCounter = 0
+		this.readyToShow = false
+	}
+
+	showHoveredText(){
+		if(!this.readyToShow) return
+		showHoveredTextMIGUI(this.hoverText, this.panel)
 	}
 }
 

@@ -147,16 +147,26 @@ function mousePressed() {
             if(pathBus == null){
                 pathBus = [{x: mouseX, y: mouseY}]
             }
-            else if(!keyIsPressed){
-                pathBus.push({x: mouseX, y: mouseY})
-                chip.addComponent("BUS" + compNames, "BUS", undefined, undefined, pathBus);
-                compNames++;
-                pathBus = null
-                creatingBus = false
-            }
             else{
-                pathBus.push({x: mouseX, y: mouseY})
+                let x = mouseX
+                let y = mouseY
+                if(keyIsPressed && keyCode == 16 && pathBus.length > 0){  //SHIFT
+                    let prev = pathBus[pathBus.length - 1]
+                    let [dx, dy] = [Math.abs(prev.x - mouseX), Math.abs(prev.y - mouseY)];
+                    [x, y] = [dx > dy ? mouseX : prev.x, dx > dy ? prev.y : mouseY ]
+                }
+                pathBus.push({x, y})
             }
+            // else if(!keyIsPressed){
+            //     pathBus.push({x: mouseX, y: mouseY})
+            //     chip.addComponent("BUS" + compNames, "BUS", undefined, undefined, pathBus);
+            //     compNames++;
+            //     pathBus = null
+            //     creatingBus = false
+            // }
+            // else{
+            //     pathBus.push({x: mouseX, y: mouseY})
+            // }
         }
 
         
@@ -413,8 +423,9 @@ function mouseClicked() {
             if(changing_name_in != undefined) chip.inputsPos[changing_name_in].tag = input_text_In.getText()
             changing_name_in = undefined
         }, 
-        colorOn, colorBackMenu, colorBackMenu)
+        colorOn, colorBackMenu)
         input_text_In.active = true
+        input_text_In.transCol = colorBackMenu
     }
 
     //changing name of outputs
@@ -428,8 +439,9 @@ function mouseClicked() {
             if(changing_name_out != undefined) chip.outputsPos[changing_name_out].tag = input_text_Out.getText()
             changing_name_out = undefined
         }, 
-        colorOn, colorBackMenu, colorBackMenu)
+        colorOn, colorBackMenu)
         input_text_Out.active = true
+        input_text_Out.transCol = colorBackMenu
     }
 
 }
@@ -464,6 +476,13 @@ function doubleClicked(){
             route.push(selectedComp.externalName)
             setPanelRouteText()
         }
+    }
+    if(creatingBus){
+        //pathBus.push({x: mouseX, y: mouseY})
+        chip.addComponent("BUS" + compNames, "BUS", undefined, undefined, pathBus);
+        compNames++;
+        pathBus = null
+        creatingBus = false
     }
 }
 

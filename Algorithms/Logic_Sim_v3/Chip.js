@@ -166,7 +166,7 @@ class Chip{
                 })
                 .filter(value => value !== null);
             comp.state = calculateBusState(connectedValues);
-        }
+        } 
 
         // Propagate chip inputs to components
         for (let connection of this.connections) {
@@ -183,6 +183,20 @@ class Chip{
         if (this.connections.length !== this.oldConnLength) {
             this.oldConnLength = this.connections.length;
             this.orderComps();
+        }
+
+        //Set unconnected inputs
+        for(let c of [...this.chips, ...this.components]){
+            for(let i = 0; i < c.inputs.length; i++){
+                let connected = false
+                for(let conn of this.connections){
+                    if(this._getComponentOrChip(conn.toComponent) == c && conn.toIndex == i){
+                        connected = true
+                        break
+                    }
+                }
+                if(!connected) c.inputs[i] = 0
+            }
         }
 
         
@@ -511,6 +525,7 @@ class Chip{
         let pos = isMain ? this.getInputPosition(index) : this.getInputPositionSC(index)
         pos.x = isMain ? pos.x + tamBasicNodes : pos.x - 7
         let tx = this.inputsPos[index].tag ? this.inputsPos[index].tag : ""
+        if(tx == "") return
         let widthTx = getPixelLength(tx, textSizeIO) + 8
         fill(0)
         noStroke()
@@ -527,6 +542,7 @@ class Chip{
         let pos = isMain ? this.getOutputPosition(index) : this.getOutputPositionSC(index)
         pos.x = isMain ? pos.x - tamCompNodes : pos.x + 7 + tamCompNodes 
         let tx = this.outputsPos[index].tag ? this.outputsPos[index].tag : ""
+        if(tx == "") return
         let widthTx = getPixelLength(tx, textSizeIO) + 8
         fill(0)
         noStroke()

@@ -3,12 +3,12 @@ const WIDTH = 1400 - widthPanel
 const HEIGHT = 880
 
 const tamBasicNodes = 25
-const tamCompNodes = 13.5
+const tamCompNodes = 16
 
 const colorBackMenu = "#0E212E"
 const colorBack = "#343A40"
 const colorOn = "#1FF451"
-const colorOff = "#115936"
+const colorOff = "#12603aff"
 const colorFloating = "#04070c"
 const colorDisconnected = "#262F36"
 //const colorComp = "#C7F9CC"

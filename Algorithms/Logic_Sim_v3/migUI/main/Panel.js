@@ -11,6 +11,7 @@ let title_SizeMIGUI = 20
 let width_elementsMIGUI = 158
 let clipping_length_normalMIGUI = 20
 let clipping_length_titleMIGUI = 11
+const HOVER_TIME_MIGUI = 40
 
 class Panel{
 	constructor(properties = {}) {
@@ -60,7 +61,7 @@ class Panel{
 	    }
 
 	    this.isRetracted = false;
-	    this.setFontSettings();
+	    //this.setFontSettings();
 
 	    if (theme) this.setTheme(theme);
 	    this.automaticHeight = automaticHeight;
@@ -282,6 +283,7 @@ class Panel{
 	        
 	    }
 		let button = new Button(newX, newY, sentence, func, this.lightCol, this.darkCol, this.transCol)
+		button.panel = this
 		if(needsNewLine) this.lastElementPos.y += button.height + this.padding
 		this.buttons.push(button)
 		this.lastElementAdded = button
@@ -658,7 +660,7 @@ class Panel{
 		if(this.activeCP) this.activeCP.show()
 		pop()
 
-		if(this.beingHoveredHand) cursor(HAND)
+		if(this.beingHoveredHand) {cursor(HAND); if(this.beingHoveredHand.showHoveredText) this.beingHoveredHand.showHoveredText()}
 		else if(this.beingHoveredText) cursor(TEXT)
 		else cursor(ARROW)
 	}
@@ -781,4 +783,25 @@ function wrapText(text, maxWidth = this.w, textSize = text_SizeMIGUI) {
   wrappedText += currentLine;
 
   return wrappedText;
+}
+
+function showHoveredTextMIGUI(textHover, ogpanel){
+	if(!textHover || textHover == "") return
+	push()
+	let w = ogpanel.w * 0.8
+	fill(255, 255, 255, 200)
+	noStroke()
+	textSize(text_SizeMIGUI-2)
+	textAlign(LEFT, TOP)
+	let bbox = textFont().textBounds(textHover, mouseX, mouseY, w);
+	let off = 5
+	let outOfWayCursor = 18
+	let x = bbox.x - off + outOfWayCursor
+	let y = bbox.y - off + outOfWayCursor * 1.5
+	if(x + bbox.w + off*2 > width) x = width - bbox.w - off*2
+	if(y + bbox.h + off*2 > height) y = height - bbox.h - off*2
+	rect(x, y, bbox.w + off*2, bbox.h + off*2, 5);
+	fill(0)
+	text(textHover, x + off, y + off - 3, w)
+	pop()
 }
