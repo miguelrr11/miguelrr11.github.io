@@ -4,10 +4,7 @@
 
 p5.disableFriendlyErrors = true
 
-//chips data
 let chip
-//let chipRegistry = []
-//let savedChips = []
 let chipStack = []
 
 //connection logic
@@ -31,7 +28,7 @@ let idConn = 0
 //ui elements
 let panel
 let panel_input, panel_remove, panel_edit, 
-    panel_goBack, panel_fps, panel_color
+    panel_goBack, panel_fps, panel_color, simSpeedPicker
 let panel_addIn, panel_addOut, panel_removeIn, panel_removeOut
 let panel_display_np, panel_display_bt
 let panel_clock_np, panel_clock_bt
@@ -72,6 +69,9 @@ let canvas
 let beingHoveredGlobal = false
 let currentCursorStyle
 let fps = 60
+let simSpeed = 10
+let framesPerIter = 60 / simSpeed
+let counterFrames = 0
 
 async function setup() {
     canvas = createCanvas(WIDTH+widthPanel+10, HEIGHT);
@@ -106,6 +106,12 @@ async function setup() {
     panel.createText("- Double click on chip to edit it")
 
     panel.createSeparator()
+
+    simSpeedPicker = panel.createNumberPicker('Sim Speed (Hz)', 0, 0, simSpeed)
+    simSpeedPicker.setOptions([1, 5, 10, 30, 50], 2)
+
+    panel.createSeparator()
+
     panel.createText("Add basic gates:")
     let andButton = panel.createButton("AND", (f) => {
         chip.addComponent("AND" + compNames, "AND");
@@ -255,7 +261,7 @@ function draw() {
     background(colorOff)
 
     if(frameCount % 60 == 0) fps = Math.floor(frameRate())
-    //panel_fps.setText("FPS: " + fps)
+
     
     drawMargin()
     if(chipStack.length == 0){ 
@@ -288,14 +294,23 @@ function draw() {
         drawCurrentConnection()
     }
 
-
     if(creatingBus){
         showBus()
     }
 
     showMultiSelection()
 
-    chipStack.length == 0 ? chip.simulate() : chipStack[0].simulate()
+    let old = simSpeed
+    simSpeed = simSpeedPicker.getValue()
+    if(old != simSpeed){
+        framesPerIter = 60 / simSpeed
+    }
+    counterFrames++
+    if(counterFrames >= framesPerIter){
+        chipStack.length == 0 ? chip.simulate() : chipStack[0].simulate()
+        counterFrames = 0
+    }
+    
     chip.show();
 
     panel.update()

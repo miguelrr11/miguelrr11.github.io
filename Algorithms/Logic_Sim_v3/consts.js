@@ -14,6 +14,7 @@ const colorDisconnected = "#262F36"
 //const colorComp = "#C7F9CC"
 const colorComp = Math.random() * 150
 const colorSelected = "#1FF451"
+const colorTag = [0, 150]
 
 const textSizeIO = 12
 

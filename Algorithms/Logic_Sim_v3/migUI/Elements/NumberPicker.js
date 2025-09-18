@@ -31,6 +31,14 @@ class NumberPicker{
 		this.disabled = false
 	}
 
+	setOptions(options, def){
+		this.options = options
+		this.value = options[def]
+		this.min = options[0]
+		this.max = options[options.length - 1]
+		this.optionsIndex = def
+	}
+
 	getValue(){
 		return this.value
 	}
@@ -65,12 +73,21 @@ class NumberPicker{
 				this.value--
 				if(this.funcMinus && this.value >= this.min) this.funcMinus()
 				this.value = constrain(this.value, this.min, this.max)
-				
+				if(this.options){
+					this.optionsIndex--
+					if(this.optionsIndex < 0) this.optionsIndex = 0
+					this.value = this.options[this.optionsIndex]
+				}
 			}
 			if(this.beingHoveredPlus){
 				this.value++
 				if(this.funcPlus && this.value <= this.max) this.funcPlus()
 				this.value = constrain(this.value, this.min, this.max)
+				if(this.options){
+					this.optionsIndex++
+					if(this.optionsIndex > this.options.length-1) this.optionsIndex = this.options.length-1
+					this.value = this.options[this.optionsIndex]
+				}
 			}
 			this.beingPressed = true
 			return true

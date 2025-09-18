@@ -30,29 +30,40 @@ class Component {
             this.outputs[0] = this.inputs[0] == 1 ? 0 : (this.inputs[0] == 0 ? 1 : 1)
         }
         else if(this.type === 'CLOCK'){
-            let state = Math.floor(frameCount / 10) % 2 === 0;
-            this.outputs = new Array(this.outputs.length).fill(state ? 1 : 0);
+            //let state = Math.floor(frameCount / 10) % 2 === 0;
+            let state = this.outputs[0] == 0 ? 1 : 0
+            this.outputs = new Array(this.outputs.length).fill(state);
         }
         else if(this.type === "TRI"){
             this.outputs[0] = this.inputs[1] === 1 ? this.inputs[0] : 2 //output es input[0] si input[1] == 1, si no, output = 2 (estado floating)
         }
         else if(this.type === "BUS"){
             //iterar sobre todos los inputs del bus:
-                // - todos los outputs de los comps conectados al bus
-                // - si hay algun desigual: state = undefined
-                // - si todos los valores son iguales: state = ese valor
-                // - el valor 2 (floating) no cuenta
-                /*
-                    - (0,0,0) : 0
-                    - (0,1,0) : undefined
-                    - (0,1,2) : undefined
-                    - (2,2,1) : 1
-                    - (2,2,2) : 2
-                */
-            
+            // - todos los outputs de los comps conectados al bus
+            // - si hay algun desigual: state = undefined
+            // - si todos los valores son iguales: state = ese valor
+            // - el valor 2 (floating) no cuenta
+            /*
+                - (0,0,0) : 0
+                - (0,1,0) : undefined
+                - (0,1,2) : undefined
+                - (2,2,1) : 1
+                - (2,2,2) : 2
+            */
             this.outputs[0] = this.state
         }
         
+    }
+
+    showTags(){
+        for (let i = 0; i < this.inputs.length; i++) {
+            let hovered = hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'input'
+            if(hovered || showingTags) this.showInputTag(i)
+        }
+        for (let i = 0; i < this.outputs.length; i++) {
+            let hovered = hoveredNode && hoveredNode.comp == this && hoveredNode.index == i && hoveredNode.side == 'output'
+            if(hovered || showingTags) this.showOutputTag(i)
+        }
     }
 
     show() {
@@ -83,7 +94,7 @@ class Component {
             //noFill()////////////////////
             rect(this.x - tamCompNodes / 2, this.y + i * multIn + off, tamCompNodes, tamCompNodes, RADNODE);
 
-            if(hovered || showingTags) this.showInputTag(i)
+            //if(hovered || showingTags) this.showInputTag(i)
         }
 
         let multOut = (this.height - tamCompNodes) / this.outputs.length;
@@ -108,7 +119,7 @@ class Component {
             //noFill()////////////////////
             rect(this.x + this.width - tamCompNodes / 2, this.y + i * multOut + off, tamCompNodes, tamCompNodes, RADNODE);
 
-            if(hovered || showingTags) this.showOutputTag(i)
+            //if(hovered || showingTags) this.showOutputTag(i)
         }
 
         fill(getTextColor(this.col))
@@ -125,7 +136,7 @@ class Component {
         pos.x -= 7
         let tx = this.type == 'TRI' ? (index == 0 ? "Data" : "Enable") : (this.inputs.length > 1 ? "In " + index : "In")
         let widthTx = getPixelLength(tx, textSizeIO) + 8
-        fill(0)
+        fill(colorTag)
         noStroke()
         rect(pos.x - widthTx, pos.y, widthTx, tamCompNodes)
         fill(255)
@@ -141,7 +152,7 @@ class Component {
         pos.x += 7 + tamCompNodes   
         let tx = "Out"
         let widthTx = getPixelLength(tx, textSizeIO) + 8
-        fill(0)
+        fill(colorTag)
         noStroke()
         rect(pos.x, pos.y, widthTx, tamCompNodes)
         fill(255)
