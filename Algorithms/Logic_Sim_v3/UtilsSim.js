@@ -146,7 +146,7 @@ function isWithinBounds(point, rectStart, rectSize) {
 function createFromSaved(){
     for(let i = 0; i < savedChips.length; i++){
         let newChip = JSON.parse(savedChips[i]);
-        panel.createButton(newChip.externalName, (f) => {
+        panel_buttonColl_chips.addButton(newChip.externalName, (f) => {
             chip.addComponent(newChip.name, 'CHIP', newChip.externalName);
             compNames++
         })

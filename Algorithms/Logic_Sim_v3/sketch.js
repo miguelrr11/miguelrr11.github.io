@@ -32,6 +32,7 @@ let panel_input, panel_remove, panel_edit,
 let panel_addIn, panel_addOut, panel_removeIn, panel_removeOut
 let panel_display_np, panel_display_bt
 let panel_clock_np, panel_clock_bt
+let panel_buttonColl_chips
 let panel_route
 let route = []
 let showingTags = false
@@ -170,19 +171,31 @@ async function setup() {
         let newName = panel_input.getText()
         newName = newName.trimStart()
         newName = newName.trimEnd()
+        if(newName == undefined || newName == "") newName = chip.name
         let name = chip.name + compNames
         compNames++
         chip.externalName = newName
         chip.name = name
         chip.col = panel_color.interacted ? panel_color.getColor() : roundNum(Math.random() * 150)
         panel_color.interacted = false
-        console.log(chip)
         let chipString = JSON.stringify(chip)
         savedChips.push(chipString);
         chipRegistry.push(chip);
 
 
-        panel.createButton(newName, (f) => {
+        // panel.createButton(newName, (f) => {
+        //     let selectedName = name
+        //     if (selectedName) {
+        //         let savedChip = savedChips.find(chipData => JSON.parse(chipData).name === selectedName);
+        //         if (savedChip) {
+        //             let newChip = JSON.parse(savedChip);
+        //             chip.addComponent(newChip.name, 'CHIP', newName);
+        //             compNames++
+        //         }
+        //     }
+        // })
+
+        panel_buttonColl_chips.addButton(newName, (f) => {
             let selectedName = name
             if (selectedName) {
                 let savedChip = savedChips.find(chipData => JSON.parse(chipData).name === selectedName);
@@ -249,6 +262,10 @@ async function setup() {
     
     panel.createSeparator()
     panel.createText("Add saved chips:")
+    panel.separate()
+    panel_buttonColl_chips = panel.createButtonCollection(4)
+
+    
 
     chip = new Chip('chip' + compNames, 2, 1);
     compNames++;

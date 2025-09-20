@@ -81,6 +81,7 @@ class Panel{
 	    this.colorPickers = []
 	    this.separators = []
 	    this.numberPickers = []
+		this.buttonCollections = []
 	    this.activeCP = undefined
 	    this.lastElementAdded = ""
 	    this.isInteracting = undefined
@@ -127,6 +128,17 @@ class Panel{
 
 	updateLastPos(){
 
+	}
+
+	createButtonCollection(nRows){
+		let buttonCollection = new ButtonCollection(
+			this.lastElementPos.x,
+			this.lastElementPos.y, nRows, this,
+			this.lightCol, this.darkCol, this.transCol)
+		this.buttonCollections.push(buttonCollection)
+		this.lastElementPos.y += buttonCollection.h
+		this.lastElementAdded = buttonCollection
+		return buttonCollection
 	}
 
 	createCheckbox(title = "", state = false) {
@@ -340,6 +352,7 @@ class Panel{
 		this.lastCB = undefined
 	    this.lastBU = undefined
 	    this.lastElementAdded = 'separator'
+		this.lastElementPos.y += this.padding
 	}
 
 	// setText(pos, sentence = ""){
@@ -589,6 +602,10 @@ class Panel{
 			this.isInteracting = c
 			return
 		}
+		for(let c of this.buttonCollections) if(c.evaluate()) {
+			this.isInteracting = c
+			return
+		}
 
 		
 		// for(let i of this.inputs) {
@@ -646,6 +663,7 @@ class Panel{
 		for(let b of this.inputs) this.beingHoveredText = b.show() || this.beingHoveredText
 		for(let b of this.buttons) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.numberPickers) this.beingHoveredHand = b.show() || this.beingHoveredHand
+		for(let b of this.buttonCollections) this.beingHoveredHand = b.show() || this.beingHoveredHand
 		for(let b of this.colorPickers){ 
 			this.beingHoveredHand = b.show() || this.beingHoveredHand
 			if(b.isChoosing) this.activeCP = b
