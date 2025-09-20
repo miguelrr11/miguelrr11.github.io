@@ -5,15 +5,17 @@ class ButtonCollection{
 		this.transCol = [...lightCol, 100]
         this.pos = createVector(x, y)
         this.panel = panel
-        this.w = panel.w - 20
+        this.w = panel.w - 30
         this.h = nRows * 20 + (nRows + 1) * 10
+
+        this.posXscroll = this.pos.x + this.w - 10
 
         this.length = this.w
 		this.height = this.h
 
         this.buttons = [[]]
         this.lastBU = undefined
-        this.lastElementPos = createVector(x, y)
+        this.lastElementPos = createVector(x, y + 10)
 
         this.maxRows = nRows
         this.currentRow = 0
@@ -110,6 +112,18 @@ class ButtonCollection{
                 bool = button.show() || bool
             }
         }
+
+        push()
+        let lengthBar = (this.h / this.buttons.length) * .5
+        let padd = 10
+        let y 
+        if(this.buttons.length <= this.maxRows) y = this.pos.y
+        else y = mappMIGUI(this.rowOffset, 0, Math.max(this.buttons.length-this.maxRows, this.rowOffset), this.pos.y + padd, this.pos.y + this.h - 2 * padd)
+        stroke(this.transCol)
+        strokeWeight(3)
+        line(this.posXscroll, Math.max(y - lengthBar, this.pos.y), this.posXscroll, Math.min(y + lengthBar, this.pos.y + this.h))
+        pop()
+
         return bool
     }
 }

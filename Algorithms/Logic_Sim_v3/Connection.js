@@ -29,6 +29,11 @@ class Connection{
         this.subConnections = []
     }
 
+    move(x, y, offx, offy, index) {
+        this.path[index].x = roundNum(x + offx);
+        this.path[index].y = roundNum(y + offy);
+    }
+
     inBound(seg){
         return mouseX >= seg.x && mouseX <= seg.x + seg.w &&
                mouseY >= seg.y && mouseY <= seg.y + seg.h 

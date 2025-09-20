@@ -73,7 +73,8 @@ class Chip{
             else {
                 console.error(`Chip with name ${name} not found in registry`);
             }
-        } else {
+        } 
+        else {
             if(type == 'DISPLAY') this.components.push(new Display(name, aux));
             else if(type == 'CLOCK') this.components.push(new Clock(name, aux));
             else if(type == 'BUS') this.components.push(new Bus(name, path));

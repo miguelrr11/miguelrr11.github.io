@@ -324,16 +324,24 @@ function mouseDragged(){
         if(multiSelectionCompsWindow){
             let inB = inBounds(multiSelectionCompsWindow.x, multiSelectionCompsWindow.y, 
                                multiSelectionCompsWindow.w, multiSelectionCompsWindow.h)
-            if(inB){
+            if(true){
                 if(multiSelectionOffsets == null){
                     multiSelectionOffsets = []
                     for(let comp of multiSelectionComps){
                         multiSelectionOffsets.push({comp, offx: comp.x - mouseX, offy: comp.y - mouseY})
                     }
                     for(let c of multiSelectionOffsets){
-                        c.comp.move(mouseX, mouseY, c.offx, c.offy)
+                        if(c.comp.constructor.name != 'Object') c.comp.move(mouseX, mouseY, c.offx, c.offy)
+                        else {
+                            c.comp.conn.move(mouseX, mouseY, c.offx, c.offy, c.comp.index)
+                            for(let aux of multiSelectionComps){
+                                if(aux.conn == c.comp.conn && aux.index == c.comp.index){
+                                    aux.x = c.comp.conn.path[c.comp.index].x
+                                    aux.y = c.comp.conn.path[c.comp.index].y
+                                }
+                            }
+                        }
                     }
-                    
                 }
                 if(multiSelectionCompsWindowOff == null){
                     multiSelectionCompsWindowOff = {offx: multiSelectionCompsWindow.x - mouseX,
@@ -341,7 +349,16 @@ function mouseDragged(){
                 }
                 else{
                     for(let c of multiSelectionOffsets){
-                        c.comp.move(mouseX, mouseY, c.offx, c.offy)
+                        if(c.comp.constructor.name != 'Object') c.comp.move(mouseX, mouseY, c.offx, c.offy)
+                        else{ 
+                            c.comp.conn.move(mouseX, mouseY, c.offx, c.offy, c.comp.index)
+                            for(let aux of multiSelectionComps){
+                                if(aux.conn == c.comp.conn && aux.index == c.comp.index){
+                                    aux.x = c.comp.conn.path[c.comp.index].x
+                                    aux.y = c.comp.conn.path[c.comp.index].y
+                                }
+                            }
+                        }
                     }
                     multiSelectionCompsWindow.x = mouseX + multiSelectionCompsWindowOff.offx
                     multiSelectionCompsWindow.y = mouseY + multiSelectionCompsWindowOff.offy
@@ -546,13 +563,18 @@ function keyPressed(){
         //eliminar comps de multiselection
         if(multiSelectionComps){
             for(let selectedComp of multiSelectionComps){
-                if(selectedComp.isSub){
-                    chip.chips = chip.chips.filter(chipItem => chipItem.name !== selectedComp.name);
-                    chip.connections = chip.connections.filter(conn => conn.toComponent !== selectedComp.name && conn.fromComponent !== selectedComp.name);
+                if(selectedComp.constructor.name != "Object"){
+                    if(selectedComp.isSub){
+                        chip.chips = chip.chips.filter(chipItem => chipItem.name !== selectedComp.name);
+                        chip.connections = chip.connections.filter(conn => conn.toComponent !== selectedComp.name && conn.fromComponent !== selectedComp.name);
+                    }
+                    else{
+                        chip.components = chip.components.filter(chipItem => chipItem.name !== selectedComp.name);
+                        chip.connections = chip.connections.filter(conn => conn.toComponent !== selectedComp.name && conn.fromComponent !== selectedComp.name);
+                    }
                 }
                 else{
-                    chip.components = chip.components.filter(chipItem => chipItem.name !== selectedComp.name);
-                    chip.connections = chip.connections.filter(conn => conn.toComponent !== selectedComp.name && conn.fromComponent !== selectedComp.name);
+                    chip.connections = chip.connections.filter(conn => conn != selectedComp.conn)
                 }
             }
             selectedComp = null

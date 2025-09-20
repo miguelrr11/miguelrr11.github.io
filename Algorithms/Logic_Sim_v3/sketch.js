@@ -244,8 +244,9 @@ async function setup() {
     //     }
     // })
     // panel_edit.disable()
-    panel.separate()
+    //panel.separate()
     panel_route = panel.createText("chip")
+    panel.separate()
     panel_goBack = panel.createButton("Go back", (f) => {
         if(chipStack.length > 0){ 
             chip = chipStack.pop()
@@ -262,7 +263,6 @@ async function setup() {
     
     panel.createSeparator()
     panel.createText("Add saved chips:")
-    panel.separate()
     panel_buttonColl_chips = panel.createButtonCollection(4)
 
     
@@ -393,6 +393,16 @@ function setMultiSelectionComps(){
             if(!comp.isSub && comp.type == "BUS") continue
             if(getMultiSelectionComps(multiSelectionWindow, comp)) multiSelectionComps.push(comp)
         } 
+        for(let conn of chip.connections){
+            for(let i = 0; i < conn.path.length; i++){
+                let p = conn.path[i]
+                if(inBoundsMIGUI(p.x, p.y, multiSelectionWindow.x1, multiSelectionWindow.y1,
+                    multiSelectionWindow.w, multiSelectionWindow.h
+                )){
+                    multiSelectionComps.push({conn: conn, index: i, x: p.x, y: p.y})
+                }
+            }
+        }
     }
     if(multiSelectionComps && multiSelectionComps.length == 0) multiSelectionComps = null
     if(multiSelectionComps != null) setMultiSelectionCompsWindow()
@@ -423,17 +433,26 @@ function getMultiSelectionComps(multiSelectionWindow, comp) {
 }
 
 function setMultiSelectionCompsWindow(){
-    let x1 = multiSelectionComps[0].x
-    let y1 = multiSelectionComps[0].y
-    let x2 = x1 + multiSelectionComps[0].width
-    let y2 = y1 + multiSelectionComps[0].height
+    console.log('updating')
+    let x1 = Infinity
+    let y1 = Infinity
+    let x2 = -Infinity
+    let y2 = -Infinity
     for(let comp of multiSelectionComps){
-        if(comp.x < x1) x1 = comp.x
-        if(comp.y < y1) y1 = comp.y
-        if(comp.x + comp.width > x2) x2 = comp.x + comp.width
-        if(comp.y + comp.height > y2) y2 = comp.y + comp.height
+        if(comp.constructor.name == "Object"){
+            if(comp.x < x1) x1 = comp.x
+            if(comp.y < y1) y1 = comp.y
+            if(comp.x > x2) x2 = comp.x
+            if(comp.y > y2) y2 = comp.y
+        }
+        else{
+            if(comp.x < x1) x1 = comp.x
+            if(comp.y < y1) y1 = comp.y
+            if(comp.x + comp.width > x2) x2 = comp.x + comp.width
+            if(comp.y + comp.height > y2) y2 = comp.y + comp.height
+        }
     }
-    let off = 10
+    let off = 15
     multiSelectionCompsWindow = {x: x1 - off, y: y1 - off, 
                                  w: x2 - x1 + 2 * off, h: y2 - y1 + 2 * off}
 }
