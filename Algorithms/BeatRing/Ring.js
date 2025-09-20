@@ -1,14 +1,11 @@
 class Ring{
-    constructor(){
+    constructor(rad, beats, sounds){
         this.pos = createVector(width / 2, height / 2)
-        this.beats = 16
+        this.beats = beats
         this.fills = new Array(this.beats).fill(0)
-        this.fills[0] = 1
-        this.fills[3] = 1
-        this.fills[6] = 1
-        this.fills[8] = 1
-        this.fills[11] = 1
-        this.rad = 150
+        this.sounds = sounds
+        
+        this.rad = rad
         this.smallRad = 25
         this.fillsPos = this.getFillsPos()
 
@@ -16,6 +13,25 @@ class Ring{
         this.FPB = (3600 / this.BPM) / this.beats       // Frames per Beat at 60 fps
         this.frameCounter = 0
         this.beatIndex = 0
+        this.playing = false
+        this.muted = false
+        this.col = undefined
+
+        console.log(this.FPB * this.beats)
+    }
+
+    fill(arr){
+        for(let index of arr){
+            this.fills[index] = 1
+        }
+    }
+
+    toggleMute(){
+        this.muted = !this.muted
+    }
+
+    togglePlay(){
+        this.playing = !this.playing
     }
 
     setPos(pos){
@@ -59,11 +75,13 @@ class Ring{
     }
 
     update(){
+        if(!this.playing) return
         this.frameCounter++
         if(this.frameCounter > this.FPB){
             this.frameCounter = 0
             this.beatIndex++
             this.beatIndex = this.beatIndex % this.beats
+            if(this.fills[this.beatIndex] == 1 && !this.muted) this.sounds[this.beatIndex % nSounds].play()
         }
     }
 
@@ -85,7 +103,7 @@ class Ring{
         }
 
         if(showPoly){
-            stroke(255, 0, 0)
+            stroke(this.col)
             if(fillsLines.length > 1) fillsLines.push(fillsLines[0])
             noFill()
             beginShape()
@@ -99,7 +117,7 @@ class Ring{
         beat = 0
         for(let pos of this.fillsPos){
             if(this.fills[beat] == 1){
-                fill(255, 0, 0)
+                fill(this.col)
             }
             else fill(0)
             let rad = beat == this.beatIndex ? this.smallRad * 1.2 : this.smallRad
