@@ -62,7 +62,7 @@ class Chip{
             if (chip) {
                 const newChip = this._cloneChipRecursively(chip);
                 newChip.isSub = true
-                newChip.name = newChip.name.replace(/\d+$/, "") + compNames
+                newChip.name += compNames
                 newChip.externalName = externalName
                 newChip.col = chip.col
                 compNames++
@@ -73,8 +73,7 @@ class Chip{
             else {
                 console.error(`Chip with name ${name} not found in registry`);
             }
-        } 
-        else {
+        } else {
             if(type == 'DISPLAY') this.components.push(new Display(name, aux));
             else if(type == 'CLOCK') this.components.push(new Clock(name, aux));
             else if(type == 'BUS') this.components.push(new Bus(name, path));
@@ -167,7 +166,7 @@ class Chip{
                 })
                 .filter(value => value !== null);
             comp.state = calculateBusState(connectedValues);
-        } 
+        }
 
         // Propagate chip inputs to components
         for (let connection of this.connections) {
@@ -184,20 +183,6 @@ class Chip{
         if (this.connections.length !== this.oldConnLength) {
             this.oldConnLength = this.connections.length;
             this.orderComps();
-        }
-
-        //Set unconnected inputs
-        for(let c of [...this.chips, ...this.components]){
-            for(let i = 0; i < c.inputs.length; i++){
-                let connected = false
-                for(let conn of this.connections){
-                    if(this._getComponentOrChip(conn.toComponent) == c && conn.toIndex == i){
-                        connected = true
-                        break
-                    }
-                }
-                if(!connected) c.inputs[i] = 0
-            }
         }
 
         
@@ -253,36 +238,29 @@ class Chip{
 
     show() {
         this.height = Math.max(this.inputs.length, this.outputs.length) * (tamCompNodes+4) + tamCompNodes;
-
+        push()
         //draw connections
         for(let c of chip.connections){ 
             c.show(chip) 
         }
-
-        //draw tags
-        for (let component of this.components) {
-            component.showTags();
-        }
-        for (let chip of this.chips) {
-            this.showTags(chip)
-        }
+        pop()
 
         //draw components
         for (let component of this.components) {
-            if(frontComp == component) continue
             component.show();
         }
 
         //draw chips
         for (let chip of this.chips) {
-            if(frontComp == chip) continue
             this.showSC(chip)
         }
 
         //draw comp/chip in front
         if(frontComp){ 
             frontComp.isSub ? this.showSC(frontComp) : frontComp.show()
-        }
+        } 
+
+
 
         //draw inputs and outputs
         stroke(0)
@@ -371,17 +349,6 @@ class Chip{
         }   
     }
 
-    showTags(chip){
-        for (let i = 0; i < chip.inputs.length; i++) {
-            let hovered = hoveredNode && hoveredNode.comp == chip && hoveredNode.index == i && hoveredNode.side == 'input'
-            if(hovered || showingTags) chip.showInputTag(i)
-        }
-        for (let i = 0; i < chip.outputs.length; i++) {
-            let hovered = hoveredNode && hoveredNode.comp == chip && hoveredNode.index == i && hoveredNode.side == 'output'
-            if(hovered || showingTags) chip.showOutputTag(i)
-        }
-    }
-
     showSC(chip){
         push()
         if(chip.col) fill(chip.col);
@@ -411,7 +378,7 @@ class Chip{
 
             rect(chip.x - tamCompNodes / 2, chip.y + i * multIn + off, tamCompNodes, tamCompNodes, RADNODE);
 
-            //if(hovered || showingTags) chip.showInputTag(i)
+            if(hovered || showingTags) chip.showInputTag(i)
         }
 
         //outputs
@@ -437,7 +404,7 @@ class Chip{
             fill(chip.outputs[i] === 0 ? colorOff : colorOn);
             rect(chip.x + chip.width - tamCompNodes / 2, chip.y + i * multOut + off, tamCompNodes, tamCompNodes, RADNODE);
 
-            //if(hovered || showingTags) chip.showOutputTag(i)
+            if(hovered || showingTags) chip.showOutputTag(i)
         }
 
 
@@ -543,9 +510,8 @@ class Chip{
         let pos = isMain ? this.getInputPosition(index) : this.getInputPositionSC(index)
         pos.x = isMain ? pos.x + tamBasicNodes : pos.x - 7
         let tx = this.inputsPos[index].tag ? this.inputsPos[index].tag : ""
-        if(tx == "") return
         let widthTx = getPixelLength(tx, textSizeIO) + 8
-        fill(colorTag)
+        fill(0)
         noStroke()
         isMain ? rect(pos.x, pos.y, widthTx, tamCompNodes) : 
                  rect(pos.x - widthTx, pos.y, widthTx, tamCompNodes)
@@ -560,9 +526,8 @@ class Chip{
         let pos = isMain ? this.getOutputPosition(index) : this.getOutputPositionSC(index)
         pos.x = isMain ? pos.x - tamCompNodes : pos.x + 7 + tamCompNodes 
         let tx = this.outputsPos[index].tag ? this.outputsPos[index].tag : ""
-        if(tx == "") return
         let widthTx = getPixelLength(tx, textSizeIO) + 8
-        fill(colorTag)
+        fill(0)
         noStroke()
         isMain ? rect(pos.x - widthTx, pos.y, widthTx, tamCompNodes) : 
                  rect(pos.x, pos.y, widthTx, tamCompNodes)
@@ -732,5 +697,3 @@ class Chip{
         });
     }
 }
-
-

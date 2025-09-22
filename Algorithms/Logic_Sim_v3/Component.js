@@ -20,7 +20,7 @@ class Component {
     }
 
     simulate() {
-        if (this.type === 'AND'){ 
+        if (this.type === 'AND'){
             this.outputs[0] = (this.inputs[0] == 1 && this.inputs[1] == 1) ? 1 : 0
         }
         else if (this.type === 'OR'){
