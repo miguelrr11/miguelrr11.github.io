@@ -42,8 +42,6 @@ let input_text_Out
 let changing_name_in = undefined
 let changing_name_out = undefined
 
-
-
 //selection managing
 let selectedComp = null
 let hoveredNode = null
@@ -73,6 +71,7 @@ let fps = 60
 let simSpeed = 10
 let framesPerIter = 60 / simSpeed
 let counterFrames = 0
+let undoStack = []
 
 async function setup() {
     canvas = createCanvas(WIDTH+widthPanel+10, HEIGHT);
@@ -117,16 +116,19 @@ async function setup() {
     let andButton = panel.createButton("AND", (f) => {
         chip.addComponent("AND" + compNames, "AND");
         compNames++;
+        pushToUndoStack()
     })
     andButton.setHoverText('Click to add an AND logic gate')
     let orButton = panel.createButton("OR", (f) => {
         chip.addComponent("OR" + compNames, "OR");
         compNames++;
+        pushToUndoStack()
     })
     orButton.setHoverText('Click to add an OR logic gate')
     let notButton = panel.createButton("NOT", (f) => {
         chip.addComponent("NOT" + compNames, "NOT");
         compNames++;
+        pushToUndoStack()
     })
     notButton.setHoverText('Click to add a NOT logic gate')
     let busButton = panel.createButton("BUS", (f) => {
@@ -134,6 +136,7 @@ async function setup() {
         creatingBus = true
         // chip.addComponent("BUS" + compNames, "BUS");
         // compNames++;
+        pushToUndoStack()
     })
     busButton.setHoverText('Click to start creating a bus.\n- Click in the canvas to create segments\n- Double click to finish')
     let triButton = panel.createButton("TRI-STATE BUFFER", (f) => {
@@ -200,8 +203,7 @@ async function setup() {
             if (selectedName) {
                 let savedChip = savedChips.find(chipData => JSON.parse(chipData).name === selectedName);
                 if (savedChip) {
-                    let newChip = JSON.parse(savedChip);
-                    chip.addComponent(newChip.name, 'CHIP', newName);
+                    chip.addComponent(savedChip.name, 'CHIP', newName);
                     compNames++
                 }
             }
@@ -272,6 +274,8 @@ async function setup() {
     chipRegistry.push(chip);
 
     createFromSaved()
+
+    pushToUndoStack()
 }
 
 function draw() {
@@ -344,6 +348,48 @@ function draw() {
         input_text_Out.show()
     }
 
+}
+
+function undo(){
+    if(undoStack.length > 1){
+        undoStack.pop()
+        let last = undoStack[undoStack.length - 1]
+        let baseChip = chipStack.length > 1 ? chipStack[0] : chip
+        let aux = baseChip._cloneChipRecursively(last)
+
+        selectedComp = null
+        hoveredNode = null
+        hoveredComp = null
+        frontComp = null
+        multiSelectionWindow = null
+        multiSelectionComps = null
+        multiSelectionCompsWindow = null
+        movingComp = {comp: null, offx: 0, offy: 0}
+        movingInput = {node: undefined, off: 0}
+        movingOutput = {node: undefined, off: 0}
+        //reconstruct chipStack
+        if(chipStack.length > 1){
+            let newStack = []
+            for(let i = 1; i < chipStack.length; i++){
+                let comp = chipStack[i]
+                let compsChips = chipStack[i-1].components.concat(chipStack[i-1].chips)
+                let prevComp = compsChips.find(c => c.name == comp.name)
+                if(prevComp){
+                    newStack.push(prevComp)
+                }
+            }
+            chipStack = newStack
+        }
+        console.log(chipStack)
+        //chipStack.length == 0 ? chip = aux : chipStack[chipStack.length - 1] = aux
+        chip = aux
+    }
+}
+
+function pushToUndoStack(){
+    let curChip = chipStack.length > 0 ? chipStack[0] : chip
+    undoStack.push(JSON.parse(JSON.stringify(curChip)))
+    if(undoStack.length > 20) undoStack.shift()
 }
 
 function drawMargin(){

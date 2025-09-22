@@ -149,6 +149,7 @@ function createFromSaved(){
         panel_buttonColl_chips.addButton(newChip.externalName, (f) => {
             chip.addComponent(newChip.name, 'CHIP', newChip.externalName);
             compNames++
+            pushToUndoStack()
         })
         compNames++
     }
