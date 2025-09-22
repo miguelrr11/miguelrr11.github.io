@@ -6,6 +6,7 @@ p5.disableFriendlyErrors = true
 
 let chip
 let chipStack = []
+let savedChips = ["chip99121123125"]
 
 //connection logic
 let draggingConnection = false;
@@ -182,7 +183,7 @@ async function setup() {
         chip.col = panel_color.interacted ? panel_color.getColor() : roundNum(Math.random() * 150)
         panel_color.interacted = false
         let chipString = JSON.stringify(chip)
-        savedChips.push(chipString);
+        savedChips.push(chip.name);
         chipRegistry.push(chip);
 
 
@@ -201,7 +202,7 @@ async function setup() {
         panel_buttonColl_chips.addButton(newName, (f) => {
             let selectedName = name
             if (selectedName) {
-                let savedChip = savedChips.find(chipData => JSON.parse(chipData).name === selectedName);
+                let savedChip = chipRegistry.find(chipData => chipData.name === selectedName);
                 if (savedChip) {
                     chip.addComponent(savedChip.name, 'CHIP', newName);
                     compNames++
