@@ -39,14 +39,57 @@ class Path{
         }
     }
 
-    carsAhead(car){
-        let carsAheadCurSeg = this.cars.filter(c => c !== car && c.currentSeg === car.currentSeg && 
-                                               c.segPos > car.segPos && (c.segPos - car.segPos) < DIST_CAR)
-        let carsAheadNextSeg = this.cars.filter(c => c !== car && 
-                                                c.currentSeg === (car.currentSeg + 1) % this.segments.length && 
-                                                c.segPos < DIST_CAR - (this.segments[car.currentSeg].len - car.segPos))
-        return carsAheadCurSeg.concat(carsAheadNextSeg)
+    carsAhead(car) {
+        const trackLen = this.segments.reduce((sum, s) => sum + s.len, 0)
+        const lookahead = Math.min(DIST_CAR, trackLen - 1e-6) //Avoid full loop
+        const res = [];
+
+        const curSegLen = this.segments[car.currentSeg].len;
+        res.push(
+            ...this.cars.filter(c =>
+                c !== car &&
+                c.currentSeg === car.currentSeg &&
+                c.segPos > car.segPos &&
+                (c.segPos - car.segPos) <= lookahead   
+            )
+        );
+
+        let remaining = lookahead - (curSegLen - car.segPos)
+        if (remaining <= 0) return res
+
+        let segIdx = (car.currentSeg + 1) % this.segments.length
+        let visited = 0;
+        while (remaining > 0 && visited < this.segments.length - 1) {
+            const segLen = this.segments[segIdx].len
+
+            if (remaining >= segLen) {
+                res.push(
+                    ...this.cars.filter(c =>
+                        c !== car &&
+                        c.currentSeg === segIdx
+                    )
+                )
+                remaining -= segLen;
+            } 
+
+            else {
+                res.push(
+                ...this.cars.filter(c =>
+                    c !== car &&
+                    c.currentSeg === segIdx &&
+                    c.segPos <= remaining           
+                )
+                )
+                break
+            }
+
+            segIdx = (segIdx + 1) % this.segments.length
+            visited += 1
+        }
+
+        return res
     }
+
 
     redLightAhead(car){
         if(this.segments.length === 0 || !this.segments[car.currentSeg].hasRedLight) return false

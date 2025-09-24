@@ -9,7 +9,7 @@ const HEIGHT = 600
 let path
 
 let cars = []
-let nCars = 20
+let nCars = 50
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)

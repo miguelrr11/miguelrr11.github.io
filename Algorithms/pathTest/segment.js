@@ -15,7 +15,7 @@ class Segment{
     }
 
     createRedLight(){
-        let r = random(0.1, 0.8)
+        let r = random(0.3, 0.8)
         this.redLightPos = p5.Vector.add(this.a, p5.Vector.mult(this.dir, r * this.len))
         this.redLightRelPos = r * this.len
         this.redLightInterval = floor(random(220, 300))
