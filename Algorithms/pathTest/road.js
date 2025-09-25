@@ -27,9 +27,15 @@ class Road{
         return res
     }
 
+    update(){
+        for(let path of this.paths){
+            path.updateSegments()
+            path.updateCarsPos()
+        }
+    }
+
     show(){
         for(let path of this.paths){
-            path.updateCarsPos()
             path.show()
             path.showCars()
         }

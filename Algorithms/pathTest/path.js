@@ -1,14 +1,20 @@
 const DIST_RED = 40
-const DIST_RED_PARDON = 25
+const DIST_RED_PARDON = 15
 const DIST_CAR = 40
 const INTER_DIST = 40
 const DIST_CROSS_INTER = 5
+
+let auxCar = null
 
 class Path{
     constructor(){
         this.segments = []
         this.cars = []
         this.col = 255
+    }
+
+    addSegment(a, b){
+        this.segments.push(new Segment(a.x, a.y, b.x, b.y))
     }
 
     constructSegments(points, skip = true){
@@ -62,6 +68,7 @@ class Path{
         if (remaining <= 0) return res
 
         let segIdx = (car.currentSeg + 1) % this.segments.length
+        if(this.noMoreRoad(car.currentSeg)) return res
         let visited = 0;
         while (remaining > 0 && visited < this.segments.length - 1) {
             const segLen = this.segments[segIdx].len
@@ -110,7 +117,9 @@ class Path{
         if(this.segments.length === 0 || !this.segments[car.currentSeg].hasRedLight) return false
 
         let seg = this.segments[car.currentSeg]
-        return seg.red && car.segPos < seg.redLightRelPos && (seg.redLightRelPos - car.segPos) < DIST_RED && (seg.redLightRelPos - car.segPos) > DIST_RED_PARDON
+        return seg.light.red && car.segPos < seg.light.redLightRelPos && 
+        (seg.light.redLightRelPos - car.segPos) < DIST_RED && 
+        (seg.light.redLightRelPos - car.segPos) > DIST_RED_PARDON
     }
 
     updateCarPos(car){
@@ -126,20 +135,44 @@ class Path{
         let seg = this.segments[car.currentSeg]
 
         let redLightAhead = this.redLightAhead(car)
-        let carsAhead = this.carsAhead(car).length > 0
+        let actualCarsAhead = this.carsAhead(car)
+        car.carsAhead = actualCarsAhead
+        let carsAhead = actualCarsAhead.length > 0
         let noMoreRoad = this.noMoreRoad(car.currentSeg) && this.segments[car.currentSeg].len - car.segPos < DIST_CAR
 
         let interNearby = this.road.intersectionNearby(this, car)
-
-        let randomInter = interNearby[0]
-        if(random() < 0.5) randomInter = null
-        if(randomInter){
-            let otherCars = randomInter.toPath.carsAhead(randomInter.toPath.cars[0]) 
-            carsAhead = carsAhead || otherCars.length > 0
+        if(car.chosenIntersection == undefined && interNearby.length > 0){
+            if(!noMoreRoad) interNearby.push(false) //continues in its own path -- uncomment !!!
+            let randomInter = random(interNearby)
+            if(randomInter){
+                auxCar = new Car(randomInter.toPath)
+                auxCar.currentSeg = randomInter.toPath.segments.indexOf(randomInter.toSeg)
+                auxCar.segPos = p5.Vector.dist(randomInter.pos, randomInter.toSeg.a)
+                auxCar.pos = randomInter.pos.copy()
+                let otherCars = randomInter.toPath.carsAhead(auxCar)
+                car.carsAhead.push(...otherCars)
+                carsAhead = carsAhead || otherCars.length > 0
+                noMoreRoad = false
+                car.chosenIntersection = randomInter
+            }
+            else car.chosenIntersection = false
+        }
+        else{
             noMoreRoad = false
+            if(car.chosenIntersection){
+                auxCar = new Car(car.chosenIntersection.toPath)
+                auxCar.currentSeg = car.chosenIntersection.toPath.segments.indexOf(car.chosenIntersection.toSeg)
+                auxCar.segPos = p5.Vector.dist(car.chosenIntersection.pos, car.chosenIntersection.toSeg.a)
+                auxCar.pos = car.chosenIntersection.pos.copy()
+                let otherCars = car.chosenIntersection.toPath.carsAhead(auxCar)
+                carsAhead = carsAhead || otherCars.length > 0
+            }
+            else if(car.chosenIntersection === false && interNearby.length == 0){
+                car.chosenIntersection = undefined
+            }
+            
         }
         
-
         let hasToBreak = redLightAhead || carsAhead || noMoreRoad
 
         if(hasToBreak){
@@ -160,9 +193,9 @@ class Path{
             car.segPos = 0
             seg = this.segments[car.currentSeg]
         }
-        else if(randomInter && dist(car.pos.x, car.pos.y, randomInter.pos.x, randomInter.pos.y) < DIST_CROSS_INTER){
+        else if(car.chosenIntersection && dist(car.pos.x, car.pos.y, car.chosenIntersection.pos.x, car.chosenIntersection.pos.y) < DIST_CROSS_INTER){
             //car crosses to another path at an intersection
-            let inter = randomInter
+            let inter = car.chosenIntersection
             for(let i = 0; i < inter.toPath.segments.length; i++){
                 if(inter.toSeg === inter.toPath.segments[i]){
                     car.currentSeg = i
@@ -173,16 +206,26 @@ class Path{
             car.segPos = p5.Vector.dist(car.pos, inter.toSeg.a)
             this.cars = this.cars.filter(c => c !== car)
             car.path.cars.push(car)
+            car.chosenIntersection = undefined
             return
         }
 
         car.pos = p5.Vector.add(seg.a, p5.Vector.mult(seg.dir, car.segPos))
     }
 
+    updateSegments(){
+        for(let seg of this.segments){
+            seg.update()
+        }
+    }
+
     showCars(){
         for(let car of this.cars){
             car.show()
         }
+        // if(auxCar){
+        //     auxCar.show(true)
+        // }
     }
 
     show(){

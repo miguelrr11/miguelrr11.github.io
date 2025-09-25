@@ -9,34 +9,55 @@ const HEIGHT = 600
 let road
 
 let cars = []
-let nCars = 5
+let nCars = 15
+
+let iters = 1
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
-    let path = new Path()
-    path.constructSegments(points1, false)
-    
+    road = createRoad(paths, intersections, nCars)
 
-    let path2 = new Path()
-    path2.constructSegments(points2, false)
+    createLightSch([road.paths[0].segments[2], road.paths[1].segments[0], road.paths[2].segments[2]])
+}
 
-    for(let i=0; i<nCars; i++){
-        path.addCar(new Car(path))
-        path2.addCar(new Car(path2))
+function createRoad(pathPoints, intersections, nCars){
+    let paths = []
+    for(const path of pathPoints){
+        let p = new Path()
+        for(const seg of path.segments){
+            p.addSegment(createVector(seg.a.x, seg.a.y), createVector(seg.b.x, seg.b.y))
+        }
+        p.id = paths.length
+        paths.push(p)
     }
-
-    road = new Road([path, path2])
-
-    path.col = color(255, 20, 50)
-    path2.col = color(20, 150, 255)
-
-    road.addIntersection(path2, path2.segments[0], path, path.segments[2], createVector(300, 400))
-    road.addIntersection(path, path.segments[1], path2, path2.segments[1], createVector(400, 300))
+    let road = new Road(paths)
+    for(const inter of intersections){
+        let fromPath = paths[inter.from.path]
+        let fromSeg = fromPath.segments[inter.from.segment]
+        let toPath = paths[inter.to.path]
+        let toSeg = toPath.segments[inter.to.segment]
+        let pos = createVector(inter.point.x, inter.point.y)
+        road.addIntersection(fromPath, fromSeg, toPath, toSeg, pos)
+    }
+    for(let i=0; i<nCars; i++){
+        paths[0].addCar(new Car(paths[0]))
+        paths[1].addCar(new Car(paths[1]))
+    }
+    for(const p of paths){
+        p.col = color(random(100, 255), random(100, 255), random(100, 255))
+    }
+    return road
 }
 
 function draw(){
     background(0)
-    road.show()
+    if(keyIsPressed) iters = 40
+    else iters = 1
+    for(let i = 0; i < iters; i++){ 
+        road.update()
+        road.show()
+    }
+
 }
 
 function createPointsForCircle(x, y, r, n){
@@ -48,4 +69,18 @@ function createPointsForCircle(x, y, r, n){
         points.push({x: px, y: py, z: -1})
     }
     return points
+}
+
+function createLightSch(segments){
+    let lights = []
+    for(let i = 0; i < segments.length; i++){
+        let light = segments[i].createRedLight(0.85, 0, 600, i == 0)
+        light.individual = false
+        lights.push(light)
+    }
+
+    for(let i = 0; i < lights.length; i++){
+        lights[i].starts(lights[(i + 1) % lights.length])
+    }
+
 }
