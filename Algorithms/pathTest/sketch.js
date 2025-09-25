@@ -9,15 +9,17 @@ const HEIGHT = 600
 let road
 
 let cars = []
-let nCars = 15
+let nCars = 25
 
 let iters = 1
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
-    road = createRoad(paths, intersections, nCars)
+    let p = JSON.parse(getItem('paths'))
+    let i = JSON.parse(getItem('intersections'))
+    road = createRoad(p, i, nCars)
 
-    createLightSch([road.paths[0].segments[2], road.paths[1].segments[0], road.paths[2].segments[2]])
+    //createLightSch([road.paths[0].segments[2], road.paths[1].segments[0], road.paths[2].segments[2]])
 }
 
 function createRoad(pathPoints, intersections, nCars){
@@ -40,8 +42,12 @@ function createRoad(pathPoints, intersections, nCars){
         road.addIntersection(fromPath, fromSeg, toPath, toSeg, pos)
     }
     for(let i=0; i<nCars; i++){
-        paths[0].addCar(new Car(paths[0]))
-        paths[1].addCar(new Car(paths[1]))
+        let car1 = new Car(paths[0])
+        let car2 = new Car(paths[1])
+        paths[0].addCar(car1)
+        paths[1].addCar(car2)
+        road.cars.push(car1)
+        road.cars.push(car2)
     }
     for(const p of paths){
         p.col = color(random(100, 255), random(100, 255), random(100, 255))

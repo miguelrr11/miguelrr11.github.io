@@ -12,6 +12,7 @@ let nCols = 50
 let spacing = WIDTH / nCols
 
 let paths = []
+let colorPaths = []
 let currentPath = null
 let currentSegment = null
 let intersections = []
@@ -23,12 +24,14 @@ let from = null
 let to = null
 
 function mouseClicked(){
+    if(mouseX < 0 || mouseX > WIDTH || mouseY < 0 || mouseY > HEIGHT) return
     if(mode == 'path'){
         if(currentPath === null){
             currentPath = {
                 segments: [],
             }
             paths.push(currentPath)
+            colorPaths.push(color(random(100, 255), random(100, 255), random(100, 255)))
             currentSegment = {a: {x: cursor.x, y: cursor.y}, b: null}
         }
         else{
@@ -136,6 +139,11 @@ function keyPressed(){
             }
         }
     }
+    else if(key == 's'){
+        storeItem('paths', JSON.stringify(paths))
+        storeItem('intersections', JSON.stringify(intersections))
+        console.log('paths and intersections saved')
+    }
 }
 
 function getIntersectionPoint(seg1, seg2){
@@ -164,10 +172,11 @@ function getIntersectionPoint(seg1, seg2){
 
 function drawPaths(){
     push()
-    stroke(0)
     strokeWeight(4)
     for(const path of paths){
         if(path.segments.length === 0) continue
+        let col = colorPaths[paths.indexOf(path)]
+        stroke(col)
         for(let segment of path.segments){
             line(segment.a.x, segment.a.y, segment.b.x, segment.b.y)
         }

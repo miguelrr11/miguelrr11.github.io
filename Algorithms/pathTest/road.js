@@ -1,5 +1,6 @@
 class Road{
     constructor(paths){
+        this.cars = []
         this.paths = paths
         this.intersections = []
         for(let path of this.paths){
@@ -9,6 +10,17 @@ class Road{
 
     addIntersection(fromPath, fromSeg, toPath, toSeg, pos){
         this.intersections.push(new Intersection(fromPath, fromSeg, toPath, toSeg, pos))
+    }
+
+    anyIntersectionNearby(car){
+        let res = []
+        if(this.intersections.length === 0) return false
+        for(let inter of this.intersections){
+            if(dist(car.pos.x, car.pos.y, inter.pos.x, inter.pos.y) < INTER_DIST){
+                res.push(inter)
+            }
+        }
+        return res
     }
 
     intersectionNearby(path, car){
