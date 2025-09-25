@@ -1,249 +1,40 @@
-let road = [
-
-    {
-      "x": 150,
-      "y": 525,
-      "z": -1
-    },
-    {
-      "x": 150,
-      "y": 375,
-      "z": -1
-    },
-    {
-      "x": 150,
-      "y": 375,
-      "z": -1
-    },
-    {
-      "x": 75,
-      "y": 300,
-      "z": -1
-    },
-    {
-      "x": 75,
-      "y": 300,
-      "z": -1
-    },
-    {
-      "x": 75,
-      "y": 165,
-      "z": -1
-    },
-    {
-      "x": 75,
-      "y": 165,
-      "z": -1
-    },
-    {
-      "x": 45,
-      "y": 135,
-      "z": -1
-    },
-    {
-      "x": 45,
-      "y": 135,
-      "z": -1
-    },
-    {
-      "x": 45,
-      "y": 105,
-      "z": -1
-    },
-    {
-      "x": 45,
-      "y": 105,
-      "z": -1
-    },
-    {
-      "x": 75,
-      "y": 75,
-      "z": -1
-    },
-    {
-      "x": 75,
-      "y": 75,
-      "z": -1
-    },
-    {
-      "x": 120,
-      "y": 75,
-      "z": -1
-    },
-    {
-      "x": 120,
-      "y": 75,
-      "z": -1
-    },
-    {
-      "x": 150,
-      "y": 105,
-      "z": -1
-    },
-    {
-      "x": 150,
-      "y": 105,
-      "z": -1
-    },
-    {
-      "x": 345,
-      "y": 105,
-      "z": -1
-    },
-    {
-      "x": 345,
-      "y": 105,
-      "z": -1
-    },
-    {
-      "x": 435,
-      "y": 30,
-      "z": -1
-    },
-    {
-      "x": 435,
-      "y": 30,
-      "z": -1
-    },
-    {
-      "x": 510,
-      "y": 30,
-      "z": -1
-    },
-    {
-      "x": 510,
-      "y": 30,
-      "z": -1
-    },
-    {
-      "x": 510,
-      "y": 255,
-      "z": -1
-    },
-    {
-      "x": 510,
-      "y": 255,
-      "z": -1
-    },
-    {
-      "x": 345,
-      "y": 255,
-      "z": -1
-    },
-    {
-      "x": 345,
-      "y": 255,
-      "z": -1
-    },
-    {
-      "x": 270,
-      "y": 210,
-      "z": -1
-    },
-    {
-      "x": 270,
-      "y": 210,
-      "z": -1
-    },
-    {
-      "x": 210,
-      "y": 210,
-      "z": -1
-    },
-    {
-      "x": 210,
-      "y": 210,
-      "z": -1
-    },
-    {
-      "x": 210,
-      "y": 300,
-      "z": -1
-    },
-    {
-      "x": 210,
-      "y": 300,
-      "z": -1
-    },
-    {
-      "x": 540,
-      "y": 300,
-      "z": -1
-    },
-    {
-      "x": 540,
-      "y": 300,
-      "z": -1
-    },
-    {
-      "x": 540,
-      "y": 495,
-      "z": -1
-    },
-    {
-      "x": 540,
-      "y": 495,
-      "z": -1
-    },
-    {
-      "x": 435,
-      "y": 495,
-      "z": -1
-    },
-    {
-      "x": 435,
-      "y": 495,
-      "z": -1
-    },
-    {
-      "x": 435,
-      "y": 375,
-      "z": -1
-    },
-    {
-      "x": 435,
-      "y": 375,
-      "z": -1
-    },
-    {
-      "x": 315,
-      "y": 375,
-      "z": -1
-    },
-    {
-      "x": 315,
-      "y": 375,
-      "z": -1
-    },
-    {
-      "x": 255,
-      "y": 480,
-      "z": -1
-    },
-    {
-      "x": 255,
-      "y": 480,
-      "z": -1
-    },
-    {
-      "x": 255,
-      "y": 525,
-      "z": -1
-    },
-    {
-      "x": 255,
-      "y": 525,
-      "z": -1
-    },
-    {
-      "x": 150,
-      "y": 525,
-      "z": -1
-    },
-    {
-      "x": 150,
-      "y": 525,
-      "z": -1
+class Road{
+    constructor(paths){
+        this.paths = paths
+        this.intersections = []
+        for(let path of this.paths){
+            path.road = this
+        }
     }
-  ]
 
+    addIntersection(fromPath, fromSeg, toPath, toSeg, pos){
+        this.intersections.push(new Intersection(fromPath, fromSeg, toPath, toSeg, pos))
+    }
+
+    intersectionNearby(path, car){
+        //find all intersections for this path and segment
+        if(this.intersections.length === 0) return null
+        let res = []
+        for(let inter of this.intersections){
+            if(inter.fromPath === path && inter.fromSeg === car.path.segments[car.currentSeg]){
+                let seg = path.segments[car.currentSeg]
+                let interDist = p5.Vector.dist(seg.a, inter.pos)
+                if(interDist - car.segPos < INTER_DIST && interDist - car.segPos > 0){
+                    res.push(inter)
+                }
+            }
+        }
+        return res
+    }
+
+    show(){
+        for(let path of this.paths){
+            path.updateCarsPos()
+            path.show()
+            path.showCars()
+        }
+        for(let inter of this.intersections){
+            inter.show()
+        }
+    }
+}

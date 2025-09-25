@@ -5,7 +5,8 @@ class Segment{
         this.len = p5.Vector.dist(this.a, this.b)
         this.dir = p5.Vector.sub(this.b, this.a).normalize()
 
-        if(random() < 0.5 && this.len > 100) this.createRedLight()
+        //if(random() < 0.5 && this.len > 100) this.createRedLight()
+        if(false){}
         else {
             this.redLightPos = null
             this.redLightRelPos = null
@@ -24,18 +25,19 @@ class Segment{
         this.hasRedLight = true
     }
 
-    show(){
+    show(col){
         this.t++
         if(this.red != undefined && this.t > this.redLightInterval){
             this.red = !this.red
             this.t = 0
         }
-        stroke(255)
+        stroke(col)
         strokeWeight(2)
         line(this.a.x, this.a.y, this.b.x, this.b.y)
 
         this.hasRedLight && this.red ? stroke(255, 0, 0) : stroke(0, 255, 0)
         strokeWeight(8)
         this.hasRedLight ? point(this.redLightPos.x, this.redLightPos.y) : null
+
     }
 }
