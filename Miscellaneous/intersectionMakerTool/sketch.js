@@ -2,20 +2,32 @@
 //Miguel Rodríguez
 //25-09-2025
 
+//justo antes de exportarlo, hay que crear paths nuevos entre cada punto de interseccion de los paths (splicearlo)
+
 p5.disableFriendlyErrors = true
 const WIDTH = 800
 const HEIGHT = 800
 
 const MIN_ANGLE = 0.65
 const MIN_DIST_SEG = 65
-const LANE_WIDTH = 30
+const LANE_WIDTH = 40
+const RAD_BEZIER = 1000
+const RES_BEZIER = 8
+
+let showMain = false
+let showIdxPaths = false
+let showIntersections = false
 
 let anchor = undefined
 let paths = [[], []]
 let currPathIdx = 0
-let mainPaths = []
+let mainPaths = [[]]
+
 let nodes = []
 let currPath = undefined
+
+let intersections = []
+let intersecPaths = []
 
 let bool = true
 
@@ -48,15 +60,15 @@ function mouseClicked(){
             to = inBoundNode.pos.copy()
             if(dist(anchor.x, anchor.y, to.x, to.y) < MIN_DIST_SEG) return
 
-            let A = mainPaths[mainPaths.length - 1].from;
-            let B = mainPaths[mainPaths.length - 1].to;   
+            let A = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from;
+            let B = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to;   
             let C = to;
             if (tooSharp(A, B, C)) {
                 return
             }
 
-            A = mainPaths[0].to
-            B = mainPaths[0].from
+            A = mainPaths[currPathIdx][0].to
+            B = mainPaths[currPathIdx][0].from
             C = anchor
             if (tooSharp(A, B, C)) {
                 return
@@ -67,15 +79,15 @@ function mouseClicked(){
         }
 
         if (paths[currPathIdx].length > 0) {
-            const A = mainPaths[mainPaths.length - 1].from;
-            const B = mainPaths[mainPaths.length - 1].to;   
+            const A = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from;
+            const B = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to;
             const C = to;
             if (tooSharp(A, B, C)) {
                 return
             }
         }
 
-        mainPaths.push({from: anchor.copy(), to: to.copy()})
+        mainPaths[currPathIdx].push({from: anchor.copy(), to: to.copy()})
 
         anchor = createVector(mouseX, mouseY)
         
@@ -84,39 +96,132 @@ function mouseClicked(){
             nodes[nodes.length - 2].next = nodes[nodes.length - 1]
         }
 
-        let dir = p5.Vector.sub(mainPaths[mainPaths.length - 1].to, mainPaths[mainPaths.length - 1].from)
+        let dir = p5.Vector.sub(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to, mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from)
         dir.normalize()
         let perp = createVector(-dir.y, dir.x)
         perp.mult(LANE_WIDTH)
 
-        let newFrom1 = p5.Vector.add(mainPaths[mainPaths.length - 1].from, perp)
-        let newTo1 = p5.Vector.add(mainPaths[mainPaths.length - 1].to, perp)
-        paths[currPathIdx].push({from: newFrom1, to: newTo1, dir: 'forward'})
+        let newFrom1 = p5.Vector.add(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from, perp)
+        let newTo1 = p5.Vector.add(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to, perp)
+        paths[currPathIdx].push({from: newFrom1, to: newTo1, dir: 'forward', mainPathIdx: currPathIdx, segIdx: mainPaths[currPathIdx].length - 1})
 
-        let newFrom2 = p5.Vector.sub(mainPaths[mainPaths.length - 1].from, perp)
-        let newTo2 = p5.Vector.sub(mainPaths[mainPaths.length - 1].to, perp)
-        paths[currPathIdx+1].unshift({from: newFrom2, to: newTo2, dir: 'backward'})
+        let newFrom2 = p5.Vector.sub(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from, perp)
+        let newTo2 = p5.Vector.sub(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to, perp)
+        paths[currPathIdx+1].unshift({from: newFrom2, to: newTo2, dir: 'backward', mainPathIdx: currPathIdx, segIdx: mainPaths[currPathIdx].length - 1})
 
         if(paths[currPathIdx].length > 1){
             let forwardPaths = paths[currPathIdx]
             let backwardPaths = paths[currPathIdx+1]
             curveEndings(forwardPaths[forwardPaths.length - 2], forwardPaths[forwardPaths.length - 1],
-                         backwardPaths[1], backwardPaths[0], 20, 8);
+                         backwardPaths[1], backwardPaths[0], RAD_BEZIER, RES_BEZIER);
             if(inBoundNode){
                 curveEndings(forwardPaths[forwardPaths.length - 1], forwardPaths[0],
-                             backwardPaths[0], backwardPaths[backwardPaths.length - 1], 20, 8);
+                             backwardPaths[0], backwardPaths[backwardPaths.length - 1], RAD_BEZIER, RES_BEZIER);
             }
         }
         if(inBoundNode){
             currPathIdx += 2
             paths.push([], [])
+            mainPaths.push([], [])
             anchor = undefined
             currPath = undefined
         }
+
+        calculateIntersections()
+        generateInsideIntersections()
     }
 }
 
 
+function generateInsideIntersections(){
+  intersecPaths = [];
+
+  // Helper: given an intersection entry {pos, paths:[p1,p2]},
+  // return a stable key "FF", "FB", "BF", "BB" based on p1.dir + p2.dir.
+  function cornerKey(entry){
+    const [a, b] = entry.paths;
+    const A = (a.dir === 'forward') ? 'F' : 'B';
+    const B = (b.dir === 'forward') ? 'F' : 'B';
+    return A + B; // "FF" | "FB" | "BF" | "BB"
+  }
+
+  // Build a directed connector between two corners, recording source/target lanes
+  function makeConnector(fromEntry, toEntry){
+    // Direction is determined by the *source lane’s* travel direction.
+    // Your car engine should follow fromPos -> toPos along this segment.
+    // We also keep explicit references to source/target lanes for stitching.
+    return {
+      fromPos: { x: fromEntry.pos.x, y: fromEntry.pos.y },
+      toPos:   { x: toEntry.pos.x,   y: toEntry.pos.y   },
+
+      // lanes involved at each endpoint (the specific offset segments)
+      fromPaths: fromEntry.paths,  // [laneA, laneB] that created the 'from' corner
+      toPaths:   toEntry.paths,    // [laneA, laneB] that created the 'to' corner
+
+      // convenience fields for your routing logic (source lane primary dir)
+      dir: (fromEntry.paths[0].dir === 'forward') ? 'forward' : 'backward'
+    };
+  }
+
+  for (let [key, intersecs] of intersections) {
+    // Bucket corners by "FF", "FB", "BF", "BB"
+    const buckets = { FF: null, FB: null, BF: null, BB: null };
+    for (const e of intersecs) {
+      const k = cornerKey(e);
+      // If multiple points land in same bucket (rare), keep the one closest
+      // to the geometric center for stability.
+      if (!buckets[k]) {
+        buckets[k] = e;
+      } else {
+        const cx = intersecs.reduce((s, it) => s + it.pos.x, 0) / intersecs.length;
+        const cy = intersecs.reduce((s, it) => s + it.pos.y, 0) / intersecs.length;
+        const dNew = dist(e.pos.x, e.pos.y, cx, cy);
+        const dOld = dist(buckets[k].pos.x, buckets[k].pos.y, cx, cy);
+        if (dNew < dOld) buckets[k] = e;
+      }
+    }
+
+    // We can only wire when both opposite corners exist.
+    const { FF, FB, BF, BB } = buckets;
+
+    // Diagonal 1: FF <-> BB
+    if (FF && BB) {
+      intersecPaths.push( makeConnector(FF, BB) ); // FF → BB
+      intersecPaths.push( makeConnector(BB, FF) ); // BB → FF (reverse movement)
+    }
+
+    // Diagonal 2: FB <-> BF
+    if (FB && BF) {
+      intersecPaths.push( makeConnector(FB, BF) ); // FB → BF
+      intersecPaths.push( makeConnector(BF, FB) ); // BF → FB (reverse movement)
+    }
+  }
+}
+
+
+
+
+function calculateIntersections(){
+    intersections = new Map()
+    for(let i = 0; i < paths.length; i++){
+        for(let j = i+1; j < paths.length; j++){
+            for(let p1 of paths[i]){
+                for(let p2 of paths[j]){
+                    let intersec = lineIntersection(p1.from, p1.to, p2.from, p2.to, false)
+                    if(intersec){
+                        let key = p1.mainPathIdx + '-' + p1.segIdx + '_' + p2.mainPathIdx + '-' + p2.segIdx
+                        if(!intersections.has(key)){
+                            intersections.set(key, [{pos: {x: intersec.x, y: intersec.y}, paths: [p1, p2]}])
+                        } 
+                        else {
+                            intersections.get(key).push({pos: {x: intersec.x, y: intersec.y}, paths: [p1, p2]})
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
     
 
 function setup(){
@@ -132,8 +237,8 @@ function draw(){
 
     if (paths[currPathIdx].length > 0) {
         let to = createVector(mouseX, mouseY)
-        const A = mainPaths[mainPaths.length - 1].from;
-        const B = mainPaths[mainPaths.length - 1].to;  
+        const A = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from;
+        const B = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to;  
         const C = to;                                 
 
         const angle = angleAtVertex(B, A, C)
@@ -142,15 +247,76 @@ function draw(){
     }
 
 
-    drawMainPaths()
+    if(showMain) drawMainPaths()
     drawPaths()
     drawNodes()
+
+    drawIntersections()
+    drawIntersectionsPaths()
+}
+
+function drawIntersectionsPaths(){
+    let hoverP = null
+    for(let p of intersecPaths){
+        let hover = dist(mouseX, mouseY, p.fromPos.x, p.fromPos.y) < 10
+        if(hover){
+            hoverP = p
+            break
+        }
+    }
+    if(hoverP){
+        stroke(0, 0, 255)
+        line(hoverP.fromPos.x, hoverP.fromPos.y, hoverP.toPos.x, hoverP.toPos.y)
+        fill(0, 0, 255, 100)
+        ellipse(hoverP.fromPos.x, hoverP.fromPos.y, 12)
+        stroke(0, 255, 0, 80)
+        strokeWeight(7)
+        line(hoverP.fromPaths[0].from.x, hoverP.fromPaths[0].from.y, hoverP.fromPaths[0].to.x, hoverP.fromPaths[0].to.y)
+        line(hoverP.fromPaths[1].from.x, hoverP.fromPaths[1].from.y, hoverP.fromPaths[1].to.x, hoverP.fromPaths[1].to.y)
+        stroke(255, 0, 0, 80)
+        line(hoverP.toPaths[0].from.x, hoverP.toPaths[0].from.y, hoverP.toPaths[0].to.x, hoverP.toPaths[0].to.y)
+        line(hoverP.toPaths[1].from.x, hoverP.toPaths[1].from.y, hoverP.toPaths[1].to.x, hoverP.toPaths[1].to.y)
+        strokeWeight(1)
+        noFill()
+        return
+    }
+    for(let p of intersecPaths){
+        let off  = 0
+        stroke(0, 0, 255)
+        line(p.fromPos.x + off, p.fromPos.y, p.toPos.x + off, p.toPos.y)
+        fill(0, 0, 255, 100)
+        ellipse(p.fromPos.x + off, p.fromPos.y, 8)
+    }
+}
+
+function drawIntersections(){
+    if(!showIntersections) return
+    push()
+    for(let [key, intersec] of intersections){
+        for(let intersecObj of intersec){
+            intersec = intersecObj.pos
+            stroke(255, 120)
+            strokeWeight(8)
+            point(intersec.x, intersec.y)
+            fill(255)
+            noStroke()
+            text(key, intersec.x + 10, intersec.y + 10)
+            noFill()    
+        }
+    }
+    pop()
 }
 
 function drawMainPaths(){
     stroke(255)
     for(let p of mainPaths){
-        line(p.from.x, p.from.y, p.to.x, p.to.y)
+        for(let p2 of p){
+            line(p2.from.x, p2.from.y, p2.to.x, p2.to.y)
+            fill(255)
+            let idx = p.indexOf(p2)
+            if(showIdxPaths) text(idx, (p2.from.x + p2.to.x)/2, (p2.from.y + p2.to.y)/2)
+            noFill()
+        }
     }
 }
 
@@ -160,6 +326,11 @@ function drawPaths(){
             if(p2.dir === 'forward') stroke(0, 255, 0)
             else stroke(255, 0, 0)
             line(p2.from.x, p2.from.y, p2.to.x, p2.to.y)
+            fill(255)
+            let mainindex = p2.mainPathIdx !== undefined ? p2.mainPathIdx : ''
+            let idx = p2.segIdx !== undefined ? p2.segIdx : ''
+            if(showIdxPaths) text(mainindex + ' ' + idx, (p2.from.x + p2.to.x)/2, (p2.from.y + p2.to.y)/2)
+            noFill()
         }
     }
     if(currPath){
@@ -310,19 +481,5 @@ function curveEndings(forwardPrev, forwardCurr, backwardPrev, backwardCurr, rad,
     }
     if (curves.backwardCurve.length) {
         backwardPaths.splice(1, 0, ...curves.backwardCurve);
-    }
-}
-
-function modifyEndings(forwardPrev, forwardCurr, backwardPrev, backwardCurr){
-    let intersec1 = lineIntersection(forwardPrev.from, forwardPrev.to, forwardCurr.from, forwardCurr.to, true)
-    if(intersec1){
-        forwardPrev.to = createVector(intersec1.x, intersec1.y)
-        forwardCurr.from = createVector(intersec1.x, intersec1.y)
-    }
-
-    let intersec2 = lineIntersection(backwardPrev.from, backwardPrev.to, backwardCurr.from, backwardCurr.to, true)
-    if(intersec2){
-        backwardPrev.to = createVector(intersec2.x, intersec2.y)
-        backwardCurr.from = createVector(intersec2.x, intersec2.y)
     }
 }
