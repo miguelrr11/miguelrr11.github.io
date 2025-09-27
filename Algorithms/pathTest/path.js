@@ -9,14 +9,15 @@ let auxCar = null
 // paths are supposed to start on an intersection and end on another intersection
 
 class Path{
-    constructor(){
+    constructor(id){
+        this.id = id
         this.segments = []
         this.cars = []
         this.col = 255
     }
 
-    addSegment(a, b){
-        this.segments.push(new Segment(a.x, a.y, b.x, b.y))
+    addSegment(a, b, id){
+        this.segments.push(new Segment(a.x, a.y, b.x, b.y, id !== undefined ? id : this.segments.length))
     }
 
     constructSegments(points, skip = true){
@@ -154,12 +155,16 @@ class Path{
 
         let redLightAhead = this.redLightAhead(car)
         let actualCarsAhead = this.carsAhead(car)
-        car.carsAhead = actualCarsAhead
+        car.carsAhead.push(...actualCarsAhead)
         let carsAhead = actualCarsAhead.length > 0
         let noMoreRoad = this.noMoreRoad(car.currentSeg) && this.segments[car.currentSeg].len - car.segPos < DIST_CAR
 
         let interNearby = this.road.intersectionNearby(this, car)
         let anyIntersectionNearby = this.road.anyIntersectionNearby(car)
+        if(anyIntersectionNearby == false) anyIntersectionNearby = []
+        if(interNearby) car.carsAhead.push(...interNearby)
+        car.carsAhead.push(...anyIntersectionNearby)
+
         //the car has to slow down if there are any cars in the nearby coming intersections
         //but if the car is closest to the intersection, it has priority, so it doesnt slow down
         for(let inter of anyIntersectionNearby){
@@ -167,7 +172,9 @@ class Path{
                 let path = inter.fromPath
                 let seg = inter.fromSeg
                 let relPosInter = p5.Vector.dist(seg.a, inter.pos)
-                let carsBehindIntersection = path.carsBehindIntersection(seg, relPosInter, DIST_CAR)
+
+                //let carsBehindIntersection = path.carsBehindIntersection(seg, relPosInter, DIST_CAR) // -- uncomment !!!
+                let carsBehindIntersection = []
                 if(carsBehindIntersection.length > 0) {
                     let dCar = p5.Vector.dist(car.pos, inter.pos)
                     let dOtherCars = carsBehindIntersection.map(c => p5.Vector.dist(c.pos, inter.pos))
@@ -177,7 +184,7 @@ class Path{
             }
         }
     
-        if(car.chosenIntersection == undefined && interNearby.length > 0){
+        if(car.chosenIntersection == undefined && interNearby != null && interNearby.length > 0){
             if(!noMoreRoad) interNearby.push(false) //continues in its own path -- uncomment !!!
             let randomInter = random(interNearby)
             if(randomInter){
@@ -266,7 +273,8 @@ class Path{
 
     show(){
         for(let seg of this.segments){
-            seg.show(this.col)
+            let index = this.segments.indexOf(seg)
+            seg.show(this.col, index)
         }
     }
 }

@@ -33,7 +33,7 @@ class Car{
             if(bool) strokeWeight(20)
             point(this.pos.x, this.pos.y)
         }
-        if(hover){
+        if(hover && SHOW_DEBUG){
             noStroke()
             fill(255)
             textSize(16)

@@ -3,15 +3,15 @@
 //24-09-2025
 
 p5.disableFriendlyErrors = true
-const WIDTH = 600
-const HEIGHT = 600
+const WIDTH = 800
+const HEIGHT = 800
 
 let road
-
 let cars = []
-let nCars = 25
-
+let nCars = 35
 let iters = 1
+
+let SHOW_DEBUG = false
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
@@ -25,28 +25,31 @@ function setup(){
 function createRoad(pathPoints, intersections, nCars){
     let paths = []
     for(const path of pathPoints){
-        let p = new Path()
+        let p = new Path(path.id)
         for(const seg of path.segments){
-            p.addSegment(createVector(seg.a.x, seg.a.y), createVector(seg.b.x, seg.b.y))
+            p.addSegment(createVector(seg.a.x, seg.a.y), createVector(seg.b.x, seg.b.y), seg.id)
         }
-        p.id = paths.length
         paths.push(p)
     }
     let road = new Road(paths)
-    for(const inter of intersections){
-        let fromPath = paths[inter.from.path]
-        let fromSeg = fromPath.segments[inter.from.segment]
-        let toPath = paths[inter.to.path]
-        let toSeg = toPath.segments[inter.to.segment]
-        let pos = createVector(inter.point.x, inter.point.y)
-        road.addIntersection(fromPath, fromSeg, toPath, toSeg, pos)
+    if(intersections != null && intersections.outputIntersections.length > 0){
+        for(const inter of intersections.outputIntersections){
+            let fromPath = paths.find(p => p.id === inter.from.path)
+            let fromSeg = fromPath.segments.find(s => s.id === inter.from.segment)
+            let toPath = paths.find(p => p.id === inter.to.path)
+            let toSeg = toPath.segments.find(s => s.id === inter.to.segment)
+            let pos = createVector(inter.point.x, inter.point.y)
+            road.addIntersection(fromPath, fromSeg, toPath, toSeg, pos)
+
+            console.log(inter.from.path + ' ' + inter.from.segment + ' ' + inter.to.path + ' ' + inter.to.segment)
+        }
     }
     for(let i=0; i<nCars; i++){
         let car1 = new Car(paths[0])
-        let car2 = new Car(paths[1])
         paths[0].addCar(car1)
-        paths[1].addCar(car2)
         road.cars.push(car1)
+        let car2 = new Car(paths[1])
+        paths[1].addCar(car2)
         road.cars.push(car2)
     }
     for(const p of paths){
