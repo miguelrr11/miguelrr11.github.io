@@ -8,10 +8,10 @@ const HEIGHT = 800
 
 let road
 let cars = []
-let nCars = 35
+let nCars = 20
 let iters = 1
 
-let SHOW_DEBUG = false
+let SHOW_DEBUG = true
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
@@ -45,10 +45,10 @@ function createRoad(pathPoints, intersections, nCars){
         }
     }
     for(let i=0; i<nCars; i++){
-        let car1 = new Car(paths[0])
+        let car1 = new Car(paths[0], i)
         paths[0].addCar(car1)
         road.cars.push(car1)
-        let car2 = new Car(paths[1])
+        let car2 = new Car(paths[1], i + nCars)
         paths[1].addCar(car2)
         road.cars.push(car2)
     }

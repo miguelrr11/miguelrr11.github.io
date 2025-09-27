@@ -55,12 +55,24 @@ class Road{
     }
 
     show(){
+        let hover = []
+        for(let inter of this.intersections){
+            inter.updateHover()
+            if(inter.hover) hover.push(inter)
+        }
         for(let path of this.paths){
-            path.show()
+            path.show(hover.length > 0)
             path.showCars()
         }
-        for(let inter of this.intersections){
-            inter.show()
+        if(hover.length > 0){
+            for(let inter of hover){
+                inter.show()
+            }
+        }
+        else{
+            for(let inter of this.intersections){
+                inter.show()
+            }
         }
     }
 }

@@ -1,5 +1,5 @@
 class Car{
-    constructor(path){
+    constructor(path, id){
         this.path = path
         this.pos = null
         this.vel = 0
@@ -9,6 +9,8 @@ class Car{
         this.segPos = 0
 
         this.chosenIntersection = undefined
+
+        this.id = id
     }
     
     break(){
@@ -27,13 +29,13 @@ class Car{
         let hover = dist(mouseX, mouseY, this.pos.x, this.pos.y) < 15
         if(this.pos){
             stroke(255, 100)
-            if(hover) stroke(255, 0, 0)
+            if((hover || this.id == 0) && SHOW_DEBUG) stroke(255, 0, 0)
             //if(this.path.redLightAhead(this, 30)) stroke(255, 255, 0)
             strokeWeight(12)
             if(bool) strokeWeight(20)
             point(this.pos.x, this.pos.y)
         }
-        if(hover && SHOW_DEBUG){
+        if((hover && SHOW_DEBUG) || (this.id == 0 && SHOW_DEBUG)){
             noStroke()
             fill(255)
             textSize(16)

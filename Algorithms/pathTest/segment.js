@@ -5,6 +5,15 @@ class Segment{
         this.len = p5.Vector.dist(this.a, this.b)
         this.dir = p5.Vector.sub(this.b, this.a).normalize()
         this.id = id
+
+        // if(random() < 0.5 && this.len > 50){
+        //     this.createRedLight(
+        //         0.8, //relative position on segment
+        //         0,
+        //         floor(random(220, 300)), //duration of red light
+        //         random() < 0.5 //is it on at start
+        //     )
+        // }
     }
 
     createRedLight(relPos, relT, dur, isOn){

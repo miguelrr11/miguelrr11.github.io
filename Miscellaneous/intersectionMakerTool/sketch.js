@@ -8,15 +8,15 @@ p5.disableFriendlyErrors = true
 const WIDTH = 800
 const HEIGHT = 800
 
-const MIN_ANGLE = 0.65
-const MIN_DIST_SEG = 65
-const LANE_WIDTH = 10
+const MIN_ANGLE = 0.35   //0.65
+const MIN_DIST_SEG = 35  //65
+const LANE_WIDTH = 8
 const RAD_BEZIER = 1000
-const RES_BEZIER = 2
+const RES_BEZIER = 6
 
 let showMain = false
 let showIdxPaths = false
-let showAllIdx = true
+let showAllIdx = false
 let showIntersections = false
 
 let anchor = undefined
@@ -29,6 +29,7 @@ let currPath = undefined
 
 let intersections = []
 let intersecPaths = []
+let connectors = []
 
 let bool = true
 
@@ -41,7 +42,7 @@ function inBoundsNodes(x, y, nodes){
 }
 
 function keyPressed(){
-    if(keyCode == 32) finishPath()
+    if(keyCode == 32) finishPath(true)
 }
 
 function tooSharp(A, B, C){
@@ -125,7 +126,7 @@ function mouseClicked(){
             }
         }
         if(inBoundNode){
-            finishPath()
+            finishPath(false)
         }
 
         calculateIntersections()
@@ -133,7 +134,51 @@ function mouseClicked(){
     }
 }
 
-function finishPath(){
+// if a path is finished is not connected all the way through, connect the ends
+function connectEndOfPaths(mainPathIndex){
+    let forwardPaths = paths[mainPathIndex]
+    let backwardPaths = paths[mainPathIndex+1]
+    let startF = forwardPaths[0]
+    let endF = forwardPaths[forwardPaths.length - 1]
+    let startB = backwardPaths[0]
+    let endB = backwardPaths[backwardPaths.length - 1]
+
+    connectors.push({
+        fromPos: endF.to.copy(),
+        toPos: endB.to.copy(),
+        fromPath: endF,
+        toPath: endB,
+        dir: 'forward',
+    })
+
+    connectors.push({
+        fromPos: startB.from.copy(),
+        toPos: startF.from.copy(),
+        fromPath: startB,
+        toPath: startF,
+        dir: 'backward',
+    })
+
+    // paths[mainPathIndex].push({
+    //     from: endB.to.copy(),
+    //     to: endF.to.copy(),
+    //     dir: 'forward',
+    //     mainPathIdx: mainPathIndex,
+    //     segIdx: endF.segIdx + 1,
+    // })
+    // paths[mainPathIndex+1].unshift({
+    //     from: startF.from.copy(),
+    //     to: startB.from.copy(),
+    //     dir: 'backward',
+    //     mainPathIdx: mainPathIndex + 1,
+    //     segIdx: startB.segIdx + 1,
+    // })
+}
+
+function finishPath(unconnected){
+    if(unconnected){
+        connectEndOfPaths(currPathIdx)
+    }
     currPathIdx += 2
     paths.push([], [])
     mainPaths.push([], [])
@@ -285,7 +330,7 @@ function draw(){
 
 function drawIntersectionsPaths(){
     let hoverP = null
-    for(let p of intersecPaths){
+    for(let p of [...intersecPaths, ...connectors]){
         let hover = dist(mouseX, mouseY, p.fromPos.x, p.fromPos.y) < 10
         if(hover){
             hoverP = p
@@ -306,7 +351,7 @@ function drawIntersectionsPaths(){
         noFill()
         return
     }
-    for(let p of intersecPaths){
+    for(let p of [...intersecPaths, ...connectors]){
         let off  = 0
         stroke(0, 0, 255)
         line(p.fromPos.x + off, p.fromPos.y, p.toPos.x + off, p.toPos.y)
@@ -412,7 +457,8 @@ function modifyEndingsCurved(forwardPrev, forwardCurr, backwardPrev, backwardCur
         3 * (1 - t) * Math.pow(t, 2) * p2.y +
         Math.pow(t, 3) * p3.y;
       const curr = createVector(x, y);
-      segs.push({ from: prev.copy(), to: curr.copy(), dir: dirLabel, segIdx: acum});
+      if(dirLabel == 'forward') segs.push({ from: prev.copy(), to: curr.copy(), dir: dirLabel, segIdx: acum});
+      else segs.unshift({ from: prev.copy(), to: curr.copy(), dir: dirLabel, segIdx: acum});
       acum += .1
       acum = Math.round(acum * 100) / 100
       prev = curr;
@@ -495,7 +541,6 @@ function curveEndings(forwardPrev, forwardCurr, backwardPrev, backwardCurr, rad,
     const curves = modifyEndingsCurved(forwardPrev, forwardCurr, backwardPrev, backwardCurr, rad, res, id);
     let forwardPaths = paths[currPathIdx]
     let backwardPaths = paths[currPathIdx+1]
-    //curves.backwardCurve.reverse(); // to maintain correct order when inserting
     if (curves.forwardCurve.length) {
         forwardPaths.splice(forwardPaths.length - 1, 0, ...curves.forwardCurve);
     }
@@ -578,6 +623,7 @@ function exportRoad(){
         }
     }
     let outputIntersections = []
+    intersecPaths.push(...connectors)
     for(let inter of intersecPaths){
         let fromPath = inter.fromPath.pathIdx
         let fromSeg = inter.fromPath.segIdx
@@ -611,4 +657,8 @@ function exportRoad(){
     }
     storeItem('paths', JSON.stringify(outputPaths))
     storeItem('intersections', JSON.stringify({outputIntersections}))
+}
+
+function isInteger(value) {
+    return Number.isInteger(value);
 }

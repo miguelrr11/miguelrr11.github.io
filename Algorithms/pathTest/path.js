@@ -6,7 +6,7 @@ const DIST_CROSS_INTER = 2
 
 let auxCar = null
 
-// paths are supposed to start on an intersection and end on another intersection
+// paths are supposed to start on an intersection and end on another intersection - NOPE not anymore
 
 class Path{
     constructor(id){
@@ -271,10 +271,11 @@ class Path{
         // }
     }
 
-    show(){
+    show(debug_bool){
         for(let seg of this.segments){
             let index = this.segments.indexOf(seg)
-            seg.show(this.col, index)
+            if(debug_bool) seg.show(150, index)
+            else seg.show(this.col, index)
         }
     }
 }
