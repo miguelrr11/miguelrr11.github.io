@@ -33,6 +33,7 @@ class Segment{
 
         if(this.light) this.light.show()
         if(index !== undefined && SHOW_DEBUG){
+            return
             fill(255)
             noStroke()
             textSize(12)

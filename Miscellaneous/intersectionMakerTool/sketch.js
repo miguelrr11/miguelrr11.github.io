@@ -12,12 +12,13 @@ const MIN_ANGLE = 0.35   //0.65
 const MIN_DIST_SEG = 35  //65
 const LANE_WIDTH = 10
 const RAD_BEZIER = 1000
-const RES_BEZIER = 8
+const RES_BEZIER = 8   //NO SUBIR
 
 let showMain = false
 let showIdxPaths = false
 let showAllIdx = false
 let showIntersections = false
+let showOrder = false
 
 let anchor = undefined
 let paths = [[], []]
@@ -136,16 +137,61 @@ function mouseClicked(){
     }
 }
 
+function getLargestSegIdx(path){
+    let largestIdx = -1
+    let largest = -1
+    for(let i = 0; i < path.length; i++){
+        if(path[i].segIdx > largest){
+            largest = path[i].segIdx
+            largestIdx = i
+        }
+    }
+    return path[largestIdx]
+}
+
+function getSmallestSegIdx(path){
+    let smallest = Infinity
+    let smallestIdx = -1
+    for(let i = 0; i < path.length; i++){
+        if(path[i].segIdx < smallest){
+            smallest = path[i].segIdx
+            smallestIdx = i
+        }
+    }
+    return path[smallestIdx]
+}
+
+function getClosest(pos, path){
+    //gets the backward segment closes to the forward segment idx
+    let closest = null
+    let closestDist = Infinity
+    for(let i = 0; i < path.length; i++){
+        let d = dist(path[i].to.x, path[i].to.y, pos.x, pos.y)
+        if(d < closestDist){
+            closestDist = d
+            closest = path[i]
+        }
+        
+    }
+    return closest
+}
+
 // if a path is finished is not connected all the way through, connect the ends
+// if(p[0].dir === 'forward') {
+//     pos1 = p[0].from
+//     pos2 = p[p.length - 1].to
+// }
+// else{
+//     pos1 = p[p.length - 1].from
+//     pos2 = p[0].to
+// }
 function connectEndOfPaths(mainPathIndex){
     let forwardPaths = paths[mainPathIndex]
     let backwardPaths = paths[mainPathIndex+1]
     let startF = forwardPaths[0]
     let endF = forwardPaths[forwardPaths.length - 1]
-    let startB = backwardPaths.reduce((prev, curr) => (curr.segIdx < prev.segIdx ? curr : prev))
-    let endB = backwardPaths.reduce((prev, curr) => (curr.segIdx > prev.segIdx ? curr : prev)) 
-    let eidx = backwardPaths.indexOf(endB)
-    if(mainPaths[mainPathIndex].length > 1) endB = backwardPaths[eidx-1]
+    let startB = backwardPaths[backwardPaths.length - 1]
+    let endB = backwardPaths[0]
 
 
     let segmentsFor = circularSemicircleSegments(endF.to, endB.to, 'left', RES_BEZIER)
@@ -168,21 +214,6 @@ function connectEndOfPaths(mainPathIndex){
         dir: 'backward',
         segments: segmentsBack
     })
-
-    // paths[mainPathIndex].push({
-    //     from: endB.to.copy(),
-    //     to: endF.to.copy(),
-    //     dir: 'forward',
-    //     mainPathIdx: mainPathIndex,
-    //     segIdx: endF.segIdx + 1,
-    // })
-    // paths[mainPathIndex+1].unshift({
-    //     from: startF.from.copy(),
-    //     to: startB.from.copy(),
-    //     dir: 'backward',
-    //     mainPathIdx: mainPathIndex + 1,
-    //     segIdx: startB.segIdx + 1,
-    // })
 }
 
 function finishPath(unconnected){
@@ -415,6 +446,7 @@ function drawIntersectionsPaths(){
         noFill()
         return
     }
+    strokeWeight(2)
     for(let p of all){
         let off  = 0
         stroke(0, 0, 255)
@@ -463,8 +495,7 @@ function drawPaths(){
     for(let p of paths){
         for(let i = 0; i < p.length; i++){
             let p2 = p[i]
-            let col = i / p.length * 255
-            col = 255
+            let col = showOrder ? map(i, 0, p.length, 50, 255) : 255
             if(p2.dir === 'forward') stroke(0, col, 0)
             else stroke(col, 0, 0)
             line(p2.from.x, p2.from.y, p2.to.x, p2.to.y)
@@ -482,6 +513,29 @@ function drawPaths(){
     if(currPath){
         bool ? stroke(0, 255, 0) : stroke(255, 0, 0)
         line(currPath.from.x, currPath.from.y, currPath.to.x, currPath.to.y)
+    }
+    
+    for(let p of paths){
+        noStroke()
+        if(p.length === 0) continue
+        let pos1, pos2
+        if(p[0].dir === 'forward') {
+            pos1 = p[0].from
+            pos2 = p[p.length - 1].to
+        }
+        else{
+            pos1 = p[p.length - 1].from
+            pos2 = p[0].to
+        }
+        if(p[0].dir === 'forward') fill(0, 255, 0)
+        else fill(255, 0, 0)
+        circle(pos1.x, pos1.y, 8)
+        square(pos2.x - 4, pos2.y - 4, 8)
+
+        stroke(255)
+        strokeWeight(3)
+        // line(p[0].from.x, p[0].from.y, p[0].to.x, p[0].to.y)
+        // line(p[p.length - 1].from.x, p[p.length - 1].from.y, p[p.length - 1].to.x, p[p.length - 1].to.y)
     }
 }
 

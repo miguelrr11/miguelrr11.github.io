@@ -8,10 +8,10 @@ const HEIGHT = 800
 
 let road
 let cars = []
-let nCars = 7
+let nCars = 3
 let iters = 1
 
-let SHOW_DEBUG = false
+let SHOW_DEBUG = true
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)

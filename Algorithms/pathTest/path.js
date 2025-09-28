@@ -144,12 +144,6 @@ class Path{
         car.carsAhead = []
         if(this.segments.length === 0) return
 
-        if(!car.pos){
-            car.pos = this.segments[0].a.copy()
-            car.currentSeg = 0
-            car.segPos = 0
-            return
-        }
 
         let seg = this.segments[car.currentSeg]
 
@@ -228,15 +222,23 @@ class Path{
 
         if(car.segPos > seg.len && !this.noMoreRoad(car.currentSeg)){
             //car reached end of segment of the same path and continues in the same path
-            car.currentSeg++
-            if(car.currentSeg >= this.segments.length){
-                car.pos = this.segments[0].a.copy()
-                car.currentSeg = 0
-                car.segPos = 0
-                return
+            //console.log('-----')
+            //console.log(car.currentSeg)
+            let remaining = car.segPos - seg.len
+            while(remaining > 0 && !this.noMoreRoad(car.currentSeg)){
+                car.currentSeg++
+                if(car.currentSeg >= this.segments.length){
+                    car.pos = this.segments[0].a.copy()
+                    car.currentSeg = 0
+                    car.segPos = 0
+                    return
+                }
+                seg = this.segments[car.currentSeg]
+                remaining -= seg.len
             }
-            car.segPos = 0
-            seg = this.segments[car.currentSeg]
+            if(remaining < 0) remaining = 0
+            car.segPos = remaining
+            //console.log(car.currentSeg)
         }
         else if(car.chosenIntersection && dist(car.pos.x, car.pos.y, car.chosenIntersection.pos.x, car.chosenIntersection.pos.y) < DIST_CROSS_INTER){
             //car crosses to another path at an intersection
