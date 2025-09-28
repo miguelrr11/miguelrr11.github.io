@@ -363,7 +363,7 @@ function generateInsideIntersections() {
 function calculateIntersections(){
     intersections = new Map()
     for(let i = 0; i < paths.length; i++){
-        for(let j = i+1; j < paths.length; j++){
+        for(let j = 0; j < paths.length; j++){
             for(let p1 of paths[i]){
                 for(let p2 of paths[j]){
                     let intersec = lineIntersection(p1.from, p1.to, p2.from, p2.to, false)
@@ -381,7 +381,7 @@ function calculateIntersections(){
         }
     }
 }
-   
+
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
