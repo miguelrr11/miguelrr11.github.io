@@ -11,6 +11,7 @@ class Car{
         this.chosenIntersection = undefined
 
         this.id = id
+        this.noMoreRoad = false
     }
     
     break(){

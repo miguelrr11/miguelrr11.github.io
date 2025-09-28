@@ -10,9 +10,9 @@ const HEIGHT = 800
 
 const MIN_ANGLE = 0.35   //0.65
 const MIN_DIST_SEG = 35  //65
-const LANE_WIDTH = 8
+const LANE_WIDTH = 10
 const RAD_BEZIER = 1000
-const RES_BEZIER = 6
+const RES_BEZIER = 8
 
 let showMain = false
 let showIdxPaths = false
@@ -23,6 +23,7 @@ let anchor = undefined
 let paths = [[], []]
 let currPathIdx = 0
 let mainPaths = [[]]
+let hasToBeOrdered = []
 
 let nodes = []
 let currPath = undefined
@@ -43,6 +44,7 @@ function inBoundsNodes(x, y, nodes){
 
 function keyPressed(){
     if(keyCode == 32) finishPath(true)
+    if(key == ENTER) exportRoad()
 }
 
 function tooSharp(A, B, C){
@@ -140,8 +142,14 @@ function connectEndOfPaths(mainPathIndex){
     let backwardPaths = paths[mainPathIndex+1]
     let startF = forwardPaths[0]
     let endF = forwardPaths[forwardPaths.length - 1]
-    let startB = backwardPaths[0]
-    let endB = backwardPaths[backwardPaths.length - 1]
+    let startB = backwardPaths.reduce((prev, curr) => (curr.segIdx < prev.segIdx ? curr : prev))
+    let endB = backwardPaths.reduce((prev, curr) => (curr.segIdx > prev.segIdx ? curr : prev)) 
+    let eidx = backwardPaths.indexOf(endB)
+    if(mainPaths[mainPathIndex].length > 1) endB = backwardPaths[eidx-1]
+
+
+    let segmentsFor = circularSemicircleSegments(endF.to, endB.to, 'left', RES_BEZIER)
+    let segmentsBack = circularSemicircleSegments(startB.from, startF.from, 'left', RES_BEZIER)
 
     connectors.push({
         fromPos: endF.to.copy(),
@@ -149,6 +157,7 @@ function connectEndOfPaths(mainPathIndex){
         fromPath: endF,
         toPath: endB,
         dir: 'forward',
+        segments: segmentsFor
     })
 
     connectors.push({
@@ -157,6 +166,7 @@ function connectEndOfPaths(mainPathIndex){
         fromPath: startB,
         toPath: startF,
         dir: 'backward',
+        segments: segmentsBack
     })
 
     // paths[mainPathIndex].push({
@@ -179,6 +189,10 @@ function finishPath(unconnected){
     if(unconnected){
         connectEndOfPaths(currPathIdx)
     }
+    else{
+        hasToBeOrdered.push(currPathIdx)
+        hasToBeOrdered.push(currPathIdx + 1)
+    }
     currPathIdx += 2
     paths.push([], [])
     mainPaths.push([], [])
@@ -187,90 +201,131 @@ function finishPath(unconnected){
 }
 
 function generateInsideIntersections() {
-    intersecPaths = [];
-    function cornerKey(entry) {
-        const [a, b] = entry.paths;
-        const A = (a.dir === 'forward') ? 'F' : 'B';
-        const B = (b.dir === 'forward') ? 'F' : 'B';
-        return A + B; // "FF" | "FB" | "BF" | "BB"
-    }
-    
-    function laneDirVector(seg) {
-        const v = (seg.dir === 'forward') ?
-            p5.Vector.sub(seg.to, seg.from) // from -> to
-            :
-            p5.Vector.sub(seg.from, seg.to); // backward: to -> from
-        const m = v.mag();
-        return (m === 0) ? createVector(0, 0) : v.div(m);
-    }
+  intersecPaths = [];
 
-    function chooseLaneForCorner(entry, towardVec) {
-        let best = entry.paths[0];
-        let bestDot = -Infinity;
-        for(const seg of entry.paths) {
-            const u = laneDirVector(seg);
-            const dot = u.x * towardVec.x + u.y * towardVec.y;
-            if(dot > bestDot) {
-                bestDot = dot;
-                best = seg;
-            }
-        }
-        return best;
-    }
+  function cornerKey(entry){
+    const [a,b] = entry.paths;
+    const A = (a.dir === 'forward') ? 'F' : 'B';
+    const B = (b.dir === 'forward') ? 'F' : 'B';
+    return A + B; // "FF" | "FB" | "BF" | "BB"
+  }
 
-    function makeConnector(fromEntry, toEntry) {
-        const v = createVector(
-            toEntry.pos.x - fromEntry.pos.x,
-            toEntry.pos.y - fromEntry.pos.y
-        );
-        const vm = v.mag();
-        const dir = (vm === 0) ? createVector(1, 0) : v.div(vm); 
-        const fromLane = chooseLaneForCorner(fromEntry, dir);
-        const toLane = chooseLaneForCorner(toEntry, dir);
+  function laneDirVector(seg){
+    const v = (seg.dir === 'forward')
+      ? p5.Vector.sub(seg.to, seg.from)
+      : p5.Vector.sub(seg.from, seg.to);
+    const m = v.mag();
+    return (m === 0) ? createVector(1,0) : v.div(m);
+  }
+
+  // 2D cross of vectors
+  function crossZVec(a, b){ return a.x * b.y - a.y * b.x; }
+
+  // Signed side test for a point C w.r.t. directed line P->Q
+  function crossZ(P, Q, C){
+    const ABx = Q.x - P.x, ABy = Q.y - P.y;
+    const ACx = C.x - P.x, ACy = C.y - P.y;
+    return ABx * ACy - ABy * ACx;
+  }
+
+  // For a given diagonal, compute the other two corners and split into left/right of from->to
+  function cornerLR(buckets, fromEntry, toEntry){
+    const all = ['FF','FB','BF','BB'];
+    const used = new Set([cornerKey(fromEntry), cornerKey(toEntry)]);
+    const others = all.filter(k => !used.has(k)).map(k => buckets[k]).filter(Boolean);
+
+    if (others.length < 2) return { left: null, right: null };
+
+    const P = fromEntry.pos, Q = toEntry.pos;
+    const c1 = others[0].pos, c2 = others[1].pos;
+
+    let left = null, right = null;
+    if (crossZ(P, Q, c1) > 0) left = c1; else right = c1;
+    if (crossZ(P, Q, c2) > 0) left = left ?? c2; else right = right ?? c2;
+
+    return { left, right };
+  }
+
+  function makeConnector(fromEntry, toEntry, buckets){
+    const v = createVector(
+      toEntry.pos.x - fromEntry.pos.x,
+      toEntry.pos.y - fromEntry.pos.y
+    );
+    const vm  = v.mag();
+    const dir = (vm === 0) ? createVector(1,0) : v.div(vm);
+
+    const fromLane = chooseLaneForCorner(fromEntry, dir);
+    const toLane   = chooseLaneForCorner(toEntry,   dir);
+
+    // Determine left/right candidate corners for this diagonal
+    const { left, right } = cornerLR(buckets, fromEntry, toEntry);
+
+    // Choose one corner based on actual turn from source lane to target lane
+    const u_from = laneDirVector(fromLane);
+    const u_to   = laneDirVector(toLane);
+    const z = crossZVec(u_from, u_to); // >0 left turn, <0 right turn
+
+    let corner = null;
+    const TURN_EPS = 1e-3;
+    if (z >  TURN_EPS && left)  corner = right;
+    else if (z < -TURN_EPS && right) corner = left;
+    else corner = left || right || null; // near-straight or missing: pick available
+
+      const P0 = { x: fromEntry.pos.x, y: fromEntry.pos.y };
+        const P2 = { x: toEntry.pos.x,   y: toEntry.pos.y };
+
+        const segs = corner
+            ? curveSegmentsTowardCorner(P0, corner, P2, RES_BEZIER)
+            : [{ a: P0, b: P2, id: 0 }]; // fallback straight
+
         return {
-            fromPos: {
-                x: fromEntry.pos.x,
-                y: fromEntry.pos.y
-            },
-            toPos: {
-                x: toEntry.pos.x,
-                y: toEntry.pos.y
-            },
+            fromPos: P0,
+            toPos:   P2,
             fromPath: fromLane,
-            toPath: toLane,
-            dir: (fromLane.dir === 'forward') ? 'forward' : 'backward'
+            toPath:   toLane,
+            corner,                 // used only to bias curvature
+            dir: (fromLane.dir === 'forward') ? 'forward' : 'backward',
+            segments: segs
         };
+        
+  }
+
+  function chooseLaneForCorner(entry, towardVec){
+    let best = entry.paths[0], bestDot = -Infinity;
+    for (const seg of entry.paths){
+      const u = laneDirVector(seg);
+      const dot = u.x * towardVec.x + u.y * towardVec.y;
+      if (dot > bestDot){ bestDot = dot; best = seg; }
     }
-    for(let [key, intersecs] of intersections) {
-        const buckets = {
-            FF: null,
-            FB: null,
-            BF: null,
-            BB: null
-        };
-        for(const e of intersecs) {
-            const k = cornerKey(e);
-            if(!buckets[k]) {
-                buckets[k] = e;
-            }
-            else {
-                const cx = intersecs.reduce((s, it) => s + it.pos.x, 0) / intersecs.length;
-                const cy = intersecs.reduce((s, it) => s + it.pos.y, 0) / intersecs.length;
-                const dNew = dist(e.pos.x, e.pos.y, cx, cy);
-                const dOld = dist(buckets[k].pos.x, buckets[k].pos.y, cx, cy);
-                if(dNew < dOld) buckets[k] = e;
-            }
-        }
-        const { FF, FB, BF, BB } = buckets;
-        if(FF && BB) {
-            intersecPaths.push(makeConnector(FF, BB)); // FF → BB
-            intersecPaths.push(makeConnector(BB, FF)); // BB → FF (reverse movement)
-        }
-        if(FB && BF) {
-            intersecPaths.push(makeConnector(FB, BF)); // FB → BF
-            intersecPaths.push(makeConnector(BF, FB)); // BF → FB (reverse movement)
-        }
+    return best;
+  }
+
+  for (let [key, intersecs] of intersections) {
+    // stable representative per bucket (closest to centroid)
+    const cx = intersecs.reduce((s, it) => s + it.pos.x, 0) / intersecs.length;
+    const cy = intersecs.reduce((s, it) => s + it.pos.y, 0) / intersecs.length;
+
+    const buckets = { FF:null, FB:null, BF:null, BB:null };
+    for (const e of intersecs){
+      const k = cornerKey(e);
+      if (!buckets[k]) buckets[k] = e;
+      else {
+        const dNew = dist(e.pos.x, e.pos.y, cx, cy);
+        const dOld = dist(buckets[k].pos.x, buckets[k].pos.y, cx, cy);
+        if (dNew < dOld) buckets[k] = e;
+      }
     }
+
+    const { FF, FB, BF, BB } = buckets;
+    if (FF && BB){
+      intersecPaths.push( makeConnector(FF, BB, buckets) ); // FF → BB
+      intersecPaths.push( makeConnector(BB, FF, buckets) ); // BB → FF
+    }
+    if (FB && BF){
+      intersecPaths.push( makeConnector(FB, BF, buckets) ); // FB → BF
+      intersecPaths.push( makeConnector(BF, FB, buckets) ); // BF → FB
+    }
+  }
 }
 
 
@@ -295,7 +350,7 @@ function calculateIntersections(){
         }
     }
 }
-    
+   
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
@@ -330,7 +385,8 @@ function draw(){
 
 function drawIntersectionsPaths(){
     let hoverP = null
-    for(let p of [...intersecPaths, ...connectors]){
+    let all = [...intersecPaths, ...connectors]
+    for(let p of all){
         let hover = dist(mouseX, mouseY, p.fromPos.x, p.fromPos.y) < 10
         if(hover){
             hoverP = p
@@ -347,14 +403,25 @@ function drawIntersectionsPaths(){
         line(hoverP.fromPath.from.x, hoverP.fromPath.from.y, hoverP.fromPath.to.x, hoverP.fromPath.to.y)
         stroke(255, 0, 0, 80)
         line(hoverP.toPath.from.x, hoverP.toPath.from.y, hoverP.toPath.to.x, hoverP.toPath.to.y)
+        stroke(0, 0, 255)
+        strokeWeight(2)
+        for(let seg of hoverP.segments){
+            line(seg.a.x, seg.a.y, seg.b.x, seg.b.y)
+        }
+        stroke(0, 0, 255)
+        fill(0, 0, 255, 100)
+        if(hoverP.corner) ellipse(hoverP.corner.x, hoverP.corner.y, 8)
         strokeWeight(1)
         noFill()
         return
     }
-    for(let p of [...intersecPaths, ...connectors]){
+    for(let p of all){
         let off  = 0
         stroke(0, 0, 255)
-        line(p.fromPos.x + off, p.fromPos.y, p.toPos.x + off, p.toPos.y)
+        //line(p.fromPos.x + off, p.fromPos.y, p.toPos.x + off, p.toPos.y)
+        for(let seg of p.segments){
+            line(seg.a.x + off, seg.a.y, seg.b.x + off, seg.b.y)
+        }
         fill(0, 0, 255, 100)
         ellipse(p.fromPos.x + off, p.fromPos.y, 8)
     }
@@ -402,8 +469,8 @@ function drawPaths(){
             else stroke(col, 0, 0)
             line(p2.from.x, p2.from.y, p2.to.x, p2.to.y)
             fill(255)
-            let mainindex = p2.mainPathIdx !== undefined ? p2.mainPathIdx : ''
-            let idx = p2.segIdx !== undefined ? p2.segIdx : ''
+            let mainindex = p2.pathIdx !== undefined ? p2.pathIdx : '_'
+            let idx = p2.segIdx !== undefined ? p2.segIdx : '_'
             if(showIdxPaths) text(mainindex + ' ' + idx, (p2.from.x + p2.to.x)/2, (p2.from.y + p2.to.y)/2)
             if(showAllIdx){
                 let index = p2.segIdx != undefined ? p2.segIdx : '?'
@@ -541,6 +608,8 @@ function curveEndings(forwardPrev, forwardCurr, backwardPrev, backwardCurr, rad,
     const curves = modifyEndingsCurved(forwardPrev, forwardCurr, backwardPrev, backwardCurr, rad, res, id);
     let forwardPaths = paths[currPathIdx]
     let backwardPaths = paths[currPathIdx+1]
+    for(let p of forwardPaths) p.pathIdx = currPathIdx
+    for(let p of backwardPaths) p.pathIdx = currPathIdx + 1
     if (curves.forwardCurve.length) {
         forwardPaths.splice(forwardPaths.length - 1, 0, ...curves.forwardCurve);
     }
@@ -592,12 +661,25 @@ function getId(p){
     return id
 }
 
+function getPathIdx(p){
+    if(p.length === 0) return -1
+    let i = 0
+    let id = p[0].pathIdx
+    while(id == undefined || id == null){
+        i++
+        if(i >= p.length) return -1
+        id = p[i].pathIdx
+    }
+    return id
+}
+
 function exportRoad(){
     for(let p of paths){
+        if(!hasToBeOrdered.includes(getPathIdx(p))) continue
         orderPath(p)
+        console.log('ordered path ' + getId(p))
         if(p.length > 0 && p[0].dir === 'backward'){ 
             p.reverse()
-            console.log('reversed')
         }
     }
 
@@ -631,12 +713,17 @@ function exportRoad(){
         let toSeg = inter.toPath.segIdx
 
         //create a new path for the intersection segment
-        outputPaths.push({segments: [], id: outputPaths.length})
-        outputPaths[outputPaths.length - 1].segments.push({
-            a: {x: inter.fromPos.x, y: inter.fromPos.y},
-            b: {x: inter.toPos.x, y: inter.toPos.y},
-            id: 0
-        })
+        //outputPaths.push({segments: [], id: outputPaths.length})
+        // outputPaths[outputPaths.length - 1].segments.push({
+        //     a: {x: inter.fromPos.x, y: inter.fromPos.y},
+        //     b: {x: inter.toPos.x, y: inter.toPos.y},
+        //     id: 0
+        // })
+        let arr = [...inter.segments]
+        console.log(arr)
+        outputPaths.push({segments: arr, id: outputPaths.length})
+
+        let lastSegIdx = arr[arr.length - 1].id
 
         let interPath = outputPaths.length - 1
 
@@ -646,7 +733,7 @@ function exportRoad(){
             point: {x: inter.fromPos.x, y: inter.fromPos.y}
         })
         outputIntersections.push({
-            from: {path: interPath, segment: 0},
+            from: {path: interPath, segment: lastSegIdx},
             to: {path: toPath, segment: toSeg},
             point: {x: inter.toPos.x, y: inter.toPos.y}
         })
@@ -657,8 +744,109 @@ function exportRoad(){
     }
     storeItem('paths', JSON.stringify(outputPaths))
     storeItem('intersections', JSON.stringify({outputIntersections}))
+
+    console.log('exported')
 }
 
 function isInteger(value) {
     return Number.isInteger(value);
+}
+
+function curveSegmentsTowardCorner(P0, corner, P2, N, maxBendFrac = 0.3){
+  const n = Math.max(2, Math.floor(N || 8));
+
+  // Midpoint of chord and bias vector toward corner
+  const mid = { x: (P0.x + P2.x) * 0.5, y: (P0.y + P2.y) * 0.5 };
+  let vx = corner.x - mid.x;
+  let vy = corner.y - mid.y;
+
+  // Clamp control offset length
+  const chord = Math.hypot(P2.x - P0.x, P2.y - P0.y);
+  const maxLen = maxBendFrac * chord;
+  const vlen = Math.hypot(vx, vy) || 1e-9;
+  const scale = Math.min(1, maxLen / vlen);
+  vx *= scale; vy *= scale;
+
+  // Single quadratic control point (does NOT force passing through corner)
+  const C = { x: mid.x + vx, y: mid.y + vy };
+
+  function quadPoint(t){
+    const u = 1 - t;
+    return {
+      x: u*u*P0.x + 2*u*t*C.x + t*t*P2.x,
+      y: u*u*P0.y + 2*u*t*C.y + t*t*P2.y
+    };
+  }
+
+  const segs = [];
+  let prev = quadPoint(0);
+  for (let i = 1; i <= n; i++){
+    const t = i / n;
+    const curr = quadPoint(t);
+    segs.push({ a: {x: prev.x, y: prev.y}, b: {x: curr.x, y: curr.y}, id: i-1 });
+    prev = curr;
+  }
+  return segs;
+}
+
+function equilateralCandidates(A, B, d){
+  // A, B are {x,y}, d is how far from AB you want C
+  const M = { x: (A.x + B.x) / 2, y: (A.y + B.y) / 2 };
+
+  const vx = B.x - A.x;
+  const vy = B.y - A.y;
+
+  // perpendicular directions
+  let px = -vy;
+  let py = vx;
+
+  // normalize
+  const len = Math.hypot(px, py) || 1e-9;
+  px /= len;
+  py /= len;
+
+  // two possible C points
+  const C1 = { x: M.x + px * d, y: M.y + py * d };
+  const C2 = { x: M.x - px * d, y: M.y - py * d };
+
+  return [C1, C2];
+}
+
+function circularSemicircleSegments(A, B, side = 'left', N = RES_BEZIER){
+  const n = Math.max(2, Math.floor(N || 8));
+  const vx = B.x - A.x, vy = B.y - A.y;
+  const d  = Math.hypot(vx, vy);
+  if (d < 1e-9) {
+    // Degenerate: A and B coincide — return a tiny stub
+    return [{ a: {x: A.x, y: A.y}, b: {x: A.x, y: A.y}, id: 0 }];
+  }
+
+  // Circle center and radius
+  const M = { x: (A.x + B.x) * 0.5, y: (A.y + B.y) * 0.5 };
+  const r = d * 0.5;
+
+  // Orthonormal frame: u along A→B, n_left = +90° of u
+  const ux = vx / d, uy = vy / d;
+  const nLx = -uy, nLy = ux;                // left-normal
+  const nx  = (side === 'left') ? nLx : -nLx;
+  const ny  = (side === 'left') ? nLy : -nLy;
+
+  // Parametric arc: θ goes from π (A) to 0 (B)
+  function pointAtTheta(theta){
+    const c = Math.cos(theta), s = Math.sin(theta);
+    return {
+      x: M.x + r * (c * ux + s * nx),
+      y: M.y + r * (c * uy + s * ny)
+    };
+  }
+
+  const segs = [];
+  let prev = pointAtTheta(Math.PI); // A
+  for (let i = 1; i <= n; i++){
+    const theta = Math.PI - (i * Math.PI / n);
+    const curr = pointAtTheta(theta);
+    segs.push({ a: {x: prev.x, y: prev.y}, b: {x: curr.x, y: curr.y}, id: i-1 });
+    prev = curr;
+  }
+  return segs;
 }

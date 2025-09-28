@@ -215,6 +215,8 @@ class Path{
             }
             
         }
+
+        car.noMoreRoad = noMoreRoad
         
         let hasToBreak = redLightAhead || carsAhead || noMoreRoad
 
