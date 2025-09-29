@@ -64,9 +64,9 @@ function draw(){
     else iters = 1
     for(let i = 0; i < iters; i++){ 
         road.update()
-        road.show()
+        road.showCars()
     }
-
+    road.show()
 }
 
 function createPointsForCircle(x, y, r, n){

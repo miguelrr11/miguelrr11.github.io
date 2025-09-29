@@ -2,23 +2,37 @@
 //Miguel Rodríguez
 //25-09-2025
 
-//justo antes de exportarlo, hay que crear paths nuevos entre cada punto de interseccion de los paths (splicearlo)
+//almost all bezier code taken from chatgpt
+
+//idea: a la hora de hacer las curvas, limitarlas hasta el punto de la interseccion en ese segmento, asi no te cargas las intersecciones con la curva
+//idea: tool para hacer segmentos con bezier (en vez de lineas rectas)
 
 p5.disableFriendlyErrors = true
 const WIDTH = 800
 const HEIGHT = 800
 
-const MIN_ANGLE = 0.35   //0.65
-const MIN_DIST_SEG = 35  //65
-const LANE_WIDTH = 10
+const MIN_ANGLE = 0.7   //0.65
+let LANE_WIDTH = 15
+let MIN_DIST_SEG = LANE_WIDTH * 4  //65
 const RAD_BEZIER = 1000
-const RES_BEZIER = 8   //NO SUBIR
+const RES_BEZIER = 10
+const MIN_N_SEGS_PER_CURVE = 2
+const MAX_N_SEGS_PER_CURVE = 15
 
-let showMain = false
+const MAX_UNDO = 50
+
+//DEBUG
+let showMain = true
 let showIdxPaths = false
 let showAllIdx = false
 let showIntersections = false
 let showOrder = false
+let showNodes = true
+let showBezierPoints = true
+let showStateDebug = false
+let showIntersectionsPoints = false
+let SHOW_DEBUG = false
+let stateIndexShowDebug = 0
 
 let anchor = undefined
 let paths = [[], []]
@@ -27,13 +41,183 @@ let mainPaths = [[]]
 let hasToBeOrdered = []
 
 let nodes = []
-let currPath = undefined
+let nodeID = 0
 
 let intersections = []
 let intersecPaths = []
 let connectors = []
 
-let bool = true
+let auxIntersec = []
+
+let currMousePos = {x: 0, y: 0}
+
+let undoStack = []
+
+let oldState = getNewFreshState()
+
+function setLineWidth(w){
+    LANE_WIDTH = w
+    MIN_DIST_SEG = LANE_WIDTH * 4
+}
+
+function getNewFreshState(){
+    return {
+        paths: [[], []],
+        mainPaths: [[], []],
+        currPathIdx: 0,
+        hasToBeOrdered: [],
+        nodes: [],
+        intersections: [],
+        intersecPaths: [],
+        connectors: [],
+        nodeID: 0,
+        anchor: undefined
+    }
+}
+
+function getCurrentState(){
+    return {
+        paths: paths,
+        mainPaths: mainPaths,
+        currPathIdx: currPathIdx,
+        hasToBeOrdered: hasToBeOrdered,
+        nodes: nodes,
+        intersections: intersections,
+        intersecPaths: intersecPaths,
+        connectors: connectors,
+        nodeID: nodeID,
+        anchor: anchor
+    }
+}
+
+function debugState(){
+    console.log('Actual State:')
+    console.log('Paths:', paths)
+    console.log('Main Paths:', mainPaths)
+    console.log('Current Path Index:', currPathIdx)
+    console.log('Has to be Ordered:', hasToBeOrdered)
+    console.log('Nodes:', nodes)
+    console.log('Intersections:', intersections)
+    console.log('Intersection Paths:', intersecPaths)
+    console.log('Connectors:', connectors)
+    console.log('-------------------')
+    console.log('Old State:')
+    console.log('Paths:', oldState.paths)
+    console.log('Main Paths:', oldState.mainPaths)
+    console.log('Current Path Index:', oldState.currPathIdx)
+    console.log('Has to be Ordered:', oldState.hasToBeOrdered)
+    console.log('Nodes:', oldState.nodes)
+    console.log('Intersections:', oldState.intersections)
+    console.log('Intersection Paths:', oldState.intersecPaths)
+    console.log('Connectors:', oldState.connectors) 
+}
+
+function restoreState(state){
+    paths = state.paths
+    mainPaths = state.mainPaths
+    currPathIdx = state.currPathIdx
+    hasToBeOrdered = state.hasToBeOrdered
+    nodes = state.nodes
+    intersections = state.intersections
+    intersecPaths = state.intersecPaths
+    connectors = state.connectors
+    nodeID = state.nodeID
+    anchor = state.anchor
+}
+
+function saveState(state){
+    let oldPaths = []
+    for(let p of paths){
+        oldPaths.push([])
+        for(let seg of p){
+            oldPaths[oldPaths.length - 1].push(copySegment(seg))
+        }
+    }
+    let oldMainPaths = []
+    for(let p of mainPaths){
+        oldMainPaths.push([])
+        for(let seg of p){
+            oldMainPaths[oldMainPaths.length - 1].push(copyMainPaths(seg))
+        }
+    }
+    state.paths = oldPaths
+    state.mainPaths = oldMainPaths
+    state.currPathIdx = currPathIdx
+    state.hasToBeOrdered = [...hasToBeOrdered]
+    state.nodes = []
+    for(let n of nodes){
+        state.nodes.push({
+            pos: n.pos.copy(),
+            prev: n.prev,
+            next: n.next,
+            id: n.id,
+            mainPathIdx: n.mainPathIdx
+        })
+    }
+    state.intersections = new Map()
+    state.intersecPaths = []
+    for(let p of intersecPaths){
+        let oldSegments = []
+        for(let s of p.segments){
+            oldSegments.push({
+                a: {x: s.a.x, y: s.a.y},
+                b: {x: s.b.x, y: s.b.y},
+                id: s.id
+            })
+        }
+        let corner = p.corner == undefined ? undefined : {x: p.corner.x, y: p.corner.y}
+        state.intersecPaths.push({
+            fromPos: {x: p.fromPos.x, y: p.fromPos.y},
+            toPos: {x: p.toPos.x, y: p.toPos.y},
+            dir: p.dir,
+            segments: oldSegments,
+            corner: corner,
+            fromPath: {
+                dir: p.fromPath.dir,
+                from: p.fromPath.from.copy(),
+                to: p.fromPath.to.copy(),
+                mainPathIdx: p.fromPath.mainPathIdx,
+                segIdx: p.fromPath.segIdx,
+                pathIdx: p.fromPath.pathIdx
+            },
+            toPath: {
+                dir: p.toPath.dir,
+                from: p.toPath.from.copy(),
+                to: p.toPath.to.copy(),
+                mainPathIdx: p.toPath.mainPathIdx,
+                segIdx: p.toPath.segIdx,
+                pathIdx: p.toPath.pathIdx
+            }
+        })
+    }
+    state.connectors = []
+    for(let c of connectors){
+        state.connectors.push({
+            fromPath: {
+                dir: c.fromPath.dir,
+                from: c.fromPath.from.copy(),
+                to: c.fromPath.to.copy(),
+                mainPathIdx: c.fromPath.mainPathIdx,
+                segIdx: c.fromPath.segIdx,
+                pathIdx: c.fromPath.pathIdx
+            },
+            toPath: {
+                dir: c.toPath.dir,
+                from: c.toPath.from.copy(),
+                to: c.toPath.to.copy(),
+                mainPathIdx: c.toPath.mainPathIdx,
+                segIdx: c.toPath.segIdx,
+                pathIdx: c.toPath.pathIdx
+            },
+            fromPos: c.fromPos.copy(),
+            toPos: c.toPos.copy(),
+            dir: c.dir,
+            segments: c.segments.map(s => ({a: {x: s.a.x, y: s.a.y}, b: {x: s.b.x, y: s.b.y}, id: s.id}))
+        })
+    }
+    state.nodeID = nodeID
+    state.anchor = anchor === undefined ? undefined : anchor.copy()
+}
 
 function inBoundsNodes(x, y, nodes){
     for(let n of nodes){
@@ -43,9 +227,25 @@ function inBoundsNodes(x, y, nodes){
     return false
 }
 
+function undo(){
+    if(undoStack.length == 0){
+        restoreState(getNewFreshState())
+        return
+    }
+    oldState = undoStack[undoStack.length - 1]
+    undoStack.pop()
+    restoreState(oldState)
+    console.log('Restored state from undo stack. Stack size:', undoStack.length)
+}
+
 function keyPressed(){
-    if(keyCode == 32) finishPath(true)
+    if(keyCode == 32){ 
+        finishPath(true)
+        saveToUndoStack()
+    }
     if(key == ENTER) exportRoad()
+    if(key == 'z') undo()
+    if(key == UP_ARROW) stateIndexShowDebug = (stateIndexShowDebug + 1) % (undoStack.length)
 }
 
 function tooSharp(A, B, C){
@@ -53,11 +253,12 @@ function tooSharp(A, B, C){
     return angle < MIN_ANGLE && angle > -MIN_ANGLE
 }
 
-function mouseClicked(){
+
+function mousePressed(){
     if(mouseX < 0 || mouseX > WIDTH || mouseY < 0 || mouseY > HEIGHT) return
     if(anchor === undefined){
         anchor = createVector(mouseX, mouseY)
-        nodes.push({pos: anchor.copy(), prev: null, next: null})
+        nodes.push({pos: anchor.copy(), prev: null, next: null, id: nodeID++, mainPathIdx: currPathIdx})
     } 
     else {
         let to = createVector(mouseX, mouseY)
@@ -65,7 +266,7 @@ function mouseClicked(){
         if(dist(anchor.x, anchor.y, to.x, to.y) < MIN_DIST_SEG) return
 
         let inBoundNode = inBoundsNodes(mouseX, mouseY, nodes)
-        if(inBoundNode){
+        if(inBoundNode.mainPathIdx == currPathIdx && inBoundNode.prev === null){
             to = inBoundNode.pos.copy()
             if(dist(anchor.x, anchor.y, to.x, to.y) < MIN_DIST_SEG) return
 
@@ -83,8 +284,14 @@ function mouseClicked(){
                 return
             }
 
-            nodes[nodes.length - 1].next = inBoundNode
-            inBoundNode.prev = nodes[nodes.length - 1]
+            nodes[nodes.length - 1].next = inBoundNode.id
+            inBoundNode.prev = nodes[nodes.length - 1].id
+        }
+        else inBoundNode = undefined
+
+        if(mouseIntersectsRoad() && !inBoundNode){
+            to.x = currMousePos.x
+            to.y = currMousePos.y
         }
 
         if (paths[currPathIdx].length > 0) {
@@ -96,13 +303,23 @@ function mouseClicked(){
             }
         }
 
+        let mainAngle
+        if(mainPaths[currPathIdx].length > 0) {
+            const A = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from;
+            const B = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to;
+            const C = to
+            mainAngle = Math.abs(angleAtVertex(B, A, C))
+        }
+
         mainPaths[currPathIdx].push({from: anchor.copy(), to: to.copy()})
+
+        
 
         anchor = createVector(mouseX, mouseY)
         
         if(!inBoundNode){
-            nodes.push({pos: anchor.copy(), prev: nodes[nodes.length - 1], next: null})
-            nodes[nodes.length - 2].next = nodes[nodes.length - 1]
+            nodes.push({pos: anchor.copy(), prev: nodes[nodes.length - 1].id, next: null, id: nodeID++, mainPathIdx: currPathIdx})
+            nodes[nodes.length - 2].next = nodes[nodes.length - 1].id
         }
 
         let dir = p5.Vector.sub(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to, mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from)
@@ -112,28 +329,279 @@ function mouseClicked(){
 
         let newFrom1 = p5.Vector.add(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from, perp)
         let newTo1 = p5.Vector.add(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to, perp)
-        paths[currPathIdx].push({from: newFrom1, to: newTo1, dir: 'forward', mainPathIdx: currPathIdx, segIdx: mainPaths[currPathIdx].length - 1, pathIdx: currPathIdx})
+        paths[currPathIdx].push(
+            {from: newFrom1, 
+                to: newTo1, 
+                dir: 'forward', 
+                mainPathIdx: currPathIdx, 
+                segIdx: mainPaths[currPathIdx].length - 1, 
+                pathIdx: currPathIdx
+            })
 
         let newFrom2 = p5.Vector.sub(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from, perp)
         let newTo2 = p5.Vector.sub(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to, perp)
-        paths[currPathIdx+1].unshift({from: newFrom2, to: newTo2, dir: 'backward', mainPathIdx: currPathIdx, segIdx: mainPaths[currPathIdx].length - 1, pathIdx: currPathIdx+1})
+        paths[currPathIdx+1].unshift({
+            from: newFrom2, 
+            to: newTo2, 
+            dir: 'backward', 
+            mainPathIdx: currPathIdx, 
+            segIdx: mainPaths[currPathIdx].length - 1, 
+            pathIdx: currPathIdx+1
+        })
 
-        if(paths[currPathIdx].length > 1){
-            let forwardPaths = paths[currPathIdx]
-            let backwardPaths = paths[currPathIdx+1]
-            curveEndings(forwardPaths[forwardPaths.length - 2], forwardPaths[forwardPaths.length - 1],
-                         backwardPaths[1], backwardPaths[0], RAD_BEZIER, RES_BEZIER, forwardPaths.length - 2);
-            if(inBoundNode){
-                curveEndings(forwardPaths[forwardPaths.length - 1], forwardPaths[0],
-                             backwardPaths[0], backwardPaths[backwardPaths.length - 1], RAD_BEZIER, RES_BEZIER, forwardPaths.length - 2);
+        
+        if(true) {
+            
+            if(paths[currPathIdx].length > 1) {
+                const forwardPaths = paths[currPathIdx];
+                const backwardPaths = paths[currPathIdx + 1];
+                const forPrev = forwardPaths[forwardPaths.length - 2];
+                const forCurr = forwardPaths[forwardPaths.length - 1];
+                const backPrev = backwardPaths[1];
+                const backCurr = backwardPaths[0];
+                prepareSegmentsForCurve(forPrev, forCurr, backPrev, backCurr, mainAngle)
+                curveEndings(forPrev, forCurr, backPrev, backCurr, RAD_BEZIER, RES_BEZIER, forwardPaths.length - 2);
+                if(inBoundNode) {
+                    prepareSegmentsForCurve(forCurr, forwardPaths[0], backCurr, backwardPaths[backwardPaths.length - 1], mainAngle);
+                    curveEndings(forCurr, forwardPaths[0], backCurr, backwardPaths[backwardPaths.length - 1], RAD_BEZIER, RES_BEZIER, forwardPaths.length - 2);
+                }
             }
-        }
+        }         
+
         if(inBoundNode){
             finishPath(false)
         }
 
+
         calculateIntersections()
         generateInsideIntersections()
+        generateUnconnectedIntersections()
+
+        currMousePos.x = to.x
+        currMousePos.y = to.y
+    }
+    saveToUndoStack()
+}
+
+
+function setCurrentSegment(){
+    currMousePos.x = mouseX
+    currMousePos.y = mouseY
+    if(mainPaths.length === 0) {
+        return
+    } 
+    else if(mainPaths[currPathIdx].length === 0){
+        let closest = getClosestPointToPaths(currMousePos)
+        if(closest && closest.point && dist(closest.point.x, closest.point.y, mouseX, mouseY) < LANE_WIDTH){
+            line(currMousePos.x, currMousePos.y, closest.point.x, closest.point.y)
+            currMousePos.x = closest.point.x
+            currMousePos.y = closest.point.y
+            
+        }
+    }
+    if(anchor) {
+        let to = createVector(mouseX, mouseY)
+        if(dist(anchor.x, anchor.y, to.x, to.y) < MIN_DIST_SEG) return
+
+        let inBoundNode = inBoundsNodes(mouseX, mouseY, nodes)
+        if(inBoundNode.mainPathIdx == currPathIdx && inBoundNode.prev === null){
+            to = inBoundNode.pos.copy()
+            
+
+            let A = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from;
+            let B = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to;   
+            let C = to;
+            if (tooSharp(A, B, C)) {
+                return
+            }
+
+            A = mainPaths[currPathIdx][0].to
+            B = mainPaths[currPathIdx][0].from
+            C = anchor
+            if (tooSharp(A, B, C)) {
+                return
+            }
+
+        }
+        else inBoundNode = undefined
+
+        if(mouseIntersectsRoad() && !inBoundNode){
+            to.x = currMousePos.x
+            to.y = currMousePos.y
+        }
+
+        if (paths[currPathIdx].length > 0) {
+            const A = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from;
+            const B = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to;
+            const C = to;
+            if (tooSharp(A, B, C)) {
+                return
+            }
+        }
+
+        let mainAngle
+        if(mainPaths[currPathIdx].length > 0) {
+            const A = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from;
+            const B = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to;
+            const C = to;
+            mainAngle = Math.abs(angleAtVertex(B, A, C))
+        }
+
+        mainPaths[currPathIdx].push({from: anchor.copy(), to: to.copy()})
+
+        // anchor = createVector(mouseX, mouseY)
+        
+        // if(!inBoundNode){
+        //     nodes.push({pos: anchor.copy(), prev: nodes[nodes.length - 1].id, next: null, id: nodeID++})
+        //     nodes[nodes.length - 2].next = nodes[nodes.length - 1].id
+        // }
+
+        let dir = p5.Vector.sub(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to, mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from)
+        dir.normalize()
+        let perp = createVector(-dir.y, dir.x)
+        perp.mult(LANE_WIDTH)
+
+        let newFrom1 = p5.Vector.add(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from, perp)
+        let newTo1 = p5.Vector.add(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to, perp)
+        paths[currPathIdx].push(
+            {from: newFrom1, 
+                to: newTo1, 
+                dir: 'forward', 
+                mainPathIdx: currPathIdx, 
+                segIdx: mainPaths[currPathIdx].length - 1, 
+                pathIdx: currPathIdx
+            })
+
+        let newFrom2 = p5.Vector.sub(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from, perp)
+        let newTo2 = p5.Vector.sub(mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to, perp)
+        paths[currPathIdx+1].unshift({
+            from: newFrom2, 
+            to: newTo2, 
+            dir: 'backward', 
+            mainPathIdx: currPathIdx, 
+            segIdx: mainPaths[currPathIdx].length - 1, 
+            pathIdx: currPathIdx+1
+        })
+
+        
+        if(true) {
+            if(paths[currPathIdx].length > 1) {
+                const forwardPaths = paths[currPathIdx];
+                const backwardPaths = paths[currPathIdx + 1];
+                const forPrev = forwardPaths[forwardPaths.length - 2];
+                const forCurr = forwardPaths[forwardPaths.length - 1];
+                const backPrev = backwardPaths[1];
+                const backCurr = backwardPaths[0];
+                prepareSegmentsForCurve(forPrev, forCurr, backPrev, backCurr, mainAngle)
+                curveEndings(forPrev, forCurr, backPrev, backCurr, RAD_BEZIER, RES_BEZIER, forwardPaths.length - 2);
+                if(inBoundNode) {
+                    prepareSegmentsForCurve(forCurr, forwardPaths[0], backCurr, backwardPaths[backwardPaths.length - 1], mainAngle);
+                    curveEndings(forCurr, forwardPaths[0], backCurr, backwardPaths[backwardPaths.length - 1], RAD_BEZIER, RES_BEZIER, forwardPaths.length - 2);
+                }
+            }
+        }
+        
+
+        // if(inBoundNode){
+        //     finishPath(false)
+        // }
+
+
+        calculateIntersections()
+        generateInsideIntersections()
+        generateUnconnectedIntersections()
+
+        currMousePos.x = to.x
+        currMousePos.y = to.y
+
+    }
+}
+
+function saveToUndoStack(){
+    if(undoStack.length >= MAX_UNDO) undoStack.shift()
+    let newState = getCurrentState()
+    undoStack.push(newState)
+    console.log('Saved to undo stack. Stack size:', undoStack.length)
+}
+
+function prepareSegmentsForCurve(forPrev, forCurr, backPrev, backCurr, mainAngle){
+    const intersecFor = lineIntersection(forPrev.from, forPrev.to, forCurr.from, forCurr.to, false);
+    const intersecBack = lineIntersection(backPrev.from, backPrev.to, backCurr.from, backCurr.to, false);
+    if(intersecFor || intersecBack) {
+        let primaryPrev, primaryCurr, secondaryPrev, secondaryCurr, primRadius, secRadius;
+        if(intersecFor) {
+            primaryPrev = forPrev;
+            primaryCurr = forCurr;
+            secondaryPrev = backPrev;
+            secondaryCurr = backCurr;
+            primRadius = mainAngle != undefined ? map(mainAngle, 0, PI, 1.5, 0.5) : 1;
+            secRadius = mainAngle != undefined ? map(mainAngle, 0, PI, 1, 4.5) : 1;
+        }
+        else { 
+            primaryPrev = backPrev;
+            primaryCurr = backCurr;
+            secondaryPrev = forPrev;
+            secondaryCurr = forCurr;
+            primRadius = mainAngle != undefined ? map(mainAngle, 0, PI, 1.5, 0.5) : 1;
+            secRadius = mainAngle != undefined ? map(mainAngle, 0, PI, 1, 4.5) : 1;
+        }
+        const pt = lineIntersection(primaryPrev.from, primaryPrev.to, primaryCurr.from, primaryCurr.to, true);
+        if(pt) {
+            auxIntersec.push(pt);
+            // ----- Trim the secondary pair around the same point -----
+            const distToSecEnd = p5.Vector.dist(createVector(pt.x, pt.y), secondaryPrev.to);
+            const secPrevDir = p5.Vector.sub(secondaryPrev.to.copy ? secondaryPrev.to.copy() : secondaryPrev.to, secondaryPrev.from).normalize();
+            secondaryPrev.to = p5.Vector.sub(secondaryPrev.to, secPrevDir.mult(Math.min(distToSecEnd * primRadius, p5.Vector.dist(secondaryPrev.from, secondaryPrev.to) - 1)));
+            const secCurrDir = p5.Vector.sub(secondaryCurr.to, secondaryCurr.from).normalize();
+            secondaryCurr.from = p5.Vector.add(secondaryCurr.from, secCurrDir.mult(Math.min(distToSecEnd * primRadius, p5.Vector.dist(secondaryCurr.from, secondaryCurr.to) - 1)));
+            auxIntersec.push(secondaryPrev.to);
+            auxIntersec.push(secondaryCurr.from);
+
+            // ----- Trim the primary pair around the same point -----
+            const distToPrimEnd = p5.Vector.dist(createVector(pt.x, pt.y), primaryPrev.to);
+            const primPrevDir = p5.Vector.sub(primaryPrev.to, primaryPrev.from).normalize();
+            primaryPrev.to = p5.Vector.sub(primaryPrev.to, primPrevDir.mult(Math.min(distToPrimEnd * secRadius, p5.Vector.dist(primaryPrev.from, primaryPrev.to) - 1)));
+            const primCurrDir = p5.Vector.sub(primaryCurr.to, primaryCurr.from).normalize();
+            primaryCurr.from = p5.Vector.add(primaryCurr.from, primCurrDir.mult(Math.min(distToPrimEnd * secRadius, p5.Vector.dist(primaryCurr.from, primaryCurr.to) - 1)));
+            auxIntersec.push(primaryPrev.to);
+            auxIntersec.push(primaryCurr.from);
+        }
+    }
+}
+
+
+function drawStatesDebug(){
+    if(!showStateDebug) return
+    let state = undoStack[stateIndexShowDebug]
+    if(state === undefined) return
+    let pathsToShow = state.mainPaths
+    stroke(255, 200)
+    strokeWeight(2)
+    for(let p of pathsToShow){
+        for(let seg of p){
+            line(seg.from.x, seg.from.y, seg.to.x, seg.to.y)
+        }
+    }
+    fill(255)
+    noStroke()
+    textSize(16)
+    textAlign(LEFT, TOP)
+    text(`State index: ${stateIndexShowDebug}`, 10, 10)
+}
+
+
+function isNan(x){
+    return x !== x
+}
+
+function copySegment(seg){
+    return {
+        dir: seg.dir,
+        from: seg.from.copy(),
+        to: seg.to.copy(),
+        pathIdx: seg.pathIdx == undefined ? undefined : seg.pathIdx,
+        mainPathIdx: seg.mainPathIdx == undefined ? undefined : seg.mainPathIdx,
+        segIdx: seg.segIdx == undefined ? undefined : seg.segIdx
     }
 }
 
@@ -217,10 +685,10 @@ function connectEndOfPaths(mainPathIndex){
 }
 
 function finishPath(unconnected){
-    if(unconnected){
-        connectEndOfPaths(currPathIdx)
-    }
-    else{
+    // if(unconnected){
+    //     connectEndOfPaths(currPathIdx)
+    // }
+    if(!unconnected){
         hasToBeOrdered.push(currPathIdx)
         hasToBeOrdered.push(currPathIdx + 1)
     }
@@ -228,7 +696,7 @@ function finishPath(unconnected){
     paths.push([], [])
     mainPaths.push([], [])
     anchor = undefined
-    currPath = undefined
+
 }
 
 function generateInsideIntersections() {
@@ -360,20 +828,43 @@ function generateInsideIntersections() {
 }
 
 
+//EXACTLY before
+function aBeforeb(a, b){
+    if(a.to.x == b.from.x && a.to.y == b.from.y) return true
+    return false
+}
+
+//EXACTLY after
+function aAfterb(a, b){
+    if(a.from.x == b.to.x && a.from.y == b.to.y) return true
+    return false
+}
+
 function calculateIntersections(){
     intersections = new Map()
     for(let i = 0; i < paths.length; i++){
         for(let j = 0; j < paths.length; j++){
             for(let p1 of paths[i]){
+                if(p1.pathIdx == undefined) continue
                 for(let p2 of paths[j]){
+                    if(p2.pathIdx == undefined) continue
+                    //continue if p1 is before or after p2 in the same path
+                    if(p1.pathIdx === p2.pathIdx){
+                        if(aBeforeb(p1, p2) || aAfterb(p1, p2)) continue
+                    }
                     let intersec = lineIntersection(p1.from, p1.to, p2.from, p2.to, false)
                     if(intersec){
-                        let key = p1.mainPathIdx + '-' + p1.segIdx + '_' + p2.mainPathIdx + '-' + p2.segIdx
-                        if(!intersections.has(key)){
-                            intersections.set(key, [{pos: {x: intersec.x, y: intersec.y}, paths: [p1, p2]}])
+                        // let key = p1.mainPathIdx + '-' + p1.segIdx + '_' + p2.mainPathIdx + '-' + p2.segIdx
+                        // let revKey = p2.mainPathIdx + '-' + p2.segIdx + '_' + p1.mainPathIdx + '-' + p1.segIdx
+                        // let hasKey = intersections.has(key)
+                        // let hasRevKey = intersections.has(revKey)
+                        // let finalKey = hasKey ? key : (hasRevKey ? revKey : key)
+                        let finalKey = p1.mainPathIdx + '-' + p1.segIdx + '_' + p2.mainPathIdx + '-' + p2.segIdx
+                        if(!intersections.has(finalKey)){
+                            intersections.set(finalKey, [{pos: {x: intersec.x, y: intersec.y}, paths: [p1, p2]}])
                         } 
                         else {
-                            intersections.get(key).push({pos: {x: intersec.x, y: intersec.y}, paths: [p1, p2]})
+                            intersections.get(finalKey).push({pos: {x: intersec.x, y: intersec.y}, paths: [p1, p2]})
                         }
                     }
                 }
@@ -382,28 +873,34 @@ function calculateIntersections(){
     }
 }
 
+function generateUnconnectedIntersections(){
+    connectors = []
+    for(let main of mainPaths){
+        if(main.length == 0) continue
+        if(dist(main[0].from.x, main[0].from.y, main[main.length - 1].to.x, main[main.length - 1].to.y) > 1) {
+            //this means the path is not closed
+            connectEndOfPaths(mainPaths.indexOf(main))
+        }
+    }
+}
+
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
+    //toggleShowdebug()
+}
+
+function copyMainPaths(seg){
+    return {from: seg.from.copy(), to: seg.to.copy()}
 }
 
 function draw(){
     background(0)
+    auxIntersec = [];
 
-    if(anchor){
-        currPath = {from: anchor.copy(), to: createVector(mouseX, mouseY)}
-    }
+    saveState(oldState)
 
-    if (paths[currPathIdx].length > 0) {
-        let to = createVector(mouseX, mouseY)
-        const A = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].from;
-        const B = mainPaths[currPathIdx][mainPaths[currPathIdx].length - 1].to;  
-        const C = to;                                 
-
-        const angle = angleAtVertex(B, A, C)
-
-        bool = (angle > MIN_ANGLE || angle < -MIN_ANGLE) && dist(anchor.x, anchor.y, to.x, to.y) >= MIN_DIST_SEG
-    }
+    setCurrentSegment()
 
 
     if(showMain) drawMainPaths()
@@ -412,6 +909,33 @@ function draw(){
 
     drawIntersections()
     drawIntersectionsPaths()
+
+    drawBezierPointsDebug()
+
+    drawStatesDebug()
+
+    noFill()
+    stroke(255, 100)
+    ellipse(currMousePos.x, currMousePos.y, LANE_WIDTH * 2)
+    let closest = getClosestPointToPaths(currMousePos)
+    if(closest){
+        if(closest.point && dist(closest.point.x, closest.point.y, currMousePos.x, currMousePos.y) < LANE_WIDTH) line(currMousePos.x, currMousePos.y, closest.point.x, closest.point.y)
+    }
+
+
+    restoreState(oldState)
+}
+
+function drawBezierPointsDebug(){
+    if(!showBezierPoints) return
+    if(auxIntersec.length > 0){
+        stroke(255, 70)
+        strokeWeight(8)
+        for(let intersec of auxIntersec){
+            point(intersec.x, intersec.y)
+        }
+        strokeWeight(1)
+    }
 }
 
 function drawIntersectionsPaths(){
@@ -429,10 +953,10 @@ function drawIntersectionsPaths(){
         line(hoverP.fromPos.x, hoverP.fromPos.y, hoverP.toPos.x, hoverP.toPos.y)
         fill(0, 0, 255, 100)
         ellipse(hoverP.fromPos.x, hoverP.fromPos.y, 12)
-        stroke(0, 255, 0, 80)
+        stroke(0, 255, 0, 180)
         strokeWeight(7)
         line(hoverP.fromPath.from.x, hoverP.fromPath.from.y, hoverP.fromPath.to.x, hoverP.fromPath.to.y)
-        stroke(255, 0, 0, 80)
+        stroke(255, 0, 0, 180)
         line(hoverP.toPath.from.x, hoverP.toPath.from.y, hoverP.toPath.to.x, hoverP.toPath.to.y)
         stroke(0, 0, 255)
         strokeWeight(2)
@@ -455,12 +979,13 @@ function drawIntersectionsPaths(){
             line(seg.a.x + off, seg.a.y, seg.b.x + off, seg.b.y)
         }
         fill(0, 0, 255, 100)
-        ellipse(p.fromPos.x + off, p.fromPos.y, 8)
+        if(showIntersectionsPoints) ellipse(p.fromPos.x + off, p.fromPos.y, 8)
     }
 }
 
 function drawIntersections(){
     if(!showIntersections) return
+    calculateIntersections()
     push()
     for(let [key, intersec] of intersections){
         for(let intersecObj of intersec){
@@ -478,7 +1003,7 @@ function drawIntersections(){
 }
 
 function drawMainPaths(){
-    stroke(255)
+    stroke(255, 100)
     for(let p of mainPaths){
         for(let p2 of p){
             line(p2.from.x, p2.from.y, p2.to.x, p2.to.y)
@@ -510,10 +1035,6 @@ function drawPaths(){
             noFill()
         }
     }
-    if(currPath){
-        bool ? stroke(0, 255, 0) : stroke(255, 0, 0)
-        line(currPath.from.x, currPath.from.y, currPath.to.x, currPath.to.y)
-    }
     
     for(let p of paths){
         noStroke()
@@ -540,111 +1061,144 @@ function drawPaths(){
 }
 
 function drawNodes(){
+    if(!showNodes) return
     noFill()
     stroke(255, 50)
     for(let n of nodes){
         circle(n.pos.x, n.pos.y, 40)
+        let hover = dist(mouseX, mouseY, n.pos.x, n.pos.y) < 20
+        if(hover){
+            circle(n.pos.x, n.pos.y, 22)
+        }
     }
 }
 
-function modifyEndingsCurved(forwardPrev, forwardCurr, backwardPrev, backwardCurr, radius = 20, resolution = 8, id) {
-  const eps = 1e-6;
-  let acum = id + 0.1
-  acum = Math.round(acum * 100) / 100
-
-  function unit(v) {
-    const m = Math.hypot(v.x, v.y);
-    return m < eps ? createVector(0, 0) : createVector(v.x / m, v.y / m);
-  }
-
-  function segmentLength(a, b) {
-    return Math.hypot(b.x - a.x, b.y - a.y);
-  }
-
-  // Sample a cubic bezier p0->p3 with controls p1,p2 into N straight segments
-  function bezierSegments(p0, p1, p2, p3, N, dirLabel) {
-    const segs = [];
-    let prev = p0.copy();
-    for (let i = 1; i <= N; i++) {
-      const t = i / N;
-      const x =
-        Math.pow(1 - t, 3) * p0.x +
-        3 * Math.pow(1 - t, 2) * t * p1.x +
-        3 * (1 - t) * Math.pow(t, 2) * p2.x +
-        Math.pow(t, 3) * p3.x;
-      const y =
-        Math.pow(1 - t, 3) * p0.y +
-        3 * Math.pow(1 - t, 2) * t * p1.y +
-        3 * (1 - t) * Math.pow(t, 2) * p2.y +
-        Math.pow(t, 3) * p3.y;
-      const curr = createVector(x, y);
-      if(dirLabel == 'forward') segs.push({ from: prev.copy(), to: curr.copy(), dir: dirLabel, segIdx: acum});
-      else segs.unshift({ from: prev.copy(), to: curr.copy(), dir: dirLabel, segIdx: acum});
-      acum += .1
-      acum = Math.round(acum * 100) / 100
-      prev = curr;
+function toggleShowdebug(){
+    if(SHOW_DEBUG){
+        SHOW_DEBUG = false
+        showMain = false
+        showIdxPaths = false
+        showAllIdx = false
+        showIntersections = false
+        showOrder = false
+        showNodes = false
+        showBezierPoints = false
+        showStateDebug = false
+        showIntersectionsPoints = false
     }
-    return segs;
-  }
+    else{
+        SHOW_DEBUG = true
+        showMain = true
+        showIdxPaths = true
+        showAllIdx = true
+        showIntersections = true
+        showOrder = true
+        showNodes = true
+        showBezierPoints = true
+        showStateDebug = true
+        showIntersectionsPoints = true
+    }
+}
 
-  // Handle one pair (prev,curr) and return {trimPrevTo, trimCurrFrom, curveSegs[]}
-  function makeCurve(prevSeg, currSeg, dirLabel) {
-    const P = lineIntersection(prevSeg.from, prevSeg.to, currSeg.from, currSeg.to, true);
-    if (!P) return null;
 
-    const Pvec = createVector(P.x, P.y);
+function modifyEndingsCurved(forwardPrev, forwardCurr, backwardPrev, backwardCurr, radius = 20, resolution = 8, id) {
+    const eps = 1e-6;
+    let acum = id + 0.001
+    acum = Math.round(acum * 10000) / 10000
+    let distanceForward = p5.Vector.dist(forwardPrev.to, forwardCurr.from)
+    let distanceBackward = p5.Vector.dist(backwardPrev.to, backwardCurr.from)
+    let NF = Math.floor(Math.max(1, map(distanceForward, 0, LANE_WIDTH * 4, MIN_N_SEGS_PER_CURVE, MAX_N_SEGS_PER_CURVE, true)))
+    let NB = Math.floor(Math.max(1, map(distanceBackward, 0, LANE_WIDTH * 4, MIN_N_SEGS_PER_CURVE, MAX_N_SEGS_PER_CURVE, true)))
 
-    const prevDir = unit(p5.Vector.sub(prevSeg.to, prevSeg.from)); // A->B
-    const currDir = unit(p5.Vector.sub(currSeg.to, currSeg.from)); // C->D
+    function unit(v) {
+        const m = Math.hypot(v.x, v.y);
+        return m < eps ? createVector(0, 0) : createVector(v.x / m, v.y / m);
+    }
 
-    // Distances available for trimming so we don't overshoot short segments
-    const prevAvail = segmentLength(prevSeg.from, Pvec); // distance from prev.from to the corner along prev
-    const currAvail = segmentLength(currSeg.from, Pvec); // distance from curr.from to the corner along curr (but direction matters)
-
-    const r = Math.max(0, Math.min(radius, prevAvail - eps, currAvail - eps));
-    if (r < eps) return null; // not enough room to curve
-
-    // New joint endpoints
-    const prevEnd = p5.Vector.sub(Pvec, p5.Vector.mult(prevDir, r)); // B'
-    const currStart = p5.Vector.add(Pvec, p5.Vector.mult(currDir, r)); // C'
-
-    // Replace hard-corner by cubic bezier with tangents aligned to the segments
-    // Good handle length for a circular-ish fillet: 0.55191502449 * r (classic circle-bezier approximation)
-    const handle = r * 0.55191502449;
-
-    const c1 = p5.Vector.add(prevEnd, p5.Vector.mult(prevDir, handle));       // along prev direction
-    const c2 = p5.Vector.sub(currStart, p5.Vector.mult(currDir, handle));     // opposite curr direction
-
-    const N = Math.max(2, Math.floor(resolution));
-
-    const curveSegs = bezierSegments(prevEnd, c1, c2, currStart, N, dirLabel);
-
-    return {
-      prevEnd,        // set prevSeg.to = prevEnd
-      currStart,      // set currSeg.from = currStart
-      curveSegs
+    function segmentLength(a, b) {
+        return Math.hypot(b.x - a.x, b.y - a.y);
+    }
+    // Sample a cubic bezier p0->p3 with controls p1,p2 into NF or NB segments
+    function bezierSegments(p0, p1, p2, p3, NF, NB, dirLabel) {
+        const Nf = Math.max(2, Math.floor(NF ?? 2));
+        const Nb = Math.max(2, Math.floor(NB ?? 2));
+        const N = (dirLabel === 'forward') ? Nf : Nb;
+        const segs = [];
+        let prev = p0.copy();
+        for(let i = 1; i <= N; i++) {
+            const t = i / N;
+            const x = Math.pow(1 - t, 3) * p0.x + 3 * Math.pow(1 - t, 2) * t * p1.x + 3 * (1 - t) * Math.pow(t, 2) * p2.x + Math.pow(t, 3) * p3.x;
+            const y = Math.pow(1 - t, 3) * p0.y + 3 * Math.pow(1 - t, 2) * t * p1.y + 3 * (1 - t) * Math.pow(t, 2) * p2.y + Math.pow(t, 3) * p3.y;
+            const curr = createVector(x, y);
+            if(dirLabel === 'forward') {
+                segs.push({
+                    from: prev.copy(),
+                    to: curr.copy(),
+                    dir: dirLabel,
+                    segIdx: acum
+                });
+            }
+            else {
+                segs.unshift({
+                    from: prev.copy(),
+                    to: curr.copy(),
+                    dir: dirLabel,
+                    segIdx: acum
+                });
+            }
+            acum += 0.001;
+            acum = Math.round(acum * 10000) / 10000;
+            prev = curr;
+        }
+        return segs;
+    }
+    // Handle one pair (prev,curr) and return {trimPrevTo, trimCurrFrom, curveSegs[]}
+    function makeCurve(prevSeg, currSeg, dirLabel) {
+        const P = lineIntersection(prevSeg.from, prevSeg.to, currSeg.from, currSeg.to, true);
+        if(!P) return null;
+        const Pvec = createVector(P.x, P.y);
+        const prevDir = unit(p5.Vector.sub(prevSeg.to, prevSeg.from)); // A->B
+        const currDir = unit(p5.Vector.sub(currSeg.to, currSeg.from)); // C->D
+        // Distances available for trimming so we don't overshoot short segments
+        const prevAvail = segmentLength(prevSeg.from, Pvec); // distance from prev.from to the corner along prev
+        const currAvail = segmentLength(currSeg.from, Pvec); // distance from curr.from to the corner along curr (but direction matters)
+        const r = Math.max(0, Math.min(radius, prevAvail - eps, currAvail - eps));
+        if(r < eps) return null; // not enough room to curve
+        // New joint endpoints
+        const prevEnd = p5.Vector.sub(Pvec, p5.Vector.mult(prevDir, r)); // B'
+        const currStart = p5.Vector.add(Pvec, p5.Vector.mult(currDir, r)); // C'
+        // Replace hard-corner by cubic bezier with tangents aligned to the segments
+        // Good handle length for a circular-ish fillet: 0.55191502449 * r (classic circle-bezier approximation)
+        const handle = r * 0.55191502449;
+        const c1 = p5.Vector.add(prevEnd, p5.Vector.mult(prevDir, handle)); // along prev direction
+        const c2 = p5.Vector.sub(currStart, p5.Vector.mult(currDir, handle)); // opposite curr direction
+        //const N = Math.max(2, Math.floor(resolution));
+        const curveSegs = bezierSegments(prevEnd, c1, c2, currStart, NF, NB, dirLabel);
+        return {
+            prevEnd, // set prevSeg.to = prevEnd
+            currStart, // set currSeg.from = currStart
+            curveSegs
+        };
+    }
+    const out = {
+        forwardCurve: [],
+        backwardCurve: []
     };
-  }
-
-  const out = { forwardCurve: [], backwardCurve: [] };
-
-  // FORWARD side
-  const f = makeCurve(forwardPrev, forwardCurr, 'forward');
-  if (f) {
-    forwardPrev.to = f.prevEnd.copy();
-    forwardCurr.from = f.currStart.copy();
-    out.forwardCurve = f.curveSegs;
-  }
-
-  // BACKWARD side
-  const b = makeCurve(backwardPrev, backwardCurr, 'backward');
-  if (b) {
-    backwardPrev.to = b.prevEnd.copy();
-    backwardCurr.from = b.currStart.copy();
-    out.backwardCurve = b.curveSegs;
-  }
-
-  return out;
+    // FORWARD side
+    const f = makeCurve(forwardPrev, forwardCurr, 'forward');
+    if(f) {
+        forwardPrev.to = f.prevEnd.copy();
+        forwardCurr.from = f.currStart.copy();
+        out.forwardCurve = f.curveSegs;
+    }
+    // BACKWARD side
+    const b = makeCurve(backwardPrev, backwardCurr, 'backward');
+    if(b) {
+        backwardPrev.to = b.prevEnd.copy();
+        backwardCurr.from = b.currStart.copy();
+        out.backwardCurve = b.curveSegs;
+    }
+    return out;
 }
 
 
@@ -658,8 +1212,9 @@ function angleAtVertex(V, P, Q) {
 }
 
 
-function curveEndings(forwardPrev, forwardCurr, backwardPrev, backwardCurr, rad, res, id){
+function curveEndings(forwardPrev, forwardCurr, backwardPrev, backwardCurr, rad, res, id, dontModify = false){
     const curves = modifyEndingsCurved(forwardPrev, forwardCurr, backwardPrev, backwardCurr, rad, res, id);
+    if(dontModify) return curves
     let forwardPaths = paths[currPathIdx]
     let backwardPaths = paths[currPathIdx+1]
     for(let p of forwardPaths) p.pathIdx = currPathIdx
@@ -671,7 +1226,6 @@ function curveEndings(forwardPrev, forwardCurr, backwardPrev, backwardCurr, rad,
         backwardPaths.splice(1, 0, ...curves.backwardCurve);
     }
 }
-
 
 function orderPath(p){
     //order path segments so that the "to" of one is the "from" of the next
@@ -903,4 +1457,120 @@ function circularSemicircleSegments(A, B, side = 'left', N = RES_BEZIER){
     prev = curr;
   }
   return segs;
+}
+
+
+function pointOnSegment(p, a, b){
+    // Check if point p is on the line segment a-b
+    const crossProduct = (p.y - a.y) * (b.x - a.x) - (p.x - a.x) * (b.y - a.y);
+    if (Math.abs(crossProduct) > 1e-6) return false; // Not on the line
+
+    const dotProduct = (p.x - a.x) * (b.x - a.x) + (p.y - a.y) * (b.y - a.y);
+    if (dotProduct < 0) return false; // Before a
+
+    const squaredLengthAB = (b.x - a.x) * (b.x - a.x) + (b.y - a.y) * (b.y - a.y);
+    if (dotProduct > squaredLengthAB) return false; // After b
+
+    return true; // On the segment
+}
+
+function mouseIntersectsRoad(){
+    //checks if the node at the mouse intersects with any segment with the only exception of the current path, final segments
+    if(paths.length == 0 || paths[0].length < 2) return false
+    let mousePos = {x: mouseX, y: mouseY}
+    let radNodeMain = LANE_WIDTH * 2
+    let radNodeBase = LANE_WIDTH
+    for(let i = 0; i < mainPaths.length; i+=2){
+        for(let seg of mainPaths[i]){
+            let inters = circleIntersection(mousePos, radNodeMain, seg.from, seg.to)
+            if(inters.length > 0){
+                for(let inter of inters){
+                    if(pointOnSegment(inter, seg.from, seg.to)){
+                        auxIntersec.push(inter)
+                        return true
+                    }
+                }
+            }
+        }
+        for(let seg of paths[i]){
+            let inters = circleIntersection(mousePos, radNodeBase, seg.from, seg.to)
+            if(inters.length > 0){
+                for(let inter of inters){
+                    if(pointOnSegment(inter, seg.from, seg.to)){
+                        auxIntersec.push(inter)
+                        return true
+                    }
+                }
+            }
+        } 
+        for(let seg of paths[i+1]){
+            let inters = circleIntersection(mousePos, radNodeBase, seg.from, seg.to)
+            if(inters.length > 0){
+                for(let inter of inters){
+                    if(pointOnSegment(inter, seg.from, seg.to)){
+                        auxIntersec.push(inter)
+                        return true
+                    }
+                }
+            }
+        } 
+    }
+    return false
+}
+
+function circleIntersection(C, r, A, B){
+    // C is center {x,y}, r is radius, A and B are endpoints of the segment
+    const d = { x: B.x - A.x, y: B.y - A.y };
+    const f = { x: A.x - C.x, y: A.y - C.y };
+
+    const a = d.x * d.x + d.y * d.y;
+    const b = 2 * (f.x * d.x + f.y * d.y);
+    const c = (f.x * f.x + f.y * f.y) - r * r;
+
+    const discriminant = b * b - 4 * a * c;
+    if (discriminant < 0) {
+        return []; // No intersection
+    } else {
+        const sqrtDiscriminant = Math.sqrt(discriminant);
+        const t1 = (-b - sqrtDiscriminant) / (2 * a);
+        const t2 = (-b + sqrtDiscriminant) / (2 * a);
+        const intersections = [];
+        if (t1 >= 0 && t1 <= 1) {
+            intersections.push({ x: A.x + t1 * d.x, y: A.y + t1 * d.y });
+        }
+        if (t2 >= 0 && t2 <= 1 && discriminant > 0) {
+            intersections.push({ x: A.x + t2 * d.x, y: A.y + t2 * d.y });
+        }
+        return intersections;
+    }
+}
+
+function getClosestPointAndDisttoSeg(P, A, B){
+    // P is point {x,y}, A and B are endpoints of the segment
+    const AP = { x: P.x - A.x, y: P.y - A.y };
+    const AB = { x: B.x - A.x, y: B.y - A.y };
+    const ab2 = AB.x * AB.x + AB.y * AB.y;
+    const ap_ab = AP.x * AB.x + AP.y * AB.y;
+    let t = ap_ab / ab2;
+    t = Math.max(0, Math.min(1, t)); // Clamp t to the segment
+    const closest = { x: A.x + AB.x * t, y: A.y + AB.y * t };
+    const dist = Math.hypot(P.x - closest.x, P.y - closest.y);
+    return { point: closest, distance: dist };
+}
+
+function getClosestPointToPaths(P){
+    let closestPoint = null
+    let minDist = Infinity
+    let mainPathIdx = -1
+    for(let path of mainPaths){
+        for(let seg of path){
+            let res = getClosestPointAndDisttoSeg(P, seg.from, seg.to)
+            if(res.distance < minDist){
+                minDist = res.distance
+                closestPoint = res.point
+                mainPathIdx = path[0].mainPathIdx
+            }
+        }
+    }
+    return {point: closestPoint, distance: minDist, mainPathIdx: mainPathIdx}
 }
