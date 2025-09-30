@@ -1208,11 +1208,15 @@ function generateUnconnectedIntersections(){
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     //create button to export
+    //text with info
+    let infoText = createDiv('Press SPACE to end the current path. Press Z to undo.')
+    infoText.position(10, HEIGHT + 10)
     let btnExport = createButton('Export road and go to Simulator')
     btnExport.mousePressed(() => {
         exportRoad()
-        window.location.href = 'https://miguelrr11.github.io/Algorithms/pathTest/'
+        window.open('https://miguelrr11.github.io/Algorithms/pathTest/', "_blank");
     })
+    btnExport.position(10, HEIGHT + 40)
 }
 
 function copyMainPaths(seg){
