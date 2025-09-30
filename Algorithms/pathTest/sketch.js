@@ -12,17 +12,21 @@ let nCars = 3
 let iters = 1
 
 let SHOW_DEBUG = true
+let LANE_WIDTH = 20
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     let p = JSON.parse(getItem('paths'))
     let i = JSON.parse(getItem('intersections'))
-    road = createRoad(p, i, nCars)
+    let m = JSON.parse(getItem('mainPaths'))
+    LANE_WIDTH = getItem('laneWidth')
+    console.log(m)
+    road = createRoad(p, i, m, nCars)
 
     //createLightSch([road.paths[0].segments[2], road.paths[1].segments[0], road.paths[2].segments[2]])
 }
 
-function createRoad(pathPoints, intersections, nCars){
+function createRoad(pathPoints, intersections, mainPaths, nCars){
     let paths = []
     for(const path of pathPoints){
         let p = new Path(path.id)
@@ -55,11 +59,13 @@ function createRoad(pathPoints, intersections, nCars){
     for(const p of paths){
         p.col = color(random(100, 255), random(100, 255), random(100, 255))
     }
+    mainPaths = mainPaths.filter(mp => mp.length > 0)
+    road.mainPaths = mainPaths
     return road
 }
 
 function draw(){
-    background(0)
+    background(30)
     if(keyIsPressed) iters = 40
     else iters = 1
     for(let i = 0; i < iters; i++){ 
@@ -67,6 +73,7 @@ function draw(){
         road.showCars()
     }
     road.show()
+    
 }
 
 function createPointsForCircle(x, y, r, n){

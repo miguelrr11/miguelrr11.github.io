@@ -282,4 +282,5 @@ class Path{
             else seg.show(this.col, index)
         }
     }
+
 }

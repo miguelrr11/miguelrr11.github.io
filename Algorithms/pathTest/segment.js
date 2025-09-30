@@ -41,4 +41,6 @@ class Segment{
             text(index, (this.a.x + this.b.x) / 2, (this.a.y + this.b.y) / 2)
         }
     }
+
+
 }

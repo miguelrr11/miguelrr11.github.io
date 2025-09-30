@@ -8,12 +8,15 @@ class Road{
         }
     }
 
-    addRandomCar(){
+    addRandomCar(n = 1){
         if(this.paths.length === 0) return
-        let path = random(this.paths)
-        let car = new Car(path)
-        path.addCar(car)
-        this.cars.push(car)
+        for(let i=0; i<n; i++){
+            let path = random(this.paths)
+            let car = new Car(path)
+            path.addCar(car)
+            this.cars.push(car)
+        }
+        
     }
 
     addIntersection(fromPath, fromSeg, toPath, toSeg, pos){
@@ -81,4 +84,5 @@ class Road{
             }
         }
     }
+
 }
