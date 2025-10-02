@@ -26,8 +26,8 @@ function mouseClicked(){
             closestPosToSegment.minDist < NODE_RAD * 1.25){
                 console.log('splitting segment FROM')
             let segment = closestPosToSegment.closestSegment
-            let newNode = road.splitSegmentAtPos(segment.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
-            state.prevNodeID = newNode.id
+            let newNodeAndSegments = road.splitSegmentAtPos(segment.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
+            state.prevNodeID = newNodeAndSegments.newNode.id
             return
         }
         //creates a node from an empty space
@@ -50,14 +50,18 @@ function mouseClicked(){
             closestPosToSegment.minDist < NODE_RAD * 1.25){
                 console.log('splitting segment TO')
             let segment = closestPosToSegment.closestSegment
-            let newNode = road.splitSegmentAtPos(segment.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
-            let newSegment = road.addSegment(state.prevNodeID, newNode.id)
-            state.prevNodeID = newNode.id
+            let newNodeAndSegments = road.splitSegmentAtPos(segment.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
+            let newSegment = road.addSegment(state.prevNodeID, newNodeAndSegments.newNode.id)
+            state.prevNodeID = newNodeAndSegments.newNode.id
             return
         }
+        //creates a node from an empty space connected to the previous node and
+        //checks if it collides with any other segment
         let newNode = road.addNode(mousePosGridX, mousePosGridY)
         let newSegment = road.addSegment(state.prevNodeID, newNode.id)
+        checkSegmentCollisionsAndSplit(newSegment)
         state.prevNodeID = newNode.id
+        console.log(newNode.id)
     }
     //deletes a node or segment
     else if(state.mode == 'deleting'){
@@ -79,6 +83,8 @@ function mouseReleased(){
     if(state.mode == 'movingNode'){
         state.draggingNodeID = -1
         state.offsetDraggingNode = {x: 0, y: 0}
+        checkForAllSegmentCollisions()
+        return
     }
 }
 
@@ -127,6 +133,123 @@ function keyPressed(){
     }
 }
 
+//if a segment intersects another segment
+function checkSegmentCollisionsAndSplit(newSegment){
+    let fromNode = road.findNode(newSegment.fromNodeID)
+    let toNode = road.findNode(newSegment.toNodeID)
+    let a = fromNode.pos
+    let b = toNode.pos
+
+
+    road.segments.forEach(s => {
+        if(s.id == newSegment.id) return
+        let sFromNode = road.findNode(s.fromNodeID)
+        let sToNode = road.findNode(s.toNodeID)
+        let c = sFromNode.pos
+        let d = sToNode.pos
+
+        if(a.x == c.x && a.y == c.y) return
+        if(a.x == d.x && a.y == d.y) return
+        if(b.x == c.x && b.y == c.y) return
+        if(b.x == d.x && b.y == d.y) return
+
+        let intersec = lineIntersection(a, b, c, d)
+
+        if(intersec){
+            let newNodeAndSegments = split2SegmentsAtPos(s, newSegment, intersec.x, intersec.y)
+            if(!newNodeAndSegments) return
+            checkSegmentCollisionsAndSplit(newNodeAndSegments.segment1)
+            checkSegmentCollisionsAndSplit(newNodeAndSegments.segment2)
+        }
+    })
+
+}
+
+function checkForAllSegmentCollisions() {
+    let segments = road.segments;
+    for (let i = 0; i < segments.length; i++) {
+        for (let j = i + 1; j < segments.length; j++) {
+            let intersec = checkSegmentPairAndSplit(segments[i], segments[j]);
+            if(intersec) {
+                checkForAllSegmentCollisions()
+                return
+            }
+        }
+    }
+}
+
+function checkSegmentPairAndSplit(segment1, segment2) {
+    let fromNode1 = road.findNode(segment1.fromNodeID)
+    let toNode1 = road.findNode(segment1.toNodeID)
+    let a = fromNode1.pos
+    let b = toNode1.pos
+
+    let fromNode2 = road.findNode(segment2.fromNodeID)
+    let toNode2 = road.findNode(segment2.toNodeID)
+    let c = fromNode2.pos
+    let d = toNode2.pos
+
+    if(a.x == c.x && a.y == c.y) return
+    if(a.x == d.x && a.y == d.y) return
+    if(b.x == c.x && b.y == c.y) return
+    if(b.x == d.x && b.y == d.y) return
+
+    let intersec = lineIntersection(a, b, c, d)
+
+    if(intersec){
+        split2SegmentsAtPos(segment1, segment2, intersec.x, intersec.y)
+        if(!intersec) return
+        return intersec
+    }   
+}
+
+//Split both segments and creates a node at the given intersection point
+function split2SegmentsAtPos(segment1, segment2, x, y){
+    let newNodeAndSegmentsAux = road.splitSegmentAtPos(segment1.id, x, y)
+    if(!newNodeAndSegmentsAux) return
+    let newNodeAndSegments = road.splitSegmentAtPos(segment2.id, x, y, newNodeAndSegmentsAux.newNode)
+    return newNodeAndSegments
+}
+
+function checkCurrentSegmentCollisions(){
+    if(state.prevNodeID == -1) return
+    let node = road.findNode(state.prevNodeID)
+    let pos = node.pos
+
+    const mousePosGridX = Math.floor(mouseX / GRID_CELL_SIZE) * GRID_CELL_SIZE
+    const mousePosGridY = Math.floor(mouseY / GRID_CELL_SIZE) * GRID_CELL_SIZE
+
+    let closestPosToSegment = road.findClosestSegmentAndPos(mouseX, mouseY)
+    let closestPoint = closestPosToSegment.closestPoint != undefined && closestPosToSegment.minDist < NODE_RAD * 1.25 ? closestPosToSegment.closestPoint : {x: mousePosGridX, y: mousePosGridY}
+
+    let hoverNode = road.findHoverNode()
+    if(hoverNode != undefined) closestPoint = hoverNode.pos
+
+    let tempSegment = {id: -1, fromNodeID: node.id, toNodeID: -1}
+    let tempToNode = {id: -1, pos: closestPoint}
+    road.segments.forEach(s => {
+        if(s.id == tempSegment.id) return
+        let sFromNode = road.findNode(s.fromNodeID)
+        let sToNode = road.findNode(s.toNodeID)
+        let a = node.pos
+        let b = tempToNode.pos
+        let c = sFromNode.pos
+        let d = sToNode.pos
+
+        if(a.x == c.x && a.y == c.y) return
+        if(a.x == d.x && a.y == d.y) return
+        if(b.x == c.x && b.y == c.y) return
+        if(b.x == d.x && b.y == d.y) return
+
+        let intersec = lineIntersection(a, b, c, d)
+
+        if(intersec){
+            showClosestSegmentAndPos(intersec)
+            return intersec
+        }
+    })
+}
+
 function showCurrent(){
     showGridPoints()
     showCurrentSegment()
@@ -168,6 +291,8 @@ function showCurrentSegment(){
             stroke(255, 150)
             ellipse(mousePosGridX, mousePosGridY, NODE_RAD * 2)
         }
+
+        checkCurrentSegmentCollisions()
         
         pop()
     }
@@ -176,6 +301,7 @@ function showCurrentSegment(){
         if(closestPosToSegment.closestSegment && state.mode == 'creatingLane' && closestPosToSegment.minDist < NODE_RAD * 1.25){
             showClosestSegmentAndPos(closestPosToSegment.closestPoint)
         }
+        checkCurrentSegmentCollisions()
     }
 }
 

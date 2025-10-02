@@ -15,7 +15,8 @@ class Node{
 
     show(){
         push()
-        noFill()
+        fill(0)
+        textSize(15)
         this.hover() ? strokeWeight(3) : strokeWeight(1.5)
         stroke(255, 150)
         ellipse(this.pos.x, this.pos.y, NODE_RAD * 2)

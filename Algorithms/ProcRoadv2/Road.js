@@ -67,7 +67,7 @@ class Road{
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
     }
 
-    splitSegmentAtPos(segmentID, x, y){
+    splitSegmentAtPos(segmentID, x, y, nodeAtSplit = undefined){
         let segment = this.findSegment(segmentID)
         if(segment == undefined){
             console.log('Error splitting segment, segment not found:\nsegmentID = ' + segmentID)
@@ -80,15 +80,17 @@ class Road{
             return
         }
         //create new node
-        let newNode = this.addNode(x, y)
+        let newNode = nodeAtSplit ? nodeAtSplit : this.addNode(x, y)
         //remove old segment
         this.segments = this.segments.filter(s => s.id != segmentID)
         fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
+        //fromNode.outgoingSegmentIDs.push(newNode.id)
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
+        //toNode.incomingSegmentIDs.push(newNode.id)
         //create two new segments
         let segment1 = this.addSegment(fromNode.id, newNode.id)
         let segment2 = this.addSegment(newNode.id, toNode.id)
-        return newNode
+        return {segment1, segment2, newNode}
     }
 
     findNode(id){
