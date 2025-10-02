@@ -36,11 +36,11 @@ class Path{
             let segment = this.road.findSegment(segmentID)
             let nodeFrom = this.road.findNode(segment.fromNodeID)
             let nodeTo = this.road.findNode(segment.toNodeID)
-            let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x)
+            let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
 
             //also we modify the segment to have the new calculated positions
-            segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
-            segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
+            segment.fromPos = segment.fromNodeID == nodeB.id ? laneFromPos : laneToPos
+            segment.toPos = segment.toNodeID == nodeA.id ? laneToPos : laneFromPos
             segment.dir = dir
 
             i++
@@ -60,11 +60,21 @@ class Path{
                 let midPos = {x: (segment.fromPos.x + segment.toPos.x) / 2, y: (segment.fromPos.y + segment.toPos.y) / 2}
                 drawArrowTip(midPos.x, midPos.y, segment.dir, 7)
                 
-                // stroke(0, 255, 0)
-                // strokeWeight(8)
-                // point(segment.fromPos.x, segment.fromPos.y)
-                // stroke(255, 0, 0)
-                // point(segment.toPos.x, segment.toPos.y)
+                stroke(0, 255, 0)
+                strokeWeight(8)
+                point(segment.fromPos.x, segment.fromPos.y)
+                stroke(255, 0, 0)
+                point(segment.toPos.x, segment.toPos.y)
+
+                let str = segment.id
+                textAlign(CENTER)
+                textSize(12)
+                let bbox = textBounds(str, midPos.x, midPos.y - 10)
+                fill(0)
+                rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
+                fill(255)
+                noStroke()
+                text(str, midPos.x, midPos.y - 10)
             }
         })
         pop()

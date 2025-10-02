@@ -168,6 +168,54 @@ function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {
     }
 }
 
+// Devuelve curva (arr de puntos) de b a c, a y d son las manecillas
+// La resolucion es la distacia de los segmentos
+function bezierPoints(a, b, c, d, resolution, tension = 0.3) {
+  const sub = (p, q) => ({ x: p.x - q.x, y: p.y - q.y });
+  const add = (p, q) => ({ x: p.x + q.x, y: p.y + q.y });
+  const mul = (p, s) => ({ x: p.x * s, y: p.y * s });
+  const dist = (p, q) => Math.hypot(p.x - q.x, p.y - q.y);
+
+  // Manecillas: dirigidas por (b - a) y (c - d)
+  const h1 = add(b, mul(sub(b, a), tension));
+  const h2 = add(c, mul(sub(c, d), tension));
+
+  // Punto sobre la Bézier cúbica
+  const bezPoint = (t) => {
+    const u = 1 - t;
+    const uu = u * u, tt = t * t;
+    const uuu = uu * u, ttt = tt * t;
+
+    const p = mul(b, uuu);
+    const p1 = mul(h1, 3 * uu * t);
+    const p2 = mul(h2, 3 * u * tt);
+    const p3 = mul(c, ttt);
+    return add(add(p, p1), add(p2, p3));
+  };
+
+  // Estimar longitud para decidir cuántos segmentos hacen falta
+  const safeRes = (resolution > 0 && isFinite(resolution)) ? resolution : Math.max(1, dist(b, c) / 10);
+  let approxLen = 0;
+  const samples = 20;
+  let prev = b;
+  for (let i = 1; i <= samples; i++) {
+    const t = i / samples;
+    const cur = bezPoint(t);
+    approxLen += dist(prev, cur);
+    prev = cur;
+  }
+
+  const segments = Math.max(1, Math.ceil(approxLen / safeRes));
+  // Generar solo puntos intermedios (excluye t=0 y t=1)
+  const pts = [];
+  for (let i = 1; i < segments; i++) {
+    const t = i / segments;
+    pts.push(bezPoint(t));
+  }
+  return pts;
+}
+
+
 // ===================
 // String Utilities
 // ===================

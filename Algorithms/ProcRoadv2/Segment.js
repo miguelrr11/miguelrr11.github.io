@@ -28,6 +28,18 @@ class Segment{
         pop()
     }
 
+    showBezier(){
+        if(!this.bezierPoints) return
+        push()
+        strokeWeight(1.5)
+        stroke(255)
+        noFill()
+        beginShape()
+        this.bezierPoints.forEach(p => vertex(p.x, p.y))
+        endShape()
+        pop()
+    }
+
     show(){
         push()
         strokeWeight(1)
@@ -36,17 +48,18 @@ class Segment{
         let toPos = this.road.findNode(this.toNodeID).pos
         line(fromPos.x, fromPos.y, toPos.x, toPos.y)
 
-        noStroke()
-        fill(0, 255, 0)
-        let midPos = {x: (fromPos.x + toPos.x) / 2, y: (fromPos.y + toPos.y) / 2}
-        textAlign(CENTER)
-        textSize(15)
-        let str = this.id + ': ' + this.fromNodeID + '-' + this.toNodeID
-        let bbox = textBounds(str, midPos.x, midPos.y)
-        fill(0)
-        rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
-        fill(255)
-        text(str, midPos.x, midPos.y)
+        // noStroke()
+        // fill(0, 255, 0)
+        // let midPos = {x: (fromPos.x + toPos.x) / 2, y: (fromPos.y + toPos.y) / 2}
+        // textAlign(CENTER)
+        // textSize(15)
+        // let str = this.id + ': ' + this.fromNodeID + '-' + this.toNodeID
+        // let bbox = textBounds(str, midPos.x, midPos.y)
+        // fill(0)
+        // rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
+        // fill(255)
+        // text(str, midPos.x, midPos.y)
+
         pop()
 
         this.showDirection()

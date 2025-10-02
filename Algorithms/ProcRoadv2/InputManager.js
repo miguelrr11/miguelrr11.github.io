@@ -94,10 +94,10 @@ function mouseClicked(){
 //just creates segments between two nodes according to the current lane state
 function createSegmentBetweenTwoNodes(nodeAID, nodeBID){
     for(let i = 0; i < state.nForLanes; i++){
-        road.addSegment(nodeBID, nodeAID)
+        road.addSegment(nodeAID, nodeBID)
     }
     for(let i = 0; i < state.nBackLanes; i++){
-        road.addSegment(nodeAID, nodeBID)
+        road.addSegment(nodeBID, nodeAID)
     }
 }
 

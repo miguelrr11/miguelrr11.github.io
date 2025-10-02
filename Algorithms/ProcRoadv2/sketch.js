@@ -23,9 +23,11 @@ p5.disableFriendlyErrors = true
 const WIDTH = 800
 const HEIGHT = 600
 
-let SHOW_ROAD = true
+let SHOW_ROAD = false
 let SHOW_PATHS = true
 let SHOW_NODES = true
+let SHOW_CONNECTORS = true
+let SHOW_INTERSECSEGS = true
 
 let road, menu
 let lastHash
@@ -40,7 +42,7 @@ function setup(){
 }
 
 function draw(){
-    background(0)
+    background(10)
 
     showCurrent()
 
@@ -58,6 +60,8 @@ function draw(){
     if(SHOW_ROAD) road.show()
     if(SHOW_NODES) road.showNodes()
     if(SHOW_PATHS) road.showPaths()
+    if(SHOW_CONNECTORS) road.showConnectors()
+    if(SHOW_INTERSECSEGS) road.showIntersecSegs()
 
     menu.show() 
 
