@@ -9,6 +9,10 @@
 const NODE_RAD = 15
 const GRID_CELL_SIZE = 15
 const OFFSET_RAD_INTERSEC = 25
+const LENGTH_SEG_BEZIER = 4
+const TENSION_BEZIER_MIN = 0.1
+const TENSION_BEZIER_MAX = 0.5
+const MIN_DIST_INTERSEC = 50
 
 class Road{
     constructor(){
@@ -200,8 +204,7 @@ class Road{
 
     findIntersectionsOfNode(nodeID){
         let connectedSegments = this.findConnectedSegments(nodeID)
-        let connectedPaths = this.getPathsOfSegments(connectedSegments)
-        let intersections = new Set()
+        let intersections = []
         connectedSegments.forEach(s1 => {
             connectedSegments.forEach(s2 => {
                 if(s1.id == s2.id) return
@@ -209,8 +212,14 @@ class Road{
                     s1.fromPos, s1.toPos,
                     s2.fromPos, s2.toPos
                 )
+                if(intersection == undefined){
+                    if(s1.fromPos.x == s2.fromPos.x && s1.fromPos.y == s2.fromPos.y) intersection = s1.fromPos
+                    else if(s1.fromPos.x == s2.toPos.x && s1.fromPos.y == s2.toPos.y) intersection = s1.fromPos
+                    else if(s1.toPos.x == s2.fromPos.x && s1.toPos.y == s2.fromPos.y) intersection = s1.toPos
+                    else if(s1.toPos.x == s2.toPos.x && s1.toPos.y == s2.toPos.y) intersection = s1.toPos
+                }
                 if(intersection != undefined){
-                    intersections.add(intersection)
+                    if(!arrHasPosition(intersections, intersection)) intersections.push(intersection)
                     //auxShow.push(intersection)
                 }
             })
@@ -224,16 +233,26 @@ class Road{
         let distInter = 0
         let farthestIntersection = null
         let node = this.findNode(nodeID)
-        for(let inter of intersections){
-            let node = this.findNode(nodeID)
-            let d = dist(node.pos.x, node.pos.y, inter.x, inter.y)
-            if(d > distInter){
-                distInter = d
-                farthestIntersection = inter
+        if(intersections.length == 0) return
+        else if(intersections.length == 1){
+            farthestIntersection = intersections[0]
+            distInter = dist(node.pos.x, node.pos.y, farthestIntersection.x, farthestIntersection.y)
+        }
+        else {
+            for(let inter of intersections){
+                let node = this.findNode(nodeID)
+                let d = dist(node.pos.x, node.pos.y, inter.x, inter.y)
+                if(d > distInter){
+                    distInter = d
+                    farthestIntersection = inter
+                }
             }
         }
+        
+
         distInter += OFFSET_RAD_INTERSEC
-        if(farthestIntersection) auxShow.push(farthestIntersection)
+        distInter = max(distInter, MIN_DIST_INTERSEC)
+        //if(farthestIntersection) auxShow.push(farthestIntersection)
         if(farthestIntersection != null){
             let connectedSegments = this.findConnectedSegments(nodeID)
             connectedSegments.forEach(s => {
@@ -275,9 +294,28 @@ class Road{
                 connector2.road = this
                 this.connectors.push(connector2)
                 this.connectorIDcounter++
-            
-                let pointsBezier = bezierPoints(inSegToPos, inSegFromPos, outSegToPos, outSegFromPos, 10, 0.2)
-                
+
+                let tension = map(dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y), 10, 150, TENSION_BEZIER_MIN, TENSION_BEZIER_MAX, true)
+                //console.log(dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y), tension)
+                //let tension = 0.2
+
+                let LENGTH_CONTROL_POINT = 120
+
+                let controlPointBez1
+                let dir1 = inSeg.dir
+                controlPointBez1 = {x: inSegFromPos.x + Math.cos(dir1) * LENGTH_CONTROL_POINT, 
+                                    y: inSegFromPos.y + Math.sin(dir1) * LENGTH_CONTROL_POINT}
+
+                let controlPointBez2
+                let dir2 = outSeg.dir + PI
+                controlPointBez2 = {x: outSegToPos.x + Math.cos(dir2) * LENGTH_CONTROL_POINT, 
+                                    y: outSegToPos.y + Math.sin(dir2) * LENGTH_CONTROL_POINT}
+
+                auxShow.push(controlPointBez1)
+                auxShow.push(controlPointBez2)
+
+                let pointsBezier = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER, tension)
+
                 let seg = new Segment(this.intersecSegIDcounter, connector1.id, connector2.id)
                 seg.road = this
                 seg.bezierPoints = pointsBezier
@@ -324,4 +362,11 @@ function shortenSegment(A, B, length) {
     const newY = A.y + dy * Math.max(factor, 0);
 
     return { x: newX, y: newY };
+}
+
+function arrHasPosition(arr, pos){
+    for(let p of arr){
+        if(p.x == pos.x && p.y == pos.y) return true
+    }
+    return false
 }

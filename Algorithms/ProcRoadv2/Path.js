@@ -66,15 +66,15 @@ class Path{
                 stroke(255, 0, 0)
                 point(segment.toPos.x, segment.toPos.y)
 
-                let str = segment.id
-                textAlign(CENTER)
-                textSize(12)
-                let bbox = textBounds(str, midPos.x, midPos.y - 10)
-                fill(0)
-                rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
-                fill(255)
-                noStroke()
-                text(str, midPos.x, midPos.y - 10)
+                // let str = segment.id
+                // textAlign(CENTER)
+                // textSize(12)
+                // let bbox = textBounds(str, midPos.x, midPos.y - 10)
+                // fill(0)
+                // rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
+                // fill(255)
+                // noStroke()
+                // text(str, midPos.x, midPos.y - 10)
             }
         })
         pop()
