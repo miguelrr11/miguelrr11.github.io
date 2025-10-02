@@ -1,13 +1,49 @@
+/** Resumen:
+ * A road consists of nodes and segments connecting them.
+ * The nodes and segments form a directed graph.
+ * The paths are a way to group segments between two nodes, they do not affect the graph structure.
+ * Paths calculate 'lanes' from the segments they contain.
+ * Lanes are the actual visual representation of the segments, they have a position and width.
+ */
+
 const NODE_RAD = 15
 const GRID_CELL_SIZE = 15
 
 class Road{
     constructor(){
+        this.paths = []
         this.segments = []
         this.nodes = []
         this.nodeIDcounter = 0
         this.segmentIDcounter = 0
         cursor(CROSS)
+    }
+
+    setPaths(){
+        this.paths = new Map()
+        for(let i = 0; i < this.nodes.length; i++){
+            for(let j = 0; j < this.nodes.length; j++){
+                if(i == j) continue
+                let nodeA = this.nodes[i]
+                let nodeB = this.nodes[j]
+                let segmentIDs = this.getAllSegmentsBetweenNodes(nodeA.id, nodeB.id).map(s => s.id)
+                if(this.paths.has(nodeA.id + '-' + nodeB.id) || this.paths.has(nodeB.id + '-' + nodeA.id)){
+                    this.paths.get(nodeA.id + '-' + nodeB.id)?.segmentsIDs.add(...segmentIDs)
+                    this.paths.get(nodeB.id + '-' + nodeA.id)?.segmentsIDs.add(...segmentIDs)
+                } 
+                else if(segmentIDs.length > 0) {
+                    let segmentSet = new Set(segmentIDs)
+                    let path = new Path(nodeA.id, nodeB.id, segmentSet)
+                    path.road = this
+                    path.constructRealLanes()
+                    this.paths.set(nodeA.id + '-' + nodeB.id, path)
+                }
+            }
+        }
+    }
+
+    trimAllIntersections(){
+        this.nodes.forEach(n => this.trimSegmentsAtIntersection(n.id))
     }
 
     findClosestSegmentAndPos(x, y){
@@ -34,6 +70,10 @@ class Road{
         })
 
         return {closestSegment, closestPoint, minDist}
+    }
+
+    getAllSegmentsBetweenNodes(nodeID1, nodeID2){
+        return this.segments.filter(s => (s.fromNodeID == nodeID1 && s.toNodeID == nodeID2) || (s.fromNodeID == nodeID2 && s.toNodeID == nodeID1))
     }
 
     deleteNode(nodeID){
@@ -130,8 +170,99 @@ class Road{
         return newSegment
     }
 
+    findConnectedSegments(nodeID){
+        return this.segments.filter(s => s.fromNodeID == nodeID || s.toNodeID == nodeID)
+    }
+
+    getPathsOfSegments(segments){
+        let paths = new Set()
+        segments.forEach(s => {
+            this.paths.forEach(p => {
+                if(p.segmentsIDs.has(s.id)) paths.add(p)
+            })
+        })
+        return paths
+    }
+
+    findConnectedPaths(nodeID){
+        let connectedSegments = this.findConnectedSegments(nodeID)
+        return this.getPathsOfSegments(connectedSegments)
+    }
+
+    findIntersectionsOfNode(nodeID){
+        let connectedSegments = this.findConnectedSegments(nodeID)
+        let connectedPaths = this.getPathsOfSegments(connectedSegments)
+        let intersections = new Set()
+        connectedSegments.forEach(s1 => {
+            connectedSegments.forEach(s2 => {
+                if(s1.id == s2.id) return
+                let intersection = lineIntersection(
+                    s1.fromPos, s1.toPos,
+                    s2.fromPos, s2.toPos
+                )
+                if(intersection != undefined){
+                    intersections.add(intersection)
+                    //auxShow.push(intersection)
+                }
+            })
+        })
+        return intersections
+    }
+
+    //trims all end of segments connected to the node to the farthest intersection found
+    trimSegmentsAtIntersection(nodeID){
+        let intersections = this.findIntersectionsOfNode(nodeID)
+        let distInter = 0
+        let farthestIntersection = null
+        let node = this.findNode(nodeID)
+        for(let inter of intersections){
+            let node = this.findNode(nodeID)
+            let d = dist(node.pos.x, node.pos.y, inter.x, inter.y)
+            if(d > distInter){
+                distInter = d
+                farthestIntersection = inter
+            }
+        }
+        distInter += 5
+        if(farthestIntersection) auxShow.push(farthestIntersection)
+        if(farthestIntersection != null){
+            let connectedSegments = this.findConnectedSegments(nodeID)
+            connectedSegments.forEach(s => {
+                if(s.fromNodeID == nodeID){
+                    s.fromPos = shortenSegment(s.toPos, s.fromPos, distInter)
+                } 
+                else if(s.toNodeID == nodeID){
+                    s.toPos = shortenSegment(s.fromPos, s.toPos, distInter)
+                }
+            })
+        }
+    }
+
+
     show(){
         this.segments.forEach(s => s.show())
+    }
+
+    showNodes(){
         this.nodes.forEach(n => n.show())
     }
+
+    showPaths(){
+        this.paths.forEach(p => p.show())
+    }
+}
+
+function shortenSegment(A, B, length) {
+    const dx = B.x - A.x;
+    const dy = B.y - A.y;
+    const distance = Math.hypot(dx, dy);
+
+    if (distance === 0) return { ...B }; // no movement possible
+
+    const factor = (distance - length) / distance;
+    // clamp so it doesn't overshoot past A
+    const newX = A.x + dx * Math.max(factor, 0);
+    const newY = A.y + dy * Math.max(factor, 0);
+
+    return { x: newX, y: newY };
 }

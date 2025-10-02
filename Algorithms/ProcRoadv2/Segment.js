@@ -6,6 +6,12 @@ class Segment{
         this.fromNodeID = fromNodeID
         this.toNodeID = toNodeID
         this.road = undefined
+
+
+        //info updated by Path.js AFTER calling road.setPaths()
+        this.fromPos = undefined
+        this.toPos = undefined
+        this.dir = undefined // direction in radians
     }
 
     showDirection(){
@@ -24,8 +30,8 @@ class Segment{
 
     show(){
         push()
-        strokeWeight(1.5)
-        stroke(255)
+        strokeWeight(1)
+        stroke(255, 130)
         let fromPos = this.road.findNode(this.fromNodeID).pos
         let toPos = this.road.findNode(this.toNodeID).pos
         line(fromPos.x, fromPos.y, toPos.x, toPos.y)

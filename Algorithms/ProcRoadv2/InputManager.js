@@ -3,16 +3,25 @@ let state = {
     prevNodeID: -1,
 
     draggingNodeID: -1,
-    offsetDraggingNode: {x: 0, y: 0}
+    offsetDraggingNode: {x: 0, y: 0},
+
+    nForLanes: 2,
+    nBackLanes: 1
 }
 
+/**
+ * nForLanes is the number of lanes in the direction of the road
+ * nBackLanes is the number of lanes in the opposite direction of the road
+ * So if nForLanes = 2 and nBackLanes = 1, from Node A to Node B there will be 2 lanes from A to B and 1 lane from B to A
+ */
+
 function mouseClicked(){
-    if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) return
+    if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || menu.inBounds()) return
 
     const mousePosGridX = Math.floor(mouseX / GRID_CELL_SIZE) * GRID_CELL_SIZE
     const mousePosGridY = Math.floor(mouseY / GRID_CELL_SIZE) * GRID_CELL_SIZE
 
-    //not following a previous node
+    //not following a previous node, so just create a new node
     if(state.mode == 'creatingLane' && state.prevNodeID == -1){
         //resumes creating a segment from the clicked node
         let hoverNode = road.findHoverNode()
@@ -20,46 +29,49 @@ function mouseClicked(){
             state.prevNodeID = hoverNode.id
             return
         }
-        //creates a new node on top of a segment, it splits it and creates a new node
+        //creates a new node on top of a segment, it splits it and creates a new node which becomes the previous node (anchor)
         let closestPosToSegment = road.findClosestSegmentAndPos(mouseX, mouseY)
-        if(closestPosToSegment.closestSegment && 
-            closestPosToSegment.minDist < NODE_RAD * 1.25){
-                console.log('splitting segment FROM')
-            let segment = closestPosToSegment.closestSegment
-            let newNodeAndSegments = road.splitSegmentAtPos(segment.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
-            state.prevNodeID = newNodeAndSegments.newNode.id
+        if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
+            let allSegmentsBetween = road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
+            let newNode = road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
+            for(let s of allSegmentsBetween){
+                road.splitSegmentAtPos(s.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y, newNode)
+            }
+            state.prevNodeID = newNode.id
             return
         }
         //creates a node from an empty space
         let newNode = road.addNode(mousePosGridX, mousePosGridY)
         state.prevNodeID = newNode.id
     }
-    //following a previous node: create a segment that follows the previous node
+    //following a previous node: create a segment that follows the previous node and creates a new node
     else if(state.mode == 'creatingLane' && state.prevNodeID != -1){
         //connects it to an existing node if hovering one
         let hoverNode = road.findHoverNode()
         if(hoverNode != undefined){
-            let newSegment = road.addSegment(state.prevNodeID, hoverNode.id)
+            createSegmentBetweenTwoNodes(state.prevNodeID, hoverNode.id)
             state.prevNodeID = hoverNode.id
-            //state.prevNodeID = -1
             return
         }
         //creates a new node on top of a segment, it splits it and creates a new node
         let closestPosToSegment = road.findClosestSegmentAndPos(mouseX, mouseY)
-        if(closestPosToSegment.closestSegment && 
-            closestPosToSegment.minDist < NODE_RAD * 1.25){
-                console.log('splitting segment TO')
-            let segment = closestPosToSegment.closestSegment
-            let newNodeAndSegments = road.splitSegmentAtPos(segment.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
-            let newSegment = road.addSegment(state.prevNodeID, newNodeAndSegments.newNode.id)
-            state.prevNodeID = newNodeAndSegments.newNode.id
+        if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
+            let newNode = road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
+            let allSegmentsBetween = road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
+            for(let s of allSegmentsBetween){
+                road.splitSegmentAtPos(s.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y, newNode)
+            }
+            //connects the new node to the previous node
+            createSegmentBetweenTwoNodes(state.prevNodeID, newNode.id)
+            state.prevNodeID = newNode.id
             return
         }
         //creates a node from an empty space connected to the previous node and
         //checks if it collides with any other segment
         let newNode = road.addNode(mousePosGridX, mousePosGridY)
-        let newSegment = road.addSegment(state.prevNodeID, newNode.id)
-        checkSegmentCollisionsAndSplit(newSegment)
+        //let newSegment = road.addSegment(state.prevNodeID, newNode.id)
+        createSegmentBetweenTwoNodes(state.prevNodeID, newNode.id)
+        //checkSegmentCollisionsAndSplit(newSegment)
         state.prevNodeID = newNode.id
         console.log(newNode.id)
     }
@@ -76,6 +88,16 @@ function mouseClicked(){
                 road.deleteSegment(closestPosToSegment.closestSegment.id)
                 return
         }
+    }
+}
+
+//just creates segments between two nodes according to the current lane state
+function createSegmentBetweenTwoNodes(nodeAID, nodeBID){
+    for(let i = 0; i < state.nForLanes; i++){
+        road.addSegment(nodeBID, nodeAID)
+    }
+    for(let i = 0; i < state.nBackLanes; i++){
+        road.addSegment(nodeAID, nodeBID)
     }
 }
 
@@ -116,25 +138,41 @@ function keyPressed(){
     if(keyCode == 32 && state.mode == 'creatingLane'){
         state.prevNodeID = -1
     }
-    if(key == 'h' && state.prevNodeID == -1){
-        state.mode = 'movingNode'
-        state.prevNodeID = -1
-        cursor(HAND)
+    if(key == 'h'){
+        handState()
     }
     if(key == 'c'){
-        state.mode = 'creatingLane'
-        state.prevNodeID = -1
-        cursor(CROSS)
+        createState()
     }
     if(key == 'd'){
-        state.mode = 'deleting'
-        state.prevNodeID = -1
-        cursor('not-allowed')
+        deleteState()
     }
+}
+
+function createState(){
+    if(state.mode == 'creatingLane') return
+    state.mode = 'creatingLane'
+    state.prevNodeID = -1
+    cursor(CROSS)
+}
+
+function handState(){
+    if(state.mode == 'movingNode') return
+    state.mode = 'movingNode'
+    state.prevNodeID = -1
+    cursor(HAND)
+}
+
+function deleteState(){
+    if(state.mode == 'deleting') return
+    state.mode = 'deleting'
+    state.prevNodeID = -1
+    cursor('not-allowed')
 }
 
 //if a segment intersects another segment
 function checkSegmentCollisionsAndSplit(newSegment){
+    return
     let fromNode = road.findNode(newSegment.fromNodeID)
     let toNode = road.findNode(newSegment.toNodeID)
     let a = fromNode.pos
@@ -166,6 +204,7 @@ function checkSegmentCollisionsAndSplit(newSegment){
 }
 
 function checkForAllSegmentCollisions() {
+    return
     let segments = road.segments;
     for (let i = 0; i < segments.length; i++) {
         for (let j = i + 1; j < segments.length; j++) {
@@ -179,6 +218,7 @@ function checkForAllSegmentCollisions() {
 }
 
 function checkSegmentPairAndSplit(segment1, segment2) {
+    return
     let fromNode1 = road.findNode(segment1.fromNodeID)
     let toNode1 = road.findNode(segment1.toNodeID)
     let a = fromNode1.pos
@@ -205,6 +245,7 @@ function checkSegmentPairAndSplit(segment1, segment2) {
 
 //Split both segments and creates a node at the given intersection point
 function split2SegmentsAtPos(segment1, segment2, x, y){
+    return
     let newNodeAndSegmentsAux = road.splitSegmentAtPos(segment1.id, x, y)
     if(!newNodeAndSegmentsAux) return
     let newNodeAndSegments = road.splitSegmentAtPos(segment2.id, x, y, newNodeAndSegmentsAux.newNode)
@@ -212,6 +253,7 @@ function split2SegmentsAtPos(segment1, segment2, x, y){
 }
 
 function checkCurrentSegmentCollisions(){
+    return
     if(state.prevNodeID == -1) return
     let node = road.findNode(state.prevNodeID)
     let pos = node.pos

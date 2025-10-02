@@ -20,21 +20,60 @@
  */
 
 p5.disableFriendlyErrors = true
-const WIDTH = 600
+const WIDTH = 800
 const HEIGHT = 600
 
-let road
+let SHOW_ROAD = true
+let SHOW_PATHS = true
+let SHOW_NODES = true
+
+let road, menu
+let lastHash
+
+let auxShow = []
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     road = new Road()
+    menu = new Menu()
+    lastHash = ''
 }
 
 function draw(){
     background(0)
 
     showCurrent()
-    road.show()
 
+    auxShow = []
+
+    let currentHash = JSON.stringify(road, (key, value) => (key === 'road' ? undefined : value))
+    if(currentHash != lastHash){ 
+        road.setPaths()
+        road.trimAllIntersections()
+    }
     
+    menu.update()
+
+
+    if(SHOW_ROAD) road.show()
+    if(SHOW_NODES) road.showNodes()
+    if(SHOW_PATHS) road.showPaths()
+
+    menu.show() 
+
+    //showAux()
+
+    lastHash = currentHash
+}
+
+function showAux(){
+    push()
+    stroke(0, 255, 0)
+    strokeWeight(8)
+    if(auxShow) {
+        auxShow.forEach(intersection => {
+            point(intersection.x, intersection.y)
+        })
+    }
+    pop()
 }

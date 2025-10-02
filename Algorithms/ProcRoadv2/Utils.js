@@ -65,6 +65,10 @@ function mod(n, m) {
 }
 
 function lineIntersection(p1, p2, p3, p4) {
+    if(p1 == undefined || p2 == undefined || p3 == undefined || p4 == undefined) {
+        console.warn('Undefined points in lineIntersection:\np1 = ' + p1 + ' | p2 = ' + p2 + ' | p3 = ' + p3 + ' | p4 = ' + p4)
+        return undefined
+    }
     const denom = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y);
     if (denom === 0) return undefined; 
 
