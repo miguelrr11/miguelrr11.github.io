@@ -15,7 +15,8 @@ class Node{
 
     show(){
         push()
-        fill(0)
+        if(SHOW_TAGS) fill(0)
+        else noFill()
         textSize(15)
         this.hover() ? strokeWeight(3) : strokeWeight(1.5)
         stroke(255, 150)

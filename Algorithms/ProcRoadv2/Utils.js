@@ -209,7 +209,7 @@ function bezierPoints(a, b, c, d, resolution, tension = 0.3) {
     const t = i / segments;
     pts.push(bezPoint(t));
   }
-  return pts;
+  return [b, ...pts, c]
 }
 
 

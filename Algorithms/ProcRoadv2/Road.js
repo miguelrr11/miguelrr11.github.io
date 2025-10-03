@@ -162,7 +162,7 @@ class Road{
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
     }
 
-    splitSegmentAtPos(segmentID, x, y, nodeAtSplit = undefined, relDir = undefined){
+    splitSegmentAtPos(segmentID, x, y, nodeAtSplit = undefined){
         let segment = this.findSegment(segmentID)
         if(segment == undefined){
             console.log('Error splitting segment, segment not found:\nsegmentID = ' + segmentID)
@@ -179,21 +179,7 @@ class Road{
         //remove old segment
         this.segments = this.segments.filter(s => s.id != segmentID)
         fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
-        //fromNode.outgoingSegmentIDs.push(newNode.id)
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
-        //toNode.incomingSegmentIDs.push(newNode.id)
-        //create two new segments
-        // if(relDir == 'for'){
-        //     let segment1 = this.addSegment(fromNode.id, newNode.id)
-        //     let segment2 = this.addSegment(newNode.id, toNode.id)
-        //     return {segment1, segment2, newNode}
-        // }
-        // else if(relDir == 'back'){
-        //     let segment2 = this.addSegment(newNode.id, toNode.id)
-        //     let segment1 = this.addSegment(fromNode.id, newNode.id)
-        //     return {segment1, segment2, newNode}
-        // }
-        // else console.log('Warning: segment split without relDir specified')
 
         let segment1 = this.addSegment(fromNode.id, newNode.id)
         let segment2 = this.addSegment(newNode.id, toNode.id)
@@ -223,7 +209,7 @@ class Road{
         return this.nodes.find(n => n.hover())
     }
 
-    addSegment(fromNodeID, toNodeID, relDir){
+    addSegment(fromNodeID, toNodeID){
         const fromNode = this.findNode(fromNodeID)
         const toNode = this.findNode(toNodeID)
         if(fromNode == undefined || toNode == undefined){
@@ -231,7 +217,6 @@ class Road{
             return
         }
         let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID)
-        newSegment.relDir = relDir
         newSegment.road = this
         this.segments.push(newSegment)
         fromNode.outgoingSegmentIDs.push(newSegment.id)

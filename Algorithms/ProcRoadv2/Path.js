@@ -56,10 +56,10 @@ class Path{
                 strokeWeight(2.5)
                 line(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
                 let midPos = {x: (segment.fromPos.x + segment.toPos.x) / 2, y: (segment.fromPos.y + segment.toPos.y) / 2}
-                
+                drawArrowTip(midPos.x, midPos.y, segment.dir, 7)
 
                 if(SHOW_SEGS_DETAILS){
-                    drawArrowTip(midPos.x, midPos.y, segment.dir, 7)
+                    
                     stroke(0, 255, 0)
                     strokeWeight(8)
                     point(segment.fromPos.x, segment.fromPos.y)

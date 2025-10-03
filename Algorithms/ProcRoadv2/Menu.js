@@ -1,16 +1,17 @@
 class Menu{
-    constructor(){
+    constructor(tool){
         this.buttons = []
+        this.tool = tool
 
-        let buttonCreate = new Button(10, 10, 80, 30, 'Create [C]', createState, () => {
-            return state.mode === 'creatingLane' ? 'Creating...' : 'Create [C]'
-        }, () => {return state.mode == 'creatingLane'})
-        let buttonDelete = new Button(100, 10, 80, 30, 'Delete [D]', deleteState, () => {
-            return state.mode === 'deleting' ? 'Deleting...' : 'Delete [D]'
-        }, () => {return state.mode == 'deleting'})
-        let buttonHand = new Button(190, 10, 80, 30, 'Move [H]', handState, () => {
-            return state.mode === 'movingNode' ? 'Moving...' : 'Move [H]'
-        }, () => {return state.mode == 'movingNode'})
+        let buttonCreate = new Button(10, 10, 80, 30, 'Create [C]', tool.createState, () => {
+            return this.tool.state.mode === 'creatingLane' ? 'Creating...' : 'Create [C]'
+        }, () => {return this.tool.state.mode == 'creatingLane'})
+        let buttonDelete = new Button(100, 10, 80, 30, 'Delete [D]', tool.deleteState, () => {
+            return this.tool.state.mode === 'deleting' ? 'Deleting...' : 'Delete [D]'
+        }, () => {return this.tool.state.mode == 'deleting'})
+        let buttonHand = new Button(190, 10, 80, 30, 'Move [H]', tool.handState, () => {
+            return this.tool.state.mode === 'movingNode' ? 'Moving...' : 'Move [H]'
+        }, () => {return this.tool.state.mode == 'movingNode'})
 
         const MAIN_X = 305;
         const MAIN_Y = 10;
@@ -31,63 +32,91 @@ class Menu{
         let buttonPlusFor = new Button(
         LEFT_X, TOP_Y, SIDE_W, SIDE_H,
         '+',
-        () => { state.nForLanes++; }
+        () => { this.tool.state.nForLanes++; }
         );
 
         let buttonMinusFor = new Button(
         LEFT_X, BOTTOM_Y, SIDE_W, SIDE_H,
         '-',
-        () => { if (state.nForLanes > 0) state.nForLanes--; }
+        () => { if (this.tool.state.nForLanes > 0) this.tool.state.nForLanes--; }
         );
 
         let buttonShowLaneState = new Button(
         MAIN_X, MAIN_Y, MAIN_W, MAIN_H,
         '',
         undefined,
-        () => `${state.nForLanes} - ${state.nBackLanes}`
+        () => `${this.tool.state.nForLanes} - ${this.tool.state.nBackLanes}`
         );
 
         let buttonPlusBack = new Button(
         RIGHT_X, TOP_Y, SIDE_W, SIDE_H,
         '+',
-        () => { state.nBackLanes++; }
+        () => { this.tool.state.nBackLanes++; }
         );
 
         let buttonMinusBack = new Button(
         RIGHT_X, BOTTOM_Y, SIDE_W, SIDE_H,
         '-',
-        () => { if (state.nBackLanes > 0) state.nBackLanes--; }
+        () => { if (this.tool.state.nBackLanes > 0) this.tool.state.nBackLanes--; }
         );
 
 
 
-        let buttonSetPaths = new Button(620, 10, 80, 30, 'Set Paths', () => {
+        let buttonSetPaths = new Button(620, 10, 95, 30, 'Set Paths', () => {
             road.setPaths()
             //road.trimAllIntersections()
         })
-        let buttonShowRoad = new Button(710, 10, 80, 20, 'Show Road', () => {
-            SHOW_ROAD = !SHOW_ROAD
-            if(SHOW_ROAD) buttonShowRoad.label = 'Hide Road'
-            else buttonShowRoad.label = 'Show Road'
+        let buttonShowRoad = new Button(700, 10, 95, 20, 'Show Main', () => {
+            this.tool.showOptions.SHOW_ROAD = !this.tool.showOptions.SHOW_ROAD
+            if(this.tool.showOptions.SHOW_ROAD) buttonShowRoad.label = 'Hide Main'
+            else buttonShowRoad.label = 'Show Main'
         })
-        buttonShowRoad.label = SHOW_ROAD ? 'Hide Road' : 'Show Road'
-        let buttonShowPaths = new Button(710, 40, 80, 20, 'Show Paths', () => {
-            SHOW_PATHS = !SHOW_PATHS
-            if(SHOW_PATHS) buttonShowPaths.label = 'Hide Paths'
+        buttonShowRoad.label = this.tool.showOptions.SHOW_ROAD ? 'Hide Road' : 'Show Road'
+        let buttonShowPaths = new Button(700, 40, 95, 20, 'Show Paths', () => {
+            this.tool.showOptions.SHOW_PATHS = !this.tool.showOptions.SHOW_PATHS
+            if(this.tool.showOptions.SHOW_PATHS) buttonShowPaths.label = 'Hide Paths'
             else buttonShowPaths.label = 'Show Paths'
         })
-        buttonShowPaths.label = SHOW_PATHS ? 'Hide Paths' : 'Show Paths'
-        let buttonShowNodes = new Button(710, 70, 80, 20, 'Show Nodes', () => {
-            SHOW_NODES = !SHOW_NODES
-            if(SHOW_NODES) buttonShowNodes.label = 'Hide Nodes'
+        buttonShowPaths.label = this.tool.showOptions.SHOW_PATHS ? 'Hide Paths' : 'Show Paths'
+        let buttonShowNodes = new Button(700, 70, 95, 20, 'Show Nodes', () => {
+            this.tool.showOptions.SHOW_NODES = !this.tool.showOptions.SHOW_NODES
+            if(this.tool.showOptions.SHOW_NODES) buttonShowNodes.label = 'Hide Nodes'
             else buttonShowNodes.label = 'Show Nodes'
         })
-        buttonShowNodes.label = SHOW_NODES ? 'Hide Nodes' : 'Show Nodes'   
+        buttonShowNodes.label = this.tool.showOptions.SHOW_NODES ? 'Hide Nodes' : 'Show Nodes'  
+        let buttonShowConnectors = new Button(700, 100, 95, 20, 'Show Conns', () => {
+            this.tool.showOptions.SHOW_CONNECTORS = !this.tool.showOptions.SHOW_CONNECTORS
+            if(this.tool.showOptions.SHOW_CONNECTORS) buttonShowConnectors.label = 'Hide Conns'
+            else buttonShowConnectors.label = 'Show Conns'
+        })
+        buttonShowConnectors.label = this.tool.showOptions.SHOW_CONNECTORS ? 'Hide Conns' : 'Show Conns'
+        let buttonShowIntersecSegs = new Button(700, 130, 95, 20, 'Show Inter', () => {
+            this.tool.showOptions.SHOW_INTERSECSEGS = !this.tool.showOptions.SHOW_INTERSECSEGS
+            if(this.tool.showOptions.SHOW_INTERSECSEGS) buttonShowIntersecSegs.label = 'Hide Inter'
+            else buttonShowIntersecSegs.label = 'Show Inter'
+        })
+        buttonShowIntersecSegs.label = this.tool.showOptions.SHOW_INTERSECSEGS ? 'Hide Inter' : 'Show Inter'
+        let buttonShowTags = new Button(700, 160, 95, 20, 'Show Tags', () => {
+            this.tool.showOptions.SHOW_TAGS = !this.tool.showOptions.SHOW_TAGS
+            if(this.tool.showOptions.SHOW_TAGS) buttonShowTags.label = 'Hide Tags'
+            else buttonShowTags.label = 'Show Tags'
+        })
+        buttonShowTags.label = this.tool.showOptions.SHOW_TAGS ? 'Hide Tags' : 'Show Tags'
+        let buttonShowSegDetails = new Button(700, 190, 95, 20, 'Show Details', () => {
+            this.tool.showOptions.SHOW_SEGS_DETAILS = !this.tool.showOptions.SHOW_SEGS_DETAILS
+            if(this.tool.showOptions.SHOW_SEGS_DETAILS) buttonShowSegDetails.label = 'Hide Details'
+            else buttonShowSegDetails.label = 'Show Details'
+        })
+        buttonShowSegDetails.label = this.tool.showOptions.SHOW_SEGS_DETAILS ? 'Hide Details' : 'Show Details'
 
 
         this.buttons.push(buttonShowNodes)
         this.buttons.push(buttonShowRoad)
         this.buttons.push(buttonShowPaths)
+        this.buttons.push(buttonShowConnectors)
+        this.buttons.push(buttonShowIntersecSegs)
+        this.buttons.push(buttonShowTags)
+        this.buttons.push(buttonShowSegDetails)
 
         //this.buttons.push(buttonSetPaths)
 

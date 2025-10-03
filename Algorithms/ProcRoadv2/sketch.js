@@ -26,61 +26,24 @@ const HEIGHT = 600
 let SHOW_ROAD = false
 let SHOW_PATHS = true
 let SHOW_NODES = true
-
-let SHOW_CONNECTORS = true
+let SHOW_CONNECTORS = false
 let SHOW_INTERSECSEGS = true
-let SHOW_TAGS = true
-let SHOW_SEGS_DETAILS = true
 
-let road, menu
-let lastHash
+let SHOW_TAGS = false
+let SHOW_SEGS_DETAILS = false
+
+let tool
 
 let auxShow = []
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
-    road = new Road()
-    menu = new Menu()
-    lastHash = ''
+    tool = new Tool()
 }
 
 function draw(){
     background(10)
-
-    showCurrent()
-
-    auxShow = []
-
-    let currentHash = JSON.stringify(road, (key, value) => (key === 'road' ? undefined : value))
-    if(currentHash != lastHash){ 
-        road.setPaths()
-        road.trimAllIntersections()
-    }
-    
-    menu.update()
-
-
-    if(SHOW_ROAD) road.show()
-    if(SHOW_NODES) road.showNodes()
-    if(SHOW_PATHS) road.showPaths()
-    if(SHOW_CONNECTORS) road.showConnectors()
-    if(SHOW_INTERSECSEGS) road.showIntersecSegs()
-
-    menu.show() 
-
-    //showAux()
-
-    lastHash = currentHash
+    tool.update()
+    tool.show()
 }
 
-function showAux(){
-    push()
-    stroke(0, 255, 0)
-    strokeWeight(8)
-    if(auxShow) {
-        auxShow.forEach(intersection => {
-            point(intersection.x, intersection.y)
-        })
-    }
-    pop()
-}
