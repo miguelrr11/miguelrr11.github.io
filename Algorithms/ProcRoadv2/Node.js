@@ -22,7 +22,7 @@ class Node{
         ellipse(this.pos.x, this.pos.y, NODE_RAD * 2)
         fill(255, 0, 0)
         textAlign(CENTER)
-        text(this.id + '\n' + this.incomingSegmentIDs.length + '-' + this.outgoingSegmentIDs.length, this.pos.x, this.pos.y)
+        if(SHOW_TAGS) text(this.id + '\n' + this.incomingSegmentIDs.length + '-' + this.outgoingSegmentIDs.length, this.pos.x, this.pos.y)
         pop()
     }
 }

@@ -26,8 +26,11 @@ const HEIGHT = 600
 let SHOW_ROAD = false
 let SHOW_PATHS = true
 let SHOW_NODES = true
+
 let SHOW_CONNECTORS = true
 let SHOW_INTERSECSEGS = true
+let SHOW_TAGS = true
+let SHOW_SEGS_DETAILS = true
 
 let road, menu
 let lastHash

@@ -6,13 +6,14 @@
  * Connectors are just like nodes but they are created in intersections and can only have 1 incoming and 1 outgoing segment
  */
 
-const NODE_RAD = 15
+const NODE_RAD = 20
 const GRID_CELL_SIZE = 15
 const OFFSET_RAD_INTERSEC = 25
 const LENGTH_SEG_BEZIER = 4
 const TENSION_BEZIER_MIN = 0.1
 const TENSION_BEZIER_MAX = 0.5
-const MIN_DIST_INTERSEC = 50
+const MIN_DIST_INTERSEC = 30
+const LANE_WIDTH = 30
 
 class Road{
     constructor(){
@@ -40,6 +41,41 @@ class Road{
                 let nodeA = this.nodes[i]
                 let nodeB = this.nodes[j]
                 let segmentIDs = this.getAllSegmentsBetweenNodes(nodeA.id, nodeB.id).map(s => s.id)
+
+                //sort by direction
+                // segmentIDs.sort((a, b) => {
+                //     let segA = this.findSegment(a)
+                //     let segB = this.findSegment(b)
+                //     let nodeFromA = this.findNode(segA.fromNodeID)
+                //     let nodeToA = this.findNode(segA.toNodeID)
+                //     let nodeFromB = this.findNode(segB.fromNodeID)
+                //     let nodeToB = this.findNode(segB.toNodeID)
+
+                //     let dirA = Math.atan2(nodeToA.pos.y - nodeFromA.pos.y, nodeToA.pos.x - nodeFromA.pos.x)
+                //     let dirB = Math.atan2(nodeToB.pos.y - nodeFromB.pos.y, nodeToB.pos.x - nodeFromB.pos.x)
+
+                //     return dirA - dirB
+                // })
+
+                // console.log(segmentIDs)
+
+                // segmentIDs.sort((a, b) => {
+                //     let x = this.findSegment(a)
+                //     let y = this.findSegment(b)
+
+                //     if (x.relDir === "for" && y.relDir !== "for") return -1; // "for" goes first
+                //     if (x.relDir !== "for" && y.relDir === "for") return 1;
+
+                //     if (x.relDir === "to" && y.relDir !== "to") return 1;   // "to" goes last
+                //     if (x.relDir !== "to" && y.relDir === "to") return -1;
+
+                //     return 0; 
+                // })
+
+                // console.log(segmentIDs)
+
+
+
                 if(this.paths.has(nodeA.id + '-' + nodeB.id) || this.paths.has(nodeB.id + '-' + nodeA.id)){
                     this.paths.get(nodeA.id + '-' + nodeB.id)?.segmentsIDs.add(...segmentIDs)
                     this.paths.get(nodeB.id + '-' + nodeA.id)?.segmentsIDs.add(...segmentIDs)
@@ -86,7 +122,13 @@ class Road{
     }
 
     getAllSegmentsBetweenNodes(nodeID1, nodeID2){
-        return this.segments.filter(s => (s.fromNodeID == nodeID1 && s.toNodeID == nodeID2) || (s.fromNodeID == nodeID2 && s.toNodeID == nodeID1))
+        let fromTo = this.getAllSegmentsBetweenNodesExclusively(nodeID1, nodeID2)
+        let toFrom = this.getAllSegmentsBetweenNodesExclusively(nodeID2, nodeID1)
+        return [...fromTo, ...toFrom]
+    }
+
+    getAllSegmentsBetweenNodesExclusively(nodeID1, nodeID2){
+        return this.segments.filter(s => (s.fromNodeID == nodeID1 && s.toNodeID == nodeID2))
     }
 
     deleteNode(nodeID){
@@ -120,7 +162,7 @@ class Road{
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
     }
 
-    splitSegmentAtPos(segmentID, x, y, nodeAtSplit = undefined){
+    splitSegmentAtPos(segmentID, x, y, nodeAtSplit = undefined, relDir = undefined){
         let segment = this.findSegment(segmentID)
         if(segment == undefined){
             console.log('Error splitting segment, segment not found:\nsegmentID = ' + segmentID)
@@ -141,8 +183,23 @@ class Road{
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
         //toNode.incomingSegmentIDs.push(newNode.id)
         //create two new segments
+        // if(relDir == 'for'){
+        //     let segment1 = this.addSegment(fromNode.id, newNode.id)
+        //     let segment2 = this.addSegment(newNode.id, toNode.id)
+        //     return {segment1, segment2, newNode}
+        // }
+        // else if(relDir == 'back'){
+        //     let segment2 = this.addSegment(newNode.id, toNode.id)
+        //     let segment1 = this.addSegment(fromNode.id, newNode.id)
+        //     return {segment1, segment2, newNode}
+        // }
+        // else console.log('Warning: segment split without relDir specified')
+
         let segment1 = this.addSegment(fromNode.id, newNode.id)
         let segment2 = this.addSegment(newNode.id, toNode.id)
+
+        console.log('seg1 from: ' + segment1.fromNodeID + ' to: ' + segment1.toNodeID + ' id: ' + segment1.id)
+        console.log('seg2 from: ' + segment2.fromNodeID + ' to: ' + segment2.toNodeID + ' id: ' + segment2.id)
         return {segment1, segment2, newNode}
     }
 
@@ -166,7 +223,7 @@ class Road{
         return this.nodes.find(n => n.hover())
     }
 
-    addSegment(fromNodeID, toNodeID){
+    addSegment(fromNodeID, toNodeID, relDir){
         const fromNode = this.findNode(fromNodeID)
         const toNode = this.findNode(toNodeID)
         if(fromNode == undefined || toNode == undefined){
@@ -174,7 +231,7 @@ class Road{
             return
         }
         let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID)
-        console.log(newSegment)
+        newSegment.relDir = relDir
         newSegment.road = this
         this.segments.push(newSegment)
         fromNode.outgoingSegmentIDs.push(newSegment.id)
@@ -210,13 +267,14 @@ class Road{
                 if(s1.id == s2.id) return
                 let intersection = lineIntersection(
                     s1.fromPos, s1.toPos,
-                    s2.fromPos, s2.toPos
+                    s2.fromPos, s2.toPos, false
                 )
                 if(intersection == undefined){
                     if(s1.fromPos.x == s2.fromPos.x && s1.fromPos.y == s2.fromPos.y) intersection = s1.fromPos
                     else if(s1.fromPos.x == s2.toPos.x && s1.fromPos.y == s2.toPos.y) intersection = s1.fromPos
                     else if(s1.toPos.x == s2.fromPos.x && s1.toPos.y == s2.fromPos.y) intersection = s1.toPos
                     else if(s1.toPos.x == s2.toPos.x && s1.toPos.y == s2.toPos.y) intersection = s1.toPos
+                    else intersection = this.findNode(nodeID).pos
                 }
                 if(intersection != undefined){
                     if(!arrHasPosition(intersections, intersection)) intersections.push(intersection)
@@ -233,6 +291,7 @@ class Road{
         let distInter = 0
         let farthestIntersection = null
         let node = this.findNode(nodeID)
+        //if parallel doesn't work
         if(intersections.length == 0) return
         else if(intersections.length == 1){
             farthestIntersection = intersections[0]

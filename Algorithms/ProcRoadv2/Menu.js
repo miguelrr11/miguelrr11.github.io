@@ -17,7 +17,7 @@ class Menu{
         const MAIN_W = 50;  
         const MAIN_H = 30;
 
-        const GAP = 4;                        
+        const GAP = 0;                        
         const SIDE_W = Math.floor(MAIN_W * 0.4); 
         const SIDE_H = Math.floor((MAIN_H - GAP) / 2); 
 
@@ -65,30 +65,31 @@ class Menu{
             road.setPaths()
             //road.trimAllIntersections()
         })
-        let buttonShowRoad = new Button(710, 10, 80, 30, 'Show Road', () => {
+        let buttonShowRoad = new Button(710, 10, 80, 20, 'Show Road', () => {
             SHOW_ROAD = !SHOW_ROAD
             if(SHOW_ROAD) buttonShowRoad.label = 'Hide Road'
             else buttonShowRoad.label = 'Show Road'
         })
         buttonShowRoad.label = SHOW_ROAD ? 'Hide Road' : 'Show Road'
-        let buttonShowPaths = new Button(710, 50, 80, 30, 'Show Paths', () => {
+        let buttonShowPaths = new Button(710, 40, 80, 20, 'Show Paths', () => {
             SHOW_PATHS = !SHOW_PATHS
             if(SHOW_PATHS) buttonShowPaths.label = 'Hide Paths'
             else buttonShowPaths.label = 'Show Paths'
         })
         buttonShowPaths.label = SHOW_PATHS ? 'Hide Paths' : 'Show Paths'
-        let buttonShowNodes = new Button(710, 90, 80, 30, 'Show Nodes', () => {
+        let buttonShowNodes = new Button(710, 70, 80, 20, 'Show Nodes', () => {
             SHOW_NODES = !SHOW_NODES
             if(SHOW_NODES) buttonShowNodes.label = 'Hide Nodes'
             else buttonShowNodes.label = 'Show Nodes'
         })
-        buttonShowNodes.label = SHOW_NODES ? 'Hide Nodes' : 'Show Nodes'    
+        buttonShowNodes.label = SHOW_NODES ? 'Hide Nodes' : 'Show Nodes'   
+
 
         this.buttons.push(buttonShowNodes)
         this.buttons.push(buttonShowRoad)
         this.buttons.push(buttonShowPaths)
 
-        this.buttons.push(buttonSetPaths)
+        //this.buttons.push(buttonSetPaths)
 
         this.buttons.push(buttonShowLaneState)
         this.buttons.push(buttonMinusFor)

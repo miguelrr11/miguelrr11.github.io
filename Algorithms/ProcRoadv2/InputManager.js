@@ -5,8 +5,8 @@ let state = {
     draggingNodeID: -1,
     offsetDraggingNode: {x: 0, y: 0},
 
-    nForLanes: 2,
-    nBackLanes: 1
+    nForLanes: 1,
+    nBackLanes: 1   
 }
 
 /**
@@ -34,8 +34,9 @@ function mouseClicked(){
         if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
             let allSegmentsBetween = road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
             let newNode = road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
+            console.log(allSegmentsBetween)
             for(let s of allSegmentsBetween){
-                road.splitSegmentAtPos(s.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y, newNode)
+                road.splitSegmentAtPos(s.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y, newNode, s.relDir)
             }
             state.prevNodeID = newNode.id
             return
@@ -44,6 +45,7 @@ function mouseClicked(){
         let newNode = road.addNode(mousePosGridX, mousePosGridY)
         state.prevNodeID = newNode.id
     }
+
     //following a previous node: create a segment that follows the previous node and creates a new node
     else if(state.mode == 'creatingLane' && state.prevNodeID != -1){
         //connects it to an existing node if hovering one
@@ -73,7 +75,6 @@ function mouseClicked(){
         createSegmentBetweenTwoNodes(state.prevNodeID, newNode.id)
         //checkSegmentCollisionsAndSplit(newSegment)
         state.prevNodeID = newNode.id
-        console.log(newNode.id)
     }
     //deletes a node or segment
     else if(state.mode == 'deleting'){
@@ -94,10 +95,10 @@ function mouseClicked(){
 //just creates segments between two nodes according to the current lane state
 function createSegmentBetweenTwoNodes(nodeAID, nodeBID){
     for(let i = 0; i < state.nForLanes; i++){
-        road.addSegment(nodeAID, nodeBID)
+        road.addSegment(nodeAID, nodeBID, 'for')
     }
     for(let i = 0; i < state.nBackLanes; i++){
-        road.addSegment(nodeBID, nodeAID)
+        road.addSegment(nodeBID, nodeAID, 'back')
     }
 }
 

@@ -1,5 +1,3 @@
-const LANE_WIDTH = 30
-
 class Path{
     constructor(nodeA, nodeB, segmentIDs){
         if(nodeA == undefined || nodeB == undefined || segmentIDs == undefined)
@@ -58,23 +56,31 @@ class Path{
                 strokeWeight(2.5)
                 line(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
                 let midPos = {x: (segment.fromPos.x + segment.toPos.x) / 2, y: (segment.fromPos.y + segment.toPos.y) / 2}
-                drawArrowTip(midPos.x, midPos.y, segment.dir, 7)
                 
-                stroke(0, 255, 0)
-                strokeWeight(8)
-                point(segment.fromPos.x, segment.fromPos.y)
-                stroke(255, 0, 0)
-                point(segment.toPos.x, segment.toPos.y)
 
-                // let str = segment.id
-                // textAlign(CENTER)
-                // textSize(12)
-                // let bbox = textBounds(str, midPos.x, midPos.y - 10)
-                // fill(0)
-                // rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
-                // fill(255)
-                // noStroke()
-                // text(str, midPos.x, midPos.y - 10)
+                if(SHOW_SEGS_DETAILS){
+                    drawArrowTip(midPos.x, midPos.y, segment.dir, 7)
+                    stroke(0, 255, 0)
+                    strokeWeight(8)
+                    point(segment.fromPos.x, segment.fromPos.y)
+                    stroke(255, 0, 0)
+                    point(segment.toPos.x, segment.toPos.y)
+                }
+                
+
+                if(SHOW_TAGS){
+                    let str = segment.id + ': ' + segment.fromNodeID + '-' + segment.toNodeID
+                    textAlign(CENTER)
+                    textSize(12)
+                    let bbox = textBounds(str, midPos.x, midPos.y - 10)
+                    fill(255, 0, 0)
+                    noStroke()
+                    rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
+                    fill(255)
+                    noStroke()
+                    text(str, midPos.x, midPos.y - 10)
+                }
+                
             }
         })
         pop()
