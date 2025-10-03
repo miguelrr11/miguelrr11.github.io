@@ -45,6 +45,41 @@ class Path{
         })
     }
 
+    showLanes(){
+        push()
+        this.segmentsIDs.forEach(segmentID => {
+            let segment = this.road.findSegment(segmentID)
+            if(segment.fromPos){
+                if(true){
+                    if(!segment.bezierPoints){
+                        let fromPos = segment.fromPos
+                        let toPos = segment.toPos
+                        let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
+                        rectMode(CORNERS)
+                        stroke(255, 0, 0, 200)
+                        strokeWeight(1)
+                        fill(255, 100)
+                        beginShape()
+                        vertex(corners[0].x, corners[0].y)
+                        vertex(corners[1].x, corners[1].y)
+                        vertex(corners[2].x, corners[2].y)
+                        vertex(corners[3].x, corners[3].y)
+                        endShape(CLOSE)
+
+                        // stroke(255)
+                        // strokeWeight(5)
+                        // point(corners[0].x, corners[0].y)
+                        // point(corners[1].x, corners[1].y)
+                        // point(corners[2].x, corners[2].y)
+                        // point(corners[3].x, corners[3].y)
+                    }
+                }
+            }
+        })
+        pop()
+
+    }
+
     show(SHOW_TAGS, SHOW_SEGS_DETAILS){
         push()
         strokeWeight(2.5)
@@ -53,7 +88,7 @@ class Path{
             let segment = this.road.findSegment(segmentID)
             if(segment.fromPos){
                 stroke(255)
-                strokeWeight(2.5)
+                strokeWeight(1)
                 line(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
                 let midPos = {x: (segment.fromPos.x + segment.toPos.x) / 2, y: (segment.fromPos.y + segment.toPos.y) / 2}
                 drawArrowTip(midPos.x, midPos.y, segment.dir, 7)
@@ -78,8 +113,7 @@ class Path{
                     fill(255)
                     noStroke()
                     text(str, midPos.x, midPos.y - 10)
-                }
-                
+                }                        
             }
         })
         pop()

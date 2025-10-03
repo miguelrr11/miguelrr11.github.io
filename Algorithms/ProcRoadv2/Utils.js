@@ -84,6 +84,17 @@ function lerppos(pos1, pos2, t){
     return {x: pos1.x + (pos2.x - pos1.x) * t, y: pos1.y + (pos2.y - pos1.y) * t}
 }
 
+function getCornersOfLine(pos1, pos2, width){
+    let angle = Math.atan2(pos2.y - pos1.y, pos2.x - pos1.x) + PI / 2
+    let halfW = width / 2
+    return [
+        {x: pos1.x + Math.cos(angle) * halfW, y: pos1.y + Math.sin(angle) * halfW},
+        {x: pos1.x - Math.cos(angle) * halfW, y: pos1.y - Math.sin(angle) * halfW},
+        {x: pos2.x - Math.cos(angle) * halfW, y: pos2.y - Math.sin(angle) * halfW},
+        {x: pos2.x + Math.cos(angle) * halfW, y: pos2.y + Math.sin(angle) * halfW},
+    ]
+}
+
 // ===================
 // Color Utilities
 // ===================

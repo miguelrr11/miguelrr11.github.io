@@ -13,17 +13,28 @@ class Node{
         return dist(mouseX, mouseY, this.pos.x, this.pos.y) <= NODE_RAD
     }
 
-    show(SHOW_TAGS){
+    showTags(){
         push()
-        if(SHOW_TAGS) fill(0)
-        else noFill()
+        noStroke()
+        textAlign(CENTER)
+        let str = this.id + ': ' + this.incomingSegmentIDs.length + '-' + this.outgoingSegmentIDs.length
+        textSize(12)
+        let bbox = textBounds(str, this.pos.x, this.pos.y)
+        fill(255, 0, 0)
+        rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
+        fill(0)
+        noStroke()
+        text(str, this.pos.x, this.pos.y)
+        pop()
+    }
+
+    show(){
+        push()
+        noFill()
         textSize(15)
         this.hover() ? strokeWeight(3) : strokeWeight(1.5)
-        stroke(255, 150)
+        stroke(255, 200)
         ellipse(this.pos.x, this.pos.y, NODE_RAD * 2)
-        fill(255, 0, 0)
-        textAlign(CENTER)
-        if(SHOW_TAGS) text(this.id + '\n' + this.incomingSegmentIDs.length + '-' + this.outgoingSegmentIDs.length, this.pos.x, this.pos.y)
         pop()
     }
 }

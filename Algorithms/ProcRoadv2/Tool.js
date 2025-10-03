@@ -7,7 +7,8 @@ class Tool{
             SHOW_CONNECTORS: false,
             SHOW_INTERSECSEGS: true,
             SHOW_TAGS: false,
-            SHOW_SEGS_DETAILS: false
+            SHOW_SEGS_DETAILS: false,
+            SHOW_LANES: true
         }
         this.road = new Road()
         this.state = {
@@ -18,7 +19,7 @@ class Tool{
             offsetDraggingNode: {x: 0, y: 0},
 
             nForLanes: 1,
-            nBackLanes: 1 
+            nBackLanes: 0 
         }
         this.menu = new Menu(this)
         this.dragging = false
@@ -283,11 +284,17 @@ class Tool{
         this.showCurrent()
         this.menu.show()
 
+        
         if(this.showOptions.SHOW_ROAD) this.road.show()
-        if(this.showOptions.SHOW_NODES) this.road.showNodes(this.showOptions.SHOW_TAGS)
-        if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, this.showOptions.SHOW_SEGS_DETAILS)
+        if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, 
+                                                            this.showOptions.SHOW_SEGS_DETAILS)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors()
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs()
+        if(this.showOptions.SHOW_LANES) this.road.showLanes()
+        blendMode(DIFFERENCE)
+        if(this.showOptions.SHOW_NODES) this.road.showNodes()
+        blendMode(BLEND)
+        if(this.showOptions.SHOW_TAGS) this.road.showNodesTags()
     }
 }
 

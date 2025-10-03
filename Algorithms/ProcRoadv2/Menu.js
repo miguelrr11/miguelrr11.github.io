@@ -109,6 +109,13 @@ class Menu{
         })
         buttonShowSegDetails.label = this.tool.showOptions.SHOW_SEGS_DETAILS ? 'Hide Details' : 'Show Details'
 
+        let buttonShowLanes = new Button(700, 220, 95, 20, 'Show Lanes', () => {
+            this.tool.showOptions.SHOW_LANES = !this.tool.showOptions.SHOW_LANES
+            if(this.tool.showOptions.SHOW_LANES) buttonShowLanes.label = 'Hide Lanes'
+            else buttonShowLanes.label = 'Show Lanes'
+        })
+        buttonShowLanes.label = this.tool.showOptions.SHOW_LANES ? 'Hide Lanes' : 'Show Lanes'
+
 
         this.buttons.push(buttonShowNodes)
         this.buttons.push(buttonShowRoad)
@@ -117,6 +124,7 @@ class Menu{
         this.buttons.push(buttonShowIntersecSegs)
         this.buttons.push(buttonShowTags)
         this.buttons.push(buttonShowSegDetails)
+        this.buttons.push(buttonShowLanes)
 
         //this.buttons.push(buttonSetPaths)
 

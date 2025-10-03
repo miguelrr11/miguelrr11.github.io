@@ -16,7 +16,7 @@ const LENGTH_SEG_BEZIER = 4
 const TENSION_BEZIER_MIN = 0.1
 const TENSION_BEZIER_MAX = 0.5
 const MIN_DIST_INTERSEC = 30
-const LANE_WIDTH = 10
+const LANE_WIDTH = 20
 
 class Road{
     constructor(){
@@ -345,10 +345,6 @@ class Road{
         this.segments.forEach(s => s.show())
     }
 
-    showNodes(SHOW_TAGS){
-        this.nodes.forEach(n => n.show(SHOW_TAGS))
-    }
-
     showPaths(SHOW_TAGS, SHOW_SEGS_DETAILS){
         this.paths.forEach(p => p.show(SHOW_TAGS, SHOW_SEGS_DETAILS))
     }
@@ -359,6 +355,19 @@ class Road{
 
     showIntersecSegs(){
         this.intersecSegs.forEach(s => s.showBezier())
+    }
+
+    showLanes(){
+        this.paths.forEach(p => p.showLanes())
+        this.intersecSegs.forEach(s => s.showLane())
+    }
+
+    showNodes(){
+        this.nodes.forEach(n => n.show())
+    }
+
+    showNodesTags(){
+        this.nodes.forEach(n => n.showTags())
     }
 }
 

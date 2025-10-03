@@ -28,18 +28,51 @@ class Segment{
         pop()
     }
 
+    showLane(){
+        push()
+
+        let fromPos = this.bezierPoints[0]
+        let toPos = this.bezierPoints[this.bezierPoints.length-1]
+
+        let cornersFirst = getCornersOfLine(fromPos, this.bezierPoints[1], LANE_WIDTH)
+        let cornersLast = getCornersOfLine(this.bezierPoints[this.bezierPoints.length-2], toPos, LANE_WIDTH)
+        let points = [cornersFirst[1]]
+        for(let i = 0; i < this.bezierPoints.length-1; i++){
+            let corners = getCornersOfLine(this.bezierPoints[i], this.bezierPoints[i+1], LANE_WIDTH)
+            points.push(corners[0])
+        }
+        points.push(cornersLast[3])
+        points.push(cornersLast[2])
+        for(let i = this.bezierPoints.length-1; i > 0; i--){
+            let corners = getCornersOfLine(this.bezierPoints[i], this.bezierPoints[i-1], LANE_WIDTH)
+            points.push(corners[0])
+        }
+        points.push(cornersFirst[1])
+
+        strokeWeight(1)
+        stroke(255, 0, 0, 200)
+        fill(255, 100)
+        beginShape()
+        for(let p of points) vertex(p.x, p.y)
+        endShape()
+        pop()       
+    }
+
     showBezier(){
         if(!this.bezierPoints) return
         push()
-        strokeWeight(1.5)
+        strokeWeight(1)
         stroke(255)
         noFill()
         beginShape()
         this.bezierPoints.forEach(p => vertex(p.x, p.y))
         endShape()
         pop()
+
+        
     }
 
+    //this is shown if road calls segment.show(), it doesnt take into account the real separation between lanes
     show(){
         push()
         strokeWeight(1)
@@ -61,7 +94,6 @@ class Segment{
             fill(255)
             text(str, midPos.x, midPos.y)       
         }
-        
         
         pop()
 
