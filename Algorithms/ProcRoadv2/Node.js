@@ -13,7 +13,7 @@ class Node{
         return dist(mouseX, mouseY, this.pos.x, this.pos.y) <= NODE_RAD
     }
 
-    show(){
+    show(SHOW_TAGS){
         push()
         if(SHOW_TAGS) fill(0)
         else noFill()

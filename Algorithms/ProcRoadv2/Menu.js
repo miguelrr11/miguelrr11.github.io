@@ -3,13 +3,13 @@ class Menu{
         this.buttons = []
         this.tool = tool
 
-        let buttonCreate = new Button(10, 10, 80, 30, 'Create [C]', tool.createState, () => {
+        let buttonCreate = new Button(10, 10, 80, 30, 'Create [C]', () => {tool.createState()}, () => {
             return this.tool.state.mode === 'creatingLane' ? 'Creating...' : 'Create [C]'
         }, () => {return this.tool.state.mode == 'creatingLane'})
-        let buttonDelete = new Button(100, 10, 80, 30, 'Delete [D]', tool.deleteState, () => {
+        let buttonDelete = new Button(100, 10, 80, 30, 'Delete [D]', () => {tool.deleteState()}, () => {
             return this.tool.state.mode === 'deleting' ? 'Deleting...' : 'Delete [D]'
         }, () => {return this.tool.state.mode == 'deleting'})
-        let buttonHand = new Button(190, 10, 80, 30, 'Move [H]', tool.handState, () => {
+        let buttonHand = new Button(190, 10, 80, 30, 'Move [H]', () => {tool.handState()}, () => {
             return this.tool.state.mode === 'movingNode' ? 'Moving...' : 'Move [H]'
         }, () => {return this.tool.state.mode == 'movingNode'})
 

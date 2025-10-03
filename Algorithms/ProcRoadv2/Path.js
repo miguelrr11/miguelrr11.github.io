@@ -45,7 +45,7 @@ class Path{
         })
     }
 
-    show(){
+    show(SHOW_TAGS, SHOW_SEGS_DETAILS){
         push()
         strokeWeight(2.5)
         stroke(255)
@@ -59,7 +59,6 @@ class Path{
                 drawArrowTip(midPos.x, midPos.y, segment.dir, 7)
 
                 if(SHOW_SEGS_DETAILS){
-                    
                     stroke(0, 255, 0)
                     strokeWeight(8)
                     point(segment.fromPos.x, segment.fromPos.y)

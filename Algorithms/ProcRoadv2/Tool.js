@@ -27,6 +27,8 @@ class Tool{
         document.addEventListener("mousedown", () => {this.dragging = true})
         document.addEventListener("mousemove", () => {if(this.dragging) this.onMouseDragged()})
         document.addEventListener("keydown", (e) => this.onKeyPressed(e));
+
+        cursor(CROSS)
     }
 
     onClick(){
@@ -175,12 +177,6 @@ class Tool{
         this.state.prevNodeID = -1
         cursor('not-allowed')
     }
-
-    update(){
-        this.road.setPaths()
-        this.road.trimAllIntersections()
-        this.menu.update()
-    }
     
     showCurrent(){
         this.showGridPoints()
@@ -278,13 +274,18 @@ class Tool{
         pop()
     }
 
+    update(){
+        this.road.setPaths()
+        this.menu.update()
+    }
+
     show(){
         this.showCurrent()
         this.menu.show()
 
         if(this.showOptions.SHOW_ROAD) this.road.show()
-        if(this.showOptions.SHOW_NODES) this.road.showNodes()
-        if(this.showOptions.SHOW_PATHS) this.road.showPaths()
+        if(this.showOptions.SHOW_NODES) this.road.showNodes(this.showOptions.SHOW_TAGS)
+        if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, this.showOptions.SHOW_SEGS_DETAILS)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors()
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs()
     }

@@ -6,6 +6,9 @@
  * Connectors are just like nodes but they are created in intersections and can only have 1 incoming and 1 outgoing segment
  */
 
+// It is extremely important to separate segments (array segments) from the intersection segments (array intersecSegs)
+// because they have different ID pools
+
 const NODE_RAD = 20
 const GRID_CELL_SIZE = 15
 const OFFSET_RAD_INTERSEC = 25
@@ -13,7 +16,7 @@ const LENGTH_SEG_BEZIER = 4
 const TENSION_BEZIER_MIN = 0.1
 const TENSION_BEZIER_MAX = 0.5
 const MIN_DIST_INTERSEC = 30
-const LANE_WIDTH = 30
+const LANE_WIDTH = 10
 
 class Road{
     constructor(){
@@ -27,55 +30,20 @@ class Road{
         this.segmentIDcounter = 0
         this.connectorIDcounter = 0
         this.intersecSegIDcounter = 0
-
-        cursor(CROSS)
     }
 
     setPaths(){
         this.paths = new Map()
         this.connectors = [] 
         this.intersecSegs = []
+        this.connectorIDcounter = 0
+        this.intersecSegIDcounter = 0
         for(let i = 0; i < this.nodes.length; i++){
             for(let j = 0; j < this.nodes.length; j++){
                 if(i == j) continue
                 let nodeA = this.nodes[i]
                 let nodeB = this.nodes[j]
                 let segmentIDs = this.getAllSegmentsBetweenNodes(nodeA.id, nodeB.id).map(s => s.id)
-
-                //sort by direction
-                // segmentIDs.sort((a, b) => {
-                //     let segA = this.findSegment(a)
-                //     let segB = this.findSegment(b)
-                //     let nodeFromA = this.findNode(segA.fromNodeID)
-                //     let nodeToA = this.findNode(segA.toNodeID)
-                //     let nodeFromB = this.findNode(segB.fromNodeID)
-                //     let nodeToB = this.findNode(segB.toNodeID)
-
-                //     let dirA = Math.atan2(nodeToA.pos.y - nodeFromA.pos.y, nodeToA.pos.x - nodeFromA.pos.x)
-                //     let dirB = Math.atan2(nodeToB.pos.y - nodeFromB.pos.y, nodeToB.pos.x - nodeFromB.pos.x)
-
-                //     return dirA - dirB
-                // })
-
-                // console.log(segmentIDs)
-
-                // segmentIDs.sort((a, b) => {
-                //     let x = this.findSegment(a)
-                //     let y = this.findSegment(b)
-
-                //     if (x.relDir === "for" && y.relDir !== "for") return -1; // "for" goes first
-                //     if (x.relDir !== "for" && y.relDir === "for") return 1;
-
-                //     if (x.relDir === "to" && y.relDir !== "to") return 1;   // "to" goes last
-                //     if (x.relDir !== "to" && y.relDir === "to") return -1;
-
-                //     return 0; 
-                // })
-
-                // console.log(segmentIDs)
-
-
-
                 if(this.paths.has(nodeA.id + '-' + nodeB.id) || this.paths.has(nodeB.id + '-' + nodeA.id)){
                     this.paths.get(nodeA.id + '-' + nodeB.id)?.segmentsIDs.add(...segmentIDs)
                     this.paths.get(nodeB.id + '-' + nodeA.id)?.segmentsIDs.add(...segmentIDs)
@@ -89,6 +57,7 @@ class Road{
                 }
             }
         }
+        this.trimAllIntersections()
     }
 
     trimAllIntersections(){
@@ -376,12 +345,12 @@ class Road{
         this.segments.forEach(s => s.show())
     }
 
-    showNodes(){
-        this.nodes.forEach(n => n.show())
+    showNodes(SHOW_TAGS){
+        this.nodes.forEach(n => n.show(SHOW_TAGS))
     }
 
-    showPaths(){
-        this.paths.forEach(p => p.show())
+    showPaths(SHOW_TAGS, SHOW_SEGS_DETAILS){
+        this.paths.forEach(p => p.show(SHOW_TAGS, SHOW_SEGS_DETAILS))
     }
 
     showConnectors(){
