@@ -9,8 +9,8 @@ class Node{
         this.road = undefined
     }
 
-    hover(){
-        return dist(mouseX, mouseY, this.pos.x, this.pos.y) <= NODE_RAD
+    hover(x, y){
+        return dist(x, y, this.pos.x, this.pos.y) <= NODE_RAD
     }
 
     showTags(){
@@ -28,13 +28,14 @@ class Node{
         pop()
     }
 
-    show(){
+    show(selected = false){
         push()
-        noFill()
+        selected ? fill(255, 100) : noFill()
         textSize(15)
-        this.hover() ? strokeWeight(3) : strokeWeight(1.5)
+        strokeWeight(1.5)
         stroke(255, 200)
-        ellipse(this.pos.x, this.pos.y, NODE_RAD * 2)
+        let mult = selected ? 1.8 : 2
+        ellipse(this.pos.x, this.pos.y, NODE_RAD * mult)
         pop()
     }
 }

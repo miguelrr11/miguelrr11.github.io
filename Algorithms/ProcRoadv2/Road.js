@@ -12,7 +12,7 @@
 const NODE_RAD = 20
 const GRID_CELL_SIZE = 15
 const OFFSET_RAD_INTERSEC = 25
-const LENGTH_SEG_BEZIER = 4
+const LENGTH_SEG_BEZIER = 3
 const TENSION_BEZIER_MIN = 0.1
 const TENSION_BEZIER_MAX = 0.5
 const MIN_DIST_INTERSEC = 30
@@ -20,7 +20,7 @@ const LANE_WIDTH = 20
 
 class Road{
     constructor(){
-        this.paths = []
+        this.paths = new Map()
         this.segments = []
         this.nodes = []
         this.connectors = [] 
@@ -153,8 +153,6 @@ class Road{
         let segment1 = this.addSegment(fromNode.id, newNode.id)
         let segment2 = this.addSegment(newNode.id, toNode.id)
 
-        console.log('seg1 from: ' + segment1.fromNodeID + ' to: ' + segment1.toNodeID + ' id: ' + segment1.id)
-        console.log('seg2 from: ' + segment2.fromNodeID + ' to: ' + segment2.toNodeID + ' id: ' + segment2.id)
         return {segment1, segment2, newNode}
     }
 
@@ -174,8 +172,8 @@ class Road{
         return newNode
     }
 
-    findHoverNode(){
-        return this.nodes.find(n => n.hover())
+    findHoverNode(x, y){
+        return this.nodes.find(n => n.hover(x, y))
     }
 
     addSegment(fromNodeID, toNodeID){

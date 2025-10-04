@@ -12,14 +12,16 @@ class Tool{
         }
         this.road = new Road()
         this.state = {
-            mode: 'creatingLane',
+            mode: 'creating',
             prevNodeID: -1,
 
             draggingNodeID: -1,
             offsetDraggingNode: {x: 0, y: 0},
 
             nForLanes: 1,
-            nBackLanes: 0 
+            nBackLanes: 0,
+
+            changed: false
         }
         this.menu = new Menu(this)
         this.dragging = false
@@ -28,26 +30,42 @@ class Tool{
         document.addEventListener("mousedown", () => {this.dragging = true})
         document.addEventListener("mousemove", () => {if(this.dragging) this.onMouseDragged()})
         document.addEventListener("keydown", (e) => this.onKeyPressed(e));
+        document.addEventListener("wheel", (e) => {e.preventDefault(); this.onMouseWheel(e)}, {passive: false});
+
+        this.xOff = 0
+        this.yOff = 0
+        this.prevMouseX = 0
+        this.prevMouseY = 0
+        this.zoom = 1
 
         cursor(CROSS)
     }
 
     onClick(){
-        if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds()) return
+        if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || keyIsPressed) return
 
-        const mousePosGridX = Math.floor(mouseX / GRID_CELL_SIZE) * GRID_CELL_SIZE
-        const mousePosGridY = Math.floor(mouseY / GRID_CELL_SIZE) * GRID_CELL_SIZE
+        this.state.changed = true
+
+        let mousePosGridXnotscaled = Math.floor(mouseX / GRID_CELL_SIZE) * GRID_CELL_SIZE
+        let mousePosGridYnotscaled = Math.floor(mouseY / GRID_CELL_SIZE) * GRID_CELL_SIZE
+
+        let scaled = this.getRelativePos(mousePosGridXnotscaled, mousePosGridYnotscaled)
+
+        let mousePosGridX = scaled.x
+        let mousePosGridY = scaled.y
+
+        let mousePos = this.getRelativePos(mouseX, mouseY)
 
         //not following a previous node, so just create a new node
-        if(this.state.mode == 'creatingLane' && this.state.prevNodeID == -1){
+        if(this.state.mode == 'creating' && this.state.prevNodeID == -1){
             //resumes creating a segment from the clicked node
-            let hoverNode = this.road.findHoverNode()
+            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined){
                 this.state.prevNodeID = hoverNode.id
                 return
             }
             //creates a new node on top of a segment, it splits it and creates a new node which becomes the previous node (anchor)
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mouseX, mouseY)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
                 let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
@@ -63,16 +81,17 @@ class Tool{
         }
 
         //following a previous node: create a segment that follows the previous node and creates a new node
-        else if(this.state.mode == 'creatingLane' && this.state.prevNodeID != -1){
+        else if(this.state.mode == 'creating' && this.state.prevNodeID != -1){
             //connects it to an existing node if hovering one
-            let hoverNode = this.road.findHoverNode()
-            if(hoverNode != undefined){
+            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
+            if(hoverNode != undefined && hoverNode.id != this.state.prevNodeID){
                 this.createSegmentBetweenTwoNodes(this.state.prevNodeID, hoverNode.id)
                 this.state.prevNodeID = hoverNode.id
                 return
             }
+            if(hoverNode != undefined && hoverNode.id == this.state.prevNodeID) return
             //creates a new node on top of a segment, it splits it and creates a new node
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mouseX, mouseY)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
                 let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
@@ -94,12 +113,12 @@ class Tool{
         }
         //deletes a node or segment
         else if(this.state.mode == 'deleting'){
-            let hoverNode = this.road.findHoverNode()
+            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined){
                 this.road.deleteNode(hoverNode.id)
                 return
             }
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mouseX, mouseY)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
             if(closestPosToSegment.closestSegment && 
                 closestPosToSegment.minDist < NODE_RAD * 1.25){
                     this.road.deleteSegment(closestPosToSegment.closestSegment.id)
@@ -111,8 +130,29 @@ class Tool{
     onMouseDragged(){
         if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) return
 
-        const mousePosGridX = Math.floor(mouseX / GRID_CELL_SIZE) * GRID_CELL_SIZE
-        const mousePosGridY = Math.floor(mouseY / GRID_CELL_SIZE) * GRID_CELL_SIZE
+        this.state.changed = true
+
+        let mousePosGridXnotscaled = Math.floor(mouseX / GRID_CELL_SIZE) * GRID_CELL_SIZE
+        let mousePosGridYnotscaled = Math.floor(mouseY / GRID_CELL_SIZE) * GRID_CELL_SIZE
+
+        let scaled = this.getRelativePos(mousePosGridXnotscaled, mousePosGridYnotscaled)
+
+        let mousePosGridX = scaled.x
+        let mousePosGridY = scaled.y
+
+        let mousePos = this.getRelativePos(mouseX, mouseY)
+
+        let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
+        if(this.state.draggingNodeID == -1 || (keyIsDown(16))){
+            if(!this.prevMouseX) this.prevMouseX = mouseX
+            if(!this.prevMouseY) this.prevMouseY = mouseY
+            let dx = mouseX - this.prevMouseX; // Change in mouse X
+            let dy = mouseY - this.prevMouseY; // Change in mouse Y
+            this.xOff += dx;
+            this.yOff += dy;
+            this.prevMouseX = mouseX;
+            this.prevMouseY = mouseY;
+        }
 
         //dragging nodes
         if(this.state.mode == 'movingNode'){
@@ -122,7 +162,7 @@ class Tool{
                 node.pos.y = mousePosGridY + this.state.offsetDraggingNode.y
                 return
             }
-            let hoverNode = this.road.findHoverNode()
+            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined){
                 this.state.draggingNodeID = hoverNode.id
                 this.state.offsetDraggingNode.x = hoverNode.pos.x - mousePosGridX
@@ -133,6 +173,8 @@ class Tool{
     }
 
     onMouseRelease(){
+        this.prevMouseX = undefined
+        this.prevMouseY = undefined
         if(this.state.mode == 'movingNode'){
             this.state.draggingNodeID = -1
             this.state.offsetDraggingNode = {x: 0, y: 0}
@@ -144,7 +186,7 @@ class Tool{
     onKeyPressed(event){
         let kC = event.keyCode
         let k = event.key.toLowerCase()
-        if(kC == 32 && this.state.mode == 'creatingLane'){
+        if(kC == 32 && this.state.mode == 'creating'){
             this.state.prevNodeID = -1
         }
         if(k == 'h'){
@@ -158,9 +200,18 @@ class Tool{
         }
     }
 
+    onMouseWheel(event) {
+        let worldX = (mouseX - this.xOff) / this.zoom;
+        let worldY = (mouseY - this.yOff) / this.zoom;
+        this.zoom += event.deltaY / 1000;
+        this.zoom = Math.max(0.1, Math.min(this.zoom, 3));
+        this.xOff = mouseX - worldX * this.zoom;
+        this.yOff = mouseY - worldY * this.zoom;
+    }
+
     createState(){
-        if(this.state.mode == 'creatingLane') return
-        this.state.mode = 'creatingLane'
+        if(this.state.mode == 'creating') return
+        this.state.mode = 'creating'
         this.state.prevNodeID = -1
         cursor(CROSS)
     }
@@ -180,35 +231,43 @@ class Tool{
     }
     
     showCurrent(){
-        this.showGridPoints()
         this.showCurrentSegment()
     }
 
     showGridPoints(){
         push()
-        stroke(255, 200)
-        strokeWeight(1.25)
-        let off = GRID_CELL_SIZE / 2
-        for(let x = 0; x < width; x += GRID_CELL_SIZE){
-            for(let y = 0; y < height; y += GRID_CELL_SIZE){
+        stroke(255, 180)
+        strokeWeight(1)
+        let size = GRID_CELL_SIZE
+        let off = size / 2
+        for(let x = 0; x < width; x += size){
+            for(let y = 0; y < height; y += size){
                 point(x + off, y + off)
             }
         }
         pop()
     }
 
+
     showCurrentSegment(){
         if(this.state.prevNodeID != -1){
             let node = this.road.findNode(this.state.prevNodeID)
             let pos = node.pos
 
-            const mousePosGridX = Math.floor(mouseX / GRID_CELL_SIZE) * GRID_CELL_SIZE
-            const mousePosGridY = Math.floor(mouseY / GRID_CELL_SIZE) * GRID_CELL_SIZE
+            let mousePosGridXnotscaled = Math.floor(mouseX / GRID_CELL_SIZE) * GRID_CELL_SIZE
+            let mousePosGridYnotscaled = Math.floor(mouseY / GRID_CELL_SIZE) * GRID_CELL_SIZE
 
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mouseX, mouseY)
+            let scaled = this.getRelativePos(mousePosGridXnotscaled, mousePosGridYnotscaled)
+
+            let mousePosGridX = scaled.x
+            let mousePosGridY = scaled.y
+
+            let mousePos = this.getRelativePos(mouseX, mouseY)
+
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
             let closestPoint = closestPosToSegment.closestPoint != undefined && closestPosToSegment.minDist < NODE_RAD * 1.25 ? closestPosToSegment.closestPoint : {x: mousePosGridX, y: mousePosGridY}
 
-            let hoverNode = this.road.findHoverNode()
+            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined) closestPoint = hoverNode.pos
 
             push()
@@ -225,7 +284,7 @@ class Tool{
             drawArrowTip(midPos2.x, midPos2.y, angle, 10)
 
             
-            if(closestPosToSegment.closestSegment && this.state.mode == 'creatingLane' && closestPosToSegment.minDist < NODE_RAD * 1.25 && !hoverNode){
+            if(closestPosToSegment.closestSegment && this.state.mode == 'creating' && closestPosToSegment.minDist < NODE_RAD * 1.25 && !hoverNode){
                 this.showClosestSegmentAndPos(closestPosToSegment.closestPoint)
             }
             else{
@@ -238,9 +297,17 @@ class Tool{
             
             pop()
         }
-        else if(this.state.mode == 'creatingLane' && this.state.prevNodeID == -1){
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mouseX, mouseY)
-            if(closestPosToSegment.closestSegment && this.state.mode == 'creatingLane' && closestPosToSegment.minDist < NODE_RAD * 1.25){
+        else if(this.state.mode == 'creating' && this.state.prevNodeID == -1){
+            let mousePosGridXnotscaled = Math.floor(mouseX / GRID_CELL_SIZE) * GRID_CELL_SIZE
+            let mousePosGridYnotscaled = Math.floor(mouseY / GRID_CELL_SIZE) * GRID_CELL_SIZE
+
+            let scaled = this.getRelativePos(mousePosGridXnotscaled, mousePosGridYnotscaled)
+
+            let mousePosGridX = scaled.x
+            let mousePosGridY = scaled.y
+            
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
+            if(closestPosToSegment.closestSegment && this.state.mode == 'creating' && closestPosToSegment.minDist < NODE_RAD * 1.25){
                 this.showClosestSegmentAndPos(closestPosToSegment.closestPoint)
             }
             this.checkCurrentSegmentCollisions()
@@ -266,7 +333,15 @@ class Tool{
 
     showClosestSegmentAndPos(pos){
         push()
-        let ellipsePos = pos ? pos : this.road.findClosestSegmentAndPos(mouseX, mouseY).closestPoint
+        let mousePosGridXnotscaled = Math.floor(mouseX / GRID_CELL_SIZE) * GRID_CELL_SIZE
+        let mousePosGridYnotscaled = Math.floor(mouseY / GRID_CELL_SIZE) * GRID_CELL_SIZE
+
+        let scaled = this.getRelativePos(mousePosGridXnotscaled, mousePosGridYnotscaled)
+
+        let mousePosGridX = scaled.x
+        let mousePosGridY = scaled.y
+
+        let ellipsePos = pos ? pos : this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY).closestPoint
         if(ellipsePos == undefined) return
         stroke(255, 150)
         noFill()
@@ -275,16 +350,93 @@ class Tool{
         pop()
     }
 
+    createCurrentLanes(){
+        if(this.state.prevNodeID == -1) return
+        let mousePosGridXnotscaled = Math.floor(mouseX / GRID_CELL_SIZE) * GRID_CELL_SIZE
+        let mousePosGridYnotscaled = Math.floor(mouseY / GRID_CELL_SIZE) * GRID_CELL_SIZE
+        let scaled = this.getRelativePos(mousePosGridXnotscaled, mousePosGridYnotscaled)
+        let mousePosGridX = scaled.x
+        let mousePosGridY = scaled.y
+
+        let segments = []
+        let newNode = new Node(-1, mousePosGridX, mousePosGridY)
+        for(let i = 0; i < this.state.nForLanes; i++){
+            segments.push(new Segment(i, this.state.prevNodeID, -1))
+        }
+        for(let i = 0; i < this.state.nBackLanes; i++){
+            segments.push(new Segment(i + this.state.nForLanes, -1, this.state.prevNodeID))
+        }
+
+        let nodeA = this.road.findNode(this.state.prevNodeID)
+        let nodeB = newNode
+        
+        let fromPos = nodeA.pos
+        let toPos = nodeB.pos
+        let angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x) - PI / 2
+        let numLanes = segments.length
+        let totalWidth = numLanes * LANE_WIDTH
+        let startOffset = -totalWidth / 2 + LANE_WIDTH / 2
+
+        let i = 0
+        segments.forEach(seg => {
+            let offset = startOffset + i * LANE_WIDTH
+            let laneFromPos = {x: fromPos.x + Math.cos(angle) * offset, y: fromPos.y + Math.sin(angle) * offset}
+            let laneToPos = {x: toPos.x + Math.cos(angle) * offset, y: toPos.y + Math.sin(angle) * offset}
+            let nodeFrom = seg.fromNodeID == -1 ? nodeB : nodeA
+            let nodeTo = seg.fromNodeID == -1 ? nodeA : nodeB
+            let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
+
+            //also we modify the segment to have the new calculated positions
+            seg.fromPos = seg.fromNodeID == nodeB.id ? laneFromPos : laneToPos
+            seg.toPos = seg.toNodeID == nodeA.id ? laneToPos : laneFromPos
+            seg.dir = dir
+
+            i++
+        })
+
+        return segments
+    }
+
+    showCurSegs(segs) {
+        for(let seg of segs) {
+            let fromPos = seg.fromPos
+            let toPos = seg.toPos
+            stroke(255)
+            strokeWeight(1)
+            line(seg.fromPos.x, seg.fromPos.y, seg.toPos.x, seg.toPos.y)
+            let midPos = {x: (seg.fromPos.x + seg.toPos.x) / 2, y: (seg.fromPos.y + seg.toPos.y) / 2}
+            drawArrowTip(midPos.x, midPos.y, seg.dir, 7)
+            let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
+            rectMode(CORNERS)
+            stroke(255, 0, 0, 200)
+            strokeWeight(1)
+            fill(255, 100)
+            beginShape()
+            vertex(corners[0].x, corners[0].y)
+            vertex(corners[1].x, corners[1].y)
+            vertex(corners[2].x, corners[2].y)
+            vertex(corners[3].x, corners[3].y)
+            endShape(CLOSE)
+        }
+    }
+
     update(){
-        this.road.setPaths()
+        if(this.state.changed) {this.road.setPaths(); console.log('updated paths')}
+        this.state.changed = false
         this.menu.update()
     }
 
     show(){
-        this.showCurrent()
-        this.menu.show()
+        push()
 
-        
+        //this.showGridPoints()
+
+        translate(this.xOff, this.yOff)
+        scale(this.zoom)
+
+        let curSegs = this.createCurrentLanes()
+        if(curSegs) this.showCurSegs(curSegs)
+
         if(this.showOptions.SHOW_ROAD) this.road.show()
         if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, 
                                                             this.showOptions.SHOW_SEGS_DETAILS)
@@ -295,7 +447,40 @@ class Tool{
         if(this.showOptions.SHOW_NODES) this.road.showNodes()
         blendMode(BLEND)
         if(this.showOptions.SHOW_TAGS) this.road.showNodesTags()
+
+        let mousePos = this.getRelativePos(mouseX, mouseY)
+        let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
+        let _hoverSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
+        let hoverSegment = (_hoverSegment.closestSegment && _hoverSegment.minDist < LANE_WIDTH * .5) ? _hoverSegment.closestSegment : false
+        if(this.state.mode == 'movingNode' && hoverNode != undefined){
+            blendMode(ADD)
+            hoverNode.show(true)
+            blendMode(BLEND)
+        }
+        else if(this.state.mode == 'deleting' || this.state.mode == 'creating'){
+            if(hoverNode){
+                blendMode(ADD)
+                hoverNode.show(true)
+                blendMode(BLEND)
+            }
+            else if(hoverSegment){
+                hoverSegment.showHover()
+            }
+        }
+        pop()
+
+        this.menu.show()
+
+
+    }
+
+    getRelativePos(x, y){
+        let worldX = (x - this.xOff) / this.zoom;
+        let worldY = (y - this.yOff) / this.zoom;
+        return {x: worldX, y: worldY}
     }
 }
+
+
 
 //let currentHash = JSON.stringify(this.road, (key, value) => (key === 'this.road' ? undefined : value))

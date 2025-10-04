@@ -20,8 +20,8 @@
  */
 
 p5.disableFriendlyErrors = true
-const WIDTH = 800
-const HEIGHT = 600
+const WIDTH = 1400
+const HEIGHT = 700
 
 let SHOW_ROAD = false
 let SHOW_PATHS = true

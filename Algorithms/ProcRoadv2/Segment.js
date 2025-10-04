@@ -72,6 +72,16 @@ class Segment{
         
     }
 
+    showHover(){
+        push()
+        strokeWeight(2.5)
+        stroke(255, 130)
+        let fromPos = this.road.findNode(this.fromNodeID).pos
+        let toPos = this.road.findNode(this.toNodeID).pos
+        line(fromPos.x, fromPos.y, toPos.x, toPos.y)
+        pop()
+    }
+
     //this is shown if road calls segment.show(), it doesnt take into account the real separation between lanes
     show(){
         push()
