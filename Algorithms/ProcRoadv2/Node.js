@@ -17,14 +17,14 @@ class Node{
         push()
         noStroke()
         textAlign(CENTER)
-        let str = this.id + ': ' + this.incomingSegmentIDs.length + '-' + this.outgoingSegmentIDs.length
-        textSize(12)
-        let bbox = textBounds(str, this.pos.x, this.pos.y)
+        let str = '[' + this.id + ']' + ': nIn: ' + this.incomingSegmentIDs.length + ' nOut: ' + this.outgoingSegmentIDs.length
+        textSize(4)
+        let bbox = textBounds(str, this.pos.x, this.pos.y - NODE_RAD)
         fill(255, 0, 0)
         rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
         fill(0)
         noStroke()
-        text(str, this.pos.x, this.pos.y)
+        text(str, this.pos.x, this.pos.y - NODE_RAD)
         pop()
     }
 

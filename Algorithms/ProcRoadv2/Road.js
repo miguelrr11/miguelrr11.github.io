@@ -3,19 +3,20 @@
  * The nodes and segments form a directed graph.
  * The paths are a way to group segments between two nodes, they do not affect the graph structure.
  * Paths modify the segments adding position for lanes and direction
- * Connectors are just like nodes but they are created in intersections and can only have 1 incoming and 1 outgoing segment
+ * Segments are separated by intersections on nodes. These intersections contain Connectors that tell the incomming segment what other 
+ * intersection-segments there are to choose. 
  */
 
 // It is extremely important to separate segments (array segments) from the intersection segments (array intersecSegs)
 // because they have different ID pools
 
 const NODE_RAD = 20
-const GRID_CELL_SIZE = 15
+const GRID_CELL_SIZE = 15   //15
 const OFFSET_RAD_INTERSEC = 25
-const LENGTH_SEG_BEZIER = 3
+const LENGTH_SEG_BEZIER = 3      //3
 const TENSION_BEZIER_MIN = 0.1
 const TENSION_BEZIER_MAX = 0.5
-const MIN_DIST_INTERSEC = 30
+const MIN_DIST_INTERSEC = 40        //30
 const LANE_WIDTH = 20
 
 class Road{
@@ -62,6 +63,11 @@ class Road{
 
     trimAllIntersections(){
         this.nodes.forEach(n => this.trimSegmentsAtIntersection(n.id))
+
+        // for(let seg of this.segments){
+        //     let possibleIntersecSegsIDs = []
+
+        // }
     }
 
     findClosestSegmentAndPos(x, y){
@@ -137,6 +143,7 @@ class Road{
             console.log('Error splitting segment, segment not found:\nsegmentID = ' + segmentID)
             return
         }
+        let visualDir = segment.visualDir
         let fromNode = this.findNode(segment.fromNodeID)
         let toNode = this.findNode(segment.toNodeID)
         if(fromNode == undefined || toNode == undefined){
@@ -150,8 +157,8 @@ class Road{
         fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
 
-        let segment1 = this.addSegment(fromNode.id, newNode.id)
-        let segment2 = this.addSegment(newNode.id, toNode.id)
+        let segment1 = this.addSegment(fromNode.id, newNode.id, visualDir)
+        let segment2 = this.addSegment(newNode.id, toNode.id, visualDir)
 
         return {segment1, segment2, newNode}
     }
@@ -162,6 +169,14 @@ class Road{
 
     findSegment(id){
         return this.segments.find(s => s.id == id)
+    }
+
+    findConnector(id){
+        return this.connectors.find(c => c.id == id)
+    }
+
+    findIntersecSeg(id){
+        return this.intersecSegs.find(c => c.id == id)
     }
     
     addNode(x, y){
@@ -176,20 +191,31 @@ class Road{
         return this.nodes.find(n => n.hover(x, y))
     }
 
-    addSegment(fromNodeID, toNodeID){
+    addSegment(fromNodeID, toNodeID, visualDir){
         const fromNode = this.findNode(fromNodeID)
         const toNode = this.findNode(toNodeID)
         if(fromNode == undefined || toNode == undefined){
             console.log('Error adding segment, node not found:\nfromNodeID = ' + fromNodeID + ' | toNodeID = ' + toNodeID)
             return
         }
-        let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID)
+        let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir)
         newSegment.road = this
         this.segments.push(newSegment)
         fromNode.outgoingSegmentIDs.push(newSegment.id)
         toNode.incomingSegmentIDs.push(newSegment.id)
         this.segmentIDcounter++
         return newSegment
+    }
+
+    nodeOnceConnected(node){
+        //returns true if the node has only one connected NODE
+        let connectedNodes = new Set()
+        let connectedSegments = this.findConnectedSegments(node.id)
+        connectedSegments.forEach(s => {
+            if(s.fromNodeID != node.id) connectedNodes.add(s.fromNodeID)
+            if(s.toNodeID != node.id) connectedNodes.add(s.toNodeID)
+        })
+        return connectedNodes.size <= 1
     }
 
     findConnectedSegments(nodeID){
@@ -268,17 +294,17 @@ class Road{
             let connectedSegments = this.findConnectedSegments(nodeID)
             connectedSegments.forEach(s => {
                 if(s.fromNodeID == nodeID){
-                    s.toPos = shortenSegment(s.fromPos, s.toPos, distInter)
+                    s.fromPos = shortenSegment(s.toPos, s.fromPos, distInter)
                 } 
                 else if(s.toNodeID == nodeID){
-                    s.fromPos = shortenSegment(s.toPos, s.fromPos, distInter)
+                    s.toPos = shortenSegment(s.fromPos, s.toPos, distInter)
                 }
             })
         }
-        this.connectIntersection(nodeID)
+        this.connectIntersection(nodeID, this.nodeOnceConnected(node))
     }
 
-    connectIntersection(nodeID){
+    connectIntersection(nodeID, connectSelf = false){
         let node = this.findNode(nodeID)
         if(!node) return
         let segments = this.findConnectedSegments(nodeID)
@@ -286,29 +312,49 @@ class Road{
         // also, if a segment starts in this node, we have to connect it to every other segment that ends in this node
         let incoming = node.incomingSegmentIDs.map(id => this.findSegment(id))
         let outgoing = node.outgoingSegmentIDs.map(id => this.findSegment(id)) 
+
+        let connectorMap = new Map()
+
         incoming.forEach(inSeg => {
             outgoing.forEach(outSeg => {
                 //avoid creating a connector between two segments that are already connected
-                if(inSeg.fromNodeID == outSeg.toNodeID) return
+                if(inSeg.fromNodeID == outSeg.toNodeID && !connectSelf) return
                 //create connectors
-                let inSegFromPos = inSeg.fromPos
-                let inSegToPos = inSeg.toPos
-                let outSegFromPos = outSeg.fromPos
-                let outSegToPos = outSeg.toPos
+                let inSegFromPos = inSeg.toPos
+                let inSegToPos = inSeg.fromPos
+                let outSegFromPos = outSeg.toPos
+                let outSegToPos = outSeg.fromPos
 
-                let connector1 = new Connector(inSeg.id, undefined, inSegFromPos, this.connectorIDcounter)
-                connector1.road = this
-                this.connectors.push(connector1)
-                this.connectorIDcounter++
-
-                let connector2 = new Connector(undefined, outSeg.id, outSegToPos, this.connectorIDcounter)
-                connector2.road = this
-                this.connectors.push(connector2)
-                this.connectorIDcounter++
+                let conn1aux = connectorMap.get(inSeg.id)
+                let connector1
+                if(!conn1aux){
+                    connector1 = new Connector(inSeg.id, undefined, inSegFromPos, this.connectorIDcounter)
+                    connector1.road = this
+                    this.connectors.push(connector1)
+                    this.connectorIDcounter++
+                    connectorMap.set(inSeg.id, connector1)
+                }
+                else {
+                    connector1 = conn1aux
+                    //connector1.outgoingSegmentIDs.push(outSeg.id)
+                }
+                
+                let conn2aux = connectorMap.get(outSeg.id)
+                let connector2
+                if(!conn2aux){
+                    connector2 = new Connector(undefined, outSeg.id, outSegToPos, this.connectorIDcounter)
+                    connector2.road = this
+                    this.connectors.push(connector2)
+                    this.connectorIDcounter++
+                    connectorMap.set(outSeg.id, connector2)
+                }
+                else{ 
+                    connector2 = conn2aux
+                    //connector2.incomingSegmentIDs.push(inSeg.id)
+                }
+                
 
                 let tension = map(dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y), 10, 150, TENSION_BEZIER_MIN, TENSION_BEZIER_MAX, true)
-                //console.log(dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y), tension)
-                //let tension = 0.2
 
                 let LENGTH_CONTROL_POINT = 120
 
@@ -322,19 +368,26 @@ class Road{
                 controlPointBez2 = {x: outSegToPos.x + Math.cos(dir2) * LENGTH_CONTROL_POINT, 
                                     y: outSegToPos.y + Math.sin(dir2) * LENGTH_CONTROL_POINT}
 
-                auxShow.push(controlPointBez1)
-                auxShow.push(controlPointBez2)
-
                 let pointsBezier = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER, tension)
 
-                let seg = new Segment(this.intersecSegIDcounter, connector1.id, connector2.id)
+                let seg = new Segment(this.intersecSegIDcounter, undefined, undefined, inSeg.visualDir)
+                seg.fromConnectorID = connector1.id
+                seg.toConnectorID = connector2.id
                 seg.road = this
                 seg.bezierPoints = pointsBezier
+                seg.fromPos = inSegFromPos
+                seg.toPos = outSegToPos
                 this.intersecSegs.push(seg)
                 this.intersecSegIDcounter++
 
-                connector1.outgoingSegmentID = seg.id
-                connector2.incomingSegmentID = seg.id
+                // connector1.outgoingSegmentID = seg.id
+                // connector2.incomingSegmentID = seg.id
+
+                connector1.outgoingSegmentIDs.push(seg.id)
+                connector2.incomingSegmentIDs.push(seg.id)
+
+                inSeg.toConnectorID = connector1.id
+                outSeg.fromConnectorID = connector2.id
             })
         })
     }
@@ -347,12 +400,12 @@ class Road{
         this.paths.forEach(p => p.show(SHOW_TAGS, SHOW_SEGS_DETAILS))
     }
 
-    showConnectors(){
-        this.connectors.forEach(c => c.show())
+    showConnectors(SHOW_TAGS){
+        this.connectors.forEach(c => c.show(SHOW_TAGS))
     }
 
-    showIntersecSegs(){
-        this.intersecSegs.forEach(s => s.showBezier())
+    showIntersecSegs(SHOW_TAGS){
+        this.intersecSegs.forEach(s => s.showBezier(SHOW_TAGS))
     }
 
     showLanes(){

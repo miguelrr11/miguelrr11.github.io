@@ -37,8 +37,8 @@ class Path{
             let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
 
             //also we modify the segment to have the new calculated positions
-            segment.fromPos = segment.fromNodeID == nodeB.id ? laneFromPos : laneToPos
-            segment.toPos = segment.toNodeID == nodeA.id ? laneToPos : laneFromPos
+            segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
+            segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
             segment.dir = dir
 
             i++
@@ -56,9 +56,9 @@ class Path{
                         let toPos = segment.toPos
                         let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
                         rectMode(CORNERS)
-                        stroke(255, 0, 0, 200)
+                        stroke(255, 200)
                         strokeWeight(1)
-                        fill(255, 100)
+                        segment.visualDir == 'for' ? fill(40, 40, 255, 60) : fill(255, 40, 40, 60)
                         beginShape()
                         vertex(corners[0].x, corners[0].y)
                         vertex(corners[1].x, corners[1].y)
@@ -88,7 +88,7 @@ class Path{
             let segment = this.road.findSegment(segmentID)
             if(segment.fromPos){
                 stroke(255)
-                strokeWeight(1)
+                strokeWeight(1.5)
                 line(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
                 let midPos = {x: (segment.fromPos.x + segment.toPos.x) / 2, y: (segment.fromPos.y + segment.toPos.y) / 2}
                 drawArrowTip(midPos.x, midPos.y, segment.dir, 7)
@@ -103,9 +103,13 @@ class Path{
                 
 
                 if(SHOW_TAGS){
-                    let str = segment.id + ': ' + segment.fromNodeID + '-' + segment.toNodeID
+                    let str = '[' + segment.id + ']' + ' N: ' + segment.fromNodeID + '-' + segment.toNodeID
+                    let str2 = segment.fromConnectorID != undefined || segment.toConnectorID != undefined ?
+                        'C: ' + (segment.fromConnectorID != undefined ? segment.fromConnectorID : '_') + '-' + (segment.toConnectorID != undefined ? segment.toConnectorID : '_')
+                        : undefined
+                    if(str2) str += ' ' + str2
                     textAlign(CENTER)
-                    textSize(12)
+                    textSize(5)
                     let bbox = textBounds(str, midPos.x, midPos.y - 10)
                     fill(255, 0, 0)
                     noStroke()

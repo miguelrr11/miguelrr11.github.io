@@ -31,6 +31,11 @@ function getTwoDecimals(number) {
     return [parseInt(decimals[0]), parseInt(decimals[1])];
 }
 
+function getDecimalPart(num) {
+  return Math.abs(num % 1);
+}
+
+
 function getSimpleInt(n) {
     if (n === 0) return "0";
     

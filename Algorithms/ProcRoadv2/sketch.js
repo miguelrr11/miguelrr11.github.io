@@ -33,17 +33,47 @@ let SHOW_TAGS = false
 let SHOW_SEGS_DETAILS = false
 
 let tool
+let cars = []
 
 let auxShow = []
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     tool = new Tool()
+
+}
+
+function addCars(num){
+    for(let i = 0; i < num; i++){
+        let car = new Car(tool.road)
+        cars.push(car)
+    }
 }
 
 function draw(){
-    background(10)
+    //background('#bce784')
+    background(60)
     tool.update()
     tool.show()
+    
+
+    if(cars.length > 0){
+        push()
+        translate(tool.xOff, tool.yOff)
+        scale(tool.zoom)
+        for(let car of cars) {
+            car.update()
+            car.show()
+        }
+        pop()
+        // textSize(15)
+        // fill(255)
+        // noStroke()
+        // let pos = car.getCurPos()
+        // text('Segment: ' + (car.segmentID != undefined ? car.segmentID : '_') + 
+        // '\nTrav: ' + car.segTrav.toFixed(2) +
+        // '\nPos: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) +
+        // '\nOn Intersection: ' + (car.isOnIntersection ? 'Yes' : 'No'), 10, 150)
+    }
 }
 

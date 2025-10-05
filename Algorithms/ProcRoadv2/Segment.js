@@ -1,10 +1,11 @@
 class Segment{
-    constructor(id, fromNodeID, toNodeID){
-        if(id == undefined || fromNodeID == undefined || toNodeID == undefined) 
-            console.log('Undefined values creating segment:\nid = ' + id + ' | fromNodeID = ' + fromNodeID + ' | toNodeID = ' + toNodeID)
+    constructor(id, fromNodeID, toNodeID, visualDir){
         this.id = id
         this.fromNodeID = fromNodeID
         this.toNodeID = toNodeID
+        this.fromConnectorID = undefined
+        this.toConnectorID = undefined
+        this.visualDir = visualDir
         this.road = undefined
 
 
@@ -12,6 +13,40 @@ class Segment{
         this.fromPos = undefined
         this.toPos = undefined
         this.dir = undefined // direction in radians
+    }
+
+    getPos(travelled){
+        if(this.len == undefined) this.getLen()
+        if(!this.bezierPoints){
+            let relPos = travelled / this.getLen()
+            relPos = constrain(relPos, 0, 1)
+            return lerppos(this.fromPos, this.toPos, relPos)
+        }
+        else{
+            let bp = this.bezierPoints
+            let travelledIndex = mapp(travelled, 0, this.getLen(), 0, bp.length - 1)
+            let remaining = getDecimalPart(travelledIndex)
+            let indexA = Math.floor(travelledIndex)
+            let indexB = Math.min(indexA + 1, bp.length - 1)
+            return lerppos(bp[indexA], bp[indexB], remaining)
+
+        }
+    }
+
+    getLen(){
+        if(this.len == undefined){
+            if(this.fromPos && this.toPos && !this.bezierPoints){
+                this.len = dist(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
+            }
+            else if(this.bezierPoints){
+                let len = 0
+                for(let i = 0; i < this.bezierPoints.length-1; i++){
+                    len += dist(this.bezierPoints[i].x, this.bezierPoints[i].y, this.bezierPoints[i+1].x, this.bezierPoints[i+1].y)
+                }
+                this.len = len
+            }
+        }
+        return this.len
     }
 
     showDirection(){
@@ -50,15 +85,15 @@ class Segment{
         points.push(cornersFirst[1])
 
         strokeWeight(1)
-        stroke(255, 0, 0, 200)
-        fill(255, 100)
+        stroke(255, 200)
+        this.visualDir == 'for' ? fill(40, 40, 255, 60) : fill(255, 40, 40, 60)
         beginShape()
         for(let p of points) vertex(p.x, p.y)
         endShape()
         pop()       
     }
 
-    showBezier(){
+    showBezier(SHOW_TAGS){
         if(!this.bezierPoints) return
         push()
         strokeWeight(1)
@@ -67,6 +102,22 @@ class Segment{
         beginShape()
         this.bezierPoints.forEach(p => vertex(p.x, p.y))
         endShape()
+        if(SHOW_TAGS){
+            let first = this.bezierPoints[0]
+            let last = this.bezierPoints[this.bezierPoints.length-1]
+            let midPos = {x: (first.x + last.x) / 2, y: (first.y + last.y) / 2}
+            noStroke()
+            fill(0, 255, 0)
+            textAlign(CENTER)
+            textSize(4)
+            let str = '[' + this.id + ']' + ' N: ' +  (this.fromNodeID != undefined ? this.fromNodeID : '_') + '-' + (this.toNodeID != undefined ? this.toNodeID : '_') + '  C: ' + 
+                      (this.fromConnectorID != undefined ? this.fromConnectorID : '_') + '-' + (this.toConnectorID != undefined ? this.toConnectorID : '_')
+            let bbox = textBounds(str, midPos.x, midPos.y)
+            fill(0)
+            rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
+            fill(255)
+            text(str, midPos.x, midPos.y)
+        }
         pop()
 
         
@@ -96,7 +147,7 @@ class Segment{
             fill(0, 255, 0)
             let midPos = {x: (fromPos.x + toPos.x) / 2, y: (fromPos.y + toPos.y) / 2}
             textAlign(CENTER)
-            textSize(15)
+            textSize(4)
             let str = this.id + ': ' + this.fromNodeID + '-' + this.toNodeID
             let bbox = textBounds(str, midPos.x, midPos.y)
             fill(0)
