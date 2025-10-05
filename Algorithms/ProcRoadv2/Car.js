@@ -5,7 +5,7 @@ class Car{
         this.speed = random(1, 4)
         this.road = road
         if(road.segments.length > 0){
-            this.segmentID = road.segments[0].id
+            this.segmentID = random(road.segments).id
         }
         this.isOnIntersection = false
     }
@@ -44,7 +44,7 @@ class Car{
     }
 
     getCurPos(){
-        return this.getCurSeg().getPos(this.segTrav)
+        return this.getCurSeg()?.getPos(this.segTrav)
     }
 
     show(){

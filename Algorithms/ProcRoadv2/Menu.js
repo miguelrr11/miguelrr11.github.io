@@ -85,6 +85,10 @@ class Menu{
         let buttonShowLanes = new Button(xLoc, 220, 95, 20, 'Lanes', () => {
             this.tool.showOptions.SHOW_LANES = !this.tool.showOptions.SHOW_LANES
         }, undefined,  () => {return this.tool.showOptions.SHOW_LANES})
+        let buttonAddCars = new Button(xLoc, 250, 95, 20, 'Add Cars', () => {
+            addCars(15)
+        })
+
 
         let buttonSnapToGrid = new Button(10, 90, 80, 20, 'Snap Grid', () => {
             this.tool.state.snapToGrid = !this.tool.state.snapToGrid
@@ -100,6 +104,7 @@ class Menu{
         this.buttons.push(buttonShowTags)
         this.buttons.push(buttonShowSegDetails)
         this.buttons.push(buttonShowLanes)
+        this.buttons.push(buttonAddCars)
 
         //this.buttons.push(buttonSetPaths)
 
