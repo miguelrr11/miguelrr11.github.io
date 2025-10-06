@@ -18,20 +18,11 @@ class Car{
                     if(this.speed > 0){
                         this.segTrav += this.speed * dt
                         if(this.segTrav > segment.getLen()){
-                            if(!this.isOnIntersection && segment.toConnectorID != undefined){
-                                let connector = this.road.findConnector(segment.toConnectorID)
-                                let intersecSegChosenID = connector.chooseOutRandom()
-                                this.segmentID = intersecSegChosenID
-                                this.segTrav = 0
-                                this.isOnIntersection = true
-                            }
-                            else if(this.isOnIntersection && segment.toConnectorID != undefined){
-                                let connector = this.road.findConnector(segment.toConnectorID)
-                                let outSegID = connector.outgoingSegmentIDs[0]
-                                this.segmentID = outSegID
-                                this.segTrav = 0
-                                this.isOnIntersection = false
-                            }
+                            let connector = this.road.findConnector(segment.toConnectorID)
+                            let intersecSegChosenID = connector.chooseOutRandom()
+                            this.segmentID = intersecSegChosenID
+                            this.segTrav = 0
+                            this.isOnIntersection = !this.isOnIntersection
                         }
                     }
                 }
@@ -40,7 +31,7 @@ class Car{
     }
 
     getCurSeg(){
-        return this.isOnIntersection ? this.road.findIntersecSeg(this.segmentID) :this.road.findSegment(this.segmentID)
+        return this.isOnIntersection ? this.road.findIntersecSeg(this.segmentID) : this.road.findSegment(this.segmentID)
     }
 
     getCurPos(){

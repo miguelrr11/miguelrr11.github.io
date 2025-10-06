@@ -370,11 +370,8 @@ class Road{
 
                 let pointsBezier = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER, tension)
 
-                let seg = new Segment(this.intersecSegIDcounter, undefined, undefined, inSeg.visualDir)
-                seg.fromConnectorID = connector1.id
-                seg.toConnectorID = connector2.id
+                let seg = new InterSegment(this.intersecSegIDcounter, connector1.id, connector2.id, inSeg.visualDir, pointsBezier)
                 seg.road = this
-                seg.bezierPoints = pointsBezier
                 seg.fromPos = inSegFromPos
                 seg.toPos = outSegToPos
                 this.intersecSegs.push(seg)
@@ -392,12 +389,12 @@ class Road{
         })
     }
 
-    show(){
-        this.segments.forEach(s => s.show())
+    showMain(SHOW_TAGS){
+        this.segments.forEach(s => s.showMain(SHOW_TAGS))
     }
 
     showPaths(SHOW_TAGS, SHOW_SEGS_DETAILS){
-        this.paths.forEach(p => p.show(SHOW_TAGS, SHOW_SEGS_DETAILS))
+        this.paths.forEach(p => p.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS))
     }
 
     showConnectors(SHOW_TAGS){

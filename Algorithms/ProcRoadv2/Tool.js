@@ -436,7 +436,7 @@ class Tool{
         let curSegs = this.createCurrentLanes()
         if(curSegs) this.showCurSegs(curSegs)
 
-        if(this.showOptions.SHOW_ROAD) this.road.show()
+        if(this.showOptions.SHOW_ROAD) this.road.showMain(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, 
                                                             this.showOptions.SHOW_SEGS_DETAILS)
        
