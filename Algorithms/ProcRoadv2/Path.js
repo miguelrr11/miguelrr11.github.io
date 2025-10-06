@@ -8,6 +8,8 @@ class Path{
 
         this.nodeA = nodeA
         this.nodeB = nodeB
+
+        this.id = nodeA + '_' + nodeB
     }
 
     // Coje la posicion de los nodos, y el numero de lanes y construye sus propios carriles reales con posiciones calculadas
@@ -57,5 +59,18 @@ class Path{
             let segment = this.road.findSegment(segmentID)
             segment.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS)
         })
+    }
+
+    // gets all points of all lanes and draws the full road
+    showWay(){
+        push()
+        noStroke()
+        fill(50)
+        for(let segID of this.segmentsIDs){
+            let seg = this.road.findSegment(segID)
+            seg.showCustomLanes([50], LANE_WIDTH * 1.4)
+            seg.showCustomLanes([150], LANE_WIDTH * 1.2)
+        }
+        pop()
     }
 }

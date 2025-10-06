@@ -8,7 +8,7 @@ class Tool{
             SHOW_INTERSECSEGS: true,
             SHOW_TAGS: false,
             SHOW_SEGS_DETAILS: false,
-            SHOW_LANES: true
+            SHOW_LANES: false
         }
         this.road = new Road()
         this.state = {
@@ -435,11 +435,11 @@ class Tool{
 
         let curSegs = this.createCurrentLanes()
         if(curSegs) this.showCurSegs(curSegs)
-
+        //this.road.showWays()
         if(this.showOptions.SHOW_ROAD) this.road.showMain(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, 
                                                             this.showOptions.SHOW_SEGS_DETAILS)
-       
+        
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_LANES) this.road.showLanes()
         blendMode(DIFFERENCE)

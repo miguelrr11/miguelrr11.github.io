@@ -5,6 +5,7 @@
  * Paths modify the segments adding position for lanes and direction
  * Segments are separated by intersections on nodes. These intersections contain Connectors that tell the incomming segment what other 
  * intersection-segments there are to choose. 
+ * Intersections are just a data structure to group intersections (they contain the nodeID, the connectors and the intersection-segments)
  */
 
 // It is extremely important to separate segments (array segments) from the intersection segments (array intersecSegs)
@@ -21,11 +22,13 @@ const LANE_WIDTH = 20
 
 class Road{
     constructor(){
-        this.paths = new Map()
         this.segments = []
         this.nodes = []
+
         this.connectors = [] 
         this.intersecSegs = []
+        this.intersections = []
+        this.paths = new Map()
 
         this.nodeIDcounter = 0
         this.segmentIDcounter = 0
@@ -37,6 +40,7 @@ class Road{
         this.paths = new Map()
         this.connectors = [] 
         this.intersecSegs = []
+        this.intersections = []
         this.connectorIDcounter = 0
         this.intersecSegIDcounter = 0
         for(let i = 0; i < this.nodes.length; i++){
@@ -63,11 +67,6 @@ class Road{
 
     trimAllIntersections(){
         this.nodes.forEach(n => this.trimSegmentsAtIntersection(n.id))
-
-        // for(let seg of this.segments){
-        //     let possibleIntersecSegsIDs = []
-
-        // }
     }
 
     findClosestSegmentAndPos(x, y){
@@ -289,7 +288,6 @@ class Road{
 
         distInter += OFFSET_RAD_INTERSEC
         distInter = max(distInter, MIN_DIST_INTERSEC)
-        //if(farthestIntersection) auxShow.push(farthestIntersection)
         if(farthestIntersection != null){
             let connectedSegments = this.findConnectedSegments(nodeID)
             connectedSegments.forEach(s => {
@@ -306,14 +304,15 @@ class Road{
 
     connectIntersection(nodeID, connectSelf = false){
         let node = this.findNode(nodeID)
+        let intersection = new Intersection(nodeID, [], [])
         if(!node) return
-        let segments = this.findConnectedSegments(nodeID)
         // if a segment ends in this node, we have to connect it to every other segment that starts in this node
         // also, if a segment starts in this node, we have to connect it to every other segment that ends in this node
         let incoming = node.incomingSegmentIDs.map(id => this.findSegment(id))
         let outgoing = node.outgoingSegmentIDs.map(id => this.findSegment(id)) 
 
         let connectorMap = new Map()
+        let intersecSegs = []
 
         incoming.forEach(inSeg => {
             outgoing.forEach(outSeg => {
@@ -385,8 +384,13 @@ class Road{
 
                 inSeg.toConnectorID = connector1.id
                 outSeg.fromConnectorID = connector2.id
+
+                intersecSegs.push(seg.id)
             })
         })
+        intersection.connectorsIDs = Array.from(connectorMap.values()).map(c => c.id)
+        intersection.intersecSegsIDs = intersecSegs
+        this.intersections.push(intersection)
     }
 
     showMain(SHOW_TAGS){
@@ -416,6 +420,10 @@ class Road{
 
     showNodesTags(){
         this.nodes.forEach(n => n.showTags())
+    }
+
+    showWays(){
+        this.paths.forEach(p => p.showWay())
     }
 }
 

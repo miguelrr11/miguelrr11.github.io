@@ -32,6 +32,23 @@ class Segment{
         return this.len
     }
 
+    showCustomLanes(col, w){
+        push()
+        let fromPos = this.fromPos
+        let toPos = this.toPos
+        let corners = getCornersOfLine(fromPos, toPos, w)
+        rectMode(CORNERS)
+        noStroke()
+        fill(col)
+        beginShape()
+        vertex(corners[0].x, corners[0].y)
+        vertex(corners[1].x, corners[1].y)
+        vertex(corners[2].x, corners[2].y)
+        vertex(corners[3].x, corners[3].y)
+        endShape(CLOSE)
+        pop()
+    }
+
     showLanes(){
         push()
         let fromPos = this.fromPos

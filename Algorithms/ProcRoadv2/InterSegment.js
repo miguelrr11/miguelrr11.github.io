@@ -64,7 +64,7 @@ class InterSegment{
 
     showBezier(SHOW_TAGS){
         push()
-        strokeWeight(1)
+        strokeWeight(1.5)
         stroke(255)
         noFill()
         beginShape()
