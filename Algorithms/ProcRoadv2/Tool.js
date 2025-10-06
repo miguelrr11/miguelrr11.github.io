@@ -146,7 +146,7 @@ class Tool{
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
-        if(this.state.draggingNodeID == -1 || (keyIsDown(16))){
+        if((this.state.draggingNodeID == -1 || (keyIsDown(16))) && this.state.mode != 'creating'){
             if(!this.prevMouseX) this.prevMouseX = mouseX
             if(!this.prevMouseY) this.prevMouseY = mouseY
             let dx = mouseX - this.prevMouseX; // Change in mouse X

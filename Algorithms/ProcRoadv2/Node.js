@@ -7,14 +7,11 @@ class Node{
         this.incomingSegmentIDs = []
         this.outgoingSegmentIDs = []
         this.road = undefined
-
-        this.changed = true
     }
 
     moveTo(x, y){
         this.pos.x = x
         this.pos.y = y
-        this.changed = true
     }
 
     hover(x, y){

@@ -14,10 +14,10 @@
 const NODE_RAD = 20
 const GRID_CELL_SIZE = 15   //15
 const OFFSET_RAD_INTERSEC = 25
-const LENGTH_SEG_BEZIER = 3      //3
+const LENGTH_SEG_BEZIER = 5      //3
 const TENSION_BEZIER_MIN = 0.1
 const TENSION_BEZIER_MAX = 0.5
-const MIN_DIST_INTERSEC = 40        //30
+const MIN_DIST_INTERSEC = 45        //30
 const LANE_WIDTH = 20
 
 class Road{
@@ -255,30 +255,40 @@ class Road{
     }
 
     findIntersectionsOfNode(nodeID){
-        let connectedSegments = this.findConnectedSegments(nodeID)
-        let intersections = []
+        const connectedSegments = this.findConnectedSegments(nodeID);
+        const intersections = [];
+        const seen = new Set(); 
+
         connectedSegments.forEach(s1 => {
             connectedSegments.forEach(s2 => {
-                if(s1.id == s2.id) return
+                if (s1.id == s2.id) return;
+
                 let intersection = lineIntersection(
                     s1.fromPos, s1.toPos,
                     s2.fromPos, s2.toPos, false
-                )
-                if(intersection == undefined){
-                    if(s1.fromPos.x == s2.fromPos.x && s1.fromPos.y == s2.fromPos.y) intersection = s1.fromPos
-                    else if(s1.fromPos.x == s2.toPos.x && s1.fromPos.y == s2.toPos.y) intersection = s1.fromPos
-                    else if(s1.toPos.x == s2.fromPos.x && s1.toPos.y == s2.fromPos.y) intersection = s1.toPos
-                    else if(s1.toPos.x == s2.toPos.x && s1.toPos.y == s2.toPos.y) intersection = s1.toPos
-                    else intersection = this.findNode(nodeID).pos
+                );
+
+                if (intersection == undefined){
+                    if (s1.fromPos.x == s2.fromPos.x && s1.fromPos.y == s2.fromPos.y) intersection = s1.fromPos;
+                    else if (s1.fromPos.x == s2.toPos.x && s1.fromPos.y == s2.toPos.y) intersection = s1.fromPos;
+                    else if (s1.toPos.x == s2.fromPos.x && s1.toPos.y == s2.fromPos.y) intersection = s1.toPos;
+                    else if (s1.toPos.x == s2.toPos.x && s1.toPos.y == s2.toPos.y) intersection = s1.toPos;
+                    else intersection = this.findNode(nodeID).pos;
                 }
-                if(intersection != undefined){
-                    if(!arrHasPosition(intersections, intersection)) intersections.push(intersection)
-                    //auxShow.push(intersection)
+
+                if (intersection != undefined){
+                    const key = `${intersection.x},${intersection.y}`;
+                    if (!seen.has(key)) {
+                        seen.add(key);
+                        intersections.push(intersection);
+                    }
                 }
-            })
-        })
-        return intersections
+            });
+        });
+
+        return intersections;
     }
+
 
     //trims all end of segments connected to the node to the farthest intersection found
     trimSegmentsAtIntersection(nodeID){
