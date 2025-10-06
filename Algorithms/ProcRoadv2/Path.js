@@ -43,6 +43,9 @@ class Path{
             segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
             segment.dir = dir
 
+            segment.originalFromPos = {...segment.fromPos}
+            segment.originalToPos = {...segment.toPos}
+
             i++
         })
     }
@@ -57,7 +60,7 @@ class Path{
     showPath(SHOW_TAGS, SHOW_SEGS_DETAILS){
         this.segmentsIDs.forEach(segmentID => {
             let segment = this.road.findSegment(segmentID)
-            segment.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS)
+            if(segment) segment.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS)
         })
     }
 

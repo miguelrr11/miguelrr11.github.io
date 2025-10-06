@@ -146,7 +146,6 @@ class Tool{
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
-        let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
         if(this.state.draggingNodeID == -1 || (keyIsDown(16))){
             if(!this.prevMouseX) this.prevMouseX = mouseX
             if(!this.prevMouseY) this.prevMouseY = mouseY
@@ -162,8 +161,7 @@ class Tool{
         if(this.state.mode == 'movingNode'){
             if(this.state.draggingNodeID != -1){
                 let node = this.road.findNode(this.state.draggingNodeID)
-                node.pos.x = mousePosGridX + this.state.offsetDraggingNode.x
-                node.pos.y = mousePosGridY + this.state.offsetDraggingNode.y
+                node.moveTo(mousePosGridX + this.state.offsetDraggingNode.x, mousePosGridY + this.state.offsetDraggingNode.y)
                 return
             }
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)

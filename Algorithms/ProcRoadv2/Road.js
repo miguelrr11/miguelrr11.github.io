@@ -177,6 +177,24 @@ class Road{
     findIntersecSeg(id){
         return this.intersecSegs.find(c => c.id == id)
     }
+
+    findIntersection(id){
+        return this.intersections.find(i => i.nodeID == id)
+    }
+
+    findIntersecSegByFromToConnectorIDs(fromConnectorID, toConnectorID){
+        return this.intersecSegs.find(c => c.fromConnectorID == fromConnectorID && c.toConnectorID == toConnectorID)
+    }
+
+    findConnectorBySegmentID(segmentID, type){
+        if(type == 'incoming'){
+            return this.connectors.find(c => c.incomingSegmentIDs.includes(segmentID))
+        } 
+        else if(type == 'outgoing'){
+            return this.connectors.find(c => c.outgoingSegmentIDs.includes(segmentID))
+        }
+    }
+
     
     addNode(x, y){
         const newNode = new Node(this.nodeIDcounter, x, y)
