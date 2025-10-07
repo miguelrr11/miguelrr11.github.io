@@ -97,7 +97,24 @@ class Menu{
             this.tool.state.snapToGrid = !this.tool.state.snapToGrid
         }, undefined,  () => {return this.tool.state.snapToGrid})
 
+        let buttonSetStartSearch = new Button(10, 130, 80, 20, 'Set Start', () => {
+            this.tool.state.mode = 'settingStart'
+        }, undefined,  () => {return this.tool.state.mode == 'settingStart'})
+        let buttonSetEndSearch = new Button(10, 160, 80, 20, 'Set End', () => {
+            this.tool.state.mode = 'settingEnd'
+        }, undefined,  () => {return this.tool.state.mode == 'settingEnd'})
+        let buttonRemovePathfinding = new Button(10, 190, 80, 20, 'Clear Path', () => {
+            this.tool.state.foundPath = []
+            this.tool.state.startNodeID = -1
+            this.tool.state.endNodeID = -1
+            this.tool.state.mode = 'movingNode'
+            cursor(HAND)
+        }, undefined,  () => {return this.tool.state.foundPath.length > 0})
+
         this.buttons.push(buttonSnapToGrid)
+        this.buttons.push(buttonSetStartSearch)
+        this.buttons.push(buttonSetEndSearch)
+        this.buttons.push(buttonRemovePathfinding)
 
         this.buttons.push(buttonShowNodes)
         this.buttons.push(buttonShowRoad)

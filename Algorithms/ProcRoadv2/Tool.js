@@ -22,8 +22,16 @@ class Tool{
             nBackLanes: 1,
             snapToGrid: false,
 
-            changed: false
+            changed: false,
+
+            //pathfinding
+            settingStart: false,
+            settingEnd: false,
+            startNodeID: -1,
+            endNodeID: -1,
+            foundPath: []
         }
+        this.buttons = []
         this.menu = new Menu(this)
         this.dragging = false
         document.addEventListener("click", () => this.onClick())
@@ -135,6 +143,22 @@ class Tool{
                 closestPosToSegment.minDist < NODE_RAD * 1.25){
                     this.road.deleteSegment(closestPosToSegment.closestSegment.id)
                     return
+            }
+        }
+        else if(this.state.mode == 'settingStart' || this.state.mode == 'settingEnd'){
+            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
+            if(hoverNode != undefined){
+                if(this.state.mode == 'settingStart') {
+                    this.state.startNodeID = hoverNode.id;
+                    if(this.state.endNodeID != -1) this.state.foundPath = Astar(this.state.startNodeID, this.state.endNodeID, this.road);
+                }
+                if(this.state.mode == 'settingEnd') {
+                    this.state.endNodeID = hoverNode.id;
+                    if(this.state.startNodeID != -1) this.state.foundPath = Astar(this.state.startNodeID, this.state.endNodeID, this.road);
+                }
+                this.state.prevNodeID = -1
+                cursor(CROSS)
+                return
             }
         }
     }
@@ -417,8 +441,50 @@ class Tool{
         pop()
     }
 
+    showStartEndPathfinding(){
+        push()
+        strokeWeight(2.5)
+        let startNode = this.road.findNode(this.state.startNodeID)
+        let endNode = this.road.findNode(this.state.endNodeID)
+        if(startNode){
+            fill('#7dd56bff')
+            stroke('#5d9d50ff')
+            ellipse(startNode.pos.x, startNode.pos.y, NODE_RAD * 1.2)
+        }
+        if(endNode){
+            fill('#e15735ff')
+            stroke('#dc2f02')
+            ellipse(endNode.pos.x, endNode.pos.y, NODE_RAD * 1.2)
+        }
+        pop()
+    }
+
+    showFoundPath(){
+        if(this.state.foundPath.length == 0) return
+        push()
+        strokeWeight(8)
+        stroke('#9d4edd')
+        noFill()
+        beginShape()
+        for(let i = 0; i < this.state.foundPath.length; i++){
+            let node = this.road.findNode(this.state.foundPath[i])
+            if(node){
+                vertex(node.pos.x, node.pos.y)
+            }
+        }
+        endShape()
+        pop()
+    }
+
     update(){
-        if(this.state.changed) {this.road.setPaths(); console.log('updated paths')}
+        if(this.state.changed) {
+            this.road.setPaths(); 
+            console.log('updated paths')
+            if(this.state.startNodeID != -1 && this.state.endNodeID != -1){
+                let foundPath = Astar(this.state.startNodeID, this.state.endNodeID, this.road)
+                this.state.foundPath = foundPath
+            }
+        }
         this.state.changed = false
         this.menu.update()
     }
@@ -445,6 +511,9 @@ class Tool{
         blendMode(BLEND)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_TAGS && this.showOptions.SHOW_NODES) this.road.showNodesTags()
+
+        this.showStartEndPathfinding()
+        this.showFoundPath()
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
         let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
