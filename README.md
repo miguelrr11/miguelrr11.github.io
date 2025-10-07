@@ -8,27 +8,27 @@ This [repository](https://miguelrr11.github.io) features all my projects built w
 ### [Digital Logic Sim](https://miguelrr11.github.io/Algorithms/Logic_Sim_v3/)
 Digital Logic Simulator inspired by [Sebastian Lague](https://www.youtube.com/@SebastianLague).
 
-![Digital Logic Sim](assets/LogicSim.png)
+![Digital Logic Sim](assets/githubPages/imgs/DigitalLogicSimVid.jpg)
 
 ---
 
 ### [NEAT Pendulums](https://miguelrr11.github.io/IAs/Smart_Pendulums_V2/)
 [NEAT](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) algorithm learns to balance an inverted pendulum.
 
-![NEAT Pendulums](assets/NeatPendulums.png)
+![NEAT Pendulums](assets/githubPages/imgs/pend.jpg)
 
 ---
 
 ### [Wave Function Collapse Painter](https://miguelrr11.github.io/Algorithms/Wave_Function_Collapse_Painter/)
 Demonstration of the WFC (overlapping method) with user-created tiles, inspired by the [original github page](https://github.com/mxgmn/WaveFunctionCollapse).
 
-![WFC Painter](assets/WFCPainter.png)
+![WFC Painter](assets/githubPages/imgs/WFC.jpg)
 
 ---
 
 ### [WikiGraph](https://miguelrr11.github.io/Algorithms/WebViewer/)
 Interactive Wikipedia article explorer.
 
-![WikGraph](assets/WikiGraph.png)
+![WikGraph](assets/githubPages/imgs/wiki.jpg)
 
 ---
