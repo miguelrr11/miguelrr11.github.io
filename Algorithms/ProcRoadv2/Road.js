@@ -520,7 +520,7 @@ function Astar(startNodeID, goalNodeID, road) {
     openSet.delete(current);
   
     let currentNode = road.findNode(current)
-    const outGoingSegs = currentNode.outGoingSegment
+    const outGoingSegs = currentNode.outgoingSegmentIDs
     let neighboursSet = new Set()
     for(let outseg of outGoingSegments){
       let seg = road.findSegment(outSeg)
