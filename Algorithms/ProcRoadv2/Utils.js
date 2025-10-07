@@ -319,6 +319,11 @@ function inBounds(x, y, a, b, w, h) {
     return x < a + w && x > a && y < b + h && y > b;
 }
 
+function inBoundsCorners(x, y, corners, offset = 0) {
+    //corners = [xMin, xMax, yMin, yMax]
+    return x < corners[1] + offset && x > corners[0] - offset && y < corners[3] + offset && y > corners[2] - offset;
+}
+
 // ===================
 // Drag and Zoom Shortcut
 // ===================

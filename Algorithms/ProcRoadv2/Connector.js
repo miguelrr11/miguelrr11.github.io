@@ -12,6 +12,7 @@ class Connector{
     }
 
     show(SHOW_TAGS){
+        if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, 10)) return
         push()
         strokeWeight(2)
         noFill()

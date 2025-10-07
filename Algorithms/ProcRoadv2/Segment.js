@@ -53,6 +53,10 @@ class Segment{
         push()
         let fromPos = this.fromPos
         let toPos = this.toPos
+        if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES)){
+            pop()
+            return
+        }
         let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
         rectMode(CORNERS)
         stroke(255, 200)
@@ -104,6 +108,10 @@ class Segment{
         stroke(255, 40)
         let fromPos = this.road.findNode(this.fromNodeID).pos
         let toPos = this.road.findNode(this.toNodeID).pos
+        if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES)){
+            pop()
+            return
+        }
         line(fromPos.x, fromPos.y, toPos.x, toPos.y)
 
         if(SHOW_TAGS){
@@ -126,6 +134,9 @@ class Segment{
     }
 
     showPath(SHOW_TAGS, SHOW_SEGS_DETAILS){
+        if(!inBoundsCorners(this.fromPos.x, this.fromPos.y, GLOBAL_EDGES) && !inBoundsCorners(this.toPos.x, this.toPos.y, GLOBAL_EDGES)){
+            return
+        }
         push()
         stroke(255)
         strokeWeight(1.5)

@@ -38,6 +38,11 @@ class InterSegment{
         let fromPos = this.bezierPoints[0]
         let toPos = this.bezierPoints[this.bezierPoints.length-1]
 
+        if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES)){
+            pop()
+            return
+        }
+
         let cornersFirst = getCornersOfLine(fromPos, this.bezierPoints[1], LANE_WIDTH)
         let cornersLast = getCornersOfLine(this.bezierPoints[this.bezierPoints.length-2], toPos, LANE_WIDTH)
         let points = [cornersFirst[1]]
@@ -63,6 +68,11 @@ class InterSegment{
     }
 
     showBezier(SHOW_TAGS){
+        let first = this.bezierPoints[0]
+        let last = this.bezierPoints[this.bezierPoints.length-1]
+        if(!inBoundsCorners(first.x, first.y, GLOBAL_EDGES) && !inBoundsCorners(last.x, last.y, GLOBAL_EDGES)){
+            return
+        }
         push()
         strokeWeight(1.5)
         stroke(255)

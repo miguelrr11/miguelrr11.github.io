@@ -1,3 +1,5 @@
+let GLOBAL_EDGES = [0, 1400, 0, 700]
+
 class Tool{
     constructor(){
         this.showOptions = {
@@ -29,7 +31,9 @@ class Tool{
             settingEnd: false,
             startNodeID: -1,
             endNodeID: -1,
-            foundPath: []
+            foundPath: [],
+
+            edges: undefined
         }
         this.buttons = []
         this.menu = new Menu(this)
@@ -476,7 +480,22 @@ class Tool{
         pop()
     }
 
+    getEdges() {
+        let minX = (0 - this.xOff) / this.zoom
+        let maxX = (WIDTH - this.xOff) / this.zoom
+        let minY = (0 - this.yOff) / this.zoom
+        let maxY = (HEIGHT - this.yOff) / this.zoom
+        return [
+            minX,
+            maxX,
+            minY,
+            maxY
+        ]
+    }
+
     update(){
+        this.state.edges = this.getEdges()
+        GLOBAL_EDGES = this.state.edges
         if(this.state.changed) {
             this.road.setPaths(); 
             console.log('updated paths')

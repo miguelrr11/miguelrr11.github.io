@@ -19,6 +19,7 @@ class Node{
     }
 
     showTags(){
+        if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, NODE_RAD)) return
         push()
         noStroke()
         textAlign(CENTER)
@@ -34,6 +35,7 @@ class Node{
     }
 
     show(selected = false){
+        if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, NODE_RAD)) return
         push()
         selected ? fill(255, 100) : noFill()
         textSize(15)
