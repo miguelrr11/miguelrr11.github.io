@@ -508,7 +508,7 @@ function Astar(startNodeID, goalNodeID, road) {
   gScore.set(startNodeID, 0);
 
   const fScore = new Map();
-  fScore.set(startNodeID, h(startNodeID, goalNodeID));
+  fScore.set(startNodeID, h(startNodeID, goalNodeID, road));
 
   while (openSet.size > 0) {
     const current = getLowest(openSet, fScore);
@@ -528,12 +528,12 @@ function Astar(startNodeID, goalNodeID, road) {
     }
     let neighbours = [...neighboursSet]
     for (const neighbor of neighbours) {
-      const tentativeG = (gScore.get(current) ?? Infinity) + h(current, neighbor);
+      const tentativeG = (gScore.get(current) ?? Infinity) + h(current, neighbor, road);
 
       if (tentativeG < (gScore.get(neighbor) ?? Infinity)) {
         cameFrom.set(neighbor, current);
         gScore.set(neighbor, tentativeG);
-        fScore.set(neighbor, tentativeG + h(neighbor, goalNodeID));
+        fScore.set(neighbor, tentativeG + h(neighbor, goalNodeID, road));
 
         if (!openSet.has(neighbor)) {
           openSet.add(neighbor);
@@ -544,7 +544,7 @@ function Astar(startNodeID, goalNodeID, road) {
   return undefined; // no hay camino
 }
 
-function h(startNodeID, goalNodeID) {
+function h(startNodeID, goalNodeID, road) {
   const start = road.findNode(startNodeID);
   const goal = road.findNode(goalNodeID);
   return dist(start.pos.x, start.pos.y, goal.pos.x, goal.pos.y);
