@@ -60,7 +60,8 @@ class InterSegment{
 
         strokeWeight(1)
         stroke(255, 200)
-        this.visualDir == 'for' ? fill(40, 40, 255, 60) : fill(255, 40, 40, 60)
+        noStroke()
+        this.visualDir == 'for' ? fill(COL_LANE_1) : fill(COL_LANE_2)
         beginShape()
         for(let p of points) vertex(p.x, p.y)
         endShape()
@@ -75,7 +76,7 @@ class InterSegment{
         }
         push()
         strokeWeight(1.5)
-        stroke(255)
+        stroke(COL_PATHS)
         noFill()
         beginShape()
         this.bezierPoints.forEach(p => vertex(p.x, p.y))

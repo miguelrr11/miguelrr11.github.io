@@ -34,6 +34,7 @@ class Road{
 
         this.nodeIDcounter = 0
         this.segmentIDcounter = 0
+        
         this.connectorIDcounter = 0
         this.intersecSegIDcounter = 0
     }

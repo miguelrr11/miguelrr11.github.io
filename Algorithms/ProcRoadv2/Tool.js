@@ -1,4 +1,7 @@
 let GLOBAL_EDGES = [0, 1400, 0, 700]
+const COL_PATHS = [255, 200]
+const COL_LANE_1 = [40, 40, 255, 90]
+const COL_LANE_2 = [255, 40, 40, 90]
 
 class Tool{
     constructor(){
@@ -148,10 +151,9 @@ class Tool{
                 return
             }
             let closestPosToSegment = this.road.findClosestSegmentAndPosRealPos(mousePosGridX, mousePosGridY)
-            if(closestPosToSegment.closestSegment && 
-                closestPosToSegment.minDist < LANE_WIDTH * 0.5){
-                    this.road.deleteSegment(closestPosToSegment.closestSegment.id)
-                    return
+            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
+                this.road.deleteSegment(closestPosToSegment.closestSegment.id)
+                return
             }
         }
         else if(this.state.mode == 'settingStart' || this.state.mode == 'settingEnd'){
@@ -522,6 +524,7 @@ class Tool{
     }
 
     update(){
+        this.state.edges = this.getEdges()
         GLOBAL_EDGES = this.state.edges
         if(this.state.changed) {
             this.road.setPaths(); 
@@ -534,7 +537,7 @@ class Tool{
         this.menu.update()
 
         let mousePos = this.getRelativePos(mouseX, mouseY)
-        this.state.edges = this.getEdges()
+        
         this.state.hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
         let closestPosToSegment = this.road.findClosestSegmentAndPosRealPos(mousePos.x, mousePos.y)
         if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
@@ -554,15 +557,17 @@ class Tool{
         let curSegs = this.createCurrentLanes()
         if(curSegs) this.showCurSegs(curSegs)
         //this.road.showWays()
+
+        if(this.showOptions.SHOW_LANES){ 
+            this.road.showLanes(this.state.hoverSeg)
+        }
         if(this.showOptions.SHOW_ROAD) this.road.showMain(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, 
                                                             this.showOptions.SHOW_SEGS_DETAILS,
                                                             this.state.hoverSeg)
         
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
-        if(this.showOptions.SHOW_LANES){ 
-            this.road.showLanes(this.state.hoverSeg)
-        }
+        
         blendMode(DIFFERENCE)
         if(this.showOptions.SHOW_NODES) this.road.showNodes()
         blendMode(BLEND)
@@ -571,8 +576,15 @@ class Tool{
 
         this.showFoundPath()
         this.showStartEndPathfinding()
-        
+    
+        this.showHover()
 
+        pop()
+
+        this.menu.show()
+    }
+
+    showHover(){
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
         let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
         let _hoverSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
@@ -592,15 +604,67 @@ class Tool{
                 hoverSegment.showHover()
             }
         }
-        pop()
-
-        this.menu.show()
     }
 
     getRelativePos(x, y){
         let worldX = (x - this.xOff) / this.zoom;
         let worldY = (y - this.yOff) / this.zoom;
         return {x: worldX, y: worldY}
+    }
+
+    getCurrentRoad(){
+        let res = {}
+        res.nodes = this.road.nodes.map(n => n.export())
+        res.segments = this.road.segments.map(s => s.export())
+        res.nodeIDcounter = this.road.nodeIDcounter
+        res.segmentIDcounter = this.road.segmentIDcounter
+        return res
+    }
+
+    setStateToRoad(roadData){
+        this.road = new Road(this)
+        this.road.nodeIDcounter = roadData.nodeIDcounter
+        this.road.segmentIDcounter = roadData.segmentIDcounter
+        for(let n of roadData.nodes){
+            let newNode = new Node(n.id, n.pos.x, n.pos.y)
+            newNode.road = this.road
+            newNode.incomingSegmentIDs = n.incomingSegmentIDs
+            newNode.outgoingSegmentIDs = n.outgoingSegmentIDs
+            this.road.nodes.push(newNode)
+        }
+        for(let s of roadData.segments){
+            let newSegment = new Segment(s.id, s.fromNodeID, s.toNodeID, s.visualDir)
+            newSegment.road = this.road
+            this.road.segments.push(newSegment)
+        }
+        this.road.setPaths()
+        this.state = {
+            mode: 'creating',
+            prevNodeID: -1,
+
+            draggingNodeID: -1,
+            offsetDraggingNode: {x: 0, y: 0},
+
+            nForLanes: 1,
+            nBackLanes: 1,
+            snapToGrid: false,
+
+            changed: false,
+
+            //pathfinding
+            settingStart: false,
+            settingEnd: false,
+            startNodeID: -1,
+            endNodeID: -1,
+            foundPath: [],
+
+            edges: undefined,
+
+            fpsAcum: [],
+
+            hoverNode: undefined,
+            hoverSeg: undefined
+        }
     }
 }
 

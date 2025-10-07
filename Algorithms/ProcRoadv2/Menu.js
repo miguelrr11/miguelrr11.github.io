@@ -86,7 +86,7 @@ class Menu{
             this.tool.showOptions.SHOW_LANES = !this.tool.showOptions.SHOW_LANES
         }, undefined,  () => {return this.tool.showOptions.SHOW_LANES})
         let buttonAddCars = new Button(10, HEIGHT - 30, 95, 20, 'Add Cars', () => {
-            addCars(15)
+            addCars(50)
         })
         let buttonRemoveCars = new Button(10, HEIGHT - 60, 95, 20, 'Remove Cars', () => {
             cars = []
@@ -111,7 +111,7 @@ class Menu{
             cursor(HAND)
         }, undefined,  () => {return this.tool.state.foundPath.length > 0})
 
-        let buttonShowFps = new Button(width - 30 - 10, HEIGHT - 30, 30, 20, '60', undefined, () => {
+        let buttonShowFps = new Button(width - 140, 10, 30, 20, '60', undefined, () => {
             this.tool.state.fpsAcum.push(frameRate())
             if(this.tool.state.fpsAcum.length > 20) this.tool.state.fpsAcum.shift()
             let sum = 0
@@ -120,11 +120,21 @@ class Menu{
             return round(avg)
         })
 
+        let buttonSave = new Button(width - 70 - 10, HEIGHT - 60, 70, 20, 'Save', () => {
+            storeItem('roadData', this.tool.getCurrentRoad())
+        })
+        let buttonLoad = new Button(width - 70 - 10, HEIGHT - 30, 70, 20, 'Load', () => {
+            let roadData = getItem('roadData')
+            if(roadData) this.tool.setStateToRoad(roadData)
+        })
+
         this.buttons.push(buttonSnapToGrid)
         this.buttons.push(buttonSetStartSearch)
         this.buttons.push(buttonSetEndSearch)
         this.buttons.push(buttonRemovePathfinding)
         this.buttons.push(buttonShowFps)
+        this.buttons.push(buttonSave)
+        this.buttons.push(buttonLoad)
 
         this.buttons.push(buttonShowNodes)
         this.buttons.push(buttonShowRoad)

@@ -16,6 +16,17 @@ class Segment{
         this.len = undefined
     }
 
+    export(){
+        return {
+            id: this.id,
+            fromNodeID: this.fromNodeID,
+            toNodeID: this.toNodeID,
+            fromConnectorID: this.fromConnectorID,
+            toConnectorID: this.toConnectorID,
+            visualDir: this.visualDir
+        }
+    }
+
     getPos(travelled){
         if(this.len == undefined) this.getLen()
         let relPos = travelled / this.getLen()
@@ -76,7 +87,8 @@ class Segment{
         rectMode(CORNERS)
         stroke(255, 200)
         strokeWeight(1)
-        this.visualDir == 'for' ? fill(40, 40, 255, 60) : fill(255, 40, 40, 60)
+        noStroke()
+        this.visualDir == 'for' ? fill(COL_LANE_1) : fill(COL_LANE_2)
         if(this.id == hoveredSegID) fill(255, 120)
         beginShape()
         vertex(corners[0].x, corners[0].y)
@@ -96,7 +108,7 @@ class Segment{
     showDirection(){
         push()
         strokeWeight(1.5)
-        stroke(255)
+        stroke(COL_PATHS)
         let fromPos = this.road.findNode(this.fromNodeID).pos
         let toPos = this.road.findNode(this.toNodeID).pos
         let midPos1 = lerppos(fromPos, toPos, 0.33)
@@ -154,7 +166,7 @@ class Segment{
             return
         }
         push()
-        stroke(255)
+        stroke(COL_PATHS)
         hoveredSegID == this.id ? strokeWeight(2.5) : strokeWeight(1.5)
         line(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
         let midPos = {x: (this.fromPos.x + this.toPos.x) / 2, y: (this.fromPos.y + this.toPos.y) / 2}

@@ -37,10 +37,11 @@ let cars = []
 
 let auxShow = []
 
-function setup(){
+async function setup(){
     createCanvas(WIDTH, HEIGHT)
     tool = new Tool()
-
+    let font = await loadFont('font.ttf')
+    textFont(font)
 }
 
 function addCars(num){
@@ -61,19 +62,12 @@ function draw(){
         push()
         translate(tool.xOff, tool.yOff)
         scale(tool.zoom)
+        cars[0].setStyle()
         for(let car of cars) {
             car.update()
             car.show()
         }
         pop()
-        // textSize(15)
-        // fill(255)
-        // noStroke()
-        // let pos = car.getCurPos()
-        // text('Segment: ' + (car.segmentID != undefined ? car.segmentID : '_') + 
-        // '\nTrav: ' + car.segTrav.toFixed(2) +
-        // '\nPos: ' + pos.x.toFixed(2) + ', ' + pos.y.toFixed(2) +
-        // '\nOn Intersection: ' + (car.isOnIntersection ? 'Yes' : 'No'), 10, 150)
     }
 }
 

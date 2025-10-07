@@ -9,6 +9,15 @@ class Node{
         this.road = undefined
     }
 
+    export(){
+        return {
+            id: this.id,
+            pos: {...this.pos},
+            incomingSegmentIDs: [...this.incomingSegmentIDs],
+            outgoingSegmentIDs: [...this.outgoingSegmentIDs]
+        }
+    }
+
     moveTo(x, y){
         this.pos.x = x
         this.pos.y = y

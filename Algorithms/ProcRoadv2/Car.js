@@ -8,9 +8,16 @@ class Car{
             this.segmentID = random(road.segments).id
         }
         this.isOnIntersection = false
+
+        this.dead = false
     }
 
+
+
     update(dt = 1){
+        if(this.dead){
+            return
+        }
         if(this.segmentID != undefined){
             let segment = this.getCurSeg()
             if(segment){
@@ -19,6 +26,10 @@ class Car{
                         this.segTrav += this.speed * dt
                         if(this.segTrav > segment.getLen()){
                             let connector = this.road.findConnector(segment.toConnectorID)
+                            if(!connector){
+                                this.dead = true
+                                return
+                            }
                             let intersecSegChosenID = connector.chooseOutRandom()
                             this.segmentID = intersecSegChosenID
                             this.segTrav = 0
@@ -38,17 +49,17 @@ class Car{
         return this.getCurSeg()?.getPos(this.segTrav)
     }
 
+    setStyle(){
+        noStroke()
+        fill(255, 255, 0)
+    }
+
     show(){
-        push()
         if(this.segmentID != undefined){
             let pos = this.getCurPos()
             if(pos){
-                fill(255, 255, 0)
-                stroke(0)
-                strokeWeight(1)
                 ellipse(pos.x, pos.y, 8, 8) 
             }
         }
-        pop()
     }
 }
