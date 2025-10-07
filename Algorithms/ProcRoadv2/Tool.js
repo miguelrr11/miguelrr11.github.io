@@ -35,7 +35,10 @@ class Tool{
 
             edges: undefined,
 
-            fpsAcum: []
+            fpsAcum: [],
+
+            hoverNode: undefined,
+            hoverSeg: undefined
         }
         this.buttons = []
         this.menu = new Menu(this)
@@ -144,9 +147,9 @@ class Tool{
                 this.road.deleteNode(hoverNode.id)
                 return
             }
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
+            let closestPosToSegment = this.road.findClosestSegmentAndPosRealPos(mousePosGridX, mousePosGridY)
             if(closestPosToSegment.closestSegment && 
-                closestPosToSegment.minDist < NODE_RAD * 1.25){
+                closestPosToSegment.minDist < LANE_WIDTH * 0.5){
                     this.road.deleteSegment(closestPosToSegment.closestSegment.id)
                     return
             }
@@ -496,7 +499,6 @@ class Tool{
     }
 
     update(){
-        this.state.edges = this.getEdges()
         GLOBAL_EDGES = this.state.edges
         if(this.state.changed) {
             this.road.setPaths(); 
@@ -508,6 +510,15 @@ class Tool{
         }
         this.state.changed = false
         this.menu.update()
+
+        let mousePos = this.getRelativePos(mouseX, mouseY)
+        this.state.edges = this.getEdges()
+        this.state.hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
+        let closestPosToSegment = this.road.findClosestSegmentAndPosRealPos(mousePos.x, mousePos.y)
+        if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
+            this.state.hoverSeg = closestPosToSegment.closestSegment.id
+        }
+        else this.state.hoverSeg = undefined
     }
 
     show(){
@@ -526,7 +537,9 @@ class Tool{
                                                             this.showOptions.SHOW_SEGS_DETAILS)
         
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
-        if(this.showOptions.SHOW_LANES) this.road.showLanes()
+        if(this.showOptions.SHOW_LANES){ 
+            this.road.showLanes(this.state.hoverSeg)
+        }
         blendMode(DIFFERENCE)
         if(this.showOptions.SHOW_NODES) this.road.showNodes()
         blendMode(BLEND)
@@ -551,7 +564,7 @@ class Tool{
                 hoverNode.show(true)
                 blendMode(BLEND)
             }
-            else if(hoverSegment){
+            else if(hoverSegment && this.showOptions.SHOW_ROAD){
                 hoverSegment.showHover()
             }
         }

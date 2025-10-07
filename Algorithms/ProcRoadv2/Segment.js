@@ -32,6 +32,12 @@ class Segment{
         return this.len
     }
 
+    //called by path, so must have frompos and topos defined
+    hover(){
+        if(!inBoundsCorners(this.fromPos.x, this.fromPos.y, GLOBAL_EDGES) && !inBoundsCorners(this.toPos.x, this.toPos.y, GLOBAL_EDGES)) return false
+
+    }
+
     showCustomLanes(col, w){
         push()
         let fromPos = this.fromPos
@@ -49,7 +55,7 @@ class Segment{
         pop()
     }
 
-    showLanes(){
+    showLanes(hoveredSegID = undefined){
         push()
         let fromPos = this.fromPos
         let toPos = this.toPos
@@ -62,6 +68,7 @@ class Segment{
         stroke(255, 200)
         strokeWeight(1)
         this.visualDir == 'for' ? fill(40, 40, 255, 60) : fill(255, 40, 40, 60)
+        if(this.id == hoveredSegID) fill(255, 120)
         beginShape()
         vertex(corners[0].x, corners[0].y)
         vertex(corners[1].x, corners[1].y)

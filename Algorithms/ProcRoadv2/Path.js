@@ -50,10 +50,10 @@ class Path{
         })
     }
 
-    showLanes(){
+    showLanes(hoveredSegID = undefined){
         this.segmentsIDs.forEach(segmentID => {
             let segment = this.road.findSegment(segmentID)
-            segment.showLanes()
+            segment.showLanes(hoveredSegID)
         })
     }
 

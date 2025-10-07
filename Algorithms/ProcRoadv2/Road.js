@@ -69,6 +69,7 @@ class Road{
         this.nodes.forEach(n => this.trimSegmentsAtIntersection(n.id))
     }
 
+    // the edges of segments are the positions of the nodes
     findClosestSegmentAndPos(x, y){
         let pos = {x, y}
         let closestSegment = undefined
@@ -78,17 +79,54 @@ class Road{
         this.segments.forEach(s => {
             let fromPos = this.findNode(s.fromNodeID).pos
             let toPos = this.findNode(s.toNodeID).pos
-            let ap = {x: pos.x - fromPos.x, y: pos.y - fromPos.y}
-            let ab = {x: toPos.x - fromPos.x, y: toPos.y - fromPos.y}
-            let ab2 = ab.x * ab.x + ab.y * ab.y
-            let ap_ab = ap.x * ab.x + ap.y * ab.y
-            let t = constrain(ap_ab / ab2, 0, 1)
-            let point = {x: fromPos.x + ab.x * t, y: fromPos.y + ab.y * t}
-            let d = dist(pos.x, pos.y, point.x, point.y)
-            if(d < minDist){
-                minDist = d
-                closestSegment = s
-                closestPoint = point
+            if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
+                //continue
+            }
+            else{
+                let ap = {x: pos.x - fromPos.x, y: pos.y - fromPos.y}
+                let ab = {x: toPos.x - fromPos.x, y: toPos.y - fromPos.y}
+                let ab2 = ab.x * ab.x + ab.y * ab.y
+                let ap_ab = ap.x * ab.x + ap.y * ab.y
+                let t = constrain(ap_ab / ab2, 0, 1)
+                let point = {x: fromPos.x + ab.x * t, y: fromPos.y + ab.y * t}
+                let d = dist(pos.x, pos.y, point.x, point.y)
+                if(d < minDist){
+                    minDist = d
+                    closestSegment = s
+                    closestPoint = point
+                }
+            }
+        })
+
+        return {closestSegment, closestPoint, minDist}
+    }
+
+    // the edges of segments are the real positions of the segments (after path modification)
+    findClosestSegmentAndPosRealPos(x, y){
+        let pos = {x, y}
+        let closestSegment = undefined
+        let closestPoint = undefined
+        let minDist = Infinity
+
+        this.segments.forEach(s => {
+            let fromPos = s.fromPos
+            let toPos = s.toPos
+            if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
+                //continue
+            }
+            else{
+                let ap = {x: pos.x - fromPos.x, y: pos.y - fromPos.y}
+                let ab = {x: toPos.x - fromPos.x, y: toPos.y - fromPos.y}
+                let ab2 = ab.x * ab.x + ab.y * ab.y
+                let ap_ab = ap.x * ab.x + ap.y * ab.y
+                let t = constrain(ap_ab / ab2, 0, 1)
+                let point = {x: fromPos.x + ab.x * t, y: fromPos.y + ab.y * t}
+                let d = dist(pos.x, pos.y, point.x, point.y)
+                if(d < minDist){
+                    minDist = d
+                    closestSegment = s
+                    closestPoint = point
+                }
             }
         })
 
@@ -437,8 +475,8 @@ class Road{
         this.intersecSegs.forEach(s => s.showBezier(SHOW_TAGS))
     }
 
-    showLanes(){
-        this.paths.forEach(p => p.showLanes())
+    showLanes(hoveredSegID = undefined){
+        this.paths.forEach(p => p.showLanes(hoveredSegID))
         this.intersecSegs.forEach(s => s.showLane())
     }
 

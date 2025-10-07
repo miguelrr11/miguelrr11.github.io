@@ -15,6 +15,7 @@ class Node{
     }
 
     hover(x, y){
+        if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, NODE_RAD)) return false
         return dist(x, y, this.pos.x, this.pos.y) <= NODE_RAD
     }
 
