@@ -523,7 +523,7 @@ function Astar(startNodeID, goalNodeID, road) {
     const outGoingSegs = currentNode.outgoingSegmentIDs
     let neighboursSet = new Set()
     for(let outseg of outGoingSegs){
-      let seg = road.findSegment(outSeg)
+      let seg = road.findSegment(outseg)
       neighboursSet.add(seg.toNodeID)
     }
     let neighbours = [...neighboursSet]
