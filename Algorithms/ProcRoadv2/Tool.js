@@ -33,7 +33,9 @@ class Tool{
             endNodeID: -1,
             foundPath: [],
 
-            edges: undefined
+            edges: undefined,
+
+            fpsAcum: []
         }
         this.buttons = []
         this.menu = new Menu(this)
