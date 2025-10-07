@@ -57,10 +57,10 @@ class Path{
         })
     }
 
-    showPath(SHOW_TAGS, SHOW_SEGS_DETAILS){
+    showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined){
         this.segmentsIDs.forEach(segmentID => {
             let segment = this.road.findSegment(segmentID)
-            if(segment) segment.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS)
+            if(segment) segment.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID)
         })
     }
 
@@ -77,3 +77,4 @@ class Path{
         pop()
     }
 }
+

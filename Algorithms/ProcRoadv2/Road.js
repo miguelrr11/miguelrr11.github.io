@@ -14,14 +14,16 @@
 const NODE_RAD = 20
 const GRID_CELL_SIZE = 15   //15
 const OFFSET_RAD_INTERSEC = 25
-const LENGTH_SEG_BEZIER = 5      //3
+let LENGTH_SEG_BEZIER = 5      //3
 const TENSION_BEZIER_MIN = 0.1
 const TENSION_BEZIER_MAX = 0.5
 const MIN_DIST_INTERSEC = 45        //30
 const LANE_WIDTH = 20
 
 class Road{
-    constructor(){
+    constructor(tool){
+        this.tool = tool
+
         this.segments = []
         this.nodes = []
 
@@ -37,6 +39,8 @@ class Road{
     }
 
     setPaths(){
+        LENGTH_SEG_BEZIER = map(this.tool.zoom, 0.1, 8, 8, 3, true)
+
         this.paths = new Map()
         this.connectors = [] 
         this.intersecSegs = []
@@ -463,8 +467,8 @@ class Road{
         this.segments.forEach(s => s.showMain(SHOW_TAGS))
     }
 
-    showPaths(SHOW_TAGS, SHOW_SEGS_DETAILS){
-        this.paths.forEach(p => p.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS))
+    showPaths(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined){
+        this.paths.forEach(p => p.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID))
     }
 
     showConnectors(SHOW_TAGS){

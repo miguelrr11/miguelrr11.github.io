@@ -12,7 +12,7 @@ class Tool{
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false
         }
-        this.road = new Road()
+        this.road = new Road(this)
         this.state = {
             mode: 'creating',
             prevNodeID: -1,
@@ -159,17 +159,21 @@ class Tool{
             if(hoverNode != undefined){
                 if(this.state.mode == 'settingStart') {
                     this.state.startNodeID = hoverNode.id;
-                    if(this.state.endNodeID != -1) this.state.foundPath = Astar(this.state.startNodeID, this.state.endNodeID, this.road);
+                    if(this.state.endNodeID != -1) this.executePathfinding();
                 }
                 if(this.state.mode == 'settingEnd') {
                     this.state.endNodeID = hoverNode.id;
-                    if(this.state.startNodeID != -1) this.state.foundPath = Astar(this.state.startNodeID, this.state.endNodeID, this.road);
+                    if(this.state.startNodeID != -1) this.executePathfinding();
                 }
                 this.state.prevNodeID = -1
                 cursor(CROSS)
                 return
             }
         }
+    }
+
+    executePathfinding(){
+        this.state.foundPath = Astar(this.state.startNodeID, this.state.endNodeID, this.road) ?? []
     }
 
     onMouseDragged(){
@@ -242,6 +246,7 @@ class Tool{
         this.zoom = Math.max(0.1, Math.min(this.zoom, 8));
         this.xOff = mouseX - worldX * this.zoom;
         this.yOff = mouseY - worldY * this.zoom;
+        this.state.changed = true
     }
 
     createState(){
@@ -465,23 +470,41 @@ class Tool{
             stroke('#dc2f02')
             ellipse(endNode.pos.x, endNode.pos.y, NODE_RAD * 1.2)
         }
+        if(this.state.mode == 'settingStart' || this.state.mode == 'settingEnd'){
+            if(this.state.hoverNode){
+                fill(255, 150)
+                noStroke()
+                ellipse(this.state.hoverNode.pos.x, this.state.hoverNode.pos.y, NODE_RAD * 1.2)
+            }
+        }
         pop()
     }
 
     showFoundPath(){
         if(this.state.foundPath.length == 0) return
         push()
-        strokeWeight(8)
-        stroke('#9d4edd')
         noFill()
-        beginShape()
-        for(let i = 0; i < this.state.foundPath.length; i++){
-            let node = this.road.findNode(this.state.foundPath[i])
-            if(node){
-                vertex(node.pos.x, node.pos.y)
-            }
-        }
-        endShape()
+        // for(let i = 0; i < this.state.foundPath.length-1; i++){
+        //     let nodeA = this.road.findNode(this.state.foundPath[i])
+        //     let nodeB = this.road.findNode(this.state.foundPath[i+1])
+        //     if(nodeA && nodeB){
+        //         strokeWeight(11)
+        //         stroke('#9d4edd')
+        //         line(nodeA.pos.x, nodeA.pos.y, nodeB.pos.x, nodeB.pos.y)
+        //     }
+        // }
+        // for(let i = 0; i < this.state.foundPath.length-1; i++){
+        //     let nodeA = this.road.findNode(this.state.foundPath[i])
+        //     let nodeB = this.road.findNode(this.state.foundPath[i+1])
+        //     if(nodeA && nodeB){
+        //         strokeWeight(7)
+        //         stroke('#af75e0ff')
+        //         line(nodeA.pos.x, nodeA.pos.y, nodeB.pos.x, nodeB.pos.y)
+        //     }
+        // }
+        stroke('#9d4eddd1')
+        strokeWeight(12)
+        drawBezierPath(this.state.foundPath.map(id => createVector(this.road.findNode(id).pos.x, this.road.findNode(id).pos.y)), 20, 20)
         pop()
     }
 
@@ -504,8 +527,7 @@ class Tool{
             this.road.setPaths(); 
             console.log('updated paths')
             if(this.state.startNodeID != -1 && this.state.endNodeID != -1){
-                let foundPath = Astar(this.state.startNodeID, this.state.endNodeID, this.road)
-                this.state.foundPath = foundPath
+                this.executePathfinding();
             }
         }
         this.state.changed = false
@@ -534,7 +556,8 @@ class Tool{
         //this.road.showWays()
         if(this.showOptions.SHOW_ROAD) this.road.showMain(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, 
-                                                            this.showOptions.SHOW_SEGS_DETAILS)
+                                                            this.showOptions.SHOW_SEGS_DETAILS,
+                                                            this.state.hoverSeg)
         
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_LANES){ 
@@ -546,8 +569,9 @@ class Tool{
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_TAGS && this.showOptions.SHOW_NODES) this.road.showNodesTags()
 
-        this.showStartEndPathfinding()
         this.showFoundPath()
+        this.showStartEndPathfinding()
+        
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
         let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
@@ -571,8 +595,6 @@ class Tool{
         pop()
 
         this.menu.show()
-
-
     }
 
     getRelativePos(x, y){
@@ -583,5 +605,47 @@ class Tool{
 }
 
 
+function drawBezierPath(points, curveSize = radCurveConn, resolution = 10) {
+  if (points.length < 1) return
+  if (points.length < 3) {
+    line(points[0].x, points[0].y, points[1].x, points[1].y)
+    //console.error("Need at least 3 points to draw a Bezier curve");
+    return;
+  }
 
-//let currentHash = JSON.stringify(this.road, (key, value) => (key === 'this.road' ? undefined : value))
+  let drawPoints = [];
+  drawPoints.push(points[0]);
+
+  for (let i = 1; i < points.length - 1; i++) {
+    let targetPoint = points[i];
+    let targetDir = p5.Vector.sub(points[i], points[i - 1]).normalize();
+    let dstToTarget = p5.Vector.dist(points[i], points[i - 1]);
+    let dstToCurveStart = Math.max(dstToTarget - curveSize, dstToTarget / 2);
+
+    let nextTarget = points[i + 1];
+    let nextTargetDir = p5.Vector.sub(points[i + 1], points[i]).normalize();
+    let nextLineLength = p5.Vector.dist(points[i + 1], points[i]);
+
+    let curveStartPoint = p5.Vector.add(points[i - 1], targetDir.mult(dstToCurveStart));
+    let curveEndPoint = p5.Vector.add(targetPoint, nextTargetDir.mult(Math.min(curveSize, nextLineLength / 2)));
+
+    for (let j = 0; j < resolution; j++) {
+      let t = j / (resolution - 1);
+      let a = p5.Vector.lerp(curveStartPoint, targetPoint, t);
+      let b = p5.Vector.lerp(targetPoint, curveEndPoint, t);
+      let p = p5.Vector.lerp(a, b, t);
+
+      if (drawPoints.length === 0 || p.dist(drawPoints[drawPoints.length - 1]) > 0.001) {
+        drawPoints.push(p);
+      }
+    }
+  }
+  drawPoints.push(points[points.length - 1]);
+
+
+  beginShape();
+  for (let p of drawPoints) {
+    vertex(p.x, p.y);
+  }
+  endShape();
+}

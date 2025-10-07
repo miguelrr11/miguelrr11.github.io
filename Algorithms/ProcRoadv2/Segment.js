@@ -32,10 +32,19 @@ class Segment{
         return this.len
     }
 
+    outOfBounds(){
+        if(!inBoundsCorners(this.fromPos.x, this.fromPos.y, GLOBAL_EDGES) && 
+        !inBoundsCorners(this.toPos.x, this.toPos.y, GLOBAL_EDGES) &&
+        !lineIntersection(this.fromPos, this.toPos, {x: GLOBAL_EDGES[0], y: GLOBAL_EDGES[2]}, {x: GLOBAL_EDGES[1], y: GLOBAL_EDGES[2]}) &&
+        !lineIntersection(this.fromPos, this.toPos, {x: GLOBAL_EDGES[1], y: GLOBAL_EDGES[2]}, {x: GLOBAL_EDGES[0], y: GLOBAL_EDGES[3]}) &&
+        !lineIntersection(this.fromPos, this.toPos, {x: GLOBAL_EDGES[0], y: GLOBAL_EDGES[3]}, {x: GLOBAL_EDGES[1], y: GLOBAL_EDGES[3]}) &&
+        !lineIntersection(this.fromPos, this.toPos, {x: GLOBAL_EDGES[1], y: GLOBAL_EDGES[3]}, {x: GLOBAL_EDGES[0], y: GLOBAL_EDGES[2]})) return true
+        return false
+    }
+
     //called by path, so must have frompos and topos defined
     hover(){
-        if(!inBoundsCorners(this.fromPos.x, this.fromPos.y, GLOBAL_EDGES) && !inBoundsCorners(this.toPos.x, this.toPos.y, GLOBAL_EDGES)) return false
-
+        if(this.outOfBounds()) return false
     }
 
     showCustomLanes(col, w){
@@ -59,7 +68,7 @@ class Segment{
         push()
         let fromPos = this.fromPos
         let toPos = this.toPos
-        if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES)){
+        if(this.outOfBounds()){
             pop()
             return
         }
@@ -115,7 +124,7 @@ class Segment{
         stroke(255, 40)
         let fromPos = this.road.findNode(this.fromNodeID).pos
         let toPos = this.road.findNode(this.toNodeID).pos
-        if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES)){
+        if(this.outOfBounds()){
             pop()
             return
         }
@@ -140,13 +149,13 @@ class Segment{
         this.showDirection()
     }
 
-    showPath(SHOW_TAGS, SHOW_SEGS_DETAILS){
-        if(!inBoundsCorners(this.fromPos.x, this.fromPos.y, GLOBAL_EDGES) && !inBoundsCorners(this.toPos.x, this.toPos.y, GLOBAL_EDGES)){
+    showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined){
+        if(this.outOfBounds()){
             return
         }
         push()
         stroke(255)
-        strokeWeight(1.5)
+        hoveredSegID == this.id ? strokeWeight(2.5) : strokeWeight(1.5)
         line(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
         let midPos = {x: (this.fromPos.x + this.toPos.x) / 2, y: (this.fromPos.y + this.toPos.y) / 2}
         drawArrowTip(midPos.x, midPos.y, this.dir, 7)
