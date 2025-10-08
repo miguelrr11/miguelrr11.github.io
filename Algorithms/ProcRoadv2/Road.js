@@ -337,10 +337,10 @@ class Road{
 
         let segment1 = this.addSegmentNoUpdate(fromNode.id, newNode.id, visualDir)
         let segment2 = this.addSegmentNoUpdate(newNode.id, toNode.id, visualDir)
-        segment1.fromPos = {...fromNode.pos}
-        segment1.toPos = {x, y}
-        segment2.fromPos = {x, y}
-        segment2.toPos = {...toNode.pos}
+        // segment1.fromPos = {...fromNode.pos}
+        // segment1.toPos = {x, y}
+        // segment2.fromPos = {x, y}
+        // segment2.toPos = {...toNode.pos}
 
         // Update all three affected nodes at once
         this.updateAffectedPaths([fromNode.id, newNode.id, toNode.id])
@@ -411,8 +411,8 @@ class Road{
             return
         }
         let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir)
-        newSegment.fromPos = {...fromNode.pos}
-        newSegment.toPos = {...toNode.pos}
+        // newSegment.fromPos = {...fromNode.pos}
+        // newSegment.toPos = {...toNode.pos}
         newSegment.road = this
         this.segments.push(newSegment)
         fromNode.outgoingSegmentIDs.push(newSegment.id)
@@ -434,8 +434,8 @@ class Road{
             return
         }
         let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir)
-        newSegment.fromPos = {...fromNode.pos}
-        newSegment.toPos = {...toNode.pos}
+        // newSegment.fromPos = {...fromNode.pos}
+        // newSegment.toPos = {...toNode.pos}
         console.log(newSegment)
         newSegment.road = this
         this.segments.push(newSegment)
