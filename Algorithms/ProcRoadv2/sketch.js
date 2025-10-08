@@ -52,8 +52,8 @@ function addCars(num){
 }
 
 function draw(){
-    //background('#bce784')
-    background(60)
+    background('#F1DBB7')
+    //background(60)
     tool.update()
     tool.show()
     

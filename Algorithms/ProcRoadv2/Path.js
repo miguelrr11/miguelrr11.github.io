@@ -10,6 +10,16 @@ class Path{
         this.nodeB = nodeB
 
         this.id = nodeA + '_' + nodeB
+
+    }
+
+    // gets the outline of all the lanes
+    constructWholePoints(){
+        if(this.segmentsIDs.size == 0) return
+        let fromPos = this.road.findNode(this.nodeA).pos
+        let toPos = this.road.findNode(this.nodeB).pos
+        let corners = getCornersOfLine(fromPos, toPos, (this.segmentsIDs.size * LANE_WIDTH))
+        return corners
     }
 
     // Coje la posicion de los nodos, y el numero de lanes y construye sus propios carriles reales con posiciones calculadas
@@ -42,12 +52,15 @@ class Path{
             segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
             segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
             segment.dir = dir
+            segment.len = dist(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
 
             segment.originalFromPos = {...segment.fromPos}
             segment.originalToPos = {...segment.toPos}
 
             i++
         })
+
+        this.corners = this.constructWholePoints()
     }
 
     showLanes(hoveredSegID = undefined){
@@ -65,14 +78,42 @@ class Path{
     }
 
     // gets all points of all lanes and draws the full road
-    showWay(){
+    // the render bug when intersegs are touching each other is because the calculation of corners fails because we dont get the correct direction
+    // we should force segments to have a minimum length, or we should calculate the corners in a different way
+    showWayBase(){
         push()
-        noStroke()
-        fill(50)
-        for(let segID of this.segmentsIDs){
-            let seg = this.road.findSegment(segID)
-            seg.showCustomLanes([50], LANE_WIDTH * 1.4)
-            seg.showCustomLanes([150], LANE_WIDTH * 1.2)
+        this.segmentsIDs.forEach(segmentID => {
+            let segment = this.road.findSegment(segmentID)
+            segment.showCustomLanes([200], LANE_WIDTH*1.6)
+        })
+        pop()
+    }
+
+    showWayTop(){
+        push()
+        this.segmentsIDs.forEach(segmentID => {
+            let segment = this.road.findSegment(segmentID)
+            segment.showCustomLanes([100], LANE_WIDTH)
+        })
+        let segArr = Array.from(this.segmentsIDs).map(id => this.road.findSegment(id))
+        for(let i = 0; i < segArr.length; i++){
+            let segment = segArr[i]
+            let dashedAbove = undefined
+            let dashedBelow = undefined
+            if(segment.visualDir == 'for'){
+                if(i - 1 < 0 || segArr[i-1].visualDir != segArr[i].visualDir) dashedBelow = false
+                else dashedBelow = true
+                if(i + 1 > segArr.length-1 || segArr[i+1].visualDir != segArr[i].visualDir) dashedAbove = false
+                else dashedAbove = true
+            }
+            else{
+                if(i - 1 < 0 || segArr[i-1].visualDir != segArr[i].visualDir) dashedAbove = false
+                else dashedAbove = true
+                if(i + 1 > segArr.length-1 || segArr[i+1].visualDir != segArr[i].visualDir) dashedBelow = false
+                else dashedBelow = true
+            }
+            segment.drawLineAbove(dashedAbove)
+            segment.drawLineBelow(dashedBelow)
         }
         pop()
     }

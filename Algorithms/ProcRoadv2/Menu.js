@@ -85,6 +85,9 @@ class Menu{
         let buttonShowLanes = new Button(xLoc, 220, 95, 20, 'Lanes', () => {
             this.tool.showOptions.SHOW_LANES = !this.tool.showOptions.SHOW_LANES
         }, undefined,  () => {return this.tool.showOptions.SHOW_LANES})
+        let buttonShowWays = new Button(xLoc, 250, 95, 20, 'Ways', () => {
+            this.tool.showOptions.SHOW_WAYS = !this.tool.showOptions.SHOW_WAYS
+        }, undefined,  () => {return this.tool.showOptions.SHOW_WAYS})
         let buttonAddCars = new Button(10, HEIGHT - 30, 95, 20, 'Add Cars', () => {
             addCars(50)
         })
@@ -144,6 +147,7 @@ class Menu{
         this.buttons.push(buttonShowTags)
         this.buttons.push(buttonShowSegDetails)
         this.buttons.push(buttonShowLanes)
+        this.buttons.push(buttonShowWays)
         this.buttons.push(buttonAddCars)
         this.buttons.push(buttonRemoveCars)
 

@@ -17,8 +17,8 @@ const OFFSET_RAD_INTERSEC = 25
 let LENGTH_SEG_BEZIER = 5      //3
 const TENSION_BEZIER_MIN = 0.1
 const TENSION_BEZIER_MAX = 0.5
-const MIN_DIST_INTERSEC = 45        //30
-const LANE_WIDTH = 20
+const MIN_DIST_INTERSEC = 30        //30
+const LANE_WIDTH = 30
 
 class Road{
     constructor(tool){
@@ -34,7 +34,7 @@ class Road{
 
         this.nodeIDcounter = 0
         this.segmentIDcounter = 0
-        
+
         this.connectorIDcounter = 0
         this.intersecSegIDcounter = 0
     }
@@ -376,6 +376,7 @@ class Road{
     connectIntersection(nodeID, connectSelf = false){
         let node = this.findNode(nodeID)
         let intersection = new Intersection(nodeID, [], [])
+        intersection.road = this
         if(!node) return
         // if a segment ends in this node, we have to connect it to every other segment that starts in this node
         // also, if a segment starts in this node, we have to connect it to every other segment that ends in this node
@@ -424,9 +425,11 @@ class Road{
                 }
                 
 
-                let tension = map(dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y), 10, 150, TENSION_BEZIER_MIN, TENSION_BEZIER_MAX, true)
-
+                let tension = map(dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y), 10, 250, TENSION_BEZIER_MIN, TENSION_BEZIER_MAX, true)
                 let LENGTH_CONTROL_POINT = 120
+
+                // let LENGTH_CONTROL_POINT = dist(inSegToPos.x, inSegToPos.y, outSegFromPos.x, outSegFromPos.y) * .1
+                // let tension = LENGTH_CONTROL_POINT / 300
 
                 let controlPointBez1
                 let dir1 = inSeg.dir
@@ -440,10 +443,16 @@ class Road{
 
                 let pointsBezier = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER, tension)
 
+                let totalLen = 0
+                for(let i = 1; i < pointsBezier.length; i++){
+                    totalLen += dist(pointsBezier[i].x, pointsBezier[i].y, pointsBezier[i-1].x, pointsBezier[i-1].y)
+                }
+
                 let seg = new InterSegment(this.intersecSegIDcounter, connector1.id, connector2.id, inSeg.visualDir, pointsBezier)
                 seg.road = this
                 seg.fromPos = inSegFromPos
                 seg.toPos = outSegToPos
+                seg.len = totalLen
                 this.intersecSegs.push(seg)
                 this.intersecSegIDcounter++
 
@@ -457,10 +466,25 @@ class Road{
                 outSeg.fromConnectorID = connector2.id
 
                 intersecSegs.push(seg.id)
+
+                seg.constructOutline()
             })
         })
         intersection.connectorsIDs = Array.from(connectorMap.values()).map(c => c.id)
         intersection.intersecSegsIDs = intersecSegs
+        let pathsIDs = new Set()
+        for(let i = 0; i < this.nodes.length; i++){
+            for(let j = 0; j < this.nodes.length; j++){
+                if(i == j) continue
+                if(i == nodeID || j == nodeID){
+                    let foundPath = this.paths.get(this.nodes[i].id + '-' + this.nodes[j].id) || this.paths.get(this.nodes[j].id + '-' + this.nodes[i].id)
+                    if(foundPath){
+                        pathsIDs.add(foundPath.id)
+                    }
+                }
+            }
+        }
+        intersection.pathsIDs = Array.from(pathsIDs)
         this.intersections.push(intersection)
     }
 
@@ -494,7 +518,10 @@ class Road{
     }
 
     showWays(){
-        this.paths.forEach(p => p.showWay())
+        this.paths.forEach(p => p.showWayBase())
+        this.intersections.forEach(p => p.showWayBase())
+        this.paths.forEach(p => p.showWayTop())
+        this.intersections.forEach(p => p.showWayTop())
     }
 }
 

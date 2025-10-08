@@ -2,7 +2,7 @@ class Car{
     constructor(road){
         this.segmentID = undefined
         this.segTrav = 0        //the travelled length of the current segment
-        this.speed = random(1, 4)
+        this.speed = 2
         this.road = road
         if(road.segments.length > 0){
             this.segmentID = random(road.segments).id
@@ -14,7 +14,7 @@ class Car{
 
 
 
-    update(dt = 1){
+    update(dt = deltaTime/16){
         if(this.dead){
             return
         }

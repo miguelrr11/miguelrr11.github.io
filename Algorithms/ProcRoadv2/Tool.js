@@ -1,5 +1,5 @@
 let GLOBAL_EDGES = [0, 1400, 0, 700]
-const COL_PATHS = [255, 200]
+const COL_PATHS = [200]
 const COL_LANE_1 = [40, 40, 255, 90]
 const COL_LANE_2 = [255, 40, 40, 90]
 
@@ -7,13 +7,14 @@ class Tool{
     constructor(){
         this.showOptions = {
             SHOW_ROAD: false,
-            SHOW_PATHS: true,
+            SHOW_PATHS: false,
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
-            SHOW_INTERSECSEGS: true,
+            SHOW_INTERSECSEGS: false,
             SHOW_TAGS: false,
             SHOW_SEGS_DETAILS: false,
-            SHOW_LANES: false
+            SHOW_LANES: false,
+            SHOW_WAYS: true
         }
         this.road = new Road(this)
         this.state = {
@@ -23,8 +24,8 @@ class Tool{
             draggingNodeID: -1,
             offsetDraggingNode: {x: 0, y: 0},
 
-            nForLanes: 1,
-            nBackLanes: 1,
+            nForLanes: 3,
+            nBackLanes: 0,
             snapToGrid: false,
 
             changed: false,
@@ -57,7 +58,7 @@ class Tool{
         this.yOff = 0
         this.prevMouseX = 0
         this.prevMouseY = 0
-        this.zoom = 1
+        this.zoom = 2
 
         cursor(CROSS)
     }
@@ -181,7 +182,7 @@ class Tool{
     onMouseDragged(){
         if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) return
 
-        this.state.changed = true
+        
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
@@ -199,6 +200,7 @@ class Tool{
         //dragging nodes
         if(this.state.mode == 'movingNode'){
             if(this.state.draggingNodeID != -1){
+                this.state.changed = true
                 let node = this.road.findNode(this.state.draggingNodeID)
                 node.moveTo(mousePosGridX + this.state.offsetDraggingNode.x, mousePosGridY + this.state.offsetDraggingNode.y)
                 return
@@ -556,7 +558,8 @@ class Tool{
 
         let curSegs = this.createCurrentLanes()
         if(curSegs) this.showCurSegs(curSegs)
-        //this.road.showWays()
+
+        if(this.showOptions.SHOW_WAYS) this.road.showWays()
 
         if(this.showOptions.SHOW_LANES){ 
             this.road.showLanes(this.state.hoverSeg)
@@ -573,6 +576,8 @@ class Tool{
         blendMode(BLEND)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_TAGS && this.showOptions.SHOW_NODES) this.road.showNodesTags()
+
+        
 
         this.showFoundPath()
         this.showStartEndPathfinding()

@@ -58,6 +58,30 @@ class Segment{
         if(this.outOfBounds()) return false
     }
 
+    drawLineBelow(disc = false){
+        push()
+        let fromPos = this.fromPos
+        let toPos = this.toPos
+        let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
+        strokeWeight(1.5)
+        stroke(220)
+        if(!disc) line(corners[0].x, corners[0].y, corners[3].x, corners[3].y)
+        else drawDashedLine(corners[0].x, corners[0].y, corners[3].x, corners[3].y)
+        pop()
+    }
+
+    drawLineAbove(disc = false){
+        push()
+        let fromPos = this.fromPos
+        let toPos = this.toPos
+        let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
+        strokeWeight(1.5)
+        stroke(220)
+        if(!disc) line(corners[1].x, corners[1].y, corners[2].x, corners[2].y)
+        else drawDashedLine(corners[1].x, corners[1].y, corners[2].x, corners[2].y)
+        pop()
+    }
+
     showCustomLanes(col, w){
         push()
         let fromPos = this.fromPos
