@@ -74,6 +74,105 @@ class Road{
         this.nodes.forEach(n => this.trimSegmentsAtIntersection(n.id))
     }
 
+    // Incrementally updates only the paths affected by the given node IDs
+    updateAffectedPaths(affectedNodeIDs){
+        LENGTH_SEG_BEZIER = map(this.tool.zoom, 0.1, 8, 8, 3, true)
+
+        //this.setPosSegs(affectedNodeIDs)
+
+        // Convert to Set for efficient lookup
+        let affectedSet = new Set(affectedNodeIDs)
+
+        // Find all paths that involve any of the affected nodes
+        let pathsToRemove = []
+        this.paths.forEach((path, key) => {
+            if(affectedSet.has(path.nodeA) || affectedSet.has(path.nodeB)){
+                pathsToRemove.push(key)
+            }
+        })
+
+        // Remove old paths
+        pathsToRemove.forEach(key => this.paths.delete(key))
+
+        // Rebuild only affected paths
+        for(let affectedNodeID of affectedNodeIDs){
+            let affectedNode = this.findNode(affectedNodeID)
+            if(!affectedNode) continue
+
+            for(let otherNode of this.nodes){
+                if(otherNode.id == affectedNodeID) continue
+
+                // Check path from affectedNode to otherNode
+                let segmentIDs = this.getAllSegmentsBetweenNodes(affectedNodeID, otherNode.id).map(s => s.id)
+                if(segmentIDs.length > 0){
+                    let key1 = affectedNodeID + '-' + otherNode.id
+                    let key2 = otherNode.id + '-' + affectedNodeID
+
+                    if(!this.paths.has(key1) && !this.paths.has(key2)){
+                        let segmentSet = new Set(segmentIDs)
+                        let path = new Path(affectedNodeID, otherNode.id, segmentSet)
+                        path.road = this
+                        path.constructRealLanes()
+                        this.paths.set(key1, path)
+                    }
+                }
+            }
+        }
+    }
+
+
+    setPosSegs(affectedNodeIDs){
+        for(let affectedNodeID of affectedNodeIDs){
+            let affectedNode = this.findNode(affectedNodeID)
+            if(!affectedNode) continue
+
+            this.trimSegmentsAtIntersection(affectedNodeID, false)
+            
+        }
+    }
+
+    // Incrementally updates only the intersections at the given node IDs
+    updateAffectedIntersections(affectedNodeIDs){
+        // Remove old intersections at affected nodes
+        for(let nodeID of affectedNodeIDs){
+            let intersection = this.findIntersection(nodeID)
+            if(intersection){
+                // Remove all connectors and intersecSegs associated with this intersection
+                for(let connID of intersection.connectorsIDs){
+                    let connector = this.findConnector(connID)
+                    if(connector){
+                        // Clear segment references to this connector
+                        for(let segID of connector.incomingSegmentIDs){
+                            let seg = this.findSegment(segID)
+                            if(seg && seg.toConnectorID == connID) seg.toConnectorID = undefined
+                        }
+                        for(let segID of connector.outgoingSegmentIDs){
+                            let seg = this.findSegment(segID)
+                            if(seg && seg.fromConnectorID == connID) seg.fromConnectorID = undefined
+                        }
+                    }
+                }
+
+                // Remove connectors
+                this.connectors = this.connectors.filter(c => !intersection.connectorsIDs.includes(c.id))
+
+                // Remove intersection segments
+                this.intersecSegs = this.intersecSegs.filter(is => !intersection.intersecSegsIDs.includes(is.id))
+
+                // Remove intersection
+                this.intersections = this.intersections.filter(i => i.nodeID != nodeID)
+            }
+        }
+
+        // Rebuild intersections at affected nodes
+        for(let nodeID of affectedNodeIDs){
+            let node = this.findNode(nodeID)
+            if(node){
+                this.trimSegmentsAtIntersection(nodeID)
+            }
+        }
+    }
+
     // the edges of segments are the positions of the nodes
     findClosestSegmentAndPos(x, y){
         let pos = {x, y}
@@ -154,11 +253,25 @@ class Road{
             console.log('Error deleting node, node not found:\nnodeID = ' + nodeID)
             return
         }
-        //delete all connected segments
+
+        // Collect all connected nodes before deletion
+        let affectedNodeIDs = new Set([nodeID])
+        let connectedSegments = this.findConnectedSegments(nodeID)
+        connectedSegments.forEach(seg => {
+            if(seg.fromNodeID != nodeID) affectedNodeIDs.add(seg.fromNodeID)
+            if(seg.toNodeID != nodeID) affectedNodeIDs.add(seg.toNodeID)
+        })
+
+        //delete all connected segments (without triggering updates for each)
         let connectedSegmentIDs = [...node.incomingSegmentIDs, ...node.outgoingSegmentIDs]
-        connectedSegmentIDs.forEach(segmentID => this.deleteSegment(segmentID))
+        connectedSegmentIDs.forEach(segmentID => this.deleteSegmentNoUpdate(segmentID))
+
         //delete the node
         this.nodes = this.nodes.filter(n => n.id != nodeID)
+
+        // Update only affected paths and intersections
+        this.updateAffectedPaths(Array.from(affectedNodeIDs))
+        this.updateAffectedIntersections(Array.from(affectedNodeIDs))
     }
 
     deleteSegment(segmentID){
@@ -173,7 +286,30 @@ class Road{
             console.log('Error deleting segment, node not found:\nfromNodeID = ' + segment.fromNodeID + ' | toNodeID = ' + segment.toNodeID)
             return
         }
+
         //remove the segment
+        this.segments = this.segments.filter(s => s.id != segmentID)
+        fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
+        toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
+
+        // Update only affected paths and intersections
+        this.updateAffectedPaths([fromNode.id, toNode.id])
+        this.updateAffectedIntersections([fromNode.id, toNode.id])
+    }
+
+    deleteSegmentNoUpdate(segmentID){
+        let segment = this.findSegment(segmentID)
+        if(segment == undefined){
+            console.log('Error deleting segment, segment not found:\nsegmentID = ' + segmentID)
+            return
+        }
+        let fromNode = this.findNode(segment.fromNodeID)
+        let toNode = this.findNode(segment.toNodeID)
+        if(fromNode == undefined || toNode == undefined){
+            console.log('Error deleting segment, node not found:\nfromNodeID = ' + segment.fromNodeID + ' | toNodeID = ' + segment.toNodeID)
+            return
+        }
+        //remove the segment without triggering updates
         this.segments = this.segments.filter(s => s.id != segmentID)
         fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
@@ -193,14 +329,22 @@ class Road{
             return
         }
         //create new node
-        let newNode = nodeAtSplit ? nodeAtSplit : this.addNode(x, y)
+        let newNode = nodeAtSplit ? nodeAtSplit : this.addNodeNoUpdate(x, y)
         //remove old segment
         this.segments = this.segments.filter(s => s.id != segmentID)
         fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
 
-        let segment1 = this.addSegment(fromNode.id, newNode.id, visualDir)
-        let segment2 = this.addSegment(newNode.id, toNode.id, visualDir)
+        let segment1 = this.addSegmentNoUpdate(fromNode.id, newNode.id, visualDir)
+        let segment2 = this.addSegmentNoUpdate(newNode.id, toNode.id, visualDir)
+        segment1.fromPos = {...fromNode.pos}
+        segment1.toPos = {x, y}
+        segment2.fromPos = {x, y}
+        segment2.toPos = {...toNode.pos}
+
+        // Update all three affected nodes at once
+        this.updateAffectedPaths([fromNode.id, newNode.id, toNode.id])
+        this.updateAffectedIntersections([fromNode.id, newNode.id, toNode.id])
 
         return {segment1, segment2, newNode}
     }
@@ -247,6 +391,14 @@ class Road{
         return newNode
     }
 
+    addNodeNoUpdate(x, y){
+        const newNode = new Node(this.nodeIDcounter, x, y)
+        this.nodes.push(newNode)
+        newNode.road = this
+        this.nodeIDcounter++
+        return newNode
+    }
+
     findHoverNode(x, y){
         return this.nodes.find(n => n.hover(x, y))
     }
@@ -259,6 +411,32 @@ class Road{
             return
         }
         let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir)
+        newSegment.fromPos = {...fromNode.pos}
+        newSegment.toPos = {...toNode.pos}
+        newSegment.road = this
+        this.segments.push(newSegment)
+        fromNode.outgoingSegmentIDs.push(newSegment.id)
+        toNode.incomingSegmentIDs.push(newSegment.id)
+        this.segmentIDcounter++
+
+        // Update affected paths and intersections
+        this.updateAffectedPaths([fromNodeID, toNodeID])
+        this.updateAffectedIntersections([fromNodeID, toNodeID])
+
+        return newSegment
+    }
+
+    addSegmentNoUpdate(fromNodeID, toNodeID, visualDir){
+        const fromNode = this.findNode(fromNodeID)
+        const toNode = this.findNode(toNodeID)
+        if(fromNode == undefined || toNode == undefined){
+            console.log('Error adding segment, node not found:\nfromNodeID = ' + fromNodeID + ' | toNodeID = ' + toNodeID)
+            return
+        }
+        let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir)
+        newSegment.fromPos = {...fromNode.pos}
+        newSegment.toPos = {...toNode.pos}
+        console.log(newSegment)
         newSegment.road = this
         this.segments.push(newSegment)
         fromNode.outgoingSegmentIDs.push(newSegment.id)
@@ -334,7 +512,7 @@ class Road{
 
 
     //trims all end of segments connected to the node to the farthest intersection found
-    trimSegmentsAtIntersection(nodeID){
+    trimSegmentsAtIntersection(nodeID, connect = true){
         let intersections = this.findIntersectionsOfNode(nodeID)
         let distInter = 0
         let farthestIntersection = null
@@ -370,7 +548,7 @@ class Road{
                 }
             })
         }
-        this.connectIntersection(nodeID, this.nodeOnceConnected(node))
+        if(connect) this.connectIntersection(nodeID, this.nodeOnceConnected(node))
     }
 
     connectIntersection(nodeID, connectSelf = false){

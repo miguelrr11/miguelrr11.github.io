@@ -89,7 +89,7 @@ class Menu{
             this.tool.showOptions.SHOW_WAYS = !this.tool.showOptions.SHOW_WAYS
         }, undefined,  () => {return this.tool.showOptions.SHOW_WAYS})
         let buttonAddCars = new Button(10, HEIGHT - 30, 95, 20, 'Add Cars', () => {
-            addCars(50)
+            addCars(1)
         })
         let buttonRemoveCars = new Button(10, HEIGHT - 60, 95, 20, 'Remove Cars', () => {
             cars = []

@@ -24,8 +24,8 @@ class Tool{
             draggingNodeID: -1,
             offsetDraggingNode: {x: 0, y: 0},
 
-            nForLanes: 3,
-            nBackLanes: 0,
+            nForLanes: 1,
+            nBackLanes: 1,
             snapToGrid: false,
 
             changed: false,
@@ -58,7 +58,7 @@ class Tool{
         this.yOff = 0
         this.prevMouseX = 0
         this.prevMouseY = 0
-        this.zoom = 2
+        this.zoom = 1.2
 
         cursor(CROSS)
     }
@@ -84,8 +84,6 @@ class Tool{
 
     onClick(){
         if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || keyIsPressed) return
-
-        this.state.changed = true
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
@@ -182,8 +180,6 @@ class Tool{
     onMouseDragged(){
         if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) return
 
-        
-
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
         if((this.state.draggingNodeID == -1 || (keyIsDown(16))) && this.state.mode != 'creating'){
@@ -200,9 +196,9 @@ class Tool{
         //dragging nodes
         if(this.state.mode == 'movingNode'){
             if(this.state.draggingNodeID != -1){
-                this.state.changed = true
                 let node = this.road.findNode(this.state.draggingNodeID)
                 node.moveTo(mousePosGridX + this.state.offsetDraggingNode.x, mousePosGridY + this.state.offsetDraggingNode.y)
+                this.updateAffectedByNode(this.state.draggingNodeID)
                 return
             }
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
@@ -215,10 +211,26 @@ class Tool{
         }
     }
 
+    updateAffectedByNode(nodeID){
+        let connectedNodes = new Set([nodeID])
+        let connectedSegments = this.road.findConnectedSegments(nodeID)
+        connectedSegments.forEach(seg => {
+            if(seg.fromNodeID != nodeID) connectedNodes.add(seg.fromNodeID)
+            if(seg.toNodeID != nodeID) connectedNodes.add(seg.toNodeID)
+        })
+        this.road.updateAffectedPaths(Array.from(connectedNodes))
+        this.road.updateAffectedIntersections(Array.from(connectedNodes))
+    }
+
     onMouseRelease(){
         this.prevMouseX = undefined
         this.prevMouseY = undefined
         if(this.state.mode == 'movingNode'){
+            if(this.state.draggingNodeID != -1){
+                // Update paths and intersections for the node that was moved
+                let nodeID = this.state.draggingNodeID
+                this.updateAffectedByNode(nodeID)
+            }
             this.state.draggingNodeID = -1
             this.state.offsetDraggingNode = {x: 0, y: 0}
             this.checkForAllSegmentCollisions()
@@ -246,11 +258,26 @@ class Tool{
     onMouseWheel(event) {
         let worldX = (mouseX - this.xOff) / this.zoom;
         let worldY = (mouseY - this.yOff) / this.zoom;
+        let oldZoom = this.zoom;
         this.zoom += event.deltaY / 1000;
         this.zoom = Math.max(0.1, Math.min(this.zoom, 8));
         this.xOff = mouseX - worldX * this.zoom;
         this.yOff = mouseY - worldY * this.zoom;
+
+        // Only update bezier segments if zoom changed significantly
+        if(Math.abs(oldZoom - this.zoom) > 0.01){
+            //this.updateZoomDependentGeometry();
+        }
         this.state.changed = true
+    }
+
+    updateZoomDependentGeometry(){
+        // Update LENGTH_SEG_BEZIER based on zoom
+        LENGTH_SEG_BEZIER = map(this.zoom, 0.1, 8, 8, 3, true);
+
+        // Update all intersections to recalculate bezier curves with new segment length
+        let allNodeIDs = this.road.nodes.map(n => n.id);
+        this.road.updateAffectedIntersections(allNodeIDs);
     }
 
     createState(){
@@ -528,9 +555,9 @@ class Tool{
     update(){
         this.state.edges = this.getEdges()
         GLOBAL_EDGES = this.state.edges
+        // Note: setPaths() is no longer called here - updates are done incrementally
+        // when nodes/segments are added/removed/modified
         if(this.state.changed) {
-            this.road.setPaths(); 
-            console.log('updated paths')
             if(this.state.startNodeID != -1 && this.state.endNodeID != -1){
                 this.executePathfinding();
             }
