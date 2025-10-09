@@ -7,6 +7,10 @@ class Connector{
         this.id = id
     }
 
+    getPosition(){
+        return this.pos
+    }
+
     chooseOutRandom(){
         return random(this.outgoingSegmentIDs)
     }

@@ -22,10 +22,44 @@ class Path{
         return corners
     }
 
-    // Coje la posicion de los nodos, y el numero de lanes y construye sus propios carriles reales con posiciones calculadas
-    constructRealLanes(){
+    getRealPos(segID){
+        let segment = this.road.findSegment(segID)
+        if(!segment) return null
         let nodeA = this.road.findNode(this.nodeA)
         let nodeB = this.road.findNode(this.nodeB)
+
+        let fromPos = nodeA.pos
+        let toPos = nodeB.pos
+        let angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x) - PI / 2
+        let numLanes = this.segmentsIDs.size
+        let totalWidth = numLanes * LANE_WIDTH
+        let startOffset = -totalWidth / 2 + LANE_WIDTH / 2
+
+        let segArr = Array.from(this.segmentsIDs)
+        let i = segArr.indexOf(segID)
+        if(i == -1) return null
+        let offset = startOffset + i * LANE_WIDTH
+        let laneFromPos = {x: fromPos.x + Math.cos(angle) * offset, y: fromPos.y + Math.sin(angle) * offset}
+        let laneToPos = {x: toPos.x + Math.cos(angle) * offset, y: toPos.y + Math.sin(angle) * offset}
+        let nodeFrom = this.road.findNode(segment.fromNodeID)
+        let nodeTo = this.road.findNode(segment.toNodeID)
+        let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
+
+        //also we modify the segment to have the new calculated positions
+        segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
+        segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
+        segment.dir = dir
+        segment.len = dist(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
+
+        return {fromPos: segment.fromPos, toPos: segment.toPos}
+    }
+ 
+
+    // Coje la posicion de los nodos, y el numero de lanes y construye sus propios carriles reales con posiciones calculadas
+    constructRealLanes(avoidNodes = new Set()){
+        let nodeA = this.road.findNode(this.nodeA)
+        let nodeB = this.road.findNode(this.nodeB)
+        console.log(nodeA.id, nodeB.id)
         if(!nodeA || !nodeB) {
             console.warn('Invalid nodes in path while constructing real lanes:\nnodeA = ' + nodeA + ' | nodeB = ' + nodeB)
             return
@@ -49,13 +83,14 @@ class Path{
             let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
 
             //also we modify the segment to have the new calculated positions
-            segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
-            segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
+            if(!avoidNodes.has(segment.fromNodeID)) segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
+            if(!avoidNodes.has(segment.toNodeID)) segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
             segment.dir = dir
             segment.len = dist(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
 
-            segment.originalFromPos = {...segment.fromPos}
-            segment.originalToPos = {...segment.toPos}
+            segment.originalFromPos = {x: segment.fromPos.x, y: segment.fromPos.y}
+            segment.originalToPos = {x: segment.toPos.x, y: segment.toPos.y}
+            
 
             i++
         })

@@ -81,6 +81,26 @@ class Road{
         // Convert to Set for efficient lookup
         let affectedSet = new Set(affectedNodeIDs)
 
+        let allNodesToUpdateOriginal = new Set(affectedNodeIDs)
+
+        let auxNodes = new Set()
+
+        for(let nodeID of affectedNodeIDs){
+            let connectedSegments = this.findConnectedSegments(nodeID)
+            connectedSegments.forEach(seg => {
+                // allNodesToUpdate.add(seg.fromNodeID)
+                // allNodesToUpdate.add(seg.toNodeID)
+                if(!allNodesToUpdateOriginal.has(seg.fromNodeID)) auxNodes.add(seg.fromNodeID)
+                if(!allNodesToUpdateOriginal.has(seg.toNodeID)) auxNodes.add(seg.toNodeID)
+            })
+        }
+
+        let nodesToAvoid = [...auxNodes]
+
+        console.log('nodes to update')
+        console.log(auxNodes)
+
+
         // Find all paths that involve any of the affected nodes
         let pathsToRemove = []
         this.paths.forEach((path, key) => {
@@ -92,10 +112,10 @@ class Road{
         // Remove old paths
         pathsToRemove.forEach(key => this.paths.delete(key))
 
-        console.log('paths to remove:')
-        console.log(pathsToRemove)
 
         // Rebuild only affected paths
+        console.log('-----------------------------------')
+        console.log('construct real lanes')
         for(let affectedNodeID of affectedNodeIDs){
             let affectedNode = this.findNode(affectedNodeID)
             if(!affectedNode) continue
@@ -110,10 +130,11 @@ class Road{
                     let key2 = otherNode.id + '-' + affectedNodeID
 
                     if(!this.paths.has(key1) && !this.paths.has(key2)){
+                        console.log('between ' + affectedNodeID + ' and ' + otherNode.id)
                         let segmentSet = new Set(segmentIDs)
                         let path = new Path(affectedNodeID, otherNode.id, segmentSet)
                         path.road = this
-                        path.constructRealLanes()
+                        path.constructRealLanes(auxNodes)
                         this.paths.set(key1, path)
                     }
                 }
@@ -127,17 +148,23 @@ class Road{
         // Collect all nodes that need intersection updates
         // This includes the affected nodes AND any nodes connected to segments from affected nodes
         let allNodesToUpdate = new Set(affectedNodeIDs)
+        let allNodesToUpdateOriginal = new Set(affectedNodeIDs)
+
+        let auxNodes = new Set()
 
         for(let nodeID of affectedNodeIDs){
             let connectedSegments = this.findConnectedSegments(nodeID)
             connectedSegments.forEach(seg => {
-                allNodesToUpdate.add(seg.fromNodeID)
-                allNodesToUpdate.add(seg.toNodeID)
+                // allNodesToUpdate.add(seg.fromNodeID)
+                // allNodesToUpdate.add(seg.toNodeID)
+                if(!allNodesToUpdateOriginal.has(seg.fromNodeID)) auxNodes.add(seg.fromNodeID)
+                if(!allNodesToUpdateOriginal.has(seg.toNodeID)) auxNodes.add(seg.toNodeID)
             })
         }
 
-        console.log('Nodes to update intersections:')
-        console.log(allNodesToUpdate)
+        let nodesToAvoid = [...auxNodes]
+
+        
 
         // Remove old intersections at all nodes that need updates
         for(let nodeID of allNodesToUpdate){
@@ -171,10 +198,13 @@ class Road{
         }
 
         // Rebuild intersections at all nodes that need updates
+        console.log('trimming')
+        console.log(allNodesToUpdate)
+        console.log(nodesToAvoid)
         for(let nodeID of allNodesToUpdate){
             let node = this.findNode(nodeID)
             if(node){
-                this.trimSegmentsAtIntersection(nodeID)
+                this.trimSegmentsAtIntersection(nodeID, true, nodesToAvoid)
             }
         }
     }
@@ -388,6 +418,10 @@ class Road{
         }
     }
 
+    findPath(nodeAID, nodeBID){
+        return this.paths.get(nodeAID + '-' + nodeBID) || this.paths.get(nodeBID + '-' + nodeAID)
+    }
+
     
     addNode(x, y){
         const newNode = new Node(this.nodeIDcounter, x, y)
@@ -442,7 +476,6 @@ class Road{
         let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir)
         // newSegment.fromPos = {...fromNode.pos}
         // newSegment.toPos = {...toNode.pos}
-        console.log(newSegment)
         newSegment.road = this
         this.segments.push(newSegment)
         fromNode.outgoingSegmentIDs.push(newSegment.id)
@@ -518,7 +551,8 @@ class Road{
 
 
     //trims all end of segments connected to the node to the farthest intersection found
-    trimSegmentsAtIntersection(nodeID, connect = true){
+    trimSegmentsAtIntersection(nodeID, connect = true, nodesToAvoid = []){
+        //if(nodesToAvoid.includes(nodeID)) return
         let intersections = this.findIntersectionsOfNode(nodeID)
         let distInter = 0
         let farthestIntersection = null
@@ -544,36 +578,45 @@ class Road{
 
         if(farthestIntersection != null){
             let connectedSegments = this.findConnectedSegments(nodeID)
-            console.log('Trimming segments at node ' + nodeID )
-            console.log(connectedSegments)
             connectedSegments.forEach(s => {
                 // Reset segment to original positions before trimming
                 // This prevents segments from collapsing when trimmed multiple times
+
+                // let foundPath = this.findPath(s.fromNodeID, s.toNodeID)
+                // foundPath.getRealPos(s.id)
                 
                 if(s.originalFromPos && s.originalToPos){
                     // First reset both ends to original positions to get correct direction
+
+                    console.log('trim')
+                    // console.log('node: ' + nodeID)
+                    // console.log(s.fromNodeID, s.toNodeID)
+
                     let origFrom = {...s.originalFromPos}
                     let origTo = {...s.originalToPos}
                     
 
                     if(s.fromNodeID == nodeID){
                         // Calculate shortening from original positions
+                        console.log('seg: ' + s.id + ' from node: ' + nodeID)
                         s.fromPos = shortenSegment(origTo, origFrom, distInter)
                     }
                     else if(s.toNodeID == nodeID){
                         // Calculate shortening from original positions
+                        console.log('seg: ' + s.id + ' to node: ' + nodeID)
                         s.toPos = shortenSegment(origFrom, origTo, distInter)
                     }
                 }
-                else {
-                    // Fallback for segments without original positions
-                    if(s.fromNodeID == nodeID){
-                        s.fromPos = shortenSegment(s.toPos, s.fromPos, distInter)
-                    }
-                    else if(s.toNodeID == nodeID){
-                        s.toPos = shortenSegment(s.fromPos, s.toPos, distInter)
-                    }
-                }
+                // else {
+                //     console.log('no original pos')
+                //     // Fallback for segments without original positions
+                //     if(s.fromNodeID == nodeID){
+                //         s.fromPos = shortenSegment(s.toPos, s.fromPos, distInter)
+                //     }
+                //     else if(s.toNodeID == nodeID){
+                //         s.toPos = shortenSegment(s.fromPos, s.toPos, distInter)
+                //     }
+                // }
                 
             })
         }

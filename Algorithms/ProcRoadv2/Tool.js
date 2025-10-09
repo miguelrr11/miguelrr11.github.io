@@ -218,9 +218,6 @@ class Tool{
             if(seg.fromNodeID != nodeID) connectedNodes.add(seg.fromNodeID)
             if(seg.toNodeID != nodeID) connectedNodes.add(seg.toNodeID)
         })
-        console.log('-----------------------------------')
-        console.log('Updating affected paths and intersections for nodes:')
-        console.log(connectedNodes)
         this.road.updateAffectedPaths(Array.from(connectedNodes))
         this.road.updateAffectedIntersections(Array.from(connectedNodes))
     }
