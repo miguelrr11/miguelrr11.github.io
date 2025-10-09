@@ -171,8 +171,8 @@ class Segment{
             fill(0, 255, 0)
             let midPos = {x: (fromPos.x + toPos.x) / 2, y: (fromPos.y + toPos.y) / 2}
             textAlign(CENTER)
-            textSize(4)
-            let str = this.id + ': ' + this.fromNodeID + '-' + this.toNodeID
+            textSize(12)
+            let str = '[' + this.id + ']' + ': ' + this.fromNodeID + '-' + this.toNodeID
             let bbox = textBounds(str, midPos.x, midPos.y)
             fill(0)
             rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
@@ -210,9 +210,11 @@ class Segment{
             let str2 = this.fromConnectorID != undefined || this.toConnectorID != undefined ?
                 'C: ' + (this.fromConnectorID != undefined ? this.fromConnectorID : '_') + '-' + (this.toConnectorID != undefined ? this.toConnectorID : '_')
                 : undefined
+            let str3 = '[' + this.id + ']'
             if(str2) str += ' ' + str2
+            str = str3
             textAlign(CENTER)
-            textSize(5)
+            textSize(12)
             let bbox = textBounds(str, midPos.x, midPos.y - 10)
             fill(255, 0, 0)
             noStroke()

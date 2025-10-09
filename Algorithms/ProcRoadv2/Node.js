@@ -33,8 +33,9 @@ class Node{
         push()
         noStroke()
         textAlign(CENTER)
-        let str = '[' + this.id + ']' + ': nIn: ' + this.incomingSegmentIDs.length + ' nOut: ' + this.outgoingSegmentIDs.length
-        textSize(4)
+        //let str = '[' + this.id + ']' + ': nIn: ' + this.incomingSegmentIDs.length + ' nOut: ' + this.outgoingSegmentIDs.length
+        let str = '[' + this.id + ']'
+        textSize(12)
         let bbox = textBounds(str, this.pos.x, this.pos.y - NODE_RAD)
         fill(255, 0, 0)
         rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)

@@ -11,7 +11,7 @@ class Tool{
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
             SHOW_INTERSECSEGS: false,
-            SHOW_TAGS: false,
+            SHOW_TAGS: true,
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
             SHOW_WAYS: true
@@ -218,6 +218,9 @@ class Tool{
             if(seg.fromNodeID != nodeID) connectedNodes.add(seg.fromNodeID)
             if(seg.toNodeID != nodeID) connectedNodes.add(seg.toNodeID)
         })
+        console.log('-----------------------------------')
+        console.log('Updating affected paths and intersections for nodes:')
+        console.log(connectedNodes)
         this.road.updateAffectedPaths(Array.from(connectedNodes))
         this.road.updateAffectedIntersections(Array.from(connectedNodes))
     }
@@ -226,11 +229,6 @@ class Tool{
         this.prevMouseX = undefined
         this.prevMouseY = undefined
         if(this.state.mode == 'movingNode'){
-            if(this.state.draggingNodeID != -1){
-                // Update paths and intersections for the node that was moved
-                let nodeID = this.state.draggingNodeID
-                this.updateAffectedByNode(nodeID)
-            }
             this.state.draggingNodeID = -1
             this.state.offsetDraggingNode = {x: 0, y: 0}
             this.checkForAllSegmentCollisions()

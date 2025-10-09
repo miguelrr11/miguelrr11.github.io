@@ -77,9 +77,7 @@ class Road{
     // Incrementally updates only the paths affected by the given node IDs
     updateAffectedPaths(affectedNodeIDs){
         LENGTH_SEG_BEZIER = map(this.tool.zoom, 0.1, 8, 8, 3, true)
-
-        //this.setPosSegs(affectedNodeIDs)
-
+        
         // Convert to Set for efficient lookup
         let affectedSet = new Set(affectedNodeIDs)
 
@@ -93,6 +91,9 @@ class Road{
 
         // Remove old paths
         pathsToRemove.forEach(key => this.paths.delete(key))
+
+        console.log('paths to remove:')
+        console.log(pathsToRemove)
 
         // Rebuild only affected paths
         for(let affectedNodeID of affectedNodeIDs){
@@ -121,20 +122,25 @@ class Road{
     }
 
 
-    setPosSegs(affectedNodeIDs){
-        for(let affectedNodeID of affectedNodeIDs){
-            let affectedNode = this.findNode(affectedNodeID)
-            if(!affectedNode) continue
-
-            this.trimSegmentsAtIntersection(affectedNodeID, false)
-            
-        }
-    }
-
     // Incrementally updates only the intersections at the given node IDs
     updateAffectedIntersections(affectedNodeIDs){
-        // Remove old intersections at affected nodes
+        // Collect all nodes that need intersection updates
+        // This includes the affected nodes AND any nodes connected to segments from affected nodes
+        let allNodesToUpdate = new Set(affectedNodeIDs)
+
         for(let nodeID of affectedNodeIDs){
+            let connectedSegments = this.findConnectedSegments(nodeID)
+            connectedSegments.forEach(seg => {
+                allNodesToUpdate.add(seg.fromNodeID)
+                allNodesToUpdate.add(seg.toNodeID)
+            })
+        }
+
+        console.log('Nodes to update intersections:')
+        console.log(allNodesToUpdate)
+
+        // Remove old intersections at all nodes that need updates
+        for(let nodeID of allNodesToUpdate){
             let intersection = this.findIntersection(nodeID)
             if(intersection){
                 // Remove all connectors and intersecSegs associated with this intersection
@@ -164,8 +170,8 @@ class Road{
             }
         }
 
-        // Rebuild intersections at affected nodes
-        for(let nodeID of affectedNodeIDs){
+        // Rebuild intersections at all nodes that need updates
+        for(let nodeID of allNodesToUpdate){
             let node = this.findNode(nodeID)
             if(node){
                 this.trimSegmentsAtIntersection(nodeID)
@@ -517,7 +523,6 @@ class Road{
         let distInter = 0
         let farthestIntersection = null
         let node = this.findNode(nodeID)
-        //if parallel doesn't work
         if(intersections.length == 0) return
         else if(intersections.length == 1){
             farthestIntersection = intersections[0]
@@ -534,18 +539,42 @@ class Road{
             }
         }
         
-
         distInter += OFFSET_RAD_INTERSEC
         distInter = max(distInter, MIN_DIST_INTERSEC)
+
         if(farthestIntersection != null){
             let connectedSegments = this.findConnectedSegments(nodeID)
+            console.log('Trimming segments at node ' + nodeID )
+            console.log(connectedSegments)
             connectedSegments.forEach(s => {
-                if(s.fromNodeID == nodeID){
-                    s.fromPos = shortenSegment(s.toPos, s.fromPos, distInter)
-                } 
-                else if(s.toNodeID == nodeID){
-                    s.toPos = shortenSegment(s.fromPos, s.toPos, distInter)
+                // Reset segment to original positions before trimming
+                // This prevents segments from collapsing when trimmed multiple times
+                
+                if(s.originalFromPos && s.originalToPos){
+                    // First reset both ends to original positions to get correct direction
+                    let origFrom = {...s.originalFromPos}
+                    let origTo = {...s.originalToPos}
+                    
+
+                    if(s.fromNodeID == nodeID){
+                        // Calculate shortening from original positions
+                        s.fromPos = shortenSegment(origTo, origFrom, distInter)
+                    }
+                    else if(s.toNodeID == nodeID){
+                        // Calculate shortening from original positions
+                        s.toPos = shortenSegment(origFrom, origTo, distInter)
+                    }
                 }
+                else {
+                    // Fallback for segments without original positions
+                    if(s.fromNodeID == nodeID){
+                        s.fromPos = shortenSegment(s.toPos, s.fromPos, distInter)
+                    }
+                    else if(s.toNodeID == nodeID){
+                        s.toPos = shortenSegment(s.fromPos, s.toPos, distInter)
+                    }
+                }
+                
             })
         }
         if(connect) this.connectIntersection(nodeID, this.nodeOnceConnected(node))
@@ -708,7 +737,7 @@ function shortenSegment(A, B, length) {
     const dy = B.y - A.y;
     const distance = Math.hypot(dx, dy);
 
-    if (distance === 0) return { ...B }; // no movement possible
+    if (distance === 0){return { ...B }}  // no movement possible
 
     const factor = (distance - length) / distance;
     // clamp so it doesn't overshoot past A
