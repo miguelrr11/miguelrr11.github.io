@@ -59,7 +59,6 @@ class Path{
     constructRealLanes(avoidNodes = new Set()){
         let nodeA = this.road.findNode(this.nodeA)
         let nodeB = this.road.findNode(this.nodeB)
-        console.log(nodeA.id, nodeB.id)
         if(!nodeA || !nodeB) {
             console.warn('Invalid nodes in path while constructing real lanes:\nnodeA = ' + nodeA + ' | nodeB = ' + nodeB)
             return
@@ -84,12 +83,14 @@ class Path{
 
             //also we modify the segment to have the new calculated positions
             if(!avoidNodes.has(segment.fromNodeID)) segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
+            else console.log('avoiding from node ' + segment.fromNodeID)
             if(!avoidNodes.has(segment.toNodeID)) segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
+            else console.log('avoiding to node ' + segment.toNodeID)
             segment.dir = dir
             segment.len = dist(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
 
-            segment.originalFromPos = {x: segment.fromPos.x, y: segment.fromPos.y}
-            segment.originalToPos = {x: segment.toPos.x, y: segment.toPos.y}
+            if(!avoidNodes.has(segment.fromNodeID)) segment.originalFromPos = {x: segment.fromPos.x, y: segment.fromPos.y}
+            if(!avoidNodes.has(segment.toNodeID)) segment.originalToPos = {x: segment.toPos.x, y: segment.toPos.y}
             
 
             i++

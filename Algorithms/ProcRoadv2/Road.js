@@ -97,8 +97,6 @@ class Road{
 
         let nodesToAvoid = [...auxNodes]
 
-        console.log('nodes to update')
-        console.log(auxNodes)
 
 
         // Find all paths that involve any of the affected nodes
@@ -114,8 +112,6 @@ class Road{
 
 
         // Rebuild only affected paths
-        console.log('-----------------------------------')
-        console.log('construct real lanes')
         for(let affectedNodeID of affectedNodeIDs){
             let affectedNode = this.findNode(affectedNodeID)
             if(!affectedNode) continue
@@ -130,7 +126,6 @@ class Road{
                     let key2 = otherNode.id + '-' + affectedNodeID
 
                     if(!this.paths.has(key1) && !this.paths.has(key2)){
-                        console.log('between ' + affectedNodeID + ' and ' + otherNode.id)
                         let segmentSet = new Set(segmentIDs)
                         let path = new Path(affectedNodeID, otherNode.id, segmentSet)
                         path.road = this
@@ -162,9 +157,8 @@ class Road{
             })
         }
 
-        let nodesToAvoid = [...auxNodes]
-
-        
+        // We don't call constructRealLanes here because it would reset BOTH ends of segments
+        // Instead, we'll calculate the untrimmed position for each end individually in trimSegmentsAtIntersection
 
         // Remove old intersections at all nodes that need updates
         for(let nodeID of allNodesToUpdate){
@@ -198,13 +192,10 @@ class Road{
         }
 
         // Rebuild intersections at all nodes that need updates
-        console.log('trimming')
-        console.log(allNodesToUpdate)
-        console.log(nodesToAvoid)
         for(let nodeID of allNodesToUpdate){
             let node = this.findNode(nodeID)
             if(node){
-                this.trimSegmentsAtIntersection(nodeID, true, nodesToAvoid)
+                this.trimSegmentsAtIntersection(nodeID, true)
             }
         }
     }
@@ -588,9 +579,6 @@ class Road{
                 if(s.originalFromPos && s.originalToPos){
                     // First reset both ends to original positions to get correct direction
 
-                    console.log('trim')
-                    // console.log('node: ' + nodeID)
-                    // console.log(s.fromNodeID, s.toNodeID)
 
                     let origFrom = {...s.originalFromPos}
                     let origTo = {...s.originalToPos}
@@ -598,25 +586,13 @@ class Road{
 
                     if(s.fromNodeID == nodeID){
                         // Calculate shortening from original positions
-                        console.log('seg: ' + s.id + ' from node: ' + nodeID)
                         s.fromPos = shortenSegment(origTo, origFrom, distInter)
                     }
                     else if(s.toNodeID == nodeID){
                         // Calculate shortening from original positions
-                        console.log('seg: ' + s.id + ' to node: ' + nodeID)
                         s.toPos = shortenSegment(origFrom, origTo, distInter)
                     }
                 }
-                // else {
-                //     console.log('no original pos')
-                //     // Fallback for segments without original positions
-                //     if(s.fromNodeID == nodeID){
-                //         s.fromPos = shortenSegment(s.toPos, s.fromPos, distInter)
-                //     }
-                //     else if(s.toNodeID == nodeID){
-                //         s.toPos = shortenSegment(s.fromPos, s.toPos, distInter)
-                //     }
-                // }
                 
             })
         }
