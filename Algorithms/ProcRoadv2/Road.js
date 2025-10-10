@@ -40,6 +40,8 @@ class Road{
         this.intersecSegIDcounter = 0
     }
 
+    //recomputes all paths, connectors, intersections and intersection-segments, not currently used, but works
+    //slow if there are many nodes and segments
     setPaths(){
         LENGTH_SEG_BEZIER = map(this.tool.zoom, 0.1, 8, 8, 3, true)
 
@@ -68,14 +70,12 @@ class Road{
                 }
             }
         }
-        this.trimAllIntersections()
-    }
-
-    trimAllIntersections(){
         this.nodes.forEach(n => this.trimSegmentsAtIntersection(n.id))
     }
 
     //connect a node to another node
+    //the current way to modify the road in the fly when wanting to connect two nodes
+    //nodesIDs is an array of two node IDs
     updateRoad(nodesIDs, usePath = undefined, trim = true){
         let segmentIDs = new Set(this.getAllSegmentsBetweenNodes(nodesIDs[0], nodesIDs[1]).map(s => s.id))
         let newPath 
@@ -108,6 +108,7 @@ class Road{
         }
     }
 
+    //updates paths connected to a node that has been moved
     moveNode(nodeID){
         // update all paths connected to this node
         let connectedPaths = this.getAllPathsConnectedToNode(nodeID)
