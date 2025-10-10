@@ -12,7 +12,7 @@
 // because they have different ID pools
 
 const NODE_RAD = 20
-const GRID_CELL_SIZE = 15   //15
+const GRID_CELL_SIZE = 40   //15
 
 let OFFSET_RAD_INTERSEC = 25      //25
 let LENGTH_SEG_BEZIER = 10         //3

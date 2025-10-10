@@ -28,7 +28,7 @@ class Tool{
 
             nForLanes: 1,
             nBackLanes: 1,
-            snapToGrid: false,
+            snapToGrid: true,
 
             changed: false,
 
@@ -66,19 +66,12 @@ class Tool{
     }
 
     getMousePositions(){
-        let size = GRID_CELL_SIZE * this.zoom
-        let offx = (this.xOff % size) + (size / 2)
-        let offy = (this.yOff % size) + (size / 2)
-
-
-        let scaled = this.getRelativePos(mouseX, mouseY)
-        scaled.x = Math.floor(scaled.x / GRID_CELL_SIZE) * GRID_CELL_SIZE + offx
-        scaled.y = Math.floor(scaled.y / GRID_CELL_SIZE) * GRID_CELL_SIZE + offy
-
-        let mousePosGridX = scaled.x
-        let mousePosGridY = scaled.y
-
+        // Get mouse position in world space
         let mousePos = this.getRelativePos(mouseX, mouseY)
+
+        // Snap to grid in world space (not screen space)
+        let mousePosGridX = Math.round(mousePos.x / GRID_CELL_SIZE) * GRID_CELL_SIZE
+        let mousePosGridY = Math.round(mousePos.y / GRID_CELL_SIZE) * GRID_CELL_SIZE
 
         if(this.state.snapToGrid) return [mousePosGridX, mousePosGridY, mousePos]
         else return [mousePos.x, mousePos.y, mousePos]
@@ -293,14 +286,19 @@ class Tool{
 
     showGridPoints(){
         push()
-        stroke(255, 180)
-        strokeWeight(1)
-        let size = GRID_CELL_SIZE * this.zoom
-        let offx = ((this.xOff % size) + (size / 2))
-        let offy = ((this.yOff % size) + (size / 2))
-        for(let x = 0; x < width; x += size){
-            for(let y = 0; y < height; y += size){
-                point(x + offx, y + offy)
+        stroke(255, map(this.zoom, 0.2, 0.4, 0, 150, true))
+        strokeWeight((1 / this.zoom) * 1.5)
+        let edges = this.getEdges()
+        let minX = edges[0]
+        let maxX = edges[1]
+        let minY = edges[2]
+        let maxY = edges[3]
+        let startX = Math.floor(minX / GRID_CELL_SIZE) * GRID_CELL_SIZE
+        let startY = Math.floor(minY / GRID_CELL_SIZE) * GRID_CELL_SIZE
+
+        for(let x = startX; x <= maxX; x += GRID_CELL_SIZE){
+            for(let y = startY; y <= maxY; y += GRID_CELL_SIZE){
+                point(x, y)
             }
         }
         pop()
@@ -520,6 +518,17 @@ class Tool{
         ]
     }
 
+    showMousePosition(){
+        if(this.state.mode != 'creating') return
+        let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
+        blendMode(ADD)
+        noFill()
+        stroke(255, 200)
+        strokeWeight(1.5)
+        ellipse(mousePosGridX, mousePosGridY, NODE_RAD * 2)
+        blendMode(BLEND)
+    }
+
     update(){
         this.state.edges = this.getEdges()
         GLOBAL_EDGES = this.state.edges
@@ -546,10 +555,10 @@ class Tool{
     show(){
         push()
 
-        //this.showGridPoints()
-
         translate(this.xOff, this.yOff)
         scale(this.zoom)
+
+        if(this.zoom > 0.2 && this.state.snapToGrid) this.showGridPoints()
 
         
 
@@ -578,9 +587,8 @@ class Tool{
 
         this.showFoundPath()
         this.showStartEndPathfinding()
-    
         this.showHover()
-
+        this.showMousePosition()
         
 
         pop()
