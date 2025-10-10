@@ -100,6 +100,17 @@ function getCornersOfLine(pos1, pos2, width){
     ]
 }
 
+function getPointsInsideLine(pos1, pos2, spacing){
+    let points = []
+    let totalDist = dist(pos1.x, pos1.y, pos2.x, pos2.y)
+    let numPoints = Math.floor(totalDist / spacing)
+    for(let i = 0; i <= numPoints; i++){
+        let t = i / numPoints
+        points.push(lerppos(pos1, pos2, t))
+    }   
+    return points
+}
+
 // ===================
 // Color Utilities
 // ===================

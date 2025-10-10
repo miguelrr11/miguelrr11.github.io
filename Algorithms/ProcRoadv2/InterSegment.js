@@ -68,12 +68,15 @@ class InterSegment{
         let c3_16 = cornersToSeg16[0]
         let c2_16 = cornersFromSeg16[3]
 
+        let spacing = 3
+
         stroke(0, 255, 0)
         strokeWeight(4)
 
         let bp = [ ...this.bezierPoints]
         let corners
         let corners16
+        //points.push(...getPointsInsideLine(c0, c2, spacing))
         points.push(c2)
         points16.push(c2_16)
         for(let i = 0; i < bp.length - 1; i++){
@@ -84,6 +87,7 @@ class InterSegment{
             points16.push(corners16[0])
         }
         points.push(c3)
+        //points.push(...getPointsInsideLine(c3, c1, spacing))
         points.push(c1)
         points16.push(c3_16)
         points16.push(c1_16)
@@ -121,6 +125,10 @@ class InterSegment{
         if(!useOutline16) for(let p of this.outline) vertex(p.x, p.y)
         else for(let p of this.outline16) vertex(p.x, p.y)
         endShape()
+
+        // stroke(0, 255, 0)
+        // strokeWeight(2)
+        // for(let p of this.outline) point(p.x, p.y)
         pop()
     }
 
