@@ -53,6 +53,21 @@ class Path{
 
         return {fromPos: segment.fromPos, toPos: segment.toPos}
     }
+
+    // orders segments in the direction from nodeA to nodeB
+    orderSegmentsByDirection(){
+        let res = []
+        let segArr = Array.from(this.segmentsIDs).map(id => this.road.findSegment(id))
+        let fromNodeID = this.nodeA
+        let toNodeID = this.nodeB
+        for(let i = 0; i < segArr.length; i++){
+            if(segArr[i].fromNodeID == fromNodeID) res.push(segArr[i])
+        }
+        for(let i = 0; i < segArr.length; i++){
+            if(segArr[i].fromNodeID != fromNodeID) res.push(segArr[i])
+        }
+        this.segmentsIDs = new Set(res.map(s => s.id))
+    }
  
 
     // Coje la posicion de los nodos, y el numero de lanes y construye sus propios carriles reales con posiciones calculadas
@@ -63,6 +78,8 @@ class Path{
             console.warn('Invalid nodes in path while constructing real lanes:\nnodeA = ' + nodeA + ' | nodeB = ' + nodeB)
             return
         }
+
+        this.orderSegmentsByDirection()
         
         let fromPos = nodeA.pos
         let toPos = nodeB.pos

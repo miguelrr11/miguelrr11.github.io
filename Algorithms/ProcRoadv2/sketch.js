@@ -53,6 +53,9 @@ function addCars(num){
 
 function draw(){
     background('#F1DBB7')
+    //auxShow = []
+    if(auxShow.length > 100) auxShow.splice(0, auxShow.length - 100)
+
     //background(60)
     tool.update()
     tool.show()
@@ -69,5 +72,15 @@ function draw(){
         }
         pop()
     }
+
+    push()
+    translate(tool.xOff, tool.yOff)
+    scale(tool.zoom)
+    stroke(0, 0, 255)
+    strokeWeight(8)
+    for(let i = 0; i < auxShow.length; i++){
+        point(auxShow[i].x, auxShow[i].y)
+    }
+    pop()
 }
 

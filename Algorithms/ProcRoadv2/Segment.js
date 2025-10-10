@@ -14,6 +14,8 @@ class Segment{
         this.toPos = undefined
         this.dir = undefined // direction in radians
         this.len = undefined
+        this.originalFromPos = undefined // used when trimming segments at intersections
+        this.originalToPos = undefined
     }
 
     export(){
@@ -166,6 +168,8 @@ class Segment{
         }
         line(fromPos.x, fromPos.y, toPos.x, toPos.y)
 
+        
+
         if(SHOW_TAGS){
             noStroke()
             fill(0, 255, 0)
@@ -191,6 +195,10 @@ class Segment{
         }
         push()
         stroke(COL_PATHS)
+
+        // strokeWeight(1)
+        // line(this.originalFromPos.x, this.originalFromPos.y, this.originalToPos.x, this.originalToPos.y)
+
         hoveredSegID == this.id ? strokeWeight(2.5) : strokeWeight(1.5)
         line(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
         let midPos = {x: (this.fromPos.x + this.toPos.x) / 2, y: (this.fromPos.y + this.toPos.y) / 2}
@@ -223,6 +231,17 @@ class Segment{
             noStroke()
             text(str, midPos.x, midPos.y - 10)
         }
+
+        // strokeWeight(10)
+        // // verde es from y to
+        // stroke(0, 255, 0, 200)
+        // point(this.fromPos.x, this.fromPos.y)
+        // point(this.toPos.x, this.toPos.y)
+        // // rojo es original
+        // stroke(255, 0, 0, 200)
+        // point(this.originalFromPos.x, this.originalFromPos.y)
+        // point(this.originalToPos.x, this.originalToPos.y)
+
         pop()
     }
 }

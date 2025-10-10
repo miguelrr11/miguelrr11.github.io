@@ -3,15 +3,17 @@ const COL_PATHS = [200]
 const COL_LANE_1 = [40, 40, 255, 90]
 const COL_LANE_2 = [255, 40, 40, 90]
 
+
+
 class Tool{
     constructor(){
         this.showOptions = {
             SHOW_ROAD: false,
-            SHOW_PATHS: false,
+            SHOW_PATHS: true,
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
             SHOW_INTERSECSEGS: false,
-            SHOW_TAGS: true,
+            SHOW_TAGS: false,
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
             SHOW_WAYS: true
@@ -58,7 +60,7 @@ class Tool{
         this.yOff = 0
         this.prevMouseX = 0
         this.prevMouseY = 0
-        this.zoom = 1.2
+        this.zoom = 0.7
 
         cursor(CROSS)
     }
@@ -198,7 +200,7 @@ class Tool{
             if(this.state.draggingNodeID != -1){
                 let node = this.road.findNode(this.state.draggingNodeID)
                 node.moveTo(mousePosGridX + this.state.offsetDraggingNode.x, mousePosGridY + this.state.offsetDraggingNode.y)
-                this.updateAffectedByNode(this.state.draggingNodeID)
+                this.road.moveNode(this.state.draggingNodeID)
                 return
             }
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
@@ -209,17 +211,6 @@ class Tool{
                 return
             }
         }
-    }
-
-    updateAffectedByNode(nodeID){
-        let connectedNodes = new Set([nodeID])
-        let connectedSegments = this.road.findConnectedSegments(nodeID)
-        connectedSegments.forEach(seg => {
-            if(seg.fromNodeID != nodeID) connectedNodes.add(seg.fromNodeID)
-            if(seg.toNodeID != nodeID) connectedNodes.add(seg.toNodeID)
-        })
-        this.road.updateAffectedPaths(Array.from(connectedNodes))
-        this.road.updateAffectedIntersections(Array.from(connectedNodes))
     }
 
     onMouseRelease(){
@@ -510,24 +501,6 @@ class Tool{
         if(this.state.foundPath.length == 0) return
         push()
         noFill()
-        // for(let i = 0; i < this.state.foundPath.length-1; i++){
-        //     let nodeA = this.road.findNode(this.state.foundPath[i])
-        //     let nodeB = this.road.findNode(this.state.foundPath[i+1])
-        //     if(nodeA && nodeB){
-        //         strokeWeight(11)
-        //         stroke('#9d4edd')
-        //         line(nodeA.pos.x, nodeA.pos.y, nodeB.pos.x, nodeB.pos.y)
-        //     }
-        // }
-        // for(let i = 0; i < this.state.foundPath.length-1; i++){
-        //     let nodeA = this.road.findNode(this.state.foundPath[i])
-        //     let nodeB = this.road.findNode(this.state.foundPath[i+1])
-        //     if(nodeA && nodeB){
-        //         strokeWeight(7)
-        //         stroke('#af75e0ff')
-        //         line(nodeA.pos.x, nodeA.pos.y, nodeB.pos.x, nodeB.pos.y)
-        //     }
-        // }
         stroke('#9d4eddd1')
         strokeWeight(12)
         drawBezierPath(this.state.foundPath.map(id => createVector(this.road.findNode(id).pos.x, this.road.findNode(id).pos.y)), 20, 20)
@@ -605,6 +578,8 @@ class Tool{
         this.showStartEndPathfinding()
     
         this.showHover()
+
+        
 
         pop()
 
