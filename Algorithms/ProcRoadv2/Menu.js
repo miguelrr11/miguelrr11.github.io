@@ -89,7 +89,7 @@ class Menu{
             this.tool.showOptions.SHOW_WAYS = !this.tool.showOptions.SHOW_WAYS
         }, undefined,  () => {return this.tool.showOptions.SHOW_WAYS})
         let buttonAddCars = new Button(10, HEIGHT - 30, 95, 20, 'Add Cars', () => {
-            addCars(1)
+            addCars(25)
         })
         let buttonRemoveCars = new Button(10, HEIGHT - 60, 95, 20, 'Remove Cars', () => {
             cars = []
@@ -216,12 +216,12 @@ class Button{
         let enabled = this.enabled ? this.enabled() : true
         push()
         rectMode(CORNER)
-        enabled ? fill(70) : fill(50)
+        enabled ? fill(70) : fill(50, 170)
         //enabled ? stroke(255) : noStroke()
         noStroke()
         // this.hover() ? strokeWeight(2.25) : strokeWeight(1)
         rect(this.pos.x, this.pos.y, this.size.w, this.size.h, 4)
-        enabled ? fill(255) : fill(150)
+        enabled ? fill(255) : fill(170)
         noStroke()
         textAlign(CENTER, CENTER)
         this.hover() ? textSize(15) : textSize(14)

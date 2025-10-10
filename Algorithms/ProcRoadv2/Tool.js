@@ -551,8 +551,7 @@ class Tool{
         translate(this.xOff, this.yOff)
         scale(this.zoom)
 
-        let curSegs = this.createCurrentLanes()
-        if(curSegs) this.showCurSegs(curSegs)
+        
 
         if(this.showOptions.SHOW_WAYS) this.road.showWays()
 
@@ -571,6 +570,9 @@ class Tool{
         blendMode(BLEND)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_TAGS && this.showOptions.SHOW_NODES) this.road.showNodesTags()
+
+        let curSegs = this.createCurrentLanes()
+        if(curSegs) this.showCurSegs(curSegs)
 
         
 

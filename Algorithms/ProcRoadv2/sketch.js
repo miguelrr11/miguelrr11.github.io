@@ -52,7 +52,8 @@ function addCars(num){
 }
 
 function draw(){
-    background('#F1DBB7')
+    //background('#F1DBB7')
+    background(50)
     //auxShow = []
     if(auxShow.length > 100) auxShow.splice(0, auxShow.length - 100)
 
