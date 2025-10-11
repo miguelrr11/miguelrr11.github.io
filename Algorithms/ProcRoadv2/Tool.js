@@ -9,14 +9,15 @@ class Tool{
     constructor(){
         this.showOptions = {
             SHOW_ROAD: false,
-            SHOW_PATHS: true,
+            SHOW_PATHS: false,
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
             SHOW_INTERSECSEGS: false,
             SHOW_TAGS: false,
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
-            SHOW_WAYS: true
+            SHOW_WAYS: true,
+            SHOW_CONVEXHULL: false
         }
         this.road = new Road(this)
         this.state = {
@@ -28,7 +29,7 @@ class Tool{
 
             nForLanes: 1,
             nBackLanes: 1,
-            snapToGrid: true,
+            snapToGrid: false,
 
             changed: false,
 
@@ -44,7 +45,9 @@ class Tool{
             fpsAcum: [],
 
             hoverNode: undefined,
-            hoverSeg: undefined
+            hoverSeg: undefined,
+
+            menuCollapsed: false
         }
         this.buttons = []
         this.menu = new Menu(this)
@@ -177,7 +180,7 @@ class Tool{
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
-        if((this.state.draggingNodeID == -1 || (keyIsDown(16))) && this.state.mode != 'creating'){
+        if((this.state.mode == 'movingNode' || (keyIsPressed && keyCode == 32)) && this.state.draggingNodeID == -1){
             if(!this.prevMouseX) this.prevMouseX = mouseX
             if(!this.prevMouseY) this.prevMouseY = mouseY
             let dx = mouseX - this.prevMouseX; // Change in mouse X
@@ -220,7 +223,7 @@ class Tool{
     onKeyPressed(event){
         let kC = event.keyCode
         let k = event.key.toLowerCase()
-        if(kC == 32 && this.state.mode == 'creating'){
+        if(kC == 27 && this.state.mode == 'creating'){   //ESC
             this.state.prevNodeID = -1
         }
         if(k == 'h'){
@@ -561,8 +564,8 @@ class Tool{
         if(this.zoom > 0.2 && this.state.snapToGrid) this.showGridPoints()
 
         
-
-        if(this.showOptions.SHOW_WAYS) this.road.showWays()
+        // only showWays is optimized
+        if(this.showOptions.SHOW_WAYS) this.road.showWays(this)
 
         if(this.showOptions.SHOW_LANES){ 
             this.road.showLanes(this.state.hoverSeg)
@@ -573,6 +576,7 @@ class Tool{
                                                             this.state.hoverSeg)
         
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
+        if(this.showOptions.SHOW_CONVEXHULL) this.road.showConvexHulls()
         
         blendMode(DIFFERENCE)
         if(this.showOptions.SHOW_NODES) this.road.showNodes()

@@ -16,7 +16,37 @@ class Segment{
         this.len = undefined
         this.originalFromPos = undefined // used when trimming segments at intersections
         this.originalToPos = undefined
+        this.arrowsPos = []
     }
+
+    createArrows(){
+        this.arrowsPos = []
+        let spacing = 300
+        let fromPos = {x: this.fromPos.x, y: this.fromPos.y}
+        let toPos = {x: this.toPos.x, y: this.toPos.y}
+        let margin = - 20
+        fromPos.x += Math.cos(this.dir) * margin
+        fromPos.y += Math.sin(this.dir) * margin
+        toPos.x -= Math.cos(this.dir) * margin
+        toPos.y -= Math.sin(this.dir) * margin
+        let totalLen = dist(fromPos.x, fromPos.y, toPos.x, toPos.y)
+        if(totalLen < spacing){
+            totalLen = dist(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
+            let tippos = lerppos(this.fromPos, this.toPos, 0.5)
+            let startLinePos = lerppos(this.fromPos, this.toPos, (totalLen/2 - 10) / totalLen)
+            this.arrowsPos.push({tip: tippos, startLine: startLinePos})
+            return
+        }
+        let nArrows = Math.floor(totalLen / spacing)
+        for(let i=1; i<=nArrows; i++){
+            let relPosTip = (i * spacing) / totalLen
+            let relPosStart = ((i * spacing) - 10) / totalLen
+            let tippos = lerppos(fromPos, toPos, relPosTip)
+            let startLinePos = lerppos(fromPos, toPos, relPosStart)
+            this.arrowsPos.push({tip: tippos, startLine: startLinePos})
+        }
+    }
+
 
     export(){
         return {
@@ -73,24 +103,18 @@ class Segment{
     }
 
     drawLineAbove(disc = false){
-        push()
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
-        strokeWeight(1.5)
-        stroke(220)
         if(!disc) line(corners[1].x, corners[1].y, corners[2].x, corners[2].y)
         else drawDashedLine(corners[1].x, corners[1].y, corners[2].x, corners[2].y)
-        pop()
     }
 
+    // rectMode must be CORNERS and noStroke must be set before calling this
     showCustomLanes(col, w){
-        push()
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = getCornersOfLine(fromPos, toPos, w)
-        rectMode(CORNERS)
-        noStroke()
         fill(col)
         beginShape()
         vertex(corners[0].x, corners[0].y)
@@ -98,7 +122,6 @@ class Segment{
         vertex(corners[2].x, corners[2].y)
         vertex(corners[3].x, corners[3].y)
         endShape(CLOSE)
-        pop()
     }
 
     showLanes(hoveredSegID = undefined){
@@ -244,5 +267,14 @@ class Segment{
 
         pop()
     }
+
+    // type: showWays
+    drawArrows(){
+        this.arrowsPos.forEach(pos => {
+            line(pos.startLine.x, pos.startLine.y, pos.tip.x, pos.tip.y)
+            drawArrowTip(pos.tip.x, pos.tip.y, this.dir, 6.5)
+        })
+    }
+
 }
 

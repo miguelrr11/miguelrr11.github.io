@@ -39,55 +39,48 @@ class Intersection {
         if(this.convexHullPoints.length < 3) return
         push()
         noFill()
-        stroke(0, 255, 0)
+        stroke(0, 255, 0, 200)
         strokeWeight(2)
         beginShape()
         for(let i = 0; i < this.convexHullPoints.length; i++){
             vertex(this.convexHullPoints[i].x, this.convexHullPoints[i].y)
         }
         endShape(CLOSE)
-        stroke(255, 0, 0)
-        strokeWeight(2)
+        stroke(255, 0, 0, 200)
         beginShape()
         for(let i = 0; i < this.convexHullPoints16.length; i++){
             vertex(this.convexHullPoints16[i].x, this.convexHullPoints16[i].y)
         }
-        endShape()
-        strokeWeight(3)
-        for(let i = 0; i < this.convexHullPoints.length; i++){
-            point(this.convexHullPoints[i].x, this.convexHullPoints[i].y)
-        }
-        
+        endShape(CLOSE)
         pop()
     }
 
-    /**
-       c0 ------- c1
+    /*
+        c0 -------- c1
         |           |
         |           |
         |           |
-        c3--------- c4
+        c3 -------- c4
+    */
 
-     */
-
+    // type: showWays
     showWayBase(){
-        fill(200)
-        noStroke()
         beginShape()
         for(let v of this.convexHullPoints16) vertex(v.x, v.y)
         endShape()
     }
 
+    // type: showWays
     showWayTop(){
-        fill(100)
-        noStroke()
         beginShape()
         for(let v of this.convexHullPoints) vertex(v.x, v.y)
         endShape()
+        
+    }
+
+    // type: showWays
+    showIntersectionStartLine(){
         if(this.pathsIDs.length >= 3) {
-            stroke(220)
-            strokeWeight(10)
-            strokeCap(SQUARE)
             for(let i = 0; i < this.intersecSegsIDs.length; i++){
                 let segment = this.road.findIntersecSeg(this.intersecSegsIDs[i])
                 let corners = segment.corners

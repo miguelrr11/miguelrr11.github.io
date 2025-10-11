@@ -4,6 +4,7 @@ class Path{
             console.warn('Invalid arguments while creating Path:\nnodeA = ' + nodeA + ' | nodeB = ' + nodeB + ' | segmentIDs = ' + segmentIDs)
         // a Set of segment IDs that form this path
         this.segmentsIDs = segmentIDs
+        this.segments = [] //filled with setSegmentsIDs
         this.road = undefined
 
         this.nodeA = nodeA
@@ -11,6 +12,12 @@ class Path{
 
         this.id = nodeA + '_' + nodeB
 
+    }
+
+    setSegmentsIDs(segmentIDs){
+        //a set
+        this.segmentsIDs = segmentIDs
+        this.segments = Array.from(this.segmentsIDs).map(id => this.road.findSegment(id))
     }
 
     // gets the outline of all the lanes
@@ -66,12 +73,13 @@ class Path{
         for(let i = 0; i < segArr.length; i++){
             if(segArr[i].fromNodeID != fromNodeID) res.push(segArr[i])
         }
-        this.segmentsIDs = new Set(res.map(s => s.id))
+        let segs = new Set(res.map(s => s.id))
+        this.setSegmentsIDs(segs)
     }
  
 
     // Coje la posicion de los nodos, y el numero de lanes y construye sus propios carriles reales con posiciones calculadas
-    constructRealLanes(avoidNodes = new Set()){
+    constructRealLanes(){
         let nodeA = this.road.findNode(this.nodeA)
         let nodeB = this.road.findNode(this.nodeB)
         if(!nodeA || !nodeB) {
@@ -99,21 +107,15 @@ class Path{
             let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
 
             //also we modify the segment to have the new calculated positions
-            if(!avoidNodes.has(segment.fromNodeID)) segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
-            else console.log('avoiding from node ' + segment.fromNodeID)
-            if(!avoidNodes.has(segment.toNodeID)) segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
-            else console.log('avoiding to node ' + segment.toNodeID)
+            segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
+            segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
             segment.dir = dir
             segment.len = dist(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
-
-            if(!avoidNodes.has(segment.fromNodeID)) segment.originalFromPos = {x: segment.fromPos.x, y: segment.fromPos.y}
-            if(!avoidNodes.has(segment.toNodeID)) segment.originalToPos = {x: segment.toPos.x, y: segment.toPos.y}
-            
+            segment.originalFromPos = {x: segment.fromPos.x, y: segment.fromPos.y}
+            segment.originalToPos = {x: segment.toPos.x, y: segment.toPos.y}
 
             i++
         })
-
-        this.corners = this.constructWholePoints()
     }
 
     showLanes(hoveredSegID = undefined){
@@ -133,42 +135,49 @@ class Path{
     // gets all points of all lanes and draws the full road
     // the render bug when intersegs are touching each other is because the calculation of corners fails because we dont get the correct direction
     // we should force segments to have a minimum length, or we should calculate the corners in a different way
+
+    // type: showWays
     showWayBase(){
-        push()
-        this.segmentsIDs.forEach(segmentID => {
-            let segment = this.road.findSegment(segmentID)
+        this.segments.forEach(segment => {
             segment.showCustomLanes([200], LANE_WIDTH*1.6)
         })
-        pop()
     }
 
+    // type: showWays
     showWayTop(){
-        push()
-        this.segmentsIDs.forEach(segmentID => {
-            let segment = this.road.findSegment(segmentID)
+        this.segments.forEach(segment => {
             segment.showCustomLanes([100], LANE_WIDTH)
         })
-        let segArr = Array.from(this.segmentsIDs).map(id => this.road.findSegment(id))
-        for(let i = 0; i < segArr.length; i++){
-            let segment = segArr[i]
+    }
+
+    // type: showWays
+    showEdges(){
+        for(let i = 0; i < this.segments.length; i++){
+            let segment = this.segments[i]
             let dashedAbove = undefined
             let dashedBelow = undefined
             if(segment.visualDir == 'for'){
-                if(i - 1 < 0 || segArr[i-1].visualDir != segArr[i].visualDir) dashedBelow = false
+                if(i - 1 < 0 || this.segments[i-1].visualDir != this.segments[i].visualDir) dashedBelow = false
                 else dashedBelow = true
-                if(i + 1 > segArr.length-1 || segArr[i+1].visualDir != segArr[i].visualDir) dashedAbove = false
+                if(i + 1 > this.segments.length-1 || this.segments[i+1].visualDir != this.segments[i].visualDir) dashedAbove = false
                 else dashedAbove = true
             }
             else{
-                if(i - 1 < 0 || segArr[i-1].visualDir != segArr[i].visualDir) dashedAbove = false
+                if(i - 1 < 0 || this.segments[i-1].visualDir != this.segments[i].visualDir) dashedAbove = false
                 else dashedAbove = true
-                if(i + 1 > segArr.length-1 || segArr[i+1].visualDir != segArr[i].visualDir) dashedBelow = false
+                if(i + 1 > this.segments.length-1 || this.segments[i+1].visualDir != this.segments[i].visualDir) dashedBelow = false
                 else dashedBelow = true
             }
             segment.drawLineAbove(dashedAbove)
             segment.drawLineBelow(dashedBelow)
         }
-        pop()
+    }
+
+    // type: showWays
+    showArrows(){
+        this.segments.forEach(segment => {
+            segment.drawArrows()
+        })
     }
 }
 

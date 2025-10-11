@@ -61,33 +61,73 @@ class Menu{
         );
 
         let xLoc = width - 95 - 10
-        let buttonShowRoad = new Button(xLoc, 10, 95, 20, 'Main Graph', () => {
+        let yLoc = 50
+        let hButton = 30
+        let buttonsToCollapse = []
+        
+        let buttonShowRoad = new Button(xLoc, yLoc, 95, 20, 'Main Graph', () => {
             this.tool.showOptions.SHOW_ROAD = !this.tool.showOptions.SHOW_ROAD
         }, undefined,  () => {return this.tool.showOptions.SHOW_ROAD})
-        let buttonShowPaths = new Button(xLoc, 40, 95, 20, 'Paths', () => {
+        let buttonShowPaths = new Button(xLoc, yLoc + hButton, 95, 20, 'Segments', () => {
             this.tool.showOptions.SHOW_PATHS = !this.tool.showOptions.SHOW_PATHS
         }, undefined,  () => {return this.tool.showOptions.SHOW_PATHS})
-        let buttonShowNodes = new Button(xLoc, 130, 95, 20, 'Nodes', () => {
-            this.tool.showOptions.SHOW_NODES = !this.tool.showOptions.SHOW_NODES
-        }, undefined,  () => {return this.tool.showOptions.SHOW_NODES})
-        let buttonShowConnectors = new Button(xLoc, 100, 95, 20, 'Connections', () => {
-            this.tool.showOptions.SHOW_CONNECTORS = !this.tool.showOptions.SHOW_CONNECTORS
-        }, undefined,  () => {return this.tool.showOptions.SHOW_CONNECTORS})
-        let buttonShowIntersecSegs = new Button(xLoc, 70, 95, 20, 'Intersections', () => {
+        let buttonShowIntersecSegs = new Button(xLoc, yLoc + hButton * 2, 95, 20, 'Intersections', () => {
             this.tool.showOptions.SHOW_INTERSECSEGS = !this.tool.showOptions.SHOW_INTERSECSEGS
         }, undefined,  () => {return this.tool.showOptions.SHOW_INTERSECSEGS})
-        let buttonShowTags = new Button(xLoc, 160, 95, 20, 'Tags', () => {
+        let buttonShowConnectors = new Button(xLoc, yLoc + hButton * 3, 95, 20, 'Connections', () => {
+            this.tool.showOptions.SHOW_CONNECTORS = !this.tool.showOptions.SHOW_CONNECTORS
+        }, undefined,  () => {return this.tool.showOptions.SHOW_CONNECTORS})
+        let buttonShowNodes = new Button(xLoc, yLoc + hButton * 4, 95, 20, 'Nodes', () => {
+            this.tool.showOptions.SHOW_NODES = !this.tool.showOptions.SHOW_NODES
+        }, undefined,  () => {return this.tool.showOptions.SHOW_NODES})
+        let buttonShowTags = new Button(xLoc, yLoc + hButton * 5, 95, 20, 'Tags', () => {
             this.tool.showOptions.SHOW_TAGS = !this.tool.showOptions.SHOW_TAGS
         }, undefined,  () => {return this.tool.showOptions.SHOW_TAGS})
-        let buttonShowSegDetails = new Button(xLoc, 190, 95, 20, 'Endings', () => {
+        let buttonShowSegDetails = new Button(xLoc, yLoc + hButton * 6, 95, 20, 'Endings', () => {
             this.tool.showOptions.SHOW_SEGS_DETAILS = !this.tool.showOptions.SHOW_SEGS_DETAILS
         }, undefined,  () => {return this.tool.showOptions.SHOW_SEGS_DETAILS})
-        let buttonShowLanes = new Button(xLoc, 220, 95, 20, 'Lanes', () => {
+        let buttonShowLanes = new Button(xLoc, yLoc + hButton * 7, 95, 20, 'Lanes', () => {
             this.tool.showOptions.SHOW_LANES = !this.tool.showOptions.SHOW_LANES
         }, undefined,  () => {return this.tool.showOptions.SHOW_LANES})
-        let buttonShowWays = new Button(xLoc, 250, 95, 20, 'Ways', () => {
+        let buttonShowConvexHull = new Button(xLoc, yLoc + hButton * 8, 95, 20, 'Junction Area', () => {
+            this.tool.showOptions.SHOW_CONVEXHULL = !this.tool.showOptions.SHOW_CONVEXHULL
+        }, undefined,  () => {return this.tool.showOptions.SHOW_CONVEXHULL})
+        let buttonShowWays = new Button(xLoc, yLoc + hButton * 9, 95, 20, 'Road', () => {
             this.tool.showOptions.SHOW_WAYS = !this.tool.showOptions.SHOW_WAYS
         }, undefined,  () => {return this.tool.showOptions.SHOW_WAYS})
+
+        buttonsToCollapse = [
+            buttonShowRoad,
+            buttonShowPaths,
+            buttonShowIntersecSegs,
+            buttonShowConnectors,
+            buttonShowNodes,
+            buttonShowTags,
+            buttonShowSegDetails,
+            buttonShowLanes,
+            buttonShowConvexHull,
+            buttonShowWays,
+        ]
+
+        let buttonCollapse = new Button(xLoc, yLoc - 40, 95, 30, this.tool.state.menuCollapsed ? 'Expand' : 'Collapse', () => {
+            this.tool.state.menuCollapsed = !this.tool.state.menuCollapsed
+            if(this.tool.state.menuCollapsed){
+                buttonsToCollapse.forEach(b => {
+                    b.collapse(yLoc - 35)
+                })
+            } 
+            else {
+                buttonsToCollapse.forEach(b => {
+                    b.uncollapse(yLoc - 35)
+                })
+            }
+        }, () => {
+            return this.tool.state.menuCollapsed ? 'Expand' : 'Collapse'
+        })
+        this.buttons.push(buttonCollapse)
+        
+
+
         let buttonAddCars = new Button(10, HEIGHT - 30, 95, 20, 'Add Cars', () => {
             addCars(25)
         })
@@ -114,7 +154,7 @@ class Menu{
             cursor(HAND)
         }, undefined,  () => {return this.tool.state.foundPath.length > 0})
 
-        let buttonShowFps = new Button(width - 140, 10, 30, 20, '60', undefined, () => {
+        let buttonShowFps = new Button(width - 140, 15, 30, 20, '60', undefined, () => {
             this.tool.state.fpsAcum.push(frameRate())
             if(this.tool.state.fpsAcum.length > 20) this.tool.state.fpsAcum.shift()
             let sum = 0
@@ -130,6 +170,25 @@ class Menu{
             let roadData = getItem('roadData')
             if(roadData) this.tool.setStateToRoad(roadData)
         })
+
+        let buttonZoomMinus = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 30, 30, 20, '-', () => {
+            this.tool.zoom /= 1.1
+            if(this.tool.zoom < 0.1) this.tool.zoom = 0.1
+        })
+        let buttonZoomPlus = new Button(width - 70 - 10 - 40 - 10, HEIGHT - 30, 30, 20, '+', () => {
+            this.tool.zoom *= 1.1
+            if(this.tool.zoom > 5) this.tool.zoom = 5
+        })
+
+        let buttonShowZoomLevel = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 60, 70, 20, 'State: ' + this.tool.state.mode, undefined, () => {
+            return round(this.tool.zoom, 3)
+        })
+
+        this.buttons.push(buttonShowZoomLevel)
+        this.buttons.push(buttonShowConvexHull)
+
+        this.buttons.push(buttonZoomMinus)
+        this.buttons.push(buttonZoomPlus)
 
         this.buttons.push(buttonSnapToGrid)
         this.buttons.push(buttonSetStartSearch)
@@ -181,7 +240,7 @@ class Menu{
         let anyClicked = false
         if(this.coolDownClick > 0) this.coolDownClick--
         this.buttons.forEach(b => {
-            if(inBounds(mouseX, mouseY, b.pos.x, b.pos.y, b.size.w, b.size.h) && mouseIsPressed && this.coolDownClick <= 0){
+            if(inBounds(mouseX, mouseY, b.pos.x, b.pos.y, b.size.w, b.size.h) && mouseIsPressed && this.coolDownClick <= 0 && !b.collapsing && !b.uncollapsing){
                 anyClicked = true
                 if(b.onClick) b.onClick()
                 
@@ -197,6 +256,8 @@ class Menu{
     }
 }
 
+const collapseSpeed = 0.1
+
 class Button{
     constructor(x, y, w, h, label, onClick, updateLabel, enabled){
         this.pos = {x, y}
@@ -205,6 +266,27 @@ class Button{
         this.onClick = onClick
         this.updateLabel = updateLabel
         this.enabled = enabled
+
+        this.originalPos = {x, y}
+
+        this.collapsing = false
+        this.uncollapsing = false
+        this.collapseProgress = 0 
+        this.collapsingGoalY = undefined
+    }
+
+    collapse(goalY){
+        this.collapsing = true
+        this.uncollapsing = false
+        this.collapseProgress = 0
+        this.collapseGoalY = goalY
+    }
+
+    uncollapse(){
+        this.uncollapsing = true
+        this.collapsing = false
+        this.collapseProgress = 0
+        this.collapseGoalY = this.originalPos
     }
 
     hover(){
@@ -213,15 +295,54 @@ class Button{
 
     show(){
         if(this.updateLabel) this.label = this.updateLabel()
-        let enabled = this.enabled ? this.enabled() : true
+        if(this.collapsing){
+            this.pos.y = lerp(this.pos.y, this.collapseGoalY, collapseSpeed)
+            let totalDistance = abs(this.originalPos.y - this.collapseGoalY)
+            let currentDistance = abs(this.originalPos.y - this.pos.y)
+            this.collapseProgress = totalDistance > 0 ? currentDistance / totalDistance : 1
+            if(abs(this.pos.y - this.collapseGoalY) < 0.5){
+                this.pos.y = this.collapseGoalY
+                this.collapsing = false
+                this.collapseProgress = 1
+            }
+        }
+        else if(this.uncollapsing){
+            this.pos.y = lerp(this.pos.y, this.originalPos.y, collapseSpeed)
+            let totalDistance = abs(this.originalPos.y - this.collapseGoalY)
+            let currentDistance = abs(this.originalPos.y - this.pos.y)
+            this.collapseProgress = totalDistance > 0 ? 1 - (currentDistance / totalDistance) : 1
+            if(abs(this.pos.y - this.originalPos.y) < 0.5){
+                this.pos.y = this.originalPos.y
+                this.uncollapsing = false
+                this.collapseProgress = 0
+            }
+        }
+        let collapsed = this.pos.y == this.collapseGoalY
+        let enabled = this.enabled ? this.enabled() : !collapsed
         push()
         rectMode(CORNER)
+        let originalCol = enabled ? 70 : 50
+        let originalAlpha = enabled ? 255 : 170
         enabled ? fill(70) : fill(50, 170)
-        //enabled ? stroke(255) : noStroke()
+        if(this.collapsing){
+            fill(originalCol, map(this.collapseProgress, 0, 1, originalAlpha, 0))
+        }
+        else if(this.uncollapsing){
+            fill(originalCol, map(this.collapseProgress, 0, 1, 0, originalAlpha))
+        }
+        if(collapsed) noFill()
         noStroke()
-        // this.hover() ? strokeWeight(2.25) : strokeWeight(1)
         rect(this.pos.x, this.pos.y, this.size.w, this.size.h, 4)
+
+        let textCol = enabled ? 255 : 170
         enabled ? fill(255) : fill(170)
+        if(this.collapsing){
+            fill(textCol, 255*(1-this.collapseProgress))
+        }
+        else if(this.uncollapsing){
+            fill(textCol, 255*( this.collapseProgress))
+        }
+        if(collapsed) fill(textCol, 0)
         noStroke()
         textAlign(CENTER, CENTER)
         this.hover() ? textSize(15) : textSize(14)

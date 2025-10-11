@@ -87,7 +87,7 @@ class Road{
                 newPath.road = this
                 this.paths.set(nodesIDs[0] + '-' + nodesIDs[1], newPath)
             }
-            else newPath.segmentsIDs = segmentIDs
+            else newPath.setSegmentsIDs(segmentIDs)
         }
         
         newPath.constructRealLanes()
@@ -558,6 +558,7 @@ class Road{
                         s.toPos = shortenSegment(origFrom, origTo, distInter)
                     }
                 }
+                s.createArrows()
 
                 
             })
@@ -697,6 +698,10 @@ class Road{
         this.intersecSegs.forEach(s => s.showBezier(SHOW_TAGS))
     }
 
+    showConvexHulls(){
+        this.intersections.forEach(i => {i.drawconvexHullDebug()})
+    }
+
     showLanes(hoveredSegID = undefined){
         this.paths.forEach(p => p.showLanes(hoveredSegID))
         this.intersecSegs.forEach(s => s.showLane())
@@ -710,12 +715,39 @@ class Road{
         this.nodes.forEach(n => n.showTags())
     }
 
-    showWays(){
+    // every function with  "type: showWays" as a comment must only be called from here, as this function sets the correct drawing modes for optimization purposes
+    showWays(toolObj){
+        let zoom = toolObj.zoom
+        push()
+        rectMode(CORNERS)
+        noStroke()
         this.paths.forEach(p => p.showWayBase())
+        pop()
+        push()
+        fill(200)
+        noStroke()
         this.intersections.forEach(p => p.showWayBase())
-        
+        pop()
+        push()
+        fill(100)
+        noStroke()
         this.intersections.forEach(p => p.showWayTop())
+        stroke(220)
+        strokeWeight(10)
+        strokeCap(SQUARE)
+        this.intersections.forEach(p => p.showIntersectionStartLine())
+        pop()
+        push()
+        rectMode(CORNERS)
+        noStroke()
         this.paths.forEach(p => p.showWayTop())
+        strokeWeight(1.5)
+        stroke(220)
+        this.paths.forEach(p => p.showEdges())
+        stroke(170)
+        strokeWeight(1.5)
+        if(zoom > 0.18) this.paths.forEach(p => p.showArrows())
+        pop()
     }
 }
 
