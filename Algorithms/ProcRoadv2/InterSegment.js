@@ -10,7 +10,10 @@ class InterSegment{
         this.fromPos = undefined
         this.toPos = undefined
         this.dir = undefined
+
+        //calculated by Intersection.constructOutline()
         this.outline = []
+        this.outline16 = []
     }
 
 
@@ -47,7 +50,6 @@ class InterSegment{
 
      */
 
-
     constructOutline(){
         let points = []
         let points16 = []
@@ -68,34 +70,38 @@ class InterSegment{
         let c3_16 = cornersToSeg16[0]
         let c2_16 = cornersFromSeg16[3]
 
-        let spacing = 3
 
-        stroke(0, 255, 0)
-        strokeWeight(4)
+        let cornersArr = []
+        let corners16Arr = []
+        for(let i = 0; i < this.bezierPoints.length - 1; i++){
+            let p = this.bezierPoints[i]
+            let pNext = this.bezierPoints[i+1]
+            let corners = getCornersOfLine(p, pNext, LANE_WIDTH)
+            let corners16 = getCornersOfLine(p, pNext, LANE_WIDTH*1.6)
+            cornersArr.push(corners)
+            corners16Arr.push(corners16)
+        }
 
         let bp = [ ...this.bezierPoints]
         let corners
         let corners16
-        //points.push(...getPointsInsideLine(c0, c2, spacing))
         points.push(c2)
         points16.push(c2_16)
         for(let i = 0; i < bp.length - 1; i++){
-            let p = bp[i]
-            corners = getCornersOfLine(bp[i], bp[i+1], LANE_WIDTH)
-            corners16 = getCornersOfLine(bp[i], bp[i+1], LANE_WIDTH*1.6)
+            corners = cornersArr[i]
+            corners16 = corners16Arr[i]
             points.push(corners[0])
             points16.push(corners16[0])
         }
         points.push(c3)
-        //points.push(...getPointsInsideLine(c3, c1, spacing))
         points.push(c1)
         points16.push(c3_16)
         points16.push(c1_16)
         for(let i = bp.length - 1; i > 0; i--){
-            corners = getCornersOfLine(bp[i], bp[i-1], LANE_WIDTH)
-            corners16 = getCornersOfLine(bp[i], bp[i-1], LANE_WIDTH*1.6)
-            points.push(corners[3])
-            points16.push(corners16[3])
+            corners = cornersArr[i-1]
+            corners16 = corners16Arr[i-1]
+            points.push(corners[1])
+            points16.push(corners16[1])
         }
         points.push(c0)
         points16.push(c0_16)

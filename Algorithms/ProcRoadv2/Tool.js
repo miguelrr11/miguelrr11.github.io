@@ -65,7 +65,9 @@ class Tool{
         this.prevMouseY = 0
         this.zoom = 0.7
 
-        cursor(CROSS)
+
+        this.cursor = CROSS
+        cursor(this.cursor)
     }
 
     getMousePositions(){
@@ -81,7 +83,7 @@ class Tool{
     }
 
     onClick(){
-        if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || keyIsPressed) return
+        if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || keyIsPressed || this.menuInteracting) return
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
@@ -165,10 +167,15 @@ class Tool{
                     if(this.state.startNodeID != -1) this.executePathfinding();
                 }
                 this.state.prevNodeID = -1
-                cursor(CROSS)
+                this.setCursor(CROSS)
                 return
             }
         }
+    }
+
+    setCursor(newCursor){
+        if(newCursor != undefined) this.cursor = newCursor
+        cursor(this.cursor)
     }
 
     executePathfinding(){
@@ -176,7 +183,7 @@ class Tool{
     }
 
     onMouseDragged(){
-        if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) return
+        if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menuInteracting != false) return
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
@@ -247,40 +254,28 @@ class Tool{
         this.yOff = mouseY - worldY * this.zoom;
 
         // Only update bezier segments if zoom changed significantly
-        if(Math.abs(oldZoom - this.zoom) > 0.01){
-            //this.updateZoomDependentGeometry();
-        }
         this.state.changed = true
-    }
-
-    updateZoomDependentGeometry(){
-        // Update LENGTH_SEG_BEZIER based on zoom
-        LENGTH_SEG_BEZIER = map(this.zoom, 0.1, 8, 8, 3, true);
-
-        // Update all intersections to recalculate bezier curves with new segment length
-        let allNodeIDs = this.road.nodes.map(n => n.id);
-        this.road.updateAffectedIntersections(allNodeIDs);
     }
 
     createState(){
         if(this.state.mode == 'creating') return
         this.state.mode = 'creating'
         this.state.prevNodeID = -1
-        cursor(CROSS)
+        this.setCursor(CROSS)
     }
 
     handState(){
         if(this.state.mode == 'movingNode') return
         this.state.mode = 'movingNode'
         this.state.prevNodeID = -1
-        cursor(HAND)
+        this.setCursor(HAND)
     }
 
     deleteState(){
         if(this.state.mode == 'deleting') return
         this.state.mode = 'deleting'
         this.state.prevNodeID = -1
-        cursor('not-allowed')
+        this.setCursor('not-allowed')
     }
     
     showCurrent(){
@@ -535,6 +530,7 @@ class Tool{
     update(){
         this.state.edges = this.getEdges()
         GLOBAL_EDGES = this.state.edges
+        this.road.updateConvexHullsIncremental()
         // Note: setPaths() is no longer called here - updates are done incrementally
         // when nodes/segments are added/removed/modified
         if(this.state.changed) {
@@ -543,7 +539,9 @@ class Tool{
             }
         }
         this.state.changed = false
-        this.menu.update()
+        this.menuInteracting = this.menu.update()
+        let inB = this.menu.inBounds()
+        if(this.menuInteracting != 'slider' && !inB) this.setCursor()
 
         let mousePos = this.getRelativePos(mouseX, mouseY)
         
@@ -681,6 +679,7 @@ class Tool{
             hoverNode: undefined,
             hoverSeg: undefined
         }
+        this.handState()
     }
 }
 

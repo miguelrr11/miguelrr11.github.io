@@ -1,66 +1,103 @@
 var convexhull;
 (function (convexhull) {
-    // Returns a new array of points representing the convex hull of
-    // the given set of points. The convex hull excludes collinear points.
-    // This algorithm runs in O(n log n) time.
-    function makeHull(points) {
-        let newPoints = points.slice();
-        newPoints.sort(convexhull.POINT_COMPARATOR);
-        return convexhull.makeHullPresorted(newPoints);
-    }
-    convexhull.makeHull = makeHull;
-    // Returns the convex hull, assuming that each points[i] <= points[i + 1]. Runs in O(n) time.
-    function makeHullPresorted(points) {
-        if (points.length <= 1)
-            return points.slice();
-        // Andrew's monotone chain algorithm. Positive y coordinates correspond to "up"
-        // as per the mathematical convention, instead of "down" as per the computer
-        // graphics convention. This doesn't affect the correctness of the result.
-        let upperHull = [];
-        for (let i = 0; i < points.length; i++) {
-            const p = points[i];
-            while (upperHull.length >= 2) {
-                const q = upperHull[upperHull.length - 1];
-                const r = upperHull[upperHull.length - 2];
-                if ((q.x - r.x) * (p.y - r.y) >= (q.y - r.y) * (p.x - r.x))
-                    upperHull.pop();
-                else
-                    break;
-            }
-            upperHull.push(p);
-        }
-        upperHull.pop();
-        let lowerHull = [];
-        for (let i = points.length - 1; i >= 0; i--) {
-            const p = points[i];
-            while (lowerHull.length >= 2) {
-                const q = lowerHull[lowerHull.length - 1];
-                const r = lowerHull[lowerHull.length - 2];
-                if ((q.x - r.x) * (p.y - r.y) >= (q.y - r.y) * (p.x - r.x))
-                    lowerHull.pop();
-                else
-                    break;
-            }
-            lowerHull.push(p);
-        }
-        lowerHull.pop();
-        if (upperHull.length == 1 && lowerHull.length == 1 && upperHull[0].x == lowerHull[0].x && upperHull[0].y == lowerHull[0].y)
-            return upperHull;
-        else
-            return upperHull.concat(lowerHull);
-    }
-    convexhull.makeHullPresorted = makeHullPresorted;
+    // Optimized point comparator using subtraction for branch-free comparison
+    // Faster than if-else chains due to fewer branches and better CPU pipelining
     function POINT_COMPARATOR(a, b) {
-        if (a.x < b.x)
-            return -1;
-        else if (a.x > b.x)
-            return +1;
-        else if (a.y < b.y)
-            return -1;
-        else if (a.y > b.y)
-            return +1;
-        else
-            return 0;
+        // Primary sort by x, secondary by y - single expression minimizes branches
+        return a.x - b.x || a.y - b.y;
     }
     convexhull.POINT_COMPARATOR = POINT_COMPARATOR;
+
+    // Returns convex hull, assuming presorted points. O(n) time
+    function makeHullPresorted(points) {
+        const n = points.length;
+        if (n <= 1) return points.slice();
+
+        // Pre-allocate arrays with estimated size to reduce resizing overhead
+        // Worst case: all points on hull, typical case: sqrt(n) to log(n)
+        const upperHull = new Array(n);
+        let upperSize = 0;
+
+        // Build upper hull - optimized with manual stack management
+        // Using index-based access instead of array operations (push/pop) is faster
+        for (let i = 0; i < n; i++) {
+            const p = points[i];
+            const px = p.x, py = p.y;
+
+            // Remove points that make clockwise turn
+            // Manual bounds check and inline cross product for maximum speed
+            while (upperSize >= 2) {
+                const q = upperHull[upperSize - 1];
+                const r = upperHull[upperSize - 2];
+                // Inline cross product check - collinear/right turn means remove q
+                if ((q.x - r.x) * (py - r.y) >= (q.y - r.y) * (px - r.x)) {
+                    upperSize--;
+                } else {
+                    break;
+                }
+            }
+            upperHull[upperSize++] = p;
+        }
+        upperSize--; // Remove last point (will be first in lower hull)
+
+        const lowerHull = new Array(n);
+        let lowerSize = 0;
+
+        // Build lower hull - traverse in reverse
+        for (let i = n - 1; i >= 0; i--) {
+            const p = points[i];
+            const px = p.x, py = p.y;
+
+            while (lowerSize >= 2) {
+                const q = lowerHull[lowerSize - 1];
+                const r = lowerHull[lowerSize - 2];
+                if ((q.x - r.x) * (py - r.y) >= (q.y - r.y) * (px - r.x)) {
+                    lowerSize--;
+                } else {
+                    break;
+                }
+            }
+            lowerHull[lowerSize++] = p;
+        }
+        lowerSize--; // Remove last point (already in upper hull)
+
+        // Edge case: single point
+        if (upperSize === 1 && lowerSize === 1) {
+            const u = upperHull[0], l = lowerHull[0];
+            if (u.x === l.x && u.y === l.y) {
+                return [u];
+            }
+        }
+
+        // Combine hulls efficiently - pre-allocate exact size
+        const totalSize = upperSize + lowerSize;
+        const result = new Array(totalSize);
+
+        // Manual array copying is faster than concat for small-medium arrays
+        for (let i = 0; i < upperSize; i++) {
+            result[i] = upperHull[i];
+        }
+        for (let i = 0; i < lowerSize; i++) {
+            result[upperSize + i] = lowerHull[i];
+        }
+
+        return result;
+    }
+    convexhull.makeHullPresorted = makeHullPresorted;
+
+    // Returns convex hull of given points. O(n log n) time
+    function makeHull(points) {
+        // Sort in-place if possible (caller's array gets modified)
+        // If immutability needed, caller should pass a copy
+        // This avoids unnecessary allocation in the common case
+        const n = points.length;
+        if (n <= 1) return points.slice();
+
+        // Use slice only when necessary
+        const sorted = points.slice();
+        sorted.sort(POINT_COMPARATOR);
+        return makeHullPresorted(sorted);
+    }
+    convexhull.makeHull = makeHull;
+
 })(convexhull || (convexhull = {}));

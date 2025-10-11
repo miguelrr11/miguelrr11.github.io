@@ -223,11 +223,46 @@ class Menu{
         this.buttons.push(buttonDelete)
         this.buttons.push(buttonHand)
 
-        let exampleSlider = new Slider(10, 230, 80, 'Example', 0, 100, 50, (value) => {
-            console.log('Slider value changed to:', value)
+        let sliderLaneWidth = new Slider(10, 230, 80, 'Lane Width', 5, 60, LANE_WIDTH, (value) => {
+            LANE_WIDTH = value
+            this.tool.road.setPaths()
         })
-        this.sliders.push(exampleSlider)
+        let sliderLengthSegBezier = new Slider(10, 270, 80, 'Bezier Res', 50, 2, LENGTH_SEG_BEZIER, (value) => {
+            LENGTH_SEG_BEZIER = value
+            this.tool.road.setPaths()
+        })
+        let sliderOffsetRadIntersec = new Slider(10, 310, 80, 'Intersec Rad', 0, 75, OFFSET_RAD_INTERSEC, (value) => {
+            OFFSET_RAD_INTERSEC = value
+            this.tool.road.setPaths()
+        })
+        let sliderTensionMin = new Slider(10, 350, 80, 'Tension Min', 0, 1, TENSION_BEZIER_MIN, (value) => {
+            TENSION_BEZIER_MIN = value
+            this.tool.road.setPaths()
+        })
+        let sliderTensionMax = new Slider(10, 390, 80, 'Tension Max', 0, 1, TENSION_BEZIER_MAX, (value) => {
+            TENSION_BEZIER_MAX = value
+            this.tool.road.setPaths()
+        })
 
+        this.sliders.push(sliderTensionMin)
+        this.sliders.push(sliderTensionMax)
+
+        this.sliders.push(sliderLaneWidth)
+        this.sliders.push(sliderLengthSegBezier)
+        this.sliders.push(sliderOffsetRadIntersec)
+
+        let buttonDebugRoad = new Button(10, 430, 95, 200, 'Debug Road', undefined, () => {
+            return 'Nodes: ' + '\n' + this.tool.road.nodes.length + '\n' +
+                   'Segments: ' + '\n' + this.tool.road.segments.length + '\n' +
+                   'Connectors: ' + '\n' + this.tool.road.connectors.length + '\n' +
+                   'Intersections: ' + '\n' + this.tool.road.intersecSegs.length + '\n' +
+                   'Paths: ' + '\n' + this.tool.road.paths.size + '\n' +
+                   'Cars: ' + '\n' + cars.length + '\n' +
+                   'CH Queue: ' + '\n' + this.tool.road.convexHullQueue.length
+        }, () => {return false})
+        buttonDebugRoad.txSize = 10
+        buttonDebugRoad.setTextAlign('left-top')
+        this.buttons.push(buttonDebugRoad)
 
         this.interacted = false
         this.coolDownClick = 0
@@ -237,6 +272,7 @@ class Menu{
     inBounds(){
         for(let b of this.buttons){
             if(inBounds(mouseX, mouseY, b.pos.x, b.pos.y, b.size.w, b.size.h)){
+                cursor(HAND)
                 return true
             }
         }
@@ -250,10 +286,12 @@ class Menu{
 
     update(){
         let anyClicked = false
+        let whatInteracting = false
         if(this.coolDownClick > 0) this.coolDownClick--
         this.buttons.forEach(b => {
             if(inBounds(mouseX, mouseY, b.pos.x, b.pos.y, b.size.w, b.size.h) && mouseIsPressed && this.coolDownClick <= 0 && !b.collapsing && !b.uncollapsing){
                 anyClicked = true
+                whatInteracting = 'button'
                 if(b.onClick) b.onClick()
 
             }
@@ -263,12 +301,15 @@ class Menu{
         this.sliders.forEach(s => {
             if(s.update()){
                 anyClicked = true
+                whatInteracting = 'slider'
+                cursor('ew-resize')
             }
         })
 
         this.interacted = anyClicked
         if(anyClicked) this.coolDownClick = 10
-        return anyClicked
+
+        return whatInteracting
     }
 
     show(){
@@ -287,6 +328,7 @@ class Button{
         this.onClick = onClick
         this.updateLabel = updateLabel
         this.enabled = enabled
+        this.txSize = 14
 
         this.originalPos = {x, y}
 
@@ -294,6 +336,12 @@ class Button{
         this.uncollapsing = false
         this.collapseProgress = 0 
         this.collapsingGoalY = undefined
+
+        this.textAlign = 'center'
+    }
+
+    setTextAlign(mode){
+        this.textAlign = mode
     }
 
     collapse(goalY){
@@ -365,9 +413,16 @@ class Button{
         }
         if(collapsed) fill(textCol, 0)
         noStroke()
-        textAlign(CENTER, CENTER)
-        this.hover() ? textSize(15) : textSize(14)
-        text(this.label, this.pos.x + this.size.w / 2, this.pos.y + this.size.h / 2)
+        this.hover() ? textSize(this.txSize+1) : textSize(this.txSize)
+        if(this.textAlign == 'center') {
+            textAlign(CENTER, CENTER)
+            text(this.label, this.pos.x + this.size.w / 2, this.pos.y + this.size.h / 2)
+        }
+        else {
+            textAlign(LEFT, TOP)
+            text(this.label, this.pos.x + 5, this.pos.y + 5)
+        }
+
         pop()
     }
 }
@@ -376,7 +431,7 @@ class Slider{
     constructor(x, y, w, title, minValue, maxValue, initialValue, onChange){
         this.pos = {x, y}
         this.width = w
-        this.height = 10
+        this.height = 7
         this.title = title
         this.minValue = minValue
         this.maxValue = maxValue
@@ -447,7 +502,7 @@ class Slider{
         text(this.title + ': ' + this.value, this.pos.x + this.width / 2, this.pos.y)
 
         // Draw slider track
-        fill(100)
+        fill(70)
         noStroke()
         rect(this.pos.x, sliderY, this.width, this.height, 4)
 
@@ -456,7 +511,7 @@ class Slider{
         let handleX = this.pos.x + normalizedValue * this.width
 
         // Draw filled track
-        fill(200)
+        fill(175)
         rect(this.pos.x, sliderY, normalizedValue * this.width, this.height, 4)
 
         // Draw handle
@@ -464,7 +519,8 @@ class Slider{
         fill(this.isDragging ? 120 : 80)
         stroke(255)
         strokeWeight(2)
-        ellipse(handleX, sliderY + this.height / 2, handleSize, handleSize)
+        rectMode(CENTER)
+        rect(handleX, sliderY + this.height / 2, handleSize*0.9, handleSize*0.7, 4)
 
         pop()
     }

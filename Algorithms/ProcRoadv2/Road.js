@@ -6,6 +6,7 @@
  * Segments are separated by intersections on nodes. These intersections contain Connectors that tell the incomming segment what other 
  * intersection-segments there are to choose. 
  * Intersections are just a data structure to group intersections (they contain the nodeID, the connectors and the intersection-segments)
+ * setPaths() recoomputes everything, so the convex hull calculations are relegated to the convexHullQueue that processes them one by one
  */
 
 // It is extremely important to separate segments (array segments) from the intersection segments (array intersecSegs)
@@ -17,9 +18,14 @@ const GRID_CELL_SIZE = 40   //15
 let OFFSET_RAD_INTERSEC = 25      //25
 let LENGTH_SEG_BEZIER = 10         //3
 let TENSION_BEZIER_MIN = 0.1
-let TENSION_BEZIER_MAX = 0.5
+let TENSION_BEZIER_MAX = 0.6
 let MIN_DIST_INTERSEC = 10        //30
 let LANE_WIDTH = 30
+
+// how many intersections to calculate per frame when updating convex hulls incrementally
+const INTERSECTIONS_PER_FRAME = 2
+// after this number of segments in a path in setPaths(), switch to incremental convex hull calculation
+const N_SEG_TO_SWITCH_TO_INCREMENTAL = 200
 
 class Road{
     constructor(tool){
@@ -33,6 +39,8 @@ class Road{
         this.intersections = []
         this.paths = new Map()
 
+        this.convexHullQueue = []
+
         this.nodeIDcounter = 0
         this.segmentIDcounter = 0
 
@@ -43,12 +51,11 @@ class Road{
     //recomputes all paths, connectors, intersections and intersection-segments, not currently used, but works
     //slow if there are many nodes and segments
     setPaths(){
-        LENGTH_SEG_BEZIER = map(this.tool.zoom, 0.1, 8, 8, 3, true)
-
         this.paths = new Map()
         this.connectors = [] 
         this.intersecSegs = []
         this.intersections = []
+        this.convexHullQueue = []
         this.connectorIDcounter = 0
         this.intersecSegIDcounter = 0
         for(let i = 0; i < this.nodes.length; i++){
@@ -70,7 +77,7 @@ class Road{
                 }
             }
         }
-        this.nodes.forEach(n => this.trimSegmentsAtIntersection(n.id))
+        this.nodes.forEach(n => this.trimSegmentsAtIntersection(n.id, true, this.segments.length < N_SEG_TO_SWITCH_TO_INCREMENTAL))
     }
 
     //connect a node to another node
@@ -104,7 +111,7 @@ class Road{
         }
         for(let nodeID of nodesIDs){
             let node = this.findNode(nodeID)
-            if(trim) this.trimSegmentsAtIntersection(nodeID)
+            if(trim) this.trimSegmentsAtIntersection(nodeID, true, true)
         }
     }
 
@@ -246,7 +253,7 @@ class Road{
         for(let nodeID of affectedNodeIDs){
             let node = this.findNode(nodeID)
             if(!node) continue
-            this.trimSegmentsAtIntersection(nodeID)
+            this.trimSegmentsAtIntersection(nodeID, true, true)
         }
 
     }
@@ -513,7 +520,7 @@ class Road{
 
 
     //trims all end of segments connected to the node to the farthest intersection found
-    trimSegmentsAtIntersection(nodeID, connect = true, nodesToAvoid = new Set()){
+    trimSegmentsAtIntersection(nodeID, connect = true, instantConvex = true){
         //if(nodesToAvoid.includes(nodeID)) return
         let intersections = this.findIntersectionsOfNode(nodeID)
         let distInter = 0
@@ -563,10 +570,10 @@ class Road{
                 
             })
         }
-        if(connect) this.connectIntersection(nodeID, this.nodeOnceConnected(node))
+        if(connect) this.connectIntersection(nodeID, this.nodeOnceConnected(node), instantConvex)
     }
 
-    connectIntersection(nodeID, connectSelf = false){
+    connectIntersection(nodeID, connectSelf = false, instantConvex = true){
         let node = this.findNode(nodeID)
         let intersection = new Intersection(nodeID, [], [])
         intersection.road = this
@@ -636,6 +643,7 @@ class Road{
 
                 let pointsBezier = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER, tension)
 
+                //let totalLen = pointsBezier.length * LENGTH_SEG_BEZIER
                 let totalLen = 0
                 for(let i = 1; i < pointsBezier.length; i++){
                     totalLen += dist(pointsBezier[i].x, pointsBezier[i].y, pointsBezier[i-1].x, pointsBezier[i-1].y)
@@ -660,7 +668,8 @@ class Road{
 
                 intersecSegs.push(seg.id)
 
-                seg.constructOutline()
+                //intersection.calculateconvexHullAllSegments() calls seg.constructOutline()
+                //seg.constructOutline()
             })
         })
         intersection.connectorsIDs = Array.from(connectorMap.values()).map(c => c.id)
@@ -678,8 +687,25 @@ class Road{
             }
         }
         intersection.pathsIDs = Array.from(pathsIDs)
-        intersection.calculateconvexHullAllSegments()
+        if(instantConvex) intersection.calculateconvexHullAllSegments();
+        else this.convexHullQueue.push(intersection)
         this.intersections.push(intersection)
+    }
+
+    updateConvexHullsIncremental() {
+        
+        //if(frameCount % 10 == 0) return false; // update every other frame for performance
+        
+        if (!this.convexHullQueue) {
+            this.convexHullQueue = this.intersections.filter(i => !i.convexHullCalculated);
+        }
+        
+        for (let i = 0; i < INTERSECTIONS_PER_FRAME && this.convexHullQueue.length > 0; i++) {
+            const intersection = this.convexHullQueue.shift();
+            intersection.calculateconvexHullAllSegments();
+        }
+        
+        return this.convexHullQueue.length === 0
     }
 
     showMain(SHOW_TAGS){

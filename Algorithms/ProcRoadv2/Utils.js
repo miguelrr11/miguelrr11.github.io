@@ -92,11 +92,13 @@ function lerppos(pos1, pos2, t){
 function getCornersOfLine(pos1, pos2, width){
     let angle = Math.atan2(pos2.y - pos1.y, pos2.x - pos1.x) + PI / 2
     let halfW = width / 2
+    let cosAngle = Math.cos(angle) * halfW
+    let sinAngle = Math.sin(angle) * halfW
     return [
-        {x: pos1.x + Math.cos(angle) * halfW, y: pos1.y + Math.sin(angle) * halfW},
-        {x: pos1.x - Math.cos(angle) * halfW, y: pos1.y - Math.sin(angle) * halfW},
-        {x: pos2.x - Math.cos(angle) * halfW, y: pos2.y - Math.sin(angle) * halfW},
-        {x: pos2.x + Math.cos(angle) * halfW, y: pos2.y + Math.sin(angle) * halfW},
+        {x: pos1.x + cosAngle, y: pos1.y + sinAngle},
+        {x: pos1.x - cosAngle, y: pos1.y - sinAngle},
+        {x: pos2.x - cosAngle, y: pos2.y - sinAngle},
+        {x: pos2.x + cosAngle, y: pos2.y + sinAngle},
     ]
 }
 

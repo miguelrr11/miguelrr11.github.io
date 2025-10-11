@@ -6,8 +6,10 @@ class Intersection {
         this.intersecSegsIDs = intersecSegsIDs
         this.road = undefined     //filled by road.js
         this.pathsIDs = []        //filled by road.js
+
         this.convexHullPoints = [] //filled by calculateconvexHullAllSegments()
         this.convexHullPoints16 = [] //filled by calculateconvexHullAllSegments()
+        this.convexHullCalculated = false
     }
 
     calculateconvexHullAllSegments(){
@@ -32,11 +34,15 @@ class Intersection {
         this.convexHullPoints = calculated_hull.map(p => {return {x: p.x, y: p.y}})
         let calculated_hull16 = convexhull.makeHull(points16)
         this.convexHullPoints16 = calculated_hull16.map(p => {return {x: p.x, y: p.y}})
+        this.convexHullCalculated = true
+    }
+
+    convexHullPointsExists(){
+        return this.convexHullCalculated
     }
 
     drawconvexHullDebug(){
-        if(this.convexHullPoints.length < 3) this.calculateconvexHullAllSegments()
-        if(this.convexHullPoints.length < 3) return
+        if(!this.convexHullPointsExists()) return
         push()
         noFill()
         stroke(0, 255, 0, 200)
@@ -65,6 +71,7 @@ class Intersection {
 
     // type: showWays
     showWayBase(){
+        if(!this.convexHullPointsExists()) return
         beginShape()
         for(let v of this.convexHullPoints16) vertex(v.x, v.y)
         endShape()
@@ -72,6 +79,7 @@ class Intersection {
 
     // type: showWays
     showWayTop(){
+        if(!this.convexHullPointsExists()) return
         beginShape()
         for(let v of this.convexHullPoints) vertex(v.x, v.y)
         endShape()
@@ -80,6 +88,7 @@ class Intersection {
 
     // type: showWays
     showIntersectionStartLine(){
+        if(this.outline == [] || this.outline == undefined) return
         if(this.pathsIDs.length >= 3) {
             for(let i = 0; i < this.intersecSegsIDs.length; i++){
                 let segment = this.road.findIntersecSeg(this.intersecSegsIDs[i])
