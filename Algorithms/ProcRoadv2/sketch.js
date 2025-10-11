@@ -20,8 +20,8 @@
  */
 
 p5.disableFriendlyErrors = true
-const WIDTH = 1400
-const HEIGHT = 700
+let WIDTH = 1400
+let HEIGHT = 700
 
 let SHOW_ROAD = false
 let SHOW_PATHS = true
@@ -38,6 +38,8 @@ let cars = []
 let auxShow = []
 
 async function setup(){
+    WIDTH = windowWidth
+    HEIGHT = windowHeight
     createCanvas(WIDTH, HEIGHT)
     tool = new Tool()
     let font = await loadFont('font.ttf')

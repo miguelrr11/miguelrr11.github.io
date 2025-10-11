@@ -58,6 +58,13 @@ class Tool{
         document.addEventListener("mousemove", () => {if(this.dragging) this.onMouseDragged()})
         document.addEventListener("keydown", (e) => this.onKeyPressed(e));
         document.addEventListener("wheel", (e) => {e.preventDefault(); this.onMouseWheel(e)}, {passive: false});
+        //on window resize
+        window.addEventListener('resize', () => {
+            WIDTH = windowWidth
+            HEIGHT = windowHeight
+            resizeCanvas(windowWidth, windowHeight);
+            this.menu = new Menu(this);
+        });
 
         this.xOff = 0
         this.yOff = 0
@@ -680,6 +687,7 @@ class Tool{
             hoverSeg: undefined
         }
         this.handState()
+        cars = []
     }
 }
 
