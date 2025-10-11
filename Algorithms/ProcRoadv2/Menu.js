@@ -1,6 +1,7 @@
 class Menu{
     constructor(tool){
         this.buttons = []
+        this.sliders = []
         this.tool = tool
 
         let buttonCreate = new Button(10, 10, 80, 30, 'Create [C]', () => {tool.createState()}, () => {
@@ -222,14 +223,25 @@ class Menu{
         this.buttons.push(buttonDelete)
         this.buttons.push(buttonHand)
 
+        let exampleSlider = new Slider(10, 230, 80, 'Example', 0, 100, 50, (value) => {
+            console.log('Slider value changed to:', value)
+        })
+        this.sliders.push(exampleSlider)
+
+
         this.interacted = false
         this.coolDownClick = 0
-        
+
     }
 
     inBounds(){
         for(let b of this.buttons){
             if(inBounds(mouseX, mouseY, b.pos.x, b.pos.y, b.size.w, b.size.h)){
+                return true
+            }
+        }
+        for(let s of this.sliders){
+            if(s.isMouseOver()){
                 return true
             }
         }
@@ -243,9 +255,17 @@ class Menu{
             if(inBounds(mouseX, mouseY, b.pos.x, b.pos.y, b.size.w, b.size.h) && mouseIsPressed && this.coolDownClick <= 0 && !b.collapsing && !b.uncollapsing){
                 anyClicked = true
                 if(b.onClick) b.onClick()
-                
+
             }
         })
+
+        // Update sliders
+        this.sliders.forEach(s => {
+            if(s.update()){
+                anyClicked = true
+            }
+        })
+
         this.interacted = anyClicked
         if(anyClicked) this.coolDownClick = 10
         return anyClicked
@@ -253,6 +273,7 @@ class Menu{
 
     show(){
         this.buttons.forEach(b => b.show())
+        this.sliders.forEach(s => s.show())
     }
 }
 
@@ -347,6 +368,104 @@ class Button{
         textAlign(CENTER, CENTER)
         this.hover() ? textSize(15) : textSize(14)
         text(this.label, this.pos.x + this.size.w / 2, this.pos.y + this.size.h / 2)
+        pop()
+    }
+}
+
+class Slider{
+    constructor(x, y, w, title, minValue, maxValue, initialValue, onChange){
+        this.pos = {x, y}
+        this.width = w
+        this.height = 10
+        this.title = title
+        this.minValue = minValue
+        this.maxValue = maxValue
+        this.value = initialValue
+        this.onChange = onChange
+
+        this.isDragging = false
+        this.titleHeight = 20
+
+        // Total height includes title + slider
+        this.totalHeight = this.titleHeight + this.height + 5
+    }
+
+    isMouseOver(){
+        // Check if mouse is over the slider track or handle
+        let sliderY = this.pos.y + this.titleHeight
+        return mouseX >= this.pos.x &&
+               mouseX <= this.pos.x + this.width &&
+               mouseY >= sliderY - 5 &&
+               mouseY <= sliderY + this.height + 5
+    }
+
+    update(){
+        let sliderY = this.pos.y + this.titleHeight
+        let interacted = false
+
+        // Start dragging
+        if(mouseIsPressed && this.isMouseOver() && !this.isDragging){
+            this.isDragging = true
+        }
+
+        // Update value while dragging
+        if(this.isDragging && mouseIsPressed){
+            let normalizedX = constrain(mouseX - this.pos.x, 0, this.width)
+            let normalizedValue = normalizedX / this.width
+            let newValue = this.minValue + normalizedValue * (this.maxValue - this.minValue)
+
+            // Round to 2 decimal places
+            newValue = round(newValue * 100) / 100
+
+            if(newValue !== this.value){
+                this.value = newValue
+                if(this.onChange){
+                    this.onChange(this.value)
+                }
+            }
+            interacted = true
+        }
+
+        // Stop dragging
+        if(!mouseIsPressed && this.isDragging){
+            this.isDragging = false
+        }
+
+        return interacted
+    }
+
+    show(){
+        let sliderY = this.pos.y + this.titleHeight
+
+        push()
+
+        // Draw title
+        fill(255)
+        noStroke()
+        textAlign(CENTER, TOP)
+        textSize(10)
+        text(this.title + ': ' + this.value, this.pos.x + this.width / 2, this.pos.y)
+
+        // Draw slider track
+        fill(100)
+        noStroke()
+        rect(this.pos.x, sliderY, this.width, this.height, 4)
+
+        // Calculate handle position
+        let normalizedValue = (this.value - this.minValue) / (this.maxValue - this.minValue)
+        let handleX = this.pos.x + normalizedValue * this.width
+
+        // Draw filled track
+        fill(200)
+        rect(this.pos.x, sliderY, normalizedValue * this.width, this.height, 4)
+
+        // Draw handle
+        let handleSize = this.isDragging || this.isMouseOver() ? 18 : 16
+        fill(this.isDragging ? 120 : 80)
+        stroke(255)
+        strokeWeight(2)
+        ellipse(handleX, sliderY + this.height / 2, handleSize, handleSize)
+
         pop()
     }
 }
