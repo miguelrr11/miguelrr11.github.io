@@ -290,6 +290,13 @@
          </ul>
      </div>
 
+     <div class="category-card">
+         <h2>Stats</h2>
+         <ul id="stats-content">
+             <li>Loading stats...</li>
+         </ul>
+     </div>
+
     </div>
 
     <button id="toggleShowAll">Show Hidden Items</button>
@@ -483,7 +490,8 @@ function draw() {
   function bindMatrixLinks(root = document) {
     let links = root.querySelectorAll("a.matrix-link");
     let moreLInks = root.querySelectorAll("h1.matrix-link");
-    links = [...links, ...moreLInks];
+    let spanLinks = root.querySelectorAll("span.matrix-link");
+    links = [...links, ...moreLInks, ...spanLinks];
     links.forEach((el) => {
       if (el._matrixBound) return;
       el._matrixBound = true;
@@ -629,6 +637,11 @@ function draw() {
       el._ambientBound = true;
       startAmbient(el);
     });
+    root.querySelectorAll("span.ambient-matrix").forEach(el => {
+      if (el._ambientBound) return;
+      el._ambientBound = true;
+      startAmbient(el);
+    });
   }
 
   if (document.readyState === "loading") {
@@ -736,7 +749,53 @@ function draw() {
     
         this.textContent = isHidden ? 'Hide Hidden Items' : 'Show Hidden Items';
     });
-    
+
+</script>
+
+<!-- Fetch and display repository stats -->
+<script>
+(async () => {
+  const statsContent = document.getElementById('stats-content');
+  const apiUrl = 'https://api.codetabs.com/v1/loc?github=miguelrr11/miguelrr11.github.io';
+
+  try {
+    const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error('Failed to fetch stats');
+
+    const data = await response.json();
+
+    // Find JavaScript and Total entries
+    const jsData = data.find(item => item.language === 'JavaScript');
+    const totalData = data.find(item => item.language === 'Total');
+
+    // Build the stats list
+    const stats = [];
+
+    if (jsData) {
+      stats.push(`<li><span class="matrix-link ambient-matrix">JavaScript Lines: ${jsData.linesOfCode.toLocaleString()}</span></li>`);
+    }
+
+    if (totalData) {
+      stats.push(`<li><span class="matrix-link ambient-matrix">Total Lines: ${totalData.lines.toLocaleString()}</span></li>`);
+      stats.push(`<li><span class="matrix-link ambient-matrix">Total Files: ${totalData.files}</span></li>`);
+      stats.push(`<li><span class="matrix-link ambient-matrix">Total Comments: ${totalData.comments}</span></li>`);
+    }
+
+    // Update the content
+    if (stats.length > 0) {
+      statsContent.innerHTML = stats.join('');
+      // Re-bind matrix effects to the new elements
+      if (window.MatrixLinks) window.MatrixLinks.bind(statsContent);
+      if (window.AmbientMatrix) window.AmbientMatrix.bind(statsContent);
+    } else {
+      statsContent.innerHTML = '<li>No stats available</li>';
+    }
+
+  } catch (error) {
+    console.error('Error fetching stats:', error);
+    statsContent.innerHTML = '<li>Error loading stats</li>';
+  }
+})();
 </script>
 
 
