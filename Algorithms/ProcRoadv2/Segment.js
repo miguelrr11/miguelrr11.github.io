@@ -102,8 +102,6 @@ class Segment{
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
-        strokeWeight(1.5)
-        stroke(220)
         if(!disc) line(corners[0].x, corners[0].y, corners[3].x, corners[3].y)
         else drawDashedLine(corners[0].x, corners[0].y, corners[3].x, corners[3].y)
         pop()
@@ -183,6 +181,7 @@ class Segment{
         drawArrowTip(midPos2.x, midPos2.y, angle, 10)
         pop()
     }
+
 
     showHover(){
         push()

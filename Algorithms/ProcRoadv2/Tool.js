@@ -3,6 +3,16 @@ const COL_PATHS = [200]
 const COL_LANE_1 = [40, 40, 255, 90]
 const COL_LANE_2 = [255, 40, 40, 90]
 
+/*
+state.modes:
+    creating
+    movingNode
+    deleting
+    selecting
+    settingStart
+    settingEnd
+*/
+
 
 
 class Tool{
@@ -20,35 +30,7 @@ class Tool{
             SHOW_CONVEXHULL: false
         }
         this.road = new Road(this)
-        this.state = {
-            mode: 'creating',
-            prevNodeID: -1,
-
-            draggingNodeID: -1,
-            offsetDraggingNode: {x: 0, y: 0},
-
-            nForLanes: 2,
-            nBackLanes: 2,
-            snapToGrid: false,
-
-            changed: false,
-
-            //pathfinding
-            settingStart: false,
-            settingEnd: false,
-            startNodeID: -1,
-            endNodeID: -1,
-            foundPath: [],
-
-            edges: undefined,
-
-            fpsAcum: [],
-
-            hoverNode: undefined,
-            hoverSeg: undefined,
-
-            menuCollapsed: false
-        }
+        this.state = this.getInitialState()
         this.buttons = []
         this.menu = new Menu(this)
         this.dragging = false
@@ -58,6 +40,10 @@ class Tool{
         document.addEventListener("mousemove", () => {if(this.dragging) this.onMouseDragged()})
         document.addEventListener("keydown", (e) => this.onKeyPressed(e));
         document.addEventListener("wheel", (e) => {e.preventDefault(); this.onMouseWheel(e)}, {passive: false});
+        document.addEventListener('contextmenu', (event) => {
+            event.preventDefault();
+            this.finishSegment()
+        });
         //on window resize
         window.addEventListener('resize', () => {
             WIDTH = windowWidth
@@ -75,6 +61,45 @@ class Tool{
 
         this.cursor = CROSS
         cursor(this.cursor)
+    }
+
+    getInitialState(){
+        return {
+            mode: 'creating',
+            prevNodeID: -1,
+
+            draggingNodeID: -1,
+            offsetDraggingNode: {x: 0, y: 0},
+
+            nForLanes: 1,
+            nBackLanes: 1,
+            snapToGrid: true,
+
+            changed: false,
+
+            //pathfinding
+            settingStart: false,
+            settingEnd: false,
+            startNodeID: -1,
+            endNodeID: -1,
+            foundPath: [],
+
+            edges: undefined,
+
+            fpsAcum: [],
+
+            hoverNode: undefined,
+            hoverSeg: undefined,
+
+            menuCollapsed: false,
+
+            //selecting
+            firstCorner: undefined,
+            secondCorner: undefined,
+            firstCornerSelected: undefined,
+            secondCornerSelected: undefined,
+            selectedNodes: []
+        }
     }
 
     getMousePositions(){
@@ -186,7 +211,7 @@ class Tool{
     }
 
     executePathfinding(){
-        this.state.foundPath = Astar(this.state.startNodeID, this.state.endNodeID, this.road) ?? []
+        this.state.foundPath = Astar(this.state.startNodeID, this.state.endNodeID, this.road) ?? []
     }
 
     onMouseDragged(){
@@ -221,6 +246,16 @@ class Tool{
                 return
             }
         }
+
+        //selecting
+        if(this.state.mode == 'selecting'){
+            if(!this.state.firstCorner){
+                this.state.firstCorner = this.getRelativePos(mouseX, mouseY)
+            } 
+            else {
+                this.state.secondCorner = this.getRelativePos(mouseX, mouseY)
+            }
+        }
     }
 
     onMouseRelease(){
@@ -232,12 +267,22 @@ class Tool{
             this.checkForAllSegmentCollisions()
             return
         }
+        if(this.state.firstCorner != undefined){
+            this.state.secondCorner = this.getRelativePos(mouseX, mouseY)
+            this.selectObjectsInSelectionBox()
+        }
+        this.state.firstCorner = undefined
+        this.state.secondCorner = undefined
+    }
+
+    finishSegment(){
+        this.state.prevNodeID = -1
     }
 
     onKeyPressed(event){
         let kC = event.keyCode
         let k = event.key.toLowerCase()
-        if(kC == 27 && this.state.mode == 'creating'){   //ESC
+        if(kC == 13 && this.state.mode == 'creating'){   //ENTER
             this.state.prevNodeID = -1
         }
         if(k == 'h'){
@@ -248,6 +293,9 @@ class Tool{
         }
         if(k == 'd'){
             this.deleteState()
+        }
+        if(k == 'a'){
+            this.selectState()
         }
     }
 
@@ -284,15 +332,21 @@ class Tool{
         this.state.prevNodeID = -1
         this.setCursor('not-allowed')
     }
+
+    selectState(){
+        if(this.state.mode == 'selecting') return
+        this.state.mode = 'selecting'
+        this.state.prevNodeID = -1
+        this.setCursor(CROSS)
+    }
     
     showCurrent(){
         this.showCurrentSegment()
     }
 
     showGridPoints(){
+        
         push()
-        stroke(255, map(this.zoom, 0.2, 0.4, 0, 150, true))
-        strokeWeight((1 / this.zoom) * 1.5)
         let edges = this.getEdges()
         let minX = edges[0]
         let maxX = edges[1]
@@ -301,8 +355,21 @@ class Tool{
         let startX = Math.floor(minX / GRID_CELL_SIZE) * GRID_CELL_SIZE
         let startY = Math.floor(minY / GRID_CELL_SIZE) * GRID_CELL_SIZE
 
+        strokeWeight((1 / this.zoom) * 1.5)
+        
+        let fadeDistance = (maxX - minX) * 0.1  //10% of the screen dims
+        
         for(let x = startX; x <= maxX; x += GRID_CELL_SIZE){
             for(let y = startY; y <= maxY; y += GRID_CELL_SIZE){
+                let distFromLeft = x - minX
+                let distFromRight = maxX - x
+                let distFromTop = y - minY
+                let distFromBottom = maxY - y
+                let minDistToEdge = Math.min(distFromLeft, distFromRight, distFromTop, distFromBottom)
+                let fadeFactor = Math.min(minDistToEdge / fadeDistance, 1)
+                let baseAlpha = map(this.zoom, 0.2, 0.4, 0, 150, true)
+                let alpha = baseAlpha * fadeFactor
+                stroke(255, alpha)
                 point(x, y)
             }
         }
@@ -534,6 +601,61 @@ class Tool{
         blendMode(BLEND)
     }
 
+    showSelectionBox(){
+        if(this.state.firstCorner == undefined) return
+        let secondCorner = this.state.secondCorner ? this.state.secondCorner : this.getRelativePos(mouseX, mouseY)
+        let x1 = this.state.firstCorner.x
+        let y1 = this.state.firstCorner.y
+        let x2 = secondCorner.x
+        let y2 = secondCorner.y
+        push()
+        noFill()
+        stroke(255, 200)
+        strokeWeight(1.5)
+        rectMode(CORNERS)
+        rect(x1, y1, x2, y2)
+        blendMode(ADD)
+        fill(255, 50)
+        rect(x1, y1, x2, y2)
+        blendMode(BLEND)
+        pop()
+    }
+
+    showSelectionBoxSelected(){
+        if(this.state.firstCornerSelected == undefined) return
+        let x1 = this.state.firstCornerSelected.x
+        let y1 = this.state.firstCornerSelected.y
+        let x2 = this.state.secondCornerSelected.x
+        let y2 = this.state.secondCornerSelected.y
+        push()
+        noFill()
+        stroke(255, 200)
+        strokeWeight(1.5)
+        rectMode(CORNERS)
+        rect(x1, y1, x2, y2)
+        blendMode(ADD)
+        fill(255, 50)
+        rect(x1, y1, x2, y2)
+        blendMode(BLEND)
+        pop()
+    }
+
+    selectObjectsInSelectionBox(){
+        let margin = NODE_RAD * 2
+        let inBoundsNodes = this.road.findAllNodesInArea(this.state.firstCorner, this.state.secondCorner)
+        if(inBoundsNodes.length > 0){ 
+            this.state.selectedNodes = inBoundsNodes
+            let corners = getBoundingBoxCorners(inBoundsNodes.map(n => n.pos))
+            this.state.firstCornerSelected = {x: corners[0].x - margin, y: corners[0].y - margin}
+            this.state.secondCornerSelected = {x: corners[2].x + margin, y: corners[2].y + margin}
+        }
+        else{
+            this.state.selectedNodes = []
+            this.state.firstCornerSelected = undefined
+            this.state.secondCornerSelected = undefined
+        }
+    }
+
     update(){
         this.state.edges = this.getEdges()
         GLOBAL_EDGES = this.state.edges
@@ -558,8 +680,6 @@ class Tool{
             this.state.hoverSeg = closestPosToSegment.closestSegment.id
         }
         else this.state.hoverSeg = undefined
-
-        
     }
 
     show(){
@@ -600,6 +720,9 @@ class Tool{
         this.showStartEndPathfinding()
         this.showHover()
         this.showMousePosition()
+
+        this.showSelectionBox()
+        this.showSelectionBoxSelected()
         
 
         pop()
@@ -661,33 +784,7 @@ class Tool{
             this.road.segments.push(newSegment)
         }
         this.road.setPaths()
-        this.state = {
-            mode: 'creating',
-            prevNodeID: -1,
-
-            draggingNodeID: -1,
-            offsetDraggingNode: {x: 0, y: 0},
-
-            nForLanes: 1,
-            nBackLanes: 1,
-            snapToGrid: false,
-
-            changed: false,
-
-            //pathfinding
-            settingStart: false,
-            settingEnd: false,
-            startNodeID: -1,
-            endNodeID: -1,
-            foundPath: [],
-
-            edges: undefined,
-
-            fpsAcum: [],
-
-            hoverNode: undefined,
-            hoverSeg: undefined
-        }
+        this.state = this.getInitialState()
         this.handState()
         cars = []
     }

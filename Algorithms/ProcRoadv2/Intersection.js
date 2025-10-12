@@ -87,12 +87,11 @@ class Intersection {
 
     // type: showWays
     showIntersectionStartLine(){
-        if(this.outline == [] || this.outline == undefined) return
-        if(this.pathsIDs.length >= 3) {
+        if(this.pathsIDs.length > 2){ 
             for(let i = 0; i < this.intersecSegsIDs.length; i++){
                 let segment = this.road.findIntersecSeg(this.intersecSegsIDs[i])
                 let corners = segment.corners
-                line(corners.c0.x, corners.c0.y, corners.c2.x, corners.c2.y)
+                if(corners && corners[0] != undefined) line(corners[0].x, corners[0].y, corners[2].x, corners[2].y)
             }
         }
     }

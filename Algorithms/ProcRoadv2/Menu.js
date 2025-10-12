@@ -13,6 +13,9 @@ class Menu{
         let buttonHand = new Button(190, 10, 80, 30, 'Move [H]', () => {tool.handState()}, () => {
             return this.tool.state.mode === 'movingNode' ? 'Moving...' : 'Move [H]'
         }, () => {return this.tool.state.mode == 'movingNode'})
+        let buttonSelect = new Button(280, 10, 110, 30, 'Area Select [A]', () => {tool.selectState()}, () => {
+            return this.tool.state.mode === 'selecting' ? 'Selecting...' : 'Area Select [A]'
+        }, () => {return this.tool.state.mode == 'selecting'})
 
         const MAIN_X = 28;
         const MAIN_Y = 50;
@@ -164,6 +167,14 @@ class Menu{
             return round(avg)
         })
 
+        let buttonFullscreen = new Button(width - 70 - 10, HEIGHT - 90, 70, 20, 'Fullscreen', () => {
+            let fs = fullscreen()
+            fullscreen(!fs)
+        }, () => {
+            return fullscreen() ? 'Windowed' : 'Fullscreen'
+        })
+        buttonFullscreen.txSize = 12
+
         let buttonSave = new Button(width - 70 - 10, HEIGHT - 60, 70, 20, 'Save', () => {
             storeItem('roadData', this.tool.getCurrentRoad())
         })
@@ -187,6 +198,8 @@ class Menu{
 
         this.buttons.push(buttonShowZoomLevel)
         this.buttons.push(buttonShowConvexHull)
+
+        this.buttons.push(buttonFullscreen)
 
         this.buttons.push(buttonZoomMinus)
         this.buttons.push(buttonZoomPlus)
@@ -222,6 +235,7 @@ class Menu{
         this.buttons.push(buttonCreate)
         this.buttons.push(buttonDelete)
         this.buttons.push(buttonHand)
+        this.buttons.push(buttonSelect)
 
         let sliderLaneWidth = new Slider(15, 230, 80, 'Lane Width', 5, 60, LANE_WIDTH, (value) => {
             LANE_WIDTH = value
@@ -254,17 +268,19 @@ class Menu{
         this.sliders.push(sliderLengthSegBezier)
         this.sliders.push(sliderOffsetRadIntersec)
 
-        let buttonDebugRoad = new Button(10, 430, 95, 200, 'Debug Road', undefined, () => {
+        let buttonDebugRoad = new Button(10, 430, 95, 210, 'Debug Road', undefined, () => {
             return 'Nodes: ' + '\n' + this.tool.road.nodes.length + '\n' +
                    'Segments: ' + '\n' + this.tool.road.segments.length + '\n' +
                    'Connectors: ' + '\n' + this.tool.road.connectors.length + '\n' +
                    'Intersections: ' + '\n' + this.tool.road.intersecSegs.length + '\n' +
                    'Paths: ' + '\n' + this.tool.road.paths.size + '\n' +
                    'Cars: ' + '\n' + cars.length + '\n' +
-                   'CH Queue: ' + '\n' + this.tool.road.convexHullQueue.length
+                   'CH Queue: ' + '\n' + this.tool.road.convexHullQueue.length + '\n' +
+                   'Selected Nodes: ' + '\n' + this.tool.state.selectedNodes.length
         }, () => {return false})
         buttonDebugRoad.txSize = 10
         buttonDebugRoad.setTextAlign('left-top')
+        buttonDebugRoad.enableHoverEffect = false
         this.buttons.push(buttonDebugRoad)
 
         this.interacted = false
@@ -341,6 +357,7 @@ class Button{
         this.collapsingGoalY = undefined
 
         this.textAlign = 'center'
+        this.enableHoverEffect = true
     }
 
     setTextAlign(mode){
@@ -416,7 +433,8 @@ class Button{
         }
         if(collapsed) fill(textCol, 0)
         noStroke()
-        this.hover() ? textSize(this.txSize+1) : textSize(this.txSize)
+        if(this.hover() && this.enableHoverEffect) textSize(this.txSize+1) 
+        else textSize(this.txSize)
         if(this.textAlign == 'center') {
             textAlign(CENTER, CENTER)
             text(this.label, this.pos.x + this.size.w / 2, this.pos.y + this.size.h / 2)

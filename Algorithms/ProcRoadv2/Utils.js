@@ -121,6 +121,30 @@ function orderClockwise(center, points) {
     });
 }
 
+
+function getBoundingBoxCorners(points) {
+    if (points.length === 0) return null;
+
+    let xMin = points[0].x;
+    let xMax = points[0].x;
+    let yMin = points[0].y;
+    let yMax = points[0].y;
+
+    for (let p of points) {
+        if (p.x < xMin) xMin = p.x;
+        if (p.x > xMax) xMax = p.x;
+        if (p.y < yMin) yMin = p.y;
+        if (p.y > yMax) yMax = p.y;
+    }
+
+    return [
+        {x: xMin, y: yMin}, // Top-left
+        {x: xMax, y: yMin}, // Top-right
+        {x: xMax, y: yMax}, // Bottom-right
+        {x: xMin, y: yMax}  // Bottom-left
+    ];
+}
+
 // ===================
 // Color Utilities
 // ===================

@@ -37,6 +37,7 @@ let cars = []
 
 let auxShow = []
 
+
 async function setup(){
     WIDTH = windowWidth
     HEIGHT = windowHeight

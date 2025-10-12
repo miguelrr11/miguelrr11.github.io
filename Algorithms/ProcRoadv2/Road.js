@@ -16,7 +16,7 @@ const NODE_RAD = 20
 const GRID_CELL_SIZE = 40   //15
 
 let OFFSET_RAD_INTERSEC = 25      //25
-let LENGTH_SEG_BEZIER = 10         //3
+let LENGTH_SEG_BEZIER = 5         //3
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.8
 let MIN_DIST_INTERSEC = 10        //30
@@ -196,8 +196,21 @@ class Road{
                 }
             }
         })
-
         return {closestSegment, closestPoint, minDist}
+    }
+
+    findAllNodesInArea(corner1, corner2){
+        let c1 = corner1.y < corner2.y ? corner1 : corner2
+        let c2 = corner1.y < corner2.y ? corner2 : corner1
+        let nodesInArea = []
+        this.nodes.forEach(node => {
+            if(inBoundsCorners(node.pos.x, node.pos.y, GLOBAL_EDGES, NODE_RAD) && 
+            node.pos.x > c1.x && node.pos.x < c2.x && 
+            node.pos.y > c1.y && node.pos.y < c2.y){
+                nodesInArea.push(node)
+            }
+        })
+        return nodesInArea
     }
 
     getAllSegmentsBetweenNodes(nodeID1, nodeID2){
@@ -696,7 +709,7 @@ class Road{
                 }
             }
         }
-        intersection.pathsIDs = Array.from(pathsIDs)
+        intersection.pathsIDs = this.findAnyPath(nodeID)?.map(p => p.id) || []
         if(instantConvex) intersection.calculateconvexHullAllSegments();
         else this.convexHullQueue.push(intersection)
         this.intersections.push(intersection)

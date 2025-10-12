@@ -14,6 +14,7 @@ class InterSegment{
         //calculated by Intersection.constructOutline()
         this.outline = []
         this.outline16 = []
+        this.corners = []
     }
 
 
@@ -109,7 +110,7 @@ class InterSegment{
         this.outline = points
         this.outline16 = points16
 
-        this.corners = {c0, c1, c2, c3}
+        this.corners = [c0, c1, c2, c3]
     }
 
     showLane(col, useOutline16 = false){
