@@ -27,8 +27,8 @@ class Tool{
             draggingNodeID: -1,
             offsetDraggingNode: {x: 0, y: 0},
 
-            nForLanes: 1,
-            nBackLanes: 1,
+            nForLanes: 2,
+            nBackLanes: 2,
             snapToGrid: false,
 
             changed: false,
@@ -106,9 +106,9 @@ class Tool{
             let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
-                let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
+                let newNode = this.road.addNode(closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y)
                 for(let s of allSegmentsBetween){
-                    this.road.splitSegmentAtPos(s.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y, newNode)
+                    this.road.splitSegmentAtPos(s.id, closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y, newNode)
                 }
                 this.state.prevNodeID = newNode.id
                 return
@@ -131,10 +131,10 @@ class Tool{
             //creates a new node on top of a segment, it splits it and creates a new node
             let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
-                let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
+                let newNode = this.road.addNode(closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y)
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
                 for(let s of allSegmentsBetween){
-                    this.road.splitSegmentAtPos(s.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y, newNode)
+                    this.road.splitSegmentAtPos(s.id, closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y, newNode)
                 }
                 //connects the new node to the previous node
                 this.createSegmentBetweenTwoNodes(this.state.prevNodeID, newNode.id)
@@ -558,6 +558,8 @@ class Tool{
             this.state.hoverSeg = closestPosToSegment.closestSegment.id
         }
         else this.state.hoverSeg = undefined
+
+        
     }
 
     show(){

@@ -18,7 +18,7 @@ const GRID_CELL_SIZE = 40   //15
 let OFFSET_RAD_INTERSEC = 25      //25
 let LENGTH_SEG_BEZIER = 10         //3
 let TENSION_BEZIER_MIN = 0.1
-let TENSION_BEZIER_MAX = 0.6
+let TENSION_BEZIER_MAX = 0.8
 let MIN_DIST_INTERSEC = 10        //30
 let LANE_WIDTH = 30
 
@@ -137,11 +137,14 @@ class Road{
         let pos = {x, y}
         let closestSegment = undefined
         let closestPoint = undefined
+        let closestPointMain = undefined
         let minDist = Infinity
 
         this.segments.forEach(s => {
-            let fromPos = this.findNode(s.fromNodeID).pos
-            let toPos = this.findNode(s.toNodeID).pos
+            let fromPos = s.fromPos
+            let toPos = s.toPos
+            let posFromNode = this.findNode(s.fromNodeID).pos
+            let posToNode = this.findNode(s.toNodeID).pos
             if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
                 //continue
             }
@@ -157,11 +160,12 @@ class Road{
                     minDist = d
                     closestSegment = s
                     closestPoint = point
+                    closestPointMain = {x: posFromNode.x + ab.x * t, y: posFromNode.y + ab.y * t}
                 }
             }
         })
 
-        return {closestSegment, closestPoint, minDist}
+        return {closestSegment, closestPoint, minDist, closestPointMain}
     }
 
     // the edges of segments are the real positions of the segments (after path modification)
@@ -397,7 +401,14 @@ class Road{
         return this.paths.get(nodeAID + '-' + nodeBID) || this.paths.get(nodeBID + '-' + nodeAID)
     }
 
-    
+    findAnyPath(nodeID){
+        let paths = []
+        for(let path of this.paths.values()){
+            if(path.nodeA == nodeID || path.nodeB == nodeID) paths.push(path)
+        }
+        return paths.length > 0 ? paths : undefined
+    }
+
     addNode(x, y){
         const newNode = new Node(this.nodeIDcounter, x, y)
         this.nodes.push(newNode)
@@ -521,7 +532,6 @@ class Road{
 
     //trims all end of segments connected to the node to the farthest intersection found
     trimSegmentsAtIntersection(nodeID, connect = true, instantConvex = true){
-        //if(nodesToAvoid.includes(nodeID)) return
         let intersections = this.findIntersectionsOfNode(nodeID)
         let distInter = 0
         let farthestIntersection = null
@@ -566,7 +576,7 @@ class Road{
                     }
                 }
                 s.createArrows()
-
+                s.constructCorners()
                 
             })
         }
@@ -744,6 +754,7 @@ class Road{
     // every function with  "type: showWays" as a comment must only be called from here, as this function sets the correct drawing modes for optimization purposes
     showWays(toolObj){
         let zoom = toolObj.zoom
+        let hoveredID = toolObj.state.hoverSeg
         push()
         rectMode(CORNERS)
         noStroke()
@@ -766,9 +777,10 @@ class Road{
         push()
         rectMode(CORNERS)
         noStroke()
-        this.paths.forEach(p => p.showWayTop())
+        this.paths.forEach(p => p.showWayTop(hoveredID))
         strokeWeight(1.5)
         stroke(220)
+        strokeCap(SQUARE)
         this.paths.forEach(p => p.showEdges())
         stroke(170)
         strokeWeight(1.5)

@@ -83,7 +83,6 @@ class Intersection {
         beginShape()
         for(let v of this.convexHullPoints) vertex(v.x, v.y)
         endShape()
-        
     }
 
     // type: showWays

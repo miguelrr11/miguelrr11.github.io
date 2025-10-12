@@ -223,26 +223,29 @@ class Menu{
         this.buttons.push(buttonDelete)
         this.buttons.push(buttonHand)
 
-        let sliderLaneWidth = new Slider(10, 230, 80, 'Lane Width', 5, 60, LANE_WIDTH, (value) => {
+        let sliderLaneWidth = new Slider(15, 230, 80, 'Lane Width', 5, 60, LANE_WIDTH, (value) => {
             LANE_WIDTH = value
             this.tool.road.setPaths()
         })
-        let sliderLengthSegBezier = new Slider(10, 270, 80, 'Bezier Res', 50, 2, LENGTH_SEG_BEZIER, (value) => {
+        let sliderLengthSegBezier = new Slider(15, 270, 80, 'Bezier Res', 50, 2, LENGTH_SEG_BEZIER, (value) => {
             LENGTH_SEG_BEZIER = value
             this.tool.road.setPaths()
         })
-        let sliderOffsetRadIntersec = new Slider(10, 310, 80, 'Intersec Rad', 0, 75, OFFSET_RAD_INTERSEC, (value) => {
+        let sliderOffsetRadIntersec = new Slider(15, 310, 80, 'Intersec Rad', 0, 75, OFFSET_RAD_INTERSEC, (value) => {
             OFFSET_RAD_INTERSEC = value
             this.tool.road.setPaths()
         })
-        let sliderTensionMin = new Slider(10, 350, 80, 'Tension Min', 0, 1, TENSION_BEZIER_MIN, (value) => {
+        let sliderTensionMin = new Slider(15, 350, 80, 'Tension Min', 0, 1, TENSION_BEZIER_MIN, (value) => {
             TENSION_BEZIER_MIN = value
             this.tool.road.setPaths()
         })
-        let sliderTensionMax = new Slider(10, 390, 80, 'Tension Max', 0, 1, TENSION_BEZIER_MAX, (value) => {
+        let sliderTensionMax = new Slider(15, 390, 80, 'Tension Max', 0, 1, TENSION_BEZIER_MAX, (value) => {
             TENSION_BEZIER_MAX = value
             this.tool.road.setPaths()
         })
+
+        let buttonBackgroundSliders = new Button(10, 220, 95, 205, '', undefined, undefined, () => {return false})
+        this.buttons.push(buttonBackgroundSliders)
 
         this.sliders.push(sliderTensionMin)
         this.sliders.push(sliderTensionMax)

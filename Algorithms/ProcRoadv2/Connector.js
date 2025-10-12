@@ -21,7 +21,7 @@ class Connector{
         strokeWeight(2)
         noFill()
         stroke(255, 200)
-        ellipse(this.pos.x, this.pos.y, 10, 10)
+        ellipse(this.pos.x, this.pos.y, 13)
         if(SHOW_TAGS){
             let strIncomingAll = this.incomingSegmentIDs.length > 0 ? this.incomingSegmentIDs.join(',') : '_'
             let strOutgoingAll = this.outgoingSegmentIDs.length > 0 ? this.outgoingSegmentIDs.join(',') : '_'

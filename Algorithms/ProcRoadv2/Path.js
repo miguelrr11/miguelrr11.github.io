@@ -14,6 +14,17 @@ class Path{
 
     }
 
+    /*
+      
+        c0 ------- c1
+        |           |
+        |           |
+        |           |
+        c2--------- c3
+
+     */
+
+
     setSegmentsIDs(segmentIDs){
         //a set
         this.segmentsIDs = segmentIDs
@@ -62,11 +73,10 @@ class Path{
     }
 
     // orders segments in the direction from nodeA to nodeB
-    orderSegmentsByDirection(){
+    orderSegmentsByDirection(reverse = false){
         let res = []
         let segArr = Array.from(this.segmentsIDs).map(id => this.road.findSegment(id))
-        let fromNodeID = this.nodeA
-        let toNodeID = this.nodeB
+        let fromNodeID = reverse ? this.nodeB : this.nodeA
         for(let i = 0; i < segArr.length; i++){
             if(segArr[i].fromNodeID == fromNodeID) res.push(segArr[i])
         }
@@ -79,6 +89,7 @@ class Path{
  
 
     // Coje la posicion de los nodos, y el numero de lanes y construye sus propios carriles reales con posiciones calculadas
+    // funcion extremadamente importante
     constructRealLanes(){
         let nodeA = this.road.findNode(this.nodeA)
         let nodeB = this.road.findNode(this.nodeB)
@@ -116,6 +127,29 @@ class Path{
 
             i++
         })
+        this.setSegmentDrawOuterLinesLogic()
+    }
+
+    setSegmentDrawOuterLinesLogic(){
+        for(let i = 0; i < this.segments.length; i++){
+            let segment = this.segments[i]
+            let dashedAbove = undefined
+            let dashedBelow = undefined
+            if(segment.fromNodeID == this.nodeA){
+                if(i - 1 < 0 || this.segments[i-1].fromNodeID != this.segments[i].fromNodeID) dashedBelow = false
+                else dashedBelow = true
+                if(i + 1 > this.segments.length-1 || this.segments[i+1].fromNodeID != this.segments[i].fromNodeID) dashedAbove = false
+                else dashedAbove = true
+            }
+            else{
+                if(i - 1 < 0 || this.segments[i-1].fromNodeID != this.segments[i].fromNodeID) dashedAbove = false
+                else dashedAbove = true
+                if(i + 1 > this.segments.length-1 || this.segments[i+1].fromNodeID != this.segments[i].fromNodeID) dashedBelow = false
+                else dashedBelow = true
+            }
+            segment.drawOuterLinesAboveDashed = dashedAbove
+            segment.drawOuterLinesBelowDashed = dashedBelow
+        }
     }
 
     showLanes(hoveredSegID = undefined){
@@ -144,9 +178,9 @@ class Path{
     }
 
     // type: showWays
-    showWayTop(){
+    showWayTop(hoveredID = undefined){
         this.segments.forEach(segment => {
-            segment.showCustomLanes([100], LANE_WIDTH)
+            segment.showCustomLanes([100], LANE_WIDTH, hoveredID)
         })
     }
 
@@ -154,22 +188,8 @@ class Path{
     showEdges(){
         for(let i = 0; i < this.segments.length; i++){
             let segment = this.segments[i]
-            let dashedAbove = undefined
-            let dashedBelow = undefined
-            if(segment.visualDir == 'for'){
-                if(i - 1 < 0 || this.segments[i-1].visualDir != this.segments[i].visualDir) dashedBelow = false
-                else dashedBelow = true
-                if(i + 1 > this.segments.length-1 || this.segments[i+1].visualDir != this.segments[i].visualDir) dashedAbove = false
-                else dashedAbove = true
-            }
-            else{
-                if(i - 1 < 0 || this.segments[i-1].visualDir != this.segments[i].visualDir) dashedAbove = false
-                else dashedAbove = true
-                if(i + 1 > this.segments.length-1 || this.segments[i+1].visualDir != this.segments[i].visualDir) dashedBelow = false
-                else dashedBelow = true
-            }
-            segment.drawLineAbove(dashedAbove)
-            segment.drawLineBelow(dashedBelow)
+            segment.drawLineAbove(segment.drawOuterLinesAboveDashed)
+            segment.drawLineBelow(segment.drawOuterLinesBelowDashed)
         }
     }
 

@@ -9,7 +9,7 @@ class Segment{
         this.road = undefined
 
 
-        //info updated by Path.js AFTER calling road.setPaths()
+        //info updated by Path.js (constructRealLanes())
         this.fromPos = undefined
         this.toPos = undefined
         this.dir = undefined // direction in radians
@@ -17,6 +17,13 @@ class Segment{
         this.originalFromPos = undefined // used when trimming segments at intersections
         this.originalToPos = undefined
         this.arrowsPos = []
+        this.corners = []
+        this.drawOuterLinesAboveDashed = undefined
+        this.drawOuterLinesBelowDashed = undefined
+    }
+
+    constructCorners(){
+        this.corners = getCornersOfLine(this.fromPos, this.toPos, LANE_WIDTH)
     }
 
     createArrows(){
@@ -111,7 +118,7 @@ class Segment{
     }
 
     // rectMode must be CORNERS and noStroke must be set before calling this
-    showCustomLanes(col, w){
+    showCustomLanes(col, w, hoveredID = undefined){
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = getCornersOfLine(fromPos, toPos, w)
@@ -122,6 +129,15 @@ class Segment{
         vertex(corners[2].x, corners[2].y)
         vertex(corners[3].x, corners[3].y)
         endShape(CLOSE)
+        if(this.id == hoveredID){
+            fill(255, 100)
+            beginShape()
+            vertex(corners[0].x, corners[0].y)
+            vertex(corners[1].x, corners[1].y)
+            vertex(corners[2].x, corners[2].y)
+            vertex(corners[3].x, corners[3].y)
+            endShape(CLOSE)
+        }
     }
 
     showLanes(hoveredSegID = undefined){
