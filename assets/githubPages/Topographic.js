@@ -61,7 +61,7 @@ function initTopo(w, h, ctxRef) {
 }
 
 function updateTopo() {
-    actualCol = lerp(actualCol, col, 0.1)
+    
     const z = frameCount * noiseMovementSpeed;
     for (let i = 0; i < cellsPerRowTopo; i++) {
         for (let j = 0; j < cellsPerColTopo; j++) {
@@ -75,6 +75,7 @@ function updateTopo() {
 }
 
 function showTopo() {
+    actualCol = lerp(actualCol, col, 0.1)
     ctx.strokeStyle = "rgb(" + actualCol + "," + actualCol + "," + actualCol + ")";
     ctx.lineWidth = strokeW
 
