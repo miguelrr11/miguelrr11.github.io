@@ -564,7 +564,10 @@ class Road{
 
                         if(intersection != undefined){
                             finalIntersections.get(path.id).push(intersection)
-                            //auxShow.push(intersection)
+                            auxShow.push(intersection)
+                            let outerIntersections = this.getOuterIntersections(s1, s2)
+                            auxShow.push(...outerIntersections)
+                            finalIntersections.get(path.id).push(...outerIntersections)
                         }
                     }
                 }
@@ -590,7 +593,7 @@ class Road{
                     }
                 }
             }
-            auxShow.push(farthestIntersection)
+            //auxShow.push(farthestIntersection)
             finalIntersections.set(pathID, distInter)
         }
         return finalIntersections
@@ -779,6 +782,22 @@ class Road{
         if(instantConvex) intersection.calculateconvexHullAllSegments();
         else this.convexHullQueue.push(intersection)
         this.intersections.push(intersection)
+    }
+
+    // returns intersections of the segments formed by connecting the corners of the two segments
+    getOuterIntersections(s1, s2){
+        let corners1 = getCornersOfLine(s1.originalFromPos, s1.originalToPos, LANE_WIDTH)
+        let corners2 = getCornersOfLine(s2.originalFromPos, s2.originalToPos, LANE_WIDTH)
+        let intersections = []
+        for(let i = 0; i < corners1.length; i++){
+            let nexti = (i + 1) % corners1.length
+            for(let j = 0; j < corners2.length; j++){
+                let nextj = (j + 1) % corners2.length
+                let inter = lineIntersection(corners1[i], corners1[nexti], corners2[j], corners2[nextj], false)
+                if(inter) intersections.push(inter)
+            }
+        }
+        return intersections
     }
 
     updateConvexHullsIncremental() {

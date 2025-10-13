@@ -193,6 +193,20 @@ class Segment{
         pop()
     }
 
+    //not mantained, only for debug
+    showOutlineCorners(){
+        push()
+        noFill()
+        stroke(255)
+        strokeWeight(1.5)
+        beginShape()
+        for(let i = 0; i < this.corners.length; i++){
+            vertex(this.corners[i].x, this.corners[i].y)
+        }
+        endShape(CLOSE)
+        pop()
+    }
+
     //this is shown if road calls segment.show(), it doesnt take into account the real separation between lanes
     showMain(SHOW_TAGS){
         push()
@@ -272,6 +286,8 @@ class Segment{
             text(str, midPos.x, midPos.y - 10)
         }
 
+        //debug
+        this.showOutlineCorners()
         stroke(255, 0, 0)
         strokeWeight(1)
         line(this.originalFromPos.x, this.originalFromPos.y, this.originalToPos.x, this.originalToPos.y)

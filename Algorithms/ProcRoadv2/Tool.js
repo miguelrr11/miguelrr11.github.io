@@ -56,7 +56,7 @@ class Tool{
         this.yOff = 0
         this.prevMouseX = 0
         this.prevMouseY = 0
-        this.zoom = 0.7
+        this.zoom = 1
 
         this.constantSetPaths = false  //debug purposes
 
