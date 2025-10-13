@@ -34,10 +34,10 @@ class Tool{
         this.buttons = []
         this.menu = new Menu(this)
         this.dragging = false
-        document.addEventListener("click", () => this.onClick())
+        //document.addEventListener("click", () => this.onClick())
         document.addEventListener("mouseup", () => { this.dragging = false; this.onMouseRelease()})
-        document.addEventListener("mousedown", () => {this.dragging = true})
-        document.addEventListener("mousemove", () => {if(this.dragging) this.onMouseDragged()})
+        document.addEventListener("mousedown", (e) => {this.dragging = true; this.onClick()})
+        document.addEventListener("mousemove", (e) => {if(this.dragging) this.onMouseDragged(e)})
         document.addEventListener("keydown", (e) => this.onKeyPressed(e));
         document.addEventListener("wheel", (e) => {e.preventDefault(); this.onMouseWheel(e)}, {passive: false});
         document.addEventListener('contextmenu', (event) => {
@@ -115,12 +115,14 @@ class Tool{
     }
 
     onClick(){
-        if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || keyIsPressed || this.menuInteracting) return
+        if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || mouseButton.center || this.menuInteracting) return
+
+        let mode = (this.state.mode == 'creating') ? (mouseButton.left ? 'creating' : (mouseButton.right ? 'deleting' : this.state.mode)) : this.state.mode
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
         //not following a previous node, so just create a new node
-        if(this.state.mode == 'creating' && this.state.prevNodeID == -1){
+        if(mode == 'creating' && this.state.prevNodeID == -1){
             //resumes creating a segment from the clicked node
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined){
@@ -144,7 +146,7 @@ class Tool{
         }
 
         //following a previous node: create a segment that follows the previous node and creates a new node
-        else if(this.state.mode == 'creating' && this.state.prevNodeID != -1){
+        else if(mode == 'creating' && this.state.prevNodeID != -1){
             //connects it to an existing node if hovering one
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined && hoverNode.id != this.state.prevNodeID){
@@ -175,7 +177,7 @@ class Tool{
             this.state.prevNodeID = newNode.id
         }
         //deletes a node or segment
-        else if(this.state.mode == 'deleting'){
+        else if(mode == 'deleting'){
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined){
                 this.road.deleteNode(hoverNode.id)
@@ -187,14 +189,14 @@ class Tool{
                 return
             }
         }
-        else if(this.state.mode == 'settingStart' || this.state.mode == 'settingEnd'){
+        else if(mode == 'settingStart' || mode == 'settingEnd'){
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined){
-                if(this.state.mode == 'settingStart') {
+                if(mode == 'settingStart') {
                     this.state.startNodeID = hoverNode.id;
                     if(this.state.endNodeID != -1) this.executePathfinding();
                 }
-                if(this.state.mode == 'settingEnd') {
+                if(mode == 'settingEnd') {
                     this.state.endNodeID = hoverNode.id;
                     if(this.state.startNodeID != -1) this.executePathfinding();
                 }
@@ -219,7 +221,7 @@ class Tool{
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
-        if((this.state.mode == 'movingNode' || (keyIsPressed && keyCode == 32)) && this.state.draggingNodeID == -1){
+        if((this.state.mode == 'movingNode' || (keyIsPressed && keyCode == 32) || (mouseIsPressed && mouseButton.center)) && this.state.draggingNodeID == -1){
             if(!this.prevMouseX) this.prevMouseX = mouseX
             if(!this.prevMouseY) this.prevMouseY = mouseY
             let dx = mouseX - this.prevMouseX; // Change in mouse X
@@ -657,6 +659,7 @@ class Tool{
     }
 
     update(){
+        keyIsPressed = false   // hotfix for keyIsPressed being stuck sometimes (p5js bug?)
         this.state.edges = this.getEdges()
         GLOBAL_EDGES = this.state.edges
         this.road.updateConvexHullsIncremental()
