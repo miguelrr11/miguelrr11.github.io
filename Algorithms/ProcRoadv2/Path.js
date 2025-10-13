@@ -84,13 +84,15 @@ class Path{
     orderSegmentsByDirection(reverse = false){
         let res = []
         let segArr = Array.from(this.segmentsIDs).map(id => this.road.findSegment(id))
-        let fromNodeID = reverse ? this.nodeB : this.nodeA
+        //let fromNodeID = reverse ? this.nodeB : this.nodeA
+        let fromNodeID = this.nodeA
         for(let i = 0; i < segArr.length; i++){
             if(segArr[i].fromNodeID == fromNodeID) res.push(segArr[i])
         }
         for(let i = 0; i < segArr.length; i++){
             if(segArr[i].fromNodeID != fromNodeID) res.push(segArr[i])
         }
+        if(reverse) res.reverse()
         let segs = new Set(res.map(s => s.id))
         this.setSegmentsIDs(segs)
     }
@@ -169,8 +171,9 @@ class Path{
 
     showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined){
         this.segmentsIDs.forEach(segmentID => {
+            let indexOfSeg = Array.from(this.segmentsIDs).indexOf(segmentID)
             let segment = this.road.findSegment(segmentID)
-            if(segment) segment.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID)
+            if(segment) segment.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID, indexOfSeg)
         })
     }
 

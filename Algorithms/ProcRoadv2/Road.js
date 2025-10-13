@@ -15,7 +15,7 @@
 const NODE_RAD = 20
 const GRID_CELL_SIZE = 40   //15
 
-let OFFSET_RAD_INTERSEC = 10      //25
+let OFFSET_RAD_INTERSEC = 30      //25
 let LENGTH_SEG_BEZIER = 5         //3
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.8
@@ -572,9 +572,7 @@ class Road{
 
                         if(intersection != undefined){
                             finalIntersections.get(path.id).push(intersection)
-                            auxShow.push(intersection)
                             let outerIntersections = this.getOuterIntersections(s1, s2)
-                            auxShow.push(...outerIntersections)
                             finalIntersections.get(path.id).push(...outerIntersections)
                         }
                     }
@@ -760,6 +758,7 @@ class Road{
             }
         }
         intersection.pathsIDs = this.findAnyPath(nodeID)?.map(p => p.id) || []
+        //intersection.debugOrder()
         if(instantConvex) intersection.calculateconvexHullAllSegments();
         else this.convexHullQueue.push(intersection)
         this.intersections.push(intersection)

@@ -204,7 +204,7 @@ class Segment{
     showOutlineCorners(){
         push()
         noFill()
-        stroke(255)
+        stroke(255, 100)
         strokeWeight(1.5)
         beginShape()
         for(let i = 0; i < this.corners.length; i++){
@@ -250,17 +250,27 @@ class Segment{
 
 
     // just shows a white line with arrows, and tags if needed, from fromPos to toPos
-    showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined){
+    showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined, indexOfSeg = 0){
         if(this.outOfBounds()){
             return
         }
         push()
-        stroke(COL_PATHS)
 
+        
+        stroke(COL_PATHS)
         hoveredSegID == this.id ? strokeWeight(3) : strokeWeight(2)
         line(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
         let midPos = {x: (this.fromPos.x + this.toPos.x) / 2, y: (this.fromPos.y + this.toPos.y) / 2}
         drawArrowTip(midPos.x, midPos.y, this.dir, 7)
+
+        //debug
+        if(hoveredSegID == this.id){
+            stroke(255)
+            fill(0)
+            for(let i = 0; i < this.corners.length; i++){
+                text('c' + i, this.corners[i].x, this.corners[i].y)
+            }
+        }
 
         if(SHOW_SEGS_DETAILS){
             stroke(0, 255, 0)
@@ -292,9 +302,16 @@ class Segment{
 
         //debug
         this.showOutlineCorners()
-        stroke(255, 0, 0)
-        strokeWeight(1)
-        line(this.originalFromPos.x, this.originalFromPos.y, this.originalToPos.x, this.originalToPos.y)
+        // stroke(255, 0, 0, 100)
+        // strokeWeight(1)
+        // line(this.originalFromPos.x, this.originalFromPos.y, this.originalToPos.x, this.originalToPos.y)
+        // let mid = lerppos(this.originalFromPos, this.originalToPos, .5)
+        // let bbox = textBounds(indexOfSeg, mid.x, mid.y)
+        // fill(0, 0, 255)
+        // rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
+        // noStroke()
+        // fill(255)
+        // text(indexOfSeg, mid.x, mid.y)
 
         // strokeWeight(10)
         // // verde es from y to

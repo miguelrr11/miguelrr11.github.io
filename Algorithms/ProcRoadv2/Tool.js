@@ -77,7 +77,7 @@ class Tool{
             draggingNodeID: -1,
             offsetDraggingNode: {x: 0, y: 0},
 
-            nForLanes: 1,
+            nForLanes: 2,
             nBackLanes: 1,
             snapToGrid: false,
 

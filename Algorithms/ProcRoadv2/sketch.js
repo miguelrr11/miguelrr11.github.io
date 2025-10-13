@@ -57,8 +57,8 @@ function addCars(num){
 function draw(){
     //background('#F1DBB7')
     background(50)
-    auxShow = []
-    //if(auxShow.length > 100) auxShow.splice(0, auxShow.length - 100)
+    //auxShow = []
+    if(auxShow.length > 1000) auxShow.splice(0, auxShow.length - 100)
 
     //background(60)
     tool.update()
@@ -80,11 +80,20 @@ function draw(){
     push()
     translate(tool.xOff, tool.yOff)
     scale(tool.zoom)
-    stroke(0, 0, 255)
-    strokeWeight(5)
+    fill(0, 255, 0)
+    stroke(255)
+    strokeWeight(1)
     for(let i = 0; i < auxShow.length; i++){
-        point(auxShow[i].x, auxShow[i].y)
+        fill(0, 255, 0)
+        ellipse(auxShow[i].x, auxShow[i].y, map(i, 0, auxShow.length, 2, 6))    
     }
+    stroke(255, 0, 0)
+    noFill()
+    beginShape()
+    for(let i = 0; i < auxShow.length; i++){
+        vertex(auxShow[i].x, auxShow[i].y)    
+    }
+    endShape()
     pop()
 }
 
