@@ -38,7 +38,7 @@ class Intersection {
     }
 
     convexHullPointsExists(){
-        return this.convexHullCalculated
+        return this.convexHullCalculated && this.convexHullPoints.length > 0 && this.convexHullPoints16.length > 0
     }
 
     drawconvexHullDebug(){

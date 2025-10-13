@@ -227,6 +227,8 @@ class Segment{
         this.showDirection()
     }
 
+
+    // just shows a white line with arrows, and tags if needed, from fromPos to toPos
     showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined){
         if(this.outOfBounds()){
             return
@@ -237,7 +239,7 @@ class Segment{
         // strokeWeight(1)
         // line(this.originalFromPos.x, this.originalFromPos.y, this.originalToPos.x, this.originalToPos.y)
 
-        hoveredSegID == this.id ? strokeWeight(2.5) : strokeWeight(1.5)
+        hoveredSegID == this.id ? strokeWeight(3) : strokeWeight(2)
         line(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
         let midPos = {x: (this.fromPos.x + this.toPos.x) / 2, y: (this.fromPos.y + this.toPos.y) / 2}
         drawArrowTip(midPos.x, midPos.y, this.dir, 7)
@@ -270,12 +272,16 @@ class Segment{
             text(str, midPos.x, midPos.y - 10)
         }
 
-        // strokeWeight(10)
-        // // verde es from y to
-        // stroke(0, 255, 0, 200)
+        stroke(255, 0, 0)
+        strokeWeight(1)
+        line(this.originalFromPos.x, this.originalFromPos.y, this.originalToPos.x, this.originalToPos.y)
+
+        strokeWeight(10)
+        // verde es from y to
+        stroke(0, 255, 0, 200)
         // point(this.fromPos.x, this.fromPos.y)
         // point(this.toPos.x, this.toPos.y)
-        // // rojo es original
+        // rojo es original
         // stroke(255, 0, 0, 200)
         // point(this.originalFromPos.x, this.originalFromPos.y)
         // point(this.originalToPos.x, this.originalToPos.y)

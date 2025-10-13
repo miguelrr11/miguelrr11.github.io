@@ -542,37 +542,103 @@ class Road{
         return intersections;
     }
 
+    findIntersectionsOfNodev2(nodeID){
+        let paths = this.findAnyPath(nodeID)
+        let finalIntersections = new Map()
 
-    //trims all end of segments connected to the node to the farthest intersection found
-    trimSegmentsAtIntersection(nodeID, connect = true, instantConvex = true){
-        let intersections = this.findIntersectionsOfNode(nodeID)
-        let distInter = 0
-        let farthestIntersection = null
-        let node = this.findNode(nodeID)
-        if(intersections.length == 0) return
-        else if(intersections.length == 1){
-            farthestIntersection = intersections[0]
-            distInter = dist(node.pos.x, node.pos.y, farthestIntersection.x, farthestIntersection.y)
-        }
-        else {
-            for(let inter of intersections){
-                let node = this.findNode(nodeID)
-                let d = dist(node.pos.x, node.pos.y, inter.x, inter.y)
-                if(d > distInter){
-                    distInter = d
-                    farthestIntersection = inter
+        for(let path of paths){
+            finalIntersections.set(path.id, [])
+            for(let otherPath of paths){
+                if(path == otherPath) continue
+                let segments1 = [...path.segmentsIDs].map(id => this.findSegment(id))
+                let segments2 = [...otherPath.segmentsIDs].map(id => this.findSegment(id))
+
+                for(let s1 of segments1){
+                    for(let s2 of segments2){
+                        if(s1.id == s2.id) continue
+
+                        let intersection = lineIntersection(
+                            s1.originalFromPos, s1.originalToPos,
+                            s2.originalFromPos, s2.originalToPos, false
+                        );
+
+                        if(intersection != undefined){
+                            finalIntersections.get(path.id).push(intersection)
+                            //auxShow.push(intersection)
+                        }
+                    }
                 }
             }
         }
-        
-        distInter += OFFSET_RAD_INTERSEC
-        distInter = Math.max(distInter, MIN_DIST_INTERSEC)
 
-        if(farthestIntersection != null){
+        //now for each path we keep the farthest to the node
+        for(let [pathID, inters] of finalIntersections){
+            let distInter = 0
+            let farthestIntersection = null
+            let node = this.findNode(nodeID) 
+            if(inters.length == 0) continue
+            else if(inters.length == 1){
+                farthestIntersection = inters[0]
+                distInter = dist(node.pos.x, node.pos.y, farthestIntersection.x, farthestIntersection.y)
+            }
+            else {
+                for(let inter of inters){
+                    let d = dist(node.pos.x, node.pos.y, inter.x, inter.y)
+                    if(d > distInter){
+                        distInter = d
+                        farthestIntersection = inter
+                    }
+                }
+            }
+            auxShow.push(farthestIntersection)
+            finalIntersections.set(pathID, distInter)
+        }
+        return finalIntersections
+        // console.log('--------')
+        // console.log(nodeID)
+        // console.log(finalIntersections)
+    }
+
+
+    //trims all end of segments connected to the node to the farthest intersection found
+    trimSegmentsAtIntersection(nodeID, connect = true, instantConvex = true){
+        let distances = this.findIntersectionsOfNodev2(nodeID)
+
+        // let intersections = this.findIntersectionsOfNode(nodeID)
+        // let distInter = 0
+        // let farthestIntersection = null
+        let node = this.findNode(nodeID)
+        // if(intersections.length == 0) return
+        // else if(intersections.length == 1){
+        //     farthestIntersection = intersections[0]
+        //     distInter = dist(node.pos.x, node.pos.y, farthestIntersection.x, farthestIntersection.y)
+        // }
+        // else {
+        //     for(let inter of intersections){
+        //         let node = this.findNode(nodeID)
+        //         let d = dist(node.pos.x, node.pos.y, inter.x, inter.y)
+        //         if(d > distInter){
+        //             distInter = d
+        //             farthestIntersection = inter
+        //         }
+        //     }
+        // }
+
+        // auxShow.push(farthestIntersection)
+        
+        // distInter += OFFSET_RAD_INTERSEC
+        // distInter = Math.max(distInter, MIN_DIST_INTERSEC)
+
+        if(distances != null){
             let connectedSegments = this.findConnectedSegments(nodeID)
             connectedSegments.forEach(s => {
                 
                 if(s.originalFromPos && s.originalToPos){
+                    let pathOfSeg = this.findPath(s.fromNodeID, s.toNodeID)
+                    let distInter = distances.get(pathOfSeg.id)
+                    if(distInter == undefined) return
+                    distInter += OFFSET_RAD_INTERSEC
+                    distInter = Math.max(distInter, MIN_DIST_INTERSEC)
                     // First reset both ends to original positions to get correct direction
 
                     let origFrom = {...s.originalFromPos}

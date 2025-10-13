@@ -19,15 +19,15 @@ class Tool{
     constructor(){
         this.showOptions = {
             SHOW_ROAD: false,
-            SHOW_PATHS: false,
+            SHOW_PATHS: true,
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
             SHOW_INTERSECSEGS: false,
-            SHOW_TAGS: false,
+            SHOW_TAGS: true,
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
-            SHOW_WAYS: true,
-            SHOW_CONVEXHULL: false
+            SHOW_WAYS: false,
+            SHOW_CONVEXHULL: true
         }
         this.road = new Road(this)
         this.state = this.getInitialState()
@@ -58,9 +58,13 @@ class Tool{
         this.prevMouseY = 0
         this.zoom = 0.7
 
+        this.constantSetPaths = false  //debug purposes
 
         this.cursor = CROSS
         cursor(this.cursor)
+
+        let roadData = getItem('roadData')
+        if(roadData) this.setStateToRoad(roadData)
     }
 
     getInitialState(){
@@ -73,7 +77,7 @@ class Tool{
 
             nForLanes: 1,
             nBackLanes: 1,
-            snapToGrid: true,
+            snapToGrid: false,
 
             changed: false,
 
@@ -660,6 +664,7 @@ class Tool{
 
     update(){
         keyIsPressed = false   // hotfix for keyIsPressed being stuck sometimes (p5js bug?)
+        if(this.constantSetPaths) this.road.setPaths()
         this.state.edges = this.getEdges()
         GLOBAL_EDGES = this.state.edges
         this.road.updateConvexHullsIncremental()

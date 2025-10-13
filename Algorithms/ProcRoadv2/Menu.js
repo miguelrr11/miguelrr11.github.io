@@ -138,7 +138,9 @@ class Menu{
         let buttonRemoveCars = new Button(10, HEIGHT - 60, 95, 20, 'Remove Cars', () => {
             cars = []
         })
-
+        let buttonConstantSetPaths = new Button(10, HEIGHT - 90, 95, 20, 'Set Paths ON', () => {
+            tool.constantSetPaths = !tool.constantSetPaths
+        }, () => {return 'Set Paths ' + (tool.constantSetPaths ? 'ON' : 'OFF')},  () => {return tool.constantSetPaths})
 
         let buttonSnapToGrid = new Button(10, 90, 80, 20, 'Snap Grid', () => {
             this.tool.state.snapToGrid = !this.tool.state.snapToGrid
@@ -200,6 +202,7 @@ class Menu{
         this.buttons.push(buttonShowConvexHull)
 
         this.buttons.push(buttonFullscreen)
+        this.buttons.push(buttonConstantSetPaths)
 
         this.buttons.push(buttonZoomMinus)
         this.buttons.push(buttonZoomPlus)
