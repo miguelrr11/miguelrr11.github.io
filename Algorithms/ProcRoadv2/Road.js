@@ -15,11 +15,11 @@
 const NODE_RAD = 20
 const GRID_CELL_SIZE = 40   //15
 
-let OFFSET_RAD_INTERSEC = 25      //25
+let OFFSET_RAD_INTERSEC = 10      //25
 let LENGTH_SEG_BEZIER = 5         //3
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.8
-let MIN_DIST_INTERSEC = 10        //30
+let MIN_DIST_INTERSEC = 30        //30
 let LANE_WIDTH = 30
 
 // how many intersections to calculate per frame when updating convex hulls incrementally
@@ -88,7 +88,7 @@ class Road{
         let newPath 
         if(usePath) newPath = usePath
         else{
-            newPath = this.findPath(nodesIDs[0], nodesIDs[1])
+            newPath = this.findPathByNodes(nodesIDs[0], nodesIDs[1])
             if(!newPath) {
                 newPath = new Path(nodesIDs[0], nodesIDs[1], segmentIDs)
                 newPath.road = this
@@ -109,9 +109,10 @@ class Road{
                 this.intersections = this.intersections.filter(i => i.nodeID != nodeID)
             }
         }
-        for(let nodeID of nodesIDs){
-            let node = this.findNode(nodeID)
-            if(trim) this.trimSegmentsAtIntersection(nodeID, true, true)
+        if(trim) {
+            for(let nodeID of nodesIDs){
+                this.trimSegmentsAtIntersection(nodeID, true, true)
+            }
         }
     }
 
@@ -127,7 +128,7 @@ class Road{
 
         let arr = [...connectedNodes]
         for(let n of arr){ 
-            let path = this.findPath(n, nodeID)
+            let path = this.findPathByNodes(n, nodeID)
             this.updateRoad([nodeID, n], path)
         }
     }
@@ -354,8 +355,8 @@ class Road{
         let segment1 = this.addSegmentNoUpdate(fromNode.id, newNode.id, visualDir)
         let segment2 = this.addSegmentNoUpdate(newNode.id, toNode.id, visualDir)
 
-        let path1 = this.findPath(fromNode.id, newNode.id)
-        let path2 = this.findPath(newNode.id, toNode.id)
+        let path1 = this.findPathByNodes(fromNode.id, newNode.id)
+        let path2 = this.findPathByNodes(newNode.id, toNode.id)
         if(!path1){
             path1 = new Path(fromNode.id, newNode.id, new Set([segment1.id]))
             path1.road = this
@@ -410,7 +411,7 @@ class Road{
         }
     }
 
-    findPath(nodeAID, nodeBID){
+    findPathByNodes(nodeAID, nodeBID){
         return this.paths.get(nodeAID + '-' + nodeBID) || this.paths.get(nodeBID + '-' + nodeAID)
     }
 
@@ -420,6 +421,10 @@ class Road{
             if(path.nodeA == nodeID || path.nodeB == nodeID) paths.push(path)
         }
         return paths.length > 0 ? paths : undefined
+    }
+
+    findPath(pathID){
+        return this.paths.get(pathID)
     }
 
     addNode(x, y){
@@ -507,6 +512,7 @@ class Road{
         return this.getPathsOfSegments(connectedSegments)
     }
 
+    // not in use
     findIntersectionsOfNode(nodeID){
         const connectedSegments = this.findConnectedSegments(nodeID);
         const intersections = [];
@@ -542,8 +548,10 @@ class Road{
         return intersections;
     }
 
+    // for each path connected to the node, finds the farthest intersection from the node, taking into account also the edges of the sidewalks (corners)
     findIntersectionsOfNodev2(nodeID){
         let paths = this.findAnyPath(nodeID)
+        if(!paths) return null
         let finalIntersections = new Map()
 
         for(let path of paths){
@@ -593,75 +601,48 @@ class Road{
                     }
                 }
             }
-            //auxShow.push(farthestIntersection)
             finalIntersections.set(pathID, distInter)
         }
         return finalIntersections
-        // console.log('--------')
-        // console.log(nodeID)
-        // console.log(finalIntersections)
     }
 
 
     //trims all end of segments connected to the node to the farthest intersection found
     trimSegmentsAtIntersection(nodeID, connect = true, instantConvex = true){
         let distances = this.findIntersectionsOfNodev2(nodeID)
-
-        // let intersections = this.findIntersectionsOfNode(nodeID)
-        // let distInter = 0
-        // let farthestIntersection = null
+        if(!distances) return
         let node = this.findNode(nodeID)
-        // if(intersections.length == 0) return
-        // else if(intersections.length == 1){
-        //     farthestIntersection = intersections[0]
-        //     distInter = dist(node.pos.x, node.pos.y, farthestIntersection.x, farthestIntersection.y)
-        // }
-        // else {
-        //     for(let inter of intersections){
-        //         let node = this.findNode(nodeID)
-        //         let d = dist(node.pos.x, node.pos.y, inter.x, inter.y)
-        //         if(d > distInter){
-        //             distInter = d
-        //             farthestIntersection = inter
-        //         }
-        //     }
-        // }
 
-        // auxShow.push(farthestIntersection)
-        
-        // distInter += OFFSET_RAD_INTERSEC
-        // distInter = Math.max(distInter, MIN_DIST_INTERSEC)
+        let connectedSegments = this.findConnectedSegments(nodeID)
+        connectedSegments.forEach(s => {
+            
+            if(s.originalFromPos && s.originalToPos){
+                let pathOfSeg = this.findPathByNodes(s.fromNodeID, s.toNodeID)
+                if(!pathOfSeg) return
+                let distInter = distances.get(pathOfSeg.id)
+                if(distInter == undefined) return
+                distInter += OFFSET_RAD_INTERSEC
+                distInter = Math.max(distInter, MIN_DIST_INTERSEC)
+                // First reset both ends to original positions to get correct direction
 
-        if(distances != null){
-            let connectedSegments = this.findConnectedSegments(nodeID)
-            connectedSegments.forEach(s => {
+                let origFrom = {...s.originalFromPos}
+                let origTo = {...s.originalToPos}
                 
-                if(s.originalFromPos && s.originalToPos){
-                    let pathOfSeg = this.findPath(s.fromNodeID, s.toNodeID)
-                    let distInter = distances.get(pathOfSeg.id)
-                    if(distInter == undefined) return
-                    distInter += OFFSET_RAD_INTERSEC
-                    distInter = Math.max(distInter, MIN_DIST_INTERSEC)
-                    // First reset both ends to original positions to get correct direction
 
-                    let origFrom = {...s.originalFromPos}
-                    let origTo = {...s.originalToPos}
-                    
-
-                    if(s.fromNodeID == nodeID){
-                        // Calculate shortening from original positions
-                        s.fromPos = shortenSegment(origTo, origFrom, distInter)
-                    }
-                    else if(s.toNodeID == nodeID){
-                        // Calculate shortening from original positions
-                        s.toPos = shortenSegment(origFrom, origTo, distInter)
-                    }
+                if(s.fromNodeID == nodeID){
+                    // Calculate shortening from original positions
+                    s.fromPos = shortenSegment(origTo, origFrom, distInter)
                 }
-                s.createArrows()
-                s.constructCorners()
-                
-            })
-        }
+                else if(s.toNodeID == nodeID){
+                    // Calculate shortening from original positions
+                    s.toPos = shortenSegment(origFrom, origTo, distInter)
+                }
+            }
+            s.createArrows()
+            s.constructCorners()
+            
+        })
+        
         if(connect) this.connectIntersection(nodeID, this.nodeOnceConnected(node), instantConvex)
     }
 
@@ -841,8 +822,8 @@ class Road{
         this.intersecSegs.forEach(s => s.showLane())
     }
 
-    showNodes(){
-        this.nodes.forEach(n => n.show())
+    showNodes(zoom){
+        this.nodes.forEach(n => n.show(false, zoom))
     }
 
     showNodesTags(){
@@ -867,21 +848,22 @@ class Road{
         fill(100)
         noStroke()
         this.intersections.forEach(p => p.showWayTop())
-        stroke(220)
-        strokeWeight(10)
-        strokeCap(SQUARE)
-        this.intersections.forEach(p => p.showIntersectionStartLine())
         pop()
         push()
         rectMode(CORNERS)
         noStroke()
         this.paths.forEach(p => p.showWayTop(hoveredID))
+        stroke(220)
+        strokeWeight(WIDTH_YIELD_MARKING)
+        strokeCap(SQUARE)
+        this.intersections.forEach(p => p.showYieldMarkings())
         strokeWeight(1.5)
         stroke(220)
         strokeCap(SQUARE)
         this.paths.forEach(p => p.showEdges())
         stroke(170)
         strokeWeight(1.5)
+        fill(170)
         if(zoom > 0.18) this.paths.forEach(p => p.showArrows())
         pop()
     }

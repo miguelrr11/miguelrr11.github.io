@@ -45,12 +45,12 @@ class Node{
         pop()
     }
 
-    show(selected = false){
+    show(selected = false, zoom = 1){
         if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, NODE_RAD)) return
         push()
         selected ? fill(255, 100) : noFill()
         textSize(15)
-        strokeWeight(1.5)
+        strokeWeight(1.5 / zoom)
         stroke(255, 200)
         let mult = selected ? 1.8 : 2
         ellipse(this.pos.x, this.pos.y, NODE_RAD * mult)

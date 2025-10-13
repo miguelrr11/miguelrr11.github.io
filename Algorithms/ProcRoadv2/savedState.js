@@ -1,4 +1,4 @@
-let saved = {
+let savedCity = {
     "nodes": [
         {
             "id": 0,

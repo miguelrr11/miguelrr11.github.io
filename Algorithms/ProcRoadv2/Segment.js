@@ -1,3 +1,5 @@
+const WIDTH_YIELD_MARKING = 7
+
 class Segment{
     constructor(id, fromNodeID, toNodeID, visualDir){
         this.id = id
@@ -18,12 +20,18 @@ class Segment{
         this.originalToPos = undefined
         this.arrowsPos = []
         this.corners = []
+        this.yieldPos = []
         this.drawOuterLinesAboveDashed = undefined
         this.drawOuterLinesBelowDashed = undefined
     }
 
     constructCorners(){
         this.corners = getCornersOfLine(this.fromPos, this.toPos, LANE_WIDTH)
+
+        let dir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
+        let toPosShort = {x: this.toPos.x - Math.cos(dir) * WIDTH_YIELD_MARKING * 0.5, y: this.toPos.y - Math.sin(dir) * WIDTH_YIELD_MARKING * 0.5}
+        let yieldCorners = getCornersOfLine(this.fromPos, toPosShort, LANE_WIDTH)
+        this.yieldPos = [{x: yieldCorners[2].x, y: yieldCorners[2].y}, {x: yieldCorners[3].x, y: yieldCorners[3].y}]
     }
 
     createArrows(){
@@ -40,20 +48,19 @@ class Segment{
         if(totalLen < spacing){
             totalLen = dist(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
             let tippos = lerppos(this.fromPos, this.toPos, 0.5)
-            let startLinePos = lerppos(this.fromPos, this.toPos, (totalLen/2 - 10) / totalLen)
+            let startLinePos = lerppos(this.fromPos, this.toPos, (totalLen/2 - 15) / totalLen)
             this.arrowsPos.push({tip: tippos, startLine: startLinePos})
             return
         }
         let nArrows = Math.floor(totalLen / spacing)
         for(let i=1; i<=nArrows; i++){
             let relPosTip = (i * spacing) / totalLen
-            let relPosStart = ((i * spacing) - 10) / totalLen
+            let relPosStart = ((i * spacing) - 15) / totalLen
             let tippos = lerppos(fromPos, toPos, relPosTip)
             let startLinePos = lerppos(fromPos, toPos, relPosStart)
             this.arrowsPos.push({tip: tippos, startLine: startLinePos})
         }
     }
-
 
     export(){
         return {
@@ -250,9 +257,6 @@ class Segment{
         push()
         stroke(COL_PATHS)
 
-        // strokeWeight(1)
-        // line(this.originalFromPos.x, this.originalFromPos.y, this.originalToPos.x, this.originalToPos.y)
-
         hoveredSegID == this.id ? strokeWeight(3) : strokeWeight(2)
         line(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
         let midPos = {x: (this.fromPos.x + this.toPos.x) / 2, y: (this.fromPos.y + this.toPos.y) / 2}
@@ -292,12 +296,12 @@ class Segment{
         strokeWeight(1)
         line(this.originalFromPos.x, this.originalFromPos.y, this.originalToPos.x, this.originalToPos.y)
 
-        strokeWeight(10)
-        // verde es from y to
-        stroke(0, 255, 0, 200)
+        // strokeWeight(10)
+        // // verde es from y to
+        // stroke(0, 255, 0, 200)
         // point(this.fromPos.x, this.fromPos.y)
         // point(this.toPos.x, this.toPos.y)
-        // rojo es original
+        // //rojo es original
         // stroke(255, 0, 0, 200)
         // point(this.originalFromPos.x, this.originalFromPos.y)
         // point(this.originalToPos.x, this.originalToPos.y)
@@ -309,7 +313,7 @@ class Segment{
     drawArrows(){
         this.arrowsPos.forEach(pos => {
             line(pos.startLine.x, pos.startLine.y, pos.tip.x, pos.tip.y)
-            drawArrowTip(pos.tip.x, pos.tip.y, this.dir, 6.5)
+            drawArrowTip(pos.tip.x, pos.tip.y, this.dir, 5)
         })
     }
 

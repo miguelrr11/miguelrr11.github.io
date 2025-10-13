@@ -19,15 +19,15 @@ class Tool{
     constructor(){
         this.showOptions = {
             SHOW_ROAD: false,
-            SHOW_PATHS: true,
+            SHOW_PATHS: false,
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
             SHOW_INTERSECSEGS: false,
-            SHOW_TAGS: true,
+            SHOW_TAGS: false,
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
-            SHOW_WAYS: false,
-            SHOW_CONVEXHULL: true
+            SHOW_WAYS: true,
+            SHOW_CONVEXHULL: false
         }
         this.road = new Road(this)
         this.state = this.getInitialState()
@@ -63,8 +63,10 @@ class Tool{
         this.cursor = CROSS
         cursor(this.cursor)
 
-        let roadData = getItem('roadData')
-        if(roadData) this.setStateToRoad(roadData)
+        // Automatically load saved road data from local storage if available
+        // let roadData = getItem('roadData')
+        // if(roadData) this.setStateToRoad(roadData)
+        // else {storeItem('roadData', savedCity); this.setStateToRoad(savedCity)} //initial state
     }
 
     getInitialState(){
@@ -183,7 +185,7 @@ class Tool{
         //deletes a node or segment
         else if(mode == 'deleting'){
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
-            if(hoverNode != undefined){
+            if(hoverNode != undefined && this.state.prevNodeID != hoverNode.id){
                 this.road.deleteNode(hoverNode.id)
                 return
             }
@@ -302,6 +304,18 @@ class Tool{
         }
         if(k == 'a'){
             this.selectState()
+        }
+        if(kC == 8){
+            if(this.state.mode == 'selecting' && this.state.selectedNodes.length > 0){
+                for(let node of this.state.selectedNodes){
+                    this.road.deleteNode(node.id)
+                }
+                this.state.selectedNodes = []
+                this.state.firstCorner = undefined
+                this.state.secondCorner = undefined
+                this.state.firstCornerSelected = undefined
+                this.state.secondCornerSelected = undefined
+            }
         }
     }
 
@@ -617,7 +631,7 @@ class Tool{
         push()
         noFill()
         stroke(255, 200)
-        strokeWeight(1.5)
+        strokeWeight(1)
         rectMode(CORNERS)
         rect(x1, y1, x2, y2)
         blendMode(ADD)
@@ -714,7 +728,7 @@ class Tool{
         if(this.showOptions.SHOW_CONVEXHULL) this.road.showConvexHulls()
         
         blendMode(DIFFERENCE)
-        if(this.showOptions.SHOW_NODES) this.road.showNodes()
+        if(this.showOptions.SHOW_NODES) this.road.showNodes(this.zoom)
         blendMode(BLEND)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_TAGS && this.showOptions.SHOW_NODES) this.road.showNodesTags()
@@ -745,13 +759,13 @@ class Tool{
         let hoverSegment = (_hoverSegment.closestSegment && _hoverSegment.minDist < LANE_WIDTH * .5) ? _hoverSegment.closestSegment : false
         if(this.state.mode == 'movingNode' && hoverNode != undefined){
             blendMode(ADD)
-            hoverNode.show(true)
+            hoverNode.show(true, this.zoom)
             blendMode(BLEND)
         }
         else if(this.state.mode == 'deleting' || this.state.mode == 'creating'){
             if(hoverNode){
                 blendMode(ADD)
-                hoverNode.show(true)
+                hoverNode.show(true, this.zoom)
                 blendMode(BLEND)
             }
             else if(hoverSegment && this.showOptions.SHOW_ROAD){

@@ -202,7 +202,7 @@ class Menu{
         this.buttons.push(buttonShowConvexHull)
 
         this.buttons.push(buttonFullscreen)
-        this.buttons.push(buttonConstantSetPaths)
+        //this.buttons.push(buttonConstantSetPaths)
 
         this.buttons.push(buttonZoomMinus)
         this.buttons.push(buttonZoomPlus)

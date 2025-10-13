@@ -86,12 +86,21 @@ class Intersection {
     }
 
     // type: showWays
-    showIntersectionStartLine(){
-        if(this.pathsIDs.length > 2){ 
-            for(let i = 0; i < this.intersecSegsIDs.length; i++){
-                let segment = this.road.findIntersecSeg(this.intersecSegsIDs[i])
-                let corners = segment.corners
-                if(corners && corners[0] != undefined) line(corners[0].x, corners[0].y, corners[2].x, corners[2].y)
+    showYieldMarkings(){
+        // find all segments that feed into this intersection
+        let paths = this.road.findAnyPath(this.nodeID)
+        if(paths.length > 2){ 
+            for(let i = 0; i < paths.length; i++){
+                let path = paths[i]
+                if(path){
+                    let segmentsEndingHere = path.getSegmentsEndingAtNode(this.nodeID)
+                    segmentsEndingHere.forEach(segment => {
+                        let yieldPos = segment.yieldPos
+                        if(yieldPos && yieldPos[0] != undefined){ 
+                            line(yieldPos[0].x, yieldPos[0].y, yieldPos[1].x, yieldPos[1].y)
+                        }
+                    });
+                }
             }
         }
     }

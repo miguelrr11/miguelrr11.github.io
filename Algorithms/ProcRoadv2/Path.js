@@ -24,6 +24,14 @@ class Path{
 
      */
 
+    getSegmentsEndingAtNode(nodeID){
+        let res = []
+        this.segments.forEach(segment => {
+            if(segment.toNodeID == nodeID) res.push(segment)
+        })
+        return res
+    }
+
 
     setSegmentsIDs(segmentIDs){
         //a set

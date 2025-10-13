@@ -212,8 +212,11 @@ function drawArrowTip(x, y, angle, arrowSize = 7) {
     let y1 = y + Math.sin(angle - PI / 6) * arrowSize;
     let x2 = x + Math.cos(angle + PI / 6) * arrowSize;
     let y2 = y + Math.sin(angle + PI / 6) * arrowSize;
-    line(x, y, x1, y1);
-    line(x, y, x2, y2);
+    beginShape()
+    vertex(x1, y1);
+    vertex(x, y);
+    vertex(x2, y2);
+    endShape(CLOSE);
 }
 
 function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {
