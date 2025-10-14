@@ -104,7 +104,10 @@ class Tool{
             secondCorner: undefined,
             firstCornerSelected: undefined,
             secondCornerSelected: undefined,
-            selectedNodes: []
+            selectedNodes: [],
+            selectedNodesOffsets: [],
+            boxOffsetFirstCorner: {x: 0, y: 0},
+            boxOffsetSecondCorner: {x: 0, y: 0}
         }
     }
 
@@ -122,6 +125,8 @@ class Tool{
 
     onClick(){
         if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || mouseButton.center || this.menuInteracting) return
+
+        this.removeSelectedBox()
 
         let mode = (this.state.mode == 'creating') ? (mouseButton.left ? 'creating' : (mouseButton.right ? 'deleting' : this.state.mode)) : this.state.mode
 
@@ -195,6 +200,7 @@ class Tool{
                 return
             }
         }
+        //pathfinding
         else if(mode == 'settingStart' || mode == 'settingEnd'){
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined){
@@ -227,7 +233,9 @@ class Tool{
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
-        if((this.state.mode == 'movingNode' || (keyIsPressed && keyCode == 32) || (mouseIsPressed && mouseButton.center)) && this.state.draggingNodeID == -1){
+        if((this.state.mode == 'movingNode' || (keyIsPressed && keyCode == 32) || (mouseIsPressed && mouseButton.center)) && 
+            this.state.draggingNodeID == -1 && 
+            this.state.selectedNodes.length == 0){
             if(!this.prevMouseX) this.prevMouseX = mouseX
             if(!this.prevMouseY) this.prevMouseY = mouseY
             let dx = mouseX - this.prevMouseX; // Change in mouse X
@@ -240,12 +248,38 @@ class Tool{
 
         //dragging nodes
         if(this.state.mode == 'movingNode'){
+            //finds a selection box to start dragging
+            if(this.state.selectedNodes.length > 0 && this.state.selectedNodesOffsets.length == 0){
+                if(inBoundsTwoCorners(mousePos.x, mousePos.y, this.state.firstCornerSelected, this.state.secondCornerSelected)){
+                    this.state.selectedNodesOffsets = this.state.selectedNodes.map(n => {
+                        return {x: n.pos.x - mousePosGridX, y: n.pos.y - mousePosGridY}
+                    })
+                    this.state.boxOffsetFirstCorner = {x: this.state.firstCornerSelected.x - mousePosGridX, y: this.state.firstCornerSelected.y - mousePosGridY}
+                    this.state.boxOffsetSecondCorner = {x: this.state.secondCornerSelected.x - mousePosGridX, y: this.state.secondCornerSelected.y - mousePosGridY}
+                }
+            }
+            //keeps on dragging the selection box
+            if(this.state.selectedNodes.length > 0 && this.state.selectedNodesOffsets.length > 0){
+                if(inBoundsTwoCorners(mousePos.x, mousePos.y, this.state.firstCornerSelected, this.state.secondCornerSelected)){
+                    for(let i = 0; i < this.state.selectedNodes.length; i++){
+                        let n = this.state.selectedNodes[i]
+                        let offset = this.state.selectedNodesOffsets[i]
+                        n.moveTo(mousePosGridX + offset.x, mousePosGridY + offset.y)
+                        this.road.moveNode(n.id)
+                    }
+                    this.state.firstCornerSelected = {x: mousePosGridX + this.state.boxOffsetFirstCorner.x, y: mousePosGridY + this.state.boxOffsetFirstCorner.y}
+                    this.state.secondCornerSelected = {x: mousePosGridX + this.state.boxOffsetSecondCorner.x, y: mousePosGridY + this.state.boxOffsetSecondCorner.y}
+                    return
+                }
+            }
+            //keeps on dragging the node
             if(this.state.draggingNodeID != -1){
                 let node = this.road.findNode(this.state.draggingNodeID)
                 node.moveTo(mousePosGridX + this.state.offsetDraggingNode.x, mousePosGridY + this.state.offsetDraggingNode.y)
                 this.road.moveNode(this.state.draggingNodeID)
                 return
             }
+            //finds a node to start dragging
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined){
                 this.state.draggingNodeID = hoverNode.id
@@ -253,6 +287,7 @@ class Tool{
                 this.state.offsetDraggingNode.y = hoverNode.pos.y - mousePosGridY
                 return
             }
+            
         }
 
         //selecting
@@ -273,15 +308,23 @@ class Tool{
             this.state.draggingNodeID = -1
             this.state.offsetDraggingNode = {x: 0, y: 0}
             this.checkForAllSegmentCollisions()
-            return
+            //return
         }
         if(this.state.firstCorner != undefined){
             this.state.secondCorner = this.getRelativePos(mouseX, mouseY)
             this.selectObjectsInSelectionBox()
         }
+        this.removeSelectedBox()
+    }
+
+   removeSelectedBox(){
         this.state.firstCorner = undefined
         this.state.secondCorner = undefined
-    }
+        this.state.selectedNodesOffsets = []
+        this.state.boxOffsetFirstCorner = {x: 0, y: 0}
+        this.state.boxOffsetSecondCorner = {x: 0, y: 0}
+   }
+
 
     finishSegment(){
         this.state.prevNodeID = -1

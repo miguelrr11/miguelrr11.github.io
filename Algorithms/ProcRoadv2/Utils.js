@@ -367,6 +367,10 @@ function inBounds(x, y, a, b, w, h) {
     return x < a + w && x > a && y < b + h && y > b;
 }
 
+function inBoundsTwoCorners(x, y, c1, c2, offset = 0) {
+    return x < c2.x + offset && x > c1.x - offset && y < c2.y + offset && y > c1.y - offset;
+}
+
 function inBoundsCorners(x, y, corners, offset = 0) {
     //corners = [xMin, xMax, yMin, yMax]
     return x < corners[1] + offset && x > corners[0] - offset && y < corners[3] + offset && y > corners[2] - offset;
