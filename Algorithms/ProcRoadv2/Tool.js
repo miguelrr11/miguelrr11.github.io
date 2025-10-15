@@ -19,14 +19,14 @@ class Tool{
     constructor(){
         this.showOptions = {
             SHOW_ROAD: false,
-            SHOW_PATHS: true,
+            SHOW_PATHS: false,
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
             SHOW_INTERSECSEGS: false,
             SHOW_TAGS: false,
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
-            SHOW_WAYS: false,
+            SHOW_WAYS: true,
             SHOW_CONVEXHULL: false
         }
         this.road = new Road(this)
@@ -208,10 +208,10 @@ class Tool{
                 return
             }
             //creates a node from an empty space connected to the previous node and
-            //checks if it collides with any other segment
             let newNode = this.road.addNode(mousePosGridX, mousePosGridY)
             //let newSegment = this.road.addSegment(this.state.prevNodeID, newNode.id)
-            this.createSegmentBetweenTwoNodes(this.state.prevNodeID, newNode.id)
+            this.state.CSmode ? this.createCurvedSegmentsBetweenTwoNodes(this.state.prevNodeID, newNode.id) : 
+                                this.createSegmentBetweenTwoNodes(this.state.prevNodeID, newNode.id)
             //checkSegmentCollisionsAndSplit(newSegment)
             this.state.prevNodeID = newNode.id
         }
@@ -548,6 +548,10 @@ class Tool{
         for(let i = 0; i < this.state.nBackLanes; i++){
             this.road.addSegment(nodeBID, nodeAID, 'back')
         }
+    }
+
+    createCurvedSegmentsBetweenTwoNodes(nodeAID, nodeBID){
+        
     }
 
     showClosestSegmentAndPos(pos){

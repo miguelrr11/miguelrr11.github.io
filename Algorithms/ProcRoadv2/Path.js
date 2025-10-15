@@ -11,7 +11,6 @@ class Path{
         this.nodeB = nodeB
 
         this.id = nodeA + '_' + nodeB
-        this.isCurved = false
     }
 
     /*
@@ -141,7 +140,7 @@ class Path{
         this.setSegmentDrawOuterLinesLogic()
     }
 
-    constructRealLanesCurved(controlPoint){
+    constructRealLanesCurved(controlPoint = this.controlPoint){
         let nodeA = this.road.findNode(this.nodeA)
         let nodeB = this.road.findNode(this.nodeB)
         if(!nodeA || !nodeB) {
@@ -163,17 +162,22 @@ class Path{
             let offset = startOffset + i * LANE_WIDTH
             let laneFromPos = {x: fromPos.x + Math.cos(angle) * offset, y: fromPos.y + Math.sin(angle) * offset}
             let laneToPos = {x: toPos.x + Math.cos(angle) * offset, y: toPos.y + Math.sin(angle) * offset}
+
+            // Offset the control point for this lane so curves remain parallel
+            let laneControlPoint = {x: controlPoint.x + Math.cos(angle) * offset, y: controlPoint.y + Math.sin(angle) * offset}
+
             let segment = this.road.findSegment(segmentID)
             let nodeFrom = this.road.findNode(segment.fromNodeID)
             let nodeTo = this.road.findNode(segment.toNodeID)
             let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
 
-            let dirfromControl = Math.atan2(controlPoint.y - laneFromPos.y, controlPoint.x - laneFromPos.x) - PI
-            let dirtoControl = Math.atan2(controlPoint.y - laneToPos.y, controlPoint.x - laneToPos.x) - PI
-            let anchor1 = {x: laneFromPos.x + Math.cos(dirfromControl) * 50, y: laneFromPos.y + Math.sin(dirfromControl) * 50}
-            let anchor2 = {x: laneToPos.x + Math.cos(dirtoControl) * 50, y: laneToPos.y + Math.sin(dirtoControl) * 50}
+            let dirfromControl = Math.atan2(laneControlPoint.y - laneFromPos.y, laneControlPoint.x - laneFromPos.x) - PI
+            let dirtoControl = Math.atan2(laneControlPoint.y - laneToPos.y, laneControlPoint.x - laneToPos.x) - PI
+            let d = dist(fromPos.x, fromPos.y, toPos.x, toPos.y)
+            let anchor1 = {x: laneFromPos.x + Math.cos(dirfromControl) * d, y: laneFromPos.y + Math.sin(dirfromControl) * d}
+            let anchor2 = {x: laneToPos.x + Math.cos(dirtoControl) * d, y: laneToPos.y + Math.sin(dirtoControl) * d}
 
-            let segBezierPoints = bezierPoints(anchor1, fromPos, toPos, anchor2, 3, 0.7)
+            let segBezierPoints = bezierPoints(anchor1, laneFromPos, laneToPos, anchor2, 3, .5)
 
             segment.curve = segBezierPoints
 
@@ -185,6 +189,7 @@ class Path{
             segment.originalFromPos = {x: segment.fromPos.x, y: segment.fromPos.y}
             segment.originalToPos = {x: segment.toPos.x, y: segment.toPos.y}
 
+            segment.constructCorners()
             i++
         })
     }
@@ -225,6 +230,14 @@ class Path{
             let segment = this.road.findSegment(segmentID)
             if(segment) segment.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID, indexOfSeg)
         })
+        push()
+        if(this.controlPoint){
+            noFill()
+            strokeWeight(1.5)
+            stroke(255, 200)
+            ellipse(this.controlPoint.x, this.controlPoint.y, NODE_RAD * 2)
+        }
+        pop()
     }
 
     // gets all points of all lanes and draws the full road

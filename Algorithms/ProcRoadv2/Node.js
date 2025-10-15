@@ -49,7 +49,6 @@ class Node{
         if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, NODE_RAD)) return
         push()
         selected ? fill(255, 100) : noFill()
-        textSize(15)
         strokeWeight(1.5 / zoom)
         stroke(255, 200)
         let mult = selected ? 1.8 : 2

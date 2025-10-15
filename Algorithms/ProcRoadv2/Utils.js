@@ -276,6 +276,30 @@ function bezierPoints(a, b, c, d, resolution, tension = 0.3) {
   return [b, ...pts, c]
 }
 
+// Devuelve un punto en la curva bezier para un valor t (0 a 1)
+// a y d son las manecillas, b y c son los puntos de inicio y fin
+function bezierPointAt(a, b, c, d, t, tension = 0.3) {
+  const sub = (p, q) => ({ x: p.x - q.x, y: p.y - q.y });
+  const add = (p, q) => ({ x: p.x + q.x, y: p.y + q.y });
+  const mul = (p, s) => ({ x: p.x * s, y: p.y * s });
+
+  // Manecillas: dirigidas por (b - a) y (c - d)
+  const h1 = add(b, mul(sub(b, a), tension));
+  const h2 = add(c, mul(sub(c, d), tension));
+
+  // Punto sobre la Bézier cúbica en t
+  const u = 1 - t;
+  const uu = u * u, tt = t * t;
+  const uuu = uu * u, ttt = tt * t;
+
+  const p = mul(b, uuu);
+  const p1 = mul(h1, 3 * uu * t);
+  const p2 = mul(h2, 3 * u * tt);
+  const p3 = mul(c, ttt);
+
+  return add(add(p, p1), add(p2, p3));
+}
+
 
 // ===================
 // String Utilities
