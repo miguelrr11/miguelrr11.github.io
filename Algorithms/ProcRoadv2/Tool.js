@@ -140,19 +140,86 @@ class Tool{
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
-        if(mode == 'creating' && this.state.CSmode && this.state.firstPointCS == undefined){
+        // CSmode: First click - create or select starting node (or use existing prevNodeID)
+        if(mode == 'creating' && this.state.CSmode && this.state.firstPointCS == undefined && this.state.prevNodeID == -1){
+
+            // Otherwise, create or select a starting node
+            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
+            if(hoverNode != undefined){
+                // Use existing node
+                this.state.prevNodeID = hoverNode.id
+                this.state.firstPointCS = {x: hoverNode.pos.x, y: hoverNode.pos.y}
+                return
+            }
+
+            // Check if clicking on a segment to split it
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
+            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
+                let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
+                let newNode = this.road.addNode(closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y)
+                for(let s of allSegmentsBetween){
+                    this.road.splitSegmentAtPos(s.id, closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y, newNode)
+                }
+                this.state.prevNodeID = newNode.id
+                this.state.firstPointCS = {x: newNode.pos.x, y: newNode.pos.y}
+                return
+            }
+
+            // Create new node in empty space
+            let newNode = this.road.addNode(mousePosGridX, mousePosGridY)
+            this.state.prevNodeID = newNode.id
             this.state.firstPointCS = {x: mousePosGridX, y: mousePosGridY}
             return
         }
 
+        // CSmode: Second click - set control point
         if(mode == 'creating' && this.state.CSmode && this.state.controlPointCS == undefined){
+            if(this.state.firstPointCS == undefined){ 
+                let node = this.road.findNode(this.state.prevNodeID)
+                this.state.firstPointCS = {x: node.pos.x, y: node.pos.y}
+            }
             this.state.controlPointCS = {x: mousePosGridX, y: mousePosGridY}
             return
         }
 
+        // CSmode: Third click - create or select ending node and create curved segments
         if(mode == 'creating' && this.state.CSmode && this.state.secondPointCS == undefined){
+            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
+            if(hoverNode != undefined && hoverNode.id != this.state.prevNodeID){
+                // Connect to existing node
+                this.state.secondPointCS = {x: hoverNode.pos.x, y: hoverNode.pos.y}
+                this.createCurvedSegmentsBetweenTwoNodes(this.state.prevNodeID, hoverNode.id)
+                this.state.prevNodeID = hoverNode.id
+                this.state.firstPointCS = undefined
+                this.state.controlPointCS = undefined
+                this.state.secondPointCS = undefined
+                return
+            }
+
+            if(hoverNode != undefined && hoverNode.id == this.state.prevNodeID) return
+
+            // Check if clicking on a segment to split it
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
+            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
+                let newNode = this.road.addNode(closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y)
+                let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
+                for(let s of allSegmentsBetween){
+                    this.road.splitSegmentAtPos(s.id, closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y, newNode)
+                }
+                this.state.secondPointCS = {x: newNode.pos.x, y: newNode.pos.y}
+                this.createCurvedSegmentsBetweenTwoNodes(this.state.prevNodeID, newNode.id)
+                this.state.prevNodeID = newNode.id
+                this.state.firstPointCS = undefined
+                this.state.controlPointCS = undefined
+                this.state.secondPointCS = undefined
+                return
+            }
+
+            // Create new node in empty space
             this.state.secondPointCS = {x: mousePosGridX, y: mousePosGridY}
-            this.road.createCurvedSegment(this.state.firstPointCS, this.state.controlPointCS, this.state.secondPointCS, this.state.nForLanes, this.state.nBackLanes)
+            let newNode = this.road.addNode(mousePosGridX, mousePosGridY)
+            this.createCurvedSegmentsBetweenTwoNodes(this.state.prevNodeID, newNode.id)
+            this.state.prevNodeID = newNode.id
             this.state.firstPointCS = undefined
             this.state.controlPointCS = undefined
             this.state.secondPointCS = undefined
@@ -550,8 +617,72 @@ class Tool{
         }
     }
 
-    createCurvedSegmentsBetweenTwoNodes(nodeAID, nodeBID){
+    createCurvedSegmentsBetweenTwoNodes(nodeAID, nodeBID, numIntermediateNodes = 15, curvature = 0.5){
+        let nodeA = this.road.findNode(nodeAID)
+        let nodeB = this.road.findNode(nodeBID)
+
+        // Calculate distance and create intermediate nodes along straight line
+        let distance = dist(nodeA.pos.x, nodeA.pos.y, nodeB.pos.x, nodeB.pos.y)
+        let intermediateNodes = []
+
+        // Create intermediate nodes evenly spaced along the straight line
+        // for(let i = 1; i <= numIntermediateNodes; i++){
+        //     let t = i / (numIntermediateNodes + 1)
+        //     let x = lerpp(nodeA.pos.x, nodeB.pos.x, t)
+        //     let y = lerpp(nodeA.pos.y, nodeB.pos.y, t)
+        //     let newNode = this.road.addNode(x, y)
+        //     intermediateNodes.push(newNode)
+        // }
+
+        // Calculate control points for Bezier curve
+        // 'a' is the control point before nodeA (extends backward from A)
+        // 'd' is the control point after nodeB (extends forward from B)
+        let midControlPoint = this.state.controlPointCS
+
+        // Simply reflect the control point across nodeA and nodeB
+        let a = {
+            x: nodeA.pos.x + (nodeA.pos.x - midControlPoint.x),
+            y: nodeA.pos.y + (nodeA.pos.y - midControlPoint.y)
+        }
+        let d = {
+            x: nodeB.pos.x + (nodeB.pos.x - midControlPoint.x),
+            y: nodeB.pos.y + (nodeB.pos.y - midControlPoint.y)
+        }
+
+        //auxShow.push(a, d)
+
         
+
+        // Reposition each intermediate node using bezierPointAt
+        let b = nodeA.pos  // start point
+        let c = nodeB.pos  // end point
+
+        let res = LENGTH_SEG_BEZIER * 10
+
+        let bezierPointsAux = bezierPoints(a, b, c, d, res, .5)
+        let len = 0
+        for(let i = 1; i < bezierPointsAux.length; i++){
+            len += dist(bezierPointsAux[i].x, bezierPointsAux[i].y, bezierPointsAux[i - 1].x, bezierPointsAux[i - 1].y)
+        }
+        numIntermediateNodes = Math.floor(len / res)
+
+
+        for(let i = 1; i < numIntermediateNodes; i++){
+            let t = i / (numIntermediateNodes + 1)
+            //let curvedPos = bezierPointAt(a, b, c, d, t, curvature)
+            let indexCurves = Math.floor(t * (bezierPointsAux.length - 1))
+            let curvedPos = bezierPointsAux[indexCurves]
+            let newNode = this.road.addNode(curvedPos.x, curvedPos.y)
+            newNode.visible = false
+            intermediateNodes.push(newNode)
+        }
+
+        // Create segments between consecutive nodes
+        this.createSegmentBetweenTwoNodes(nodeAID, intermediateNodes[0].id)
+        for(let i = 0; i < intermediateNodes.length - 1; i++){
+            this.createSegmentBetweenTwoNodes(intermediateNodes[i].id, intermediateNodes[i + 1].id)
+        }
+        this.createSegmentBetweenTwoNodes(intermediateNodes[intermediateNodes.length - 1].id, nodeBID)
     }
 
     showClosestSegmentAndPos(pos){

@@ -80,20 +80,20 @@ function draw(){
     push()
     translate(tool.xOff, tool.yOff)
     scale(tool.zoom)
-    fill(0, 255, 0)
-    stroke(255)
-    strokeWeight(1)
+    noFill()
+    stroke(0, 255, 0)
+    strokeWeight(2)
     for(let i = 0; i < auxShow.length; i++){
         fill(0, 255, 0)
-        ellipse(auxShow[i].x, auxShow[i].y, map(i, 0, auxShow.length, 2, 6))    
+        point(auxShow[i].x, auxShow[i].y)    
     }
     stroke(255, 0, 0)
     noFill()
-    beginShape()
-    for(let i = 0; i < auxShow.length; i++){
-        vertex(auxShow[i].x, auxShow[i].y)    
-    }
-    endShape()
+    // beginShape()
+    // for(let i = 0; i < auxShow.length; i++){
+    //     vertex(auxShow[i].x, auxShow[i].y)    
+    // }
+    // endShape()
     pop()
 }
 
