@@ -13,7 +13,7 @@ state.modes:
     settingEnd
 */
 
-
+///////////
 
 class Tool{
     constructor(){
@@ -67,6 +67,8 @@ class Tool{
         // let roadData = getItem('roadData')
         // if(roadData) this.setStateToRoad(roadData)
         // else {storeItem('roadData', savedCity); this.setStateToRoad(savedCity)} //initial state
+
+        //this.setStateToRoad(savedCity)
     }
 
     getInitialState(){
@@ -99,7 +101,7 @@ class Tool{
 
             menuCollapsed: false,
 
-            //selecting
+            //area selecting
             firstCorner: undefined,
             secondCorner: undefined,
             firstCornerSelected: undefined,

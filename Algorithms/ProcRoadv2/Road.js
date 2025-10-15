@@ -15,7 +15,7 @@
 const NODE_RAD = 20
 const GRID_CELL_SIZE = 40   //15
 
-let OFFSET_RAD_INTERSEC = 30      //25
+let OFFSET_RAD_INTERSEC = 5      //25 (intersec_rad)
 let LENGTH_SEG_BEZIER = 5         //3
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.8
@@ -39,7 +39,7 @@ class Road{
         this.intersections = []
         this.paths = new Map()
 
-        this.convexHullQueue = []
+        this.convexHullQueue = new Set()
 
         this.nodeIDcounter = 0
         this.segmentIDcounter = 0
@@ -55,7 +55,7 @@ class Road{
         this.connectors = [] 
         this.intersecSegs = []
         this.intersections = []
-        this.convexHullQueue = []
+        this.convexHullQueue = new Set()
         this.connectorIDcounter = 0
         this.intersecSegIDcounter = 0
         for(let i = 0; i < this.nodes.length; i++){
@@ -758,10 +758,16 @@ class Road{
             }
         }
         intersection.pathsIDs = this.findAnyPath(nodeID)?.map(p => p.id) || []
-        //intersection.debugOrder()
+        //intersection.debugOrder() not working
         if(instantConvex) intersection.calculateconvexHullAllSegments();
-        else this.convexHullQueue.push(intersection)
+        else this.pushToConvexQueue(intersection)
+        //this.pushToConvexQueue(intersection)
         this.intersections.push(intersection)
+    }
+
+    pushToConvexQueue(intersection){
+        if(!this.convexHullQueue) this.convexHullQueue = new Set()
+        this.convexHullQueue.add(intersection.id)
     }
 
     // returns intersections of the segments formed by connecting the corners of the two segments
@@ -783,17 +789,21 @@ class Road{
     updateConvexHullsIncremental() {
         
         //if(frameCount % 10 == 0) return false; // update every other frame for performance
+
+        if(mouseIsPressed) return false; // pause while editing
         
         if (!this.convexHullQueue) {
-            this.convexHullQueue = this.intersections.filter(i => !i.convexHullCalculated);
+            this.convexHullQueue = new Set(this.intersections.filter(i => !i.convexHullCalculated).map(i => i.id));
         }
-        
-        for (let i = 0; i < INTERSECTIONS_PER_FRAME && this.convexHullQueue.length > 0; i++) {
-            const intersection = this.convexHullQueue.shift();
+
+        for (let i = 0; i < INTERSECTIONS_PER_FRAME && this.convexHullQueue.size > 0; i++) {
+            const intersectionID = this.convexHullQueue.values().next().value;
+            this.convexHullQueue.delete(intersectionID);
+            const intersection = this.intersections.find(i => i.id === intersectionID);
             intersection.calculateconvexHullAllSegments();
         }
-        
-        return this.convexHullQueue.length === 0
+
+        return this.convexHullQueue.size === 0
     }
 
     showMain(SHOW_TAGS){

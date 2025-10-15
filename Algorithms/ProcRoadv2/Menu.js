@@ -278,7 +278,7 @@ class Menu{
                    'Intersections: ' + '\n' + this.tool.road.intersecSegs.length + '\n' +
                    'Paths: ' + '\n' + this.tool.road.paths.size + '\n' +
                    'Cars: ' + '\n' + cars.length + '\n' +
-                   'CH Queue: ' + '\n' + this.tool.road.convexHullQueue.length + '\n' +
+                   'CH Queue: ' + '\n' + this.tool.road.convexHullQueue.size + '\n' +
                    'Selected Nodes: ' + '\n' + this.tool.state.selectedNodes.length
         }, () => {return false})
         buttonDebugRoad.txSize = 10
