@@ -19,14 +19,14 @@ class Tool{
     constructor(){
         this.showOptions = {
             SHOW_ROAD: false,
-            SHOW_PATHS: false,
+            SHOW_PATHS: true,
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
             SHOW_INTERSECSEGS: false,
             SHOW_TAGS: false,
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
-            SHOW_WAYS: true,
+            SHOW_WAYS: false,
             SHOW_CONVEXHULL: false
         }
         this.road = new Road(this)
@@ -107,7 +107,13 @@ class Tool{
             selectedNodes: [],
             selectedNodesOffsets: [],
             boxOffsetFirstCorner: {x: 0, y: 0},
-            boxOffsetSecondCorner: {x: 0, y: 0}
+            boxOffsetSecondCorner: {x: 0, y: 0},
+
+            //curved Segments (CS)
+            CSmode: false,
+            controlPointCS: undefined,
+            firstPointCS: undefined,
+            secondPointCS: undefined
         }
     }
 
@@ -131,6 +137,26 @@ class Tool{
         let mode = (this.state.mode == 'creating') ? (mouseButton.left ? 'creating' : (mouseButton.right ? 'deleting' : this.state.mode)) : this.state.mode
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
+
+        if(mode == 'creating' && this.state.CSmode && this.state.firstPointCS == undefined){
+            this.state.firstPointCS = {x: mousePosGridX, y: mousePosGridY}
+            return
+        }
+
+        if(mode == 'creating' && this.state.CSmode && this.state.controlPointCS == undefined){
+            this.state.controlPointCS = {x: mousePosGridX, y: mousePosGridY}
+            return
+        }
+
+        if(mode == 'creating' && this.state.CSmode && this.state.secondPointCS == undefined){
+            this.state.secondPointCS = {x: mousePosGridX, y: mousePosGridY}
+            this.road.createCurvedSegment(this.state.firstPointCS, this.state.controlPointCS, this.state.secondPointCS, this.state.nForLanes, this.state.nBackLanes)
+            this.state.firstPointCS = undefined
+            this.state.controlPointCS = undefined
+            this.state.secondPointCS = undefined
+            return
+        }
+
 
         //not following a previous node, so just create a new node
         if(mode == 'creating' && this.state.prevNodeID == -1){

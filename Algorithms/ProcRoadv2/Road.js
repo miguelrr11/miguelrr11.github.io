@@ -378,6 +378,26 @@ class Road{
         return {segment1, segment2, newNode}
     }
 
+    createCurvedSegment(fromPos, controlPos, toPos, nForLanes, nBackLanes){
+        let nodeA = this.addNodeNoUpdate(fromPos.x, fromPos.y)
+        let nodeB = this.addNodeNoUpdate(toPos.x, toPos.y)
+
+        let sIds = new Set()
+        for(let i = 1; i <= nForLanes; i++){
+            sIds.add(this.addSegmentNoUpdate(nodeA.id, nodeB.id, 'forward', true).id)
+        }
+        for(let i = 1; i <= nBackLanes; i++){
+            sIds.add(this.addSegmentNoUpdate(nodeB.id, nodeA.id, 'backward', true).id)
+        }
+
+        let path = new Path(nodeA.id, nodeB.id, new Set(sIds))
+        path.road = this
+        path.isCurved = true
+        path.setSegmentsIDs(sIds)
+        path.constructRealLanesCurved(controlPos)
+        this.paths.set(nodeA.id + '-' + nodeB.id, path)
+    }
+
     findNode(id){
         return this.nodes.find(n => n.id == id)
     }
@@ -466,14 +486,15 @@ class Road{
         return newSegment
     }
 
-    addSegmentNoUpdate(fromNodeID, toNodeID, visualDir){
+    addSegmentNoUpdate(fromNodeID, toNodeID, visualDir, isCurved = false){
         const fromNode = this.findNode(fromNodeID)
         const toNode = this.findNode(toNodeID)
         if(fromNode == undefined || toNode == undefined){
             console.log('Error adding segment, node not found:\nfromNodeID = ' + fromNodeID + ' | toNodeID = ' + toNodeID)
             return
         }
-        let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir)
+        let newSegment = isCurved ? new CurvedSegment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir) : 
+                                    new Segment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir)
         newSegment.road = this
         this.segments.push(newSegment)
         fromNode.outgoingSegmentIDs.push(newSegment.id)
