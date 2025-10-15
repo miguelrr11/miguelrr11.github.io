@@ -16,6 +16,9 @@ class Menu{
         let buttonSelect = new Button(280, 10, 110, 30, 'Area Select [A]', () => {tool.selectState()}, () => {
             return this.tool.state.mode === 'selecting' ? 'Selecting...' : 'Area Select [A]'
         }, () => {return this.tool.state.mode == 'selecting'})
+        let buttonCSmode = new Button(400, 10, 150, 30, 'Curved Segments [B]', () => {
+            this.tool.state.CSmode = !this.tool.state.CSmode
+        }, undefined, () => {return this.tool.state.CSmode})
 
         const MAIN_X = 28;
         const MAIN_Y = 50;
@@ -26,7 +29,6 @@ class Menu{
         const SIDE_W = Math.floor(MAIN_W * 0.4); 
         const SIDE_H = Math.floor((MAIN_H - GAP) / 2); 
 
-        // ---- Posiciones derivadas ----
         const LEFT_X  = MAIN_X - GAP - SIDE_W;
         const RIGHT_X = MAIN_X + MAIN_W + GAP;
 
@@ -199,6 +201,7 @@ class Menu{
         })
 
         this.buttons.push(buttonShowZoomLevel)
+        this.buttons.push(buttonCSmode)
         this.buttons.push(buttonShowConvexHull)
 
         this.buttons.push(buttonFullscreen)

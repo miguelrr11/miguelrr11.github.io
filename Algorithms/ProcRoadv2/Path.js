@@ -11,7 +11,7 @@ class Path{
         this.nodeB = nodeB
 
         this.id = nodeA + '_' + nodeB
-
+        this.isCurved = false
     }
 
     /*
@@ -48,6 +48,7 @@ class Path{
         return corners
     }
 
+    //not used
     getRealPos(segID){
         let segment = this.road.findSegment(segID)
         if(!segment) return null
@@ -139,6 +140,55 @@ class Path{
         })
         this.setSegmentDrawOuterLinesLogic()
     }
+
+    constructRealLanesCurved(controlPoint){
+        let nodeA = this.road.findNode(this.nodeA)
+        let nodeB = this.road.findNode(this.nodeB)
+        if(!nodeA || !nodeB) {
+            console.warn('Invalid nodes in path while constructing real lanes:\nnodeA = ' + nodeA + ' | nodeB = ' + nodeB)
+            return
+        }
+
+        this.orderSegmentsByDirection()
+        
+        let fromPos = nodeA.pos
+        let toPos = nodeB.pos
+        let angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x) - PI / 2
+        let numLanes = this.segmentsIDs.size
+        let totalWidth = numLanes * LANE_WIDTH
+        let startOffset = -totalWidth / 2 + LANE_WIDTH / 2
+
+        let i = 0
+        this.segmentsIDs.forEach(segmentID => {
+            let offset = startOffset + i * LANE_WIDTH
+            let laneFromPos = {x: fromPos.x + Math.cos(angle) * offset, y: fromPos.y + Math.sin(angle) * offset}
+            let laneToPos = {x: toPos.x + Math.cos(angle) * offset, y: toPos.y + Math.sin(angle) * offset}
+            let segment = this.road.findSegment(segmentID)
+            let nodeFrom = this.road.findNode(segment.fromNodeID)
+            let nodeTo = this.road.findNode(segment.toNodeID)
+            let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
+
+            let dirfromControl = Math.atan2(controlPoint.y - laneFromPos.y, controlPoint.x - laneFromPos.x) - PI
+            let dirtoControl = Math.atan2(controlPoint.y - laneToPos.y, controlPoint.x - laneToPos.x) - PI
+            let anchor1 = {x: laneFromPos.x + Math.cos(dirfromControl) * 50, y: laneFromPos.y + Math.sin(dirfromControl) * 50}
+            let anchor2 = {x: laneToPos.x + Math.cos(dirtoControl) * 50, y: laneToPos.y + Math.sin(dirtoControl) * 50}
+
+            let segBezierPoints = bezierPoints(anchor1, fromPos, toPos, anchor2, 3, 0.7)
+
+            segment.curve = segBezierPoints
+
+            //also we modify the segment to have the new calculated positions
+            segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
+            segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
+            segment.dir = dir
+            segment.len = dist(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
+            segment.originalFromPos = {x: segment.fromPos.x, y: segment.fromPos.y}
+            segment.originalToPos = {x: segment.toPos.x, y: segment.toPos.y}
+
+            i++
+        })
+    }
+
 
     setSegmentDrawOuterLinesLogic(){
         for(let i = 0; i < this.segments.length; i++){
