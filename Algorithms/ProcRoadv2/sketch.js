@@ -81,8 +81,8 @@ function draw(){
     translate(tool.xOff, tool.yOff)
     scale(tool.zoom)
     noFill()
-    stroke(0, 255, 0)
-    strokeWeight(2)
+    stroke(0, 255, 0, 150)
+    strokeWeight(4)
     for(let i = 0; i < auxShow.length; i++){
         fill(0, 255, 0)
         point(auxShow[i].x, auxShow[i].y)    

@@ -1,7 +1,7 @@
 const WIDTH_YIELD_MARKING = 7
 
 class Segment{
-    constructor(id, fromNodeID, toNodeID, visualDir){
+    constructor(id, fromNodeID, toNodeID, visualDir, curvedPath){
         this.id = id
         this.fromNodeID = fromNodeID
         this.toNodeID = toNodeID
@@ -9,6 +9,7 @@ class Segment{
         this.toConnectorID = undefined
         this.visualDir = visualDir
         this.road = undefined
+        this.curvedPath = curvedPath == undefined ? false : (!curvedPath[0] || !curvedPath[1] ? true : false)
 
 
         //info updated by Path.js (constructRealLanes())
@@ -20,6 +21,7 @@ class Segment{
         this.originalToPos = undefined
         this.arrowsPos = []
         this.corners = []
+        this.corners16 = []
         this.yieldPos = []
         this.drawOuterLinesAboveDashed = undefined
         this.drawOuterLinesBelowDashed = undefined
@@ -27,6 +29,7 @@ class Segment{
 
     constructCorners(){
         this.corners = getCornersOfLine(this.fromPos, this.toPos, LANE_WIDTH)
+        this.corners16 = getCornersOfLine(this.fromPos, this.toPos, LANE_WIDTH * 1.6)
 
         let dir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
         let toPosShort = {x: this.toPos.x - Math.cos(dir) * WIDTH_YIELD_MARKING * 0.5, y: this.toPos.y - Math.sin(dir) * WIDTH_YIELD_MARKING * 0.5}
@@ -108,7 +111,7 @@ class Segment{
         push()
         let fromPos = this.fromPos
         let toPos = this.toPos
-        let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
+        let corners = this.corners
         if(!disc) line(corners[0].x, corners[0].y, corners[3].x, corners[3].y)
         else drawDashedLine(corners[0].x, corners[0].y, corners[3].x, corners[3].y)
         pop()
@@ -126,7 +129,7 @@ class Segment{
     showCustomLanes(col, w, hoveredID = undefined){
         let fromPos = this.fromPos
         let toPos = this.toPos
-        let corners = getCornersOfLine(fromPos, toPos, w)
+        let corners = w == LANE_WIDTH ? this.corners : this.corners16
         fill(col)
         beginShape()
         vertex(corners[0].x, corners[0].y)
@@ -153,7 +156,7 @@ class Segment{
             pop()
             return
         }
-        let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
+        let corners = this.corners
         rectMode(CORNERS)
         stroke(255, 200)
         strokeWeight(1)
@@ -202,12 +205,14 @@ class Segment{
 
     //not mantained, only for debug
     showOutlineCorners(){
+        //if(this.curvedPath) return
         push()
         noFill()
         stroke(255, 100)
         strokeWeight(1.5)
         beginShape()
         for(let i = 0; i < this.corners.length; i++){
+            if(this.corners[i] == undefined) continue
             vertex(this.corners[i].x, this.corners[i].y)
         }
         endShape(CLOSE)
@@ -268,6 +273,7 @@ class Segment{
             stroke(255)
             fill(0)
             for(let i = 0; i < this.corners.length; i++){
+                if(this.corners[i] == undefined) continue
                 text('c' + i, this.corners[i].x, this.corners[i].y)
             }
         }
@@ -328,6 +334,7 @@ class Segment{
 
     // type: showWays
     drawArrows(){
+        if(this.curvedPath) return
         this.arrowsPos.forEach(pos => {
             line(pos.startLine.x, pos.startLine.y, pos.tip.x, pos.tip.y)
             drawArrowTip(pos.tip.x, pos.tip.y, this.dir, 5)

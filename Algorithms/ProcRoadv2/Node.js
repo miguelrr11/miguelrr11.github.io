@@ -8,7 +8,7 @@ class Node{
         this.outgoingSegmentIDs = []
         this.road = undefined
 
-        this.visible = true
+        this.curvePath = false
     }
 
     export(){
@@ -26,7 +26,7 @@ class Node{
     }
 
     hover(x, y){
-       // if(!this.visible) return false
+        //if(this.curvePath) return false
         if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, NODE_RAD)) return false
         return dist(x, y, this.pos.x, this.pos.y) <= NODE_RAD
     }
@@ -49,7 +49,7 @@ class Node{
     }
 
     show(selected = false, zoom = 1){
-       // if(!this.visible) return
+        //if(this.curvePath) return
         if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, NODE_RAD)) return
         push()
         selected ? fill(255, 100) : noFill()

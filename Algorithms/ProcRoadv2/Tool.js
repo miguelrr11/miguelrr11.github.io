@@ -19,14 +19,14 @@ class Tool{
     constructor(){
         this.showOptions = {
             SHOW_ROAD: false,
-            SHOW_PATHS: false,
+            SHOW_PATHS: true,
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
-            SHOW_INTERSECSEGS: false,
+            SHOW_INTERSECSEGS: true,
             SHOW_TAGS: false,
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
-            SHOW_WAYS: true,
+            SHOW_WAYS: false,
             SHOW_CONVEXHULL: false
         }
         this.road = new Road(this)
@@ -80,7 +80,7 @@ class Tool{
             offsetDraggingNode: {x: 0, y: 0},
 
             nForLanes: 2,
-            nBackLanes: 1,
+            nBackLanes: 2,
             snapToGrid: false,
 
             changed: false,
@@ -112,7 +112,7 @@ class Tool{
             boxOffsetSecondCorner: {x: 0, y: 0},
 
             //curved Segments (CS)
-            CSmode: false,
+            CSmode: true,
             controlPointCS: undefined,
             firstPointCS: undefined,
             secondPointCS: undefined
@@ -608,12 +608,12 @@ class Tool{
         return
     }
 
-    createSegmentBetweenTwoNodes(nodeAID, nodeBID){
+    createSegmentBetweenTwoNodes(nodeAID, nodeBID, straight = false){
         for(let i = 0; i < this.state.nForLanes; i++){
-            this.road.addSegment(nodeAID, nodeBID, 'for')
+            this.road.addSegment(nodeAID, nodeBID, 'for', true, straight, straight)
         }
         for(let i = 0; i < this.state.nBackLanes; i++){
-            this.road.addSegment(nodeBID, nodeAID, 'back')
+            this.road.addSegment(nodeBID, nodeAID, 'back', true, straight, straight)
         }
     }
 
@@ -621,22 +621,8 @@ class Tool{
         let nodeA = this.road.findNode(nodeAID)
         let nodeB = this.road.findNode(nodeBID)
 
-        // Calculate distance and create intermediate nodes along straight line
-        let distance = dist(nodeA.pos.x, nodeA.pos.y, nodeB.pos.x, nodeB.pos.y)
         let intermediateNodes = []
 
-        // Create intermediate nodes evenly spaced along the straight line
-        // for(let i = 1; i <= numIntermediateNodes; i++){
-        //     let t = i / (numIntermediateNodes + 1)
-        //     let x = lerpp(nodeA.pos.x, nodeB.pos.x, t)
-        //     let y = lerpp(nodeA.pos.y, nodeB.pos.y, t)
-        //     let newNode = this.road.addNode(x, y)
-        //     intermediateNodes.push(newNode)
-        // }
-
-        // Calculate control points for Bezier curve
-        // 'a' is the control point before nodeA (extends backward from A)
-        // 'd' is the control point after nodeB (extends forward from B)
         let midControlPoint = this.state.controlPointCS
 
         // Simply reflect the control point across nodeA and nodeB
@@ -649,11 +635,6 @@ class Tool{
             y: nodeB.pos.y + (nodeB.pos.y - midControlPoint.y)
         }
 
-        //auxShow.push(a, d)
-
-        
-
-        // Reposition each intermediate node using bezierPointAt
         let b = nodeA.pos  // start point
         let c = nodeB.pos  // end point
 
@@ -666,21 +647,19 @@ class Tool{
         }
         numIntermediateNodes = Math.floor(len / res)
 
-
         for(let i = 1; i < numIntermediateNodes; i++){
             let t = i / (numIntermediateNodes + 1)
             //let curvedPos = bezierPointAt(a, b, c, d, t, curvature)
             let indexCurves = Math.floor(t * (bezierPointsAux.length - 1))
             let curvedPos = bezierPointsAux[indexCurves]
             let newNode = this.road.addNode(curvedPos.x, curvedPos.y)
-            newNode.visible = false
+            newNode.curvePath = true
             intermediateNodes.push(newNode)
         }
 
-        // Create segments between consecutive nodes
         this.createSegmentBetweenTwoNodes(nodeAID, intermediateNodes[0].id)
         for(let i = 0; i < intermediateNodes.length - 1; i++){
-            this.createSegmentBetweenTwoNodes(intermediateNodes[i].id, intermediateNodes[i + 1].id)
+            this.createSegmentBetweenTwoNodes(intermediateNodes[i].id, intermediateNodes[i + 1].id, i > 0)
         }
         this.createSegmentBetweenTwoNodes(intermediateNodes[intermediateNodes.length - 1].id, nodeBID)
     }
