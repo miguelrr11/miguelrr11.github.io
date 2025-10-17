@@ -79,8 +79,8 @@ class Tool{
             draggingNodeID: -1,
             offsetDraggingNode: {x: 0, y: 0},
 
-            nForLanes: 2,
-            nBackLanes: 2,
+            nForLanes: 1,
+            nBackLanes: 1,
             snapToGrid: false,
 
             changed: false,
@@ -112,7 +112,7 @@ class Tool{
             boxOffsetSecondCorner: {x: 0, y: 0},
 
             //curved Segments (CS)
-            CSmode: true,
+            CSmode: false,
             controlPointCS: undefined,
             firstPointCS: undefined,
             secondPointCS: undefined
