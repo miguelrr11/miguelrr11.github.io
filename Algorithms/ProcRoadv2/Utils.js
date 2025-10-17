@@ -229,6 +229,17 @@ function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {
     }
 }
 
+function getCentroid(points) {
+    let centroid = { x: 0, y: 0 };
+    for (let p of points) {
+        centroid.x += p.x;
+        centroid.y += p.y;
+    }
+    centroid.x /= points.length;
+    centroid.y /= points.length;
+    return centroid;
+}
+
 // Devuelve curva (arr de puntos) de b a c, a y d son las manecillas
 // La resolucion es la distacia de los segmentos
 function bezierPoints(a, b, c, d, resolution, tension = 0.3) {

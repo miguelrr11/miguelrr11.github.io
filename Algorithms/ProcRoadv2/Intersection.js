@@ -160,7 +160,25 @@ class Intersection {
         this.convexHullPoints = calculated_hull.map(p => {return {x: p.x, y: p.y}})
         let calculated_hull16 = convexhull.makeHull(points16)
         this.convexHullPoints16 = calculated_hull16.map(p => {return {x: p.x, y: p.y}})
+        //much faster because is half the convex hull calls but less precise
+        //this.convexHullPoints16 = this.extendConvexHullPoints(this.convexHullPoints, LANE_WIDTH * 0.6)  
         this.convexHullCalculated = true
+    }
+
+    extendConvexHullPoints(points, distance){
+        let extendedPoints = []
+        let centerPos = getCentroid(points)
+        let n = points.length
+        for(let i = 0; i < n; i++){
+            let p = points[i]
+            let dirToCenter = Math.atan2(centerPos.y - p.y, centerPos.x - p.x)
+            let newPoint = {
+                x: p.x - Math.cos(dirToCenter) * distance,
+                y: p.y - Math.sin(dirToCenter) * distance
+            }
+            extendedPoints.push(newPoint)
+        }
+        return extendedPoints
     }
 
     convexHullPointsExists(){

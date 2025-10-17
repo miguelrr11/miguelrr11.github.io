@@ -47,9 +47,8 @@ class Segment{
         fromPos.y += Math.sin(this.dir) * margin
         toPos.x -= Math.cos(this.dir) * margin
         toPos.y -= Math.sin(this.dir) * margin
-        let totalLen = dist(fromPos.x, fromPos.y, toPos.x, toPos.y)
+        let totalLen = dist(fromPos.x, fromPos.y, toPos.x, toPos.y) - 50
 
-        // If segment is too short, place one arrow at center
         if(totalLen < spacing){
             totalLen = dist(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
             let tippos = lerppos(this.fromPos, this.toPos, 0.5)
@@ -58,17 +57,15 @@ class Segment{
             return
         }
 
-        // Calculate number of arrows and spawn from center outward
         let nArrows = Math.floor(totalLen / spacing)
-        let centerPos = 0.5 // Center of segment
+        let centerPos = 0.5 
 
         if(nArrows === 1){
-            // Single arrow at center
             let tippos = lerppos(fromPos, toPos, centerPos)
             let startLinePos = lerppos(fromPos, toPos, centerPos - 15 / totalLen)
             this.arrowsPos.push({tip: tippos, startLine: startLinePos})
-        } else {
-            // Multiple arrows: spawn from center outward
+        } 
+        else {
             for(let i = 0; i < nArrows; i++){
                 let offset = Math.floor((i + 1) / 2) * (spacing / totalLen)
                 let isEven = i % 2 === 0
