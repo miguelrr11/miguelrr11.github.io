@@ -334,7 +334,6 @@ class Segment{
 
     // type: showWays
     drawArrows(){
-        if(this.curvedPath) return
         this.arrowsPos.forEach(pos => {
             line(pos.startLine.x, pos.startLine.y, pos.tip.x, pos.tip.y)
             drawArrowTip(pos.tip.x, pos.tip.y, this.dir, 5)
