@@ -19,14 +19,14 @@ class Tool{
     constructor(){
         this.showOptions = {
             SHOW_ROAD: false,
-            SHOW_PATHS: true,
+            SHOW_PATHS: false,
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
-            SHOW_INTERSECSEGS: true,
+            SHOW_INTERSECSEGS: false,
             SHOW_TAGS: false,
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
-            SHOW_WAYS: false,
+            SHOW_WAYS: true,
             SHOW_CONVEXHULL: false
         }
         this.road = new Road(this)
@@ -98,6 +98,7 @@ class Tool{
 
             hoverNode: undefined,
             hoverSeg: undefined,
+            hoverConn: undefined,
 
             menuCollapsed: false,
 
@@ -882,6 +883,7 @@ class Tool{
         let mousePos = this.getRelativePos(mouseX, mouseY)
         
         this.state.hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
+        this.state.hoverConn = this.road.findHoverConnector(mousePos.x, mousePos.y)
         let closestPosToSegment = this.road.findClosestSegmentAndPosRealPos(mousePos.x, mousePos.y)
         if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
             this.state.hoverSeg = closestPosToSegment.closestSegment.id
@@ -955,6 +957,12 @@ class Tool{
             }
             else if(hoverSegment && this.showOptions.SHOW_ROAD){
                 hoverSegment.showHover()
+            }
+        }
+        if(this.showOptions.SHOW_CONNECTORS){
+            let hoverConn = this.road.findHoverConnector(mousePos.x, mousePos.y)
+            if(hoverConn){
+                hoverConn.showHover()
             }
         }
     }

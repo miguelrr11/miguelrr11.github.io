@@ -48,6 +48,8 @@ class Segment{
         toPos.x -= Math.cos(this.dir) * margin
         toPos.y -= Math.sin(this.dir) * margin
         let totalLen = dist(fromPos.x, fromPos.y, toPos.x, toPos.y)
+
+        // If segment is too short, place one arrow at center
         if(totalLen < spacing){
             totalLen = dist(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
             let tippos = lerppos(this.fromPos, this.toPos, 0.5)
@@ -55,13 +57,28 @@ class Segment{
             this.arrowsPos.push({tip: tippos, startLine: startLinePos})
             return
         }
+
+        // Calculate number of arrows and spawn from center outward
         let nArrows = Math.floor(totalLen / spacing)
-        for(let i=1; i<=nArrows; i++){
-            let relPosTip = (i * spacing) / totalLen
-            let relPosStart = ((i * spacing) - 15) / totalLen
-            let tippos = lerppos(fromPos, toPos, relPosTip)
-            let startLinePos = lerppos(fromPos, toPos, relPosStart)
+        let centerPos = 0.5 // Center of segment
+
+        if(nArrows === 1){
+            // Single arrow at center
+            let tippos = lerppos(fromPos, toPos, centerPos)
+            let startLinePos = lerppos(fromPos, toPos, centerPos - 15 / totalLen)
             this.arrowsPos.push({tip: tippos, startLine: startLinePos})
+        } else {
+            // Multiple arrows: spawn from center outward
+            for(let i = 0; i < nArrows; i++){
+                let offset = Math.floor((i + 1) / 2) * (spacing / totalLen)
+                let isEven = i % 2 === 0
+                let relPosTip = isEven ? centerPos + offset : centerPos - offset
+                let relPosStart = relPosTip - 15 / totalLen
+
+                let tippos = lerppos(fromPos, toPos, relPosTip)
+                let startLinePos = lerppos(fromPos, toPos, relPosStart)
+                this.arrowsPos.push({tip: tippos, startLine: startLinePos})
+            }
         }
     }
 
@@ -269,14 +286,14 @@ class Segment{
         drawArrowTip(midPos.x, midPos.y, this.dir, 7)
 
         //debug
-        if(hoveredSegID == this.id){
-            stroke(255)
-            fill(0)
-            for(let i = 0; i < this.corners.length; i++){
-                if(this.corners[i] == undefined) continue
-                text('c' + i, this.corners[i].x, this.corners[i].y)
-            }
-        }
+        // if(hoveredSegID == this.id){
+        //     stroke(255)
+        //     fill(0)
+        //     for(let i = 0; i < this.corners.length; i++){
+        //         if(this.corners[i] == undefined) continue
+        //         text('c' + i, this.corners[i].x, this.corners[i].y)
+        //     }
+        // }
 
         if(SHOW_SEGS_DETAILS){
             stroke(0, 255, 0)
@@ -338,6 +355,36 @@ class Segment{
             line(pos.startLine.x, pos.startLine.y, pos.tip.x, pos.tip.y)
             drawArrowTip(pos.tip.x, pos.tip.y, this.dir, 5)
         })
+    }
+
+    drawDirectionsIntersection(){
+        let toConnector = this.road.findConnector(this.toConnectorID)
+        if(toConnector){
+            let dirs = toConnector.dirs
+            let length_arrow_line = 10
+            let basePos = shortenSegment(this.fromPos, this.toPos, 40)
+            let endPos = shortenSegment(this.fromPos, this.toPos, 30)
+            let straightDir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
+            let leftDir = straightDir - Math.PI / 2
+            let rightDir = straightDir + Math.PI / 2
+            //all lines ending in the arrows will start at endPos
+            let endPosStraight = {x: endPos.x + Math.cos(straightDir) * length_arrow_line, y: endPos.y + Math.sin(straightDir) * length_arrow_line}
+            let endPosLeft = {x: endPos.x + Math.cos(leftDir) * length_arrow_line, y: endPos.y + Math.sin(leftDir) * length_arrow_line}
+            let endPosRight = {x: endPos.x + Math.cos(rightDir) * length_arrow_line, y: endPos.y + Math.sin(rightDir) * length_arrow_line}
+            if(dirs.straight){
+                line(endPos.x, endPos.y, endPosStraight.x, endPosStraight.y)
+                drawArrowTip(endPosStraight.x, endPosStraight.y, straightDir + PI, 5)
+            }
+            if(dirs.leftTurn){
+                line(endPos.x, endPos.y, endPosLeft.x, endPosLeft.y)
+                drawArrowTip(endPosLeft.x, endPosLeft.y, leftDir + PI, 5)
+            }
+            if(dirs.rightTurn){
+                line(endPos.x, endPos.y, endPosRight.x, endPosRight.y)
+                drawArrowTip(endPosRight.x, endPosRight.y, rightDir + PI, 5)
+            }
+            line(basePos.x, basePos.y, endPos.x, endPos.y)
+        }
     }
 
 }

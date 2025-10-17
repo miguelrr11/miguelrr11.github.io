@@ -19,7 +19,7 @@ let OFFSET_RAD_INTERSEC = 5      //25 (intersec_rad)
 let LENGTH_SEG_BEZIER = 5         //3
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.8
-let MIN_DIST_INTERSEC = 0        //30
+let MIN_DIST_INTERSEC = 30        //30
 let LANE_WIDTH = 30
 
 // how many intersections to calculate per frame when updating convex hulls incrementally
@@ -456,6 +456,10 @@ class Road{
         return this.nodes.find(n => n.hover(x, y))
     }
 
+    findHoverConnector(x, y){
+        return this.connectors.find(c => c.hover(x, y))
+    }
+
     addSegment(fromNodeID, toNodeID, visualDir, updateR = true, straightMode = false, curvedPath = false){
         const fromNode = this.findNode(fromNodeID)
         const toNode = this.findNode(toNodeID)
@@ -728,7 +732,7 @@ class Road{
 
     // straightMode: only connect segments that go straight through the intersection
     // connectSelf: if true, allows connecting segments that go from and to the same node (U-turns)
-    connectIntersection(nodeID, connectSelf = false, instantConvex = true, straightMode = true){
+    connectIntersection(nodeID, connectSelf = false, instantConvex = true, straightMode = false){
         let node = this.findNode(nodeID)
         let intersection = new Intersection(nodeID, [], [])
         intersection.road = this
@@ -764,6 +768,7 @@ class Road{
                 if(!conn1aux){
                     connector1 = new Connector(inSeg.id, undefined, inSegFromPos, this.connectorIDcounter)
                     connector1.road = this
+                    connector1.type = 'enter'
                     this.connectors.push(connector1)
                     this.connectorIDcounter++
                     connectorMap.set(inSeg.id, connector1)
@@ -778,6 +783,7 @@ class Road{
                 if(!conn2aux){
                     connector2 = new Connector(undefined, outSeg.id, outSegToPos, this.connectorIDcounter)
                     connector2.road = this
+                    connector2.type = 'exit'
                     this.connectors.push(connector2)
                     this.connectorIDcounter++
                     connectorMap.set(outSeg.id, connector2)
@@ -835,6 +841,7 @@ class Road{
                 //seg.constructOutline()
             })
         })
+        for(let c of connectorMap.values()) c.constructDirections()
         intersection.connectorsIDs = Array.from(connectorMap.values()).map(c => c.id)
         intersection.intersecSegsIDs = intersecSegs
         let pathsIDs = new Set()
@@ -965,7 +972,10 @@ class Road{
         stroke(170)
         strokeWeight(1.5)
         fill(170)
-        if(zoom > 0.18) this.paths.forEach(p => p.showArrows())
+        if(zoom > 0.18){ 
+            this.paths.forEach(p => p.showArrows())
+            this.intersections.forEach(i => i.showDirectionsIntersection())
+        }
         pop()
     }
 }

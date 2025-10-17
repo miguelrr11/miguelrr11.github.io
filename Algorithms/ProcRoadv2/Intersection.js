@@ -228,4 +228,19 @@ class Intersection {
             }
         }
     }
+
+    showDirectionsIntersection(){
+        let paths = this.road.findAnyPath(this.nodeID)
+        if(paths.length > 2){ 
+            for(let i = 0; i < paths.length; i++){
+                let path = paths[i]
+                if(path){
+                    let segmentsEndingHere = path.getSegmentsEndingAtNode(this.nodeID)
+                    segmentsEndingHere.forEach(segment => {
+                        segment.drawDirectionsIntersection()
+                    });
+                }
+            }
+        }
+    }
 }

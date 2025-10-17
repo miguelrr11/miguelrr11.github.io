@@ -207,7 +207,7 @@ function gradientLine(x1, y1, x2, y2, colors) {
     line(x1, y1, x2, y2);
 }
 
-function drawArrowTip(x, y, angle, arrowSize = 7) {
+function drawArrowTip(x, y, angle, arrowSize = 7, close = true) {
     let x1 = x + Math.cos(angle - PI / 6) * arrowSize;
     let y1 = y + Math.sin(angle - PI / 6) * arrowSize;
     let x2 = x + Math.cos(angle + PI / 6) * arrowSize;
@@ -216,7 +216,7 @@ function drawArrowTip(x, y, angle, arrowSize = 7) {
     vertex(x1, y1);
     vertex(x, y);
     vertex(x2, y2);
-    endShape(CLOSE);
+    endShape(close ? CLOSE : undefined);
 }
 
 function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {

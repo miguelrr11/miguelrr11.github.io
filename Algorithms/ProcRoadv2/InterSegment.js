@@ -162,7 +162,7 @@ class InterSegment{
             fill(0, 255, 0)
             textAlign(CENTER)
             textSize(4)
-            let str = '[' + this.id + ']' + ' N: ' +  (this.fromNodeID != undefined ? this.fromNodeID : '_') + '-' + (this.toNodeID != undefined ? this.toNodeID : '_') + '  C: ' + 
+            let str = '[' + this.id + ']' + '  C: ' + 
                       (this.fromConnectorID != undefined ? this.fromConnectorID : '_') + '-' + (this.toConnectorID != undefined ? this.toConnectorID : '_')
             let bbox = textBounds(str, midPos.x, midPos.y)
             fill(0)
