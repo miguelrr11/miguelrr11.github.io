@@ -5,6 +5,9 @@ const COL_LANE_2 = [255, 40, 40, 90]
 const SIDE_WALK_COL = [200]
 const ROAD_COL = [110]
 const ARROWS_COL = [190]
+const MARKINGS_COL = [220]
+
+
 /*
 state.modes:
     creating

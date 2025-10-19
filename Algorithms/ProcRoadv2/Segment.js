@@ -283,14 +283,20 @@ class Segment{
         drawArrowTip(midPos.x, midPos.y, this.dir, 7)
 
         //debug
-        // if(hoveredSegID == this.id){
-        //     stroke(255)
-        //     fill(0)
-        //     for(let i = 0; i < this.corners.length; i++){
-        //         if(this.corners[i] == undefined) continue
-        //         text('c' + i, this.corners[i].x, this.corners[i].y)
-        //     }
-        // }
+        if(hoveredSegID == this.id){
+            stroke(255)
+            fill(0)
+            for(let i = 0; i < this.corners.length; i++){
+                if(this.corners[i] == undefined) continue
+                text('c' + i, this.corners[i].x, this.corners[i].y)
+            }
+            stroke(0)
+            fill(255)
+            for(let i = 0; i < this.corners16.length; i++){
+                if(this.corners16[i] == undefined) continue
+                text('c' + i, this.corners16[i].x, this.corners16[i].y)
+            }
+        }
 
         if(SHOW_SEGS_DETAILS){
             stroke(0, 255, 0)

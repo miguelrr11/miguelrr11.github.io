@@ -9,6 +9,7 @@ class Intersection {
 
         this.convexHullPoints = [] //filled by calculateconvexHullAllSegments()
         this.convexHullPoints16 = [] //filled by calculateconvexHullAllSegments()
+        this.edges = []         //filled by calculateconvexHullAllSegments()
         this.convexHullCalculated = false
 
     }
@@ -228,8 +229,9 @@ class Intersection {
     }
 
     calculateconvexHullAllSegments(){
-        this.convexHullPoints = this.getOutline()
         this.convexHullPoints16 = this.getOutline(true)
+        this.convexHullPoints = this.getOutline()
+        this.edges = this.getOutline(false, true)
         this.convexHullCalculated = true
         return
 
@@ -307,7 +309,6 @@ class Intersection {
 
     // type: showWays
     showWayBase(){
-        if(!this.convexHullPointsExists()) return
         beginShape()
         for(let v of this.convexHullPoints16) vertex(v.x, v.y)
         endShape()
@@ -315,10 +316,17 @@ class Intersection {
 
     // type: showWays
     showWayTop(){
-        if(!this.convexHullPointsExists()) return
         beginShape()
         for(let v of this.convexHullPoints) vertex(v.x, v.y)
         endShape()
+    }
+
+    showEdges(){
+        for(let edge of this.edges){
+            beginShape()
+            for(let v of edge) vertex(v.x, v.y)
+            endShape()
+        }
     }
 
     // type: showWays
@@ -354,11 +362,9 @@ class Intersection {
                 }
             }
         }
-
-        //this.showEdges()
     }
 
-    getOutline(is16 = false){
+    getOutline(is16 = false, separatedCurves = false){
         function orderClockwisePos(center, points) {
             return points.slice().sort((a, b) => {
                 const angleA = Math.atan2(a.pos.y - center.y, a.pos.x - center.x);
@@ -371,7 +377,6 @@ class Intersection {
             return is16 ? segment.corners16 : segment.corners
         }
 
-        push()
         let firstSegmentPoss = []
         let lastSegmentPoss = []
         let paths = this.road.findAnyPath(this.id)
@@ -412,13 +417,11 @@ class Intersection {
             let dirDiff = Math.abs(allPoss[i].dir - allPoss[(i+1) % allPoss.length].dir)
             let tension = map(dirDiff, 0, TWO_PI, 0, 2)
             tension = .8
-            curves.push(...bezierPoints(a, b, c, d, 3, tension))
+            let bz = bezierPoints(a, b, c, d, 3, tension)
+            separatedCurves ?  curves.push(bz) : curves.push(...bz)
         }
 
         return curves
     }
 
-    showEdges(){
-
-    }
 }
