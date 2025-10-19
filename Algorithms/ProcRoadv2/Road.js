@@ -51,6 +51,11 @@ class Road{
     //recomputes all paths, connectors, intersections and intersection-segments, not currently used, but works
     //slow if there are many nodes and segments
     setPaths(){
+        let activenessMap = new Map()
+        for(let intersection of this.intersections){
+            activenessMap.set(intersection.id, intersection.getActivenessMap())
+        }
+
         this.paths = new Map()
         this.connectors = [] 
         this.intersecSegs = []
@@ -58,6 +63,7 @@ class Road{
         this.convexHullQueue = new Set()
         this.connectorIDcounter = 0
         this.intersecSegIDcounter = 0
+        
         for(let i = 0; i < this.nodes.length; i++){
             for(let j = 0; j < this.nodes.length; j++){
                 if(i == j) continue
@@ -77,7 +83,13 @@ class Road{
                 }
             }
         }
-        this.nodes.forEach(n => this.trimSegmentsAtIntersection(n.id, true, this.segments.length < N_SEG_TO_SWITCH_TO_INCREMENTAL))
+
+        this.nodes.forEach(n => this.trimSegmentsAtIntersection({
+            nodeID: n.id,
+            activenessMap: activenessMap.get(n.id),
+            connect: true,
+            instantConvex: this.segments.length < N_SEG_TO_SWITCH_TO_INCREMENTAL
+        }))
     }
 
     //connect a node to another node
@@ -99,25 +111,43 @@ class Road{
         
         newPath.constructRealLanes()
 
+        let activenessMap = new Map()
+        let activenessMaps = []
+
         for(let nodeID of nodesIDs){
             let node = this.findNode(nodeID)
             if(!node) continue
             let intersection = this.findIntersection(nodeID)
             if(intersection){
+                activenessMaps.push(intersection.getActivenessMap())
                 this.connectors = this.connectors.filter(c => !intersection.connectorsIDs.includes(c.id))
                 this.intersecSegs = this.intersecSegs.filter(is => !intersection.intersecSegsIDs.includes(is.id))
                 this.intersections = this.intersections.filter(i => i.nodeID != nodeID)
             }
         }
+
+        for(let map of activenessMaps){
+            for(let [key, value] of map.entries()){
+                activenessMap.set(key, value)
+            }
+        }
+
         if(trim) {
             if(!curvedPath){
                 for(let nodeID of nodesIDs){
-                    this.trimSegmentsAtIntersection(nodeID, true, true, straightMode)
+                    let options = {
+                        nodeID: nodeID,
+                        activenessMap: activenessMap,
+                        connect: true,
+                        straightMode: straightMode,
+                        instantConvex: true
+                    }
+                    this.trimSegmentsAtIntersection(options)
                 }
             }
             else{
                 for(let nodeID of nodesIDs){
-                    this.trimSegmentsAtIntersectionCurved(nodeID)
+                    this.trimSegmentsAtIntersectionCurved({nodeID: nodeID})
                 }
             }
         }
@@ -125,7 +155,7 @@ class Road{
     }
 
     //updates paths connected to a node that has been moved
-    moveNode(nodeID){
+    updateNode(nodeID){
         // update all paths connected to this node
         let curvedPath = this.findNode(nodeID)?.curvePath
         let connectedPaths = this.getAllPathsConnectedToNode(nodeID)
@@ -280,7 +310,7 @@ class Road{
         for(let nodeID of affectedNodeIDs){
             let node = this.findNode(nodeID)
             if(!node) continue
-            this.trimSegmentsAtIntersection(nodeID, true, true)
+            this.trimSegmentsAtIntersection({nodeID: nodeID, connect: true, instantConvex: true})
         }
 
     }
@@ -691,7 +721,9 @@ class Road{
 
 
     //trims all end of segments connected to the node to the farthest intersection found
-    trimSegmentsAtIntersection(nodeID, connect = true, instantConvex = true, straightMode = false){
+    trimSegmentsAtIntersection(options){
+        let {nodeID, connect = true, instantConvex = true, straightMode = false, activenessMap = new Map()} = options
+
         let distances = this.findIntersectionsOfNodev2(nodeID, straightMode)
         if(!distances) return
         let node = this.findNode(nodeID)
@@ -727,12 +759,12 @@ class Road{
             
         })
 
-        if(connect) this.connectIntersection(nodeID, this.nodeOnceConnected(node), instantConvex, straightMode)
+        if(connect) this.connectIntersection(nodeID, this.nodeOnceConnected(node), instantConvex, straightMode, activenessMap)
     }
 
     // straightMode: only connect segments that go straight through the intersection
     // connectSelf: if true, allows connecting segments that go from and to the same node (U-turns)
-    connectIntersection(nodeID, connectSelf = false, instantConvex = true, straightMode = false){
+    connectIntersection(nodeID, connectSelf = false, instantConvex = true, straightMode = false, activenessMap = new Map()){
         let node = this.findNode(nodeID)
         let intersection = new Intersection(nodeID, [], [])
         intersection.road = this
@@ -825,6 +857,11 @@ class Road{
                 seg.len = totalLen
                 this.intersecSegs.push(seg)
                 this.intersecSegIDcounter++
+
+                let activenessKey = inSeg.id + '_' + outSeg.id
+                if(activenessMap.has(activenessKey)){
+                    seg.active = activenessMap.get(activenessKey)
+                }
 
                 // connector1.outgoingSegmentID = seg.id
                 // connector2.incomingSegmentID = seg.id

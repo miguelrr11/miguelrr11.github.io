@@ -12,7 +12,7 @@ class Connector{
     }
 
     // gets all the outgoing segments of this outgoingSegmentIDs and returns their angles respective of the path of this connector
-    getAnglesOutgoing(){
+    getAnglesOutgoing(applyActiveness = false){
         if(this.type == 'exit') return []
         let inSeg = this.road.findSegment(this.incomingSegmentIDs[0])
         if(!inSeg) return []
@@ -20,6 +20,8 @@ class Connector{
         let angles = []
         for(let segID of this.outgoingSegmentIDs){
             let intersecSeg = this.road.findIntersecSeg(segID)
+            // continue if the intersecSeg is inactive and we want to ignore inactive segments
+            if(applyActiveness && (!intersecSeg || !intersecSeg.active)) continue 
             if(intersecSeg){
                 let toConnID = intersecSeg.toConnectorID
                 let toConn = this.road.findConnector(toConnID)
@@ -35,6 +37,7 @@ class Connector{
                     }
                 }
             }
+            
         }
         return angles
     }
@@ -49,7 +52,7 @@ class Connector{
 
         const margin = .45
 
-        let angles = this.getAnglesOutgoing()
+        let angles = this.getAnglesOutgoing(true)
         this.angles = angles
         for(let angle of angles){
             // Positive angles = left turn (counterclockwise)
@@ -77,24 +80,52 @@ class Connector{
     }
 
     chooseOutRandom(){
-        return random(this.outgoingSegmentIDs)
+        if(this.type == 'exit') return this.outgoingSegmentIDs[0]
+        let outgoingSegs = []
+        for(let id of this.outgoingSegmentIDs){
+            let seg = this.road.findIntersecSeg(id)
+            if(seg != undefined && seg.active) outgoingSegs.push(id)
+        }
+        return random(outgoingSegs)
     }
 
     showHover(){
         push()
         strokeWeight(2)
-        this.type == 'enter' ? stroke(255, 0, 0, 200) : stroke(255, 200)
-        this.type == 'enter' ? fill(255, 0, 0, 200) : fill(255, 200)
+        this.type != 'enter' ? stroke(255, 0, 0, 200) : stroke(255, 200)
+        this.type != 'enter' ? fill(255, 0, 0, 200) : fill(255, 200)
         ellipse(this.pos.x, this.pos.y, CONN_RAD * 2)
         noFill()
+        pop()
     }
 
-    show(SHOW_TAGS){
+    showSelected(){
+        push()
+        stroke(255, 200)
+        fill(255, 200)
+        ellipse(this.pos.x, this.pos.y, CONN_RAD * 2)
+        pop()
+    }
+
+    showActiveness(activeBool){
+        push()
+        strokeWeight(2)
+        activeBool ? stroke(0, 255, 0) : stroke(255, 0, 0)
+        noFill()
+        ellipse(this.pos.x, this.pos.y, CONN_RAD * 2)
+        pop()
+    }
+
+    show(SHOW_TAGS, show_only_enter = false){
         if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, 10)) return
         push()
         strokeWeight(2)
         noFill()
-        this.type == 'enter' ? stroke(255, 0, 0, 200) : stroke(255, 200)
+        this.type != 'enter' ? stroke(255, 0, 0, 200) : stroke(255, 200)
+        if(show_only_enter && this.type != 'enter'){
+            pop()
+            return
+        }
         ellipse(this.pos.x, this.pos.y, CONN_RAD * 2)
         if(SHOW_TAGS){
             let strIncomingAll = this.incomingSegmentIDs.length > 0 ? this.incomingSegmentIDs.join(',') : '_'

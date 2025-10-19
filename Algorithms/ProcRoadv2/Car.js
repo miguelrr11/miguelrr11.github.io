@@ -31,6 +31,10 @@ class Car{
                                 return
                             }
                             let intersecSegChosenID = connector.chooseOutRandom()
+                            if(intersecSegChosenID == undefined){
+                                this.dead = true
+                                return
+                            }
                             this.segmentID = intersecSegChosenID
                             this.segTrav = 0
                             this.isOnIntersection = !this.isOnIntersection

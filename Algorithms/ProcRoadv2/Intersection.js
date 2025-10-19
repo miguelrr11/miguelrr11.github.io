@@ -21,6 +21,20 @@ class Intersection {
         c3 -------- c4
     */
 
+    // returns a map with keys as "fromSegmentID_toSegmentID" and values as true/false depending on whether the intersegment that connects them is active or not
+    getActivenessMap(){
+        let map = new Map()
+        for(let segID of this.intersecSegsIDs){
+            let seg = this.road.findIntersecSeg(segID)
+            if(seg){
+                let fromSegID = this.road.findConnector(seg.fromConnectorID).incomingSegmentIDs[0]
+                let toSegID = this.road.findConnector(seg.toConnectorID).outgoingSegmentIDs[0]
+                map.set(fromSegID + '_' + toSegID, seg.active)
+            }
+        }
+        return map
+    }
+
     //calling p.orderSegmentsByDirection(true) will work 1/2 of the time (just call it once)
     debugOrder(){
         let paths = this.road.findAnyPath(this.id)
@@ -136,6 +150,82 @@ class Intersection {
             line(p.p.x, p.p.y, p.m.x, p.m.y)
         }
         pop()
+    }
+
+    showSelected(){
+        if(!this.convexHullPointsExists()) return
+        push()
+        noFill()
+        stroke(255)
+        strokeWeight(2.5)
+        beginShape()
+        for(let i = 0; i < this.convexHullPoints.length; i++){
+            vertex(this.convexHullPoints[i].x, this.convexHullPoints[i].y)
+        }
+        endShape(CLOSE)
+        pop()
+    }
+
+    // shows the selected connector and all segments going out from it within this intersection
+    // it also shows the connectors connected to those segments with the correct colors to indicate if its active or not
+    showSelectedConnectorAndSegments(connID){
+        let conn = this.road.findConnector(connID)
+        console.log(connID, conn)
+        if(conn) conn.showSelected()
+        for(let segID of this.intersecSegsIDs){
+            let seg = this.road.findIntersecSeg(segID)
+            if(seg.fromConnectorID == connID){ 
+                seg.showBezier(false)
+                let outConn = this.road.findConnector(seg.toConnectorID)
+                if(outConn) {
+                    outConn.showActiveness(seg.active)
+                }
+            }
+        }
+    }
+
+    showConnectorsAndSegments(){
+        for(let connID of this.connectorsIDs){
+            let conn = this.road.findConnector(connID)
+            if(conn) conn.show(false, true)
+        }
+        for(let segID of this.intersecSegsIDs){
+            let seg = this.road.findIntersecSeg(segID)
+            if(seg) seg.showBezier(false)
+        }
+    }
+
+    findHoverConnector(x, y){
+        for(let connID of this.connectorsIDs){
+            let conn = this.road.findConnector(connID)
+            if(conn && conn.hover(x, y)) return conn
+        }
+        return undefined
+    }
+
+    toggleActivenessOfSeg(fromConnID, toConnID){
+        for(let segID of this.intersecSegsIDs){
+            let seg = this.road.findIntersecSeg(segID)
+            if(seg.toConnectorID == toConnID && seg.fromConnectorID == fromConnID){ 
+                seg.active = !seg.active
+                return
+            }
+        }
+    }
+
+    findHoveredConnectorsOfSelectedConnector(selectedConnID, x, y){
+        let possibleConnectors = []
+        for(let segID of this.intersecSegsIDs){
+            let seg = this.road.findIntersecSeg(segID)
+            if(seg.fromConnectorID == selectedConnID){ 
+                let outConn = this.road.findConnector(seg.toConnectorID)
+                if(outConn) possibleConnectors.push(outConn)
+            }
+        }
+        for(let conn of possibleConnectors){
+            if(conn.hover(x, y)) return conn
+        }
+        return undefined
     }
 
     calculateconvexHullAllSegments(){

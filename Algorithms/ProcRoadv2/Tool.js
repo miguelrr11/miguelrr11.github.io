@@ -44,6 +44,7 @@ class Tool{
             event.preventDefault();
             this.finishSegment()
         });
+        document.addEventListener('dblclick', (e) => {this.doubleClick(e)});
         //on window resize
         window.addEventListener('resize', () => {
             WIDTH = windowWidth
@@ -112,6 +113,10 @@ class Tool{
             boxOffsetFirstCorner: {x: 0, y: 0},
             boxOffsetSecondCorner: {x: 0, y: 0},
 
+            //selecting intersection to finetune intersecSegs
+            selectedIntersection: undefined,
+            selectedConnector: undefined,
+
             //curved Segments (CS)
             CSmode: false,
             controlPointCS: undefined,
@@ -130,6 +135,20 @@ class Tool{
 
         if(this.state.snapToGrid) return [mousePosGridX, mousePosGridY, mousePos]
         else return [mousePos.x, mousePos.y, mousePos]
+    }
+
+    doubleClick(event){
+        if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || mouseButton.center || this.menuInteracting) return
+        if(this.state.mode != 'movingNode') return
+        let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
+        let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
+        if(hoverNode != undefined){
+            this.state.selectedIntersection = hoverNode.id
+        }
+        else {
+            this.state.selectedIntersection = undefined
+            this.state.selectedConnector = undefined
+        }
     }
 
     onClick(){
@@ -283,6 +302,7 @@ class Tool{
             //checkSegmentCollisionsAndSplit(newSegment)
             this.state.prevNodeID = newNode.id
         }
+
         //deletes a node or segment
         else if(mode == 'deleting'){
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
@@ -296,6 +316,7 @@ class Tool{
                 return
             }
         }
+
         //pathfinding
         else if(mode == 'settingStart' || mode == 'settingEnd'){
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
@@ -311,6 +332,26 @@ class Tool{
                 this.state.prevNodeID = -1
                 this.setCursor(CROSS)
                 return
+            }
+        }
+
+        //selects a connector to finetune its intersecSegs
+        else if(mode == 'movingNode' && this.state.selectedIntersection != undefined){
+            let intersection = this.road.findIntersection(this.state.selectedIntersection)
+            let hoveredConn = intersection.findHoverConnector(mousePos.x, mousePos.y)
+            if(hoveredConn != undefined && this.state.selectedConnector == undefined){
+                this.state.selectedConnector = hoveredConn.id
+            }
+            else if(hoveredConn != undefined && this.state.selectedConnector != undefined){
+                // here there are 2 possibilities: either clicking the same connector to deselect it, or clicking another connector to toggle its activeness
+                let selectedConnOfConn = intersection.findHoveredConnectorsOfSelectedConnector(this.state.selectedConnector, mousePos.x, mousePos.y)
+                if(selectedConnOfConn != undefined){
+                    intersection.toggleActivenessOfSeg(this.state.selectedConnector,  selectedConnOfConn.id)
+                    this.road.updateNode(this.state.selectedIntersection)
+                }
+                else{
+                    this.state.selectedConnector = undefined
+                }
             }
         }
     }
@@ -361,7 +402,7 @@ class Tool{
                         let n = this.state.selectedNodes[i]
                         let offset = this.state.selectedNodesOffsets[i]
                         n.moveTo(mousePosGridX + offset.x, mousePosGridY + offset.y)
-                        this.road.moveNode(n.id)
+                        this.road.updateNode(n.id)
                     }
                     this.state.firstCornerSelected = {x: mousePosGridX + this.state.boxOffsetFirstCorner.x, y: mousePosGridY + this.state.boxOffsetFirstCorner.y}
                     this.state.secondCornerSelected = {x: mousePosGridX + this.state.boxOffsetSecondCorner.x, y: mousePosGridY + this.state.boxOffsetSecondCorner.y}
@@ -372,7 +413,7 @@ class Tool{
             if(this.state.draggingNodeID != -1){
                 let node = this.road.findNode(this.state.draggingNodeID)
                 node.moveTo(mousePosGridX + this.state.offsetDraggingNode.x, mousePosGridY + this.state.offsetDraggingNode.y)
-                this.road.moveNode(this.state.draggingNodeID)
+                this.road.updateNode(this.state.draggingNodeID)
                 return
             }
             //finds a node to start dragging
@@ -413,13 +454,13 @@ class Tool{
         this.removeSelectedBox()
     }
 
-   removeSelectedBox(){
+    removeSelectedBox(){
         this.state.firstCorner = undefined
         this.state.secondCorner = undefined
         this.state.selectedNodesOffsets = []
         this.state.boxOffsetFirstCorner = {x: 0, y: 0}
         this.state.boxOffsetSecondCorner = {x: 0, y: 0}
-   }
+    }
 
 
     finishSegment(){
@@ -932,11 +973,34 @@ class Tool{
 
         this.showSelectionBox()
         this.showSelectionBoxSelected()
+
+        this.showSelectedIntersection()
         
 
         pop()
 
         this.menu.show()
+    }
+
+    showSelectedIntersection(){
+        if(this.state.selectedIntersection == undefined) return
+        let intersection = this.road.findIntersection(this.state.selectedIntersection)
+        if(!intersection) return
+        intersection.showSelected()
+        if(this.state.selectedConnector == undefined){ 
+            intersection.showConnectorsAndSegments()
+            // show hovered connector
+            let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
+            let hoverConn = intersection.findHoverConnector(mousePos.x, mousePos.y)
+            if(hoverConn){
+                hoverConn.showHover()
+            }
+        }
+        if(this.state.selectedConnector != undefined){
+            intersection.showSelectedConnectorAndSegments(this.state.selectedConnector)
+        }
+
+        
     }
 
     showHover(){

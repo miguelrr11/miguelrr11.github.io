@@ -49,6 +49,8 @@ class Segment{
         toPos.y -= Math.sin(this.dir) * margin
         let totalLen = dist(fromPos.x, fromPos.y, toPos.x, toPos.y) - 50
 
+        if(totalLen < 100) return
+
         if(totalLen < spacing){
             totalLen = dist(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
             let tippos = lerppos(this.fromPos, this.toPos, 0.5)

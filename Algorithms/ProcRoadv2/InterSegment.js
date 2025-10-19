@@ -11,6 +11,9 @@ class InterSegment{
         this.toPos = undefined
         this.dir = undefined
 
+        //all intersections set its intersegments to active = true, but then the user can disable some of them
+        this.active = true
+
         //calculated by Intersection.constructOutline()
         this.outline = []
         this.outline16 = []
@@ -147,7 +150,7 @@ class InterSegment{
         }
         push()
         strokeWeight(1.5)
-        stroke(COL_PATHS)
+        this.active ? stroke(COL_PATHS) : stroke(150)
         noFill()
         beginShape()
         for(let i = 0; i < this.bezierPoints.length; i+=1){
