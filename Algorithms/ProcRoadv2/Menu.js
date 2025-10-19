@@ -201,7 +201,7 @@ class Menu{
         })
 
         this.buttons.push(buttonShowZoomLevel)
-        this.buttons.push(buttonCSmode)
+        //this.buttons.push(buttonCSmode)
         this.buttons.push(buttonShowConvexHull)
 
         this.buttons.push(buttonFullscreen)
@@ -255,11 +255,11 @@ class Menu{
             OFFSET_RAD_INTERSEC = value
             this.tool.road.setPaths()
         })
-        let sliderTensionMin = new Slider(15, 350, 80, 'Tension Min', 0, 1, TENSION_BEZIER_MIN, (value) => {
+        let sliderTensionMin = new Slider(15, 350, 80, 'Tension Min', 0, 2, TENSION_BEZIER_MIN, (value) => {
             TENSION_BEZIER_MIN = value
             this.tool.road.setPaths()
         })
-        let sliderTensionMax = new Slider(15, 390, 80, 'Tension Max', 0, 1, TENSION_BEZIER_MAX, (value) => {
+        let sliderTensionMax = new Slider(15, 390, 80, 'Tension Max', 0, 2, TENSION_BEZIER_MAX, (value) => {
             TENSION_BEZIER_MAX = value
             this.tool.road.setPaths()
         })

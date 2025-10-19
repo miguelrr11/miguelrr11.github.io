@@ -36,6 +36,7 @@ class Intersection {
     }
 
     //calling p.orderSegmentsByDirection(true) will work 1/2 of the time (just call it once)
+    // not working properly yet
     debugOrder(){
         let paths = this.road.findAnyPath(this.id)
         for(let p of paths){
@@ -120,7 +121,6 @@ class Intersection {
         }
         //op.push([points[0].p])
         this.outline = op
-
         this.debugpoints = points
     }
 
@@ -170,7 +170,6 @@ class Intersection {
     // it also shows the connectors connected to those segments with the correct colors to indicate if its active or not
     showSelectedConnectorAndSegments(connID){
         let conn = this.road.findConnector(connID)
-        console.log(connID, conn)
         if(conn) conn.showSelected()
         for(let segID of this.intersecSegsIDs){
             let seg = this.road.findIntersecSeg(segID)
@@ -229,6 +228,11 @@ class Intersection {
     }
 
     calculateconvexHullAllSegments(){
+        this.convexHullPoints = this.getOutline()
+        this.convexHullPoints16 = this.getOutline(true)
+        this.convexHullCalculated = true
+        return
+
         //first translate the points obejcts to an array of points
         let points = []
         let points16 = []
@@ -350,5 +354,71 @@ class Intersection {
                 }
             }
         }
+
+        //this.showEdges()
+    }
+
+    getOutline(is16 = false){
+        function orderClockwisePos(center, points) {
+            return points.slice().sort((a, b) => {
+                const angleA = Math.atan2(a.pos.y - center.y, a.pos.x - center.x);
+                const angleB = Math.atan2(b.pos.y - center.y, b.pos.x - center.x);
+                return angleA - angleB;
+            });
+        }
+
+        function getCorners(segment){
+            return is16 ? segment.corners16 : segment.corners
+        }
+
+        push()
+        let firstSegmentPoss = []
+        let lastSegmentPoss = []
+        let paths = this.road.findAnyPath(this.id)
+        for(let p of paths){
+            let firstSeg = p.nodeA == this.nodeID ? p.segments[0] : p.segments[p.segments.length - 1]
+            let lastSeg = p.nodeA != this.nodeID ? p.segments[0] : p.segments[p.segments.length - 1]
+            if(firstSeg) firstSegmentPoss.push({pos: getCorners(firstSeg)[firstSeg.toNodeID == this.nodeID ? 2 : 0], seg: firstSeg})
+            if(lastSeg) lastSegmentPoss.push({pos: getCorners(lastSeg)[lastSeg.toNodeID == this.nodeID ? 3 : 1], seg: lastSeg})
+        }
+
+        let all = [...firstSegmentPoss, ...lastSegmentPoss]
+        let allPoss = orderClockwisePos(this.road.findNode(this.nodeID).pos, all).reverse()
+
+
+        if(!lastSegmentPoss.includes(allPoss[0])){
+            allPoss.push(allPoss.shift());
+        }
+
+        for(let i = 0; i < allPoss.length; i++){
+            let poss = allPoss[i]
+            let nextPoss = (i % 2 == 0) ? allPoss[(i+1) % allPoss.length] : ((i == 0) ? allPoss[allPoss.length - 1] : allPoss[(i-1) % allPoss.length])
+            let point = poss.pos
+            let seg = poss.seg
+            let dir = seg.dir
+            if(seg.fromNodeID == this.nodeID) dir += PI
+            let d = dist(point.x, point.y, nextPoss.pos.x, nextPoss.pos.y)
+            let length = d * LANE_WIDTH * 0.02
+            allPoss[i].newPos = {x: point.x + Math.cos(dir) * length, y: point.y + Math.sin(dir) * length}
+            poss.dir = seg.dir
+        }
+
+        let curves = []
+        for(let i = 0; i < allPoss.length; i += 2){
+            let a = allPoss[i].newPos
+            let b = allPoss[i].pos
+            let c = allPoss[(i+1) % allPoss.length].pos
+            let d = allPoss[(i+1) % allPoss.length].newPos
+            let dirDiff = Math.abs(allPoss[i].dir - allPoss[(i+1) % allPoss.length].dir)
+            let tension = map(dirDiff, 0, TWO_PI, 0, 2)
+            tension = .8
+            curves.push(...bezierPoints(a, b, c, d, 3, tension))
+        }
+
+        return curves
+    }
+
+    showEdges(){
+
     }
 }

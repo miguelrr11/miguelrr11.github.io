@@ -247,14 +247,14 @@ class Path{
     // type: showWays
     showWayBase(){
         this.segments.forEach(segment => {
-            segment.showCustomLanes([200], LANE_WIDTH*1.6)
+            segment.showCustomLanes(SIDE_WALK_COL, LANE_WIDTH*1.6)
         })
     }
 
     // type: showWays
     showWayTop(hoveredID = undefined){
         this.segments.forEach(segment => {
-            segment.showCustomLanes([100], LANE_WIDTH, hoveredID)
+            segment.showCustomLanes(ROAD_COL, LANE_WIDTH, hoveredID)
         })
     }
 

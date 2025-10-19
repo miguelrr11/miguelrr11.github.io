@@ -150,7 +150,7 @@ class InterSegment{
         }
         push()
         strokeWeight(1.5)
-        this.active ? stroke(COL_PATHS) : stroke(150)
+        this.active ? stroke(COL_PATHS) : stroke(120)
         noFill()
         beginShape()
         for(let i = 0; i < this.bezierPoints.length; i+=1){

@@ -143,8 +143,6 @@ class Segment{
 
     // rectMode must be CORNERS and noStroke must be set before calling this
     showCustomLanes(col, w, hoveredID = undefined){
-        let fromPos = this.fromPos
-        let toPos = this.toPos
         let corners = w == LANE_WIDTH ? this.corners : this.corners16
         fill(col)
         beginShape()
@@ -360,12 +358,13 @@ class Segment{
         let toConnector = this.road.findConnector(this.toConnectorID)
         if(toConnector){
             let dirs = toConnector.dirs
+            if(!dirs.straight && !dirs.leftTurn && !dirs.rightTurn) return
             let length_arrow_line = 10
             let basePos = shortenSegment(this.fromPos, this.toPos, 40)
             let endPos = shortenSegment(this.fromPos, this.toPos, 30)
             let straightDir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
-            let leftDir = straightDir - Math.PI / 2
-            let rightDir = straightDir + Math.PI / 2
+            let leftDir = straightDir - Math.PI / 2.5
+            let rightDir = straightDir + Math.PI / 2.5
             //all lines ending in the arrows will start at endPos
             let endPosStraight = {x: endPos.x + Math.cos(straightDir) * length_arrow_line, y: endPos.y + Math.sin(straightDir) * length_arrow_line}
             let endPosLeft = {x: endPos.x + Math.cos(leftDir) * length_arrow_line, y: endPos.y + Math.sin(leftDir) * length_arrow_line}

@@ -2,7 +2,9 @@ let GLOBAL_EDGES = [0, 1400, 0, 700]
 const COL_PATHS = [200]
 const COL_LANE_1 = [40, 40, 255, 90]
 const COL_LANE_2 = [255, 40, 40, 90]
-
+const SIDE_WALK_COL = [200]
+const ROAD_COL = [110]
+const ARROWS_COL = [190]
 /*
 state.modes:
     creating
@@ -80,8 +82,8 @@ class Tool{
             draggingNodeID: -1,
             offsetDraggingNode: {x: 0, y: 0},
 
-            nForLanes: 1,
-            nBackLanes: 1,
+            nForLanes: 2,
+            nBackLanes: 2,
             snapToGrid: false,
 
             changed: false,
@@ -115,7 +117,7 @@ class Tool{
 
             //selecting intersection to finetune intersecSegs
             selectedIntersection: undefined,
-            selectedConnector: undefined,
+            selectedConnector: undefined,    //its actually de ID of the segment that has the selected connector in its ending
 
             //curved Segments (CS)
             CSmode: false,
@@ -147,7 +149,7 @@ class Tool{
         }
         else {
             this.state.selectedIntersection = undefined
-            this.state.selectedConnector = undefined
+            this.state.selectedConnector = undefined      
         }
     }
 
@@ -340,13 +342,15 @@ class Tool{
             let intersection = this.road.findIntersection(this.state.selectedIntersection)
             let hoveredConn = intersection.findHoverConnector(mousePos.x, mousePos.y)
             if(hoveredConn != undefined && this.state.selectedConnector == undefined){
-                this.state.selectedConnector = hoveredConn.id
+                this.state.selectedConnector = hoveredConn.incomingSegmentIDs[0]
             }
             else if(hoveredConn != undefined && this.state.selectedConnector != undefined){
                 // here there are 2 possibilities: either clicking the same connector to deselect it, or clicking another connector to toggle its activeness
-                let selectedConnOfConn = intersection.findHoveredConnectorsOfSelectedConnector(this.state.selectedConnector, mousePos.x, mousePos.y)
+                let conn = this.road.findSegment(this.state.selectedConnector).toConnectorID
+                let selectedConnOfConn = intersection.findHoveredConnectorsOfSelectedConnector(
+                    conn, mousePos.x, mousePos.y)
                 if(selectedConnOfConn != undefined){
-                    intersection.toggleActivenessOfSeg(this.state.selectedConnector,  selectedConnOfConn.id)
+                    intersection.toggleActivenessOfSeg(conn,  selectedConnOfConn.id)
                     this.road.updateNode(this.state.selectedIntersection)
                 }
                 else{
@@ -997,7 +1001,8 @@ class Tool{
             }
         }
         if(this.state.selectedConnector != undefined){
-            intersection.showSelectedConnectorAndSegments(this.state.selectedConnector)
+            let conn = this.road.findSegment(this.state.selectedConnector).toConnectorID
+            intersection.showSelectedConnectorAndSegments(conn)
         }
 
         

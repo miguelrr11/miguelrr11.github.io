@@ -8,7 +8,7 @@ class Connector{
         this.road = undefined
         this.id = id
         this.type = undefined // 'enter' or 'exit' depending on whether the connector is entering or exiting an intersection
-        this.dirs = undefined //calculated directions (left, right, straight) based on outgoing segments
+        this.dirs = undefined //calculated directions (left, right, straight) based on outgoing segments (used by segments)
     }
 
     // gets all the outgoing segments of this outgoingSegmentIDs and returns their angles respective of the path of this connector

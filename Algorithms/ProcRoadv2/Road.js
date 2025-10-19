@@ -844,11 +844,11 @@ class Road{
 
                 let pointsBezier = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER, tension)
 
-                //let totalLen = pointsBezier.length * LENGTH_SEG_BEZIER
-                let totalLen = 0
-                for(let i = 1; i < pointsBezier.length; i++){
-                    totalLen += dist(pointsBezier[i].x, pointsBezier[i].y, pointsBezier[i-1].x, pointsBezier[i-1].y)
-                }
+                let totalLen = pointsBezier.length * LENGTH_SEG_BEZIER
+                // let totalLen = 0
+                // for(let i = 1; i < pointsBezier.length; i++){
+                //     totalLen += dist(pointsBezier[i].x, pointsBezier[i].y, pointsBezier[i-1].x, pointsBezier[i-1].y)
+                // }
 
                 let seg = new InterSegment(this.intersecSegIDcounter, connector1.id, connector2.id, inSeg.visualDir, pointsBezier)
                 seg.road = this
@@ -985,12 +985,12 @@ class Road{
         this.paths.forEach(p => p.showWayBase())
         pop()
         push()
-        fill(200)
+        fill(SIDE_WALK_COL)
         noStroke()
         this.intersections.forEach(p => p.showWayBase())
         pop()
         push()
-        fill(100)
+        fill(ROAD_COL)
         noStroke()
         this.intersections.forEach(p => p.showWayTop())
         pop()
@@ -1006,9 +1006,9 @@ class Road{
         stroke(220)
         strokeCap(SQUARE)
         this.paths.forEach(p => p.showEdges())
-        stroke(170)
+        stroke(ARROWS_COL)
         strokeWeight(1.5)
-        fill(170)
+        fill(ARROWS_COL)
         if(zoom > 0.18){ 
             this.paths.forEach(p => p.showArrows())
             this.intersections.forEach(i => i.showDirectionsIntersection())
@@ -1061,6 +1061,7 @@ function getLowest(openSet, fScore) {
   return best;
 }
 
+// doesnt take into account if an intersec segment is active or not
 function Astar(startNodeID, goalNodeID, road) {
   const openSet = new Set([startNodeID]);
 
