@@ -414,9 +414,7 @@ class Intersection {
             let b = allPoss[i].pos
             let c = allPoss[(i+1) % allPoss.length].pos
             let d = allPoss[(i+1) % allPoss.length].newPos
-            let dirDiff = Math.abs(allPoss[i].dir - allPoss[(i+1) % allPoss.length].dir)
-            let tension = map(dirDiff, 0, TWO_PI, 0, 2)
-            tension = .8
+            let tension = TENSION_BEZIER_MAX
             let bz = bezierPoints(a, b, c, d, 3, tension)
             separatedCurves ?  curves.push(bz) : curves.push(...bz)
         }

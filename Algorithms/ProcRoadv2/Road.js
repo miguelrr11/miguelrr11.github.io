@@ -18,7 +18,7 @@ const GRID_CELL_SIZE = 40   //15
 let OFFSET_RAD_INTERSEC = 5      //25 (intersec_rad)
 let LENGTH_SEG_BEZIER = 5         //3
 let TENSION_BEZIER_MIN = 0.1
-let TENSION_BEZIER_MAX = 0.8
+let TENSION_BEZIER_MAX = 0.75
 let MIN_DIST_INTERSEC = 30        //30
 let LANE_WIDTH = 30
 

@@ -574,7 +574,7 @@ class Tool{
                 let distFromBottom = maxY - y
                 let minDistToEdge = Math.min(distFromLeft, distFromRight, distFromTop, distFromBottom)
                 let fadeFactor = Math.min(minDistToEdge / fadeDistance, 1)
-                let baseAlpha = map(this.zoom, 0.2, 0.4, 0, 150, true)
+                let baseAlpha = map(this.zoom, 0.3, 0.4, 0, 150, true)
                 let alpha = baseAlpha * fadeFactor
                 stroke(255, alpha)
                 point(x, y)
@@ -945,7 +945,7 @@ class Tool{
         translate(this.xOff, this.yOff)
         scale(this.zoom)
 
-        if(this.zoom > 0.2 && this.state.snapToGrid) this.showGridPoints()
+        if(this.zoom > 0.3 && this.state.snapToGrid) this.showGridPoints()
 
         
         // only showWays is optimized
