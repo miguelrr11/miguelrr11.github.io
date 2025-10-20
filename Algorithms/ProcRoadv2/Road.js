@@ -16,7 +16,7 @@
 const NODE_RAD = 20
 const GRID_CELL_SIZE = 40   //15
 
-let OFFSET_RAD_INTERSEC = 25      //25 (intersec_rad)
+let OFFSET_RAD_INTERSEC = 5      //25 (intersec_rad)
 let LENGTH_SEG_BEZIER = 5         //3
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.75
@@ -24,10 +24,10 @@ let MIN_DIST_INTERSEC = 30        //30
 let LANE_WIDTH = 30
 let BIG_LANE_WIDTH = LANE_WIDTH * 1.6
 
-// how many intersections to calculate per frame when updating convex hulls incrementally
-const INTERSECTIONS_PER_FRAME = 2
-// after this number of segments in a path in setPaths(), switch to incremental convex hull calculation
-const N_SEG_TO_SWITCH_TO_INCREMENTAL = 200
+// // how many intersections to calculate per frame when updating convex hulls incrementally
+// const INTERSECTIONS_PER_FRAME = 2
+// // after this number of segments in a path in setPaths(), switch to incremental convex hull calculation
+// const N_SEG_TO_SWITCH_TO_INCREMENTAL = 200
 
 class Road{
     constructor(tool){
@@ -784,7 +784,9 @@ class Road{
         incoming.forEach(inSeg => {
             outgoing.forEach(outSeg => {
                 //avoid creating a connector between two segments that are already connected
-                if(inSeg.fromNodeID == outSeg.toNodeID && !connectSelf) return
+                if(inSeg.fromNodeID == outSeg.toNodeID && !connectSelf){ 
+                    return
+                }
                 if(straightMode){
                     let pathInSeg = this.findPathByNodes(inSeg.fromNodeID, inSeg.toNodeID)
                     let pathOutSeg = this.findPathByNodes(outSeg.fromNodeID, outSeg.toNodeID)
@@ -974,7 +976,7 @@ class Road{
     }
 
     showNodes(zoom){
-        this.nodes.forEach(n => n.show(false, zoom))
+        if(zoom > 0.18) this.nodes.forEach(n => n.show(false, zoom))
     }
 
     showNodesTags(){
@@ -988,12 +990,12 @@ class Road{
         push()
         rectMode(CORNERS)
         noStroke()
-        this.paths.forEach(p => p.showWayBase())
+        if(zoom > 0.1) this.paths.forEach(p => p.showWayBase())
         pop()
         push()
         fill(SIDE_WALK_COL)
         noStroke()
-        this.intersections.forEach(p => p.showWayBase())
+        if(zoom > 0.1) this.intersections.forEach(p => p.showWayBase())
         pop()
         push()
         fill(ROAD_COL)
@@ -1002,7 +1004,7 @@ class Road{
         stroke(MARKINGS_COL)
         strokeWeight(1.5)
         noFill()
-        this.intersections.forEach(p => p.showEdges())
+        if(zoom > 0.18) this.intersections.forEach(p => p.showEdges())
         pop()
         push()
         rectMode(CORNERS)
@@ -1011,11 +1013,11 @@ class Road{
         stroke(MARKINGS_COL)
         strokeWeight(WIDTH_YIELD_MARKING)
         strokeCap(SQUARE)
-        this.intersections.forEach(p => p.showYieldMarkings())
+        if(zoom > 0.18) this.intersections.forEach(p => p.showYieldMarkings())
         strokeWeight(1.5)
         stroke(MARKINGS_COL)
         strokeCap(SQUARE)
-        this.paths.forEach(p => p.showEdges())
+        if(zoom > 0.18) this.paths.forEach(p => p.showEdges())
         stroke(ARROWS_COL)
         strokeWeight(1.5)
         fill(ARROWS_COL)
@@ -1049,30 +1051,38 @@ function arrHasPosition(arr, pos){
     return false
 }
 
-function reconstructPath(cameFrom, current) {
-  const totalPath = [current];
-  while (cameFrom.has(current)) {
-    current = cameFrom.get(current);
-    totalPath.unshift(current);
-  }
-  return totalPath;
-}
 
-function getLowest(openSet, fScore) {
-  let best = null;
-  let bestScore = Infinity;
-  for (const id of openSet) {
-    const s = fScore.get(id) ?? Infinity;
-    if (s < bestScore) {
-      bestScore = s;
-      best = id;
-    }
-  }
-  return best;
-}
 
 // doesn't take into account if an intersec segment is active or not
 function Astar(startNodeID, goalNodeID, road) {
+    function h(startNodeID, goalNodeID, road) {
+        const start = road.findNode(startNodeID);
+        const goal = road.findNode(goalNodeID);
+        return dist(start.pos.x, start.pos.y, goal.pos.x, goal.pos.y);
+    }
+
+    function reconstructPath(cameFrom, current) {
+        const totalPath = [current];
+        while (cameFrom.has(current)) {
+        current = cameFrom.get(current);
+        totalPath.unshift(current);
+        }
+        return totalPath;
+    }
+
+    function getLowest(openSet, fScore) {
+        let best = null;
+        let bestScore = Infinity;
+        for (const id of openSet) {
+        const s = fScore.get(id) ?? Infinity;
+        if (s < bestScore) {
+            bestScore = s;
+            best = id;
+        }
+        }
+        return best;
+    }
+
   const openSet = new Set([startNodeID]);
 
   const cameFrom = new Map();
@@ -1117,11 +1127,7 @@ function Astar(startNodeID, goalNodeID, road) {
   return undefined; // no hay camino
 }
 
-function h(startNodeID, goalNodeID, road) {
-  const start = road.findNode(startNodeID);
-  const goal = road.findNode(goalNodeID);
-  return dist(start.pos.x, start.pos.y, goal.pos.x, goal.pos.y);
-}
+
 
 // the ids of any object are strings made of 94 characters
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789{|}~!"#$%&\'()*+,-./:;<=>?@[\\]^_`';

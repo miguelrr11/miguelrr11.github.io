@@ -124,6 +124,7 @@ class Segment{
     }
 
     drawLineBelow(disc = false){
+        if(this.outOfBounds()) return
         push()
         let fromPos = this.fromPos
         let toPos = this.toPos
@@ -134,6 +135,7 @@ class Segment{
     }
 
     drawLineAbove(disc = false){
+        if(this.outOfBounds()) return
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
@@ -143,6 +145,7 @@ class Segment{
 
     // rectMode must be CORNERS and noStroke must be set before calling this
     showCustomLanes(col, w, hoveredID = undefined){
+        if(this.outOfBounds()) return
         let corners = w == LANE_WIDTH ? this.corners : this.corners16
         fill(col)
         beginShape()
@@ -355,6 +358,7 @@ class Segment{
 
     // type: showWays
     drawArrows(){
+        if(this.outOfBounds()) return
         this.arrowsPos.forEach(pos => {
             line(pos.startLine.x, pos.startLine.y, pos.tip.x, pos.tip.y)
             drawArrowTip(pos.tip.x, pos.tip.y, this.dir, 5)

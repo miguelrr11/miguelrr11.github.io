@@ -7,6 +7,9 @@ const ROAD_COL = [110]
 const ARROWS_COL = [190]
 const MARKINGS_COL = [220]
 
+const MIN_ZOOM = 0.001
+const MAX_ZOOM = 8
+
 
 /*
 state.modes:
@@ -511,7 +514,7 @@ class Tool{
         let worldY = (mouseY - this.yOff) / this.zoom;
         let oldZoom = this.zoom;
         this.zoom += event.deltaY / 1000;
-        this.zoom = Math.max(0.1, Math.min(this.zoom, 8));
+        this.zoom = Math.max(MIN_ZOOM, Math.min(this.zoom, MAX_ZOOM));
         this.xOff = mouseX - worldX * this.zoom;
         this.yOff = mouseY - worldY * this.zoom;
 

@@ -189,11 +189,11 @@ class Menu{
 
         let buttonZoomMinus = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 30, 30, 20, '-', () => {
             this.tool.zoom /= 1.1
-            if(this.tool.zoom < 0.1) this.tool.zoom = 0.1
+            if(this.tool.zoom < MIN_ZOOM) this.tool.zoom = MIN_ZOOM
         })
         let buttonZoomPlus = new Button(width - 70 - 10 - 40 - 10, HEIGHT - 30, 30, 20, '+', () => {
             this.tool.zoom *= 1.1
-            if(this.tool.zoom > 5) this.tool.zoom = 5
+            if(this.tool.zoom > MAX_ZOOM) this.tool.zoom = MAX_ZOOM
         })
 
         let buttonShowZoomLevel = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 60, 70, 20, 'State: ' + this.tool.state.mode, undefined, () => {
