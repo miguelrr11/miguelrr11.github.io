@@ -7,10 +7,11 @@ class Intersection {
         this.road = undefined     //filled by road.js
         this.pathsIDs = []        //filled by road.js
 
-        this.convexHullPoints = [] //filled by calculateconvexHullAllSegments()
-        this.convexHullPoints16 = [] //filled by calculateconvexHullAllSegments()
-        this.edges = []         //filled by calculateconvexHullAllSegments()
-        this.convexHullCalculated = false
+        this.outline = [] //filled by calculateOutlinesIntersection()
+        this.outline16 = [] //filled by calculateOutlinesIntersection()
+        this.edges = []         //filled by calculateOutlinesIntersection()
+
+        //this.convexHullCalculated = false
 
     }
 
@@ -154,14 +155,14 @@ class Intersection {
     }
 
     showSelected(){
-        if(!this.convexHullPointsExists()) return
+        if(!this.outlineExists()) return
         push()
         noFill()
         stroke(255)
         strokeWeight(2.5)
         beginShape()
-        for(let i = 0; i < this.convexHullPoints.length; i++){
-            vertex(this.convexHullPoints[i].x, this.convexHullPoints[i].y)
+        for(let i = 0; i < this.outline.length; i++){
+            vertex(this.outline[i].x, this.outline[i].y)
         }
         endShape(CLOSE)
         pop()
@@ -174,7 +175,17 @@ class Intersection {
         if(conn) conn.showSelected()
         for(let segID of this.intersecSegsIDs){
             let seg = this.road.findIntersecSeg(segID)
-            if(seg.fromConnectorID == connID){ 
+            if(seg.fromConnectorID == connID && !seg.active){ 
+                seg.showBezier(false)
+                let outConn = this.road.findConnector(seg.toConnectorID)
+                if(outConn) {
+                    outConn.showActiveness(seg.active)
+                }
+            }
+        }
+        for(let segID of this.intersecSegsIDs){
+            let seg = this.road.findIntersecSeg(segID)
+            if(seg.fromConnectorID == connID && seg.active){ 
                 seg.showBezier(false)
                 let outConn = this.road.findConnector(seg.toConnectorID)
                 if(outConn) {
@@ -228,40 +239,16 @@ class Intersection {
         return undefined
     }
 
-    calculateconvexHullAllSegments(){
-        this.convexHullPoints16 = this.getOutline(true)
-        this.convexHullPoints = this.getOutline()
+    calculateOutlinesIntersection(){
+        this.outline16 = this.getOutline(true)
+        this.outline = this.getOutline()
         this.edges = this.getOutline(false, true)
-        this.convexHullCalculated = true
+        //this.convexHullCalculated = true
         return
-
-        //first translate the points obejcts to an array of points
-        let points = []
-        let points16 = []
-        for(let i = 0; i < this.intersecSegsIDs.length; i++){
-            let segment = this.road.findIntersecSeg(this.intersecSegsIDs[i])
-            if(segment){
-                segment.constructOutline()
-                let outline = segment.outline
-                let outline16 = segment.outline16
-                for(let j = 0; j < outline.length; j++){
-                    points.push({x: outline[j].x, y: outline[j].y})
-                }
-                for(let j = 0; j < outline16.length; j++){
-                    points16.push({x: outline16[j].x, y: outline16[j].y})
-                }
-            }
-        }
-        let calculated_hull = convexhull.makeHull(points)
-        this.convexHullPoints = calculated_hull.map(p => {return {x: p.x, y: p.y}})
-        let calculated_hull16 = convexhull.makeHull(points16)
-        this.convexHullPoints16 = calculated_hull16.map(p => {return {x: p.x, y: p.y}})
-        //much faster because is half the convex hull calls but less precise
-        //this.convexHullPoints16 = this.extendConvexHullPoints(this.convexHullPoints, LANE_WIDTH * 0.6)  
-        this.convexHullCalculated = true
     }
 
-    extendConvexHullPoints(points, distance){
+    //not used
+    extendOutline(points, distance){
         let extendedPoints = []
         let centerPos = getCentroid(points)
         let n = points.length
@@ -277,29 +264,29 @@ class Intersection {
         return extendedPoints
     }
 
-    convexHullPointsExists(){
-        return this.convexHullCalculated && this.convexHullPoints.length > 0 && this.convexHullPoints16.length > 0
+    outlineExists(){
+        return this.outline.length > 0 && this.outline16.length > 0
     }
 
-    drawconvexHullDebug(){
+    drawOutlineDebug(){
         // this.drawOutlineDebug()
         // return
 
 
-        if(!this.convexHullPointsExists()) return
+        if(!this.outlineExists()) return
         push()
         noFill()
         stroke(0, 255, 0, 200)
         strokeWeight(2)
         beginShape()
-        for(let i = 0; i < this.convexHullPoints.length; i++){
-            vertex(this.convexHullPoints[i].x, this.convexHullPoints[i].y)
+        for(let i = 0; i < this.outline.length; i++){
+            vertex(this.outline[i].x, this.outline[i].y)
         }
         endShape(CLOSE)
         stroke(255, 0, 0, 200)
         beginShape()
-        for(let i = 0; i < this.convexHullPoints16.length; i++){
-            vertex(this.convexHullPoints16[i].x, this.convexHullPoints16[i].y)
+        for(let i = 0; i < this.outline16.length; i++){
+            vertex(this.outline16[i].x, this.outline16[i].y)
         }
         endShape(CLOSE)
         pop()
@@ -310,14 +297,14 @@ class Intersection {
     // type: showWays
     showWayBase(){
         beginShape()
-        for(let v of this.convexHullPoints16) vertex(v.x, v.y)
+        for(let v of this.outline16) vertex(v.x, v.y)
         endShape()
     }
 
     // type: showWays
     showWayTop(){
         beginShape()
-        for(let v of this.convexHullPoints) vertex(v.x, v.y)
+        for(let v of this.outline) vertex(v.x, v.y)
         endShape()
     }
 
@@ -364,6 +351,8 @@ class Intersection {
         }
     }
 
+    // supposes that the corners of segments DO NOT overlap with other paths, if they do, the outline will be wrong because
+    // the sorting of points will be affected. The fix for this was to set the width of Road.js (lines 914-915) to BIG_LANE_WIDTH instead of LANE_WIDTH
     getOutline(is16 = false, separatedCurves = false){
         function orderClockwisePos(center, points) {
             return points.slice().sort((a, b) => {
@@ -383,8 +372,8 @@ class Intersection {
         for(let p of paths){
             let firstSeg = p.nodeA == this.nodeID ? p.segments[0] : p.segments[p.segments.length - 1]
             let lastSeg = p.nodeA != this.nodeID ? p.segments[0] : p.segments[p.segments.length - 1]
-            if(firstSeg) firstSegmentPoss.push({pos: getCorners(firstSeg)[firstSeg.toNodeID == this.nodeID ? 2 : 0], seg: firstSeg})
-            if(lastSeg) lastSegmentPoss.push({pos: getCorners(lastSeg)[lastSeg.toNodeID == this.nodeID ? 3 : 1], seg: lastSeg})
+            if(firstSeg) firstSegmentPoss.push({pos: getCorners(firstSeg)[firstSeg.toNodeID == this.nodeID ? 2 : 0], seg: firstSeg, path: p})
+            if(lastSeg) lastSegmentPoss.push({pos: getCorners(lastSeg)[lastSeg.toNodeID == this.nodeID ? 3 : 1], seg: lastSeg, path: p})
         }
 
         let all = [...firstSegmentPoss, ...lastSegmentPoss]

@@ -96,8 +96,8 @@ class Menu{
             this.tool.showOptions.SHOW_LANES = !this.tool.showOptions.SHOW_LANES
         }, undefined,  () => {return this.tool.showOptions.SHOW_LANES})
         let buttonShowConvexHull = new Button(xLoc, yLoc + hButton * 8, 95, 20, 'Junction Area', () => {
-            this.tool.showOptions.SHOW_CONVEXHULL = !this.tool.showOptions.SHOW_CONVEXHULL
-        }, undefined,  () => {return this.tool.showOptions.SHOW_CONVEXHULL})
+            this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA = !this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA
+        }, undefined,  () => {return this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA})
         let buttonShowWays = new Button(xLoc, yLoc + hButton * 9, 95, 20, 'Road', () => {
             this.tool.showOptions.SHOW_WAYS = !this.tool.showOptions.SHOW_WAYS
         }, undefined,  () => {return this.tool.showOptions.SHOW_WAYS})

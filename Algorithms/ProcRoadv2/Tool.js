@@ -32,7 +32,7 @@ class Tool{
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
             SHOW_WAYS: true,
-            SHOW_CONVEXHULL: false
+            SHOW_INTERSECTION_AREA_AREA: false
         }
         this.road = new Road(this)
         this.state = this.getInitialState()
@@ -915,7 +915,7 @@ class Tool{
         if(this.constantSetPaths) this.road.setPaths()
         this.state.edges = this.getEdges()
         GLOBAL_EDGES = this.state.edges
-        this.road.updateConvexHullsIncremental()
+        //this.road.updateConvexHullsIncremental()
         // Note: setPaths() is no longer called here - updates are done incrementally
         // when nodes/segments are added/removed/modified
         if(this.state.changed) {
@@ -960,7 +960,7 @@ class Tool{
                                                             this.state.hoverSeg)
         
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
-        if(this.showOptions.SHOW_CONVEXHULL) this.road.showConvexHulls()
+        if(this.showOptions.SHOW_INTERSECTION_AREA_AREA) this.road.showIntersectionArea()
         
         blendMode(DIFFERENCE)
         if(this.showOptions.SHOW_NODES) this.road.showNodes(this.zoom)

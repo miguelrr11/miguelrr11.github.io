@@ -247,7 +247,7 @@ class Path{
     // type: showWays
     showWayBase(){
         this.segments.forEach(segment => {
-            segment.showCustomLanes(SIDE_WALK_COL, LANE_WIDTH*1.6)
+            segment.showCustomLanes(SIDE_WALK_COL, BIG_LANE_WIDTH)
         })
     }
 

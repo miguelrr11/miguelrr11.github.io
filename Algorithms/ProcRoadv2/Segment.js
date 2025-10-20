@@ -29,7 +29,7 @@ class Segment{
 
     constructCorners(){
         this.corners = getCornersOfLine(this.fromPos, this.toPos, LANE_WIDTH)
-        this.corners16 = getCornersOfLine(this.fromPos, this.toPos, LANE_WIDTH * 1.6)
+        this.corners16 = getCornersOfLine(this.fromPos, this.toPos, BIG_LANE_WIDTH)
 
         let dir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
         let toPosShort = {x: this.toPos.x - Math.cos(dir) * WIDTH_YIELD_MARKING * 0.5, y: this.toPos.y - Math.sin(dir) * WIDTH_YIELD_MARKING * 0.5}
@@ -183,12 +183,6 @@ class Segment{
         vertex(corners[2].x, corners[2].y)
         vertex(corners[3].x, corners[3].y)
         endShape(CLOSE)
-        // stroke(255)
-        // strokeWeight(5)
-        // point(corners[0].x, corners[0].y)
-        // point(corners[1].x, corners[1].y)
-        // point(corners[2].x, corners[2].y)
-        // point(corners[3].x, corners[3].y)
         pop()
     }
 
@@ -228,6 +222,13 @@ class Segment{
         for(let i = 0; i < this.corners.length; i++){
             if(this.corners[i] == undefined) continue
             vertex(this.corners[i].x, this.corners[i].y)
+        }
+        endShape(CLOSE)
+        stroke(255, 0, 0, 100)
+        beginShape()
+        for(let i = 0; i < this.corners16.length; i++){
+            if(this.corners16[i] == undefined) continue
+            vertex(this.corners16[i].x, this.corners16[i].y)
         }
         endShape(CLOSE)
         pop()

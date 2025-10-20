@@ -15,8 +15,8 @@ class InterSegment{
         this.active = true
 
         //calculated by Intersection.constructOutline()
-        this.outline = []
-        this.outline16 = []
+        this.outline = []       //not used anymore
+        this.outline16 = []     //not used anymore
         this.corners = []
     }
 
@@ -54,25 +54,26 @@ class InterSegment{
 
      */
 
+    //no longer constructs outlines, just corners, because outlines are not longer needed
     constructOutline(){
-        let points = []
-        let points16 = []
+        // let points = []
+        // let points16 = []
 
-        let fromSeg = this.road.findSegment(this.road.findConnector(this.fromConnectorID).incomingSegmentIDs[0])
-        let cornersFromSeg = getCornersOfLine(fromSeg.fromPos, fromSeg.toPos, LANE_WIDTH)
-        let toSeg = this.road.findSegment(this.road.findConnector(this.toConnectorID).outgoingSegmentIDs[0])
-        let cornersToSeg = getCornersOfLine(toSeg.fromPos, toSeg.toPos, LANE_WIDTH)
-        let c0 = cornersFromSeg[2]
-        let c1 = cornersToSeg[1]
-        let c3 = cornersToSeg[0]
-        let c2 = cornersFromSeg[3]
+        // let fromSeg = this.road.findSegment(this.road.findConnector(this.fromConnectorID).incomingSegmentIDs[0])
+        // let cornersFromSeg = getCornersOfLine(fromSeg.fromPos, fromSeg.toPos, LANE_WIDTH)
+        // let toSeg = this.road.findSegment(this.road.findConnector(this.toConnectorID).outgoingSegmentIDs[0])
+        // let cornersToSeg = getCornersOfLine(toSeg.fromPos, toSeg.toPos, LANE_WIDTH)
+        // let c0 = cornersFromSeg[2]
+        // let c1 = cornersToSeg[1]
+        // let c3 = cornersToSeg[0]
+        // let c2 = cornersFromSeg[3]
 
-        let cornersFromSeg16 = getCornersOfLine(fromSeg.fromPos, fromSeg.toPos, LANE_WIDTH*1.6)
-        let cornersToSeg16 = getCornersOfLine(toSeg.fromPos, toSeg.toPos, LANE_WIDTH*1.6)
-        let c0_16 = cornersFromSeg16[2]
-        let c1_16 = cornersToSeg16[1]
-        let c3_16 = cornersToSeg16[0]
-        let c2_16 = cornersFromSeg16[3]
+        // let cornersFromSeg16 = getCornersOfLine(fromSeg.fromPos, fromSeg.toPos, BIG_LANE_WIDTH)
+        // let cornersToSeg16 = getCornersOfLine(toSeg.fromPos, toSeg.toPos, BIG_LANE_WIDTH)
+        // let c0_16 = cornersFromSeg16[2]
+        // let c1_16 = cornersToSeg16[1]
+        // let c3_16 = cornersToSeg16[0]
+        // let c2_16 = cornersFromSeg16[3]
 
 
         let cornersArr = []
@@ -81,37 +82,37 @@ class InterSegment{
             let p = this.bezierPoints[i]
             let pNext = this.bezierPoints[i+1]
             let corners = getCornersOfLine(p, pNext, LANE_WIDTH)
-            let corners16 = getCornersOfLine(p, pNext, LANE_WIDTH*1.6)
+            let corners16 = getCornersOfLine(p, pNext, BIG_LANE_WIDTH)
             cornersArr.push(corners)
             corners16Arr.push(corners16)
         }
 
-        let bp = [ ...this.bezierPoints]
+        let bp = this.bezierPoints
         let corners
         let corners16
-        points.push(c2)
-        points16.push(c2_16)
+        // points.push(c2)
+        // points16.push(c2_16)
         for(let i = 0; i < bp.length - 1; i++){
             corners = cornersArr[i]
             corners16 = corners16Arr[i]
-            points.push(corners[0])
-            points16.push(corners16[0])
+            // points.push(corners[0])
+            // points16.push(corners16[0])
         }
-        points.push(c3)
-        points.push(c1)
-        points16.push(c3_16)
-        points16.push(c1_16)
+        // points.push(c3)
+        // points.push(c1)
+        // points16.push(c3_16)
+        // points16.push(c1_16)
         for(let i = bp.length - 1; i > 0; i--){
             corners = cornersArr[i-1]
             corners16 = corners16Arr[i-1]
-            points.push(corners[1])
-            points16.push(corners16[1])
+            // points.push(corners[1])
+            // points16.push(corners16[1])
         }
-        points.push(c0)
-        points16.push(c0_16)
+        // points.push(c0)
+        // points16.push(c0_16)
 
-        this.outline = points
-        this.outline16 = points16
+        // this.outline = points
+        // this.outline16 = points16
 
         this.corners = [c0, c1, c2, c3]
     }

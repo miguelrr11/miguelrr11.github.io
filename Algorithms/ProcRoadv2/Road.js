@@ -7,6 +7,7 @@
  * intersection-segments there are to choose. 
  * Intersections are just a data structure to group intersections (they contain the nodeID, the connectors and the intersection-segments)
  * setPaths() recoomputes everything, so the convex hull calculations are relegated to the convexHullQueue that processes them one by one
+ * Now convex hulls are not calculated anymore, they were too slow and ugly
  */
 
 // It is extremely important to separate segments (array segments) from the intersection segments (array intersecSegs)
@@ -15,12 +16,13 @@
 const NODE_RAD = 20
 const GRID_CELL_SIZE = 40   //15
 
-let OFFSET_RAD_INTERSEC = 5      //25 (intersec_rad)
+let OFFSET_RAD_INTERSEC = 25      //25 (intersec_rad)
 let LENGTH_SEG_BEZIER = 5         //3
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.75
 let MIN_DIST_INTERSEC = 30        //30
 let LANE_WIDTH = 30
+let BIG_LANE_WIDTH = LANE_WIDTH * 1.6
 
 // how many intersections to calculate per frame when updating convex hulls incrementally
 const INTERSECTIONS_PER_FRAME = 2
@@ -39,6 +41,7 @@ class Road{
         this.intersections = []
         this.paths = new Map()
 
+        //not used anymore
         this.convexHullQueue = new Set()
 
         this.nodeIDcounter = 0
@@ -60,7 +63,7 @@ class Road{
         this.connectors = [] 
         this.intersecSegs = []
         this.intersections = []
-        this.convexHullQueue = new Set()
+        //this.convexHullQueue = new Set()
         this.connectorIDcounter = 0
         this.intersecSegIDcounter = 0
         
@@ -88,7 +91,8 @@ class Road{
             nodeID: n.id,
             activenessMap: activenessMap.get(n.id),
             connect: true,
-            instantConvex: this.segments.length < N_SEG_TO_SWITCH_TO_INCREMENTAL
+            //instantConvex: this.segments.length < N_SEG_TO_SWITCH_TO_INCREMENTAL
+            instantConvex: true
         }))
     }
 
@@ -184,7 +188,7 @@ class Road{
             let fromPos = s.fromPos
             let toPos = s.toPos
             let posFromNode = this.findNode(s.fromNodeID).pos
-            let posToNode = this.findNode(s.toNodeID).pos
+            //let posToNode = this.findNode(s.toNodeID).pos
             if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
                 //continue
             }
@@ -470,7 +474,7 @@ class Road{
         const newNode = new Node(this.nodeIDcounter, x, y)
         this.nodes.push(newNode)
         newNode.road = this
-        this.nodeIDcounter++
+        this.nodeIDcounter = getNextID(this.nodeIDcounter)
         return newNode
     }
 
@@ -478,7 +482,7 @@ class Road{
         const newNode = new Node(this.nodeIDcounter, x, y)
         this.nodes.push(newNode)
         newNode.road = this
-        this.nodeIDcounter++
+        this.nodeIDcounter = getNextID(this.nodeIDcounter)
         return newNode
     }
 
@@ -502,7 +506,7 @@ class Road{
         this.segments.push(newSegment)
         fromNode.outgoingSegmentIDs.push(newSegment.id)
         toNode.incomingSegmentIDs.push(newSegment.id)
-        this.segmentIDcounter++
+        this.segmentIDcounter = getNextID(this.segmentIDcounter)
 
         if(updateR) this.updateRoad([fromNodeID, toNodeID], undefined, true, straightMode, curvedPath)
 
@@ -670,8 +674,8 @@ class Road{
                 let corners1 = getCornersOfLine(inSegFromPos, inSegToPos, LANE_WIDTH)
                 let corners2 = getCornersOfLine(outSegFromPos, outSegToPos, LANE_WIDTH)
 
-                let corners1_16 = getCornersOfLine(inSegFromPos, inSegToPos, LANE_WIDTH * 1.6)
-                let corners2_16 = getCornersOfLine(outSegFromPos, outSegToPos, LANE_WIDTH * 1.6)
+                let corners1_16 = getCornersOfLine(inSegFromPos, inSegToPos, BIG_LANE_WIDTH)
+                let corners2_16 = getCornersOfLine(outSegFromPos, outSegToPos, BIG_LANE_WIDTH)
 
                 let inter1 = lineIntersection(corners1[1], corners1[2], corners2[1], corners2[2], true)
                 let inter2 = lineIntersection(corners1[0], corners1[3], corners2[0], corners2[3], true)
@@ -708,7 +712,7 @@ class Road{
         let connectedSegments = this.findConnectedSegments(nodeID)
         for(let seg of connectedSegments){
             let corners = getCornersOfLine(seg.fromPos, seg.toPos, LANE_WIDTH)
-            let corners16 = getCornersOfLine(seg.fromPos, seg.toPos, LANE_WIDTH * 1.6)
+            let corners16 = getCornersOfLine(seg.fromPos, seg.toPos, BIG_LANE_WIDTH)
             for(let i = 0; i < 4; i++){
                 if(seg.corners[i] == undefined) seg.corners[i] = {...corners[i]}
                 if(seg.corners16[i] == undefined) seg.corners16[i] = {...corners16[i]}
@@ -802,7 +806,7 @@ class Road{
                     connector1.road = this
                     connector1.type = 'enter'
                     this.connectors.push(connector1)
-                    this.connectorIDcounter++
+                    this.connectorIDcounter = getNextID(this.connectorIDcounter)
                     connectorMap.set(inSeg.id, connector1)
                 }
                 else {
@@ -817,7 +821,7 @@ class Road{
                     connector2.road = this
                     connector2.type = 'exit'
                     this.connectors.push(connector2)
-                    this.connectorIDcounter++
+                    this.connectorIDcounter = getNextID(this.connectorIDcounter)
                     connectorMap.set(outSeg.id, connector2)
                 }
                 else{ 
@@ -856,7 +860,7 @@ class Road{
                 seg.toPos = outSegToPos
                 seg.len = totalLen
                 this.intersecSegs.push(seg)
-                this.intersecSegIDcounter++
+                this.intersecSegIDcounter = getNextID(this.intersecSegIDcounter)
 
                 let activenessKey = inSeg.id + '_' + outSeg.id
                 if(activenessMap.has(activenessKey)){
@@ -874,7 +878,7 @@ class Road{
 
                 intersecSegs.push(seg.id)
 
-                //intersection.calculateconvexHullAllSegments() calls seg.constructOutline()
+                //intersection.calculateOutlinesIntersection() calls seg.constructOutline()
                 //seg.constructOutline()
             })
         })
@@ -895,21 +899,22 @@ class Road{
         }
         intersection.pathsIDs = this.findAnyPath(nodeID)?.map(p => p.id) || []
         //intersection.debugOrder() not working
-        if(instantConvex) intersection.calculateconvexHullAllSegments();
-        else this.pushToConvexQueue(intersection)
+        intersection.calculateOutlinesIntersection();
+        //if(instantConvex) intersection.calculateOutlinesIntersection();
+        //else this.pushToConvexQueue(intersection)
         //this.pushToConvexQueue(intersection)
         this.intersections.push(intersection)
     }
 
-    pushToConvexQueue(intersection){
-        if(!this.convexHullQueue) this.convexHullQueue = new Set()
-        this.convexHullQueue.add(intersection.id)
-    }
+    // pushToConvexQueue(intersection){
+    //     if(!this.convexHullQueue) this.convexHullQueue = new Set()
+    //     this.convexHullQueue.add(intersection.id)
+    // }
 
     // returns intersections of the segments formed by connecting the corners of the two segments
     getOuterIntersections(s1, s2){
-        let corners1 = getCornersOfLine(s1.originalFromPos, s1.originalToPos, LANE_WIDTH)
-        let corners2 = getCornersOfLine(s2.originalFromPos, s2.originalToPos, LANE_WIDTH)
+        let corners1 = getCornersOfLine(s1.originalFromPos, s1.originalToPos, BIG_LANE_WIDTH)
+        let corners2 = getCornersOfLine(s2.originalFromPos, s2.originalToPos, BIG_LANE_WIDTH)
         let intersections = []
         for(let i = 0; i < corners1.length; i++){
             let nexti = (i + 1) % corners1.length
@@ -922,25 +927,26 @@ class Road{
         return intersections
     }
 
-    updateConvexHullsIncremental() {
+    //not used
+    // updateConvexHullsIncremental() {
         
-        //if(frameCount % 10 == 0) return false; // update every other frame for performance
+    //     //if(frameCount % 10 == 0) return false; // update every other frame for performance
 
-        if(mouseIsPressed) return false; // pause while editing
+    //     if(mouseIsPressed) return false; // pause while editing
         
-        if (!this.convexHullQueue) {
-            this.convexHullQueue = new Set(this.intersections.filter(i => !i.convexHullCalculated).map(i => i.id));
-        }
+    //     if (!this.convexHullQueue) {
+    //         this.convexHullQueue = new Set(this.intersections.filter(i => !i.convexHullCalculated).map(i => i.id));
+    //     }
 
-        for (let i = 0; i < INTERSECTIONS_PER_FRAME && this.convexHullQueue.size > 0; i++) {
-            const intersectionID = this.convexHullQueue.values().next().value;
-            this.convexHullQueue.delete(intersectionID);
-            const intersection = this.intersections.find(i => i.id === intersectionID);
-            intersection.calculateconvexHullAllSegments();
-        }
+    //     for (let i = 0; i < INTERSECTIONS_PER_FRAME && this.convexHullQueue.size > 0; i++) {
+    //         const intersectionID = this.convexHullQueue.values().next().value;
+    //         this.convexHullQueue.delete(intersectionID);
+    //         const intersection = this.intersections.find(i => i.id === intersectionID);
+    //         intersection.calculateOutlinesIntersection();
+    //     }
 
-        return this.convexHullQueue.size === 0
-    }
+    //     return this.convexHullQueue.size === 0
+    // }
 
     showMain(SHOW_TAGS){
         this.segments.forEach(s => s.showMain(SHOW_TAGS))
@@ -958,8 +964,8 @@ class Road{
         this.intersecSegs.forEach(s => s.showBezier(SHOW_TAGS))
     }
 
-    showConvexHulls(){
-        this.intersections.forEach(i => {i.drawconvexHullDebug()})
+    showIntersectionArea(){
+        this.intersections.forEach(i => {i.drawOutlineDebug()})
     }
 
     showLanes(hoveredSegID = undefined){
@@ -1065,7 +1071,7 @@ function getLowest(openSet, fScore) {
   return best;
 }
 
-// doesnt take into account if an intersec segment is active or not
+// doesn't take into account if an intersec segment is active or not
 function Astar(startNodeID, goalNodeID, road) {
   const openSet = new Set([startNodeID]);
 
@@ -1117,4 +1123,21 @@ function h(startNodeID, goalNodeID, road) {
   return dist(start.pos.x, start.pos.y, goal.pos.x, goal.pos.y);
 }
 
+// the ids of any object are strings made of 94 characters
+const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789{|}~!"#$%&\'()*+,-./:;<=>?@[\\]^_`';
+const base = chars.length; // 94
+function getNextID(id){
+    let num = 0;
+    for (let i = 0; i < id.length; i++) {
+        num = num * base + chars.indexOf(id[i]);
+    }
+    num++;
 
+    if (num === 0) return chars[0];
+    let result = '';
+    while (num > 0) {
+        result = chars[num % base] + result;
+        num = Math.floor(num / base);
+    }
+    return result;
+}
