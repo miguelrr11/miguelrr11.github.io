@@ -97,6 +97,8 @@ class Tool{
             //pathfinding
             startConnID: -1,
             endConnID: -1,
+            startSegID: -1,
+            endSegID: -1,
             startPosPF: undefined,
             endPosPF: undefined,
             foundPath: [],          //list of connectors IDs
@@ -139,6 +141,8 @@ class Tool{
         this.state.foundPathPoints = []
         this.state.startConnID = -1
         this.state.endConnID = -1
+        this.state.startSegID = -1
+        this.state.endSegID = -1
         this.state.startPosPF = undefined
         this.state.endPosPF = undefined
         this.state.mode = 'movingNode'
@@ -346,12 +350,22 @@ class Tool{
                 if(mode == 'settingStart') {
                     this.state.startConnID = seg.fromConnectorID
                     this.state.startPosPF = closestPosToSegment.closestPoint
-                    if(this.state.endConnID != -1) this.executePathfinding();
+                    this.state.startSegID = segID
+                    if(this.state.endSegID != -1){ 
+                        this.state.startConnID = this.road.findSegment(this.state.startSegID).fromConnectorID
+                        this.state.endConnID = this.road.findSegment(this.state.endSegID).toConnectorID
+                        this.executePathfinding();
+                    }
                 }
                 if(mode == 'settingEnd') {
                     this.state.endConnID = seg.toConnectorID
                     this.state.endPosPF = closestPosToSegment.closestPoint
-                    if(this.state.startConnID != -1) this.executePathfinding();
+                    this.state.endSegID = segID
+                    if(this.state.startSegID != -1){ 
+                        this.state.startConnID = this.road.findSegment(this.state.startSegID).fromConnectorID
+                        this.state.endConnID = this.road.findSegment(this.state.endSegID).toConnectorID
+                        this.executePathfinding();
+                    }
                 }
                 this.state.prevNodeID = -1
                 this.setCursor(CROSS)
@@ -978,6 +992,8 @@ class Tool{
         // when nodes/segments are added/removed/modified
         if(this.state.changed) {
             if(this.state.startConnID != -1 && this.state.endConnID != -1){
+                this.state.startConnID = this.road.findSegment(this.state.startSegID).fromConnectorID
+                this.state.endConnID = this.road.findSegment(this.state.endSegID).toConnectorID
                 this.executePathfinding();
             }
         }
