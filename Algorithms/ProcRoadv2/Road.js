@@ -87,6 +87,12 @@ class Road{
             }
         }
 
+        // for(let seg of this.segments){
+        //     if(!seg.fromPos || !seg.toPos){
+        //         this.deleteSegmentNoUpdate(seg.id)
+        //     }
+        // }
+
         this.nodes.forEach(n => this.trimSegmentsAtIntersection({
             nodeID: n.id,
             activenessMap: activenessMap.get(n.id),
@@ -187,6 +193,7 @@ class Road{
         this.segments.forEach(s => {
             let fromPos = s.fromPos
             let toPos = s.toPos
+            if(!fromPos || !toPos) return
             let posFromNode = this.findNode(s.fromNodeID).pos
             //let posToNode = this.findNode(s.toNodeID).pos
             if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
@@ -222,6 +229,7 @@ class Road{
         this.segments.forEach(s => {
             let fromPos = s.fromPos
             let toPos = s.toPos
+            if(!fromPos || !toPos) return
             if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
                 //continue
             }
@@ -367,12 +375,13 @@ class Road{
         }
         let fromNode = this.findNode(segment.fromNodeID)
         let toNode = this.findNode(segment.toNodeID)
+        this.segments = this.segments.filter(s => s.id != segmentID)
         if(fromNode == undefined || toNode == undefined){
             console.log('Error deleting segment, node not found:\nfromNodeID = ' + segment.fromNodeID + ' | toNodeID = ' + segment.toNodeID)
             return
         }
         //remove the segment without triggering updates
-        this.segments = this.segments.filter(s => s.id != segmentID)
+        
         fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
     }

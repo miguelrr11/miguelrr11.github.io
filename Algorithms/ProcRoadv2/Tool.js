@@ -1149,6 +1149,54 @@ class Tool{
         this.handState()
         cars = []
     }
+
+    constructRoadFromOSM(data){
+        this.road = new Road(this)
+        this.state = this.getInitialState()
+        let scaleFactor = 1500000
+        let firstX = undefined
+        let firstY = undefined
+
+        for(let node of data.elements){
+            if(node.type == 'node'){
+                if(!firstX){
+                    firstX = Math.round(node.lon * scaleFactor)
+                    firstY = Math.round(node.lat * scaleFactor)
+                }
+                let x = Math.round(node.lon * scaleFactor) - firstX
+                let y = -Math.round(node.lat * scaleFactor) + firstY
+                let newNode = new Node(node.id, x, y)
+                newNode.road = this.road
+                this.road.nodes.push(newNode)
+            }
+        }
+
+        for(let seg of data.elements){
+            if(seg.type == 'way'){
+                let lanes = seg.tags && seg.tags.lanes ? parseInt(seg.tags.lanes) : 1
+                for(let j = 0; j < lanes; j++){
+                    for(let i = 0; i < seg.nodes.length-1; i++){
+                        let nodeIDA = seg.nodes[i]
+                        let nodeIDB = seg.nodes[i+1]
+                        let nodeA = this.road.findNode(nodeIDA)
+                        let nodeB = this.road.findNode(nodeIDB)
+                        if(!nodeA || !nodeB) console.log("Missing node for segment:", nodeIDA, nodeIDB)
+                        let newSegment = new Segment(seg.id + '_' + j + '_' + i, nodeIDA, nodeIDB, 'for', false)
+                        newSegment.road = this.road
+                        this.road.segments.push(newSegment)
+                        nodeA.outgoingSegmentIDs.push(newSegment.id)
+                        nodeB.incomingSegmentIDs.push(newSegment.id)
+                    }
+                }
+            }
+        }
+
+        this.road.nodeIDcounter = '999999999999'
+        this.road.segmentIDcounter = '999999999999'
+
+        this.road.setPaths()
+    }
+
 }
 
 

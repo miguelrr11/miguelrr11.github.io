@@ -10,6 +10,7 @@ class Segment{
         this.visualDir = visualDir
         this.road = undefined
         this.curvedPath = curvedPath == undefined ? false : (!curvedPath[0] || !curvedPath[1] ? true : false)
+        this.curvedPath = false
 
 
         //info updated by Path.js (constructRealLanes())
@@ -109,6 +110,7 @@ class Segment{
     }
 
     outOfBounds(){
+        return false
         if(!inBoundsCorners(this.fromPos.x, this.fromPos.y, GLOBAL_EDGES) && 
         !inBoundsCorners(this.toPos.x, this.toPos.y, GLOBAL_EDGES) &&
         !lineIntersection(this.fromPos, this.toPos, {x: GLOBAL_EDGES[0], y: GLOBAL_EDGES[2]}, {x: GLOBAL_EDGES[1], y: GLOBAL_EDGES[2]}) &&
