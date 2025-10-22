@@ -155,10 +155,7 @@ class Menu{
             this.tool.state.mode = 'settingEnd'
         }, undefined,  () => {return this.tool.state.mode == 'settingEnd'})
         let buttonRemovePathfinding = new Button(10, 190, 80, 20, 'Clear Path', () => {
-            this.tool.state.foundPath = []
-            this.tool.state.startNodeID = -1
-            this.tool.state.endNodeID = -1
-            this.tool.state.mode = 'movingNode'
+            this.tool.clearPathFinding()
             cursor(HAND)
         }, undefined,  () => {return this.tool.state.foundPath.length > 0})
 
