@@ -411,7 +411,7 @@ class Tool{
     onMouseDragged(){
         if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menuInteracting != false) return
 
-        this.state.changed = true
+        //this.state.changed = true
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
@@ -484,6 +484,7 @@ class Tool{
     }
 
     onMouseRelease(){
+        this.changed = true
         this.prevMouseX = undefined
         this.prevMouseY = undefined
         if(this.state.mode == 'movingNode'){
@@ -548,7 +549,7 @@ class Tool{
         let worldX = (mouseX - this.xOff) / this.zoom;
         let worldY = (mouseY - this.yOff) / this.zoom;
         let oldZoom = this.zoom;
-        this.zoom += event.deltaY / 1000;
+        this.zoom = this.zoom * (1 - event.deltaY * 0.001);
         this.zoom = Math.max(MIN_ZOOM, Math.min(this.zoom, MAX_ZOOM));
         this.xOff = mouseX - worldX * this.zoom;
         this.yOff = mouseY - worldY * this.zoom;
@@ -914,6 +915,47 @@ class Tool{
             minY,
             maxY
         ]
+    }
+
+    center(){
+        this.zoom = this.getTargetZoom()
+        let [minXp, maxXp, minYp, maxYp] = this.getMinMaxPos()
+        let centerX = (maxXp + minXp) / 2
+        let centerY = (maxYp + minYp) / 2
+        let xOffAux = (WIDTH / 2) - centerX * this.zoom
+        let yOffAux = (HEIGHT / 2) - centerY * this.zoom
+        this.xOff = xOffAux
+        this.yOff = yOffAux
+    }
+
+    getMinMaxPos() {
+        let allNodes = this.road.nodes
+        if(allNodes.length == 0) return
+        let minX = allNodes[0].pos.x
+        let maxX = allNodes[0].pos.x
+        let minY = allNodes[0].pos.y
+        let maxY = allNodes[0].pos.y
+        for(let i = 1; i < allNodes.length; i++){
+            let n = allNodes[i]
+            minX = Math.min(minX, n.pos.x)
+            maxX = Math.max(maxX, n.pos.x)
+            minY = Math.min(minY, n.pos.y)
+            maxY = Math.max(maxY, n.pos.y)
+        }
+        return [minX, maxX, minY, maxY]
+    }
+    
+    getTargetZoom() {
+        const margin = 100
+        let [minXp, maxXp, minYp, maxYp] = this.getMinMaxPos()
+        let [minXe, maxXe, minYe, maxYe] = this.getEdges()
+        let widthP = (maxXp - minXp) + margin
+        let heightP = (maxYp - minYp) + margin
+        let widthE = (maxXe - minXe) * this.zoom
+        let heightE = (maxYe - minYe) * this.zoom
+        let zoomX = widthE / widthP
+        let zoomY = heightE / heightP
+        return constrain(Math.min(zoomX, zoomY), MIN_ZOOM, MAX_ZOOM)
     }
 
     showMousePosition(){

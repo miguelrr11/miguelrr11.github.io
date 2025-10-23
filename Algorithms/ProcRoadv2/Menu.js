@@ -199,15 +199,21 @@ class Menu{
                     `;
 
                     const url = `${overpassUrl}?data=${encodeURIComponent(overpassQuery)}`;
+                    buttonLoadOpenStreetMap.enabled = () => {return false}
+                    buttonLoadOpenStreetMap.label = 'Loading...'
 
                     fetch(url)
                     .then(response => {
+                        buttonLoadOpenStreetMap.enabled = () => {return true}
+                        buttonLoadOpenStreetMap.label = 'OSM Beta'
                         if (!response.ok) {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                            throw new Error(`HTTP error! status: ${response.status}`);
                         }
                         return response.json();
                     })
                     .then(data => {
+                        buttonLoadOpenStreetMap.enabled = () => {return true}
+                        buttonLoadOpenStreetMap.label = 'OSM Beta'
                         console.log(data);
                         console.log(`Total elements: ${data.elements.length}`);
 
@@ -229,11 +235,14 @@ class Menu{
                         console.log(`Nodos: ${totalNodes}, Ways: ${totalEdges}`);
                         console.log(`oneWayYES: ${oneWayYES}, oneWayNO: ${oneWayNO}`);
                         this.tool.constructRoadFromOSM(data)
+                        this.tool.center()
                     })
                     .catch(error => {
+                        buttonLoadOpenStreetMap.enabled = () => {return true}
+                        buttonLoadOpenStreetMap.label = 'OSM Beta'
                         console.error("Error fetching data:", error);
                     });
-                    buttonLoadOpenStreetMap.enabled = () => {return false}
+                    
                     },
                     (error) => {
                     console.error("Error obteniendo ubicación:", error.message);
@@ -268,9 +277,7 @@ class Menu{
         })
 
         let buttonCenter = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 90, 70, 20, 'Center', () => {
-            this.tool.offsetX = 0
-            this.tool.offsetY = 0
-            this.tool.zoom = 1
+            this.tool.center()
         })
 
         this.buttons.push(buttonShowZoomLevel)
