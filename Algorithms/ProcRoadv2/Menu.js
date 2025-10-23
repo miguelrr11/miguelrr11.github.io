@@ -196,8 +196,14 @@ class Menu{
             if(this.tool.zoom > 5) this.tool.zoom = 5
         })
 
-        let buttonShowZoomLevel = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 60, 70, 20, 'State: ' + this.tool.state.mode, undefined, () => {
+        let buttonShowZoomLevel = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 60, 70, 20, '', undefined, () => {
             return round(this.tool.zoom, 3)
+        })
+
+        let buttonCenter = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 90, 70, 20, 'Center', () => {
+            this.tool.offsetX = 0
+            this.tool.offsetY = 0
+            this.tool.zoom = 1
         })
 
         this.buttons.push(buttonShowZoomLevel)
@@ -209,6 +215,7 @@ class Menu{
 
         this.buttons.push(buttonZoomMinus)
         this.buttons.push(buttonZoomPlus)
+        this.buttons.push(buttonCenter)
 
         this.buttons.push(buttonSnapToGrid)
         this.buttons.push(buttonSetStartSearch)
