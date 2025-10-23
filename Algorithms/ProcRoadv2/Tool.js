@@ -7,6 +7,9 @@ const ROAD_COL = [110]
 const ARROWS_COL = [190]
 const MARKINGS_COL = [220]
 
+const MIN_ZOOM = 0.001
+const MAX_ZOOM = 8
+
 
 /*
 state.modes:
@@ -85,25 +88,28 @@ class Tool{
             draggingNodeID: -1,
             offsetDraggingNode: {x: 0, y: 0},
 
-            nForLanes: 2,
-            nBackLanes: 2,
+            nForLanes: 1,
+            nBackLanes: 1,
             snapToGrid: false,
 
             changed: false,
 
             //pathfinding
-            settingStart: false,
-            settingEnd: false,
-            startNodeID: -1,
-            endNodeID: -1,
-            foundPath: [],
+            startConnID: -1,
+            endConnID: -1,
+            startSegID: -1,
+            endSegID: -1,
+            startPosPF: undefined,
+            endPosPF: undefined,
+            foundPath: [],          //list of connectors IDs
+            foundPathPoints: [],    //list of the points that connects them
 
             edges: undefined,
 
             fpsAcum: [],
 
             hoverNode: undefined,
-            hoverSeg: undefined,
+            hoverSegID: undefined,
             hoverConn: undefined,
 
             menuCollapsed: false,
@@ -128,6 +134,18 @@ class Tool{
             firstPointCS: undefined,
             secondPointCS: undefined
         }
+    }
+
+    clearPathFinding(){
+        this.state.foundPath = []
+        this.state.foundPathPoints = []
+        this.state.startConnID = -1
+        this.state.endConnID = -1
+        this.state.startSegID = -1
+        this.state.endSegID = -1
+        this.state.startPosPF = undefined
+        this.state.endPosPF = undefined
+        this.state.mode = 'movingNode'
     }
 
     getMousePositions(){
@@ -159,6 +177,7 @@ class Tool{
     onClick(){
         if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || mouseButton.center || this.menuInteracting) return
 
+        this.state.changed = true
         this.removeSelectedBox()
 
         let mode = (this.state.mode == 'creating') ? (mouseButton.left ? 'creating' : (mouseButton.right ? 'deleting' : this.state.mode)) : this.state.mode
@@ -322,22 +341,38 @@ class Tool{
             }
         }
 
-        //pathfinding
+        // pathfinding - new - uses connectors
         else if(mode == 'settingStart' || mode == 'settingEnd'){
-            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
-            if(hoverNode != undefined){
+            let closestPosToSegment = this.road.findClosestSegmentAndPosRealPos(mousePosGridX, mousePosGridY)
+            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
+                let segID = closestPosToSegment.closestSegment.id
+                let seg = this.road.findSegment(segID)
                 if(mode == 'settingStart') {
-                    this.state.startNodeID = hoverNode.id;
-                    if(this.state.endNodeID != -1) this.executePathfinding();
+                    this.state.startConnID = seg.fromConnectorID
+                    this.state.startPosPF = closestPosToSegment.closestPoint
+                    this.state.startSegID = segID
+                    if(this.state.endSegID != -1){ 
+                        this.state.startConnID = this.road.findSegment(this.state.startSegID).fromConnectorID
+                        this.state.endConnID = this.road.findSegment(this.state.endSegID).toConnectorID
+                        this.executePathfinding();
+                    }
                 }
                 if(mode == 'settingEnd') {
-                    this.state.endNodeID = hoverNode.id;
-                    if(this.state.startNodeID != -1) this.executePathfinding();
+                    this.state.endConnID = seg.toConnectorID
+                    this.state.endPosPF = closestPosToSegment.closestPoint
+                    this.state.endSegID = segID
+                    if(this.state.startSegID != -1){ 
+                        this.state.startConnID = this.road.findSegment(this.state.startSegID).fromConnectorID
+                        this.state.endConnID = this.road.findSegment(this.state.endSegID).toConnectorID
+                        this.executePathfinding();
+                    }
                 }
                 this.state.prevNodeID = -1
                 this.setCursor(CROSS)
                 return
+                
             }
+            
         }
 
         //selects a connector to finetune its intersecSegs
@@ -369,11 +404,14 @@ class Tool{
     }
 
     executePathfinding(){
-        this.state.foundPath = Astar(this.state.startNodeID, this.state.endNodeID, this.road) ?? []
+        this.state.foundPath = AstarConnectors(this.state.startConnID, this.state.endConnID, this.road) ?? []
+        this.state.foundPathPoints = this.constructFoundPointsPath()
     }
 
     onMouseDragged(){
         if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menuInteracting != false) return
+
+        this.state.changed = true
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
 
@@ -511,7 +549,7 @@ class Tool{
         let worldY = (mouseY - this.yOff) / this.zoom;
         let oldZoom = this.zoom;
         this.zoom += event.deltaY / 1000;
-        this.zoom = Math.max(0.1, Math.min(this.zoom, 8));
+        this.zoom = Math.max(MIN_ZOOM, Math.min(this.zoom, MAX_ZOOM));
         this.xOff = mouseX - worldX * this.zoom;
         this.yOff = mouseY - worldY * this.zoom;
 
@@ -798,36 +836,70 @@ class Tool{
 
     showStartEndPathfinding(){
         push()
-        strokeWeight(2.5)
-        let startNode = this.road.findNode(this.state.startNodeID)
-        let endNode = this.road.findNode(this.state.endNodeID)
+        strokeWeight(8)
+        let startNode = this.state.startPosPF
+        let endNode = this.state.endPosPF
         if(startNode){
-            fill('#7dd56bff')
-            stroke('#5d9d50ff')
-            ellipse(startNode.pos.x, startNode.pos.y, NODE_RAD * 1.2)
+            stroke('#9d4eddff')
+            fill(ROAD_COL)
+            ellipse(startNode.x, startNode.y, NODE_RAD * 1.2)
         }
         if(endNode){
-            fill('#e15735ff')
-            stroke('#dc2f02')
-            ellipse(endNode.pos.x, endNode.pos.y, NODE_RAD * 1.2)
+            fill('#9d4eddff')
+            stroke('#9d4eddff')
+            ellipse(endNode.x, endNode.y, NODE_RAD * 1.2)
         }
         if(this.state.mode == 'settingStart' || this.state.mode == 'settingEnd'){
-            if(this.state.hoverNode){
-                fill(255, 150)
-                noStroke()
-                ellipse(this.state.hoverNode.pos.x, this.state.hoverNode.pos.y, NODE_RAD * 1.2)
+            if(this.state.hoverSegID != undefined){
+                let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
+                if(this.state.mode == 'settingStart'){
+                    stroke('#9d4eddff')
+                    fill(ROAD_COL)
+                    ellipse(mousePos.x, mousePos.y, NODE_RAD * 1.2)
+                }
+                else if(this.state.mode == 'settingEnd'){
+                    fill('#9d4eddff')
+                    stroke('#9d4eddff')
+                    ellipse(mousePos.x, mousePos.y, NODE_RAD * 1.2)
+                }
             }
         }
         pop()
     }
 
+    constructFoundPointsPath(){
+        let points = []
+        points.push(this.state.startPosPF)
+        for(let i = 1; i < this.state.foundPath.length - 2; i++){
+            let conn1id = this.state.foundPath[i]
+            let conn2id = this.state.foundPath[i+1]
+            let seg = this.road.findSegByFromToConnectorsIDs(conn1id, conn2id)
+            if(seg){
+                points.push({x: seg.fromPos.x, y: seg.fromPos.y})
+                points.push({x: seg.toPos.x, y: seg.toPos.y})
+            }
+            else{
+                let interseg = this.road.findIntersecSegByFromToConnectorIDs(conn1id, conn2id)
+                if(interseg){
+                    points.push(...interseg.bezierPoints)
+                }
+            }
+        }
+        points.push(this.state.endPosPF)
+        return points
+    }
+
     showFoundPath(){
-        if(this.state.foundPath.length == 0) return
+        if(this.state.foundPathPoints.length == 0) return
         push()
         noFill()
         stroke('#9d4eddd1')
         strokeWeight(12)
-        drawBezierPath(this.state.foundPath.map(id => createVector(this.road.findNode(id).pos.x, this.road.findNode(id).pos.y)), 20, 20)
+        beginShape()
+        for(let p of this.state.foundPathPoints){
+            vertex(p.x, p.y)
+        }
+        endShape()
         pop()
     }
 
@@ -919,7 +991,9 @@ class Tool{
         // Note: setPaths() is no longer called here - updates are done incrementally
         // when nodes/segments are added/removed/modified
         if(this.state.changed) {
-            if(this.state.startNodeID != -1 && this.state.endNodeID != -1){
+            if(this.state.startConnID != -1 && this.state.endConnID != -1){
+                this.state.startConnID = this.road.findSegment(this.state.startSegID).fromConnectorID
+                this.state.endConnID = this.road.findSegment(this.state.endSegID).toConnectorID
                 this.executePathfinding();
             }
         }
@@ -934,9 +1008,9 @@ class Tool{
         this.state.hoverConn = this.road.findHoverConnector(mousePos.x, mousePos.y)
         let closestPosToSegment = this.road.findClosestSegmentAndPosRealPos(mousePos.x, mousePos.y)
         if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
-            this.state.hoverSeg = closestPosToSegment.closestSegment.id
+            this.state.hoverSegID = closestPosToSegment.closestSegment.id
         }
-        else this.state.hoverSeg = undefined
+        else this.state.hoverSegID = undefined
     }
 
     show(){
@@ -952,12 +1026,12 @@ class Tool{
         if(this.showOptions.SHOW_WAYS) this.road.showWays(this)
 
         if(this.showOptions.SHOW_LANES){ 
-            this.road.showLanes(this.state.hoverSeg)
+            this.road.showLanes(this.state.hoverSegID)
         }
         if(this.showOptions.SHOW_ROAD) this.road.showMain(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, 
                                                             this.showOptions.SHOW_SEGS_DETAILS,
-                                                            this.state.hoverSeg)
+                                                            this.state.hoverSegID)
         
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_INTERSECTION_AREA_AREA) this.road.showIntersectionArea()
@@ -1075,6 +1149,54 @@ class Tool{
         this.handState()
         cars = []
     }
+
+    constructRoadFromOSM(data){
+        this.road = new Road(this)
+        this.state = this.getInitialState()
+        let scaleFactor = 1500000
+        let firstX = undefined
+        let firstY = undefined
+
+        for(let node of data.elements){
+            if(node.type == 'node'){
+                if(!firstX){
+                    firstX = Math.round(node.lon * scaleFactor)
+                    firstY = Math.round(node.lat * scaleFactor)
+                }
+                let x = Math.round(node.lon * scaleFactor) - firstX
+                let y = -Math.round(node.lat * scaleFactor) + firstY
+                let newNode = new Node(node.id, x, y)
+                newNode.road = this.road
+                this.road.nodes.push(newNode)
+            }
+        }
+
+        for(let seg of data.elements){
+            if(seg.type == 'way'){
+                let lanes = seg.tags && seg.tags.lanes ? parseInt(seg.tags.lanes) : 1
+                for(let j = 0; j < lanes; j++){
+                    for(let i = 0; i < seg.nodes.length-1; i++){
+                        let nodeIDA = seg.nodes[i]
+                        let nodeIDB = seg.nodes[i+1]
+                        let nodeA = this.road.findNode(nodeIDA)
+                        let nodeB = this.road.findNode(nodeIDB)
+                        if(!nodeA || !nodeB) console.log("Missing node for segment:", nodeIDA, nodeIDB)
+                        let newSegment = new Segment(seg.id + '_' + j + '_' + i, nodeIDA, nodeIDB, 'for', false)
+                        newSegment.road = this.road
+                        this.road.segments.push(newSegment)
+                        nodeA.outgoingSegmentIDs.push(newSegment.id)
+                        nodeB.incomingSegmentIDs.push(newSegment.id)
+                    }
+                }
+            }
+        }
+
+        this.road.nodeIDcounter = '999999999999'
+        this.road.segmentIDcounter = '999999999999'
+
+        this.road.setPaths()
+    }
+
 }
 
 

@@ -16,7 +16,7 @@
 const NODE_RAD = 20
 const GRID_CELL_SIZE = 40   //15
 
-let OFFSET_RAD_INTERSEC = 25      //25 (intersec_rad)
+let OFFSET_RAD_INTERSEC = 5      //25 (intersec_rad)
 let LENGTH_SEG_BEZIER = 5         //3
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.75
@@ -24,10 +24,10 @@ let MIN_DIST_INTERSEC = 30        //30
 let LANE_WIDTH = 30
 let BIG_LANE_WIDTH = LANE_WIDTH * 1.6
 
-// how many intersections to calculate per frame when updating convex hulls incrementally
-const INTERSECTIONS_PER_FRAME = 2
-// after this number of segments in a path in setPaths(), switch to incremental convex hull calculation
-const N_SEG_TO_SWITCH_TO_INCREMENTAL = 200
+// // how many intersections to calculate per frame when updating convex hulls incrementally
+// const INTERSECTIONS_PER_FRAME = 2
+// // after this number of segments in a path in setPaths(), switch to incremental convex hull calculation
+// const N_SEG_TO_SWITCH_TO_INCREMENTAL = 200
 
 class Road{
     constructor(tool){
@@ -86,6 +86,12 @@ class Road{
                 }
             }
         }
+
+        // for(let seg of this.segments){
+        //     if(!seg.fromPos || !seg.toPos){
+        //         this.deleteSegmentNoUpdate(seg.id)
+        //     }
+        // }
 
         this.nodes.forEach(n => this.trimSegmentsAtIntersection({
             nodeID: n.id,
@@ -187,6 +193,7 @@ class Road{
         this.segments.forEach(s => {
             let fromPos = s.fromPos
             let toPos = s.toPos
+            if(!fromPos || !toPos) return
             let posFromNode = this.findNode(s.fromNodeID).pos
             //let posToNode = this.findNode(s.toNodeID).pos
             if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
@@ -222,6 +229,7 @@ class Road{
         this.segments.forEach(s => {
             let fromPos = s.fromPos
             let toPos = s.toPos
+            if(!fromPos || !toPos) return
             if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
                 //continue
             }
@@ -367,12 +375,13 @@ class Road{
         }
         let fromNode = this.findNode(segment.fromNodeID)
         let toNode = this.findNode(segment.toNodeID)
+        this.segments = this.segments.filter(s => s.id != segmentID)
         if(fromNode == undefined || toNode == undefined){
             console.log('Error deleting segment, node not found:\nfromNodeID = ' + segment.fromNodeID + ' | toNodeID = ' + segment.toNodeID)
             return
         }
         //remove the segment without triggering updates
-        this.segments = this.segments.filter(s => s.id != segmentID)
+        
         fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
     }
@@ -443,6 +452,15 @@ class Road{
 
     findIntersecSegByFromToConnectorIDs(fromConnectorID, toConnectorID){
         return this.intersecSegs.find(c => c.fromConnectorID == fromConnectorID && c.toConnectorID == toConnectorID)
+    }
+
+    findSegByFromToConnectorsIDs(fromConnectorID, toConnectorID){
+        return this.segments.find(c => c.fromConnectorID == fromConnectorID && c.toConnectorID == toConnectorID)
+    }
+
+    findSegOrIntersegBetween2Conns(fromConnectorID, toConnectorID){
+        return this.findIntersecSegByFromToConnectorIDs(fromConnectorID, toConnectorID) ||
+               this.findSegByFromToConnectorsIDs(fromConnectorID, toConnectorID)
     }
 
     findConnectorBySegmentID(segmentID, type){
@@ -784,7 +802,9 @@ class Road{
         incoming.forEach(inSeg => {
             outgoing.forEach(outSeg => {
                 //avoid creating a connector between two segments that are already connected
-                if(inSeg.fromNodeID == outSeg.toNodeID && !connectSelf) return
+                if(inSeg.fromNodeID == outSeg.toNodeID && !connectSelf){ 
+                    return
+                }
                 if(straightMode){
                     let pathInSeg = this.findPathByNodes(inSeg.fromNodeID, inSeg.toNodeID)
                     let pathOutSeg = this.findPathByNodes(outSeg.fromNodeID, outSeg.toNodeID)
@@ -974,7 +994,7 @@ class Road{
     }
 
     showNodes(zoom){
-        this.nodes.forEach(n => n.show(false, zoom))
+        if(zoom > 0.18) this.nodes.forEach(n => n.show(false, zoom))
     }
 
     showNodesTags(){
@@ -988,12 +1008,12 @@ class Road{
         push()
         rectMode(CORNERS)
         noStroke()
-        this.paths.forEach(p => p.showWayBase())
+        if(zoom > 0.1) this.paths.forEach(p => p.showWayBase())
         pop()
         push()
         fill(SIDE_WALK_COL)
         noStroke()
-        this.intersections.forEach(p => p.showWayBase())
+        if(zoom > 0.1) this.intersections.forEach(p => p.showWayBase())
         pop()
         push()
         fill(ROAD_COL)
@@ -1002,7 +1022,7 @@ class Road{
         stroke(MARKINGS_COL)
         strokeWeight(1.5)
         noFill()
-        this.intersections.forEach(p => p.showEdges())
+        if(zoom > 0.18) this.intersections.forEach(p => p.showEdges())
         pop()
         push()
         rectMode(CORNERS)
@@ -1011,11 +1031,11 @@ class Road{
         stroke(MARKINGS_COL)
         strokeWeight(WIDTH_YIELD_MARKING)
         strokeCap(SQUARE)
-        this.intersections.forEach(p => p.showYieldMarkings())
+        if(zoom > 0.18) this.intersections.forEach(p => p.showYieldMarkings())
         strokeWeight(1.5)
         stroke(MARKINGS_COL)
         strokeCap(SQUARE)
-        this.paths.forEach(p => p.showEdges())
+        if(zoom > 0.18) this.paths.forEach(p => p.showEdges())
         stroke(ARROWS_COL)
         strokeWeight(1.5)
         fill(ARROWS_COL)
@@ -1027,101 +1047,8 @@ class Road{
     }
 }
 
-function shortenSegment(A, B, length) {
-    const dx = B.x - A.x;
-    const dy = B.y - A.y;
-    const distance = Math.hypot(dx, dy);
 
-    if (distance === 0){return { ...B }}  // no movement possible
 
-    const factor = (distance - length) / distance;
-    // clamp so it doesn't overshoot past A
-    const newX = A.x + dx * Math.max(factor, 0);
-    const newY = A.y + dy * Math.max(factor, 0);
-
-    return { x: newX, y: newY };
-}
-
-function arrHasPosition(arr, pos){
-    for(let p of arr){
-        if(p.x == pos.x && p.y == pos.y) return true
-    }
-    return false
-}
-
-function reconstructPath(cameFrom, current) {
-  const totalPath = [current];
-  while (cameFrom.has(current)) {
-    current = cameFrom.get(current);
-    totalPath.unshift(current);
-  }
-  return totalPath;
-}
-
-function getLowest(openSet, fScore) {
-  let best = null;
-  let bestScore = Infinity;
-  for (const id of openSet) {
-    const s = fScore.get(id) ?? Infinity;
-    if (s < bestScore) {
-      bestScore = s;
-      best = id;
-    }
-  }
-  return best;
-}
-
-// doesn't take into account if an intersec segment is active or not
-function Astar(startNodeID, goalNodeID, road) {
-  const openSet = new Set([startNodeID]);
-
-  const cameFrom = new Map();
-
-  const gScore = new Map();
-  gScore.set(startNodeID, 0);
-
-  const fScore = new Map();
-  fScore.set(startNodeID, h(startNodeID, goalNodeID, road));
-
-  while (openSet.size > 0) {
-    const current = getLowest(openSet, fScore);
-
-    if (current === goalNodeID) {
-      return reconstructPath(cameFrom, current);
-    }
-
-    openSet.delete(current);
-  
-    let currentNode = road.findNode(current)
-    const outGoingSegs = currentNode.outgoingSegmentIDs
-    let neighboursSet = new Set()
-    for(let outseg of outGoingSegs){
-      let seg = road.findSegment(outseg)
-      neighboursSet.add(seg.toNodeID)
-    }
-    let neighbours = [...neighboursSet]
-    for (const neighbor of neighbours) {
-      const tentativeG = (gScore.get(current) ?? Infinity) + h(current, neighbor, road);
-
-      if (tentativeG < (gScore.get(neighbor) ?? Infinity)) {
-        cameFrom.set(neighbor, current);
-        gScore.set(neighbor, tentativeG);
-        fScore.set(neighbor, tentativeG + h(neighbor, goalNodeID, road));
-
-        if (!openSet.has(neighbor)) {
-          openSet.add(neighbor);
-        }
-      }
-    }
-  }
-  return undefined; // no hay camino
-}
-
-function h(startNodeID, goalNodeID, road) {
-  const start = road.findNode(startNodeID);
-  const goal = road.findNode(goalNodeID);
-  return dist(start.pos.x, start.pos.y, goal.pos.x, goal.pos.y);
-}
 
 // the ids of any object are strings made of 94 characters
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789{|}~!"#$%&\'()*+,-./:;<=>?@[\\]^_`';

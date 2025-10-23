@@ -80,13 +80,17 @@ class Connector{
     }
 
     chooseOutRandom(){
-        if(this.type == 'exit') return this.outgoingSegmentIDs[0]
+        return random(this.getOutgoingActiveIntersegs())
+    }
+
+    getOutgoingActiveIntersegs(){
+        if(this.type == 'exit') return [this.outgoingSegmentIDs[0]]
         let outgoingSegs = []
         for(let id of this.outgoingSegmentIDs){
             let seg = this.road.findIntersecSeg(id)
             if(seg != undefined && seg.active) outgoingSegs.push(id)
         }
-        return random(outgoingSegs)
+        return outgoingSegs
     }
 
     showHover(){

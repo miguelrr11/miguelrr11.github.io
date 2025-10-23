@@ -312,6 +312,28 @@ function bezierPointAt(a, b, c, d, t, tension = 0.3) {
 }
 
 
+function shortenSegment(A, B, length) {
+    const dx = B.x - A.x;
+    const dy = B.y - A.y;
+    const distance = Math.hypot(dx, dy);
+
+    if (distance === 0){return { ...B }}  // no movement possible
+
+    const factor = (distance - length) / distance;
+    // clamp so it doesn't overshoot past A
+    const newX = A.x + dx * Math.max(factor, 0);
+    const newY = A.y + dy * Math.max(factor, 0);
+
+    return { x: newX, y: newY };
+}
+
+function arrHasPosition(arr, pos){
+    for(let p of arr){
+        if(p.x == pos.x && p.y == pos.y) return true
+    }
+    return false
+}
+
 // ===================
 // String Utilities
 // ===================

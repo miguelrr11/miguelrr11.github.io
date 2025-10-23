@@ -155,10 +155,7 @@ class Menu{
             this.tool.state.mode = 'settingEnd'
         }, undefined,  () => {return this.tool.state.mode == 'settingEnd'})
         let buttonRemovePathfinding = new Button(10, 190, 80, 20, 'Clear Path', () => {
-            this.tool.state.foundPath = []
-            this.tool.state.startNodeID = -1
-            this.tool.state.endNodeID = -1
-            this.tool.state.mode = 'movingNode'
+            this.tool.clearPathFinding()
             cursor(HAND)
         }, undefined,  () => {return this.tool.state.foundPath.length > 0})
 
@@ -179,6 +176,76 @@ class Menu{
         })
         buttonFullscreen.txSize = 12
 
+        let buttonLoadOpenStreetMap = new Button(width - 70 - 10, HEIGHT - 120, 70, 20, 'OSM Beta', () => {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                    const lat = position.coords.latitude;
+                    const lon = position.coords.longitude;
+
+                    console.log(`Latitud: ${lat}`);
+                    console.log(`Longitud: ${lon}`);
+                    console.log(`Precisión: ${position.coords.accuracy} metros`);
+
+                    const overpassUrl = "https://overpass-api.de/api/interpreter";
+
+                    const overpassQuery = `
+                    [out:json][timeout:25];
+                    (
+                    way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link|living_street|service)$"](around:400, ${lat}, ${lon});
+                    node(w);
+                    );
+                    out body;
+                    `;
+
+                    const url = `${overpassUrl}?data=${encodeURIComponent(overpassQuery)}`;
+
+                    fetch(url)
+                    .then(response => {
+                        if (!response.ok) {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        console.log(data);
+                        console.log(`Total elements: ${data.elements.length}`);
+
+                        let totalNodes = 0;
+                        let totalEdges = 0;
+                        let oneWayYES = 0
+                        let oneWayNO = 0
+                        for(let element of data.elements){
+                        if(element.type == 'node') totalNodes++;
+                        if(element.type == 'way') {
+                            if(element.tags.oneway){
+                            if(element.tags.oneway == 'yes') oneWayYES++
+                            if(element.tags.oneway == 'no') oneWayNO++
+                            }
+                            totalEdges++;
+                        }
+
+                        }
+                        console.log(`Nodos: ${totalNodes}, Ways: ${totalEdges}`);
+                        console.log(`oneWayYES: ${oneWayYES}, oneWayNO: ${oneWayNO}`);
+                        this.tool.constructRoadFromOSM(data)
+                    })
+                    .catch(error => {
+                        console.error("Error fetching data:", error);
+                    });
+                    buttonLoadOpenStreetMap.enabled = () => {return false}
+                    },
+                    (error) => {
+                    console.error("Error obteniendo ubicación:", error.message);
+                    }
+                );
+            }
+            else {
+                console.error("Geolocalización no soportada en este navegador");
+            }
+        })
+        buttonLoadOpenStreetMap.txSize = 13
+
         let buttonSave = new Button(width - 70 - 10, HEIGHT - 60, 70, 20, 'Save', () => {
             storeItem('roadData', this.tool.getCurrentRoad())
         })
@@ -189,11 +256,11 @@ class Menu{
 
         let buttonZoomMinus = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 30, 30, 20, '-', () => {
             this.tool.zoom /= 1.1
-            if(this.tool.zoom < 0.1) this.tool.zoom = 0.1
+            if(this.tool.zoom < MIN_ZOOM) this.tool.zoom = MIN_ZOOM
         })
         let buttonZoomPlus = new Button(width - 70 - 10 - 40 - 10, HEIGHT - 30, 30, 20, '+', () => {
             this.tool.zoom *= 1.1
-            if(this.tool.zoom > 5) this.tool.zoom = 5
+            if(this.tool.zoom > MAX_ZOOM) this.tool.zoom = MAX_ZOOM
         })
 
         let buttonShowZoomLevel = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 60, 70, 20, '', undefined, () => {
@@ -209,6 +276,7 @@ class Menu{
         this.buttons.push(buttonShowZoomLevel)
         //this.buttons.push(buttonCSmode)
         this.buttons.push(buttonShowConvexHull)
+        this.buttons.push(buttonLoadOpenStreetMap)
 
         this.buttons.push(buttonFullscreen)
         //this.buttons.push(buttonConstantSetPaths)
@@ -250,8 +318,9 @@ class Menu{
         this.buttons.push(buttonHand)
         this.buttons.push(buttonSelect)
 
-        let sliderLaneWidth = new Slider(15, 230, 80, 'Lane Width', 5, 60, LANE_WIDTH, (value) => {
+        let sliderLaneWidth = new Slider(15, 230, 80, 'Lane Width', 5, 500, LANE_WIDTH, (value) => {
             LANE_WIDTH = value
+            BIG_LANE_WIDTH = LANE_WIDTH * 1.6
             this.tool.road.setPaths()
         })
         let sliderLengthSegBezier = new Slider(15, 270, 80, 'Bezier Res', 50, 2, LENGTH_SEG_BEZIER, (value) => {

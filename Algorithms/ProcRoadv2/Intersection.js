@@ -23,6 +23,12 @@ class Intersection {
         c3 -------- c4
     */
 
+        //needs improving
+    outOfBounds(){
+        let pos = this.road.findNode(this.nodeID).pos
+        return !inBoundsCorners(pos.x, pos.y, GLOBAL_EDGES)
+    }
+
     // returns a map with keys as "fromSegmentID_toSegmentID" and values as true/false depending on whether the intersegment that connects them is active or not
     getActivenessMap(){
         let map = new Map()
@@ -296,6 +302,7 @@ class Intersection {
 
     // type: showWays
     showWayBase(){
+        if(this.outOfBounds()) return
         beginShape()
         for(let v of this.outline16) vertex(v.x, v.y)
         endShape()
@@ -303,12 +310,14 @@ class Intersection {
 
     // type: showWays
     showWayTop(){
+        if(this.outOfBounds()) return
         beginShape()
         for(let v of this.outline) vertex(v.x, v.y)
         endShape()
     }
 
     showEdges(){
+        if(this.outOfBounds()) return
         for(let edge of this.edges){
             beginShape()
             for(let v of edge) vertex(v.x, v.y)
@@ -318,6 +327,7 @@ class Intersection {
 
     // type: showWays
     showYieldMarkings(){
+        if(this.outOfBounds()) return
         // find all segments that feed into this intersection
         let paths = this.road.findAnyPath(this.nodeID)
         if(paths.length > 2){ 
@@ -337,6 +347,7 @@ class Intersection {
     }
 
     showDirectionsIntersection(){
+        if(this.outOfBounds()) return
         let paths = this.road.findAnyPath(this.nodeID)
         if(paths.length > 2){ 
             for(let i = 0; i < paths.length; i++){

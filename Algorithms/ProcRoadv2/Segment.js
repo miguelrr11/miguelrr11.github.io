@@ -10,6 +10,7 @@ class Segment{
         this.visualDir = visualDir
         this.road = undefined
         this.curvedPath = curvedPath == undefined ? false : (!curvedPath[0] || !curvedPath[1] ? true : false)
+        this.curvedPath = false
 
 
         //info updated by Path.js (constructRealLanes())
@@ -109,6 +110,7 @@ class Segment{
     }
 
     outOfBounds(){
+        return false
         if(!inBoundsCorners(this.fromPos.x, this.fromPos.y, GLOBAL_EDGES) && 
         !inBoundsCorners(this.toPos.x, this.toPos.y, GLOBAL_EDGES) &&
         !lineIntersection(this.fromPos, this.toPos, {x: GLOBAL_EDGES[0], y: GLOBAL_EDGES[2]}, {x: GLOBAL_EDGES[1], y: GLOBAL_EDGES[2]}) &&
@@ -124,6 +126,7 @@ class Segment{
     }
 
     drawLineBelow(disc = false){
+        if(this.outOfBounds()) return
         push()
         let fromPos = this.fromPos
         let toPos = this.toPos
@@ -134,6 +137,7 @@ class Segment{
     }
 
     drawLineAbove(disc = false){
+        if(this.outOfBounds()) return
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
@@ -143,6 +147,7 @@ class Segment{
 
     // rectMode must be CORNERS and noStroke must be set before calling this
     showCustomLanes(col, w, hoveredID = undefined){
+        if(this.outOfBounds()) return
         let corners = w == LANE_WIDTH ? this.corners : this.corners16
         fill(col)
         beginShape()
@@ -355,6 +360,7 @@ class Segment{
 
     // type: showWays
     drawArrows(){
+        if(this.outOfBounds()) return
         this.arrowsPos.forEach(pos => {
             line(pos.startLine.x, pos.startLine.y, pos.tip.x, pos.tip.y)
             drawArrowTip(pos.tip.x, pos.tip.y, this.dir, 5)
