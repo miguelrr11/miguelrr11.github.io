@@ -1216,6 +1216,7 @@ class Tool{
         for(let seg of data.elements){
             if(seg.type == 'way'){
                 let lanes = seg.tags && seg.tags.lanes ? parseInt(seg.tags.lanes) : 1
+                let name = seg.tags && seg.tags.name ? seg.tags.name : undefined
                 for(let j = 0; j < lanes; j++){
                     for(let i = 0; i < seg.nodes.length-1; i++){
                         let nodeIDA = seg.nodes[i]
@@ -1225,6 +1226,7 @@ class Tool{
                         if(!nodeA || !nodeB) console.log("Missing node for segment:", nodeIDA, nodeIDB)
                         let newSegment = new Segment(seg.id + '_' + j + '_' + i, nodeIDA, nodeIDB, 'for', false)
                         newSegment.road = this.road
+                        newSegment.name = name
                         this.road.segments.push(newSegment)
                         nodeA.outgoingSegmentIDs.push(newSegment.id)
                         nodeB.incomingSegmentIDs.push(newSegment.id)

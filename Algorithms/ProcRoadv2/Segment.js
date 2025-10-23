@@ -12,8 +12,9 @@ class Segment{
         this.curvedPath = curvedPath == undefined ? false : (!curvedPath[0] || !curvedPath[1] ? true : false)
         this.curvedPath = false
 
-
+        
         //info updated by Path.js (constructRealLanes())
+        this.name = undefined   //used by path.js to set the name of the path
         this.fromPos = undefined
         this.toPos = undefined
         this.dir = undefined // direction in radians

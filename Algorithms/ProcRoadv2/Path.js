@@ -11,6 +11,8 @@ class Path{
         this.nodeB = nodeB
 
         this.id = nodeA + '_' + nodeB
+
+        this.name = undefined
     }
 
     /*
@@ -36,6 +38,14 @@ class Path{
         //a set
         this.segmentsIDs = segmentIDs
         this.segments = Array.from(this.segmentsIDs).map(id => this.road.findSegment(id))
+
+        let name = undefined
+        this.segments.forEach(segment => {
+            if(segment.name != undefined){
+                name = segment.name
+            }
+        })
+        this.name = name
     }
 
     // gets the outline of all the lanes
@@ -272,6 +282,24 @@ class Path{
         this.segments.forEach(segment => {
             segment.drawArrows()
         })
+    }
+
+    showName(){
+        if(this.name == undefined) return
+        let nodeA = this.road.findNode(this.nodeA)
+        let nodeB = this.road.findNode(this.nodeB)
+        if(!nodeA || !nodeB) return
+        let seg = this.segments[0]
+        if(!seg || seg.len < 300) return
+        let angle = seg.dir
+        push()
+        let fromPos = nodeA.pos
+        let toPos = nodeB.pos
+        let midPos = {x: (fromPos.x + toPos.x) / 2, y: (fromPos.y + toPos.y) / 2}
+        translate(midPos.x, midPos.y)
+        rotate(angle)
+        text(this.name, 0, 0)
+        pop()
     }
 }
 

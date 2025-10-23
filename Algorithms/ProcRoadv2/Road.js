@@ -82,6 +82,7 @@ class Road{
                     let path = new Path(nodeA.id, nodeB.id, segmentSet)
                     path.road = this
                     path.constructRealLanes()
+                    path.setSegmentsIDs(segmentSet)
                     this.paths.set(nodeA.id + '-' + nodeB.id, path)
                 }
             }
@@ -1042,6 +1043,12 @@ class Road{
         if(zoom > 0.18){ 
             this.paths.forEach(p => p.showArrows())
             this.intersections.forEach(i => i.showDirectionsIntersection())
+            strokeWeight(1.5)
+            stroke(ROAD_COL)
+            fill(SIDE_WALK_COL)
+            textAlign(CENTER, CENTER)
+            textSize(14)
+            this.paths.forEach(p => p.showName())
         }
         pop()
     }
