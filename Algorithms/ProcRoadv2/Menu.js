@@ -192,7 +192,7 @@ class Menu{
                     const overpassQuery = `
                     [out:json][timeout:25];
                     (
-                    way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link|living_street|service)$"](around:400, ${lat}, ${lon});
+                    way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link|living_street|service)$"](around:${AROUND_RADIUS}, ${lat}, ${lon});
                     node(w);
                     );
                     out body;
@@ -264,12 +264,10 @@ class Menu{
         })
 
         let buttonZoomMinus = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 30, 30, 20, '-', () => {
-            this.tool.zoom /= 1.1
-            if(this.tool.zoom < MIN_ZOOM) this.tool.zoom = MIN_ZOOM
+            this.tool.changeZoom('dec')
         })
         let buttonZoomPlus = new Button(width - 70 - 10 - 40 - 10, HEIGHT - 30, 30, 20, '+', () => {
-            this.tool.zoom *= 1.1
-            if(this.tool.zoom > MAX_ZOOM) this.tool.zoom = MAX_ZOOM
+            this.tool.changeZoom('inc')
         })
 
         let buttonShowZoomLevel = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 60, 70, 20, '', undefined, () => {

@@ -16,13 +16,15 @@
 const NODE_RAD = 20
 const GRID_CELL_SIZE = 40   //15
 
-let OFFSET_RAD_INTERSEC = 5      //25 (intersec_rad)
+let OFFSET_RAD_INTERSEC = 25      //25 (intersec_rad)
 let LENGTH_SEG_BEZIER = 5         //3
+let LENGTH_SEG_BEZIER_INTER = 10
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.75
 let MIN_DIST_INTERSEC = 30        //30
 let LANE_WIDTH = 30
 let BIG_LANE_WIDTH = LANE_WIDTH * 1.6
+
 
 // // how many intersections to calculate per frame when updating convex hulls incrementally
 // const INTERSECTIONS_PER_FRAME = 2
@@ -749,6 +751,8 @@ class Road{
 
         let distances = this.findIntersectionsOfNodev2(nodeID, straightMode)
         if(!distances) return
+        
+        
         let node = this.findNode(nodeID)
 
         let connectedSegments = this.findConnectedSegments(nodeID)
@@ -762,14 +766,20 @@ class Road{
                 if(!straightMode){
                     distInter += OFFSET_RAD_INTERSEC
                     distInter = Math.max(distInter, MIN_DIST_INTERSEC)
+                    // if(distInter > s.len - MIN_DIST_INTERSEC - 15){
+                    //     distInter = s.len - MIN_DIST_INTERSEC - 15
+                    // }
                 }
+                
                 
                 // First reset both ends to original positions to get correct direction
                 let origFrom = {...s.originalFromPos}
                 let origTo = {...s.originalToPos}
+                let from = {...s.fromPos}
+                let to = {...s.toPos}
                 
                 if(s.fromNodeID == nodeID){
-                    // Calculate shortening from original positions
+                    // Calculate shortening from original positions 
                     s.fromPos = shortenSegment(origTo, origFrom, distInter)
                 }
                 else if(s.toNodeID == nodeID){
@@ -1040,7 +1050,7 @@ class Road{
         stroke(ARROWS_COL)
         strokeWeight(1.5)
         fill(ARROWS_COL)
-        if(zoom > 0.18){ 
+        if(zoom > 0.35){ 
             this.paths.forEach(p => p.showArrows())
             this.intersections.forEach(i => i.showDirectionsIntersection())
             strokeWeight(1.5)

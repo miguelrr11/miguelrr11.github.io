@@ -25,8 +25,14 @@ class Intersection {
 
         //needs improving
     outOfBounds(){
-        let pos = this.road.findNode(this.nodeID).pos
-        return !inBoundsCorners(pos.x, pos.y, GLOBAL_EDGES)
+        // let pos = this.road.findNode(this.nodeID).pos
+        // return !inBoundsCorners(pos.x, pos.y, GLOBAL_EDGES)
+
+        for(let v of this.outline16){
+            if(inBoundsCorners(v.x, v.y, GLOBAL_EDGES)) return false
+        }
+        return true
+
     }
 
     // returns a map with keys as "fromSegmentID_toSegmentID" and values as true/false depending on whether the intersegment that connects them is active or not
@@ -415,7 +421,7 @@ class Intersection {
             let c = allPoss[(i+1) % allPoss.length].pos
             let d = allPoss[(i+1) % allPoss.length].newPos
             let tension = TENSION_BEZIER_MAX
-            let bz = bezierPoints(a, b, c, d, 3, tension)
+            let bz = bezierPoints(a, b, c, d, LENGTH_SEG_BEZIER_INTER, tension)
             separatedCurves ?  curves.push(bz) : curves.push(...bz)
         }
 

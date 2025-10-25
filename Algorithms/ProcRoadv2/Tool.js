@@ -10,6 +10,9 @@ const MARKINGS_COL = [220]
 const MIN_ZOOM = 0.001
 const MAX_ZOOM = 8
 
+const SCALE_FACTOR_OSM = 1000000
+const AROUND_RADIUS = 500  //meters
+
 
 /*
 state.modes:
@@ -27,7 +30,7 @@ class Tool{
     constructor(){
         this.showOptions = {
             SHOW_ROAD: false,
-            SHOW_PATHS: false,
+            SHOW_PATHS: true,
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
             SHOW_INTERSECSEGS: false,
@@ -548,7 +551,6 @@ class Tool{
     onMouseWheel(event) {
         let worldX = (mouseX - this.xOff) / this.zoom;
         let worldY = (mouseY - this.yOff) / this.zoom;
-        let oldZoom = this.zoom;
         this.zoom = this.zoom * (1 - event.deltaY * 0.001);
         this.zoom = Math.max(MIN_ZOOM, Math.min(this.zoom, MAX_ZOOM));
         this.xOff = mouseX - worldX * this.zoom;
@@ -557,6 +559,17 @@ class Tool{
         // Only update bezier segments if zoom changed significantly
         this.state.changed = true
     }
+
+    changeZoom(how){
+        let worldX = ((width/2) - this.xOff) / this.zoom;
+        let worldY = ((height/2) - this.yOff) / this.zoom;
+        this.zoom = how == 'dec' ? this.zoom /= 1.1 : this.zoom *= 1.1 
+        this.zoom = Math.max(MIN_ZOOM, Math.min(this.zoom, MAX_ZOOM));
+        this.xOff = mouseX - worldX * this.zoom;
+        this.yOff = mouseY - worldY * this.zoom;
+        this.state.changed = true
+    }
+
 
     createState(){
         if(this.state.mode == 'creating') return
@@ -1189,13 +1202,14 @@ class Tool{
         this.road.setPaths()
         this.state = this.getInitialState()
         this.handState()
+        this.center()
         cars = []
     }
 
     constructRoadFromOSM(data){
         this.road = new Road(this)
         this.state = this.getInitialState()
-        let scaleFactor = 1500000
+        let scaleFactor = SCALE_FACTOR_OSM
         let firstX = undefined
         let firstY = undefined
 
@@ -1210,6 +1224,27 @@ class Tool{
                 let newNode = new Node(node.id, x, y)
                 newNode.road = this.road
                 this.road.nodes.push(newNode)
+            }
+        }
+
+        //map of nodes with segment connections
+        let nodeSegmentMap = new Map();
+
+        for(let n of this.road.nodes){
+            nodeSegmentMap.set(n.id, []);
+        }
+        for(let seg of data.elements){
+            if(seg.type == 'way'){
+                for(let i = 0; i < seg.nodes.length-1; i++){
+                    let nodeIDA = seg.nodes[i]
+                    let nodeIDB = seg.nodes[i+1]
+                    let connectionsA = nodeSegmentMap.get(nodeIDA)
+                    connectionsA.push({to: nodeIDB, wayID: seg.id})
+                    nodeSegmentMap.set(nodeIDA, connectionsA)
+                    let connectionsB = nodeSegmentMap.get(nodeIDB)
+                    connectionsB.push({to: nodeIDA, wayID: seg.id})
+                    nodeSegmentMap.set(nodeIDB, connectionsB)
+                }
             }
         }
 
