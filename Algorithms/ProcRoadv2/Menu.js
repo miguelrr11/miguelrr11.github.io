@@ -251,8 +251,8 @@ class Menu{
                         }
                         console.log(`Nodos: ${totalNodes}, Ways: ${totalEdges}`);
                         console.log(`oneWayYES: ${oneWayYES}, oneWayNO: ${oneWayNO}`);
-                        this.tool.constructRoadFromOSM(data)
-                        this.tool.center()
+                        this.tool.constructRoadFromOSMAsync(data)
+                        //this.tool.center()
                     })
                     .catch(error => {
                         buttonLoadOpenStreetMap.label = 'Failed'
@@ -401,7 +401,7 @@ class Menu{
                    'Intersections: ' + '\n' + this.tool.road.intersecSegs.length + '\n' +
                    'Paths: ' + '\n' + this.tool.road.paths.size + '\n' +
                    'Cars: ' + '\n' + cars.length + '\n' +
-                   'CH Queue: ' + '\n' + this.tool.road.convexHullQueue.size + '\n' +
+                   'OSM Queue: ' + '\n' + this.tool.state.OSMqueue.nodesToProcess.size + '\n' +
                    'Selected Nodes: ' + '\n' + this.tool.state.selectedNodes.length
         }, () => {return false})
         buttonDebugRoad.txSize = 10

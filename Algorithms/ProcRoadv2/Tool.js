@@ -141,7 +141,9 @@ class Tool{
             CSmode: false,
             controlPointCS: undefined,
             firstPointCS: undefined,
-            secondPointCS: undefined
+            secondPointCS: undefined,
+
+            OSMqueue: {nodesToProcess: new Set()}
         }
     }
 
@@ -1227,6 +1229,7 @@ class Tool{
             if(allGood) this.lerpingTranslation = false
         }
 
+        this.updateOSMqueue()
     }
 
     show(){
@@ -1368,6 +1371,252 @@ class Tool{
         this.handState()
         this.center()
         cars = []
+    }
+
+    updateOSMqueue(){
+        if(!this.state.OSMqueue.nodesToProcess || this.state.OSMqueue.nodesToProcess.size == 0) return
+
+        let nodesToProcess = this.state.OSMqueue.nodesToProcess     //set of node IDs
+        let segsToProcess = this.state.OSMqueue.segsToProcess       //set of way IDs
+        let nodeSegmentMap = this.state.OSMqueue.nodeSegmentMap     //map: nodeID -> Set of {to: nodeID, wayID: wayID}
+        let currentNodeID = this.state.OSMqueue.currentNodeID       //node ID
+        let nodesData = this.state.OSMqueue.nodesData               //map: nodeID -> {id, x, y}
+        let waysData = this.state.OSMqueue.waysData                 //map: wayID -> {id, nodes: [nodeIDs], tags}
+
+        // Get all connections from current node that are still to be processed
+        let connections = nodeSegmentMap.get(currentNodeID)
+        if(!connections) return
+
+        let validConnections = []
+        for(let conn of connections){
+            if(segsToProcess.has(conn.wayID)){
+                validConnections.push(conn)
+            }
+        }
+
+        // Collect all nodes that need to be created for these connections
+        let nodesToCreate = new Set()
+        let waysToCreate = new Set()
+
+        for(let conn of validConnections){
+            let wayData = waysData.get(conn.wayID)
+            if(!wayData) continue
+
+            waysToCreate.add(conn.wayID)
+
+            // Add all nodes in this way that need to be processed
+            for(let nodeID of wayData.nodes){
+                if(nodesToProcess.has(nodeID)){
+                    nodesToCreate.add(nodeID)
+                }
+            }
+        }
+
+        // Create the nodes
+        for(let nodeID of nodesToCreate){
+            let nodeData = nodesData.get(nodeID)
+            if(!nodeData) continue
+
+            let newNode = new Node(nodeID, nodeData.x, nodeData.y)
+            newNode.road = this.road
+            this.road.nodes.push(newNode)
+
+            // Remove from nodesToProcess
+            nodesToProcess.delete(nodeID)
+        }
+
+        // Create all segments for each way
+        for(let wayID of waysToCreate){
+            let wayData = waysData.get(wayID)
+            if(!wayData) continue
+
+            let lanes = wayData.tags && wayData.tags.lanes ? parseInt(wayData.tags.lanes) : 1
+            let name = wayData.tags && wayData.tags.name ? wayData.tags.name : undefined
+
+            // Create all segments for this way
+            for(let j = 0; j < lanes; j++){
+                for(let i = 0; i < wayData.nodes.length - 1; i++){
+                    let nodeIDA = wayData.nodes[i]
+                    let nodeIDB = wayData.nodes[i + 1]
+                    let nodeA = this.road.findNode(nodeIDA)
+                    let nodeB = this.road.findNode(nodeIDB)
+
+                    if(!nodeA || !nodeB) continue
+
+                    let newSegment = new Segment(wayID + '_' + j + '_' + i, nodeIDA, nodeIDB, 'for', false)
+                    newSegment.road = this.road
+                    newSegment.name = name
+                    this.road.segments.push(newSegment)
+                    nodeA.outgoingSegmentIDs.push(newSegment.id)
+                    nodeB.incomingSegmentIDs.push(newSegment.id)
+                }
+            }
+
+            // Remove from segsToProcess
+            segsToProcess.delete(wayID)
+        }
+
+        // Create all paths for node-to-node connections before calling updateRoad
+        let pathsToUpdate = []
+        for(let conn of validConnections){
+            let wayData = waysData.get(conn.wayID)
+            if(!wayData) continue
+
+            // Find all consecutive node pairs in this way that involve created nodes
+            for(let i = 0; i < wayData.nodes.length - 1; i++){
+                let nodeIDA = wayData.nodes[i]
+                let nodeIDB = wayData.nodes[i + 1]
+
+                // Only process if both nodes exist
+                if(this.road.findNode(nodeIDA) && this.road.findNode(nodeIDB)){
+                    let segmentIDs = new Set(this.road.getAllSegmentsBetweenNodes(nodeIDA, nodeIDB).map(s => s.id))
+
+                    let path = this.road.findPathByNodes(nodeIDA, nodeIDB)
+                    if(!path && segmentIDs.size > 0) {
+                        path = new Path(nodeIDA, nodeIDB, segmentIDs)
+                        path.road = this.road
+                        this.road.paths.set(nodeIDA + '-' + nodeIDB, path)
+                    }
+                    else if(path) {
+                        path.setSegmentsIDs(segmentIDs)
+                    }
+
+                    if(path){
+                        // Calculate fromPos and toPos for all segments in this path
+                        path.constructRealLanes()
+                        pathsToUpdate.push([nodeIDA, nodeIDB, path])
+                    }
+                }
+            }
+        }
+
+        // Now call updateRoad for each path, feeding it the already created path
+        for(let [nodeIDA, nodeIDB, path] of pathsToUpdate){
+            this.road.updateRoad([nodeIDA, nodeIDB], path)
+        }
+
+        // Find next node to process
+        let nextNodeID = undefined
+
+        // First try to find a connected node that still has unprocessed ways
+        for(let conn of validConnections){
+            let wayData = waysData.get(conn.wayID)
+            if(!wayData) continue
+
+            // Find the node on the other end of this connection
+            let otherNodeID = conn.to
+            if(nodesToProcess.has(otherNodeID)){
+                // Check if this node has unprocessed ways
+                let otherConnections = nodeSegmentMap.get(otherNodeID)
+                if(otherConnections){
+                    for(let otherConn of otherConnections){
+                        if(segsToProcess.has(otherConn.wayID)){
+                            nextNodeID = otherNodeID
+                            break
+                        }
+                    }
+                }
+                if(nextNodeID) break
+            }
+        }
+
+        // If no connected node found, pick any random node with unprocessed ways
+        if(!nextNodeID && nodesToProcess.size > 0){
+            for(let nodeID of nodesToProcess){
+                let connections = nodeSegmentMap.get(nodeID)
+                if(connections){
+                    for(let conn of connections){
+                        if(segsToProcess.has(conn.wayID)){
+                            nextNodeID = nodeID
+                            break
+                        }
+                    }
+                }
+                if(nextNodeID) break
+            }
+        }
+
+        if(nextNodeID){
+            this.state.OSMqueue.currentNodeID = nextNodeID
+        }
+        else{
+            // All done, clear the queue
+            this.state.OSMqueue.nodesToProcess.clear()
+        }
+
+        this.center()
+    }
+
+    constructRoadFromOSMAsync(data){
+        let nodesToProcess = new Set()          // Set of node IDs
+        let segsToProcess = new Set()           // Set of way IDs
+        let nodesData = new Map()               // Map: nodeID -> {id, x, y}
+        let waysData = new Map()                // Map: wayID -> {id, nodes: [nodeIDs], tags}
+        let nodeSegmentMap = new Map()          // Map: nodeID -> Set of {to: nodeID, wayID: wayID}
+
+        let scaleFactor = SCALE_FACTOR_OSM
+        let firstX = undefined
+        let firstY = undefined
+
+        // Process all nodes
+        for(let node of data.elements){
+            if(node.type == 'node'){
+                if(!firstX){
+                    firstX = Math.round(node.lon * scaleFactor)
+                    firstY = Math.round(node.lat * scaleFactor)
+                }
+                let x = Math.round(node.lon * scaleFactor) - firstX
+                let y = -Math.round(node.lat * scaleFactor) + firstY
+
+                nodesToProcess.add(node.id)
+                nodesData.set(node.id, {id: node.id, x, y})
+                nodeSegmentMap.set(node.id, new Set())
+            }
+        }
+
+        // Process all ways
+        for(let way of data.elements){
+            if(way.type == 'way'){
+                // Store the complete way data
+                waysData.set(way.id, {
+                    id: way.id,
+                    nodes: way.nodes,
+                    tags: way.tags
+                })
+                segsToProcess.add(way.id)
+
+                // Build the connection map for each node
+                for(let i = 0; i < way.nodes.length - 1; i++){
+                    let nodeIDA = way.nodes[i]
+                    let nodeIDB = way.nodes[i + 1]
+
+                    // Add bidirectional connections
+                    let connectionsA = nodeSegmentMap.get(nodeIDA)
+                    if(connectionsA){
+                        connectionsA.add({to: nodeIDB, wayID: way.id})
+                    }
+
+                    let connectionsB = nodeSegmentMap.get(nodeIDB)
+                    if(connectionsB){
+                        connectionsB.add({to: nodeIDA, wayID: way.id})
+                    }
+                }
+            }
+        }
+
+        // Pick the first node as the starting point
+        let currentNodeID = nodesToProcess.values().next().value
+
+        this.state.OSMqueue = {
+            nodesToProcess,
+            segsToProcess,
+            nodeSegmentMap,
+            nodesData,
+            waysData,
+            currentNodeID
+        }
+
+        console.log('OSM queue initialized:', this.state.OSMqueue)
     }
 
     constructRoadFromOSM(data){
