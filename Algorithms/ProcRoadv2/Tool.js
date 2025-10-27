@@ -1544,10 +1544,11 @@ class Tool{
             this.state.OSMqueue.nodesToProcess.clear()
         }
 
-        this.center()
+        if(frameCount % 60 == 0) this.center()
     }
 
     constructRoadFromOSMAsync(data){
+        this.road = new Road()
         let nodesToProcess = new Set()          // Set of node IDs
         let segsToProcess = new Set()           // Set of way IDs
         let nodesData = new Map()               // Map: nodeID -> {id, x, y}

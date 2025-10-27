@@ -273,6 +273,13 @@ class Segment{
         this.showDirection()
     }
 
+    showSimple(){
+        if(this.outOfBounds()){
+            return
+        }
+        line(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
+    }
+
 
     // just shows a white line with arrows, and tags if needed, from fromPos to toPos
     showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined, indexOfSeg = 0){

@@ -982,7 +982,12 @@ class Road{
     // }
 
     showMain(SHOW_TAGS){
-        this.segments.forEach(s => s.showMain(SHOW_TAGS))
+        //this.segments.forEach(s => s.showMain(SHOW_TAGS))
+        push()
+        stroke(230)
+        strokeWeight(5)
+        this.paths.forEach(s => s.showSimple())
+        pop()
     }
 
     showPaths(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined){

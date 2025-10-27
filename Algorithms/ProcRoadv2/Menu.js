@@ -286,7 +286,7 @@ class Menu{
         })
         buttonLoadOpenStreetMap.txSize = 13
 
-        let sliderAround = new Slider(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 70, 70, 'OSM Radius', 50, 1000, 500, (value) => {
+        let sliderAround = new Slider(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 70, 70, 'OSM Radius', 50, 2000, 500, (value) => {
             AROUND_RADIUS = value
         })
         sliderAround.floorPreview = true

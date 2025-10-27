@@ -250,6 +250,12 @@ class Path{
         pop()
     }
 
+    showSimple(){
+        let fromPos = this.road.findNode(this.nodeA).pos
+        let toPos = this.road.findNode(this.nodeB).pos
+        line(fromPos.x, fromPos.y, toPos.x, toPos.y)
+    }
+
     // gets all points of all lanes and draws the full road
     // the render bug when intersegs are touching each other is because the calculation of corners fails because we dont get the correct direction
     // we should force segments to have a minimum length, or we should calculate the corners in a different way
