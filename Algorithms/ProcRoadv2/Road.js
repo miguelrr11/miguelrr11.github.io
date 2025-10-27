@@ -214,7 +214,10 @@ class Road{
                     minDist = d
                     closestSegment = s
                     closestPoint = point
-                    closestPointMain = {x: posFromNode.x + ab.x * t, y: posFromNode.y + ab.y * t}
+                    closestPointMain = {
+                        x: posFromNode.x + (point.x - fromPos.x),
+                        y: posFromNode.y + (point.y - fromPos.y)
+                    }
                 }
             }
         })
@@ -222,33 +225,28 @@ class Road{
         return {closestSegment, closestPoint, minDist, closestPointMain}
     }
 
-    // the edges of segments are the real positions of the segments (after path modification)
-    findClosestSegmentAndPosRealPos(x, y){
+
+    findClosestPosToSegmentBetweenNodes(x, y){
         let pos = {x, y}
         let closestSegment = undefined
         let closestPoint = undefined
         let minDist = Infinity
 
         this.segments.forEach(s => {
-            let fromPos = s.fromPos
-            let toPos = s.toPos
+            let fromPos = s.fromNodeID != undefined ? this.findNode(s.fromNodeID).pos : null
+            let toPos = s.toNodeID != undefined ? this.findNode(s.toNodeID).pos : null
             if(!fromPos || !toPos) return
-            if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
-                //continue
-            }
-            else{
-                let ap = {x: pos.x - fromPos.x, y: pos.y - fromPos.y}
-                let ab = {x: toPos.x - fromPos.x, y: toPos.y - fromPos.y}
-                let ab2 = ab.x * ab.x + ab.y * ab.y
-                let ap_ab = ap.x * ab.x + ap.y * ab.y
-                let t = constrain(ap_ab / ab2, 0, 1)
-                let point = {x: fromPos.x + ab.x * t, y: fromPos.y + ab.y * t}
-                let d = dist(pos.x, pos.y, point.x, point.y)
-                if(d < minDist){
-                    minDist = d
-                    closestSegment = s
-                    closestPoint = point
-                }
+            let ap = {x: pos.x - fromPos.x, y: pos.y - fromPos.y}
+            let ab = {x: toPos.x - fromPos.x, y: toPos.y - fromPos.y}
+            let ab2 = ab.x * ab.x + ab.y * ab.y
+            let ap_ab = ap.x * ab.x + ap.y * ab.y
+            let t = constrain(ap_ab / ab2, 0, 1)
+            let point = {x: fromPos.x + ab.x * t, y: fromPos.y + ab.y * t}
+            let d = dist(pos.x, pos.y, point.x, point.y)
+            if(d < minDist){
+                minDist = d
+                closestSegment = s
+                closestPoint = point
             }
         })
         return {closestSegment, closestPoint, minDist}

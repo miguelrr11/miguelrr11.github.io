@@ -30,7 +30,7 @@ class Tool{
     constructor(){
         this.showOptions = {
             SHOW_ROAD: false,
-            SHOW_PATHS: true,
+            SHOW_PATHS: false,
             SHOW_NODES: true,
             SHOW_CONNECTORS: false,
             SHOW_INTERSECSEGS: false,
@@ -126,6 +126,7 @@ class Tool{
             selectedNodesOffsets: [],
             boxOffsetFirstCorner: {x: 0, y: 0},
             boxOffsetSecondCorner: {x: 0, y: 0},
+            copiedNodes: [],
 
             //selecting intersection to finetune intersecSegs
             selectedIntersection: undefined,
@@ -161,6 +162,24 @@ class Tool{
 
         if(this.state.snapToGrid) return [mousePosGridX, mousePosGridY, mousePos]
         else return [mousePos.x, mousePos.y, mousePos]
+    }
+
+    getAvaiableToPaste(){
+        return false
+        return this.state.copiedNodes.length > 0
+    }
+
+    getAvaiableToCopy(){
+        return false
+        return this.state.selectedNodes.length > 0
+    }
+
+    copySelectedNodes(){
+
+    }
+
+    pasteNodes(){
+
     }
 
     doubleClick(event){
@@ -283,12 +302,12 @@ class Tool{
                 return
             }
             //creates a new node on top of a segment, it splits it and creates a new node which becomes the previous node (anchor)
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
+            let closestPosToSegment = this.road.findClosestPosToSegmentBetweenNodes(mousePosGridX, mousePosGridY)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
-                let newNode = this.road.addNode(closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y)
+                let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
                 for(let s of allSegmentsBetween){
-                    this.road.splitSegmentAtPos(s.id, closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y, newNode)
+                    this.road.splitSegmentAtPos(s.id, mousePosGridX, closestPosToSegment.closestPoint.y, newNode)
                 }
                 this.state.prevNodeID = newNode.id
                 return
@@ -309,12 +328,12 @@ class Tool{
             }
             if(hoverNode != undefined && hoverNode.id == this.state.prevNodeID) return
             //creates a new node on top of a segment, it splits it and creates a new node
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
+            let closestPosToSegment = this.road.findClosestPosToSegmentBetweenNodes(mousePosGridX, mousePosGridY)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
-                let newNode = this.road.addNode(closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y)
+                let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
                 for(let s of allSegmentsBetween){
-                    this.road.splitSegmentAtPos(s.id, closestPosToSegment.closestPointMain.x, closestPosToSegment.closestPointMain.y, newNode)
+                    this.road.splitSegmentAtPos(s.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y, newNode)
                 }
                 //connects the new node to the previous node
                 this.createSegmentBetweenTwoNodes(this.state.prevNodeID, newNode.id)
@@ -337,7 +356,7 @@ class Tool{
                 this.road.deleteNode(hoverNode.id)
                 return
             }
-            let closestPosToSegment = this.road.findClosestSegmentAndPosRealPos(mousePosGridX, mousePosGridY)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
                 this.road.deleteSegment(closestPosToSegment.closestSegment.id)
                 return
@@ -346,7 +365,7 @@ class Tool{
 
         // pathfinding - new - uses connectors
         else if(mode == 'settingStart' || mode == 'settingEnd'){
-            let closestPosToSegment = this.road.findClosestSegmentAndPosRealPos(mousePosGridX, mousePosGridY)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
                 let segID = closestPosToSegment.closestSegment.id
                 let seg = this.road.findSegment(segID)
@@ -382,7 +401,7 @@ class Tool{
         else if(mode == 'movingNode' && this.state.selectedIntersection != undefined){
             let intersection = this.road.findIntersection(this.state.selectedIntersection)
             let hoveredConn = intersection.findHoverConnector(mousePos.x, mousePos.y)
-            if(hoveredConn != undefined && this.state.selectedConnector == undefined){
+            if(hoveredConn != undefined && this.state.selectedConnector == undefined && hoveredConn.type == 'enter'){
                 this.state.selectedConnector = hoveredConn.incomingSegmentIDs[0]
             }
             else if(hoveredConn != undefined && this.state.selectedConnector != undefined){
@@ -1061,11 +1080,18 @@ class Tool{
         
         this.state.hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
         this.state.hoverConn = this.road.findHoverConnector(mousePos.x, mousePos.y)
-        let closestPosToSegment = this.road.findClosestSegmentAndPosRealPos(mousePos.x, mousePos.y)
+        let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
         if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
-            this.state.hoverSegID = closestPosToSegment.closestSegment.id
+            let point = closestPosToSegment.closestPoint
+            let fromPos = closestPosToSegment.closestSegment.fromPos
+            let toPos = closestPosToSegment.closestSegment.toPos
+            let withinX = (point.x >= Math.min(fromPos.x, toPos.x) ) && (point.x <= Math.max(fromPos.x, toPos.x) )
+            let withinY = (point.y >= Math.min(fromPos.y, toPos.y) ) && (point.y <= Math.max(fromPos.y, toPos.y) )
+            if(withinX && withinY) this.state.hoverSegID = closestPosToSegment.closestSegment.id
+            else this.state.hoverSegID = undefined
         }
         else this.state.hoverSegID = undefined
+
     }
 
     show(){
@@ -1079,6 +1105,8 @@ class Tool{
         
         // only showWays is optimized
         if(this.showOptions.SHOW_WAYS) this.road.showWays(this)
+
+
 
         if(this.showOptions.SHOW_LANES){ 
             this.road.showLanes(this.state.hoverSegID)
@@ -1111,7 +1139,7 @@ class Tool{
         this.showSelectionBoxSelected()
 
         this.showSelectedIntersection()
-        
+
 
         pop()
 
@@ -1128,7 +1156,7 @@ class Tool{
             // show hovered connector
             let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
             let hoverConn = intersection.findHoverConnector(mousePos.x, mousePos.y)
-            if(hoverConn){
+            if(hoverConn && hoverConn.type == 'enter'){
                 hoverConn.showHover()
             }
         }
@@ -1156,8 +1184,9 @@ class Tool{
                 hoverNode.show(true, this.zoom)
                 blendMode(BLEND)
             }
-            else if(hoverSegment && this.showOptions.SHOW_ROAD){
-                hoverSegment.showHover()
+            else if(hoverSegment && this.showOptions.SHOW_WAYS){
+                noStroke()
+                _hoverSegment.closestSegment.showCustomLanes([255, 100], LANE_WIDTH)
             }
         }
         if(this.showOptions.SHOW_CONNECTORS){

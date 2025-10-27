@@ -20,6 +20,16 @@ class Menu{
             this.tool.state.CSmode = !this.tool.state.CSmode
         }, undefined, () => {return this.tool.state.CSmode})
 
+        let buttonCopy = new Button(280, 50, 50, 20, 'Copy', () => {
+            this.tool.copySelectedNodes()
+        }, undefined, () => {return this.tool.getAvaiableToCopy()})
+        let buttonPaste = new Button(340, 50, 50, 20, 'Paste', () => {
+            this.tool.pasteNodes()
+        }, undefined, () => {return this.tool.getAvaiableToPaste()})
+
+        this.buttons.push(buttonCopy)
+        this.buttons.push(buttonPaste)
+
         const MAIN_X = 28;
         const MAIN_Y = 50;
         const MAIN_W = 44;  
