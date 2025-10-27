@@ -4,7 +4,7 @@ class Menu{
         this.sliders = []
         this.tool = tool
 
-        let buttonCreate = new Button(10, 10, 80, 30, 'Create [C]', () => {tool.createState()}, () => {
+        let buttonCreate = new Button(10, 10, 80, 30, 'Create [K]', () => {tool.createState()}, () => {
             return this.tool.state.mode === 'creating' ? 'Creating...' : 'Create [C]'
         }, () => {return this.tool.state.mode == 'creating'})
         let buttonDelete = new Button(100, 10, 80, 30, 'Delete [D]', () => {tool.deleteState()}, () => {
@@ -20,12 +20,14 @@ class Menu{
             this.tool.state.CSmode = !this.tool.state.CSmode
         }, undefined, () => {return this.tool.state.CSmode})
 
-        let buttonCopy = new Button(280, 50, 50, 20, 'Copy', () => {
+        let buttonCopy = new Button(280, 50, 50, 20, 'Copy [C]', () => {
             this.tool.copySelectedNodes()
         }, undefined, () => {return this.tool.getAvaiableToCopy()})
-        let buttonPaste = new Button(340, 50, 50, 20, 'Paste', () => {
+        let buttonPaste = new Button(340, 50, 50, 20, 'Paste [P]', () => {
             this.tool.pasteNodes()
         }, undefined, () => {return this.tool.getAvaiableToPaste()})
+        buttonCopy.txSize = 10
+        buttonPaste.txSize = 10
 
         this.buttons.push(buttonCopy)
         this.buttons.push(buttonPaste)
@@ -186,7 +188,7 @@ class Menu{
         })
         buttonFullscreen.txSize = 12
 
-        let buttonLoadOpenStreetMap = new Button(width - 70 - 10, HEIGHT - 120, 70, 20, 'OSM Beta', () => {
+        let buttonLoadOpenStreetMap = new Button(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 30, 70, 20, 'OSM Beta', () => {
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
@@ -217,6 +219,11 @@ class Menu{
                         buttonLoadOpenStreetMap.enabled = () => {return true}
                         buttonLoadOpenStreetMap.label = 'OSM Beta'
                         if (!response.ok) {
+                            buttonLoadOpenStreetMap.label = 'Failed'
+                            setTimeout(() => {
+                                buttonLoadOpenStreetMap.enabled = () => {return true}
+                                buttonLoadOpenStreetMap.label = 'OSM Beta'
+                            }, 2000);
                             throw new Error(`HTTP error! status: ${response.status}`);
                         }
                         return response.json();
@@ -248,22 +255,42 @@ class Menu{
                         this.tool.center()
                     })
                     .catch(error => {
+                        buttonLoadOpenStreetMap.label = 'Failed'
+                        setTimeout(() => {
+                            buttonLoadOpenStreetMap.enabled = () => {return true}
+                            buttonLoadOpenStreetMap.label = 'OSM Beta'
+                        }, 2000);
                         buttonLoadOpenStreetMap.enabled = () => {return true}
-                        buttonLoadOpenStreetMap.label = 'OSM Beta'
                         console.error("Error fetching data:", error);
                     });
                     
                     },
                     (error) => {
-                    console.error("Error obteniendo ubicación:", error.message);
+                        buttonLoadOpenStreetMap.label = 'Failed'
+                        setTimeout(() => {
+                            buttonLoadOpenStreetMap.enabled = () => {return true}
+                            buttonLoadOpenStreetMap.label = 'OSM Beta'
+                        }, 2000);
+                        console.error("Error obteniendo ubicación:", error.message);
                     }
                 );
             }
             else {
+                buttonLoadOpenStreetMap.label = 'Failed'
+                setTimeout(() => {
+                    buttonLoadOpenStreetMap.enabled = () => {return true}
+                    buttonLoadOpenStreetMap.label = 'OSM Beta'
+                }, 2000);
                 console.error("Geolocalización no soportada en este navegador");
             }
         })
         buttonLoadOpenStreetMap.txSize = 13
+
+        let sliderAround = new Slider(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 70, 70, 'OSM Radius', 50, 1000, 500, (value) => {
+            AROUND_RADIUS = value
+        })
+        sliderAround.floorPreview = true
+
 
         let buttonSave = new Button(width - 70 - 10, HEIGHT - 60, 70, 20, 'Save', () => {
             storeItem('roadData', this.tool.getCurrentRoad())
@@ -364,6 +391,8 @@ class Menu{
         this.sliders.push(sliderLaneWidth)
         this.sliders.push(sliderLengthSegBezier)
         this.sliders.push(sliderOffsetRadIntersec)
+
+        this.sliders.push(sliderAround)
 
         let buttonDebugRoad = new Button(10, 430, 95, 210, 'Debug Road', undefined, () => {
             return 'Nodes: ' + '\n' + this.tool.road.nodes.length + '\n' +
@@ -561,6 +590,8 @@ class Slider{
 
         // Total height includes title + slider
         this.totalHeight = this.titleHeight + this.height + 5
+
+        this.floorPreview = false
     }
 
     isMouseOver(){
@@ -617,7 +648,8 @@ class Slider{
         noStroke()
         textAlign(CENTER, TOP)
         textSize(10)
-        text(this.title + ': ' + this.value, this.pos.x + this.width / 2, this.pos.y)
+        let val = this.floorPreview ? Math.floor(this.value) : this.value
+        text(this.title + ': ' + val, this.pos.x + this.width / 2, this.pos.y)
 
         // Draw slider track
         fill(70)

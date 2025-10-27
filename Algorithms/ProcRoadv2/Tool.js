@@ -11,7 +11,7 @@ const MIN_ZOOM = 0.001
 const MAX_ZOOM = 8
 
 const SCALE_FACTOR_OSM = 1000000
-const AROUND_RADIUS = 500  //meters
+let AROUND_RADIUS = 500  //meters
 
 
 /*
@@ -69,6 +69,11 @@ class Tool{
         this.prevMouseX = 0
         this.prevMouseY = 0
         this.zoom = 1
+
+        this.goalXoff = 0
+        this.goalYoff = 0
+        this.goalZoom = 1
+        this.lerpingTranslation = false
 
         this.constantSetPaths = false  //debug purposes
 
@@ -165,21 +170,110 @@ class Tool{
     }
 
     getAvaiableToPaste(){
-        return false
         return this.state.copiedNodes.length > 0
     }
 
     getAvaiableToCopy(){
-        return false
         return this.state.selectedNodes.length > 0
     }
 
     copySelectedNodes(){
-
+        this.state.copiedNodes = [...this.state.selectedNodes]
     }
 
     pasteNodes(){
+        if(this.state.copiedNodes.length == 0) return
+        let mousePos = this.getRelativePos(mouseX, mouseY)
 
+        // Calculate the center of the copied nodes
+        let centerX = 0, centerY = 0
+        for(let node of this.state.copiedNodes){
+            centerX += node.pos.x
+            centerY += node.pos.y
+        }
+        centerX /= this.state.copiedNodes.length
+        centerY /= this.state.copiedNodes.length
+
+        // Create a map from old node IDs to new nodes
+        let oldToNewNodeMap = new Map()
+
+        // Create all new nodes with positions relative to mousePos
+        for(let oldNode of this.state.copiedNodes){
+            let offsetX = oldNode.pos.x - centerX
+            let offsetY = oldNode.pos.y - centerY
+            let newNode = this.road.addNodeNoUpdate(mousePos.x + offsetX, mousePos.y + offsetY)
+            oldToNewNodeMap.set(oldNode.id, newNode)
+        }
+
+        // Gather all segments that connect the copied nodes
+        let segmentsToCopy = []
+        for(let oldNode of this.state.copiedNodes){
+            // Check all segments connected to this node
+            let connectedSegments = this.road.findConnectedSegments(oldNode.id)
+            for(let seg of connectedSegments){
+                // Only include segments where both endpoints are in the copied nodes
+                let fromNodeInCopy = this.state.copiedNodes.find(n => n.id == seg.fromNodeID)
+                let toNodeInCopy = this.state.copiedNodes.find(n => n.id == seg.toNodeID)
+                if(fromNodeInCopy && toNodeInCopy){
+                    // Check if we haven't already added this segment
+                    if(!segmentsToCopy.find(s => s.id == seg.id)){
+                        segmentsToCopy.push(seg)
+                    }
+                }
+            }
+        }
+
+        // Create all new segments with new node IDs
+        for(let oldSeg of segmentsToCopy){
+            let newFromNode = oldToNewNodeMap.get(oldSeg.fromNodeID)
+            let newToNode = oldToNewNodeMap.get(oldSeg.toNodeID)
+            if(newFromNode && newToNode){
+                this.road.addSegment(newFromNode.id, newToNode.id, oldSeg.visualDir, false)
+            }
+        }
+
+        // Set up paths for all pairs of connected nodes (like in updateRoad)
+        let nodePairs = new Set()
+        for(let oldSeg of segmentsToCopy){
+            let newFromNode = oldToNewNodeMap.get(oldSeg.fromNodeID)
+            let newToNode = oldToNewNodeMap.get(oldSeg.toNodeID)
+            if(newFromNode && newToNode){
+                // Store both directions to check
+                nodePairs.add(JSON.stringify([newFromNode.id, newToNode.id]))
+            }
+        }
+
+        // For each pair, set up the path like in updateRoad
+        for(let pairStr of nodePairs){
+            let [nodeAID, nodeBID] = JSON.parse(pairStr)
+            let segmentIDs = new Set(this.road.getAllSegmentsBetweenNodes(nodeAID, nodeBID).map(s => s.id))
+
+            let newPath = this.road.findPathByNodes(nodeAID, nodeBID)
+            if(!newPath) {
+                newPath = new Path(nodeAID, nodeBID, segmentIDs)
+                newPath.road = this.road
+                this.road.paths.set(nodeAID + '-' + nodeBID, newPath)
+            }
+            else newPath.setSegmentsIDs(segmentIDs)
+
+            newPath.constructRealLanes()
+        }
+
+        // Now trim intersections for all new nodes
+        for(let [oldNodeID, newNode] of oldToNewNodeMap){
+            this.road.trimSegmentsAtIntersection({
+                nodeID: newNode.id,
+                connect: true,
+                instantConvex: true
+            })
+        }
+
+        // Update selection to show the newly pasted nodes
+        this.state.selectedNodes = Array.from(oldToNewNodeMap.values())
+        let margin = NODE_RAD * 2
+        let corners = getBoundingBoxCorners(this.state.selectedNodes.map(n => n.pos))
+        this.state.firstCornerSelected = {x: corners[0].x - margin, y: corners[0].y - margin}
+        this.state.secondCornerSelected = {x: corners[2].x + margin, y: corners[2].y + margin}
     }
 
     doubleClick(event){
@@ -465,12 +559,15 @@ class Tool{
             //keeps on dragging the selection box
             if(this.state.selectedNodes.length > 0 && this.state.selectedNodesOffsets.length > 0){
                 if(inBoundsTwoCorners(mousePos.x, mousePos.y, this.state.firstCornerSelected, this.state.secondCornerSelected)){
-                    for(let i = 0; i < this.state.selectedNodes.length; i++){
-                        let n = this.state.selectedNodes[i]
-                        let offset = this.state.selectedNodesOffsets[i]
-                        n.moveTo(mousePosGridX + offset.x, mousePosGridY + offset.y)
-                        this.road.updateNode(n.id)
+                    if(this.state.selectedNodes.length < 10){
+                        for(let i = 0; i < this.state.selectedNodes.length; i++){
+                            let n = this.state.selectedNodes[i]
+                            let offset = this.state.selectedNodesOffsets[i]
+                            n.moveTo(mousePosGridX + offset.x, mousePosGridY + offset.y)
+                            this.road.updateNode(n.id)
+                        }
                     }
+                    
                     this.state.firstCornerSelected = {x: mousePosGridX + this.state.boxOffsetFirstCorner.x, y: mousePosGridY + this.state.boxOffsetFirstCorner.y}
                     this.state.secondCornerSelected = {x: mousePosGridX + this.state.boxOffsetSecondCorner.x, y: mousePosGridY + this.state.boxOffsetSecondCorner.y}
                     return
@@ -506,6 +603,7 @@ class Tool{
     }
 
     onMouseRelease(){
+        let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
         this.changed = true
         this.prevMouseX = undefined
         this.prevMouseY = undefined
@@ -518,6 +616,16 @@ class Tool{
         if(this.state.firstCorner != undefined){
             this.state.secondCorner = this.getRelativePos(mouseX, mouseY)
             this.selectObjectsInSelectionBox()
+        }
+        if(this.state.selectedNodes.length > 0 && this.state.selectedNodesOffsets.length > 0){
+            if(inBoundsTwoCorners(mousePos.x, mousePos.y, this.state.firstCornerSelected, this.state.secondCornerSelected)){
+                for(let i = 0; i < this.state.selectedNodes.length; i++){
+                    let n = this.state.selectedNodes[i]
+                    let offset = this.state.selectedNodesOffsets[i]
+                    n.moveTo(mousePosGridX + offset.x, mousePosGridY + offset.y)
+                    this.road.updateNode(n.id)
+                }
+            }
         }
         this.removeSelectedBox()
     }
@@ -544,7 +652,7 @@ class Tool{
         if(k == 'h'){
             this.handState()
         }
-        if(k == 'c'){
+        if(k == 'k'){
             this.createState()
         }
         if(k == 'd'){
@@ -552,6 +660,12 @@ class Tool{
         }
         if(k == 'a'){
             this.selectState()
+        }
+        if(k == 'c'){
+            if(this.getAvaiableToCopy()) this.copySelectedNodes()
+        }
+        if(k == 'p'){
+            if(this.getAvaiableToPaste()) this.pasteNodes()
         }
         if(kC == 8){
             if(this.state.mode == 'selecting' && this.state.selectedNodes.length > 0){
@@ -950,14 +1064,17 @@ class Tool{
     }
 
     center(){
-        this.zoom = this.getTargetZoom()
+        let goalZoom = this.getTargetZoom()
         let [minXp, maxXp, minYp, maxYp] = this.getMinMaxPos()
         let centerX = (maxXp + minXp) / 2
         let centerY = (maxYp + minYp) / 2
-        let xOffAux = (WIDTH / 2) - centerX * this.zoom
-        let yOffAux = (HEIGHT / 2) - centerY * this.zoom
-        this.xOff = xOffAux
-        this.yOff = yOffAux
+        let xOffAux = (WIDTH / 2) - centerX * goalZoom
+        let yOffAux = (HEIGHT / 2) - centerY * goalZoom
+        this.goalXoff = xOffAux
+        this.goalYoff = yOffAux
+        this.goalZoom = goalZoom
+
+        this.lerpingTranslation = true
     }
 
     getMinMaxPos() {
@@ -1091,6 +1208,24 @@ class Tool{
             else this.state.hoverSegID = undefined
         }
         else this.state.hoverSegID = undefined
+
+        //update goals
+        if(this.lerpingTranslation){
+            let allGood = true
+            if(Math.abs(this.goalXoff - this.xOff) > 1){
+                this.xOff = lerp(this.xOff, this.goalXoff, 0.2)
+                allGood = false
+            }
+            if(Math.abs(this.goalYoff - this.yOff) > 1){
+                this.yOff = lerp(this.yOff, this.goalYoff, 0.2)
+                allGood = false
+            }
+            if(Math.abs(this.goalZoom - this.zoom) > 0.001){
+                this.zoom = lerp(this.zoom, this.goalZoom, 0.2)
+                allGood = false
+            }
+            if(allGood) this.lerpingTranslation = false
+        }
 
     }
 

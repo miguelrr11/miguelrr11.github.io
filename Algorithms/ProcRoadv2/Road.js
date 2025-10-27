@@ -790,7 +790,11 @@ class Road{
             
         })
 
-        if(connect) this.connectIntersection(nodeID, this.nodeOnceConnected(node), instantConvex, straightMode, activenessMap)
+
+        if(connect){ 
+            let once = this.nodeOnceConnected(node)
+            this.connectIntersection(nodeID, once, instantConvex, straightMode || once, activenessMap)
+        }
     }
 
     // straightMode: only connect segments that go straight through the intersection
