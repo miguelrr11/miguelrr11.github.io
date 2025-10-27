@@ -5,7 +5,7 @@ class Menu{
         this.tool = tool
 
         let buttonCreate = new Button(10, 10, 80, 30, 'Create [K]', () => {tool.createState()}, () => {
-            return this.tool.state.mode === 'creating' ? 'Creating...' : 'Create [C]'
+            return this.tool.state.mode === 'creating' ? 'Creating...' : 'Create [K]'
         }, () => {return this.tool.state.mode == 'creating'})
         let buttonDelete = new Button(100, 10, 80, 30, 'Delete [D]', () => {tool.deleteState()}, () => {
             return this.tool.state.mode === 'deleting' ? 'Deleting...' : 'Delete [D]'
@@ -286,7 +286,7 @@ class Menu{
         })
         buttonLoadOpenStreetMap.txSize = 13
 
-        let sliderAround = new Slider(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 70, 70, 'OSM Radius', 50, 2000, 500, (value) => {
+        let sliderAround = new Slider(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 70, 70, 'OSM Radius', 50, 2000, AROUND_RADIUS, (value) => {
             AROUND_RADIUS = value
         })
         sliderAround.floorPreview = true
@@ -614,7 +614,7 @@ class Slider{
 
         // Update value while dragging
         if(this.isDragging && mouseIsPressed){
-            let normalizedX = constrain(mouseX - this.pos.x, 0, this.width)
+            let normalizedX = constrainn(mouseX - this.pos.x, 0, this.width)
             let normalizedValue = normalizedX / this.width
             let newValue = this.minValue + normalizedValue * (this.maxValue - this.minValue)
 

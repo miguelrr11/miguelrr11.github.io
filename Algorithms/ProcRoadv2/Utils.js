@@ -56,7 +56,7 @@ function constrainn(value, min, max) {
 
 //cuanto mas bajo sea el exponent, mas sube los valores bajos
 function nonlinearMap(value, start1, stop1, start2, stop2, exponent = 0.25) {
-    let norm = constrainn((value - start1) / (stop1 - start1), 0, 1);
+    let norm = constrainnn((value - start1) / (stop1 - start1), 0, 1);
     let curved = Math.pow(norm, exponent); 
     return start2 + curved * (stop2 - start2);
 }

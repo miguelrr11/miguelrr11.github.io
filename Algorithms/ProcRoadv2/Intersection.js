@@ -4,8 +4,11 @@ class Intersection {
         this.id = nodeID
         this.connectorsIDs = connectorsIDs
         this.intersecSegsIDs = intersecSegsIDs
+        this.connectors = []      // Direct object references
+        this.intersecSegs = []    // Direct object references
         this.road = undefined     //filled by road.js
         this.pathsIDs = []        //filled by road.js
+        this.paths = []           // Direct object references
 
         this.outline = [] //filled by calculateOutlinesIntersection()
         this.outline16 = [] //filled by calculateOutlinesIntersection()
@@ -38,11 +41,13 @@ class Intersection {
     // returns a map with keys as "fromSegmentID_toSegmentID" and values as true/false depending on whether the intersegment that connects them is active or not
     getActivenessMap(){
         let map = new Map()
-        for(let segID of this.intersecSegsIDs){
-            let seg = this.road.findIntersecSeg(segID)
+        let segs = this.intersecSegs.length > 0 ? this.intersecSegs : this.intersecSegsIDs.map(id => this.road.findIntersecSeg(id))
+        for(let seg of segs){
             if(seg){
-                let fromSegID = this.road.findConnector(seg.fromConnectorID).incomingSegmentIDs[0]
-                let toSegID = this.road.findConnector(seg.toConnectorID).outgoingSegmentIDs[0]
+                let fromConn = seg.fromConnector || this.road.findConnector(seg.fromConnectorID)
+                let toConn = seg.toConnector || this.road.findConnector(seg.toConnectorID)
+                let fromSegID = fromConn.incomingSegmentIDs[0]
+                let toSegID = toConn.outgoingSegmentIDs[0]
                 map.set(fromSegID + '_' + toSegID, seg.active)
             }
         }
@@ -183,23 +188,22 @@ class Intersection {
     // shows the selected connector and all segments going out from it within this intersection
     // it also shows the connectors connected to those segments with the correct colors to indicate if its active or not
     showSelectedConnectorAndSegments(connID){
-        let conn = this.road.findConnector(connID)
+        let conn = this.connectors.find(c => c.id == connID) || this.road.findConnector(connID)
         if(conn) conn.showSelected()
-        for(let segID of this.intersecSegsIDs){
-            let seg = this.road.findIntersecSeg(segID)
-            if(seg.fromConnectorID == connID && !seg.active){ 
+        let segs = this.intersecSegs.length > 0 ? this.intersecSegs : this.intersecSegsIDs.map(id => this.road.findIntersecSeg(id))
+        for(let seg of segs){
+            if(seg.fromConnectorID == connID && !seg.active){
                 seg.showBezier(false)
-                let outConn = this.road.findConnector(seg.toConnectorID)
+                let outConn = seg.toConnector || this.road.findConnector(seg.toConnectorID)
                 if(outConn) {
                     outConn.showActiveness(seg.active)
                 }
             }
         }
-        for(let segID of this.intersecSegsIDs){
-            let seg = this.road.findIntersecSeg(segID)
-            if(seg.fromConnectorID == connID && seg.active){ 
+        for(let seg of segs){
+            if(seg.fromConnectorID == connID && seg.active){
                 seg.showBezier(false)
-                let outConn = this.road.findConnector(seg.toConnectorID)
+                let outConn = seg.toConnector || this.road.findConnector(seg.toConnectorID)
                 if(outConn) {
                     outConn.showActiveness(seg.active)
                 }
@@ -208,28 +212,28 @@ class Intersection {
     }
 
     showConnectorsAndSegments(){
-        for(let connID of this.connectorsIDs){
-            let conn = this.road.findConnector(connID)
+        let conns = this.connectors.length > 0 ? this.connectors : this.connectorsIDs.map(id => this.road.findConnector(id))
+        for(let conn of conns){
             if(conn) conn.show(false, true)
         }
-        for(let segID of this.intersecSegsIDs){
-            let seg = this.road.findIntersecSeg(segID)
+        let segs = this.intersecSegs.length > 0 ? this.intersecSegs : this.intersecSegsIDs.map(id => this.road.findIntersecSeg(id))
+        for(let seg of segs){
             if(seg) seg.showBezier(false)
         }
     }
 
     findHoverConnector(x, y){
-        for(let connID of this.connectorsIDs){
-            let conn = this.road.findConnector(connID)
+        let conns = this.connectors.length > 0 ? this.connectors : this.connectorsIDs.map(id => this.road.findConnector(id))
+        for(let conn of conns){
             if(conn && conn.hover(x, y)) return conn
         }
         return undefined
     }
 
     toggleActivenessOfSeg(fromConnID, toConnID){
-        for(let segID of this.intersecSegsIDs){
-            let seg = this.road.findIntersecSeg(segID)
-            if(seg.toConnectorID == toConnID && seg.fromConnectorID == fromConnID){ 
+        let segs = this.intersecSegs.length > 0 ? this.intersecSegs : this.intersecSegsIDs.map(id => this.road.findIntersecSeg(id))
+        for(let seg of segs){
+            if(seg.toConnectorID == toConnID && seg.fromConnectorID == fromConnID){
                 seg.active = !seg.active
                 return
             }
@@ -238,10 +242,10 @@ class Intersection {
 
     findHoveredConnectorsOfSelectedConnector(selectedConnID, x, y){
         let possibleConnectors = []
-        for(let segID of this.intersecSegsIDs){
-            let seg = this.road.findIntersecSeg(segID)
-            if(seg.fromConnectorID == selectedConnID){ 
-                let outConn = this.road.findConnector(seg.toConnectorID)
+        let segs = this.intersecSegs.length > 0 ? this.intersecSegs : this.intersecSegsIDs.map(id => this.road.findIntersecSeg(id))
+        for(let seg of segs){
+            if(seg.fromConnectorID == selectedConnID){
+                let outConn = seg.toConnector || this.road.findConnector(seg.toConnectorID)
                 if(outConn) possibleConnectors.push(outConn)
             }
         }
@@ -335,15 +339,15 @@ class Intersection {
     showYieldMarkings(){
         if(this.outOfBounds()) return
         // find all segments that feed into this intersection
-        let paths = this.road.findAnyPath(this.nodeID)
-        if(paths.length > 2){ 
+        let paths = this.paths.length > 0 ? this.paths : this.road.findAnyPath(this.nodeID)
+        if(paths.length > 2){
             for(let i = 0; i < paths.length; i++){
                 let path = paths[i]
                 if(path){
                     let segmentsEndingHere = path.getSegmentsEndingAtNode(this.nodeID)
                     segmentsEndingHere.forEach(segment => {
                         let yieldPos = segment.yieldPos
-                        if(yieldPos && yieldPos[0] != undefined){ 
+                        if(yieldPos && yieldPos[0] != undefined){
                             line(yieldPos[0].x, yieldPos[0].y, yieldPos[1].x, yieldPos[1].y)
                         }
                     });
@@ -354,8 +358,8 @@ class Intersection {
 
     showDirectionsIntersection(){
         if(this.outOfBounds()) return
-        let paths = this.road.findAnyPath(this.nodeID)
-        if(paths.length > 2){ 
+        let paths = this.paths.length > 0 ? this.paths : this.road.findAnyPath(this.nodeID)
+        if(paths.length > 2){
             for(let i = 0; i < paths.length; i++){
                 let path = paths[i]
                 if(path){
@@ -385,7 +389,7 @@ class Intersection {
 
         let firstSegmentPoss = []
         let lastSegmentPoss = []
-        let paths = this.road.findAnyPath(this.id)
+        let paths = this.paths.length > 0 ? this.paths : this.road.findAnyPath(this.id)
         for(let p of paths){
             let firstSeg = p.nodeA == this.nodeID ? p.segments[0] : p.segments[p.segments.length - 1]
             let lastSeg = p.nodeA != this.nodeID ? p.segments[0] : p.segments[p.segments.length - 1]

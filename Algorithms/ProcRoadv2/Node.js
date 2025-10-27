@@ -1,11 +1,13 @@
 class Node{
     constructor(id, x, y){
-        if(id == undefined || x == undefined || y == undefined) 
+        if(id == undefined || x == undefined || y == undefined)
             console.log('Undefined values creating node:\nid = ' + id + ' | x = ' + x + ' | y = ' + y)
         this.id = id
         this.pos = {x, y}
         this.incomingSegmentIDs = []
         this.outgoingSegmentIDs = []
+        this.incomingSegments = []  // Direct object references
+        this.outgoingSegments = []  // Direct object references
         this.road = undefined
 
         this.curvePath = false

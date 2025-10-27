@@ -53,6 +53,7 @@ class Road{
         this.intersecSegIDcounter = 0
     }
 
+
     //recomputes all paths, connectors, intersections and intersection-segments, not currently used, but works
     //slow if there are many nodes and segments
     setPaths(){
@@ -62,7 +63,7 @@ class Road{
         }
 
         this.paths = new Map()
-        this.connectors = [] 
+        this.connectors = []
         this.intersecSegs = []
         this.intersections = []
         //this.convexHullQueue = new Set()
@@ -133,8 +134,10 @@ class Road{
             let intersection = this.findIntersection(nodeID)
             if(intersection){
                 activenessMaps.push(intersection.getActivenessMap())
-                this.connectors = this.connectors.filter(c => !intersection.connectorsIDs.includes(c.id))
-                this.intersecSegs = this.intersecSegs.filter(is => !intersection.intersecSegsIDs.includes(is.id))
+                const connectorIDsSet = new Set(intersection.connectorsIDs)
+                const intersecSegsIDsSet = new Set(intersection.intersecSegsIDs)
+                this.connectors = this.connectors.filter(c => !connectorIDsSet.has(c.id))
+                this.intersecSegs = this.intersecSegs.filter(is => !intersecSegsIDsSet.has(is.id))
                 this.intersections = this.intersections.filter(i => i.nodeID != nodeID)
             }
         }
@@ -179,7 +182,7 @@ class Road{
         })
 
         let arr = [...connectedNodes]
-        for(let n of arr){ 
+        for(let n of arr){
             let path = this.findPathByNodes(n, nodeID)
             this.updateRoad([nodeID, n], path, true, false, curvedPath)
         }
@@ -197,8 +200,8 @@ class Road{
             let fromPos = s.fromPos
             let toPos = s.toPos
             if(!fromPos || !toPos) return
-            let posFromNode = this.findNode(s.fromNodeID).pos
-            //let posToNode = this.findNode(s.toNodeID).pos
+            let posFromNode = s.fromNode ? s.fromNode.pos : this.findNode(s.fromNodeID).pos
+            //let posToNode = s.toNode ? s.toNode.pos : this.findNode(s.toNodeID).pos
             if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
                 //continue
             }
@@ -207,7 +210,7 @@ class Road{
                 let ab = {x: toPos.x - fromPos.x, y: toPos.y - fromPos.y}
                 let ab2 = ab.x * ab.x + ab.y * ab.y
                 let ap_ab = ap.x * ab.x + ap.y * ab.y
-                let t = constrain(ap_ab / ab2, 0, 1)
+                let t = constrainn(ap_ab / ab2, 0, 1)
                 let point = {x: fromPos.x + ab.x * t, y: fromPos.y + ab.y * t}
                 let d = dist(pos.x, pos.y, point.x, point.y)
                 if(d < minDist){
@@ -233,14 +236,14 @@ class Road{
         let minDist = Infinity
 
         this.segments.forEach(s => {
-            let fromPos = s.fromNodeID != undefined ? this.findNode(s.fromNodeID).pos : null
-            let toPos = s.toNodeID != undefined ? this.findNode(s.toNodeID).pos : null
+            let fromPos = s.fromNode ? s.fromNode.pos : (s.fromNodeID != undefined ? this.findNode(s.fromNodeID).pos : null)
+            let toPos = s.toNode ? s.toNode.pos : (s.toNodeID != undefined ? this.findNode(s.toNodeID).pos : null)
             if(!fromPos || !toPos) return
             let ap = {x: pos.x - fromPos.x, y: pos.y - fromPos.y}
             let ab = {x: toPos.x - fromPos.x, y: toPos.y - fromPos.y}
             let ab2 = ab.x * ab.x + ab.y * ab.y
             let ap_ab = ap.x * ab.x + ap.y * ab.y
-            let t = constrain(ap_ab / ab2, 0, 1)
+            let t = constrainn(ap_ab / ab2, 0, 1)
             let point = {x: fromPos.x + ab.x * t, y: fromPos.y + ab.y * t}
             let d = dist(pos.x, pos.y, point.x, point.y)
             if(d < minDist){
@@ -363,6 +366,8 @@ class Road{
         this.segments = this.segments.filter(s => s.id != segmentID)
         fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
+        fromNode.outgoingSegments = fromNode.outgoingSegments.filter(s => s.id != segmentID)
+        toNode.incomingSegments = toNode.incomingSegments.filter(s => s.id != segmentID)
 
         this.updateRoad([fromNode.id, toNode.id])
 
@@ -382,9 +387,11 @@ class Road{
             return
         }
         //remove the segment without triggering updates
-        
+
         fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
+        fromNode.outgoingSegments = fromNode.outgoingSegments.filter(s => s.id != segmentID)
+        toNode.incomingSegments = toNode.incomingSegments.filter(s => s.id != segmentID)
     }
 
     splitSegmentAtPos(segmentID, x, y, nodeAtSplit = undefined){
@@ -427,6 +434,7 @@ class Road{
 
         this.updateRoad([fromNode.id, newNode.id])
         this.updateRoad([newNode.id, toNode.id])
+
 
         return {segment1, segment2, newNode}
     }
@@ -522,9 +530,13 @@ class Road{
         }
         let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir, curvedPath)
         newSegment.road = this
+        newSegment.fromNode = fromNode  // Set direct object reference
+        newSegment.toNode = toNode      // Set direct object reference
         this.segments.push(newSegment)
         fromNode.outgoingSegmentIDs.push(newSegment.id)
         toNode.incomingSegmentIDs.push(newSegment.id)
+        fromNode.outgoingSegments.push(newSegment)  // Add direct object reference
+        toNode.incomingSegments.push(newSegment)    // Add direct object reference
         this.segmentIDcounter = getNextID(this.segmentIDcounter)
 
         if(updateR) this.updateRoad([fromNodeID, toNodeID], undefined, true, straightMode, curvedPath)
@@ -806,8 +818,8 @@ class Road{
         if(!node) return
         // if a segment ends in this node, we have to connect it to every other segment that starts in this node
         // also, if a segment starts in this node, we have to connect it to every other segment that ends in this node
-        let incoming = node.incomingSegmentIDs.map(id => this.findSegment(id))
-        let outgoing = node.outgoingSegmentIDs.map(id => this.findSegment(id)) 
+        let incoming = node.incomingSegments.length > 0 ? node.incomingSegments : node.incomingSegmentIDs.map(id => this.findSegment(id))
+        let outgoing = node.outgoingSegments.length > 0 ? node.outgoingSegments : node.outgoingSegmentIDs.map(id => this.findSegment(id)) 
 
         let connectorMap = new Map()
         let intersecSegs = []
@@ -838,6 +850,7 @@ class Road{
                     connector1 = new Connector(inSeg.id, undefined, inSegFromPos, this.connectorIDcounter)
                     connector1.road = this
                     connector1.type = 'enter'
+                    connector1.incomingSegments = [inSeg]  // Populate direct reference immediately
                     this.connectors.push(connector1)
                     this.connectorIDcounter = getNextID(this.connectorIDcounter)
                     connectorMap.set(inSeg.id, connector1)
@@ -846,18 +859,19 @@ class Road{
                     connector1 = conn1aux
                     //connector1.outgoingSegmentIDs.push(outSeg.id)
                 }
-                
+
                 let conn2aux = connectorMap.get(outSeg.id)
                 let connector2
                 if(!conn2aux){
                     connector2 = new Connector(undefined, outSeg.id, outSegToPos, this.connectorIDcounter)
                     connector2.road = this
                     connector2.type = 'exit'
+                    connector2.outgoingSegments = [outSeg]  // Populate direct reference immediately (this will be an intersegment later)
                     this.connectors.push(connector2)
                     this.connectorIDcounter = getNextID(this.connectorIDcounter)
                     connectorMap.set(outSeg.id, connector2)
                 }
-                else{ 
+                else{
                     connector2 = conn2aux
                     //connector2.incomingSegmentIDs.push(inSeg.id)
                 }
@@ -892,6 +906,8 @@ class Road{
                 seg.fromPos = inSegFromPos
                 seg.toPos = outSegToPos
                 seg.len = totalLen
+                seg.fromConnector = connector1  // Set direct object reference
+                seg.toConnector = connector2    // Set direct object reference
                 this.intersecSegs.push(seg)
                 this.intersecSegIDcounter = getNextID(this.intersecSegIDcounter)
 
@@ -905,9 +921,13 @@ class Road{
 
                 connector1.outgoingSegmentIDs.push(seg.id)
                 connector2.incomingSegmentIDs.push(seg.id)
+                connector1.outgoingSegments.push(seg)  // Add direct object reference
+                connector2.incomingSegments.push(seg)  // Add direct object reference
 
                 inSeg.toConnectorID = connector1.id
                 outSeg.fromConnectorID = connector2.id
+                inSeg.toConnector = connector1  // Set direct object reference
+                outSeg.fromConnector = connector2  // Set direct object reference
 
                 intersecSegs.push(seg.id)
 
@@ -916,21 +936,16 @@ class Road{
             })
         })
         for(let c of connectorMap.values()) c.constructDirections()
-        intersection.connectorsIDs = Array.from(connectorMap.values()).map(c => c.id)
+        let connectorsArray = Array.from(connectorMap.values())
+        intersection.connectorsIDs = connectorsArray.map(c => c.id)
+        intersection.connectors = connectorsArray  // Set direct object references
         intersection.intersecSegsIDs = intersecSegs
-        let pathsIDs = new Set()
-        for(let i = 0; i < this.nodes.length; i++){
-            for(let j = 0; j < this.nodes.length; j++){
-                if(i == j) continue
-                if(i == nodeID || j == nodeID){
-                    let foundPath = this.paths.get(this.nodes[i].id + '-' + this.nodes[j].id) || this.paths.get(this.nodes[j].id + '-' + this.nodes[i].id)
-                    if(foundPath){
-                        pathsIDs.add(foundPath.id)
-                    }
-                }
-            }
-        }
-        intersection.pathsIDs = this.findAnyPath(nodeID)?.map(p => p.id) || []
+        intersection.intersecSegs = intersecSegs.map(id => this.findIntersecSeg(id))  // Set direct object references
+
+        // Optimized: directly get paths connected to this node instead of nested loop
+        let anyPath = this.findAnyPath(nodeID)
+        intersection.pathsIDs = anyPath?.map(p => p.id) || []
+        intersection.paths = anyPath || []  // Set direct object references
         //intersection.debugOrder() not working
         intersection.calculateOutlinesIntersection();
         //if(instantConvex) intersection.calculateOutlinesIntersection();

@@ -3,6 +3,8 @@ class InterSegment{
         this.id = id
         this.fromConnectorID = fromConnectorID
         this.toConnectorID = toConnectorID
+        this.fromConnector = undefined  // Direct object reference
+        this.toConnector = undefined    // Direct object reference
         this.visualDir = visualDir
         this.bezierPoints = bezierPoints
         this.road = undefined

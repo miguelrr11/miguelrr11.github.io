@@ -13,6 +13,8 @@ const MAX_ZOOM = 8
 const SCALE_FACTOR_OSM = 1000000
 let AROUND_RADIUS = 500  //meters
 
+const OSM_QUEUE_UPDATE_ITERS_PER_FRAME = 2
+
 
 /*
 state.modes:
@@ -1106,7 +1108,7 @@ class Tool{
         let heightE = (maxYe - minYe) * this.zoom
         let zoomX = widthE / widthP
         let zoomY = heightE / heightP
-        return constrain(Math.min(zoomX, zoomY), MIN_ZOOM, MAX_ZOOM)
+        return constrainn(Math.min(zoomX, zoomY), MIN_ZOOM, MAX_ZOOM)
     }
 
     showMousePosition(){
@@ -1229,7 +1231,7 @@ class Tool{
             if(allGood) this.lerpingTranslation = false
         }
 
-        this.updateOSMqueue()
+        for(let i = 0; i < OSM_QUEUE_UPDATE_ITERS_PER_FRAME; i++) this.updateOSMqueue()
     }
 
     show(){
@@ -1364,7 +1366,15 @@ class Tool{
         for(let s of roadData.segments){
             let newSegment = new Segment(s.id, s.fromNodeID, s.toNodeID, s.visualDir)
             newSegment.road = this.road
+            // Populate direct object references immediately
+            newSegment.fromNode = this.road.findNode(s.fromNodeID)
+            newSegment.toNode = this.road.findNode(s.toNodeID)
             this.road.segments.push(newSegment)
+        }
+        // Populate node->segment references after all segments are created
+        for(let node of this.road.nodes){
+            node.incomingSegments = node.incomingSegmentIDs.map(id => this.road.findSegment(id)).filter(s => s)
+            node.outgoingSegments = node.outgoingSegmentIDs.map(id => this.road.findSegment(id)).filter(s => s)
         }
         this.road.setPaths()
         this.state = this.getInitialState()
@@ -1446,9 +1456,14 @@ class Tool{
                     let newSegment = new Segment(wayID + '_' + j + '_' + i, nodeIDA, nodeIDB, 'for', false)
                     newSegment.road = this.road
                     newSegment.name = name
+                    // Populate direct object references immediately
+                    newSegment.fromNode = nodeA
+                    newSegment.toNode = nodeB
                     this.road.segments.push(newSegment)
                     nodeA.outgoingSegmentIDs.push(newSegment.id)
                     nodeB.incomingSegmentIDs.push(newSegment.id)
+                    nodeA.outgoingSegments.push(newSegment)  // Add direct reference
+                    nodeB.incomingSegments.push(newSegment)  // Add direct reference
                 }
             }
 
@@ -1544,11 +1559,12 @@ class Tool{
             this.state.OSMqueue.nodesToProcess.clear()
         }
 
-        if(frameCount % 60 == 0) this.center()
+        if(frameCount % 15 == 0) this.center()
     }
 
     constructRoadFromOSMAsync(data){
         this.road = new Road()
+        this.road.tool = this
         let nodesToProcess = new Set()          // Set of node IDs
         let segsToProcess = new Set()           // Set of way IDs
         let nodesData = new Map()               // Map: nodeID -> {id, x, y}

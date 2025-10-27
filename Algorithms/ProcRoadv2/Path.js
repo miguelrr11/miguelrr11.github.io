@@ -4,11 +4,13 @@ class Path{
             console.warn('Invalid arguments while creating Path:\nnodeA = ' + nodeA + ' | nodeB = ' + nodeB + ' | segmentIDs = ' + segmentIDs)
         // a Set of segment IDs that form this path
         this.segmentsIDs = segmentIDs
-        this.segments = [] //filled with setSegmentsIDs
+        this.segments = [] //filled with setSegmentsIDs - Direct object references
         this.road = undefined
 
         this.nodeA = nodeA
         this.nodeB = nodeB
+        this.nodeAObj = undefined  // Direct object reference
+        this.nodeBObj = undefined  // Direct object reference
 
         this.id = nodeA + '_' + nodeB
 
@@ -39,6 +41,12 @@ class Path{
         this.segmentsIDs = segmentIDs
         this.segments = Array.from(this.segmentsIDs).map(id => this.road.findSegment(id))
 
+        // Populate node object references immediately when road is available
+        if(this.road) {
+            this.nodeAObj = this.road.findNode(this.nodeA)
+            this.nodeBObj = this.road.findNode(this.nodeB)
+        }
+
         let name = undefined
         this.segments.forEach(segment => {
             if(segment.name != undefined){
@@ -51,8 +59,8 @@ class Path{
     // gets the outline of all the lanes
     constructWholePoints(){
         if(this.segmentsIDs.size == 0) return
-        let fromPos = this.road.findNode(this.nodeA).pos
-        let toPos = this.road.findNode(this.nodeB).pos
+        let fromPos = this.nodeAObj ? this.nodeAObj.pos : this.road.findNode(this.nodeA).pos
+        let toPos = this.nodeBObj ? this.nodeBObj.pos : this.road.findNode(this.nodeB).pos
         let corners = getCornersOfLine(fromPos, toPos, (this.segmentsIDs.size * LANE_WIDTH))
         return corners
     }
@@ -61,8 +69,8 @@ class Path{
     getRealPos(segID){
         let segment = this.road.findSegment(segID)
         if(!segment) return null
-        let nodeA = this.road.findNode(this.nodeA)
-        let nodeB = this.road.findNode(this.nodeB)
+        let nodeA = this.nodeAObj || this.road.findNode(this.nodeA)
+        let nodeB = this.nodeBObj || this.road.findNode(this.nodeB)
 
         let fromPos = nodeA.pos
         let toPos = nodeB.pos
@@ -77,8 +85,8 @@ class Path{
         let offset = startOffset + i * LANE_WIDTH
         let laneFromPos = {x: fromPos.x + Math.cos(angle) * offset, y: fromPos.y + Math.sin(angle) * offset}
         let laneToPos = {x: toPos.x + Math.cos(angle) * offset, y: toPos.y + Math.sin(angle) * offset}
-        let nodeFrom = this.road.findNode(segment.fromNodeID)
-        let nodeTo = this.road.findNode(segment.toNodeID)
+        let nodeFrom = segment.fromNode || this.road.findNode(segment.fromNodeID)
+        let nodeTo = segment.toNode || this.road.findNode(segment.toNodeID)
         let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
 
         //also we modify the segment to have the new calculated positions
@@ -111,15 +119,15 @@ class Path{
     // Coje la posicion de los nodos, y el numero de lanes y construye sus propios carriles reales con posiciones calculadas
     // funcion extremadamente importante
     constructRealLanes(){
-        let nodeA = this.road.findNode(this.nodeA)
-        let nodeB = this.road.findNode(this.nodeB)
+        let nodeA = this.nodeAObj || this.road.findNode(this.nodeA)
+        let nodeB = this.nodeBObj || this.road.findNode(this.nodeB)
         if(!nodeA || !nodeB) {
             console.warn('Invalid nodes in path while constructing real lanes:\nnodeA = ' + nodeA + ' | nodeB = ' + nodeB)
             return
         }
 
         this.orderSegmentsByDirection()
-        
+
         let fromPos = nodeA.pos
         let toPos = nodeB.pos
         let angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x) - PI / 2
@@ -133,8 +141,8 @@ class Path{
             let laneFromPos = {x: fromPos.x + Math.cos(angle) * offset, y: fromPos.y + Math.sin(angle) * offset}
             let laneToPos = {x: toPos.x + Math.cos(angle) * offset, y: toPos.y + Math.sin(angle) * offset}
             let segment = this.road.findSegment(segmentID)
-            let nodeFrom = this.road.findNode(segment.fromNodeID)
-            let nodeTo = this.road.findNode(segment.toNodeID)
+            let nodeFrom = segment.fromNode || this.road.findNode(segment.fromNodeID)
+            let nodeTo = segment.toNode || this.road.findNode(segment.toNodeID)
             let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
 
             //also we modify the segment to have the new calculated positions
@@ -151,15 +159,15 @@ class Path{
     }
 
     constructRealLanesCurved(controlPoint = this.controlPoint){
-        let nodeA = this.road.findNode(this.nodeA)
-        let nodeB = this.road.findNode(this.nodeB)
+        let nodeA = this.nodeAObj || this.road.findNode(this.nodeA)
+        let nodeB = this.nodeBObj || this.road.findNode(this.nodeB)
         if(!nodeA || !nodeB) {
             console.warn('Invalid nodes in path while constructing real lanes:\nnodeA = ' + nodeA + ' | nodeB = ' + nodeB)
             return
         }
 
         this.orderSegmentsByDirection()
-        
+
         let fromPos = nodeA.pos
         let toPos = nodeB.pos
         let angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x) - PI / 2
@@ -177,8 +185,8 @@ class Path{
             let laneControlPoint = {x: controlPoint.x + Math.cos(angle) * offset, y: controlPoint.y + Math.sin(angle) * offset}
 
             let segment = this.road.findSegment(segmentID)
-            let nodeFrom = this.road.findNode(segment.fromNodeID)
-            let nodeTo = this.road.findNode(segment.toNodeID)
+            let nodeFrom = segment.fromNode || this.road.findNode(segment.fromNodeID)
+            let nodeTo = segment.toNode || this.road.findNode(segment.toNodeID)
             let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
 
             let dirfromControl = Math.atan2(laneControlPoint.y - laneFromPos.y, laneControlPoint.x - laneFromPos.x) - PI
@@ -251,8 +259,8 @@ class Path{
     }
 
     showSimple(){
-        let fromPos = this.road.findNode(this.nodeA).pos
-        let toPos = this.road.findNode(this.nodeB).pos
+        let fromPos = this.nodeAObj ? this.nodeAObj.pos : this.road.findNode(this.nodeA).pos
+        let toPos = this.nodeBObj ? this.nodeBObj.pos : this.road.findNode(this.nodeB).pos
         line(fromPos.x, fromPos.y, toPos.x, toPos.y)
     }
 
@@ -292,8 +300,8 @@ class Path{
 
     showName(){
         if(this.name == undefined) return
-        let nodeA = this.road.findNode(this.nodeA)
-        let nodeB = this.road.findNode(this.nodeB)
+        let nodeA = this.nodeAObj || this.road.findNode(this.nodeA)
+        let nodeB = this.nodeBObj || this.road.findNode(this.nodeB)
         if(!nodeA || !nodeB) return
         let seg = this.segments[0]
         if(!seg || seg.len < 300) return

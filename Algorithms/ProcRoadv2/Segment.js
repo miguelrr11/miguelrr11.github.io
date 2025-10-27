@@ -5,14 +5,18 @@ class Segment{
         this.id = id
         this.fromNodeID = fromNodeID
         this.toNodeID = toNodeID
+        this.fromNode = undefined  // Direct object reference
+        this.toNode = undefined    // Direct object reference
         this.fromConnectorID = undefined
         this.toConnectorID = undefined
+        this.fromConnector = undefined  // Direct object reference
+        this.toConnector = undefined    // Direct object reference
         this.visualDir = visualDir
         this.road = undefined
         this.curvedPath = curvedPath == undefined ? false : (!curvedPath[0] || !curvedPath[1] ? true : false)
         this.curvedPath = false
 
-        
+
         //info updated by Path.js (constructRealLanes())
         this.name = undefined   //used by path.js to set the name of the path
         this.fromPos = undefined
@@ -97,7 +101,7 @@ class Segment{
     getPos(travelled){
         if(this.len == undefined) this.getLen()
         let relPos = travelled / this.getLen()
-        relPos = constrain(relPos, 0, 1)
+        relPos = constrainn(relPos, 0, 1)
         return lerppos(this.fromPos, this.toPos, relPos)
     }
 
@@ -195,8 +199,8 @@ class Segment{
         push()
         strokeWeight(1.5)
         stroke(COL_PATHS)
-        let fromPos = this.road.findNode(this.fromNodeID).pos
-        let toPos = this.road.findNode(this.toNodeID).pos
+        let fromPos = this.fromNode ? this.fromNode.pos : this.road.findNode(this.fromNodeID).pos
+        let toPos = this.toNode ? this.toNode.pos : this.road.findNode(this.toNodeID).pos
         let midPos1 = lerppos(fromPos, toPos, 0.33)
         let midPos2 = lerppos(fromPos, toPos, 0.66)
         let angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x) - PI
@@ -210,8 +214,8 @@ class Segment{
         push()
         strokeWeight(2.5)
         stroke(255, 130)
-        let fromPos = this.road.findNode(this.fromNodeID).pos
-        let toPos = this.road.findNode(this.toNodeID).pos
+        let fromPos = this.fromNode ? this.fromNode.pos : this.road.findNode(this.fromNodeID).pos
+        let toPos = this.toNode ? this.toNode.pos : this.road.findNode(this.toNodeID).pos
         line(fromPos.x, fromPos.y, toPos.x, toPos.y)
         pop()
     }
@@ -244,8 +248,8 @@ class Segment{
         push()
         strokeWeight(10)
         stroke(255, 40)
-        let fromPos = this.road.findNode(this.fromNodeID).pos
-        let toPos = this.road.findNode(this.toNodeID).pos
+        let fromPos = this.fromNode ? this.fromNode.pos : this.road.findNode(this.fromNodeID).pos
+        let toPos = this.toNode ? this.toNode.pos : this.road.findNode(this.toNodeID).pos
         if(this.outOfBounds()){
             pop()
             return
@@ -375,7 +379,7 @@ class Segment{
     }
 
     drawDirectionsIntersection(){
-        let toConnector = this.road.findConnector(this.toConnectorID)
+        let toConnector = this.toConnector || this.road.findConnector(this.toConnectorID)
         if(toConnector){
             let dirs = toConnector.dirs
             if(!dirs.straight && !dirs.leftTurn && !dirs.rightTurn) return
