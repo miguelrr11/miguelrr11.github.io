@@ -5,12 +5,12 @@ class Segment{
         this.id = id
         this.fromNodeID = fromNodeID
         this.toNodeID = toNodeID
-        this.fromNode = undefined  // Direct object reference
-        this.toNode = undefined    // Direct object reference
+        this.fromNode = undefined  
+        this.toNode = undefined   
         this.fromConnectorID = undefined
         this.toConnectorID = undefined
-        this.fromConnector = undefined  // Direct object reference
-        this.toConnector = undefined    // Direct object reference
+        this.fromConnector = undefined  
+        this.toConnector = undefined   
         this.visualDir = visualDir
         this.road = undefined
         this.curvedPath = curvedPath == undefined ? false : (!curvedPath[0] || !curvedPath[1] ? true : false)
@@ -341,6 +341,30 @@ class Segment{
             fill(255)
             noStroke()
             text(str, midPos.x, midPos.y - 10)
+
+            let nodeDir = Math.atan2(this.fromNode.pos.y - this.toNode.pos.y, this.fromNode.pos.x, this.toNode.pos.x)
+            let realDir = Math.atan2(this.fromPos.y - this.toPos.y, this.toPos.x - this.toPos.y)
+            // let strDir = 'N: ' + round(nodeDir, 2) + ' R: ' + round(realDir, 2)
+            // let bbox2 = textBounds(strDir, midPos.x, midPos.y - 20)
+            // textSize(10)
+            // fill(0, 0, 255)
+            // noStroke()
+            // rect(bbox2.x - 2, bbox2.y - 2, bbox2.w + 4, bbox2.h + 4)
+            // fill(255)
+            // noStroke()
+            // text(strDir, midPos.x, midPos.y - 20)
+            let strDir = (Math.sign(nodeDir) != Math.sign(realDir) && Math.sign(nodeDir) != 0 && Math.sign(realDir) != 0) ? 'Bugged: ' + round(nodeDir, 3) + ', ' + round(realDir, 3) : ''
+            if(strDir != ''){
+                let bbox2 = textBounds(strDir, midPos.x, midPos.y - 20)
+                textSize(8)
+                fill(0, 0, 225)
+                noStroke()
+                rect(bbox2.x - 2, bbox2.y - 2, bbox2.w + 4, bbox2.h + 4)
+                fill(255)
+                noStroke()
+                text(strDir, midPos.x, midPos.y - 20)
+            }
+            
         }
 
         //debug

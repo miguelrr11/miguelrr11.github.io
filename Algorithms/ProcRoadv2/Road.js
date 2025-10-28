@@ -13,23 +13,18 @@
 // It is extremely important to separate segments (array segments) from the intersection segments (array intersecSegs)
 // because they have different ID pools
 
-const NODE_RAD = 20
+const NODE_RAD = 25
 const GRID_CELL_SIZE = 40   //15
 
 let OFFSET_RAD_INTERSEC = 25      //25 (intersec_rad)
-let LENGTH_SEG_BEZIER = 5         //3
-let LENGTH_SEG_BEZIER_INTER = 10
+let LENGTH_SEG_BEZIER = 12         //3
+let LENGTH_SEG_BEZIER_INTER = LENGTH_SEG_BEZIER
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.75
-let MIN_DIST_INTERSEC = 30        //30
+let MIN_DIST_INTERSEC = 0        //30
 let LANE_WIDTH = 30
 let BIG_LANE_WIDTH = LANE_WIDTH * 1.6
 
-
-// // how many intersections to calculate per frame when updating convex hulls incrementally
-// const INTERSECTIONS_PER_FRAME = 2
-// // after this number of segments in a path in setPaths(), switch to incremental convex hull calculation
-// const N_SEG_TO_SWITCH_TO_INCREMENTAL = 200
 
 class Road{
     constructor(tool){
@@ -167,6 +162,7 @@ class Road{
                 }
             }
         }
+
 
     }
 
@@ -805,7 +801,7 @@ class Road{
 
         if(connect){ 
             let once = this.nodeOnceConnected(node)
-            this.connectIntersection(nodeID, once, instantConvex, straightMode || once, activenessMap)
+            this.connectIntersection(nodeID, once, instantConvex, straightMode, activenessMap)
         }
     }
 
@@ -1041,6 +1037,7 @@ class Road{
         push()
         rectMode(CORNERS)
         noStroke()
+        fill(SIDE_WALK_COL)
         if(zoom > 0.1) this.paths.forEach(p => p.showWayBase())
         pop()
         push()
@@ -1051,7 +1048,7 @@ class Road{
         push()
         fill(ROAD_COL)
         noStroke()
-        this.intersections.forEach(p => p.showWayTop())
+        if(zoom > 0.05) this.intersections.forEach(p => p.showWayTop())
         stroke(MARKINGS_COL)
         strokeWeight(1.5)
         noFill()
@@ -1060,7 +1057,8 @@ class Road{
         push()
         rectMode(CORNERS)
         noStroke()
-        this.paths.forEach(p => p.showWayTop(hoveredID))
+        fill(ROAD_COL)
+        if(zoom > 0.05) this.paths.forEach(p => p.showWayTop(hoveredID))
         stroke(MARKINGS_COL)
         strokeWeight(WIDTH_YIELD_MARKING)
         strokeCap(SQUARE)
@@ -1081,6 +1079,13 @@ class Road{
             textAlign(CENTER, CENTER)
             textSize(14)
             this.paths.forEach(p => p.showName())
+        }
+        if(zoom <= 0.05){
+            push()
+            stroke(230)
+            strokeWeight(5)
+            this.paths.forEach(s => s.showSimple())
+            pop()
         }
         pop()
     }

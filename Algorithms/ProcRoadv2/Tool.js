@@ -15,6 +15,9 @@ let AROUND_RADIUS = 500  //meters
 
 const OSM_QUEUE_UPDATE_ITERS_PER_FRAME = 2
 
+let startTime = 0
+let endTime = 0
+
 
 /*
 state.modes:
@@ -581,7 +584,7 @@ class Tool{
             if(this.state.draggingNodeID != -1){
                 let node = this.road.findNode(this.state.draggingNodeID)
                 node.moveTo(mousePosGridX + this.state.offsetDraggingNode.x, mousePosGridY + this.state.offsetDraggingNode.y)
-                this.road.updateNode(this.state.draggingNodeID)
+                this.road.updateNode(this.state.draggingNodeID)    
                 return
             }
             //finds a node to start dragging
@@ -1384,7 +1387,10 @@ class Tool{
     }
 
     updateOSMqueue(){
-        if(!this.state.OSMqueue.nodesToProcess || this.state.OSMqueue.nodesToProcess.size == 0) return
+        if(!this.state.OSMqueue.nodesToProcess || this.state.OSMqueue.nodesToProcess.size == 0){
+            if(this.state.OSMqueue.button) this.state.OSMqueue.button.label = 'OSM Beta'
+            return
+        }
 
         let nodesToProcess = this.state.OSMqueue.nodesToProcess     //set of node IDs
         let segsToProcess = this.state.OSMqueue.segsToProcess       //set of way IDs
@@ -1471,18 +1477,15 @@ class Tool{
             segsToProcess.delete(wayID)
         }
 
-        // Create all paths for node-to-node connections before calling updateRoad
         let pathsToUpdate = []
         for(let conn of validConnections){
             let wayData = waysData.get(conn.wayID)
             if(!wayData) continue
 
-            // Find all consecutive node pairs in this way that involve created nodes
             for(let i = 0; i < wayData.nodes.length - 1; i++){
                 let nodeIDA = wayData.nodes[i]
                 let nodeIDB = wayData.nodes[i + 1]
 
-                // Only process if both nodes exist
                 if(this.road.findNode(nodeIDA) && this.road.findNode(nodeIDB)){
                     let segmentIDs = new Set(this.road.getAllSegmentsBetweenNodes(nodeIDA, nodeIDB).map(s => s.id))
 
@@ -1497,7 +1500,6 @@ class Tool{
                     }
 
                     if(path){
-                        // Calculate fromPos and toPos for all segments in this path
                         path.constructRealLanes()
                         pathsToUpdate.push([nodeIDA, nodeIDB, path])
                     }
@@ -1505,23 +1507,18 @@ class Tool{
             }
         }
 
-        // Now call updateRoad for each path, feeding it the already created path
         for(let [nodeIDA, nodeIDB, path] of pathsToUpdate){
             this.road.updateRoad([nodeIDA, nodeIDB], path)
         }
 
-        // Find next node to process
         let nextNodeID = undefined
 
-        // First try to find a connected node that still has unprocessed ways
         for(let conn of validConnections){
             let wayData = waysData.get(conn.wayID)
             if(!wayData) continue
 
-            // Find the node on the other end of this connection
             let otherNodeID = conn.to
             if(nodesToProcess.has(otherNodeID)){
-                // Check if this node has unprocessed ways
                 let otherConnections = nodeSegmentMap.get(otherNodeID)
                 if(otherConnections){
                     for(let otherConn of otherConnections){
@@ -1535,7 +1532,6 @@ class Tool{
             }
         }
 
-        // If no connected node found, pick any random node with unprocessed ways
         if(!nextNodeID && nodesToProcess.size > 0){
             for(let nodeID of nodesToProcess){
                 let connections = nodeSegmentMap.get(nodeID)
@@ -1555,14 +1551,16 @@ class Tool{
             this.state.OSMqueue.currentNodeID = nextNodeID
         }
         else{
-            // All done, clear the queue
+            endTime = millis()
+            console.log('OSM processing time:', (endTime - startTime)/1000, 'seconds')
             this.state.OSMqueue.nodesToProcess.clear()
         }
 
         if(frameCount % 15 == 0) this.center()
     }
 
-    constructRoadFromOSMAsync(data){
+    constructRoadFromOSMAsync(data, button){
+        startTime = millis()
         this.road = new Road()
         this.road.tool = this
         let nodesToProcess = new Set()          // Set of node IDs
@@ -1630,7 +1628,8 @@ class Tool{
             nodeSegmentMap,
             nodesData,
             waysData,
-            currentNodeID
+            currentNodeID,
+            button
         }
 
         console.log('OSM queue initialized:', this.state.OSMqueue)
