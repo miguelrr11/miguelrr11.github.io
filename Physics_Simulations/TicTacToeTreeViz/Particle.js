@@ -15,11 +15,11 @@ class Particle{
 	}
 
 	update(timeStep){
-        if (!this.isPinned) {
+        if (!this.isPinned && !this.inBounds(mouseX, mouseY)) {
         	let vel = p5.Vector.sub(this.pos, this.prevPos).mult(0.97)
 			vel.limit(1)
 			this.prevPos = this.pos.copy()
-			this.pos.add(p5.Vector.add(vel, this.acc.copy().mult(timeStep * timeStep).limit(1)))
+			this.pos.add(p5.Vector.add(vel, this.acc.copy().mult(timeStep * timeStep).limit(0.1)))
 			this.acc = createVector(0, 0)
         }
 	}

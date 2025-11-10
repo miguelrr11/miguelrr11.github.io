@@ -76,7 +76,6 @@ class Graph{
             let matrix = newStatesMatrices[i]
             let hashState = this.hashState(matrix)
             if(!this.nodes.has(hashState)){
-            //if(true){
                 let newState = new State(matrix, newTurn)
                 let dirAwayFromCenter = p5.Vector.sub(node.particle.pos, createVector(WIDTH/2, HEIGHT/2)).setMag(50)
                 node.particle.isPinned = true
@@ -170,14 +169,20 @@ class Graph{
                 translate(node.particle.pos.x, node.particle.pos.y)
                 node.state.show()
                 pop()
+                push()
+                let edge = this.edges.get(inBnode.id + '-' + nodeID) || this.edges.get(nodeID + '-' + inBnode.id)
+                stroke(255, 0, 0, 150)
+                strokeWeight(4)
+                edge.constraint.show()
+                pop()
                 if(node.gen > 0) this.showHover(node)
             }
-            else{
-                push()
-                translate(node.particle.pos.x, node.particle.pos.y)
-                node.state.show(true)
-                pop()
-            }
+            // else{
+            //     push()
+            //     translate(node.particle.pos.x, node.particle.pos.y)
+            //     node.state.show(true)
+            //     pop()
+            // }
         }
     }
 }

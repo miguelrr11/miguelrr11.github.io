@@ -7,12 +7,14 @@ State Space Visualization of Tic Tac Toe using p5.js
 */
 
 p5.disableFriendlyErrors = true
-const WIDTH = 1000
-const HEIGHT = 750
+let WIDTH = 1000
+let HEIGHT = 750
 
 let graph
 
 function setup(){
+    WIDTH = windowWidth
+    HEIGHT = windowHeight
     createCanvas(WIDTH, HEIGHT)
     graph = new Graph()
 }
