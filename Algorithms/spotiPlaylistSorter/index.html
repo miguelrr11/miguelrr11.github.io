@@ -1,0 +1,1021 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Spotify Playlist Ranker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1db954 0%, #191414 100%);
+            min-height: 100vh;
+            padding: 20px;
+            color: #fff;
+        }
+
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2.5em;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .setup-panel, .comparison-panel, .results-panel {
+            background: rgba(0, 0, 0, 0.7);
+            border-radius: 12px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        input, button {
+            width: 100%;
+            padding: 15px;
+            margin: 10px 0;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        input {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+            border: 2px solid rgba(255, 255, 255, 0.2);
+        }
+
+        input::placeholder {
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        input:focus {
+            outline: none;
+            border-color: #1db954;
+        }
+
+        button {
+            background: #1db954;
+            color: #fff;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #1ed760;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(29, 185, 84, 0.4);
+        }
+
+        button:disabled {
+            background: #555;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .progress {
+            margin: 20px 0;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #1db954;
+            transition: width 0.3s;
+        }
+
+        .comparison-container {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .ranking-container {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            margin: 30px 0;
+        }
+
+        .song-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 2px solid rgba(255, 255, 255, 0.1);
+            border-radius: 12px;
+            padding: 20px;
+            cursor: move;
+            transition: all 0.3s;
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .song-card.dragging {
+            opacity: 0.5;
+        }
+
+        .song-card.drag-over {
+            border-color: #1db954;
+            background: rgba(29, 185, 84, 0.2);
+        }
+
+        .song-card:hover {
+            transform: translateY(-2px);
+            border-color: #1db954;
+            background: rgba(29, 185, 84, 0.1);
+            box-shadow: 0 5px 20px rgba(29, 185, 84, 0.3);
+        }
+
+        .song-card img {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            flex-shrink: 0;
+        }
+
+        .song-info {
+            flex-grow: 1;
+        }
+
+        .position-badge {
+            background: #1db954;
+            color: #fff;
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .drag-handle {
+            color: rgba(255, 255, 255, 0.5);
+            font-size: 24px;
+            cursor: move;
+        }
+
+        .song-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .song-artist {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 14px;
+        }
+
+        .ranking-list {
+            list-style: none;
+        }
+
+        .ranking-item {
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .rank-number {
+            background: #1db954;
+            color: #fff;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .rank-number.gold {
+            background: linear-gradient(135deg, #ffd700, #ffed4e);
+            color: #000;
+        }
+
+        .rank-number.silver {
+            background: linear-gradient(135deg, #c0c0c0, #e8e8e8);
+            color: #000;
+        }
+
+        .rank-number.bronze {
+            background: linear-gradient(135deg, #cd7f32, #e8a87c);
+            color: #000;
+        }
+
+        .ranking-item img {
+            width: 60px;
+            height: 60px;
+            border-radius: 4px;
+        }
+
+        .ranking-info {
+            flex-grow: 1;
+        }
+
+        .error {
+            background: rgba(220, 53, 69, 0.2);
+            border: 2px solid #dc3545;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+        }
+
+        .info {
+            background: rgba(23, 162, 184, 0.2);
+            border: 2px solid #17a2b8;
+            color: #fff;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .vs-text {
+            text-align: center;
+            font-size: 24px;
+            font-weight: bold;
+            color: #1db954;
+            margin: 20px 0;
+        }
+
+        @media (max-width: 768px) {
+            .comparison-container {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎵 Spotify Playlist Ranker</h1>
+
+        <!-- Panel de configuración -->
+        <div id="setupPanel" class="setup-panel">
+            <div class="info">
+                <strong>¿Cómo obtener tu Client ID y Client Secret?</strong><br>
+                1. Ve a <a href="https://developer.spotify.com/dashboard" target="_blank" style="color: #1db954;">developer.spotify.com/dashboard</a><br>
+                2. Inicia sesión y crea una nueva app<br>
+                3. Copia tu Client ID y Client Secret
+            </div>
+            
+            <input type="text" id="clientId" placeholder="Client ID de Spotify">
+            <input type="password" id="clientSecret" placeholder="Client Secret de Spotify">
+            <input type="text" id="playlistUrl" placeholder="URL de la playlist (ej: https://open.spotify.com/playlist/...)">
+            
+            <button id="startBtn">Comenzar Ranking</button>
+            
+            <div id="errorMsg" class="error hidden"></div>
+        </div>
+
+        <!-- Panel de comparación -->
+        <div id="comparisonPanel" class="comparison-panel hidden">
+            <div class="progress">
+                <div>Progreso: <span id="progressText">0/0</span></div>
+                <div class="progress-bar">
+                    <div class="progress-fill" id="progressFill"></div>
+                </div>
+            </div>
+
+            <div class="vs-text">Ordena estas 4 canciones de mejor a peor</div>
+
+            <div id="rankingContainer" class="ranking-container">
+                <!-- Las canciones se añadirán dinámicamente aquí -->
+            </div>
+
+            <div style="text-align: center; margin-top: 20px;">
+                <button id="confirmRanking" style="background: #1db954; max-width: 300px;">Confirmar Orden</button>
+            </div>
+        </div>
+
+        <!-- Panel de resultados -->
+        <div id="resultsPanel" class="results-panel hidden">
+            <h2 style="text-align: center; margin-bottom: 30px;">🏆 Tu Top Personal</h2>
+            <ul id="rankingList" class="ranking-list"></ul>
+            <button onclick="location.reload()">Hacer Otro Ranking</button>
+        </div>
+    </div>
+
+    <script>
+        let accessToken = '';
+        let songs = [];
+        let sortingState = null;
+        let totalComparisons = 0;
+        let currentComparisonCount = 0;
+
+        // Obtener access token de Spotify
+        async function getAccessToken(clientId, clientSecret) {
+            const response = await fetch('https://accounts.spotify.com/api/token', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'Authorization': 'Basic ' + btoa(clientId + ':' + clientSecret)
+                },
+                body: 'grant_type=client_credentials'
+            });
+
+            if (!response.ok) {
+                throw new Error('Error al autenticar con Spotify. Verifica tus credenciales.');
+            }
+
+            const data = await response.json();
+            return data.access_token;
+        }
+
+        // Extraer ID de playlist de la URL
+        function extractPlaylistId(url) {
+            const match = url.match(/playlist\/([a-zA-Z0-9]+)/);
+            if (!match) {
+                throw new Error('URL de playlist inválida');
+            }
+            return match[1];
+        }
+
+        // Obtener canciones de la playlist
+        async function getPlaylistTracks(playlistId) {
+            let allTracks = [];
+            let url = `https://api.spotify.com/v1/playlists/${playlistId}/tracks`;
+
+            while (url) {
+                const response = await fetch(url, {
+                    headers: {
+                        'Authorization': 'Bearer ' + accessToken
+                    }
+                });
+
+                if (!response.ok) {
+                    throw new Error('Error al obtener la playlist. Verifica que la URL sea correcta y la playlist sea pública.');
+                }
+
+                const data = await response.json();
+                allTracks = allTracks.concat(data.items);
+                url = data.next;
+            }
+
+            return allTracks.map(item => ({
+                id: item.track.id,
+                name: item.track.name,
+                artist: item.track.artists.map(a => a.name).join(', '),
+                image: item.track.album.images[0]?.url || '',
+                preview: item.track.preview_url
+            }));
+        }
+
+        // Estimar número de comparaciones
+        function estimateComparisons(n) {
+            if (n <= 1) return 0;
+            return Math.ceil(n * Math.log2(n));
+        }
+
+        // Clase para manejar el estado del merge sort
+        class MergeSortState {
+            constructor(array) {
+                this.array = array;
+                this.callStack = [];
+                this.finished = false;
+                
+                // Iniciar el ordenamiento
+                this.mergeSort(0, array.length);
+            }
+
+            mergeSort(left, right) {
+                if (right - left <= 1) {
+                    return;
+                }
+                
+                const mid = left + Math.floor((right - left) / 2);
+                
+                // Recursivamente ordenar las dos mitades
+                this.mergeSort(left, mid);
+                this.mergeSort(mid, right);
+                
+                // Hacer merge de las dos mitades ordenadas
+                this.merge(left, mid, right);
+            }
+
+            merge(left, mid, right) {
+                // Crear copias de los subarrays
+                const leftArray = this.array.slice(left, mid);
+                const rightArray = this.array.slice(mid, right);
+                
+                let i = 0, j = 0, k = left;
+                
+                // Agregar cada comparación necesaria a la pila
+                while (i < leftArray.length && j < rightArray.length) {
+                    this.callStack.push({
+                        leftItem: leftArray[i],
+                        rightItem: rightArray[j],
+                        leftArray: leftArray,
+                        rightArray: rightArray,
+                        i: i,
+                        j: j,
+                        k: k,
+                        targetIndex: k
+                    });
+                    
+                    // Por ahora, asumimos que left es menor (lo corregiremos con las comparaciones del usuario)
+                    this.array[k] = leftArray[i];
+                    i++;
+                    k++;
+                }
+                
+                // Copiar los elementos restantes
+                while (i < leftArray.length) {
+                    this.array[k++] = leftArray[i++];
+                }
+                while (j < rightArray.length) {
+                    this.array[k++] = rightArray[j++];
+                }
+            }
+
+            getNextComparison() {
+                if (this.callStack.length === 0) {
+                    this.finished = true;
+                    return null;
+                }
+                
+                const comparison = this.callStack.shift();
+                return {
+                    song1: comparison.leftItem,
+                    song2: comparison.rightItem,
+                    comparison: comparison
+                };
+            }
+
+            isFinished() {
+                return this.finished;
+            }
+
+            getResult() {
+                return this.array;
+            }
+        }
+
+        // Sistema de ordenamiento con rankings de 3 canciones
+        class QuickSortState {
+            constructor(array) {
+                this.array = array.slice();
+                this.comparisons = [];
+                this.currentIndex = 0;
+                this.finished = false;
+                
+                // Comenzar quicksort
+                this.quicksort(0, this.array.length);
+            }
+
+            quicksort(low, high) {
+                if (high - low <= 1) return;
+                
+                if (high - low === 2) {
+                    // Solo 2 elementos, comparación simple
+                    this.comparisons.push({
+                        type: 'pair',
+                        indices: [low, low + 1],
+                        songs: [this.array[low], this.array[low + 1]]
+                    });
+                    return;
+                }
+                
+                if (high - low === 3) {
+                    // 3 elementos, ranking completo
+                    this.comparisons.push({
+                        type: 'triple',
+                        indices: [low, low + 1, low + 2],
+                        songs: [this.array[low], this.array[low + 1], this.array[low + 2]]
+                    });
+                    return;
+                }
+                
+                // Más de 3 elementos: hacer partición con 3 elementos
+                // Elegir 3 pivotes: primero, medio, último
+                const pivotIndices = [
+                    low,
+                    low + Math.floor((high - low) / 2),
+                    high - 1
+                ];
+                
+                this.comparisons.push({
+                    type: 'triple',
+                    indices: pivotIndices,
+                    songs: pivotIndices.map(i => this.array[i]),
+                    isPartition: true,
+                    low: low,
+                    high: high
+                });
+                
+                // Continuamos después de que el usuario ordene los pivotes
+            }
+
+            submitRanking(ranking) {
+                const comp = this.comparisons[this.currentIndex];
+                
+                if (comp.type === 'pair') {
+                    // Ranking de 2 elementos
+                    const [idx1, idx2] = comp.indices;
+                    if (ranking[0] === 1) {
+                        // Swap si el segundo es mejor
+                        [this.array[idx1], this.array[idx2]] = [this.array[idx2], this.array[idx1]];
+                    }
+                } else if (comp.type === 'triple') {
+                    const indices = comp.indices;
+                    const orderedSongs = ranking.map(i => comp.songs[i]);
+                    
+                    // Aplicar el ordenamiento
+                    indices.forEach((idx, i) => {
+                        this.array[idx] = orderedSongs[i];
+                    });
+                    
+                    // Si es una partición, continuar quicksort
+                    if (comp.isPartition) {
+                        const low = comp.low;
+                        const high = comp.high;
+                        const pivotIndices = comp.indices;
+                        
+                        // Ahora los pivotes están ordenados
+                        // Usar el pivote medio para particionar
+                        const pivotValue = this.array[pivotIndices[1]];
+                        
+                        // Particionar el resto del array
+                        let leftSize = 0;
+                        let rightSize = 0;
+                        
+                        for (let i = low; i < high; i++) {
+                            if (!pivotIndices.includes(i)) {
+                                this.comparisons.push({
+                                    type: 'pair',
+                                    indices: [i, pivotIndices[1]],
+                                    songs: [this.array[i], pivotValue],
+                                    partitionInfo: { low, high, pivotIndex: pivotIndices[1] }
+                                });
+                            }
+                        }
+                        
+                        // Después de las comparaciones, llamar recursivamente
+                        // (esto se manejará al final cuando tengamos todas las comparaciones)
+                    }
+                }
+                
+                this.currentIndex++;
+            }
+
+            getNextComparison() {
+                if (this.currentIndex >= this.comparisons.length) {
+                    this.finished = true;
+                    return null;
+                }
+                return this.comparisons[this.currentIndex];
+            }
+
+            isFinished() {
+                return this.finished;
+            }
+
+            getResult() {
+                return this.array;
+            }
+        }
+
+        // Sistema Swiss Tournament - cada canción se compara múltiples veces
+        class SwissSystemSort {
+            constructor(array, roundsPerSong = 4) {
+                this.songs = array.map((song, index) => ({
+                    song: song,
+                    id: song.id,
+                    wins: 0,
+                    matchCount: 0,
+                    opponents: new Set(),
+                    elo: 1500, // Rating inicial
+                    index: index
+                }));
+                
+                this.roundsPerSong = roundsPerSong;
+                this.groupSize = 4;
+                this.currentRound = 0;
+                this.maxRounds = Math.ceil(array.length * roundsPerSong / this.groupSize);
+                this.currentGroups = [];
+                this.currentGroupIndex = 0;
+                
+                this.generateNextRound();
+            }
+
+            generateNextRound() {
+                if (this.currentRound >= this.maxRounds) {
+                    return;
+                }
+
+                this.currentGroups = [];
+                const availableSongs = this.songs.slice();
+                
+                // Ordenar por ELO para emparejar canciones de nivel similar
+                availableSongs.sort((a, b) => b.elo - a.elo);
+                
+                // Priorizar canciones que han tenido menos comparaciones
+                availableSongs.sort((a, b) => a.matchCount - b.matchCount);
+
+                while (availableSongs.length >= this.groupSize) {
+                    const group = [];
+                    
+                    // Tomar la primera canción
+                    const first = availableSongs.shift();
+                    group.push(first);
+                    
+                    // Buscar 3 oponentes que no hayan enfrentado a 'first' antes
+                    // y que tengan ELO similar
+                    const targetElo = first.elo;
+                    
+                    for (let i = 0; i < availableSongs.length && group.length < this.groupSize; i++) {
+                        const candidate = availableSongs[i];
+                        
+                        // Verificar que no se hayan enfrentado antes
+                        let hasPlayed = false;
+                        for (const member of group) {
+                            if (member.opponents.has(candidate.id) || candidate.opponents.has(member.id)) {
+                                hasPlayed = true;
+                                break;
+                            }
+                        }
+                        
+                        if (!hasPlayed) {
+                            group.push(candidate);
+                            availableSongs.splice(i, 1);
+                            i--;
+                        }
+                    }
+                    
+                    // Si no pudimos encontrar suficientes oponentes nuevos, tomar los que sea
+                    while (group.length < this.groupSize && availableSongs.length > 0) {
+                        group.push(availableSongs.shift());
+                    }
+                    
+                    if (group.length >= 2) {
+                        this.currentGroups.push(group);
+                    }
+                }
+                
+                // Si quedan canciones sueltas, crear grupos más pequeños
+                if (availableSongs.length >= 2) {
+                    this.currentGroups.push(availableSongs);
+                }
+                
+                this.currentGroupIndex = 0;
+                this.currentRound++;
+            }
+
+            getNextRanking() {
+                if (this.currentGroupIndex >= this.currentGroups.length) {
+                    // Generar siguiente ronda
+                    this.generateNextRound();
+                    
+                    if (this.currentGroups.length === 0) {
+                        return null;
+                    }
+                }
+                
+                if (this.currentGroupIndex < this.currentGroups.length) {
+                    const group = this.currentGroups[this.currentGroupIndex];
+                    return {
+                        songs: group.map(s => s.song),
+                        songData: group
+                    };
+                }
+                
+                return null;
+            }
+
+            submitRanking(orderedIndices) {
+                const group = this.currentGroups[this.currentGroupIndex];
+                const orderedGroup = orderedIndices.map(i => group[i]);
+                
+                // Actualizar estadísticas y ELO
+                const groupSize = orderedGroup.length;
+                
+                orderedGroup.forEach((songData, position) => {
+                    // Puntos basados en posición (primero = más puntos)
+                    const points = groupSize - position;
+                    songData.wins += points;
+                    songData.matchCount++;
+                    
+                    // Actualizar ELO basado en resultado esperado vs real
+                    const expectedPosition = groupSize / 2;
+                    const actualPosition = position;
+                    const performanceDiff = (expectedPosition - actualPosition) * 10;
+                    songData.elo += performanceDiff;
+                    
+                    // Registrar oponentes
+                    orderedGroup.forEach(opponent => {
+                        if (opponent.id !== songData.id) {
+                            songData.opponents.add(opponent.id);
+                        }
+                    });
+                });
+                
+                this.currentGroupIndex++;
+            }
+
+            isFinished() {
+                // Verificar si todas las canciones han tenido suficientes comparaciones
+                const minMatches = Math.min(...this.songs.map(s => s.matchCount));
+                
+                if (minMatches >= this.roundsPerSong) {
+                    return true;
+                }
+                
+                if (this.currentGroupIndex >= this.currentGroups.length) {
+                    this.generateNextRound();
+                    return this.currentGroups.length === 0;
+                }
+                
+                return false;
+            }
+
+            getResult() {
+                // Ordenar por ELO rating final
+                const sorted = this.songs.slice().sort((a, b) => {
+                    // Primero por ELO
+                    if (Math.abs(b.elo - a.elo) > 10) {
+                        return b.elo - a.elo;
+                    }
+                    // Desempate por wins
+                    if (b.wins !== a.wins) {
+                        return b.wins - a.wins;
+                    }
+                    // Desempate por número de matches
+                    return b.matchCount - a.matchCount;
+                });
+                
+                return sorted.map(s => s.song);
+            }
+
+            getProgress() {
+                const totalNeededMatches = this.songs.length * this.roundsPerSong;
+                const currentMatches = this.songs.reduce((sum, s) => sum + s.matchCount, 0);
+                return {
+                    current: currentMatches,
+                    total: totalNeededMatches,
+                    percentage: (currentMatches / totalNeededMatches) * 100
+                };
+            }
+        }
+
+        // Iniciar el proceso
+        document.getElementById('startBtn').addEventListener('click', async () => {
+            const clientId = document.getElementById('clientId').value.trim();
+            const clientSecret = document.getElementById('clientSecret').value.trim();
+            const playlistUrl = document.getElementById('playlistUrl').value.trim();
+            const errorMsg = document.getElementById('errorMsg');
+
+            if (!clientId || !clientSecret || !playlistUrl) {
+                errorMsg.textContent = 'Por favor completa todos los campos';
+                errorMsg.classList.remove('hidden');
+                return;
+            }
+
+            try {
+                errorMsg.classList.add('hidden');
+                document.getElementById('startBtn').disabled = true;
+                document.getElementById('startBtn').textContent = 'Cargando...';
+
+                accessToken = await getAccessToken(clientId, clientSecret);
+                const playlistId = extractPlaylistId(playlistUrl);
+                songs = await getPlaylistTracks(playlistId);
+
+                if (songs.length < 2) {
+                    throw new Error('La playlist debe tener al menos 2 canciones');
+                }
+
+                // Mezclar canciones aleatoriamente
+                songs = songs.sort(() => Math.random() - 0.5);
+
+                // Iniciar sistema Swiss (cada canción aparece ~4 veces)
+                const roundsPerSong = 4;
+                sortingState = new SwissSystemSort(songs, roundsPerSong);
+                
+                const progress = sortingState.getProgress();
+                totalComparisons = Math.ceil(progress.total / 4); // 4 canciones por grupo
+                currentComparisonCount = 0;
+
+                // Mostrar panel de comparación
+                document.getElementById('setupPanel').classList.add('hidden');
+                document.getElementById('comparisonPanel').classList.remove('hidden');
+
+                showNextComparison();
+
+            } catch (error) {
+                errorMsg.textContent = error.message;
+                errorMsg.classList.remove('hidden');
+                document.getElementById('startBtn').disabled = false;
+                document.getElementById('startBtn').textContent = 'Comenzar Ranking';
+            }
+        });
+
+        let currentOrder = [];
+
+        // Mostrar siguiente comparación
+        function showNextComparison() {
+            if (sortingState.isFinished()) {
+                showResults();
+                return;
+            }
+            
+            const ranking = sortingState.getNextRanking();
+            
+            if (ranking) {
+                displayRankingGroup(ranking);
+                updateProgress();
+            } else {
+                showResults();
+            }
+        }
+
+        // Mostrar grupo de canciones para ordenar
+        function displayRankingGroup(songsData) {
+            const container = document.getElementById('rankingContainer');
+            container.innerHTML = '';
+            
+            // songsData puede ser un array de canciones o un objeto con songs
+            const songs = songsData.songs || songsData;
+            currentOrder = songs.map((_, i) => i);
+
+            songs.forEach((song, index) => {
+                const card = document.createElement('div');
+                card.className = 'song-card';
+                card.draggable = true;
+                card.dataset.index = index;
+                
+                card.innerHTML = `
+                    <div class="position-badge">${index + 1}</div>
+                    <img src="${song.image}" alt="">
+                    <div class="song-info">
+                        <div class="song-title">${song.name}</div>
+                        <div class="song-artist">${song.artist}</div>
+                    </div>
+                    <div class="drag-handle">☰</div>
+                `;
+                
+                // Eventos de drag and drop
+                card.addEventListener('dragstart', handleDragStart);
+                card.addEventListener('dragover', handleDragOver);
+                card.addEventListener('drop', handleDrop);
+                card.addEventListener('dragend', handleDragEnd);
+                
+                // Click para mover arriba/abajo
+                card.addEventListener('click', (e) => {
+                    if (!e.target.closest('.drag-handle')) {
+                        moveCard(index);
+                    }
+                });
+                
+                container.appendChild(card);
+            });
+        }
+
+        let draggedElement = null;
+
+        function handleDragStart(e) {
+            draggedElement = e.target;
+            e.target.classList.add('dragging');
+        }
+
+        function handleDragOver(e) {
+            e.preventDefault();
+            const afterElement = getDragAfterElement(e.currentTarget.parentElement, e.clientY);
+            const dragging = document.querySelector('.dragging');
+            
+            if (afterElement == null) {
+                e.currentTarget.parentElement.appendChild(dragging);
+            } else {
+                e.currentTarget.parentElement.insertBefore(dragging, afterElement);
+            }
+        }
+
+        function handleDrop(e) {
+            e.preventDefault();
+            updateOrder();
+        }
+
+        function handleDragEnd(e) {
+            e.target.classList.remove('dragging');
+            updateOrder();
+        }
+
+        function getDragAfterElement(container, y) {
+            const draggableElements = [...container.querySelectorAll('.song-card:not(.dragging)')];
+            
+            return draggableElements.reduce((closest, child) => {
+                const box = child.getBoundingClientRect();
+                const offset = y - box.top - box.height / 2;
+                
+                if (offset < 0 && offset > closest.offset) {
+                    return { offset: offset, element: child };
+                } else {
+                    return closest;
+                }
+            }, { offset: Number.NEGATIVE_INFINITY }).element;
+        }
+
+        function moveCard(index) {
+            const cards = document.querySelectorAll('.song-card');
+            const currentPos = Array.from(cards).findIndex(card => parseInt(card.dataset.index) === index);
+            
+            if (currentPos > 0) {
+                const container = document.getElementById('rankingContainer');
+                container.insertBefore(cards[currentPos], cards[currentPos - 1]);
+                updateOrder();
+            }
+        }
+
+        function updateOrder() {
+            const cards = document.querySelectorAll('.song-card');
+            currentOrder = Array.from(cards).map(card => parseInt(card.dataset.index));
+            
+            // Actualizar badges de posición
+            cards.forEach((card, index) => {
+                const badge = card.querySelector('.position-badge');
+                badge.textContent = index + 1;
+            });
+        }
+
+        // Confirmar ranking
+        document.getElementById('confirmRanking').addEventListener('click', () => {
+            sortingState.submitRanking(currentOrder);
+            currentComparisonCount++;
+            showNextComparison();
+        });
+
+        // Actualizar progreso
+        function updateProgress() {
+            const progress = sortingState.getProgress();
+            document.getElementById('progressFill').style.width = progress.percentage + '%';
+            document.getElementById('progressText').textContent = 
+                `${progress.current}/${progress.total} comparaciones`;
+        }
+
+        // Mostrar resultados
+        function showResults() {
+            const sortedSongs = sortingState.getResult();
+
+            // Mostrar resultados
+            document.getElementById('comparisonPanel').classList.add('hidden');
+            document.getElementById('resultsPanel').classList.remove('hidden');
+
+            const rankingList = document.getElementById('rankingList');
+            rankingList.innerHTML = '';
+
+            sortedSongs.forEach((song, index) => {
+                const li = document.createElement('li');
+                li.className = 'ranking-item';
+                
+                let rankClass = '';
+                if (index === 0) rankClass = 'gold';
+                else if (index === 1) rankClass = 'silver';
+                else if (index === 2) rankClass = 'bronze';
+
+                li.innerHTML = `
+                    <div class="rank-number ${rankClass}">${index + 1}</div>
+                    <img src="${song.image}" alt="">
+                    <div class="ranking-info">
+                        <div class="song-title">${song.name}</div>
+                        <div class="song-artist">${song.artist}</div>
+                    </div>
+                `;
+                
+                rankingList.appendChild(li);
+            });
+        }
+    </script>
+</body>
+</html>
