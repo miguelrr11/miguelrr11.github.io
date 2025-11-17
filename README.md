@@ -13,10 +13,10 @@ Digital Logic Simulator inspired by [Sebastian Lague](https://www.youtube.com/@S
 
 ---
 
-### [NEAT Pendulums](https://miguelrr11.github.io/IAs/Smart_Pendulums_V2/)
-[NEAT](https://nn.cs.utexas.edu/downloads/papers/stanley.ec02.pdf) algorithm learns to balance an inverted pendulum.
+### [Road Network Generator](https://miguelrr11.github.io/Algorithms/ProcRoadv2/)
+A tool to design road networks with automatic intersections.
 
-![NEAT Pendulums](assets/githubPages/imgs/pend.jpg)
+![Road Network Generator](assets/githubPages/imgs/vid-road.png)
 
 ---
 
@@ -34,4 +34,9 @@ Interactive Wikipedia article explorer.
 
 ---
 
-<!-- [![Anurag's GitHub stats](https://github-readme-stats.vercel.app/api?username=miguelrr11)](https://github.com/anuraghazra/github-readme-stats) -->
+### [Lake Ecosystem Simulation](https://miguelrr11.github.io/tfg_latex_etsiinf-2023.02.20/)
+My Computer Engineering Bachelor’s Thesis, a simuation of micro and macro living organisms based on inner relationships.
+
+![Lake Ecosystem](assets/githubPages/imgs/TFG.jpg)
+
+---
