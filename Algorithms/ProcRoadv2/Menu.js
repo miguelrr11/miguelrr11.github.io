@@ -192,8 +192,8 @@ class Menu{
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (position) => {
-                    const lat = position.coords.latitude;
-                    const lon = position.coords.longitude;
+                    let lat = position.coords.latitude;
+                    let lon = position.coords.longitude;
 
                     console.log(`Latitud: ${lat}`);
                     console.log(`Longitud: ${lon}`);
@@ -230,29 +230,9 @@ class Menu{
                     })
                     .then(data => {
                         buttonLoadOpenStreetMap.enabled = () => {return true}
-                        buttonLoadOpenStreetMap.label = 'OSM Beta'
+                        buttonLoadOpenStreetMap.label = 'Building...'
                         console.log(data);
-                        console.log(`Total elements: ${data.elements.length}`);
-
-                        let totalNodes = 0;
-                        let totalEdges = 0;
-                        let oneWayYES = 0
-                        let oneWayNO = 0
-                        for(let element of data.elements){
-                        if(element.type == 'node') totalNodes++;
-                        if(element.type == 'way') {
-                            if(element.tags.oneway){
-                            if(element.tags.oneway == 'yes') oneWayYES++
-                            if(element.tags.oneway == 'no') oneWayNO++
-                            }
-                            totalEdges++;
-                        }
-
-                        }
-                        console.log(`Nodos: ${totalNodes}, Ways: ${totalEdges}`);
-                        console.log(`oneWayYES: ${oneWayYES}, oneWayNO: ${oneWayNO}`);
-                        this.tool.constructRoadFromOSMAsync(data)
-                        //this.tool.center()
+                        this.tool.constructRoadFromOSMAsync(data, buttonLoadOpenStreetMap)
                     })
                     .catch(error => {
                         buttonLoadOpenStreetMap.label = 'Failed'

@@ -15,6 +15,21 @@ class Path{
         this.id = nodeA + '_' + nodeB
 
         this.name = undefined
+
+        this.corners = []  
+        this.corners16 = []  
+    }
+
+    outOfBounds(){
+        let fromPos = this.nodeAObj ? this.nodeAObj.pos : this.road.findNode(this.nodeA).pos
+        let toPos = this.nodeBObj ? this.nodeBObj.pos : this.road.findNode(this.nodeB).pos
+        if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES) && 
+        !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES) &&
+        !lineIntersection(fromPos, toPos, {x: GLOBAL_EDGES[0], y: GLOBAL_EDGES[2]}, {x: GLOBAL_EDGES[1], y: GLOBAL_EDGES[2]}) &&
+        !lineIntersection(fromPos, toPos, {x: GLOBAL_EDGES[1], y: GLOBAL_EDGES[2]}, {x: GLOBAL_EDGES[0], y: GLOBAL_EDGES[3]}) &&
+        !lineIntersection(fromPos, toPos, {x: GLOBAL_EDGES[0], y: GLOBAL_EDGES[3]}, {x: GLOBAL_EDGES[1], y: GLOBAL_EDGES[3]}) &&
+        !lineIntersection(fromPos, toPos, {x: GLOBAL_EDGES[1], y: GLOBAL_EDGES[3]}, {x: GLOBAL_EDGES[0], y: GLOBAL_EDGES[2]})) return true
+        return false
     }
 
     /*
@@ -57,12 +72,31 @@ class Path{
     }
 
     // gets the outline of all the lanes
-    constructWholePoints(){
+    //not used
+    constructCorners(){
         if(this.segmentsIDs.size == 0) return
-        let fromPos = this.nodeAObj ? this.nodeAObj.pos : this.road.findNode(this.nodeA).pos
-        let toPos = this.nodeBObj ? this.nodeBObj.pos : this.road.findNode(this.nodeB).pos
-        let corners = getCornersOfLine(fromPos, toPos, (this.segmentsIDs.size * LANE_WIDTH))
-        return corners
+        let corners = []
+        let corners16 = []
+        let first = this.segments[0]
+        let last = this.segments[this.segments.length - 1]
+        if(first.fromNodeID == this.nodeA){
+            corners.push(first.corners[0], first.corners[3])
+            corners16.push(first.corners16[0], first.corners16[3])
+        }
+        else{
+            corners.push(first.corners[2], first.corners[1])
+            corners16.push(first.corners16[2], first.corners16[1])
+        }
+        if(last.fromNodeID != this.nodeA){
+            corners.push(last.corners[0], last.corners[3])
+            corners16.push(last.corners16[0], last.corners16[3])
+        }
+        else{
+            corners.push(last.corners[2], last.corners[1])
+            corners16.push(last.corners16[2], last.corners16[1])
+        }
+        this.corners = corners
+        this.corners16 = corners16
     }
 
     //not used
@@ -158,6 +192,7 @@ class Path{
         this.setSegmentDrawOuterLinesLogic()
     }
 
+    //nope
     constructRealLanesCurved(controlPoint = this.controlPoint){
         let nodeA = this.nodeAObj || this.road.findNode(this.nodeA)
         let nodeB = this.nodeBObj || this.road.findNode(this.nodeB)
@@ -264,22 +299,47 @@ class Path{
         line(fromPos.x, fromPos.y, toPos.x, toPos.y)
     }
 
-    // gets all points of all lanes and draws the full road
-    // the render bug when intersegs are touching each other is because the calculation of corners fails because we dont get the correct direction
-    // we should force segments to have a minimum length, or we should calculate the corners in a different way
+    _drawWayShape(cornersType){
+        if(this.outOfBounds()) return
+        if(this.segments.size == 0) return
+        beginShape()
+        let first = this.segments[0]
+        let last = this.segments[this.segments.length - 1]
+        let corners = cornersType === 'base' ? 'corners16' : 'corners'
+
+        if(first.fromNodeID == this.nodeA){
+            vertex(first[corners][0].x, first[corners][0].y)
+            vertex(first[corners][3].x, first[corners][3].y)
+        }
+        else{
+            vertex(first[corners][2].x, first[corners][2].y)
+            vertex(first[corners][1].x, first[corners][1].y)
+        }
+        if(last.fromNodeID != this.nodeA){
+            vertex(last[corners][0].x, last[corners][0].y)
+            vertex(last[corners][3].x, last[corners][3].y)
+        }
+        else{
+            vertex(last[corners][2].x, last[corners][2].y)
+            vertex(last[corners][1].x, last[corners][1].y)
+        }
+        endShape(CLOSE)
+    }
 
     // type: showWays
     showWayBase(){
-        this.segments.forEach(segment => {
-            segment.showCustomLanes(SIDE_WALK_COL, BIG_LANE_WIDTH)
-        })
+        this._drawWayShape('base')
+        // this.segments.forEach(segment => {
+        //     segment.showCustomLanes(SIDE_WALK_COL, BIG_LANE_WIDTH)
+        // })
     }
 
     // type: showWays
     showWayTop(hoveredID = undefined){
-        this.segments.forEach(segment => {
-            segment.showCustomLanes(ROAD_COL, LANE_WIDTH, hoveredID)
-        })
+        this._drawWayShape('top')
+        // this.segments.forEach(segment => {
+        //     segment.showCustomLanes(ROAD_COL, LANE_WIDTH, hoveredID)
+        // })
     }
 
     // type: showWays

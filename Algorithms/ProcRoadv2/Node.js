@@ -13,6 +13,23 @@ class Node{
         this.curvePath = false
     }
 
+    //not used
+    canMoveTo(x, y){
+        let connectedPaths = this.road.findAnyPath(this.id)
+        let connectedNodes = new Set()
+        for(let path of connectedPaths){
+            if(path.nodeA != this.id) connectedNodes.add(path.nodeAObj)
+            if(path.nodeB != this.id) connectedNodes.add(path.nodeBObj)
+        }
+        let MIN_DIST = 110
+        for(let node of [...connectedNodes]){
+            if(dist(node.pos.x, node.pos.y, x, y) < MIN_DIST){
+                return false
+            }
+        }
+        return true
+    }
+
     export(){
         return {
             id: this.id,
