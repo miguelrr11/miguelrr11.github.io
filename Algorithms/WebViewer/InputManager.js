@@ -79,13 +79,14 @@ function doubleClicked() {
 }
 
 function keyPressed() {
+    if(!started) return
     if(keyCode == 82) {
         btnReset.bool = true
     }
     if(keyCode == 67) {
         btnCenter.bool = true
     }
-    if(keyCode == 32 && started) {
+    if(keyCode == 32) {
         changeColorMode()
     }
 }

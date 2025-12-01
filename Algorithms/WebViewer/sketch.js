@@ -80,9 +80,11 @@ function setup() {
     input = new Input(
         width / 2,
         height / 2,
-        'Enter a Wikipedia URL',
+        'Enter a Wikipedia Article URL or Name',
         () => {
             let link = input.getText();
+            if(link.substring(0, 8) != 'https://') link = 'https://en.wikipedia.org/wiki/' + link.replaceAll(' ', '_')
+            console.log(link)
             let primordial = new Particle(width / 2, height / 2, true, -1, link);
             primordial.color = random(colors);
             particles.push(primordial);
@@ -187,12 +189,15 @@ function draw() {
 
     if(winningParticle) winningParticle.showWin()
     if(started) showGraph()
+    showHovered()
     for(let [key, tb] of textBoxes){ 
         let shoudlDelete = showTextBox(tb, tb.closing)
+        tb.particle.show(true)
         if(shoudlDelete) {
             textBoxes.delete(key)
         }
     }
+    
     if(btnHelp.bool || helpTB.closing){
         let shouldDelete = showTextBox(helpTB, helpTB.closing) 
         helpTB.particle.update(0.01)
@@ -202,7 +207,7 @@ function draw() {
             helpTB.particle = undefined
         }
     }
-    showHovered()
+    
 
 
     pop()

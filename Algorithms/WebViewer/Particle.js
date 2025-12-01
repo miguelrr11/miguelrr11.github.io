@@ -9,32 +9,35 @@ const INTERVAL_CLOSEST = 2
 
 class Particle{
         constructor(x, y, pinned, id, str = '', parent, ctx = undefined){
-		this.pos = createVector(x, y)
-		this.prevPos = createVector(x, y)
-		this.acc = createVector(0, 0)
-		this.isPinned = pinned
-		this.id = id
-		this.radius = RADIUS_PARTICLE
-		this.link = str
-		this.ctx = ctx
-		this.str = removeBarrabaja(getLastPartOfLink(decodeURIComponent(str)))
-		this.plainStr = undefined
-		this.parent = parent
-		this.angle = 0
-		this.isParent = false
-		this.isImage = false
-		this.color = color(255)
-		this.siblings = []
-		this.sqRadius = this.radius * this.radius
-		this.constraint = undefined
-		this.relations = []
-		this.children = []
-		this.closest = []
-		this.out = false
-		this.image = undefined
-		this._cachedTextStrokeCol = dupeColor(curCol.partTextStroke)
-		this._cachedTextStrokeBase = curCol.partTextStroke
+			this.pos = createVector(x, y)
+			this.prevPos = createVector(x, y)
+			this.acc = createVector(0, 0)
+			this.isPinned = pinned
+			this.id = Particle.gloabalId++
+			this.radius = RADIUS_PARTICLE
+			this.link = str
+			this.ctx = ctx
+			this.str = removeBarrabaja(getLastPartOfLink(decodeURIComponent(str)))
+			this.plainStr = undefined
+			this.parent = parent
+			this.angle = 0
+			this.isParent = false
+			this.isImage = false
+			this.color = color(255)
+			this.siblings = []
+			this.sqRadius = this.radius * this.radius
+			this.constraint = undefined
+			this.relations = []
+			this.children = []
+			this.closest = []
+			this.out = false
+			this.image = undefined
+			this._cachedTextStrokeCol = dupeColor(curCol.partTextStroke)
+			this._cachedTextStrokeBase = curCol.partTextStroke
+			this.hasBeenOpened = false
         }
+
+		static gloabalId = 0
 
 	setImage(){
 		this.isImage = true
@@ -46,16 +49,16 @@ class Particle{
 		this.acc = createVector(0, 0)
 	}
 
-        applyForce(force){
-                if(!this.isPinned) this.acc.add(force)
-        }
+	applyForce(force){
+		if(!this.isPinned) this.acc.add(force)
+	}
 
-        updateCachedColors(){
-                if(this._cachedTextStrokeBase !== curCol.partTextStroke){
-                        this._cachedTextStrokeCol = dupeColor(curCol.partTextStroke)
-                        this._cachedTextStrokeBase = curCol.partTextStroke
-                }
-        }
+	updateCachedColors(){
+		if(this._cachedTextStrokeBase !== curCol.partTextStroke){
+				this._cachedTextStrokeCol = dupeColor(curCol.partTextStroke)
+				this._cachedTextStrokeBase = curCol.partTextStroke
+		}
+	}
 
 	getRelativePos(x, y){
 		let worldX = (x - xOff) / zoom;
@@ -160,9 +163,13 @@ class Particle{
 		let rad = bool ? this.radius * 2.5 : this.radius * 2;
 		customCircle(this.pos.x, this.pos.y, rad * .5, strokeCol, fillCol, 2)
 		if(((this.ctx != undefined && this.ctx != null) || this.isImage) && zoom > 0.75){ 
-			let fillCol2 = dupeColorArr(this.color, -23);
-			if(trans) fillCol2[3] = 0.15
+			let fillCol2 = dupeColorArr(this.color, -35);
+			if(trans) fillCol2[3] = 0.3
 			customCircle(this.pos.x, this.pos.y, rad * .2, [0, 0, 0, 0], fillCol2, 2)
+			if(this.hasBeenOpened && !trans){
+				fill(this.color)
+				ellipse(this.pos.x, this.pos.y, rad * .17)
+			}
 		}
 		
 		if((this.isParent || bool)){
@@ -201,11 +208,11 @@ class Particle{
 			fill(curCol.partFillRectText, transRect)
 			noStroke()
 			rect(this.pos.x, this.pos.y + yOff, w + offsetsText[0], h + offsetsText[0], offsetsText[1])
-                        this.updateCachedColors()
-                        this._cachedTextStrokeCol.setAlpha(transText)
-                        fill(this._cachedTextStrokeCol)
-                        text(str, this.pos.x, this.pos.y + yOff)
-                }
+				this.updateCachedColors()
+				this._cachedTextStrokeCol.setAlpha(transText)
+				fill(this._cachedTextStrokeCol)
+				text(str, this.pos.x, this.pos.y + yOff)
+			}
         }
 
 	showCircleHovered(){
@@ -214,8 +221,12 @@ class Particle{
 		// circle(this.pos.x, this.pos.y, this.radius * 2)
 		gradientCircle(this.pos.x, this.pos.y, this.radius, [this.color, this.color, this.color, color(255, 150)])
 		if((this.ctx != undefined && this.ctx != null) || this.isImage){ 
-			let fillCol2 = dupeColorArr(this.color, -23);
+			let fillCol2 = dupeColorArr(this.color, -35);
 			customCircle(this.pos.x, this.pos.y, this.radius * .5, [0, 0, 0, 0], fillCol2, 2)
+			if(this.hasBeenOpened){
+				fill(this.color)
+				ellipse(this.pos.x, this.pos.y, this.radius * 2 * .17)
+			}
 		}
 	}
 

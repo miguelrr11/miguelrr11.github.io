@@ -288,6 +288,7 @@ function drawColorMode(x, y, size, btn, col) {
 }
 
 function showTextBox(tb, closing = false) {
+    tb.particle.hasBeenOpened = true
     if(tb.particle != draggedParticle && (tb.particle != helpTB.particle)) tb.closing = true
     if(tb.particle.isImage){
        return showImageBox(tb, closing)

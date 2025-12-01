@@ -274,10 +274,11 @@ class Input {
         if(this.active) {
             stroke(this.lightCol)
             strokeWeight(2)
-            let x =
-                textWidth(
+            let widthAll = textWidth(this.sentence)
+            let widthTillCursor = textWidth(
                     this.sentence.substring(this.firstCursor, this.firstCursor + this.relCursorPos)
-                ) * 0.5 + this.pos.x + 4
+                )
+            let x = (this.pos.x - widthAll * 0.5) + widthTillCursor + 4
             let midY = this.pos.y + this.h * 0.5;
             let dy = Math.sin(frameCount / 25) * (this.h - 6) * 0.5;
             line(x, midY + dy, x, midY - dy);
