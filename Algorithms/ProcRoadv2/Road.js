@@ -41,11 +41,11 @@ class Road{
         //not used anymore
         this.convexHullQueue = new Set()
 
-        this.nodeIDcounter = 0
-        this.segmentIDcounter = 0
+        this.nodeIDcounter = getNextID()
+        this.segmentIDcounter = getNextID()
 
-        this.connectorIDcounter = 0
-        this.intersecSegIDcounter = 0
+        this.connectorIDcounter = getNextID()
+        this.intersecSegIDcounter = getNextID()
     }
 
 
@@ -1098,6 +1098,8 @@ class Road{
 const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789{|}~!"#$%&\'()*+,-./:;<=>?@[\\]^_`';
 const base = chars.length; // 94
 function getNextID(id){
+    if (id === undefined) return chars[0];
+
     let num = 0;
     for (let i = 0; i < id.length; i++) {
         num = num * base + chars.indexOf(id[i]);

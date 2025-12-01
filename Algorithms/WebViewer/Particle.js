@@ -173,8 +173,8 @@ class Particle{
 		}
 		
 		if((this.isParent || bool)){
-			this.showText(bool)
 			this.showCircleHovered()
+			this.showText(bool)
 		}
 		pop()
 		return 
@@ -189,7 +189,7 @@ class Particle{
 		let d = squaredDistance(m.x, m.y, this.pos.x, this.pos.y)
 		let transRect = 200
 		let transText = 255
-		textSize(mapp(d, 0, 40000, 12 / zoom, 10 / zoom))
+		textSize(mapp(d, 0, 40000, 14 / zoom, 12 / zoom))
 		if(d > 40000){
 			transRect = mapp(d, 40000, 90000, 200, 0)
 			transText = mapp(d, 40000, 90000, 255, 0)
