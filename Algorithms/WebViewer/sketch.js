@@ -20,6 +20,8 @@ function setup() {
     btnReset.y = HEIGHT - 20
     btnCenter.x = WIDTH - 20
     btnCenter.y = HEIGHT - 45
+    btnNew.x = WIDTH - 20
+    btnNew.y = HEIGHT - 70
     btnGit.x = 20
     btnGit.y = HEIGHT - 20
     btnColorMode.x = 20
@@ -85,7 +87,11 @@ function setup() {
             let link = input.getText();
             if(link.substring(0, 8) != 'https://') link = 'https://en.wikipedia.org/wiki/' + link.replaceAll(' ', '_')
             console.log(link)
-            let primordial = new Particle(width / 2, height / 2, true, -1, link);
+            let pos = {x: width/2, y: height/2}
+            if(started){
+                pos = getEmptySpot()
+            }
+            let primordial = new Particle(pos.x, pos.y, true, -1, link);
             primordial.color = random(colors);
             particles.push(primordial);
             parentParticles.push({
@@ -99,7 +105,7 @@ function setup() {
                     started = true;
                 })
                 .catch(() => {
-                    particles = []
+                   if(!started)  particles = []
                     errorFrames = 6 * 3;
                 });
         },
@@ -161,6 +167,7 @@ function draw() {
     updateTopo()
     showTopo()
 
+
     push()
     translate(xOff, yOff);
     scale(zoom);
@@ -173,7 +180,7 @@ function draw() {
 
     showRelationsHovered()
 
-    manageInput()
+    
     manageAnimConn()
 
     if(mouseIsPressed && hoveredParticle && hoveredParticle.isParent) {
@@ -207,7 +214,6 @@ function draw() {
             helpTB.particle = undefined
         }
     }
-    
 
 
     pop()
@@ -241,6 +247,9 @@ function draw() {
             //dP.isPinned = true
         }
     }
+
+    manageInput()
+
     
     //showFps()
 

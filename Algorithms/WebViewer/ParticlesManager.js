@@ -22,10 +22,8 @@ function createConnection(p1, p2) {
 function createGraph(link, p) {
     return extractAndFilterLinksCategorized(link, MAX_IMGS, 
         (imgSection, allSections) => {
-            // add image‐nodes to your graph here:
-            initFirstGraphCategorized(imgSection.links, 'Images', p, /* last? */ false);
+            initFirstGraphCategorized(imgSection.links, 'Images', p, false);
             console.log('Image section:', imgSection);
-            // or however you want to merge them in
             checkEndGame();
         }
     )
@@ -33,8 +31,10 @@ function createGraph(link, p) {
         // draw the link sections right away:
         p.isParent = p.isPinned = true;
         primordials.push(p);
+        let maxRad = 0
         linkSections.forEach((sec, i) => {
-            initFirstGraphCategorized(sec.links, sec.title, p, linkSections.length === 1);
+            let rad = initFirstGraphCategorized(sec.links, sec.title, p, linkSections.length === 1);
+            maxRad = rad > maxRad ? rad : maxRad
         });
         btnCenter.bool = true;
         checkEndGame();
@@ -170,6 +170,8 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
     }
     else p1 = primordial
 
+    
+
     primordial.children.push(p1)
 
     let deltaAngle = TWO_PI / links.length
@@ -205,13 +207,14 @@ function initFirstGraphCategorized(links, title, primordial, fromPrimordial = fa
 
 
     }
+    p1.bigRadius = radius + 250
     for(let p of newParticles) {
         p.siblings = siblings
         particles.push(p)
     }
     p1.children = siblings
     particles.push(p1)
-
+    return radius
 }
 
 function showRelationsHovered() {

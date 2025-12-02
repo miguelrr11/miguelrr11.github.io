@@ -171,3 +171,28 @@ function lerpColorMap(fromMap, toMap, amt) {
 
     return result;
 }
+
+
+function getEmptySpot(){
+    let anglemult = 0.25
+    let distAcum = 10 // Start with a small distance to avoid center
+    for(let i = 0; i < 2000; i++){
+        let angle = (i * anglemult) % TWO_PI
+        let x = Math.cos(angle) * distAcum + width/2
+        let y = Math.sin(angle) * distAcum + height/2
+        let collision = false
+        for(let p of parentParticles) {
+            let d = dist(x, y, p.pos.x, p.pos.y)
+            // Use radius instead of bigRadius, with appropriate spacing
+            let minDist = (p.radius || 50) + 100 // Default 50 if radius not defined, plus spacing
+            if(d < minDist) {
+                collision = true
+                break
+            }
+        }
+        if(!collision) {
+            return createVector(x, y)
+        }
+        distAcum += 5 // Increment distance to create spiral pattern
+    }
+}

@@ -1,6 +1,13 @@
 
 function mouseClicked() {
     if(hoveredParticle) console.log(hoveredParticle)
+    if(inBounds(mouseX, mouseY, btnNew.x - btnNew.size / 2, btnNew.y - btnNew.size / 2, btnNew.size, btnNew.size)) {
+        btnNew.bool = !btnNew.bool
+        input.pos.x = width/2
+        input.pos.y = height - 35
+        input.initialPos.x = width/2
+        input.initialPos.y = height - 35
+    }
 }
 
 function mouseReleased() {
@@ -79,7 +86,7 @@ function doubleClicked() {
 }
 
 function keyPressed() {
-    if(!started) return
+    if(!started || btnNew.bool) return
     if(keyCode == 82) {
         btnReset.bool = true
     }
@@ -92,7 +99,7 @@ function keyPressed() {
 }
 
 function manageInput() {
-    if(!started) {
+    if(!started || btnNew.bool) {
         if(errorFrames > 0) {
             errorFrames -= 0.75
             let mul = mapp(errorFrames, 6 * 3, 0, 15, 1)
@@ -113,6 +120,8 @@ function windowResized() {
     btnReset.y = HEIGHT - 20
     btnCenter.x = WIDTH - 20
     btnCenter.y = HEIGHT - 45
+    btnNew.x = WIDTH - 20
+    btnNew.y = HEIGHT - 70
     btnGit.x = 20
     btnGit.y = HEIGHT - 20
     btnGame.x = 20

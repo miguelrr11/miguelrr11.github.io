@@ -24,6 +24,19 @@ let btnCenter = {
         return started
     }
 }
+let btnNew = {
+    x: WIDTH - 20,
+    y: HEIGHT - 70,
+    size: 20,
+    dimm: 0,
+    hovering: false,
+    func: drawNewIcon,
+    bool: false,
+    str: 'New [N]',
+    canBeShowed: () => {
+        return started
+    }
+}
 let btnGit = {
     x: 20,
     y: HEIGHT - 20,
@@ -87,6 +100,7 @@ let buttons = [
     btnGit,
     btnGame,
     btnColorMode,
+    btnNew,
     btnHelp
 ]
 
@@ -204,6 +218,26 @@ function drawCenterIcon(x, y, size, btn, col) {
     line(x, y + st - off, x, y + st + off)
     line(x - st - off, y, x - st + off, y)
     line(x, y - st - off, x, y - st + off)
+
+    
+
+    textAlign(RIGHT, CENTER)
+    textSize(10.5)
+    noStroke()
+    fill(col)
+    text(str, x - size * 0.5 - 10, y)
+}
+
+function drawNewIcon(x, y, size, btn, col) {
+    // if(mouseIsPressed && btn.hovering){
+    //     btn.bool = !btn.bool
+    // }
+    let str = btn.str
+    let off = size * 0.05
+    let st = size * .5
+    //draw a + sign
+    line(x - st + off, y, x + st - off, y)
+    line(x, y - st + off, x, y + st - off)
 
     
 
