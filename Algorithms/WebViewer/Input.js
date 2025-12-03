@@ -13,7 +13,7 @@ class Input {
     constructor(x, y, placeholder, func, arg, lightCol, darkCol) {
         this.darkCol = darkCol
         this.lightCol = lightCol
-        this.transCol = [...lightCol, 100]
+        this.transCol = [...lightCol, 125]
         this.initialPos = createVector(x, y)
         this.pos = createVector(x, y)
         this.textSize = text_SizeMIGUI - 2
@@ -238,45 +238,31 @@ class Input {
 
     evaluate() {
         if(!mouseIsPressed) return
-        this.active = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
+        this.active = inBoundsMIGUI(mouseX, mouseY, this.pos.x - this.w * 0.5, this.pos.y, this.w, this.h)
         return this.active
+    }
+
+    getTextShowed(){
+        return this.sentence.length != 0 ? this.clippedSentence : this.placeholder
     }
 
     show() {
         push();
         this.frame++
         noStroke()
-        this.active ? fill(this.transCol) : fill(this.darkCol)
-        
-
-        noStroke()
         textSize(this.textSize)
         textAlign(CENTER)
 
-        if(this.sentence.length !== 0) {
-            fill(255, 30)
-            let w = textWidth(this.clippedSentence) + 10
-            rect(this.pos.x - w * 0.5, this.pos.y, w, this.h, this.rad)
-
-            fill(this.lightCol)
-            text(
-                this.clippedSentence,
-                this.pos.x,
-                this.pos.y + this.h * 0.77
-            )
-        }
-        else {
-            fill(255, 30)
-            let w = textWidth(this.placeholder) + 10
-            rect(this.pos.x - w * 0.5, this.pos.y, w, this.h, this.rad)
-
-            fill(this.transCol)
-            text(
-                this.placeholder,
-                this.pos.x,
-                this.pos.y + this.h * 0.75
-            )
-        }
+        let sentence = this.getTextShowed()
+        fill(255, this.active ? 30 : 10)
+        let w = textWidth(sentence) + 10
+        rect(this.pos.x - w * 0.5, this.pos.y, w, this.h, this.rad)
+        fill(this.sentence.length !== 0 ? this.lightCol : this.transCol)
+        text(
+            sentence,
+            this.pos.x,
+            this.pos.y + this.h * 0.75
+        )
 
         if(this.active) {
             stroke(this.lightCol)
@@ -287,7 +273,7 @@ class Input {
                 )
             let x = (this.pos.x - widthAll * 0.5) + widthTillCursor + 0
             let midY = this.pos.y + this.h * 0.5;
-            let dy = Math.sin(frameCount / 25) * (this.h - 6) * 0.5;
+            let dy = Math.sin(frameCount / 20) * (this.h - 6) * 0.5;
             line(x, midY + dy, x, midY - dy);
         }
         pop()

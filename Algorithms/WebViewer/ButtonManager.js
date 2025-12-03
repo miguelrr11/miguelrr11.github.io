@@ -35,6 +35,9 @@ let btnNew = {
     str: 'New [N]',
     canBeShowed: () => {
         return started
+    },
+    notActive: () => {
+        return btnGame.bool
     }
 }
 let btnGit = {
@@ -135,18 +138,20 @@ function updateAndShowButton(btn) {
     else if(!hovNow && btn.hovering) {
         btn.hovering = false
     }
+    let dim = btn.notActive != undefined && btn.notActive() ? 0 : btn.dimm
     let max = mouseIsPressed ? 200 : 100
-    btn.hovering ? btn.dimm = lerpp(btn.dimm, max, 0.3) : btn.dimm = lerpp(btn.dimm, 0, 0.3)
-    let strokeCol = (mapp(btn.dimm, 0, 100, curCol.btnStrokeStart, curCol.btnStrokeStop))
-    let textTrans = (mapp(btn.dimm, 0, 100, 0, 200))
-    let strokeWeightCol = mapp(btn.dimm, 0, 100, 1, 1.3)
-    let sizeMult = mapp(btn.dimm, 0, 100, 1, 1.08)
+    btn.hovering ? btn.dimm = lerpp(dim, max, 0.3) : btn.dimm = lerpp(dim, 0, 0.3)
+    let strokeCol = (mapp(dim, 0, 100, curCol.btnStrokeStart, curCol.btnStrokeStop))
+    let textTrans = (mapp(dim, 0, 100, 0, 200))
+    let strokeWeightCol = mapp(dim, 0, 100, 1, 1.3)
+    let sizeMult = mapp(dim, 0, 100, 1, 1.08)
     size = btn.size * sizeMult
     stroke(strokeCol)
     strokeWeight(strokeWeightCol)
     rectMode(CENTER)
     noFill()
-    let col = color(curCol.btnFill, mapp(btn.dimm, 0, 100, 0, 35))
+    
+    let col = color(curCol.btnFill, mapp(dim, 0, 100, 0, 35))
     btn.func(btn.x, btn.y, size * 0.6, btn, color(curCol.btnTextMax, textTrans), strokeCol)
     fill(col)
     rect(btn.x, btn.y, size, size, 5)

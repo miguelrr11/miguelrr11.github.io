@@ -1,7 +1,7 @@
 
 function mouseClicked() {
     if(hoveredParticle) console.log(hoveredParticle)
-    if(inBounds(mouseX, mouseY, btnNew.x - btnNew.size / 2, btnNew.y - btnNew.size / 2, btnNew.size, btnNew.size)) {
+    if(!btnGame.bool && inBounds(mouseX, mouseY, btnNew.x - btnNew.size / 2, btnNew.y - btnNew.size / 2, btnNew.size, btnNew.size)) {
         btnNew.bool = !btnNew.bool
         input.pos.x = width/2
         input.pos.y = height - 35
@@ -86,7 +86,7 @@ function doubleClicked() {
 }
 
 function keyPressed() {
-    if(!started || btnNew.bool) return
+    if(!started || input.active) return
     if(keyCode == 82) {
         btnReset.bool = true
     }

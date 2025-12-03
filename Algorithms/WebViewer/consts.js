@@ -3,8 +3,11 @@ let WIDTH = 1920 * scl
 let HEIGHT = 1080 * scl
 let canvas, ctx
 
-const MIN_ZOOM = 0.05
-const MAX_ZOOM = 5
+const MIN_ZOOM = 0.05   
+const MAX_ZOOM = 5      
+
+const MIN_ZOOM_LOG = Math.log10(MIN_ZOOM)
+const MAX_ZOOM_LOG = Math.log10(MAX_ZOOM)
 
 const MAX_PARTICLE_COUNT = 2500
 

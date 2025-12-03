@@ -98,7 +98,6 @@ function setup() {
                 pos: primordial.pos.copy(),
                 radius: 50
             })
-            firstParents.push(primordial)
 
             createGraph(link, primordial)
                 .then(() => {

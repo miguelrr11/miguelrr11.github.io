@@ -208,12 +208,12 @@ class Particle{
 			fill(curCol.partFillRectText, transRect)
 			noStroke()
 			rect(this.pos.x, this.pos.y + yOff, w + offsetsText[0], h + offsetsText[0], offsetsText[1])
-				this.updateCachedColors()
-				this._cachedTextStrokeCol.setAlpha(transText)
-				fill(this._cachedTextStrokeCol)
-				text(str, this.pos.x, this.pos.y + yOff)
-			}
-        }
+			this.updateCachedColors()
+			this._cachedTextStrokeCol.setAlpha(transText)
+			fill(this._cachedTextStrokeCol)
+			text(str, this.pos.x, this.pos.y + yOff)
+		}
+    }
 
 	showCircleHovered(){
 		// fill(this.color)
@@ -314,9 +314,21 @@ function customCircle(x, y, r, strokeCol, fillCol, strokeW = 1){
 	ctx.fillStyle = `rgba(${fillCol.join(",")})`;
 	ctx.strokeStyle = `rgba(${strokeCol.join(",")})`;
 	ctx.lineWidth = strokeW;
+	// ctx.beginPath();
+	// ctx.arc(x, y, r, 0, TWO_PI);
+	// ctx.fill();
+	// ctx.stroke();
+
 	ctx.beginPath();
-	ctx.arc(x, y, r, 0, TWO_PI);
-	ctx.fill();
+	let segments = mapp(zoom, MIN_ZOOM, MAX_ZOOM, 5, 35, true)
+	for (let i = 0; i <= segments + 1; i++) {
+		const a = (i / segments) * 2 * Math.PI;
+		const px = x + r * Math.cos(a);
+		const py = y + r * Math.sin(a);
+		if (i === 0) ctx.moveTo(px, py);
+		else ctx.lineTo(px, py);
+	}
+	ctx.fill()
 	ctx.stroke();
 }
 
