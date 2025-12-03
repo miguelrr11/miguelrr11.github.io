@@ -66,7 +66,7 @@ function updateReset() {
             part.pos.lerp(mid, 0.1)
             part.color.levels[3] = lerpp(part.color.levels[3], 0, 0.99)
         }
-        if(squaredDistance(particles[1].pos.x, particles[1].pos.y, mid.x, mid.y) < 1) {
+        if(particles[1] && squaredDistance(particles[1].pos.x, particles[1].pos.y, mid.x, mid.y) < 1) {
             resetState()
         }
     }
@@ -147,6 +147,11 @@ function updateAnimations() {
 }
 
 function getTwoClosestParticles(particles, p){
+    if(particles.length <= 1) return []
+    if(particles.length == 2){
+        particles = particles.filter(part => part != p)
+        return [particles[0], particles[0]]
+    }
     let closest = null
     let secondClosest = null
     let minDist = Infinity
@@ -166,4 +171,11 @@ function getTwoClosestParticles(particles, p){
         }
     }
     return [closest, secondClosest]
+}
+
+function getParticleById(id) {
+    for(let p of particles) {
+        if(p.id == id) return p
+    }
+    return null
 }

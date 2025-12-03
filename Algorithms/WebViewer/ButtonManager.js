@@ -24,6 +24,19 @@ let btnCenter = {
         return started
     }
 }
+let btnNew = {
+    x: WIDTH - 20,
+    y: HEIGHT - 70,
+    size: 20,
+    dimm: 0,
+    hovering: false,
+    func: drawNewIcon,
+    bool: false,
+    str: 'New [N]',
+    canBeShowed: () => {
+        return started
+    }
+}
 let btnGit = {
     x: 20,
     y: HEIGHT - 20,
@@ -87,6 +100,7 @@ let buttons = [
     btnGit,
     btnGame,
     btnColorMode,
+    btnNew,
     btnHelp
 ]
 
@@ -214,6 +228,26 @@ function drawCenterIcon(x, y, size, btn, col) {
     text(str, x - size * 0.5 - 10, y)
 }
 
+function drawNewIcon(x, y, size, btn, col) {
+    // if(mouseIsPressed && btn.hovering){
+    //     btn.bool = !btn.bool
+    // }
+    let str = btn.str
+    let off = size * 0.05
+    let st = size * .5
+    //draw a + sign
+    line(x - st + off, y, x + st - off, y)
+    line(x, y - st + off, x, y + st - off)
+
+    
+
+    textAlign(RIGHT, CENTER)
+    textSize(10.5)
+    noStroke()
+    fill(col)
+    text(str, x - size * 0.5 - 10, y)
+}
+
 function drawGitSvg(x, y, size, btn, col) {
     if(mouseIsPressed && btn.hovering && !btn.bool) window.open('https://github.com/miguelrr11/miguelrr11.github.io/tree/main/Algorithms/WebViewer')
     let str = btn.str
@@ -288,6 +322,7 @@ function drawColorMode(x, y, size, btn, col) {
 }
 
 function showTextBox(tb, closing = false) {
+    tb.particle.hasBeenOpened = true
     if(tb.particle != draggedParticle && (tb.particle != helpTB.particle)) tb.closing = true
     if(tb.particle.isImage){
        return showImageBox(tb, closing)

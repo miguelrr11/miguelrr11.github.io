@@ -20,6 +20,8 @@ function setup() {
     btnReset.y = HEIGHT - 20
     btnCenter.x = WIDTH - 20
     btnCenter.y = HEIGHT - 45
+    btnNew.x = WIDTH - 20
+    btnNew.y = HEIGHT - 70
     btnGit.x = 20
     btnGit.y = HEIGHT - 20
     btnColorMode.x = 20
@@ -80,10 +82,16 @@ function setup() {
     input = new Input(
         width / 2,
         height / 2,
-        'Enter a Wikipedia URL',
+        'Enter a Wikipedia Article URL or Name',
         () => {
             let link = input.getText();
-            let primordial = new Particle(width / 2, height / 2, true, -1, link);
+            if(link.substring(0, 8) != 'https://') link = 'https://en.wikipedia.org/wiki/' + link.replaceAll(' ', '_')
+            console.log(link)
+            let pos = {x: width/2, y: height/2}
+            if(started){
+                pos = getEmptySpot()
+            }
+            let primordial = new Particle(pos.x, pos.y, true, -1, link);
             primordial.color = random(colors);
             particles.push(primordial);
             parentParticles.push({
@@ -97,7 +105,7 @@ function setup() {
                     started = true;
                 })
                 .catch(() => {
-                    particles = []
+                   if(!started)  particles = []
                     errorFrames = 6 * 3;
                 });
         },
@@ -159,6 +167,7 @@ function draw() {
     updateTopo()
     showTopo()
 
+
     push()
     translate(xOff, yOff);
     scale(zoom);
@@ -171,7 +180,7 @@ function draw() {
 
     showRelationsHovered()
 
-    manageInput()
+    
     manageAnimConn()
 
     if(mouseIsPressed && hoveredParticle && hoveredParticle.isParent) {
@@ -187,12 +196,15 @@ function draw() {
 
     if(winningParticle) winningParticle.showWin()
     if(started) showGraph()
+    showHovered()
     for(let [key, tb] of textBoxes){ 
         let shoudlDelete = showTextBox(tb, tb.closing)
+        tb.particle.show(true)
         if(shoudlDelete) {
             textBoxes.delete(key)
         }
     }
+    
     if(btnHelp.bool || helpTB.closing){
         let shouldDelete = showTextBox(helpTB, helpTB.closing) 
         helpTB.particle.update(0.01)
@@ -202,7 +214,6 @@ function draw() {
             helpTB.particle = undefined
         }
     }
-    showHovered()
 
 
     pop()
@@ -236,6 +247,9 @@ function draw() {
             //dP.isPinned = true
         }
     }
+
+    manageInput()
+
     
     //showFps()
 

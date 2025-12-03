@@ -2,7 +2,7 @@ let bordeMIGUI = 1
 let text_FontMIGUI
 let text_SizeMIGUI = 15
 let title_SizeMIGUI = text_SizeMIGUI * 1.3
-let radMIGUI = 3.5
+let radMIGUI = 4
 let text_offset_xMIGUI = 2
 let width_elementsMIGUI = 158
 let clipping_length_normalMIGUI = 20
@@ -245,29 +245,35 @@ class Input {
     show() {
         push();
         this.frame++
-        //rectMode(CENTER)
-        (this.beingHovered || this.active) ? strokeWeight(bordeMIGUI + 1): strokeWeight(bordeMIGUI)
-        stroke(this.lightCol)
+        noStroke()
         this.active ? fill(this.transCol) : fill(this.darkCol)
-        //rect(this.pos.x, this.pos.y, this.w, this.h, this.rad)
+        
 
         noStroke()
         textSize(this.textSize)
         textAlign(CENTER)
 
         if(this.sentence.length !== 0) {
+            fill(255, 30)
+            let w = textWidth(this.clippedSentence) + 10
+            rect(this.pos.x - w * 0.5, this.pos.y, w, this.h, this.rad)
+
             fill(this.lightCol)
             text(
                 this.clippedSentence,
-                this.pos.x + bordeMIGUI + text_offset_xMIGUI,
+                this.pos.x,
                 this.pos.y + this.h * 0.77
             )
         }
         else {
+            fill(255, 30)
+            let w = textWidth(this.placeholder) + 10
+            rect(this.pos.x - w * 0.5, this.pos.y, w, this.h, this.rad)
+
             fill(this.transCol)
             text(
                 this.placeholder,
-                this.pos.x + bordeMIGUI + text_offset_xMIGUI,
+                this.pos.x,
                 this.pos.y + this.h * 0.75
             )
         }
@@ -275,10 +281,11 @@ class Input {
         if(this.active) {
             stroke(this.lightCol)
             strokeWeight(2)
-            let x =
-                textWidth(
+            let widthAll = textWidth(this.sentence)
+            let widthTillCursor = textWidth(
                     this.sentence.substring(this.firstCursor, this.firstCursor + this.relCursorPos)
-                ) * 0.5 + this.pos.x + 4
+                )
+            let x = (this.pos.x - widthAll * 0.5) + widthTillCursor + 0
             let midY = this.pos.y + this.h * 0.5;
             let dy = Math.sin(frameCount / 25) * (this.h - 6) * 0.5;
             line(x, midY + dy, x, midY - dy);
