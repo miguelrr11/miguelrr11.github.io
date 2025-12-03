@@ -33,14 +33,14 @@ class Constraint{
 	}
 
 	show(){
-		if(dimmingLines == -1){
-			transLines = lerpp(transLines, 20, 0.003)
-		}
-		else if(dimmingLines == 1){
-			transLines = lerpp(transLines, 255, 0.003)
-		}
-		let col = curCol.lineStroke
-		customLine(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y, [col, col, col, transLines/255], 1)
+		// if(dimmingLines == -1){
+		// 	transLines = lerpp(transLines, 20, 0.003)
+		// }
+		// else if(dimmingLines == 1){
+		// 	transLines = lerpp(transLines, 255, 0.003)
+		// }
+		// let col = curCol.lineStroke
+		customLine(this.p1.pos.x, this.p1.pos.y, this.p2.pos.x, this.p2.pos.y)
 	}
 }
 

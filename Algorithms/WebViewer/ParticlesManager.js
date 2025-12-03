@@ -295,16 +295,91 @@ function getMinMaxPos() {
     ]
 }
 
+function quantizeColor(colorArray, step = 32) {
+    // Round each color component to the nearest step value
+    return colorArray.map((val, i) => {
+        if (i === 3) return val // Keep alpha precision
+        return Math.round(val / step) * step
+    })
+}
+
+// bucketizacion hecha por IA pq me daba toda la pereza
 function showGraph() {
+    if(dimmingLines == -1){
+        transLines = lerpp(transLines, 20, 0.25)
+    }
+    else if(dimmingLines == 1){
+        transLines = lerpp(transLines, 255, 0.25)
+    }
+    let strokeCol = curCol.lineStroke
+    ctx.strokeStyle = `rgba(${strokeCol},${strokeCol},${strokeCol},${transLines/255})`;
+    ctx.lineWidth = 1;
     for(let c of constraints) c.show()
+
+    let buckets = new Map() // key: "fillCol|strokeCol|strokeW", value: array of circles
+
     for(let p of particles) {
         if(hoveredParticle == p) continue
+
+        let bool = false
+        let trans = false
+
         if(hoveredParticle && (hoveredParticle.relations.length > 1 || hoveredParticle.isParent)) {
-            if(hoveredParticle.relations.includes(p)) p.show()
-            else p.show(false, true)
+            if(hoveredParticle.relations.includes(p)) {
+                bool = false
+                trans = false
+            }
+            else {
+                bool = false
+                trans = true
+            }
         }
-        else {
-            p.show()
+
+        let drawData = p.getDrawData(bool, trans)
+        if(!drawData) continue
+
+        // Bucket the circles by their style
+        for(let circle of drawData.circles) {
+            // Quantize colors to reduce bucket count
+            let quantizedFill = quantizeColor(circle.fillCol)
+            let quantizedStroke = quantizeColor(circle.strokeCol)
+
+            let key = `${quantizedFill.join(',')}|${quantizedStroke.join(',')}|${circle.strokeW}`
+            if(!buckets.has(key)) {
+                buckets.set(key, {
+                    fillCol: quantizedFill,
+                    strokeCol: quantizedStroke,
+                    strokeW: circle.strokeW,
+                    circles: []
+                })
+            }
+            buckets.get(key).circles.push(circle)
+        }
+
+        // Draw the extra elements (not bucketized)
+        if(drawData.hasBeenOpened) {
+            push()
+            fill(p.color)
+            ellipse(p.pos.x, p.pos.y, drawData.rad * .17)
+            pop()
+        }
+
+        if(drawData.shouldShowExtra) {
+            p.showCircleHovered()
+            p.showText(bool)
+        }
+    }
+
+    // Draw all buckets
+    for(let bucket of buckets.values()) {
+        let fc = bucket.fillCol
+        let sc = bucket.strokeCol
+        ctx.fillStyle = `rgba(${fc[0]},${fc[1]},${fc[2]},${fc[3]})`
+        ctx.strokeStyle = `rgba(${sc[0]},${sc[1]},${sc[2]},${sc[3]})`
+        ctx.lineWidth = bucket.strokeW
+
+        for(let circle of bucket.circles) {
+            customCircle(circle.x, circle.y, circle.r)
         }
     }
 }

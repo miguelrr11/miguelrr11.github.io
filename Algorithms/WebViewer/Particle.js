@@ -84,7 +84,8 @@ class Particle{
         	let vel = p5.Vector.sub(this.pos, this.prevPos).mult(FRICTION)
 			this.prevPos = this.pos.copy()
 			this.pos.add(p5.Vector.add(vel, this.acc.copy().mult(sqTimeStep)))
-			this.acc = createVector(0, 0)
+			this.acc.x = 0
+			this.acc.y = 0
         }
 		if((this.id % INTERVAL_CLOSEST) == REM_FRAMECOUNT_CLOSEST) {
 			this.closest = getTwoClosestParticles(this.siblings, this)
@@ -146,38 +147,78 @@ class Particle{
 		});
 	}
 
-	show(bool = false, trans = false){
+	getDrawData(bool = false, trans = false){
 		if(this.out){
-			return 
+			return null
 		}
-		push()
 		let fillCol = dupeColorArr(this.color);
 		let strokeCol = [...curCol.partStroke]
 		if (trans) {
 			fillCol[3] = 0.15
 			strokeCol[3] = 0.15
 		}
-		else{ 
+		else{
 			fillCol[3] = 1;
 		}
 		let rad = bool ? this.radius * 2.5 : this.radius * 2;
-		customCircle(this.pos.x, this.pos.y, rad * .5, strokeCol, fillCol, 2)
-		if(((this.ctx != undefined && this.ctx != null) || this.isImage) && zoom > 0.75){ 
+		let circles = [{
+			x: this.pos.x,
+			y: this.pos.y,
+			r: rad * .5,
+			strokeCol: strokeCol,
+			fillCol: fillCol,
+			strokeW: 2
+		}]
+
+		if(((this.ctx != undefined && this.ctx != null) || this.isImage) && zoom > 0.75){
 			let fillCol2 = dupeColorArr(this.color, -35);
 			if(trans) fillCol2[3] = 0.3
-			customCircle(this.pos.x, this.pos.y, rad * .2, [0, 0, 0, 0], fillCol2, 2)
-			if(this.hasBeenOpened && !trans){
-				fill(this.color)
-				ellipse(this.pos.x, this.pos.y, rad * .17)
-			}
+			circles.push({
+				x: this.pos.x,
+				y: this.pos.y,
+				r: rad * .2,
+				strokeCol: [0, 0, 0, 0],
+				fillCol: fillCol2,
+				strokeW: 2
+			})
 		}
-		
-		if((this.isParent || bool)){
+
+		return {
+			circles: circles,
+			shouldShowExtra: (this.isParent || bool),
+			hasBeenOpened: this.hasBeenOpened && ((this.ctx != undefined && this.ctx != null) || this.isImage) && zoom > 0.75 && !trans,
+			rad: rad
+		}
+	}
+
+	show(bool = false, trans = false){
+		if(this.out){
+			return
+		}
+		let drawData = this.getDrawData(bool, trans)
+		if(!drawData) return
+
+		push()
+		for(let circle of drawData.circles){
+			let fc = circle.fillCol
+			let sc = circle.strokeCol
+			ctx.fillStyle = `rgba(${fc[0]},${fc[1]},${fc[2]},${fc[3]})`;
+			ctx.strokeStyle = `rgba(${sc[0]},${sc[1]},${sc[2]},${sc[3]})`;
+			ctx.lineWidth = circle.strokeW;
+			customCircle(circle.x, circle.y, circle.r)
+		}
+
+		if(drawData.hasBeenOpened){
+			fill(this.color)
+			ellipse(this.pos.x, this.pos.y, drawData.rad * .17)
+		}
+
+		if(drawData.shouldShowExtra){
 			this.showCircleHovered()
 			this.showText(bool)
 		}
 		pop()
-		return 
+		return
 	}
 
 	showText(doNotShorten, defSize = false){
@@ -220,9 +261,12 @@ class Particle{
 		// noStroke()
 		// circle(this.pos.x, this.pos.y, this.radius * 2)
 		gradientCircle(this.pos.x, this.pos.y, this.radius, [this.color, this.color, this.color, color(255, 150)])
-		if((this.ctx != undefined && this.ctx != null) || this.isImage){ 
-			let fillCol2 = dupeColorArr(this.color, -35);
-			customCircle(this.pos.x, this.pos.y, this.radius * .5, [0, 0, 0, 0], fillCol2, 2)
+		if((this.ctx != undefined && this.ctx != null) || this.isImage){
+			let fc = dupeColorArr(this.color, -35);
+			ctx.fillStyle = `rgba(${fc[0]},${fc[1]},${fc[2]},${fc[3]})`;
+			ctx.strokeStyle = 'rgba(0,0,0,0)';
+			ctx.lineWidth = 2;
+			customCircle(this.pos.x, this.pos.y, this.radius * .5)
 			if(this.hasBeenOpened){
 				fill(this.color)
 				ellipse(this.pos.x, this.pos.y, this.radius * 2 * .17)
@@ -310,15 +354,7 @@ function dupeColorArr(col, delta = 0){
 	return [col.levels[0] + delta, col.levels[1] + delta, col.levels[2] + delta, col.levels[3] + delta]
 }
 
-function customCircle(x, y, r, strokeCol, fillCol, strokeW = 1){
-	ctx.fillStyle = `rgba(${fillCol.join(",")})`;
-	ctx.strokeStyle = `rgba(${strokeCol.join(",")})`;
-	ctx.lineWidth = strokeW;
-	// ctx.beginPath();
-	// ctx.arc(x, y, r, 0, TWO_PI);
-	// ctx.fill();
-	// ctx.stroke();
-
+function customCircle(x, y, r){
 	ctx.beginPath();
 	let segments = mapp(zoom, MIN_ZOOM, MAX_ZOOM, 5, 35, true)
 	for (let i = 0; i <= segments + 1; i++) {
@@ -332,9 +368,9 @@ function customCircle(x, y, r, strokeCol, fillCol, strokeW = 1){
 	ctx.stroke();
 }
 
-function customLine(x1, y1, x2, y2, strokeCol, strokeW = 1){
-	ctx.strokeStyle = `rgba(${strokeCol.join(",")})`;
-	ctx.lineWidth = strokeW;
+function customLine(x1, y1, x2, y2){
+	// if(strokeCol != undefined) ctx.strokeStyle = `rgba(${strokeCol[0]},${strokeCol[1]},${strokeCol[2]},${strokeCol[3]})`;
+	// if(strokeW != undefined) ctx.lineWidth = strokeW;
 	ctx.beginPath();
 	ctx.moveTo(x1, y1);
 	ctx.lineTo(x2, y2);
