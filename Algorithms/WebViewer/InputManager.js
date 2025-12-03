@@ -98,6 +98,7 @@ function manageInput() {
             let dx = Math.cos(errorFrames) * mul
             input.pos.x = input.initialPos.x + dx
         }
+        input.evaluate()
         input.update()
         input.show()
     }

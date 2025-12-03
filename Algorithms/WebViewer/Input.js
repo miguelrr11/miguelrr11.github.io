@@ -237,6 +237,7 @@ class Input {
     }
 
     evaluate() {
+        if(!mouseIsPressed) return
         this.active = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
         return this.active
     }
