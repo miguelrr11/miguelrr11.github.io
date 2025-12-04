@@ -305,6 +305,7 @@ function quantizeColor(colorArray, step = 32) {
 
 // bucketizacion hecha por IA pq me daba toda la pereza
 function showGraph() {
+    push()
     if(dimmingLines == -1){
         transLines = lerpp(transLines, 20, 0.25)
     }
@@ -317,6 +318,7 @@ function showGraph() {
     for(let c of constraints) c.show()
 
     let buckets = new Map() // key: "fillCol|strokeCol|strokeW", value: array of circles
+    let openedIndicators = new Map() // key: color, value: array of {x, y, r}
 
     for(let p of particles) {
         if(hoveredParticle == p) continue
@@ -356,17 +358,20 @@ function showGraph() {
             buckets.get(key).circles.push(circle)
         }
 
-        // Draw the extra elements (not bucketized)
+        // Bucket the hasBeenOpened indicators
         if(drawData.hasBeenOpened) {
-            push()
-            fill(p.color)
-            ellipse(p.pos.x, p.pos.y, drawData.rad * .17)
-            pop()
-        }
-
-        if(drawData.shouldShowExtra) {
-            p.showCircleHovered()
-            p.showText(bool)
+            let colorKey = p.color.toString()
+            if(!openedIndicators.has(colorKey)) {
+                openedIndicators.set(colorKey, {
+                    color: p.color,
+                    circles: []
+                })
+            }
+            openedIndicators.get(colorKey).circles.push({
+                x: p.pos.x,
+                y: p.pos.y,
+                r: drawData.rad * .17
+            })
         }
     }
 
@@ -382,4 +387,39 @@ function showGraph() {
             customCircle(circle.x, circle.y, circle.r)
         }
     }
+
+    // Draw all opened indicators
+    for(let indicator of openedIndicators.values()) {
+        fill(indicator.color)
+        for(let circle of indicator.circles) {
+            ellipse(circle.x, circle.y, circle.r)
+        }
+    }
+
+    for(let p of particles) {
+        if(hoveredParticle == p) continue
+
+        let bool = false
+        let trans = false
+
+        if(hoveredParticle && (hoveredParticle.relations.length > 1 || hoveredParticle.isParent)) {
+            if(hoveredParticle.relations.includes(p)) {
+                bool = false
+                trans = false
+            }
+            else {
+                bool = false
+                trans = true
+            }
+        }
+
+        let drawData = p.getDrawData(bool, trans)
+        if(!drawData) continue
+
+        if(drawData.shouldShowExtra) {
+            p.showCircleHovered()
+            p.showText(bool)
+        }
+    }
+    pop()
 }
