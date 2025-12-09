@@ -24,5 +24,5 @@ http.createServer((req, res) => {
   // Proxy requests to the target
   proxy.web(req, res);
 }).listen(3000, () => {
-  console.log('Proxy server listening on http://127.0.0.1:3000');
+  console.log('Proxy server listening on http://127.0.0.1:8080');
 });

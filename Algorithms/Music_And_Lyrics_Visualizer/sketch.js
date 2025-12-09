@@ -31,8 +31,8 @@ let first = true
 let curSong = "Mic Audio"
 let lyricsFont 
 
-const clientId = 'e9257a56fba243b9b9317afcbf39156b';
-const redirectUri = 'https://miguelrr11.github.io/Physics_Simulations/Music_And_Lyrics_Visualizer';
+const clientId = 'f46b7b60021f4c3cb8f231289e5a36d4';
+const redirectUri = 'https://miguelrr11.github.io/Algorithms/Music_And_Lyrics_Visualizer';
 let accessToken = '';
 let lyricsArray = null;
 
@@ -327,22 +327,30 @@ async function getCurrentlyPlayingTrack() {
     }
 }
 
-// Fetch Lyrics from Proxy Server
+// Fetch Lyrics using CORS Proxy
 async function fetchLyrics(artist, track) {
     // Remove extra information like "- Remaster" or "(Live)" from the track name
     const cleanedTrack = track.replace(/ *\([^)]*\) */g, "").replace(/ *- [^)]*$/g, "");
 
-    const response = await fetch(`http://127.0.0.1:3000/api/lyrics?q=${encodeURIComponent(cleanedTrack)}`);
-    if (response.ok) {
-        const data = await response.json();
+    // Using CORS proxy to access the lyrics API
+    const corsProxy = 'https://corsproxy.io/?';
+    const apiUrl = `https://api.textyl.co/api/lyrics?q=${encodeURIComponent(cleanedTrack)}`;
 
-        if (Array.isArray(data)) {
-            return data;
+    try {
+        const response = await fetch(corsProxy + encodeURIComponent(apiUrl));
+        if (response.ok) {
+            const data = await response.json();
+
+            if (Array.isArray(data)) {
+                return data;
+            } else {
+                console.error('No lyrics found in the response');
+            }
         } else {
-            console.error('No lyrics found in the response');
+            console.error('Failed to fetch lyrics');
         }
-    } else {
-        console.error('Failed to fetch lyrics');
+    } catch (error) {
+        console.error('Error fetching lyrics:', error);
     }
 }
 

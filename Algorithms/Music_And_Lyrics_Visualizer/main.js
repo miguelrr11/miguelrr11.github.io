@@ -1,6 +1,6 @@
 // main.js
 
-const clientId = 'e9257a56fba243b9b9317afcbf39156b';
+const clientId = 'f46b7b60021f4c3cb8f231289e5a36d4';
 const redirectUri = 'http://127.0.0.1:8080';
 let accessToken = '';
 let lyricsArray = null;
