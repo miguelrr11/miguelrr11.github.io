@@ -32,8 +32,8 @@ let curSong = "Mic Audio"
 let lyricsFont 
 
 const clientId = 'f46b7b60021f4c3cb8f231289e5a36d4';
-//const redirectUri = 'https://miguelrr11.github.io/Algorithms/Music_And_Lyrics_Visualizer';
-const redirectUri = 'http://127.0.0.1:8080';
+const redirectUri = 'https://miguelrr11.github.io/Algorithms/Music_And_Lyrics_Visualizer';
+//const redirectUri = 'http://127.0.0.1:8080';
 let accessToken = '';
 let lyricsArray = null;
 let lastFetchTime = 0;
@@ -51,7 +51,9 @@ let currentSongDuration = 0
 let smoothedProgress = 0
 let lyricsScrollOffset = 0
 let targetScrollOffset = 0
-let smoothedTimeElapsed = 0
+// Timing anchor system - stores exact values when Spotify data is received
+let anchoredProgressMs = 0      // The progress_ms from Spotify at anchor time
+let anchoredTimestamp = 0       // Date.now() when we received that progress
 
 let panel, panel_offset, panel_sensitivity
 
@@ -432,7 +434,7 @@ async function exchangeCodeForToken(code, codeVerifier) {
             accessToken = data.access_token;
             localStorage.setItem('access_token', accessToken);
 
-            // Optionally store refresh token and expiry
+            // Store refresh token and expiry
             if (data.refresh_token) {
                 localStorage.setItem('refresh_token', data.refresh_token);
             }
@@ -446,6 +448,50 @@ async function exchangeCodeForToken(code, codeVerifier) {
     }
 }
 
+// Refresh the access token using the refresh token
+async function refreshAccessToken() {
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (!refreshToken) {
+        console.error('No refresh token available');
+        return false;
+    }
+
+    const payload = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            client_id: clientId,
+            grant_type: 'refresh_token',
+            refresh_token: refreshToken,
+        }),
+    };
+
+    try {
+        const response = await fetch('https://accounts.spotify.com/api/token', payload);
+        const data = await response.json();
+
+        if (data.access_token) {
+            accessToken = data.access_token;
+            localStorage.setItem('access_token', accessToken);
+
+            if (data.refresh_token) {
+                localStorage.setItem('refresh_token', data.refresh_token);
+            }
+            if (data.expires_in) {
+                const expiryTime = Date.now() + (data.expires_in * 1000);
+                localStorage.setItem('token_expiry', expiryTime);
+            }
+            console.log('Token refreshed successfully');
+            return true;
+        }
+    } catch (error) {
+        console.error('Error refreshing token:', error);
+    }
+    return false;
+}
+
 
 
 async function getCurrentlyPlayingTrack() {
@@ -454,6 +500,29 @@ async function getCurrentlyPlayingTrack() {
             'Authorization': `Bearer ${accessToken}`
         }
     });
+
+    if (response.status === 401) {
+        // Token expired, try to refresh
+        console.log('Token expired, attempting refresh...');
+        const refreshed = await refreshAccessToken();
+        if (refreshed) {
+            // Retry the request with new token
+            const retryResponse = await fetch('https://api.spotify.com/v1/me/player/currently-playing', {
+                headers: {
+                    'Authorization': `Bearer ${accessToken}`
+                }
+            });
+            if (retryResponse.ok) {
+                const data = await retryResponse.json();
+                return {
+                    track: data.item,
+                    progress_ms: data.progress_ms
+                };
+            }
+        }
+        return null;
+    }
+
     if (response.ok) {
         const data = await response.json();
         return {
@@ -461,8 +530,9 @@ async function getCurrentlyPlayingTrack() {
             progress_ms: data.progress_ms
         };
     } else {
-        console.error('Failed to fetch currently playing track');
+        console.error('Failed to fetch currently playing track, status:', response.status);
     }
+    return null;
 }
 
 // Get Audio Features including BPM
@@ -543,35 +613,30 @@ async function fetchLyrics(artist, track) {
 
 // Display Lyrics in Console Based on Timestamp
 async function displayLyrics() {
-    // Only fetch from Spotify API once per second to avoid rate limiting
     const now = Date.now();
-    let shouldFetch = false;
 
+    // Fetch from Spotify API once per second to get ground truth
     if (now - lastSpotifyFetchTime >= 1000) {
-        shouldFetch = true;
         const newData = await getCurrentlyPlayingTrack();
-        if (newData) {
+        if (newData && newData.track) {
             cachedTrackData = newData;
             lastSpotifyFetchTime = now;
-            smoothedTimeElapsed = 0; // Reset smoothed time when we get fresh data
+            // Anchor the timing to Spotify's ground truth
+            anchoredProgressMs = newData.progress_ms;
+            anchoredTimestamp = now;
         }
     }
 
     if (!cachedTrackData) return;
 
-    const { track, progress_ms } = cachedTrackData;
+    const { track } = cachedTrackData;
 
-    // Calculate time elapsed since last Spotify fetch
-    const timeElapsed = now - lastSpotifyFetchTime;
+    // Calculate current progress using anchored timing
+    // This is simply: where Spotify said we were + time since then
+    const currentProgress = anchoredProgressMs + (now - anchoredTimestamp);
 
-    // Smooth the time elapsed to reduce jitter
-    smoothedTimeElapsed = lerp(smoothedTimeElapsed, timeElapsed, 0.3);
-
-    // Estimate current progress: last known position + smoothed time elapsed
-    const estimatedProgress = progress_ms + smoothedTimeElapsed;
-
-    // Update global progress variables for UI
-    currentSongProgress = estimatedProgress;
+    // Update global progress for UI (progress bar)
+    currentSongProgress = currentProgress;
 
     if (track) {
         artist = track.artists[0].name;
@@ -584,7 +649,9 @@ async function displayLyrics() {
             lastLyricIndex = -1; // Reset lyric index on track change
             lyricsScrollOffset = 0; // Reset scroll
             targetScrollOffset = 0; // Reset target scroll
-            smoothedTimeElapsed = 0; // Reset smoothed time
+            // Reset timing anchor on track change
+            anchoredProgressMs = 0;
+            anchoredTimestamp = now;
 
             // Fetch BPM when track changes
             const audioFeatures = await getTrackAudioFeatures(trackId);
@@ -603,12 +670,12 @@ async function displayLyrics() {
         }
 
         if (lyricsArray && lyricsArray.length > 0) {
-            // Find the current lyric based on milliseconds using estimated progress
+            // Find the current lyric based on milliseconds using current progress
             let currentIndex = -1;
 
-            // Binary search would be more efficient, but linear search is fine for lyrics
+            // Linear search through lyrics to find current one
             for (let i = 0; i < lyricsArray.length; i++) {
-                if (lyricsArray[i].milliseconds <= estimatedProgress) {
+                if (lyricsArray[i].milliseconds <= currentProgress) {
                     currentIndex = i;
                 } else {
                     break;
