@@ -405,26 +405,50 @@ async function fetchLyrics(artist, track) {
     // Remove extra information like "- Remaster" or "(Live)" from the track name
     const cleanedTrack = track.replace(/ *\([^)]*\) */g, "").replace(/ *- [^)]*$/g, "");
 
-    // Using CORS proxy to access the lyrics API
-    const corsProxy = 'https://corsproxy.io/?';
+    // Try multiple CORS proxies in order of preference
+    const corsProxies = [
+        'https://api.allorigins.win/raw?url=',
+        'https://cors-anywhere.herokuapp.com/',
+        'https://corsproxy.io/?'
+    ];
+
     const apiUrl = `https://api.textyl.co/api/lyrics?q=${encodeURIComponent(cleanedTrack)}`;
 
-    try {
-        const response = await fetch(corsProxy + encodeURIComponent(apiUrl));
-        if (response.ok) {
-            const data = await response.json();
-
-            if (Array.isArray(data)) {
-                return data;
+    for (let proxy of corsProxies) {
+        try {
+            let fetchUrl;
+            if (proxy.includes('allorigins')) {
+                fetchUrl = proxy + encodeURIComponent(apiUrl);
+            } else if (proxy.includes('corsproxy')) {
+                fetchUrl = proxy + encodeURIComponent(apiUrl);
             } else {
-                console.error('No lyrics found in the response');
+                fetchUrl = proxy + apiUrl;
             }
-        } else {
-            console.error('Failed to fetch lyrics');
+
+            const response = await fetch(fetchUrl, {
+                headers: {
+                    'Accept': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+
+                if (Array.isArray(data)) {
+                    console.log('Lyrics fetched successfully using:', proxy);
+                    return data;
+                } else {
+                    console.error('No lyrics found in the response');
+                }
+            }
+        } catch (error) {
+            console.log(`Failed with ${proxy}, trying next proxy...`, error);
+            continue;
         }
-    } catch (error) {
-        console.error('Error fetching lyrics:', error);
     }
+
+    console.error('Failed to fetch lyrics from all proxies');
+    return null;
 }
 
 // Display Lyrics in Console Based on Timestamp
