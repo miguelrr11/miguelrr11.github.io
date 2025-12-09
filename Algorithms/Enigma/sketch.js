@@ -5,7 +5,7 @@
 p5.disableFriendlyErrors = true
 const WIDTH = 900
 const HEIGHT = 850
-const WIDTHUI = 400
+const WIDTHUI = 450
 
 const wPlug = 37
 const hPlug = 78
@@ -63,6 +63,14 @@ let plugging = undefined
 let reverse = false
 let anglePlug = Math.PI / 4
 let lastPlug = undefined
+
+function debugConsoleLog(){
+    console.log(buttonReplace)
+    console.log(buttonReplaceOn)
+    console.log(plugging)
+    console.log(reverse)
+    console.log(lastPlug)
+}
 
 function mouseReleased(){
     buttonReplaceOn = false
@@ -122,6 +130,7 @@ async function setup(){
     let y = (windowHeight - height) / 2;
     canvas.position(x, y);
     font = await loadFont('font.otf')
+    console.log('loaded')
     textFont(font)
 
     //if browser is safari set offT to -5
@@ -201,6 +210,9 @@ function draw(){
             strokeWeight(12)
             line(p1.pos.x, p1.pos.y, p2.pos.x, p2.pos.y)
         }
+        if(plugging){
+            drawPlug({x: mouseX - wPlug * 0.5, y: mouseY - hPlug * 0.5, char: '1'})
+        }
         pop()
     }
 
@@ -234,34 +246,27 @@ function mouseClicked(){
                     createPhysicalConnection(plugging)
                 }
                 else if(!plugging && button.plugged){
-                    //removePlug(button.char)
                     button.plugged = false
-                    // set plugging to the other button of the connection
+                    // find and mark the other button as unplugged
                     for(let [a, b] of plugBoard.entries()){
                         if(a == button.char || b == button.char){
-                            plugging = plugButtons.find(btn => btn.char === (a == button.char ? b : a));
+                            let otherButton = plugButtons.find(btn => btn.char === (a == button.char ? b : a));
+                            if(otherButton) otherButton.plugged = false
                             break;
                         }
                     }
                     removePlug(button.char)
+                    // remove the physical connection completely
                     for(let i = physicalConnections.length - 1; i >= 0; i--){
                         let connection = physicalConnections[i]
-                        if(connection.charA == button.char){
-                            let lastParticle = connection.particles[0]
-                            connection.moving = lastParticle
-                            reverse = true
-                            //put that connection at the end of the array
-                            physicalConnections.push(physicalConnections.splice(i, 1)[0]);
-                            break
-                        }
-                        else if(connection.charB == button.char){
-                            let lastParticle = connection.particles[connection.particles.length - 1]
-                            connection.moving = lastParticle
-                            reverse = false
-                            physicalConnections.push(physicalConnections.splice(i, 1)[0]);
+                        if(connection.charA == button.char || connection.charB == button.char){
+                            physicalConnections.splice(i, 1)
                             break
                         }
                     }
+                    // don't set plugging - let user start fresh
+                    plugging = undefined
+                    reverse = false
                 }
                 else if(plugging && button.plugged){
                     //check if button is the same as plugging
@@ -594,7 +599,7 @@ function drawUI(){
     line(WIDTH + 30, 80, width - 30, 80)
 
     noStroke()
-    textSize(13)
+    textSize(14)
     textAlign(LEFT, TOP)
     text(desc, WIDTH + WIDTHUI * 0.5, 95, WIDTHUI-70)
 
@@ -614,8 +619,8 @@ function drawUI(){
 
     stroke(darkCol)
     strokeWeight(3)
-    line(WIDTH + 40, 520, WIDTH + 40, 610)
-    drawArrowTip(WIDTH + 40, 610, -PI / 2, 20)
+    // line(WIDTH + 40, 520, WIDTH + 40, 610)
+    // drawArrowTip(WIDTH + 40, 610, -PI / 2, 20)
 
     strokeWeight(1.5)
     noStroke()
@@ -624,27 +629,28 @@ function drawUI(){
     let wChar = textWidth('A')
     let hChar = -6
     push()
+    let offX = WIDTH + 35
     for(let i = 0; i < 5; i++){
         noFill()
         stroke(darkCol)
-        ellipse(WIDTH + 70 + wChar * 7 * i + 5, 525 - hChar + 1, 23)
+        ellipse(offX + wChar * 7 * i + 5, 525 - hChar + 1, 23)
         noStroke()
         fill(darkCol)
         textSize(17)
         textAlign(LEFT)
-        text(transformation[i], WIDTH + 70 + wChar * 7 * i, 525 + offY)
+        text(transformation[i], offX + wChar * 7 * i, 525 + offY)
         textSize(10)
         textAlign(CENTER)
-        if(i < 4) text(transformationPhases[i], WIDTH + 70 + wChar * 7 * (i + 0.5), 512 + offY)
+        if(i < 4) text(transformationPhases[i], offX + wChar * 7 * (i + 0.5), 512 + offY)
         else {
             textAlign(RIGHT)
-            text(transformationPhases[i], WIDTH + 70 + wChar * 7 * (i) - 10, 552 + offY)
+            text(transformationPhases[i], offX + wChar * 7 * (i) - 10, 552 + offY)
         } 
         stroke(darkCol)
-        if(i < 4) drawArrow('right', WIDTH + 70 + wChar * (i + 0.25) * 7, 525 - hChar)
-        else drawArrow('down', WIDTH + 70 + wChar * (i) * 7 + wChar * 0.5, 550 + hChar, 22)
+        if(i < 4) drawArrow('right', offX + wChar * (i + 0.25) * 7 - 6, 525 - hChar, 60)
+        else drawArrow('down', offX + wChar * (i) * 7 + wChar * 0.5, 550 + hChar, 22)
     }
-    let startX = WIDTH + 70 + wChar * 7 * 4
+    let startX = offX + wChar * 7 * 4
     for (let i = 5; i < transformation.length; i++) {
         let pos = i - 5
         let x = startX - wChar * 7 * pos;
@@ -664,7 +670,7 @@ function drawUI(){
 
         if (i < transformation.length - 1) {
             stroke(darkCol)
-            drawArrow('left', x - wChar * 0.5, 575 - hChar);
+            drawArrow('left', x - wChar * 0.5, 575 - hChar, 60);
         }
     }
     pop()
