@@ -32,7 +32,8 @@ let curSong = "Mic Audio"
 let lyricsFont 
 
 const clientId = 'f46b7b60021f4c3cb8f231289e5a36d4';
-const redirectUri = 'https://miguelrr11.github.io/Algorithms/Music_And_Lyrics_Visualizer';
+//const redirectUri = 'https://miguelrr11.github.io/Algorithms/Music_And_Lyrics_Visualizer';
+const redirectUri = 'http://127.0.0.1:8080';
 let accessToken = '';
 let lyricsArray = null;
 let lastFetchTime = 0;
@@ -41,6 +42,16 @@ let curLyrics, nextLyrics, timeCurLyrics
 let currentTrackName = ""
 let artist = ""
 let dtCurLyrics = 0
+let bpm = 0
+let lastLyricIndex = -1
+let cachedTrackData = null
+let lastSpotifyFetchTime = 0
+let currentSongProgress = 0
+let currentSongDuration = 0
+let smoothedProgress = 0
+let lyricsScrollOffset = 0
+let targetScrollOffset = 0
+let smoothedTimeElapsed = 0
 
 let panel, panel_offset, panel_sensitivity
 
@@ -79,26 +90,23 @@ function setup(){
     angleMode(DEGREES)
     noFill()
     
-    cnv.mousePressed(() => {
-        if(first){
-            song.play()
-            song.stop()
-            mic.start()
-        }
-        first = false
-    })
+    // cnv.mousePressed(() => {
+    //     if(first){
+    //         song.play()
+    //         song.stop()
+    //         mic.start()
+    //     }
+    //     first = false
+    // })
 
     fft128.setInput(mic)
     fft256.setInput(mic)
     fftSmall.setInput(mic)
 
-
     noCursor()
     resetInactivityTimer()   
 
-    
 }
-
 
 function resetInactivityTimer() {
     clearTimeout(inactivityTimer);
@@ -245,21 +253,61 @@ function draw(){
 
     //Lyrics
     push()
-    if(curLyrics){
-        translate(width / 2, height / 2)
+    if(lyricsArray && lastLyricIndex !== -1){
+        translate(width / 2, height / 2 + 20)
+
+        // Smooth scroll animation
+        lyricsScrollOffset = lerp(lyricsScrollOffset, targetScrollOffset, 0.15)
+        translate(0, lyricsScrollOffset)
+
         textFont(lyricsFont)
         textAlign(CENTER, CENTER)
-        let size = map(easeOutCirc(map(dtCurLyrics, 0, timeCurLyrics, 0, 1)), 0, 1, 15, 55)
-        textSize(size)
         noStroke()
-        let smoothVal = easeOutExpo(map(dtCurLyrics, 0, timeCurLyrics, 0, 1))
-        let mappedSmoothVal = smoothVal < 0.95 
-            ? map(smoothVal, 0, 0.95, 0, 255) 
-            : map(smoothVal, 0.95, 1, 255, -10)
-        fill(255, mappedSmoothVal)
-        let amtShaking = map(easeOutExpo(map(amp, 0, 255, 0, 1)), 0, 1, -2, 2)
+
+        const lineSpacing = 60
+        const numPreviousLines = 4
+        const numNextLines = 4
+
+        // Calculate progress for current lyric animation
+        let progress = timeCurLyrics > 0 ? map(dtCurLyrics, 0, timeCurLyrics, 0, 1, true) : 0
+
+        // Draw previous lyrics (above current)
+        for(let i = numPreviousLines; i >= 1; i--){
+            let index = lastLyricIndex - i
+            if(index >= 0 && index < lyricsArray.length){
+                let yPos = -i * lineSpacing
+                let alpha = map(i, numPreviousLines, 0, 30, 120)
+                textSize(25)
+                fill(255, alpha)
+                text(lyricsArray[index].lyrics, 0, yPos)
+            }
+        }
+
+        // Draw current lyric (center, animated)
+        push()
+        let size = map(easeOutCirc(progress), 0, 1, 35, 50)
+        textSize(size)
+        let smoothVal = easeOutExpo(progress)
+        let alpha = smoothVal < 0.95
+            ? map(smoothVal, 0, 0.95, 180, 255)
+            : map(smoothVal, 0.95, 1, 255, 180)
+        fill(255, alpha)
+        let amtShaking = map(easeOutExpo(map(amp, 0, 255, 0, 1)), 0, 1, -1, 1)
         rotate(map(sin(frameCount), 0, 1, -amtShaking, amtShaking))
-        text(curLyrics, 0, 0)
+        text(lyricsArray[lastLyricIndex].lyrics == ' ' ? '...' : lyricsArray[lastLyricIndex].lyrics, 0, 0)
+        pop()
+
+        // Draw next lyrics (below current)
+        for(let i = 1; i <= numNextLines; i++){
+            let index = lastLyricIndex + i
+            if(index < lyricsArray.length){
+                let yPos = i * lineSpacing
+                let alpha = map(i, 1, numNextLines, 120, 30)
+                textSize(25)
+                fill(255, alpha)
+                text(lyricsArray[index].lyrics == ' ' ? '...' : lyricsArray[index].lyrics, 0, yPos)
+            }
+        }
     }
     pop()
     push()
@@ -268,8 +316,24 @@ function draw(){
     textAlign(LEFT, CENTER)
     textFont(lyricsFont)
     textSize(15)
-    let plus = lyricsArray == null ? " - Lyrics not available" : ""
-    text(currentTrackName + " - " + artist + plus, 20, height - 20)
+    let displayText = ""
+    if (!accessToken) {
+        displayText = "Click to log in"
+    } else if (currentTrackName) {
+        let plus = lyricsArray == null ? " - Lyrics not available" : ""
+        displayText = currentTrackName + " - " + artist + plus
+    }
+    text(displayText, 20, height - 20)
+    pop()
+
+    push()
+    if(currentSongDuration > 0){
+        // Smooth the progress bar animation
+        smoothedProgress = lerp(smoothedProgress, currentSongProgress, 0.1)
+        fill(255, 80)
+        let progress = map(smoothedProgress, 0, currentSongDuration, 0, width, true)
+        rect(0, height - 5, progress, 5)
+    }
     pop()
 
     // if(showing){
@@ -341,7 +405,7 @@ window.addEventListener('load', async () => {
     }
 
     if (accessToken) {
-        setInterval(displayLyrics, 1000); // Check and display lyrics every second
+        setInterval(displayLyrics, 100); // Check and display lyrics every 100ms for better sync
     }
 });
 
@@ -401,6 +465,22 @@ async function getCurrentlyPlayingTrack() {
     }
 }
 
+// Get Audio Features including BPM
+async function getTrackAudioFeatures(trackId) {
+    const response = await fetch(`https://api.spotify.com/v1/audio-features/${trackId}`, {
+        headers: {
+            'Authorization': `Bearer ${accessToken}`
+        }
+    });
+    if (response.ok) {
+        const data = await response.json();
+        return data;
+    } else {
+        console.error('Failed to fetch audio features, status:', response.status);
+        return null;
+    }
+}
+
 // Fetch Lyrics using lrclib.net API
 async function fetchLyrics(artist, track) {
     // Rate limiting: maximum 1 call per second
@@ -425,9 +505,10 @@ async function fetchLyrics(artist, track) {
 
         if (response.ok) {
             const data = await response.json();
+            console.log(data)
 
             if (data.syncedLyrics) {
-                // Parse the synced lyrics format [mm:ss.xx] lyrics text
+                // Parse the synced lyrics format [mm:ss.xx] lyrics text with millisecond precision
                 const lyricsArray = data.syncedLyrics.split('\n')
                     .filter(line => line.trim())
                     .map(line => {
@@ -435,9 +516,9 @@ async function fetchLyrics(artist, track) {
                         if (match) {
                             const minutes = parseInt(match[1]);
                             const seconds = parseFloat(match[2]);
-                            const totalSeconds = Math.floor(minutes * 60 + seconds);
+                            const totalMilliseconds = Math.floor((minutes * 60 + seconds) * 1000);
                             return {
-                                seconds: totalSeconds,
+                                milliseconds: totalMilliseconds,
                                 lyrics: match[3]
                             };
                         }
@@ -462,13 +543,55 @@ async function fetchLyrics(artist, track) {
 
 // Display Lyrics in Console Based on Timestamp
 async function displayLyrics() {
-    const { track, progress_ms } = await getCurrentlyPlayingTrack();
+    // Only fetch from Spotify API once per second to avoid rate limiting
+    const now = Date.now();
+    let shouldFetch = false;
+
+    if (now - lastSpotifyFetchTime >= 1000) {
+        shouldFetch = true;
+        const newData = await getCurrentlyPlayingTrack();
+        if (newData) {
+            cachedTrackData = newData;
+            lastSpotifyFetchTime = now;
+            smoothedTimeElapsed = 0; // Reset smoothed time when we get fresh data
+        }
+    }
+
+    if (!cachedTrackData) return;
+
+    const { track, progress_ms } = cachedTrackData;
+
+    // Calculate time elapsed since last Spotify fetch
+    const timeElapsed = now - lastSpotifyFetchTime;
+
+    // Smooth the time elapsed to reduce jitter
+    smoothedTimeElapsed = lerp(smoothedTimeElapsed, timeElapsed, 0.3);
+
+    // Estimate current progress: last known position + smoothed time elapsed
+    const estimatedProgress = progress_ms + smoothedTimeElapsed;
+
+    // Update global progress variables for UI
+    currentSongProgress = estimatedProgress;
+
     if (track) {
         artist = track.artists[0].name;
         const trackName = track.name;
+        const trackId = track.id;
+        currentSongDuration = track.duration_ms;
 
         if (trackName && currentTrackName !== trackName) {
             currentTrackName = trackName;
+            lastLyricIndex = -1; // Reset lyric index on track change
+            lyricsScrollOffset = 0; // Reset scroll
+            targetScrollOffset = 0; // Reset target scroll
+            smoothedTimeElapsed = 0; // Reset smoothed time
+
+            // Fetch BPM when track changes
+            const audioFeatures = await getTrackAudioFeatures(trackId);
+            if (audioFeatures && audioFeatures.tempo) {
+                bpm = Math.round(audioFeatures.tempo);
+                console.log(`BPM for "${trackName}": ${bpm}`);
+            }
         }
 
         // Fetch lyrics only if not already fetched or if track changes
@@ -479,18 +602,55 @@ async function displayLyrics() {
             }
         }
 
-        if (lyricsArray) {
-            const currentSeconds = Math.floor((progress_ms) / 1000);
-            const currentIndex = lyricsArray.findIndex(lyric => lyric.seconds === currentSeconds);
-            const currentLyrics = currentIndex !== -1 ? lyricsArray[currentIndex] : null;
-            nextLyrics = currentIndex !== -1 && currentIndex < lyricsArray.length - 1 ? lyricsArray[currentIndex + 1] : null;
+        if (lyricsArray && lyricsArray.length > 0) {
+            // Find the current lyric based on milliseconds using estimated progress
+            let currentIndex = -1;
 
+            // Binary search would be more efficient, but linear search is fine for lyrics
+            for (let i = 0; i < lyricsArray.length; i++) {
+                if (lyricsArray[i].milliseconds <= estimatedProgress) {
+                    currentIndex = i;
+                } else {
+                    break;
+                }
+            }
 
-            if (currentLyrics) {
+            // Ensure we have a valid index
+            if (currentIndex === -1 && lyricsArray.length > 0) {
+                currentIndex = 0; // Default to first lyric if we're before the first timestamp
+            }
+
+            // Only update if the lyric index has changed and is valid
+            if (currentIndex !== -1 && currentIndex !== lastLyricIndex && currentIndex < lyricsArray.length) {
+                const lineSpacing = 60
+
+                if (lastLyricIndex === -1) {
+                    // First lyric load - no animation
+                    targetScrollOffset = 0
+                    lyricsScrollOffset = 0
+                } else {
+                    // Start scroll from below (positive offset) and animate to 0
+                    // This creates the effect of the new lyric scrolling up into position
+                    lyricsScrollOffset = lineSpacing
+                    targetScrollOffset = 0
+                }
+
+                lastLyricIndex = currentIndex;
+
+                const currentLyrics = lyricsArray[currentIndex];
+                nextLyrics = currentIndex < lyricsArray.length - 1 ? lyricsArray[currentIndex + 1] : null;
+
                 curLyrics = currentLyrics.lyrics
                 curLyrics = wrapText(curLyrics, 200, 40, lyricsFont)
                 dtCurLyrics = 0
-                timeCurLyrics = nextLyrics.seconds - currentLyrics.seconds
+
+                if (nextLyrics) {
+                    const timeDiff = nextLyrics.milliseconds - currentLyrics.milliseconds
+                    timeCurLyrics = timeDiff > 0 ? timeDiff / 1000 : 5;
+                } else {
+                    // If no next lyric, set a default duration
+                    timeCurLyrics = 5;
+                }
             }
         }
     }

@@ -70,7 +70,7 @@ async function fetchLyrics(artist, track) {
             const data = await response.json();
 
             if (data.syncedLyrics) {
-                // Parse the synced lyrics format [mm:ss.xx] lyrics text
+                // Parse the synced lyrics format [mm:ss.xx] lyrics text with millisecond precision
                 const lyricsArray = data.syncedLyrics.split('\n')
                     .filter(line => line.trim())
                     .map(line => {
@@ -78,9 +78,9 @@ async function fetchLyrics(artist, track) {
                         if (match) {
                             const minutes = parseInt(match[1]);
                             const seconds = parseFloat(match[2]);
-                            const totalSeconds = Math.floor(minutes * 60 + seconds);
+                            const totalMilliseconds = Math.floor((minutes * 60 + seconds) * 1000);
                             return {
-                                seconds: totalSeconds,
+                                milliseconds: totalMilliseconds,
                                 lyrics: match[3]
                             };
                         }
@@ -119,8 +119,15 @@ async function displayLyrics() {
         }
 
         if (lyricsArray) {
-            const currentSeconds = Math.floor(progress_ms / 1000);
-            const currentLyric = lyricsArray.find(lyric => lyric.seconds === currentSeconds);
+            // Find the current lyric based on milliseconds
+            let currentLyric = null;
+            for (let i = 0; i < lyricsArray.length; i++) {
+                if (lyricsArray[i].milliseconds <= progress_ms) {
+                    currentLyric = lyricsArray[i];
+                } else {
+                    break;
+                }
+            }
 
             if (currentLyric) {
                 console.log(currentLyric.lyrics);
