@@ -35,6 +35,7 @@ const clientId = 'f46b7b60021f4c3cb8f231289e5a36d4';
 const redirectUri = 'https://miguelrr11.github.io/Algorithms/Music_And_Lyrics_Visualizer';
 let accessToken = '';
 let lyricsArray = null;
+let lastFetchTime = 0;
 
 let curLyrics, nextLyrics, timeCurLyrics
 let currentTrackName = ""
@@ -400,54 +401,62 @@ async function getCurrentlyPlayingTrack() {
     }
 }
 
-// Fetch Lyrics using CORS Proxy
+// Fetch Lyrics using lrclib.net API
 async function fetchLyrics(artist, track) {
+    // Rate limiting: maximum 1 call per second
+    const now = Date.now();
+    if (now - lastFetchTime < 1000) {
+        console.log('Rate limit: skipping fetch, too soon since last call');
+        return null;
+    }
+    lastFetchTime = now;
+
     // Remove extra information like "- Remaster" or "(Live)" from the track name
     const cleanedTrack = track.replace(/ *\([^)]*\) */g, "").replace(/ *- [^)]*$/g, "");
 
-    // Try multiple CORS proxies in order of preference
-    const corsProxies = [
-        'https://api.allorigins.win/raw?url=',
-        'https://cors-anywhere.herokuapp.com/',
-        'https://corsproxy.io/?'
-    ];
+    const apiUrl = `https://lrclib.net/api/get?track_name=${encodeURIComponent(cleanedTrack)}&artist_name=${encodeURIComponent(artist)}`;
 
-    const apiUrl = `https://api.textyl.co/api/lyrics?q=${encodeURIComponent(cleanedTrack)}`;
+    try {
+        const response = await fetch(apiUrl, {
+            headers: {
+                'Accept': 'application/json'
+            }
+        });
 
-    for (let proxy of corsProxies) {
-        try {
-            let fetchUrl;
-            if (proxy.includes('allorigins')) {
-                fetchUrl = proxy + encodeURIComponent(apiUrl);
-            } else if (proxy.includes('corsproxy')) {
-                fetchUrl = proxy + encodeURIComponent(apiUrl);
+        if (response.ok) {
+            const data = await response.json();
+
+            if (data.syncedLyrics) {
+                // Parse the synced lyrics format [mm:ss.xx] lyrics text
+                const lyricsArray = data.syncedLyrics.split('\n')
+                    .filter(line => line.trim())
+                    .map(line => {
+                        const match = line.match(/\[(\d+):(\d+\.\d+)\]\s*(.+)/);
+                        if (match) {
+                            const minutes = parseInt(match[1]);
+                            const seconds = parseFloat(match[2]);
+                            const totalSeconds = Math.floor(minutes * 60 + seconds);
+                            return {
+                                seconds: totalSeconds,
+                                lyrics: match[3]
+                            };
+                        }
+                        return null;
+                    })
+                    .filter(item => item !== null);
+
+                console.log('Lyrics fetched successfully from lrclib.net');
+                return lyricsArray;
             } else {
-                fetchUrl = proxy + apiUrl;
+                console.error('No synced lyrics found in the response');
             }
-
-            const response = await fetch(fetchUrl, {
-                headers: {
-                    'Accept': 'application/json'
-                }
-            });
-
-            if (response.ok) {
-                const data = await response.json();
-
-                if (Array.isArray(data)) {
-                    console.log('Lyrics fetched successfully using:', proxy);
-                    return data;
-                } else {
-                    console.error('No lyrics found in the response');
-                }
-            }
-        } catch (error) {
-            console.log(`Failed with ${proxy}, trying next proxy...`, error);
-            continue;
+        } else {
+            console.error('Failed to fetch lyrics:', response.status);
         }
+    } catch (error) {
+        console.error('Error fetching lyrics:', error);
     }
 
-    console.error('Failed to fetch lyrics from all proxies');
     return null;
 }
 
