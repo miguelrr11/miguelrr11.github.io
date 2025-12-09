@@ -285,27 +285,100 @@ function easeOutExpo(x){
     return x === 1 ? 1 : 1 - Math.pow(2, -10 * x);
 }
 
-function mouseClicked(){
+// PKCE Helper Functions
+function generateRandomString(length) {
+    const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    const values = crypto.getRandomValues(new Uint8Array(length));
+    return values.reduce((acc, x) => acc + possible[x % possible.length], "");
+}
+
+async function sha256(plain) {
+    const encoder = new TextEncoder();
+    const data = encoder.encode(plain);
+    return window.crypto.subtle.digest('SHA-256', data);
+}
+
+function base64encode(input) {
+    return btoa(String.fromCharCode(...new Uint8Array(input)))
+        .replace(/=/g, '')
+        .replace(/\+/g, '-')
+        .replace(/\//g, '_');
+}
+
+async function generateCodeChallenge(codeVerifier) {
+    const hashed = await sha256(codeVerifier);
+    return base64encode(hashed);
+}
+
+async function mouseClicked(){
     if(!accessToken){
-        const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=token&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user-read-playback-state`;
+        const codeVerifier = generateRandomString(64);
+        const codeChallenge = await generateCodeChallenge(codeVerifier);
+
+        // Store code verifier for later use
+        localStorage.setItem('code_verifier', codeVerifier);
+
+        const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user-read-playback-state&code_challenge_method=S256&code_challenge=${codeChallenge}`;
         window.location.href = authUrl;
     }
 }
 
-window.addEventListener('load', () => {
-    accessToken = getAccessTokenFromUrl();
+window.addEventListener('load', async () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const code = urlParams.get('code');
+
+    if (code) {
+        // Exchange code for token
+        const codeVerifier = localStorage.getItem('code_verifier');
+        await exchangeCodeForToken(code, codeVerifier);
+
+        // Clean up URL
+        window.history.replaceState({}, document.title, window.location.pathname);
+    } else {
+        // Check if we already have a token
+        accessToken = localStorage.getItem('access_token');
+    }
+
     if (accessToken) {
         setInterval(displayLyrics, 1000); // Check and display lyrics every second
     }
 });
 
-function getAccessTokenFromUrl() {
-    const hash = window.location.hash;
-    if (hash) {
-        const params = new URLSearchParams(hash.substring(1));
-        return params.get('access_token');
+async function exchangeCodeForToken(code, codeVerifier) {
+    const payload = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        body: new URLSearchParams({
+            client_id: clientId,
+            grant_type: 'authorization_code',
+            code: code,
+            redirect_uri: redirectUri,
+            code_verifier: codeVerifier,
+        }),
+    };
+
+    try {
+        const response = await fetch('https://accounts.spotify.com/api/token', payload);
+        const data = await response.json();
+
+        if (data.access_token) {
+            accessToken = data.access_token;
+            localStorage.setItem('access_token', accessToken);
+
+            // Optionally store refresh token and expiry
+            if (data.refresh_token) {
+                localStorage.setItem('refresh_token', data.refresh_token);
+            }
+            if (data.expires_in) {
+                const expiryTime = Date.now() + (data.expires_in * 1000);
+                localStorage.setItem('token_expiry', expiryTime);
+            }
+        }
+    } catch (error) {
+        console.error('Error exchanging code for token:', error);
     }
-    return null;
 }
 
 
