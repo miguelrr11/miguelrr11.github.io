@@ -144,6 +144,7 @@ async function fetchLyrics(artist, track) {
                             const minutes = parseInt(match[1]);
                             const seconds = parseFloat(match[2]);
                             const totalMilliseconds = Math.floor((minutes * 60 + seconds) * 1000);
+                            console.log(match[3])
                             return {
                                 milliseconds: totalMilliseconds,
                                 lyrics: match[3]
@@ -154,6 +155,7 @@ async function fetchLyrics(artist, track) {
                     .filter(item => item !== null);
 
                 console.log('Lyrics fetched successfully from lrclib.net');
+                console.log(lyricsArray)
                 return lyricsArray;
             } else {
                 console.error('No synced lyrics found in the response');
