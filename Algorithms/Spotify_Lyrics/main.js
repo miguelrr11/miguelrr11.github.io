@@ -16,10 +16,12 @@ async function mouseClicked(){
         // Store code verifier for later use
         localStorage.setItem('code_verifier', codeVerifier);
 
-        const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user-read-playback-state&code_challenge_method=S256&code_challenge=${codeChallenge}`;
+        const authUrl = `https://accounts.spotify.com/authorize?client_id=${clientId}&response_type=code&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user-read-playback-state%20user-modify-playback-state%20user-top-read&code_challenge_method=S256&code_challenge=${codeChallenge}`;
         window.location.href = authUrl;
     }
 }
+
+
 
 // PKCE Helper Functions
 function generateRandomString(length) {
