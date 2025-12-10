@@ -17,7 +17,13 @@ class Song{
         this.isPlaying = isPlaying
 
         this.playbackRate = 1.0
-        this.driftSmoothingFactor = .3
+        this.driftSmoothingFactor = .3   //0.3
+
+        // Offset in ms to delay lyrics (positive = lyrics appear later)
+        // Adjust this value if lyrics still appear early/late
+        this.lyricsOffset = 1000
+
+        this.colLyricsMult = 0
     }
 
     async fetchGenres(){
@@ -49,14 +55,7 @@ class Song{
         this.lyricsState = this.lyrics && this.lyrics.length > 0 ? 'found' : 'not found'
         this.curLyricsIdx = 0
         if(this.lyrics && this.lyrics.length > 0){
-            for(let i = 0; i < this.lyrics.length; i++){
-                if(this.lyrics[i].milliseconds <= this.estimatedProgress_ms){
-                    this.curLyricsIdx = i
-                }
-                else{
-                    break
-                }
-            }
+            this.syncLyricsIndex()
         }
     }
 
@@ -78,17 +77,7 @@ class Song{
                 this.lastTimeUpdatedProgress = Date.now()
 
                 // Update current lyrics index
-                this.curLyricsIdx = 0
-                if(this.lyrics && this.lyrics.length > 0){
-                    for(let i = 0; i < this.lyrics.length; i++){
-                        if(this.lyrics[i].milliseconds <= this.estimatedProgress_ms){
-                            this.curLyricsIdx = i
-                        }
-                        else{
-                            break
-                        }
-                    }
-                }
+                this.syncLyricsIndex()
             }
         }
         catch(error){
@@ -100,7 +89,6 @@ class Song{
         if(!this.lyrics || this.lyrics.length == 0) return
         push()
         let spacingBetweenLines = 105
-        fill(255)
         textAlign(CENTER, CENTER)
         rectMode(CENTER)
         for(let i = 0; i < this.lyrics.length; i++){
@@ -108,12 +96,12 @@ class Song{
             if(Math.abs(multiplier) > 5) continue
             if(i == this.curLyricsIdx){ 
                 textFont(bold)
-                fill(255)
+                fill(255 * this.colLyricsMult)
                 textSize(32)
             }
             else{ 
                 textFont(reg)
-                fill(map(Math.abs(multiplier), 0, 5, 255, 0))
+                fill(map(Math.abs(multiplier), 0, 5, 255, 0) * this.colLyricsMult)
                 textSize(map(Math.abs(multiplier), 0, 5, 32, 8))
             }
             let maxWidth = map(Math.abs(multiplier), 0, 5, 600, 150)
@@ -146,17 +134,47 @@ class Song{
         this.curLyricsIdxSmooth = lerp(this.curLyricsIdxSmooth, this.curLyricsIdx, 0.1)
         let timeElapsed = Date.now() - this.lastTimeUpdatedProgress
         let newEstimate = this.isPlaying ? this.progress_ms + (timeElapsed * this.playbackRate) : this.progress_ms
-        this.estimatedProgress_ms = Math.max(this.estimatedProgress_ms, newEstimate)
+        // Allow estimatedProgress to decrease when correcting drift (removed Math.max)
+        this.estimatedProgress_ms = newEstimate
 
         if(!this.lyrics || this.lyrics.length == 0) return
-        if(this.lyrics[this.curLyricsIdx+1] && this.estimatedProgress_ms >= this.lyrics[this.curLyricsIdx+1].milliseconds){
+        else if(this.lyrics && this.lyrics.length > 0) this.colLyricsMult = lerp(this.colLyricsMult, 1, 0.05)
+        // Apply lyrics offset to delay lyric advancement
+        let adjustedProgress = this.estimatedProgress_ms - this.lyricsOffset
+        if(this.lyrics[this.curLyricsIdx+1] && adjustedProgress >= this.lyrics[this.curLyricsIdx+1].milliseconds){
             this.curLyricsIdx++
         }
     }
 
     correctDrift(realProgress_ms){
         let error = realProgress_ms - this.estimatedProgress_ms
-        this.playbackRate += error * this.driftSmoothingFactor / 10000
-        this.playbackRate = Math.max(0.95, Math.min(1.05, this.playbackRate))
+        console.log("Drift error: " + error.toFixed(2) + " ms")
+
+        // Directly correct large drifts (> 200ms) immediately
+        if(Math.abs(error) > 200){
+            this.estimatedProgress_ms = realProgress_ms
+            this.playbackRate = 1.0
+            // Re-sync lyrics index when making large corrections
+            this.syncLyricsIndex()
+        }
+        else{
+            // For smaller drifts, use gradual playback rate adjustment
+            this.playbackRate += error * this.driftSmoothingFactor / 10000
+            this.playbackRate = Math.max(0.95, Math.min(1.05, this.playbackRate))
+        }
+    }
+
+    syncLyricsIndex(){
+        if(!this.lyrics || this.lyrics.length == 0) return
+        let adjustedProgress = this.estimatedProgress_ms - this.lyricsOffset
+        this.curLyricsIdx = 0
+        for(let i = 0; i < this.lyrics.length; i++){
+            if(this.lyrics[i].milliseconds <= adjustedProgress){
+                this.curLyricsIdx = i
+            }
+            else{
+                break
+            }
+        }
     }
 }

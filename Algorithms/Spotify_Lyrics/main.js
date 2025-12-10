@@ -8,7 +8,15 @@ let lastFetchTime = 0;
 let hasAccess = false
 
 
-async function mouseClicked(){
+function mouseClicked(){
+    login()
+}
+
+function touchEnded(){
+    login()
+}
+
+async function login(){
     if(!accessToken){
         const codeVerifier = generateRandomString(64);
         const codeChallenge = await generateCodeChallenge(codeVerifier);

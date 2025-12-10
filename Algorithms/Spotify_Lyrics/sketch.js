@@ -7,11 +7,13 @@ let WIDTH = 600
 let HEIGHT = 600
 
 const CHECK_NEW_SONG_MS = 1000
+const CHECK_QUEUE_MS = 15000
 
 let song
 let queue = []
 
 let lastTimeCheckIfNewSong = 0
+let lastTimeCheckQueue = 0
 
 let bold, reg, thin
 
@@ -29,7 +31,7 @@ async function setup(){
 }
 
 function draw(){
-    background(0)
+    background(5)
 
     updateTopo()
     push()
@@ -140,7 +142,13 @@ async function checkIfNewSong(){
     if(!hasAccess || Math.abs(lastTimeCheckIfNewSong - Date.now()) < CHECK_NEW_SONG_MS) return
     let requestStartTime = Date.now()
     lastTimeCheckIfNewSong = requestStartTime
-    queue = await getQueue()
+
+    let updatedQueue = false
+    if(hasAccess && Math.abs(lastTimeCheckQueue - Date.now()) >= CHECK_QUEUE_MS) {
+        queue = await getQueue()
+        lastTimeCheckQueue = Date.now()
+        updatedQueue = true
+    }
     let curSong = await getCurrentlyPlayingTrack()
     let requestEndTime = Date.now()
     let halfRoundTripTime = (requestEndTime - requestStartTime) / 2
@@ -158,6 +166,10 @@ async function checkIfNewSong(){
         )
         song.fetchLyrics()
         song.fetchGenres()
+        if(!updatedQueue){
+            queue = await getQueue()
+            lastTimeCheckQueue = Date.now()
+        }
     }
     else if(curSong && curSong.item.name == song.title){
         let realProgress = curSong.progress_ms + halfRoundTripTime
