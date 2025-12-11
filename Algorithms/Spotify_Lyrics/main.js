@@ -1,7 +1,7 @@
 // main.js
 
 const clientId = 'f46b7b60021f4c3cb8f231289e5a36d4';
-const redirectUri = 'http://127.0.0.1:8080';
+const redirectUri = 'https://miguelrr11.github.io/Algorithms/Spotify_Lyrics/';
 let accessToken = '';
 let lyricsArray = null;
 let lastFetchTime = 0;
