@@ -19,6 +19,23 @@ function touchEnded(){
     login()
 }
 
+async function skipToNext(){
+    try{
+        let response = await fetch('https://api.spotify.com/v1/me/player/next', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + accessToken
+            }
+        })  
+        if(!response.ok){
+            console.error('Failed to skip to next track')
+        }
+    }
+    catch(error){
+        console.error('Error skipping to next track:', error)
+    }
+}
+
 async function login(){
     if(!accessToken){
         const codeVerifier = generateRandomString(64);

@@ -17,6 +17,10 @@ let lastTimeCheckQueue = 0
 
 let bold, reg, thin
 
+let handCursor = false
+
+let buttons = []
+
 
 async function setup(){
     WIDTH = window.innerWidth
@@ -28,15 +32,32 @@ async function setup(){
     textFont(reg)
     song = new Song('-', '-', 0, 0, 1000, false)
     initTopo(WIDTH, HEIGHT, drawingContext)
+
+    buttons.push(new ButtonPlay(createVector(BASE_RAD_BUTTON + 10, height/2), () => {
+        song.togglePlayPause()
+    }, () => {
+        return song.isPlaying
+    }))
+    buttons.push(new ButtonNext(createVector(BASE_RAD_BUTTON + 10, height/2 + BASE_RAD_BUTTON*2 + 10), () => {
+        skipToNext()
+    }))
 }
 
 function draw(){
     background(5)
 
+    handCursor = false
+
+    for(let b of buttons){
+        if(b.hover()) handCursor = true
+    }
+
     updateTopo()
     push()
     showTopo()
     pop()
+
+    if(hasAccess) for(let b of buttons) b.show()
 
     checkIfNewSong()
 
@@ -95,6 +116,7 @@ function draw(){
 
         // Change position in song
         if(inBoundsOfBar){
+            handCursor = true
             let newPos = map(mouseX, 0, width, 0, song.duration_ms)
             fill(255)
             ellipse(Math.min(curPosX, mouseX), height - 5, 10, 10)
@@ -113,6 +135,9 @@ function draw(){
         text("Please click anywhere to log in", width/2, height/2)
         pop()
     }
+
+    if(handCursor) cursor('pointer')
+    else cursor('default')
 }
 
 async function getQueue(){

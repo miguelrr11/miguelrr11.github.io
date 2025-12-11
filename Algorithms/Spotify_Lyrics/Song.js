@@ -21,7 +21,7 @@ class Song{
 
         // Offset in ms to delay lyrics (positive = lyrics appear later)
         // Adjust this value if lyrics still appear early/late
-        this.lyricsOffset = 1000
+        this.lyricsOffset = 0
 
         this.colLyricsMult = 0
     }
@@ -86,7 +86,19 @@ class Song{
     }
 
     printLyrics(){
-        if(!this.lyrics || this.lyrics.length == 0) return
+        if(!this.lyrics || this.lyrics.length == 0){
+            if(this.lyricsState == 'not found'){
+                push()
+                fill(255)
+                rectMode(CENTER)
+                textAlign(CENTER, CENTER)
+                noStroke()
+                textSize(17)
+                text('No lyrics were found for this song\n◡︵◡', width/2, height/2)
+                pop()
+            }
+            return
+        }
         push()
         let spacingBetweenLines = 105
         textAlign(CENTER, CENTER)
@@ -123,7 +135,7 @@ class Song{
     }
 
     getLeftTimeStr(){
-        let left_ms = this.duration_ms - this.estimatedProgress_ms
+        let left_ms = Math.max(this.duration_ms - this.estimatedProgress_ms, 0)
         let mins = Math.floor((left_ms / 1000) / 60)
         let secs = Math.floor((left_ms / 1000) % 60)
         let str = "-" + mins + ":" + (secs < 10 ? '0' + secs : secs)
@@ -146,9 +158,24 @@ class Song{
         }
     }
 
+    async togglePlayPause(){
+        try{
+            let endpoint = this.isPlaying ? 'pause' : 'play'
+            let response = await fetch('https://api.spotify.com/v1/me/player/' + endpoint, {
+                method: 'PUT',
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken
+                }
+            })
+        }
+        catch(error){
+            console.error('Error toggling play/pause:', error)
+        }
+    }  
+
     correctDrift(realProgress_ms){
         let error = realProgress_ms - this.estimatedProgress_ms
-        console.log("Drift error: " + error.toFixed(2) + " ms")
+        //console.log("Drift error: " + error.toFixed(2) + " ms")
 
         // Directly correct large drifts (> 200ms) immediately
         if(Math.abs(error) > 200){
