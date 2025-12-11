@@ -1,7 +1,10 @@
 // main.js
 
 const clientId = 'f46b7b60021f4c3cb8f231289e5a36d4';
-const redirectUri = 'http://127.0.0.1:8080';
+// Dynamically set redirect URI based on environment
+const redirectUri = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
+    ? 'http://127.0.0.1:8080'
+    : window.location.origin + window.location.pathname;
 let accessToken = '';
 let lyricsArray = null;
 let lastFetchTime = 0;
