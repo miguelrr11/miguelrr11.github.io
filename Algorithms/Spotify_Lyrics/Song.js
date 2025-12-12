@@ -167,6 +167,7 @@ class Song{
                     'Authorization': 'Bearer ' + accessToken
                 }
             })
+            this.isPlaying = !this.isPlaying
         }
         catch(error){
             console.error('Error toggling play/pause:', error)
