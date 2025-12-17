@@ -76,7 +76,8 @@ function updateTopo() {
 
 function showTopo() {
     actualCol = lerp(actualCol, col, 0.1)
-    ctx.strokeStyle = "rgb(" + actualCol + "," + actualCol + "," + actualCol + ")";
+    let actualActualCol = Math.max(actualCol, 0)
+    ctx.strokeStyle = "rgb(" + actualActualCol + "," + actualActualCol + "," + actualActualCol + ")";
     ctx.lineWidth = strokeW
 
 

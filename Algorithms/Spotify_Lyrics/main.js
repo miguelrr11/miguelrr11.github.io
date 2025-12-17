@@ -165,6 +165,8 @@ async function fetchLyrics(artist, track) {
             const data = await response.json();
 
             if (data.syncedLyrics) {
+                textFont(reg)
+                textSize(32) // base size you want wrapping for
                 // Parse the synced lyrics format [mm:ss.xx] lyrics text with millisecond precision
                 const lyricsArray = data.syncedLyrics.split('\n')
                     .filter(line => line.trim())
@@ -177,7 +179,7 @@ async function fetchLyrics(artist, track) {
                             console.log(match[3])
                             return {
                                 milliseconds: totalMilliseconds,
-                                lyrics: match[3]
+                                lyrics: splitByWidth(match[3], 500)
                             };
                         }
                         return null;
@@ -208,3 +210,131 @@ window.addEventListener('load', async () => {
         console.log('Successfully authenticated with Spotify');
     }
 });
+
+async function getQueue() {
+    try {
+        let response = await fetch('https://api.spotify.com/v1/me/player/queue', {
+            headers: {
+                'Authorization': 'Bearer ' + accessToken
+            }
+        })
+
+        if (!response.ok) {
+            console.error('Failed to fetch queue')
+            return null
+        }
+
+        let data = await response.json()
+        let queue = data.queue.slice(0, 10)
+
+        let result = []
+        let lastName = null
+        let count = 0
+
+        for (let item of queue) {
+            if (item.name === lastName) {
+                count++
+            } else {
+                if (lastName !== null) {
+                    result.push(count > 1 ? `${lastName} x${count}` : lastName)
+                }
+                lastName = item.name
+                count = 1
+            }
+        }
+
+        // push final group
+        if (lastName !== null) {
+            result.push(count > 1 ? `${lastName} x${count}` : lastName)
+        }
+
+        return result
+    }
+    catch (error) {
+        console.error('Error fetching queue:', error)
+        return null
+    }
+}
+
+
+async function checkIfNewSong(){
+    if(!hasAccess || Math.abs(lastTimeCheckIfNewSong - Date.now()) < CHECK_NEW_SONG_MS) return
+    let requestStartTime = Date.now()
+    lastTimeCheckIfNewSong = requestStartTime
+
+    let updatedQueue = false
+    if(hasAccess && Math.abs(lastTimeCheckQueue - Date.now()) >= CHECK_QUEUE_MS) {
+        queue = await getQueue()
+        lastTimeCheckQueue = Date.now()
+        updatedQueue = true
+    }
+    let curSong = await getCurrentlyPlayingTrack()
+    let requestEndTime = Date.now()
+    let halfRoundTripTime = (requestEndTime - requestStartTime) / 2
+
+    if(curSong && curSong.item.name != song.title){
+        console.log("New song is playing: " + curSong.item.name)
+        console.log(curSong)
+        song = new Song(curSong.item.artists[0].name,
+                        curSong.item.artists[0].id,
+                        curSong.item.name,
+                        Date.now() - curSong.progress_ms,
+                        curSong.progress_ms + halfRoundTripTime,
+                        curSong.item.duration_ms,
+                        curSong.is_playing
+        )
+        song.songURL = curSong.item.external_urls.spotify
+        song.artistURL = curSong.item.artists[0].external_urls.spotify
+        song.albumURL = curSong.item.album.external_urls.spotify
+        song.fetchLyrics()
+        song.fetchGenres()
+        song.fetchAlbum()
+        if(!updatedQueue && hasAccess && Math.abs(lastTimeCheckQueue - Date.now()) >= CHECK_QUEUE_MS) {
+            queue = await getQueue()
+            lastTimeCheckQueue = Date.now()
+        }
+    }
+    else if(curSong && curSong.item.name == song.title){
+        let realProgress = curSong.progress_ms + halfRoundTripTime
+        song.correctDrift(realProgress)
+        song.isPlaying = curSong.is_playing
+        song.progress_ms = realProgress
+        song.lastTimeUpdatedProgress = requestEndTime
+    }
+}
+
+function createRoundedMask(w, h, r) {
+    let g = createGraphics(w, h)
+    g.clear()
+    g.noStroke()
+    g.fill(255)
+    g.rect(0, 0, w, h, r)
+    return g
+}
+
+function splitByWidth(str, maxWidth) {
+    if (!str || str.trim() === "") return "..."
+
+    let words = str.split(" ")
+    let lines = []
+    let currentLine = ""
+
+    for (let i = 0; i < words.length; i++) {
+        let testLine = currentLine
+            ? currentLine + " " + words[i]
+            : words[i]
+
+        if (textWidth(testLine) <= maxWidth) {
+            currentLine = testLine
+        } else {
+            if (currentLine) lines.push(currentLine)
+            currentLine = words[i]
+        }
+    }
+
+    if (currentLine) lines.push(currentLine)
+
+    let finalStr = lines.join("\n")
+
+    return finalStr
+}

@@ -8,6 +8,8 @@ class Song{
         this.estimatedProgress_ms = this.progress_ms
         this.duration_ms = duration_ms
         this.genres = []
+        this.image = undefined
+        this.albumName = ""
 
         this.lastTimeUpdatedProgress = Date.now()
         this.lyrics = []
@@ -15,6 +17,10 @@ class Song{
         this.curLyricsIdx = 0
         this.curLyricsIdxSmooth = 0
         this.isPlaying = isPlaying
+
+        this.songURL = ""
+        this.artistURL = ""
+        this.albumURL = ""
 
         this.playbackRate = 1.0
         this.driftSmoothingFactor = .3   //0.3
@@ -37,7 +43,7 @@ class Song{
             if(response.ok){
                 let data = await response.json()
                 console.log(data)
-                this.genres = data.genres //array of genres
+                this.genres = data.genres.splice(0, 2)
             }
             else{
                 console.error('Failed to fetch artist info')
@@ -56,6 +62,39 @@ class Song{
         this.curLyricsIdx = 0
         if(this.lyrics && this.lyrics.length > 0){
             this.syncLyricsIndex()
+        }
+    }
+
+    async fetchAlbum(){
+        try{
+            let response = await fetch('https://api.spotify.com/v1/search?q=artist:' + encodeURIComponent(this.artist) + '%20track:' + encodeURIComponent(this.title) + '&type=track&limit=1', {
+                headers: {
+                    'Authorization': 'Bearer ' + accessToken
+                }
+            })
+            if(response.ok){
+                let data = await response.json()
+                if(data.tracks.items.length > 0){
+                    let last = data.tracks.items.length - 1
+                    let albumImageUrl = data.tracks.items[last].album.images[last].url
+                    loadImage(albumImageUrl, (img) => {
+                        let mask = createRoundedMask(
+                            img.width,
+                            img.height,
+                            35
+                        )
+                        img.mask(mask)
+                        this.image = img
+                    })
+                    this.albumName = data.tracks.items[0].album.name
+                }
+            }
+            else{
+                console.error('Failed to fetch album image')
+            }   
+        }
+        catch(error){
+            console.error('Error fetching album image:', error)
         }
     }
 
@@ -116,8 +155,8 @@ class Song{
                 fill(map(Math.abs(multiplier), 0, 5, 255, 0) * this.colLyricsMult)
                 textSize(map(Math.abs(multiplier), 0, 5, 32, 8))
             }
-            let maxWidth = map(Math.abs(multiplier), 0, 5, 600, 150)
-            text(this.lyrics[i].lyrics == " " ? '...' : this.lyrics[i].lyrics, width/2, height/2 + multiplier * spacingBetweenLines, maxWidth)
+
+            text(this.lyrics[i].lyrics, width/2, height/2 + multiplier * spacingBetweenLines)
         }
         pop()
     }
@@ -206,3 +245,4 @@ class Song{
         }
     }
 }
+
