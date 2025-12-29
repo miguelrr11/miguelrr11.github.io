@@ -1,0 +1,17 @@
+const WIDTH = 600
+const HEIGHT = 600
+
+let ENEMY_SIZE = 35
+let TRACK_VEL = 0.1
+let ENEMY_HP = 20
+
+let PLAYER_RAD = 15
+
+const TRACK_WIDTH = ENEMY_SIZE * 10
+const START_X_TRACK = (WIDTH / 2) - (TRACK_WIDTH / 2)
+const END_X_TRACK = START_X_TRACK + TRACK_WIDTH
+
+const PLAYER_SPEED = 2
+const CADENCE = 10
+const BALL_SPEED = 3.25
+

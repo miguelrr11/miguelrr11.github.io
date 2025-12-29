@@ -16,6 +16,7 @@ function touchEnded(){
     login()
 }
 
+
 async function login(){
     if(!accessToken){
         const codeVerifier = generateRandomString(64);
