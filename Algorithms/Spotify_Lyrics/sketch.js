@@ -8,6 +8,7 @@ let HEIGHT = 600
 
 const CHECK_NEW_SONG_MS = 1000
 const CHECK_QUEUE_MS = 15000
+const imgSize = 85
 
 let song
 let queue = []
@@ -16,6 +17,10 @@ let lastTimeCheckIfNewSong = 0
 let lastTimeCheckQueue = 0
 
 let bold, reg, thin
+
+let handCursor = false
+
+let buttons = []
 
 
 async function setup(){
@@ -28,21 +33,48 @@ async function setup(){
     textFont(reg)
     song = new Song('-', '-', 0, 0, 1000, false)
     initTopo(WIDTH, HEIGHT, drawingContext)
+
+    buttons.push(new ButtonPlay(createVector(BASE_RAD_BUTTON + 10, height/2 - BASE_RAD_BUTTON - 10), () => {
+        song.togglePlayPause()
+    }, () => {
+        return song.isPlaying
+    }))
+    buttons.push(new ButtonNext(createVector(BASE_RAD_BUTTON + 10, height/2 + BASE_RAD_BUTTON*2 + 10 - BASE_RAD_BUTTON - 10), () => {
+        skipToNext()
+    }))
 }
 
 function draw(){
     background(5)
+
+    handCursor = false
+
+    for(let b of buttons){
+        if(b.hover()) handCursor = true
+    }
 
     updateTopo()
     push()
     showTopo()
     pop()
 
+    if(hasAccess) for(let b of buttons) b.show()
+
     checkIfNewSong()
 
     song.updateProgress()
 
     if(hasAccess){
+        let trans = 0
+        if(mouseX < imgSize + 20) trans = 255
+        else trans = map(mouseX, imgSize + 20, imgSize + 120, 255, 0)
+
+        let transRight = 0
+        if(mouseX > width - (imgSize + 20)) transRight = 255
+        else transRight = map(mouseX, width - (imgSize + 20), width - (imgSize + 120), 255, 0)
+
+        searchHoverLink(trans)
+
         textSize(12)
         fill(255)
 
@@ -67,9 +99,15 @@ function draw(){
         fill(255)
 
         // Genres
+        // textFont(thin)
+        // fill(225, trans)
+        // text((song.genres.length == 0 ? "N/A" : song.genres.join("\n")), 10, 60 + 85)
+        // textFont(reg)
+
+        //Album name
         textFont(thin)
-        fill(255, map(dist(mouseX, mouseY, 0, 0), 0, 300, 200, 0))
-        text((song.genres.length == 0 ? "N/A" : song.genres.join("\n")), 10, 60)
+        fill(225, trans)
+        text(song.albumName, 10, 60 + 85)
         textFont(reg)
 
         // Lyrics
@@ -89,19 +127,27 @@ function draw(){
         text("Up Next:", width - 10, 15)
         textFont(thin)
         text("\n" + (queue.length == 0 ? "No songs in queue" : queue[0]), width - 10, 15)
-        fill(255, map(dist(mouseX, mouseY, width, 0), 0, 300, 200, 0))
+        fill(200, transRight)
         text("\n" + (queue.length == 0 ? "No songs in queue" : queue.join("\n")), width - 10, 15)
         pop()
 
         // Change position in song
         if(inBoundsOfBar){
+            handCursor = true
             let newPos = map(mouseX, 0, width, 0, song.duration_ms)
             fill(255)
-            ellipse(Math.min(curPosX, mouseX), height - 5, 10, 10)
+            ellipse(Math.max(Math.min(curPosX, mouseX), 10), height - 5, 10, 10)
             stroke(255)
             strokeWeight(3)
-            line(10, height-5, Math.min(curPosX, mouseX), height-5)
+            line(10, height-5, Math.max(Math.min(curPosX, mouseX), 10), height-5)
             if(mouseIsPressed) song.setPosition(newPos)
+        }
+
+        //draw album art
+        if(song.image != undefined && song.image.width > 0){
+            
+            tint(255, trans)
+            image(song.image, 10, 40, imgSize, imgSize)
         }
 
     }
@@ -113,79 +159,49 @@ function draw(){
         text("Please click anywhere to log in", width/2, height/2)
         pop()
     }
+
+    if(handCursor) cursor('pointer')
+    else cursor('default')
 }
 
-async function getQueue(){
-    try{
-        let response = await fetch('https://api.spotify.com/v1/me/player/queue', {
-            headers: {
-                'Authorization': 'Bearer ' + accessToken
-            }
-        })
-        if(response.ok){
-            let data = await response.json()
-            let q = data.queue
-            return q.map(item => item.name).slice(0, 10)
-        }
-        else{
-            console.error('Failed to fetch queue')
-            return null
-        }
-    }
-    catch(error){
-        console.error('Error fetching queue:', error)
-        return null
-    }
-}
 
-async function checkIfNewSong(){
-    if(!hasAccess || Math.abs(lastTimeCheckIfNewSong - Date.now()) < CHECK_NEW_SONG_MS) return
-    let requestStartTime = Date.now()
-    lastTimeCheckIfNewSong = requestStartTime
-
-    let updatedQueue = false
-    if(hasAccess && Math.abs(lastTimeCheckQueue - Date.now()) >= CHECK_QUEUE_MS) {
-        queue = await getQueue()
-        lastTimeCheckQueue = Date.now()
-        updatedQueue = true
-    }
-    let curSong = await getCurrentlyPlayingTrack()
-    let requestEndTime = Date.now()
-    let halfRoundTripTime = (requestEndTime - requestStartTime) / 2
-
-    if(curSong && curSong.item.name != song.title){
-        console.log("New song is playing: " + curSong.item.name)
-        console.log(curSong)
-        song = new Song(curSong.item.artists[0].name,
-                        curSong.item.artists[0].id,
-                        curSong.item.name,
-                        Date.now() - curSong.progress_ms,
-                        curSong.progress_ms + halfRoundTripTime,
-                        curSong.item.duration_ms,
-                        curSong.is_playing
-        )
-        song.fetchLyrics()
-        song.fetchGenres()
-        if(!updatedQueue){
-            queue = await getQueue()
-            lastTimeCheckQueue = Date.now()
-        }
-    }
-    else if(curSong && curSong.item.name == song.title){
-        let realProgress = curSong.progress_ms + halfRoundTripTime
-        song.correctDrift(realProgress)
-        song.isPlaying = curSong.is_playing
-        song.progress_ms = realProgress
-        song.lastTimeUpdatedProgress = requestEndTime
-    }
-}
 
 
 function windowResized(){
     WIDTH = window.innerWidth
     HEIGHT = window.innerHeight
     resizeCanvas(WIDTH, HEIGHT)
+
+    buttons[0].pos.set(BASE_RAD_BUTTON + 10, height/2 - BASE_RAD_BUTTON - 10)
+    buttons[1].pos.set(BASE_RAD_BUTTON + 10, height/2 + BASE_RAD_BUTTON*2 + 10 - BASE_RAD_BUTTON - 10)
     
-    actualCol = 0
+    actualCol = -25
     resizeTopo(WIDTH, HEIGHT)
+}
+
+function searchHoverLink(trans){
+    push()
+    rectMode(CORNER)
+    textAlign(LEFT, TOP)
+    let linkAreas = [
+        {text: song.title, x: 10, y: 15, url: song.songURL},
+        {text: song.artist, x: 10, y: 15 + textAscent() + textDescent(), url: song.artistURL},
+        {text: song.albumName, x: 10, y: 60 + 85, url: song.albumURL}
+    ]
+    textSize(12)    
+    for(let area of linkAreas){
+        let bbox = textFont(reg).textBounds(area.text, area.x, area.y)
+        if(mouseX >= bbox.x && mouseX <= bbox.x + bbox.w &&
+           mouseY >= bbox.y - bbox.h && mouseY <= bbox.y){
+            hoverLink = area.url
+            stroke(200, trans)
+            strokeWeight(1)
+            line(bbox.x, bbox.y + 2, bbox.x + bbox.w, bbox.y + 2)
+            if(mouseIsPressed){
+                window.open(area.url, '_blank')
+            }
+            break
+        }
+    }
+    pop()
 }
