@@ -5,12 +5,19 @@ class EnemyManager{
         this.enemies = []
     }
 
-    findClosest(enemy){
+    findClosest(enemy, avoid = []){
         if(this.enemies.length <= 1) return
         let closestDist = Infinity
         let closest = undefined
         for(let en of this.enemies){
             if(en == enemy) continue
+            let avoiding = false
+            for(let i = 0; i < avoid.length; i++){
+                if(en == avoid[i]){
+                    avoiding = true
+                }
+            }
+            if(avoiding) continue
             let d = dist(enemy.x, enemy.y, en.x, en.y)
             if(d < closestDist){
                 closestDist = d

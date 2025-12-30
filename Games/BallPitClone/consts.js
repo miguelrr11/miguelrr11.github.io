@@ -14,4 +14,8 @@ const END_X_TRACK = START_X_TRACK + TRACK_WIDTH
 const PLAYER_SPEED = 2
 const CADENCE = 10
 const BALL_SPEED = 3.25
+const BASIC_BALL_R = 4
+const BIG_BALL_R = 10
+
+const MAX_BOUNCES = 30
 

@@ -1,9 +1,12 @@
-// constructor(pos){
-//     /*
-//     pos (vector)
-//     vel (vector)
-//     */
-// }
+/*
+constructor(pos){
+
+    SPECIAL ATTRIBUTES:
+    discardOnPlayerReturn (bool): when the player receives the ball, its discarded (p.e: repro balls)
+    isReturning (bool): if true, the ball is returning to the player
+    totalBounces (int): total bonces on enemies and walls
+}
+*/
 
 class BallManager {
     constructor() {
@@ -15,96 +18,110 @@ class BallManager {
     }
 
     update(dt) {
-    for (let i = 0; i < this.balls.length; i++) {
-        let ball = this.balls[i];
+        for (let i = 0; i < this.balls.length; i++) {
+            let ball = this.balls[i];
 
-        if (ball.pos && ball.vel) {
-            // 1. Returning Logic
-            if (ball.isReturning) {
-                let angle = Math.atan2(player.pos.y - ball.pos.y, player.pos.x - ball.pos.x);
-                ball.vel.x = lerp(ball.vel.x, Math.cos(angle) * ball.speed, 0.4);
-                ball.vel.y = lerp(ball.vel.y, Math.sin(angle) * ball.speed, 0.4);
-            }
+            if (ball.pos && ball.vel) {
+                // 1. Returning Logic
+                if (ball.isReturning) {
+                    let angle = Math.atan2(player.pos.y - ball.pos.y, player.pos.x - ball.pos.x);
+                    ball.vel.x = lerp(ball.vel.x, Math.cos(angle) * ball.speed, 0.4);
+                    ball.vel.y = lerp(ball.vel.y, Math.sin(angle) * ball.speed, 0.4);
+                }
 
-            // --- ITERATIVE COLLISION LOOP ---
-            let timeLeft = dt;
-            let safetyBreak = 0;
+                // --- ITERATIVE COLLISION LOOP ---
+                let timeLeft = dt;
+                let safetyBreak = 0;
 
-            while (timeLeft > 0 && safetyBreak < 5) {
-                safetyBreak++;
+                while (timeLeft > 0 && safetyBreak < 5) {
+                    safetyBreak++;
 
-                let deltaX = ball.vel.x * timeLeft;
-                let deltaY = ball.vel.y * timeLeft;
+                    let deltaX = ball.vel.x * timeLeft;
+                    let deltaY = ball.vel.y * timeLeft;
 
-                let nearestHit = null;
-                let minT = 1.0;
+                    let nearestHit = null;
+                    let minT = 1.0;
 
-                // A. Check Enemies
-                for (let en of enemyManager.enemies) {
-                    if (Math.abs(en.x - ball.pos.x) > 100 + ball.speed * dt) continue;
+                    // A. Check Enemies
+                    if(ball.collisionEnemy){
+                        for (let en of enemyManager.enemies) {
+                            if (Math.abs(en.x - ball.pos.x) > 100 + ball.speed * dt) continue;
 
-                    let collision = rayVsExpandedAABB(ball.pos, { x: deltaX, y: deltaY }, en, ball.r);
+                            let collision = rayVsExpandedAABB(ball.pos, { x: deltaX, y: deltaY }, en, BASIC_BALL_R);
 
-                    if (collision) {
-                        // Always apply damage
-                        this.handleEnemyHit(ball, collision);
+                            if (collision) {
+                                // Always apply damage
+                                this.handleEnemyHit(ball, collision);
 
-                        // Only consider for physics if bounce = true
-                        if (ball.collisionEnemy && ball.collisionEnemy.bounce) {
-                            if (collision.t < minT && collision.t > 0.00001) {
-                                minT = collision.t;
-                                nearestHit = collision;
+                                // Only consider for physics if bounce = true
+                                if (ball.collisionEnemy && ball.collisionEnemy.bounce) {
+                                    if (collision.t < minT && collision.t > 0.00001) {
+                                        minT = collision.t;
+                                        nearestHit = collision;
+                                    }
+                                }
                             }
                         }
                     }
-                }
+                    
 
-                // B. Check Walls
-                let wallHit = this.checkWallCollision(ball, deltaX, deltaY);
-                if (wallHit && wallHit.t < minT && wallHit.t > 0.00001) {
-                    minT = wallHit.t;
-                    nearestHit = wallHit;
-                }
-
-                // C. Move Ball
-                ball.pos.x += deltaX * minT;
-                ball.pos.y += deltaY * minT;
-
-                if (nearestHit) {
-                    // Nudge slightly to prevent sticking
-                    ball.pos.x += nearestHit.nx * 0.1;
-                    ball.pos.y += nearestHit.ny * 0.1;
-
-                    if (nearestHit.isWall) {
-                        if (nearestHit.nx !== 0) ball.vel.x *= -1;
-                        if (nearestHit.ny !== 0) ball.vel.y *= -1;
-                        this.applyWallLogic(ball, nearestHit.side);
-                    } else if (ball.collisionEnemy && ball.collisionEnemy.bounce) {
-                        if (nearestHit.nx !== 0) ball.vel.x *= -1;
-                        if (nearestHit.ny !== 0) ball.vel.y *= -1;
+                    // B. Check Walls
+                    let wallHit = this.checkWallCollision(ball, deltaX, deltaY);
+                    if (wallHit && wallHit.t < minT && wallHit.t > 0.00001) {
+                        minT = wallHit.t;
+                        nearestHit = wallHit;
                     }
 
-                    // Reduce remaining time
-                    timeLeft -= timeLeft * minT;
-                } else {
-                    // No hit: move full distance
-                    timeLeft = 0;
+                    // C. Move Ball
+                    ball.pos.x += deltaX * minT;
+                    ball.pos.y += deltaY * minT;
+
+                    if (nearestHit) {
+                        // Nudge slightly to prevent sticking
+                        ball.pos.x += nearestHit.nx * 0.1;
+                        ball.pos.y += nearestHit.ny * 0.1;
+
+                        if (nearestHit.isWall) {
+                            if (nearestHit.nx !== 0) ball.vel.x *= -1;
+                            if (nearestHit.ny !== 0) ball.vel.y *= -1;
+                            this.applyWallLogic(ball, nearestHit.side);
+                        } 
+                        else if (ball.collisionEnemy && ball.collisionEnemy.bounce) {
+                            if (nearestHit.nx !== 0) ball.vel.x *= -1;
+                            if (nearestHit.ny !== 0) ball.vel.y *= -1;
+                        }
+
+                        // Reduce remaining time
+                        timeLeft -= timeLeft * minT;
+                    } 
+                    else {
+                        // No hit: move full distance
+                        timeLeft = 0;
+                        if(ball.pos.x > END_X_TRACK + ball.r || ball.pos.x < START_X_TRACK || ball.pos.y < ball.r || ball.pos.y > height + ball.r){
+                            ball.pos.x = player.pos.x  
+                            ball.pos.y = player.pos.y
+                        }
+                    }
                 }
+            }
+
+            // Cleanup & Player Catch
+            if (dist(ball.pos.x, ball.pos.y, player.pos.x, player.pos.y) <= PLAYER_RAD * 1.2) {
+                if(!ball.discardOnPlayerReturn) player.returnBall(ball)
+                ball.canBeRemoved = true;
+            }
+
+            if(ball.totalBounces > MAX_BOUNCES){ 
+                ball.isReturning = true
+                ball.collisionEnemy = undefined
             }
         }
 
-        // Cleanup & Player Catch
-        if (dist(ball.pos.x, ball.pos.y, player.pos.x, player.pos.y) <= PLAYER_RAD * 1.2) {
-            player.balls.unshift(ball.key);
-            ball.canBeRemoved = true;
+        // Remove collected balls
+        for (let i = this.balls.length - 1; i >= 0; i--) {
+            if (this.balls[i].canBeRemoved) this.balls.splice(i, 1);
         }
     }
-
-    // Remove collected balls
-    for (let i = this.balls.length - 1; i >= 0; i--) {
-        if (this.balls[i].canBeRemoved) this.balls.splice(i, 1);
-    }
-}
 
 
     // New Helper for Walls to match the Raycast format
@@ -147,32 +164,56 @@ class BallManager {
         const angle = Math.atan2(ball.vel.y, ball.vel.x);
         ball.vel.x = Math.cos(angle) * ball.speed;
         ball.vel.y = Math.sin(angle) * ball.speed;
+        ball.totalBounces++
 
         if (side == 'bottom' && ball.collisionBottom && ball.collisionBottom.return) {
             ball.isReturning = true;
+            ball.collisionEnemy = undefined
         }
     }
 
     handleEnemyHit(ball, hit) {
         // Same logic as before
-        if(ball.collisionEnemy.bounce){
+        if(ball.collisionEnemy && ball.collisionEnemy.bounce){
             ball.speed = Math.min(ball.speed * 1.1, 10);
             const angle = Math.atan2(ball.vel.y, ball.vel.x);
             ball.vel.x = Math.cos(angle) * ball.speed;
             ball.vel.y = Math.sin(angle) * ball.speed;
+            ball.totalBounces++
         }
         
 
         if (ball.collisionEnemy) {
             if (ball.collisionEnemy.bounce) {
-                hit.enemy.hit(ball.collisionEnemy.dmg);
+                hit.enemy.hit(ball.collisionEnemy.dmg, ball.col);
             } 
             else if (!ball.collisionEnemy.bounce && (ball.lastHitID === undefined || ball.lastHitID !== hit.enemy.id)) {
-                hit.enemy.hit(ball.collisionEnemy.dmg);
+                hit.enemy.hit(ball.collisionEnemy.dmg, ball.col);
                 ball.lastHitID = hit.enemy.id;
             }
             if (ball.collisionEnemy.fire) {
                 hit.enemy.enableFireDmg(2, ball.collisionEnemy.dmg);
+            }
+            if(ball.collisionEnemy.lightning){
+                hit.enemy.hit(ball.collisionEnemy.dmg, ball.col)
+                hit.enemy.lightning(ball.collisionEnemy.dmg)
+            }
+            if (ball.collisionEnemy.poison) {
+                hit.enemy.enablePoisonDmg(0.5, ball.collisionEnemy.dmg);
+            }
+            if (ball.collisionEnemy.repro) {
+                for(let i = 0; i < ball.collisionEnemy.reproTimes; i++){
+                    let newBall = structuredClone(ballsPrefabs.get(ball.key))
+                    newBall.render = ballsRenders.get(ball.key)
+                    newBall.pos = {x: ball.pos.x, y: ball.pos.y}
+                    let angle = random(TWO_PI)
+                    newBall.vel = {x: Math.cos(angle) * newBall.speed, y: Math.sin(angle) * newBall.speed}
+                    newBall.discardOnPlayerReturn = true
+                    newBall.totalBounces = 0
+                    newBall.collisionEnemy.repro = false
+                    this.addBall(newBall)
+                }
+                
             }
         }
     }
@@ -180,7 +221,7 @@ class BallManager {
     show() {
         push()
         for (let i = 0; i < this.balls.length; i++) {
-            this.balls[i].show()
+            this.balls[i].render()
         }
         pop()
     }

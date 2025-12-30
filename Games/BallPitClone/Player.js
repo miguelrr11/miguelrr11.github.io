@@ -3,7 +3,12 @@ class Player{
         this.pos = createVector(width/2, height - 100)
         this.shootCooldown = 0
         this.balls = Array(10).fill('basic')
-        this.balls.push('fire', 'trans')
+        this.balls.push('fire', 'trans', 'lightning', 'poison', 'repro')
+        //this.balls = ['repro']
+    }
+
+    returnBall(ball){
+        this.balls.unshift(ball.key);
     }
 
     update(dt) {
@@ -18,9 +23,13 @@ class Player{
         if(mouseIsPressed && this.shootCooldown <= 0 && this.balls.length > 0){
             let distAwayFromPlayer = PLAYER_RAD - 2
             let angle = atan2(mouseY - this.pos.y, mouseX - this.pos.x)
-            let newBall = {...ballsPrefabs.get(this.balls.pop())}
+            let newBall = structuredClone(ballsPrefabs.get(this.balls.pop()))
+            newBall.render = ballsRenders.get(newBall.key)
             newBall.pos = {x: this.pos.x + Math.cos(angle) * distAwayFromPlayer, y: this.pos.y + Math.sin(angle) * distAwayFromPlayer}
             newBall.vel = {x: Math.cos(angle) * newBall.speed, y: Math.sin(angle) * newBall.speed}
+
+            newBall.totalBounces = 0
+
             ballManager.addBall(newBall)
             this.shootCooldown = CADENCE
         }

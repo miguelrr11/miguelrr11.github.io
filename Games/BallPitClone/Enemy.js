@@ -17,11 +17,11 @@ class Enemy{
 
     static enemyID = 0
 
-    hit(dmg){
+    hit(dmg, col = [255, 255, 255]){
         this.hp -= dmg
         this.visualHit = 1
 
-        textAnims.push(new TextAnim(dmg, this.x + random(-8, 8), this.y + random(-8, 8), [255, 255, 255]))
+        textAnims.push(new TextAnim(dmg, this.x + random(-8, 8), this.y + random(-8, 8), col))
     }
 
     enableFireDmg(seconds, dmg){
@@ -31,13 +31,20 @@ class Enemy{
         this.fireDmg = dmg
     }
 
+    enablePoisonDmg(seconds, dmg){
+        if(this.poisonDmg != undefined) return
+        this.coolDownPoisonCurrent = seconds * 60
+        this.coolDownPoison = seconds * 60
+        this.poisonDmg = dmg
+    }
+
     update(dt){
         this.y += TRACK_VEL * dt
 
         if(this.coolDownFireCurrent != undefined){
             this.coolDownFireCurrent--
             if(this.coolDownFireCurrent <= 0){
-                this.hit(this.fireDmg)
+                this.hit(this.fireDmg, ballsPrefabs.get('fire').col)
                 this.coolDownFireCurrent = this.coolDownFire
                 if(Math.random() < .25){ 
                     let found = enemyManager.findClosest(this)
@@ -48,8 +55,27 @@ class Enemy{
             }
         }
 
+        if(this.coolDownPoisonCurrent != undefined){
+            this.coolDownPoisonCurrent--
+            if(this.coolDownPoisonCurrent <= 0){
+                this.hit(this.poisonDmg, ballsPrefabs.get('poison').col)
+                this.coolDownPoisonCurrent = this.coolDownPoison
+            }
+        }
+
         if(this.y > height + ENEMY_SIZE) this.canBeRemoved = true
         if(this.hp <= 0) this.canBeRemoved = true
+    }
+
+    lightning(dmg, prob = 1, avoid = []){
+        let found = enemyManager.findClosest(this, avoid)
+        if(found && found.closest){
+            if(found.closestDist < ENEMY_SIZE + 3) {
+                found.closest.hit(dmg, ballsPrefabs.get('lightning').col)
+                avoid.push(found.closest)
+                if(Math.random() < prob) found.closest.lightning(dmg, prob * 0.8, avoid)
+            }
+        }
     }
 
     show(){
