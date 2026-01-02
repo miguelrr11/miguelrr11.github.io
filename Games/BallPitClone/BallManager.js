@@ -105,10 +105,15 @@ class BallManager {
                 }
             }
 
-            // Cleanup & Player Catch
-            if (dist(ball.pos.x, ball.pos.y, player.pos.x, player.pos.y) <= PLAYER_RAD * 1.2) {
+            // Si la bola está dentro del player Y ya ha rebotado al menos una vez, se recoge
+            if (dist(ball.pos.x, ball.pos.y, player.pos.x, player.pos.y) <= PLAYER_RAD - ball.r && ball.totalBounces > 0) {
                 if(!ball.discardOnPlayerReturn) player.returnBall(ball)
                 ball.canBeRemoved = true;
+            }
+
+            // Si la bola está cerca del player y ha rebotado, se dirige hacua el jugador
+            else if(dist(ball.pos.x, ball.pos.y, player.pos.x, player.pos.y) <= PLAYER_RAD + ball.r * 2.5 && ball.totalBounces > 0){
+                ball.isReturning = true
             }
 
             if(ball.totalBounces > MAX_BOUNCES){ 
@@ -175,7 +180,7 @@ class BallManager {
     handleEnemyHit(ball, hit) {
         // Same logic as before
         if(ball.collisionEnemy && ball.collisionEnemy.bounce){
-            ball.speed = Math.min(ball.speed * 1.1, 10);
+            ball.speed = Math.min(ball.speed * 1.05, 5);
             const angle = Math.atan2(ball.vel.y, ball.vel.x);
             ball.vel.x = Math.cos(angle) * ball.speed;
             ball.vel.y = Math.sin(angle) * ball.speed;
@@ -185,26 +190,23 @@ class BallManager {
 
         if (ball.collisionEnemy) {
             if (ball.collisionEnemy.bounce) {
-                hit.enemy.hit(ball.collisionEnemy.dmg, ball.col);
+                hit.enemy.hit(ball.collisionEnemy.dmg, undefined, hit);
             } 
             else if (!ball.collisionEnemy.bounce && (ball.lastHitID === undefined || ball.lastHitID !== hit.enemy.id)) {
-                hit.enemy.hit(ball.collisionEnemy.dmg, ball.col);
+                hit.enemy.hit(ball.collisionEnemy.dmg, undefined, hit);
                 ball.lastHitID = hit.enemy.id;
             }
-            if (ball.collisionEnemy.fire) {
-                hit.enemy.enableFireDmg(2, ball.collisionEnemy.dmg);
-            }
-            if(ball.collisionEnemy.lightning){
-                hit.enemy.hit(ball.collisionEnemy.dmg, ball.col)
-                hit.enemy.lightning(ball.collisionEnemy.dmg)
-            }
-            if (ball.collisionEnemy.poison) {
-                hit.enemy.enablePoisonDmg(0.5, ball.collisionEnemy.dmg);
-            }
+            this.applyStatus(ball, hit.enemy)
             if (ball.collisionEnemy.repro) {
+                // a repro ball reproduces once when it bounces and it splits into reprotimes reprokey balls
+                // the duplicated balls lose the repro ability to avoid infinite loops
+                // TODO: make an attribute to control the recuriveness of the reproduction, instead of disabling it completely
+                ball.collisionEnemy.repro = false
                 for(let i = 0; i < ball.collisionEnemy.reproTimes; i++){
-                    let newBall = structuredClone(ballsPrefabs.get(ball.key))
-                    newBall.render = ballsRenders.get(ball.key)
+                    let newBall = structuredClone(ballsPrefabs.get(ball.collisionEnemy.reproKey))
+                    newBall.render = [ballsRenders.get(newBall.key)]
+                    if(newBall.collisionEnemy && newBall.collisionEnemy.horizontal) newBall.render.push(ballsRenders.get('horizontalRay'))
+                    if(newBall.collisionEnemy && newBall.collisionEnemy.vertical) newBall.render.push(ballsRenders.get('verticalRay'))
                     newBall.pos = {x: ball.pos.x, y: ball.pos.y}
                     let angle = random(TWO_PI)
                     newBall.vel = {x: Math.cos(angle) * newBall.speed, y: Math.sin(angle) * newBall.speed}
@@ -213,15 +215,57 @@ class BallManager {
                     newBall.collisionEnemy.repro = false
                     this.addBall(newBall)
                 }
-                
             }
+            if(ball.collisionEnemy.horizontal){
+                //spawn an horizontal ray at the y level of the enemy. Every enemy that is crossed by that ray takes damage
+                let rayY = hit.enemy.y
+                for(let en of enemyManager.enemies){
+                    if(en.id != hit.enemy.id){
+                        if(en.y - en.h/2 <= rayY && en.y + en.h/2 >= rayY){
+                            en.hit(ball.collisionEnemy.dmg, undefined, hit)
+                            this.applyStatus(ball, en)
+                            if(ball.rays === undefined) ball.rays = []
+                            ball.rays.push({y: rayY, life: RAY_DURATION})
+                        }
+                    }
+                }
+            }
+            if(ball.collisionEnemy.vertical){
+                //spawn a vertical ray at the x level of the enemy. Every enemy that is crossed by that ray takes damage
+                let rayX = hit.enemy.x
+                for(let en of enemyManager.enemies){
+                    if(en.id != hit.enemy.id){
+                        if(en.x - en.w/2 <= rayX && en.x + en.w/2 >= rayX){
+                            en.hit(ball.collisionEnemy.dmg, undefined, hit)
+                            this.applyStatus(ball, en)
+                            if(ball.rays === undefined) ball.rays = []
+                            ball.rays.push({x: rayX, life: RAY_DURATION})
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    applyStatus(ball, enemy){
+        if (ball.collisionEnemy.fire) {
+            let statusDmg =  ball.collisionEnemy.fireDmg == undefined ? DEF_FIRE_DMG : ball.collisionEnemy.fireDmg
+            enemy.enableFireDmg(2, statusDmg);
+        }
+        if(ball.collisionEnemy.lightning){
+            let statusDmg =  ball.collisionEnemy.lightningDmg == undefined ? DEF_LIGHTNING_DMG : ball.collisionEnemy.lightningDmg
+            enemy.lightning(statusDmg)
+        }
+        if (ball.collisionEnemy.poison) {
+            let statusDmg =  ball.collisionEnemy.poisonDmg == undefined ? DEF_POISON_DMG : ball.collisionEnemy.poisonDmg
+            enemy.enablePoisonDmg(0.5, statusDmg);
         }
     }
 
     show() {
         push()
         for (let i = 0; i < this.balls.length; i++) {
-            this.balls[i].render()
+            for(let renderFunc of this.balls[i].render) renderFunc.call(this.balls[i])
         }
         pop()
     }
@@ -289,6 +333,8 @@ function rayVsExpandedAABB(start, delta, enemy, r) {
         t: tHit,
         nx: nx,
         ny: ny,
-        enemy: enemy
+        enemy: enemy,
+        colX: start.x + delta.x * tHit,
+        colY: start.y + delta.y * tHit
     };
 }

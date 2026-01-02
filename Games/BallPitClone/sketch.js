@@ -7,7 +7,7 @@ p5.disableFriendlyErrors = true
 
 let DT
 
-let enemyManager, player, ballManager
+let enemyManager, player, ballManager, pm
 let textAnims = []
 
 async function setup(){
@@ -17,19 +17,21 @@ async function setup(){
     enemyManager = new EnemyManager()
     ballManager = new BallManager()
     player = new Player()
+    pm = new ParticleManager()
 }
 
 function draw(){
     DT = deltaTime * 0.1
-    background(255)
+    background(225)
 
-   
+    enemyManager.update(DT)
+    enemyManager.show()
 
     ballManager.update(DT)
     ballManager.show()
 
-    enemyManager.update(DT)
-    enemyManager.show()
+    pm.update()
+    pm.show()
 
     player.update(DT)
     player.show()

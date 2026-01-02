@@ -4,7 +4,7 @@ class TextAnim{
         this.pos = createVector(x, y);
         this.size = size ? size : 18;
         this.col1 = [...col]    //fill
-        this.col2 = [0,0,0]           //stroke
+        this.col2 = this.col1[0] == 255 && this.col1[1] == 255 && this.col1[2] == 255 ? [0,0,0] : [255,255,255]     //stroke
         this.val = 0
         this.phase = 0
 

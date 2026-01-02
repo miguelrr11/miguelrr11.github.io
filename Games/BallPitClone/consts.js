@@ -19,3 +19,10 @@ const BIG_BALL_R = 10
 
 const MAX_BOUNCES = 30
 
+const RAY_DURATION = 30
+
+const DEF_FIRE_DMG = 1.5
+const DEF_LIGHTNING_DMG = 2
+const DEF_POISON_DMG = 0.5
+const DEF_RAY_DMG = 0.5
+

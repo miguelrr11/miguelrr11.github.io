@@ -2,9 +2,23 @@ class Player{
     constructor(){
         this.pos = createVector(width/2, height - 100)
         this.shootCooldown = 0
-        this.balls = Array(10).fill('basic')
-        this.balls.push('fire', 'trans', 'lightning', 'poison', 'repro')
-        //this.balls = ['repro']
+        this.balls = Array(10).fill('cross')
+        //this.balls.push('fire', 'trans', 'lightning', 'poison', 'repro')
+        //this.balls = ['cross']
+
+        document.addEventListener('keyup', this.keyup.bind(this));
+        document.addEventListener('keydown', this.keydown.bind(this));
+        this.pushedKeys = new Set()
+
+        this.damageAcumSecond = 0
+    }
+
+    keydown(event){
+        this.pushedKeys.add(event.key)
+    }
+
+    keyup(event){
+        this.pushedKeys.delete(event.key)
     }
 
     returnBall(ball){
@@ -12,10 +26,11 @@ class Player{
     }
 
     update(dt) {
-        if (keyIsDown(UP_ARROW) || key === 'w' || key === 'W') this.pos.y -= PLAYER_SPEED * dt;
-        if (keyIsDown(DOWN_ARROW) || key === 's' || key === 'S') this.pos.y += PLAYER_SPEED * dt;
-        if (keyIsDown(RIGHT_ARROW) || key === 'd' || key === 'D') this.pos.x += PLAYER_SPEED * dt;
-        if (keyIsDown(LEFT_ARROW) || key === 'a' || key === 'A') this.pos.x -= PLAYER_SPEED * dt;
+        if (this.pushedKeys.has('ArrowUp') || this.pushedKeys.has('w') || this.pushedKeys.has('W')) this.pos.y -= PLAYER_SPEED * dt;
+        if (this.pushedKeys.has('ArrowDown') || this.pushedKeys.has('s') || this.pushedKeys.has('S')) this.pos.y += PLAYER_SPEED * dt;
+        if (this.pushedKeys.has('ArrowRight') || this.pushedKeys.has('d') || this.pushedKeys.has('D')) this.pos.x += PLAYER_SPEED * dt;
+        if (this.pushedKeys.has('ArrowLeft') || this.pushedKeys.has('a') || this.pushedKeys.has('A')) this.pos.x -= PLAYER_SPEED * dt;
+
         this.pos.x = constrain(this.pos.x, START_X_TRACK + PLAYER_RAD, END_X_TRACK - PLAYER_RAD)
         this.pos.y = constrain(this.pos.y, PLAYER_RAD, height - PLAYER_RAD)
 
@@ -24,7 +39,9 @@ class Player{
             let distAwayFromPlayer = PLAYER_RAD - 2
             let angle = atan2(mouseY - this.pos.y, mouseX - this.pos.x)
             let newBall = structuredClone(ballsPrefabs.get(this.balls.pop()))
-            newBall.render = ballsRenders.get(newBall.key)
+            newBall.render = [ballsRenders.get(newBall.key)]
+            if(newBall.collisionEnemy && newBall.collisionEnemy.horizontal) newBall.render.push(ballsRenders.get('horizontalRay'))
+            if(newBall.collisionEnemy && newBall.collisionEnemy.vertical) newBall.render.push(ballsRenders.get('verticalRay'))
             newBall.pos = {x: this.pos.x + Math.cos(angle) * distAwayFromPlayer, y: this.pos.y + Math.sin(angle) * distAwayFromPlayer}
             newBall.vel = {x: Math.cos(angle) * newBall.speed, y: Math.sin(angle) * newBall.speed}
 
@@ -33,6 +50,29 @@ class Player{
             ballManager.addBall(newBall)
             this.shootCooldown = CADENCE
         }
+
+        if(frameCount % 60 == 0){
+            this.damageAcumSecond = 0
+        }
+    }
+
+    drawCartucho(){
+        push()
+        let nBalls = this.balls.length
+        let anglespan = Math.min(TWO_PI / nBalls, PI / 8)
+        let radius = PLAYER_RAD + 10
+        strokeWeight(5)
+        for(let i = 0; i < nBalls; i++){
+            let angle = anglespan * i - HALF_PI
+            let x = this.pos.x + Math.cos(angle) * radius
+            let y = this.pos.y + Math.sin(angle) * radius
+            push()
+            translate(x, y)
+            stroke(ballsPrefabs.get(this.balls[i]).col)
+            point(0, 0)
+            pop()
+        }
+        pop()
     }
 
 
@@ -51,14 +91,32 @@ class Player{
         push()
         let path = getTrajectoryPath(this.pos, {x: mouseX, y: mouseY}, 3)
 
-        stroke(0, 150)
+        blendMode(DIFFERENCE)
+        stroke(255)
         strokeWeight(2)
+        //crosshair that rotates with frameCount
+        let crosshairSize = 15
+        let angle = frameCount * 0.03
+        let xOffset = cos(angle) * crosshairSize
+        let yOffset = sin(angle) * crosshairSize
+        line(mouseX - xOffset, mouseY - yOffset, mouseX + xOffset, mouseY + yOffset)
+        line(mouseX - yOffset, mouseY + xOffset, mouseX + yOffset, mouseY - xOffset)
+
         for(let i = 0; i < path.length-1; i++){
             drawDashedLine(path[i].x, path[i].y, path[i+1].x, path[i+1].y, 10)
         }
         noFill()
         ellipse(path[path.length-1].x, path[path.length-1].y, 20)
         pop()
+
+        textSize(16)
+        text("Damage/sec:\n" + this.damageAcumSecond, 10, 20);
+
+        push()
+        
+        pop()
+
+        this.drawCartucho()
     }
 }
 
