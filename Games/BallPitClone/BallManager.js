@@ -5,6 +5,7 @@ constructor(pos){
     discardOnPlayerReturn (bool): when the player receives the ball, its discarded (p.e: repro balls)
     isReturning (bool): if true, the ball is returning to the player
     totalBounces (int): total bonces on enemies and walls
+    canBeRemoved (bool): if true, the ball will be removed from the game at the end of the update loop
 }
 */
 
@@ -107,7 +108,6 @@ class BallManager {
 
             // Si la bola está dentro del player Y ya ha rebotado al menos una vez, se recoge
             if (dist(ball.pos.x, ball.pos.y, player.pos.x, player.pos.y) <= PLAYER_RAD - ball.r && ball.totalBounces > 0) {
-                if(!ball.discardOnPlayerReturn) player.returnBall(ball)
                 ball.canBeRemoved = true;
             }
 
@@ -119,12 +119,16 @@ class BallManager {
             if(ball.totalBounces > MAX_BOUNCES){ 
                 ball.isReturning = true
                 ball.collisionEnemy = undefined
+                ball.speed = BALL_SPEED * 2
             }
         }
 
         // Remove collected balls
         for (let i = this.balls.length - 1; i >= 0; i--) {
-            if (this.balls[i].canBeRemoved) this.balls.splice(i, 1);
+            if (this.balls[i].canBeRemoved){ 
+                if(!this.balls[i].discardOnPlayerReturn) player.returnBall(this.balls[i])
+                this.balls.splice(i, 1);
+            }
         }
     }
 
@@ -185,6 +189,12 @@ class BallManager {
             ball.vel.x = Math.cos(angle) * ball.speed;
             ball.vel.y = Math.sin(angle) * ball.speed;
             ball.totalBounces++
+
+            if(ball.collisionEnemy.dmgMultOnBounce){
+                if(ball.totalBounces <= ball.collisionEnemy.dmgMultOnBounceMaxBounces){
+                    ball.collisionEnemy.dmg += ball.collisionEnemy.dmgMultOnBounceVal
+                }
+            }
         }
         
 
@@ -244,6 +254,35 @@ class BallManager {
                     }
                 }
             }
+            if(ball.collisionEnemy.bomb){
+                ball.canBeRemoved = true
+                let radius = ball.collisionEnemy.bombRadius
+                for(let en of enemyManager.enemies){
+                    let d = dist(hit.enemy.x, hit.enemy.y, en.x, en.y)
+                    if(en.id != hit.enemy.id && d <= radius){
+                        let damage = map(d, 0, radius, ball.collisionEnemy.bombDmg, 0)
+                        let angle = Math.atan2(en.y - hit.colY, en.x - hit.colX)
+                        //move enemy a bit away from the bomb center
+                        en.vx = Math.cos(angle) * 2
+                        en.vy = Math.sin(angle) * 2
+                        en.hit(damage, undefined, hit)
+                        this.applyStatus(ball, en)
+                    }
+                }
+                pm.emit({
+                    position: createVector(hit.colX, hit.colY),
+                    count: 150,
+                    speedMin: 1,
+                    speedMax: 7,
+                    lifespan: 30,
+                    colors: [color(255, 150, 0), color(255, 100, 0), color(255, 200, 50)],  
+                    fade: true,
+                    angle: 0,
+                    spread: TWO_PI,
+                    sizeMin: 6,
+                    sizeMax: 15
+                })
+            }
         }
     }
 
@@ -265,7 +304,20 @@ class BallManager {
     show() {
         push()
         for (let i = 0; i < this.balls.length; i++) {
-            for(let renderFunc of this.balls[i].render) renderFunc.call(this.balls[i])
+            let ball = this.balls[i];
+            if(ball.trail == undefined) ball.trail = []
+            ball.trail.push({x: ball.pos.x, y: ball.pos.y})
+            if(ball.trail.length > 25) ball.trail.shift()
+            // Draw Trail
+            noFill()
+            strokeWeight(ball.r * .5)
+            for(let i = 0; i < ball.trail.length; i++){
+                strokeWeight(map(i, 0, ball.trail.length, 0, ball.r * .5))
+                stroke(color(ball.col[0], ball.col[1], ball.col[2], map(i, 0, ball.trail.length, 0, 150)))
+                line(ball.trail[i].x, ball.trail[i].y, ball.trail[Math.min(i+1, ball.trail.length-1)].x, ball.trail[Math.min(i+1, ball.trail.length-1)].y)
+            }
+            for(let renderFunc of ball.render) renderFunc.call(ball)
+            
         }
         pop()
     }

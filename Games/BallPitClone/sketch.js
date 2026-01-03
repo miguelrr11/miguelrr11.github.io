@@ -1,6 +1,6 @@
-//
+//Ball X Pit Clone
 //Miguel Rodríguez
-//
+//31-12-2025
 
 p5.disableFriendlyErrors = true
 
@@ -22,7 +22,9 @@ async function setup(){
 
 function draw(){
     DT = deltaTime * 0.1
-    background(225)
+    background(100)
+    fill(225)
+    rect(START_X_TRACK, 0, END_X_TRACK - START_X_TRACK, HEIGHT)
 
     enemyManager.update(DT)
     enemyManager.show()

@@ -2,8 +2,8 @@ class Player{
     constructor(){
         this.pos = createVector(width/2, height - 100)
         this.shootCooldown = 0
-        this.balls = Array(10).fill('cross')
-        //this.balls.push('fire', 'trans', 'lightning', 'poison', 'repro')
+        this.balls = Array(1).fill('basic')
+        this.balls.push('fire', 'trans', 'lightning', 'poison', 'repro', 'cross', 'split', 'heavy', 'light', 'god', 'bomb')
         //this.balls = ['cross']
 
         document.addEventListener('keyup', this.keyup.bind(this));
@@ -11,6 +11,7 @@ class Player{
         this.pushedKeys = new Set()
 
         this.damageAcumSecond = 0
+        this.fpsArr = []
     }
 
     keydown(event){
@@ -26,6 +27,8 @@ class Player{
     }
 
     update(dt) {
+        this.oldPos = this.pos.copy()
+
         if (this.pushedKeys.has('ArrowUp') || this.pushedKeys.has('w') || this.pushedKeys.has('W')) this.pos.y -= PLAYER_SPEED * dt;
         if (this.pushedKeys.has('ArrowDown') || this.pushedKeys.has('s') || this.pushedKeys.has('S')) this.pos.y += PLAYER_SPEED * dt;
         if (this.pushedKeys.has('ArrowRight') || this.pushedKeys.has('d') || this.pushedKeys.has('D')) this.pos.x += PLAYER_SPEED * dt;
@@ -51,9 +54,31 @@ class Player{
             this.shootCooldown = CADENCE
         }
 
+        this.checkCollisionEnemies()
+
+        this.fpsArr.push(frameRate())
+        if(this.fpsArr.length > 60){
+            this.fpsArr.shift()
+        }
+
         if(frameCount % 60 == 0){
             this.damageAcumSecond = 0
         }
+    }
+
+    checkCollisionEnemies(){
+        //do not let enemies go through player
+        for(let en of enemyManager.enemies){
+            let d = dist(this.pos.x, this.pos.y, en.x, en.y)
+            if(d < PLAYER_RAD + Math.max(en.w, en.h) / 2){
+                this.pos = this.oldPos.copy()
+                //nudge player out of enemy
+                let angle = Math.atan2(this.pos.y - en.y, this.pos.x - en.x)
+                this.pos.x = en.x + (PLAYER_RAD + Math.max(en.w, en.h) / 2 + 1) * Math.cos(angle)
+                this.pos.y = en.y + (PLAYER_RAD + Math.max(en.w, en.h) / 2 + 1) * Math.sin(angle)   
+            }
+        }
+
     }
 
     drawCartucho(){
@@ -110,7 +135,7 @@ class Player{
         pop()
 
         textSize(16)
-        text("Damage/sec:\n" + this.damageAcumSecond, 10, 20);
+        text("Damage/sec:\n" + this.damageAcumSecond.toFixed(2) + "\nFPS:\n" + (this.fpsArr.reduce((a, b) => a + b, 0) / this.fpsArr.length).toFixed(2), 10, 20);
 
         push()
         

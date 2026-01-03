@@ -12,7 +12,7 @@ const START_X_TRACK = (WIDTH / 2) - (TRACK_WIDTH / 2)
 const END_X_TRACK = START_X_TRACK + TRACK_WIDTH
 
 const PLAYER_SPEED = 2
-const CADENCE = 10
+const CADENCE = 12
 const BALL_SPEED = 3.25
 const BASIC_BALL_R = 4
 const BIG_BALL_R = 10
@@ -25,4 +25,6 @@ const DEF_FIRE_DMG = 1.5
 const DEF_LIGHTNING_DMG = 2
 const DEF_POISON_DMG = 0.5
 const DEF_RAY_DMG = 0.5
+const CRIT_CHANCE = 0.05
+const CRIT_MULTIPLIER = 3
 
