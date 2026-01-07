@@ -27,26 +27,53 @@ class EnemyManager{
         return {closest, closestDist}
     }
 
-    updateSpawn(){
-        let canSpawn = true
-        let smallestY = 250
-        if(this.enemies.length > 0){
-            for(let en of this.enemies){
-                if(en.y < smallestY) smallestY = en.y
-                if(en.y < 50){
-                    canSpawn = false
-                    break
+    findRandomCircle(enemy, avoid = [], radius){
+        let candidates = []
+        for(let en of this.enemies){
+            if(en == enemy) continue
+            let avoiding = false
+            for(let i = 0; i < avoid.length; i++){
+                if(en == avoid[i]){
+                    avoiding = true
                 }
+            }
+            if(avoiding) continue
+            let d = dist(enemy.x, enemy.y, en.x, en.y)
+            if(d < radius){
+                candidates.push(en)
             }
         }
-        if(canSpawn){
-            let posY = smallestY - ENEMY_SIZE
-            if(posY){
-                for(let i = START_X_TRACK + ENEMY_SIZE / 2; i < END_X_TRACK; i += ENEMY_SIZE){
-                    if(Math.random() < 0.65) this.enemies.push(new Enemy(createVector(i, posY)))
-                }
+        if(candidates.length == 0) return null
+        let chosen = random(candidates)
+        let chosenDist = dist(enemy.x, enemy.y, chosen.x, chosen.y)
+        return {closest: chosen, closestDist: chosenDist}
+    }
+
+    canSpawnRow(row){
+        let y = row * ENEMY_SIZE
+        //cast a horizontal ray at y and see if any enemy is in the way
+        for(let en of this.enemies){
+            if(en.y + ENEMY_SIZE / 2 > y - ENEMY_SIZE / 2 && en.y - ENEMY_SIZE / 2 < y + ENEMY_SIZE / 2){
+                return false
             }
-            
+        }
+        return true
+    }
+
+    spawnRow(row){
+        let posY = row * ENEMY_SIZE
+        if(posY){
+            for(let i = START_X_TRACK + ENEMY_SIZE / 2; i < END_X_TRACK; i += ENEMY_SIZE){
+                if(Math.random() < 0.65) this.enemies.push(new Enemy(createVector(i, posY)))
+            }
+        }
+    }
+
+    updateSpawn(){
+        let rows = this.enemies.length == 0 ? 7 : 4
+        for(let row = 1; row <= rows; row++){
+            let canSpawn = this.canSpawnRow(row)
+            if(canSpawn) this.spawnRow(row)
         }
     }
 

@@ -37,7 +37,10 @@ class Enemy{
 
         let dmgTxt = crit ? dmg.toFixed(1) + '!' : dmg.toFixed(1)
 
-        textAnims.push(new TextAnim(dmgTxt, this.x + random(-8, 8), this.y + random(-8, 8), col, crit ? 20 : 14))
+        let size = map(dmg, 1, 10, 14, 25, true)
+        if(crit) size *= 1.5
+
+        textAnims.push(new TextAnim(dmgTxt, this.x + random(-8, 8), this.y + random(-8, 8), col, size))
 
         let nx = hitObj ? hitObj.nx : random(-1, 1)
         let ny = hitObj ? hitObj.ny : random(-1, 1)
@@ -125,27 +128,27 @@ class Enemy{
     }
 
     lightning(dmg, prob = 1, avoid = []){
-        let found = enemyManager.findClosest(this, avoid)
+        let found = enemyManager.findRandomCircle(this, avoid, ENEMY_SIZE * 4)
         if(found && found.closest){
-            if(found.closestDist < ENEMY_SIZE + 3) {
-                found.closest.hit(dmg, ballsPrefabs.get('lightning').col)
-                this.showLightning(found.closest)
-                avoid.push(found.closest)
-                if(Math.random() < prob) found.closest.lightning(dmg, prob * 0.8, avoid)
-            }
+            found.closest.hit(dmg, ballsPrefabs.get('lightning').col)
+            this.showLightning(found.closest)
+            avoid.push(found.closest)
+            if(Math.random() < prob) found.closest.lightning(dmg, prob * 0.8, avoid)
+            
         }
     }
 
     showLightning(target){
-        for(let i = 0; i < 1; i++){
+        for(let i = 0; i < 3; i++){
+            let col = random(200, 255)
             pm.emitLightning({
                 start: createVector(this.x, this.y),
                 end: createVector(target.x, target.y),
-                color: color(255, 255, 0),
+                color: color(col, col, 0),
                 segments: random(3, 7),
                 offset: random(5, 11),
                 thickness: random(1.5, 3),
-                lifespan: 30,
+                lifespan: 40,
             });
         }
 

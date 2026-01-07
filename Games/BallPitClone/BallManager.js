@@ -223,6 +223,23 @@ class BallManager {
                     newBall.discardOnPlayerReturn = true
                     newBall.totalBounces = 0
                     newBall.collisionEnemy.repro = false
+
+                    if(ball.collisionEnemy.reproStatus){
+                        //copy status effects from parent ball
+                        if(ball.collisionEnemy.fire){
+                            newBall.collisionEnemy.fire = true
+                            newBall.collisionEnemy.fireDmg = ball.collisionEnemy.fireDmg ? ball.collisionEnemy.fireDmg : DEF_FIRE_DMG
+                        }
+                        if(ball.collisionEnemy.poison){
+                            newBall.collisionEnemy.poison = true
+                            newBall.collisionEnemy.poisonDmg = ball.collisionEnemy.poisonDmg ? ball.collisionEnemy.poisonDmg : DEF_POISON_DMG
+                        }
+                        if(ball.collisionEnemy.lightning){
+                            newBall.collisionEnemy.lightning = true
+                            newBall.collisionEnemy.lightningDmg = ball.collisionEnemy.lightningDmg ? ball.collisionEnemy.lightningDmg : DEF_LIGHTNING_DMG
+                        }
+                    }
+
                     this.addBall(newBall)
                 }
             }
@@ -307,7 +324,7 @@ class BallManager {
             let ball = this.balls[i];
             if(ball.trail == undefined) ball.trail = []
             ball.trail.push({x: ball.pos.x, y: ball.pos.y})
-            if(ball.trail.length > 25) ball.trail.shift()
+            if(ball.trail.length > BALL_TRAIL_LENGTH) ball.trail.shift()
             // Draw Trail
             noFill()
             strokeWeight(ball.r * .5)

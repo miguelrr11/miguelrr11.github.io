@@ -1,3 +1,34 @@
+/*
+ATTRIBUTES
+collsionEnemy: {
+    bounce: bool  (if true, the ball will bounce off the enemy)
+
+    dmg: number  (damage dealt to enemy on collision)
+
+    fire: bool  (if true, the ball will apply fire damage over time)
+    fireDmg: number  (damage per second of fire)
+
+    lightning: bool  (if true, the ball will chain lightning to nearby enemies)
+    lightningDmg: number  (damage dealt by lightning)
+
+    poison: bool  (if true, the ball will apply poison damage over time)
+    poisonDmg: number  (damage per second of poison)
+
+    repro: bool  (if true, the ball will reproduce on hit)
+    reproTimes: number  (number of balls it spawns on hit)
+    reproKey: string  (key of the ball to spawn on hit)
+    reproStatus: bool (if true, the reproduced balls will have the same status effects as the parent ball)
+
+    horizontal: bool  (if true, the ball will shoot a horizontal ray on hit)
+    vertical: bool  (if true, the ball will shoot a vertical ray on hit)
+    rayDmg: number  (damage dealt by the ray)
+
+    bomb: bool  (if true, the ball will explode on hit)
+    bombRadius: number  (radius of the explosion)
+    bombDmg: number  (damage dealt by the explosion)
+}
+*/
+
 //ball examples
 
 let ballsRenders = new Map()
@@ -206,7 +237,7 @@ ballsRenders.set('light', function () {
 ballsPrefabs.set('god', {
     r: BIG_BALL_R,
     collisionEnemy: { bounce: true, dmg: 7, fire: true, lightning: true, poison: true, 
-                      repro: true, reproTimes: 10, reproKey: 'light', horizontal: true, vertical: true},
+                      repro: true, reproTimes: 4, reproKey: 'light', horizontal: true, vertical: true},
     collisionBottom: { return: true },
     key: 'god',
     speed: BALL_SPEED * 1.2,
@@ -224,7 +255,7 @@ ballsRenders.set('god', function () {
 
 ballsPrefabs.set('horizontal', {
     r: BIG_BALL_R,
-    collisionEnemy: { bounce: true, dmg: 2, horizontal: true, rayDmg: 0.5 },
+    collisionEnemy: { bounce: true, dmg: 2, horizontal: true, rayDmg: 0.5, bomb: true },
     collisionBottom: { return: true },
     key: 'horizontal',
     speed: BALL_SPEED,
@@ -375,9 +406,10 @@ ballsRenders.set('verticalRay', function(){
     pop()
 })
 
+//if reprostatus is true, the reproduced balls will have the same status effects as the parent ball
 ballsPrefabs.set('custom', {
     r: BIG_BALL_R,
-    collisionEnemy: { bounce: true, dmg: 1, poison: true, fire: true},
+    collisionEnemy: { bounce: true, dmg: 1, lightning: true, repro: true, reproTimes: 3, reproKey: 'basic', reproStatus: true},
     collisionBottom: { return: true },
     key: 'custom',
     speed: BALL_SPEED,

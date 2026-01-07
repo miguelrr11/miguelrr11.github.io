@@ -6,14 +6,15 @@ let TRACK_VEL = 0.1
 let ENEMY_HP = 20
 
 let PLAYER_RAD = 15
+const BALL_TRAIL_LENGTH = 10
 
 const TRACK_WIDTH = ENEMY_SIZE * 10
 const START_X_TRACK = (WIDTH / 2) - (TRACK_WIDTH / 2)
 const END_X_TRACK = START_X_TRACK + TRACK_WIDTH
 
 const PLAYER_SPEED = 2
-const CADENCE = 12
-const BALL_SPEED = 3.25
+const CADENCE = 12  //12
+const BALL_SPEED = 2.85
 const BASIC_BALL_R = 4
 const BIG_BALL_R = 10
 

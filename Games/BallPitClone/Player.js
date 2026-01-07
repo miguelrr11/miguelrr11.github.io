@@ -4,7 +4,9 @@ class Player{
         this.shootCooldown = 0
         this.balls = Array(1).fill('basic')
         this.balls.push('fire', 'trans', 'lightning', 'poison', 'repro', 'cross', 'split', 'heavy', 'light', 'god', 'bomb')
-        //this.balls = ['cross']
+        this.balls = ['lightning']
+
+        this.balls = Array(5).fill('horizontal')
 
         document.addEventListener('keyup', this.keyup.bind(this));
         document.addEventListener('keydown', this.keydown.bind(this));
@@ -135,7 +137,9 @@ class Player{
         pop()
 
         textSize(16)
-        text("Damage/sec:\n" + this.damageAcumSecond.toFixed(2) + "\nFPS:\n" + (this.fpsArr.reduce((a, b) => a + b, 0) / this.fpsArr.length).toFixed(2), 10, 20);
+        text("Damage/sec:\n" + this.damageAcumSecond.toFixed(2) + 
+             "\nFPS:\n" + (this.fpsArr.reduce((a, b) => a + b, 0) / this.fpsArr.length).toFixed(2) + 
+             "\n" + enemyManager.enemies.length + " enemies", 10, 20);
 
         push()
         
