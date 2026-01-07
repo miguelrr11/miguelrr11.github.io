@@ -27,8 +27,13 @@ class Enemy{
     static enemyID = 0
 
     hit(dmg, col = [255, 255, 255], hitObj){
+        if(this.hp <= 0) return
+
         let crit = Math.random() < CRIT_CHANCE
         if(crit) dmg *= CRIT_MULTIPLIER
+
+        dmg = dmg * random(1 - RND_MUL_DMG, 1 + RND_MUL_DMG)
+        dmg *= DMG_MULT_PLAYER_XP
 
         this.hp -= dmg
         this.visualHit = 1
@@ -37,7 +42,9 @@ class Enemy{
 
         let dmgTxt = crit ? dmg.toFixed(1) + '!' : dmg.toFixed(1)
 
-        let size = map(dmg, 1, 10, 14, 25, true)
+        if(dmg > player.maxDmg) player.maxDmg = dmg
+        if(dmg < player.minDmg) player.minDmg = dmg
+        let size = map(dmg, player.minDmg, player.maxDmg, 14, 25, true)
         if(crit) size *= 1.5
 
         textAnims.push(new TextAnim(dmgTxt, this.x + random(-8, 8), this.y + random(-8, 8), col, size))
@@ -76,15 +83,20 @@ class Enemy{
         this.coolDownPoisonCurrent = seconds * 60
         this.coolDownPoison = seconds * 60
         this.poisonDmg = dmg
+        this.poisonCountdown = POISON_COUNTDOWN * random(0.8, 1.2)
     }
 
+    disablePoisonDmg(){
+        this.poisonDmg = undefined
+        this.coolDownPoisonCurrent = undefined
+        this.coolDownPoison = undefined
+    }
 
     update(dt){
-        let oldPos = {x: this.x, y: this.y}
-
         this.y += TRACK_VEL * dt
         this.t += dt * 0.05
-        this.spawnT = lerp(this.spawnT, 1, 0.2)
+        if(!this.dying) this.spawnT = lerp(this.spawnT, 1, 0.2)
+        else this.spawnT = lerp(this.spawnT, 0, 0.2)
 
         //only used for dynamic movement like bombs
         this.x += this.vx * dt
@@ -117,14 +129,23 @@ class Enemy{
 
         if(this.coolDownPoisonCurrent != undefined){
             this.coolDownPoisonCurrent--
+            this.poisonCountdown--
             if(this.coolDownPoisonCurrent <= 0){
                 this.hit(this.poisonDmg, ballsPrefabs.get('poison').col)
                 this.coolDownPoisonCurrent = this.coolDownPoison
             }
+            if(this.poisonCountdown <= 0){
+                this.disablePoisonDmg()
+            }
         }
 
         if(this.y > height + ENEMY_SIZE) this.canBeRemoved = true
-        if(this.hp <= 0) this.canBeRemoved = true
+        if(this.hp <= 0){ 
+            this.dying = true
+        }
+        if(this.dying && this.spawnT < 0.01){
+            this.canBeRemoved = true
+        }
     }
 
     lightning(dmg, prob = 1, avoid = []){
@@ -139,13 +160,13 @@ class Enemy{
     }
 
     showLightning(target){
-        for(let i = 0; i < 3; i++){
+        for(let i = 0; i < 2; i++){
             let col = random(200, 255)
             pm.emitLightning({
                 start: createVector(this.x, this.y),
                 end: createVector(target.x, target.y),
                 color: color(col, col, 0),
-                segments: random(3, 7),
+                segments: random(3, 5),
                 offset: random(5, 11),
                 thickness: random(1.5, 3),
                 lifespan: 40,
@@ -197,8 +218,8 @@ class Enemy{
         fill(this.visualHit * 255, 0, 0)
         noStroke()
         let insideOff = visualOffset
-        let h = map(this.hp, 0, this.initialHP, 0, this.h)
-        let y = map(this.hp, 0, this.initialHP, this.y + this.h / 2, this.y)
+        let h = map(this.hp, 0, this.initialHP, 0, this.h, true)
+        let y = map(this.hp, 0, this.initialHP, this.y + this.h / 2, this.y, true)
         rect(0, y - this.y, this.w * insideOff, h * insideOff, 5)
 
         noFill()

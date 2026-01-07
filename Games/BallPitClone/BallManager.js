@@ -179,10 +179,17 @@ class BallManager {
             ball.isReturning = true;
             ball.collisionEnemy = undefined
         }
+        if(ball.collisionWall && (side == 'left' || side == 'right') && ball.collisionWall.times > 0 && ball.collisionEnemy){
+            ball.collisionWall.times--
+            ball.collisionEnemy.dmg *= ball.collisionWall.dmgMult
+        }
     }
 
     handleEnemyHit(ball, hit) {
-        // Same logic as before
+        if(ball.lastFrameHit == undefined) ball.lastFrameHit = frameCount - 1
+        if(ball.lastFrameHit == frameCount) return //avoid multiple hits in the same frame
+        ball.lastFrameHit = frameCount
+
         if(ball.collisionEnemy && ball.collisionEnemy.bounce){
             ball.speed = Math.min(ball.speed * 1.05, 5);
             const angle = Math.atan2(ball.vel.y, ball.vel.x);
@@ -207,14 +214,17 @@ class BallManager {
                 ball.lastHitID = hit.enemy.id;
             }
             this.applyStatus(ball, hit.enemy)
-            if (ball.collisionEnemy.repro) {
-                // a repro ball reproduces once when it bounces and it splits into reprotimes reprokey balls
-                // the duplicated balls lose the repro ability to avoid infinite loops
-                // TODO: make an attribute to control the recuriveness of the reproduction, instead of disabling it completely
-                ball.collisionEnemy.repro = false
-                for(let i = 0; i < ball.collisionEnemy.reproTimes; i++){
-                    let newBall = structuredClone(ballsPrefabs.get(ball.collisionEnemy.reproKey))
+            if (ball.repro && ball.repro.enabled) {
+                // the duplicated balls lose the repro ability by default to avoid infinite loops
+                ball.repro.bounces == undefined ? ball.repro.bounces = 0 : ball.repro.bounces--
+                if(ball.repro.bounces <= 0) ball.repro.enabled = false
+                for(let i = 0; i < ball.repro.times; i++){
+                    let newBall = structuredClone(ballsPrefabs.get(ball.repro.key))
+                    let dmgMult = ball.repro.dmgMult ? ball.repro.dmgMult : 1
+                    let reproSizeMult = ball.repro.sizeMult ? ball.repro.sizeMult : 1
                     newBall.render = [ballsRenders.get(newBall.key)]
+                    newBall.collisionEnemy.dmg *= dmgMult
+                    newBall.r *= reproSizeMult
                     if(newBall.collisionEnemy && newBall.collisionEnemy.horizontal) newBall.render.push(ballsRenders.get('horizontalRay'))
                     if(newBall.collisionEnemy && newBall.collisionEnemy.vertical) newBall.render.push(ballsRenders.get('verticalRay'))
                     newBall.pos = {x: ball.pos.x, y: ball.pos.y}
@@ -222,21 +232,23 @@ class BallManager {
                     newBall.vel = {x: Math.cos(angle) * newBall.speed, y: Math.sin(angle) * newBall.speed}
                     newBall.discardOnPlayerReturn = true
                     newBall.totalBounces = 0
-                    newBall.collisionEnemy.repro = false
 
-                    if(ball.collisionEnemy.reproStatus){
+                    //very important line: spawned balls should not reproduce again
+                    if(newBall.repro) newBall.repro.enabled = false
+
+                    if(ball.repro.copyStatus){
                         //copy status effects from parent ball
                         if(ball.collisionEnemy.fire){
                             newBall.collisionEnemy.fire = true
-                            newBall.collisionEnemy.fireDmg = ball.collisionEnemy.fireDmg ? ball.collisionEnemy.fireDmg : DEF_FIRE_DMG
+                            newBall.collisionEnemy.fireDmg = ball.collisionEnemy.fireDmg ? ball.collisionEnemy.fireDmg * dmgMult : DEF_FIRE_DMG * dmgMult
                         }
                         if(ball.collisionEnemy.poison){
                             newBall.collisionEnemy.poison = true
-                            newBall.collisionEnemy.poisonDmg = ball.collisionEnemy.poisonDmg ? ball.collisionEnemy.poisonDmg : DEF_POISON_DMG
+                            newBall.collisionEnemy.poisonDmg = ball.collisionEnemy.poisonDmg ? ball.collisionEnemy.poisonDmg * dmgMult : DEF_POISON_DMG * dmgMult
                         }
                         if(ball.collisionEnemy.lightning){
                             newBall.collisionEnemy.lightning = true
-                            newBall.collisionEnemy.lightningDmg = ball.collisionEnemy.lightningDmg ? ball.collisionEnemy.lightningDmg : DEF_LIGHTNING_DMG
+                            newBall.collisionEnemy.lightningDmg = ball.collisionEnemy.lightningDmg ? ball.collisionEnemy.lightningDmg * dmgMult : DEF_LIGHTNING_DMG * dmgMult
                         }
                     }
 
@@ -246,29 +258,37 @@ class BallManager {
             if(ball.collisionEnemy.horizontal){
                 //spawn an horizontal ray at the y level of the enemy. Every enemy that is crossed by that ray takes damage
                 let rayY = hit.enemy.y
+                let hitEnemy = false
                 for(let en of enemyManager.enemies){
                     if(en.id != hit.enemy.id){
                         if(en.y - en.h/2 <= rayY && en.y + en.h/2 >= rayY){
                             en.hit(ball.collisionEnemy.dmg, undefined, hit)
                             this.applyStatus(ball, en)
-                            if(ball.rays === undefined) ball.rays = []
-                            ball.rays.push({y: rayY, life: RAY_DURATION})
+                            hitEnemy = true
                         }
                     }
+                }
+                if(hitEnemy){
+                    if(ball.rays === undefined) ball.rays = []
+                    ball.rays.push({y: rayY, life: RAY_DURATION})
                 }
             }
             if(ball.collisionEnemy.vertical){
                 //spawn a vertical ray at the x level of the enemy. Every enemy that is crossed by that ray takes damage
                 let rayX = hit.enemy.x
+                let hitEnemy = false
                 for(let en of enemyManager.enemies){
                     if(en.id != hit.enemy.id){
                         if(en.x - en.w/2 <= rayX && en.x + en.w/2 >= rayX){
                             en.hit(ball.collisionEnemy.dmg, undefined, hit)
                             this.applyStatus(ball, en)
-                            if(ball.rays === undefined) ball.rays = []
-                            ball.rays.push({x: rayX, life: RAY_DURATION})
+                            hitEnemy = true
                         }
                     }
+                }
+                if(hitEnemy){
+                    if(ball.rays === undefined) ball.rays = []
+                    ball.rays.push({x: rayX, life: RAY_DURATION})
                 }
             }
             if(ball.collisionEnemy.bomb){

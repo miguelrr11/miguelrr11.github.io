@@ -4,9 +4,9 @@ class Player{
         this.shootCooldown = 0
         this.balls = Array(1).fill('basic')
         this.balls.push('fire', 'trans', 'lightning', 'poison', 'repro', 'cross', 'split', 'heavy', 'light', 'god', 'bomb')
-        this.balls = ['lightning']
+        this.balls = ['cross']
 
-        this.balls = Array(5).fill('horizontal')
+        this.balls = Array(20).fill('basic')
 
         document.addEventListener('keyup', this.keyup.bind(this));
         document.addEventListener('keydown', this.keydown.bind(this));
@@ -14,6 +14,9 @@ class Player{
 
         this.damageAcumSecond = 0
         this.fpsArr = []
+
+        this.maxDmg = 0
+        this.minDmg = Infinity
     }
 
     keydown(event){
@@ -24,8 +27,19 @@ class Player{
         this.pushedKeys.delete(event.key)
     }
 
+    levelUp(){
+        DMG_MULT_PLAYER_XP *= 1.1
+        PLAYER_SPEED *= 1.05
+        CADENCE = Math.max(4, CADENCE * 0.95)
+    }
+
     returnBall(ball){
-        this.balls.unshift(ball.key);
+        //this.balls.unshift(ball.key);
+
+        //random balls
+        let keys = Array.from(ballsPrefabs.keys())
+        let randomKey = random(keys)
+        this.balls.splice(floor(random(0, this.balls.length + 1)), 0, randomKey)
     }
 
     update(dt) {
@@ -102,11 +116,14 @@ class Player{
         pop()
     }
 
+    drawXP(){
+        xpm.drawXPBar()
+    }
 
     show(){
         noCursor()
         push()
-        noFill()
+        fill(0, 50)
         stroke(0)
         strokeWeight(2)
         ellipse(this.pos.x, this.pos.y, PLAYER_RAD*2)
@@ -138,14 +155,27 @@ class Player{
 
         textSize(16)
         text("Damage/sec:\n" + this.damageAcumSecond.toFixed(2) + 
-             "\nFPS:\n" + (this.fpsArr.reduce((a, b) => a + b, 0) / this.fpsArr.length).toFixed(2) + 
-             "\n" + enemyManager.enemies.length + " enemies", 10, 20);
+             "\n\nFPS:\n" + (this.fpsArr.reduce((a, b) => a + b, 0) / this.fpsArr.length).toFixed(2) + 
+             "\n\n" + enemyManager.enemies.length + " enemies" + 
+             "\n\nText anims:\n" + textAnims.length + "\n"+ 
+             "\n\nXP: " + xpm.xp + " / " + xpm.xpToNextLevel +
+             "\nLevel: " + xpm.level +
+             "\n\nMax Dmg: " + this.maxDmg.toFixed(0) +
+             "\nMin Dmg: " + (this.minDmg == Infinity ? 0 : this.minDmg.toFixed(0)) +
+             "\n\nPlayer Speed:\n" + PLAYER_SPEED.toFixed(2) +
+             "\nCadence:\n" + CADENCE.toFixed(2) +
+             "\nPlayer Dmg Mult:\n" + DMG_MULT_PLAYER_XP.toFixed(2)
+             
+             
+             
+             , 10, 20);
 
         push()
         
         pop()
 
         this.drawCartucho()
+        this.drawXP()
     }
 }
 

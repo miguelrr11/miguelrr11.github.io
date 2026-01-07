@@ -73,7 +73,7 @@ class EnemyManager{
         let rows = this.enemies.length == 0 ? 7 : 4
         for(let row = 1; row <= rows; row++){
             let canSpawn = this.canSpawnRow(row)
-            if(canSpawn) this.spawnRow(row)
+            if(canSpawn && Math.random() < 0.5) this.spawnRow(row)
         }
     }
 
@@ -87,7 +87,15 @@ class EnemyManager{
     cleanse(){
         for(let i = this.enemies.length-1; i >= 0; i--){
             let en = this.enemies[i]
-            if(en.canBeRemoved) this.enemies.splice(i, 1)
+            if(en.canBeRemoved){ 
+                this.enemies.splice(i, 1)
+                xpm.addOrb(createVector(en.x, en.y))
+            }
+        }
+        if(this.enemies.length == 0){
+            let ta = new TextAnim('Field Cleared!', WIDTH / 2, HEIGHT / 2, [0, 255, 0], 32)
+            ta.pauseCounter = 60
+            textAnims.push(ta)
         }
     }
 

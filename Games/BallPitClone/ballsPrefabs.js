@@ -1,6 +1,6 @@
 /*
 ATTRIBUTES
-collsionEnemy: {
+collisionEnemy: {
     bounce: bool  (if true, the ball will bounce off the enemy)
 
     dmg: number  (damage dealt to enemy on collision)
@@ -14,11 +14,6 @@ collsionEnemy: {
     poison: bool  (if true, the ball will apply poison damage over time)
     poisonDmg: number  (damage per second of poison)
 
-    repro: bool  (if true, the ball will reproduce on hit)
-    reproTimes: number  (number of balls it spawns on hit)
-    reproKey: string  (key of the ball to spawn on hit)
-    reproStatus: bool (if true, the reproduced balls will have the same status effects as the parent ball)
-
     horizontal: bool  (if true, the ball will shoot a horizontal ray on hit)
     vertical: bool  (if true, the ball will shoot a vertical ray on hit)
     rayDmg: number  (damage dealt by the ray)
@@ -26,6 +21,25 @@ collsionEnemy: {
     bomb: bool  (if true, the ball will explode on hit)
     bombRadius: number  (radius of the explosion)
     bombDmg: number  (damage dealt by the explosion)
+}
+
+collisionBottom: {
+    return: bool  (if true, the ball will be returned to the player on hitting the bottom)
+}
+
+collisionWall: {
+    dmgMult: number  (multiplier applied to damage when hitting a wall)
+    times: number  (number of times the ball can hit walls and the effect applies)
+}
+
+repro: {
+    enabled: bool  (if true, the ball will reproduce on hit)
+    times: number  (number of balls it spawns on hit)
+    key: string  (key of the ball to spawn on hit)
+    copyStatus: bool (if true, the reproduced balls will have the same status effects as the parent ball)
+    dmgMult: number (multiplier applied to the damage of the reproduced balls)
+    sizeMult: number (multiplier applied to the size of the reproduced balls)
+    bounces: number (number of bounces the ball reproduces before reproduction is disabled)
 }
 */
 
@@ -164,7 +178,8 @@ ballsRenders.set('poison', function () {
 
 ballsPrefabs.set('repro', {
     r: BIG_BALL_R,
-    collisionEnemy: { bounce: true, dmg: 4, repro: true, reproTimes: 2, reproKey: 'repro'},
+    collisionEnemy: { bounce: true, dmg: 4 },
+    repro: { enabled: true, times: 2, key: 'repro' },
     collisionBottom: { return: true },
     key: 'repro',
     speed: BALL_SPEED,
@@ -182,7 +197,8 @@ ballsRenders.set('repro', function () {
 
 ballsPrefabs.set('split', {
     r: BIG_BALL_R,
-    collisionEnemy: { bounce: true, dmg: 3, repro: true, reproTimes: 4, reproKey: 'basic'},
+    collisionEnemy: { bounce: true, dmg: 3 },
+    repro: { enabled: true, times: 4, key: 'basic' },
     collisionBottom: { return: true },
     key: 'split',
     speed: BALL_SPEED,
@@ -236,8 +252,9 @@ ballsRenders.set('light', function () {
 
 ballsPrefabs.set('god', {
     r: BIG_BALL_R,
-    collisionEnemy: { bounce: true, dmg: 7, fire: true, lightning: true, poison: true, 
-                      repro: true, reproTimes: 4, reproKey: 'light', horizontal: true, vertical: true},
+    collisionEnemy: { bounce: true, dmg: 7, fire: true, lightning: true, poison: true,
+                      horizontal: true, vertical: true},
+    repro: { enabled: true, times: 4, key: 'light' },
     collisionBottom: { return: true },
     key: 'god',
     speed: BALL_SPEED * 1.2,
@@ -337,28 +354,28 @@ ballsRenders.set('horizontalRay', function(){
                     map(this.rays[i].life, RAY_DURATION, RAY_DURATION*0.5, 0, 255) : 
                     map(this.rays[i].life, RAY_DURATION*0.5, 0, 255, 0)
         strokeWeight(3)
-        stroke(255, 157, 0, trans*.75)
+        stroke(255, random(157, 200), 0, trans*.75)
         line(START_X_TRACK, this.rays[i].y, END_X_TRACK, this.rays[i].y)
         strokeWeight(2)
-        stroke(255, 157, 0, trans)
+        stroke(255, random(157, 200), 0, trans)
         line(START_X_TRACK, this.rays[i].y, END_X_TRACK, this.rays[i].y)
 
         let particleRaysObj = structuredClone(particleRaysEdges)
         particleRaysObj.position = createVector(START_X_TRACK, this.rays[i].y)
         particleRaysObj.angle = 0 + random(-PI/8, PI/8)
-        particleRaysObj.colors = [color(255, 157, 0)]
+        particleRaysObj.colors = [color(255, 157, 0), color(255, 200, 0)]
         pm.emit(particleRaysObj)
 
         particleRaysObj = structuredClone(particleRaysEdges)
         particleRaysObj.position = createVector(END_X_TRACK, this.rays[i].y)
         particleRaysObj.angle = HALF_PI*2 + random(-PI/8, PI/8)
-        particleRaysObj.colors = [color(255, 157, 0)]
+        particleRaysObj.colors = [color(255, 157, 0), color(255, 200, 0)]
         pm.emit(particleRaysObj)
 
         particleRaysObj = structuredClone(particleRaysEdges)
         particleRaysObj.position = createVector(random(START_X_TRACK, END_X_TRACK), this.rays[i].y)
         particleRaysObj.spread = TWO_PI
-        particleRaysObj.colors = [color(255, 157, 0)]
+        particleRaysObj.colors = [color(255, 157, 0), color(255, 200, 0)]
         pm.emit(particleRaysObj)
 
         this.rays[i].life--
@@ -372,28 +389,27 @@ ballsRenders.set('horizontalRay', function(){
 ballsRenders.set('verticalRay', function(){
     if(!this.rays) this.rays = []
     push()
-    strokeWeight(1.5)
     for(let i = this.rays.length - 1; i >= 0; i--){
         let trans = this.rays[i].life > RAY_DURATION*0.5 ? 
                     map(this.rays[i].life, RAY_DURATION, RAY_DURATION*0.5, 0, 255) : 
                     map(this.rays[i].life, RAY_DURATION*0.5, 0, 255, 0)
         strokeWeight(3)
-        stroke(255, 157, 0, trans*.75)
+        stroke(255, random(157, 200), 0, trans*.75)
         line(this.rays[i].x, 0, this.rays[i].x, height)
         strokeWeight(2)
-        stroke(255, 157, 0, trans)
+        stroke(255, random(157, 200), 0, trans)
         line(this.rays[i].x, 0, this.rays[i].x, height)
 
         let particleRaysObj = structuredClone(particleRaysEdges)
         particleRaysObj.position = createVector(this.rays[i].x, 0)
         particleRaysObj.angle = HALF_PI + random(-PI/8, PI/8)
-        particleRaysObj.colors = [color(255, 157, 0)]
+        particleRaysObj.colors = [color(255, random(157, 200), 0)]
         pm.emit(particleRaysObj)
 
         particleRaysObj = structuredClone(particleRaysEdges)
         particleRaysObj.position = createVector(this.rays[i].x, height)
         particleRaysObj.angle = HALF_PI*3 + random(-PI/8, PI/8)
-        particleRaysObj.colors = [color(255, 157, 0)]
+        particleRaysObj.colors = [color(255, random(157, 200), 0)]
         pm.emit(particleRaysObj)
 
 
@@ -406,11 +422,11 @@ ballsRenders.set('verticalRay', function(){
     pop()
 })
 
-//if reprostatus is true, the reproduced balls will have the same status effects as the parent ball
 ballsPrefabs.set('custom', {
     r: BIG_BALL_R,
-    collisionEnemy: { bounce: true, dmg: 1, lightning: true, repro: true, reproTimes: 3, reproKey: 'basic', reproStatus: true},
+    collisionEnemy: { bounce: false, dmg: 2, lightning: true, lightningDmg: 3 },
     collisionBottom: { return: true },
+    collisionWall: { dmgMult: 2, times: 1 },
     key: 'custom',
     speed: BALL_SPEED,
     col: [200, 50, 150]
