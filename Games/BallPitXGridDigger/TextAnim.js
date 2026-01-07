@@ -20,7 +20,7 @@ class TextAnim{
         return this.val < 0.01 && this.phase == 2
     }
 
-    show(onlyUpdate = false){
+    show(){
         push()
         if(this.phase == 0) this.val = lerp(this.val, 1, 0.2)
         else if(this.phase == 1) this.pauseCounter--
@@ -45,16 +45,14 @@ class TextAnim{
         // else rotate(0)
         //rotate(this.rotOffset)
 
-        if(!onlyUpdate){
-            textAlign(CENTER, CENTER)
-            textSize(this.size * this.val)
+        textAlign(CENTER, CENTER)
+        textSize(this.size * this.val)
 
-            fill(...col1)
-            stroke(...col2)
-            strokeWeight(4 * this.val)
-            
-            text(this.text, this.pos.x, this.pos.y)
-        }
+        fill(...col1)
+        stroke(...col2)
+        strokeWeight(4 * this.val)
+        
+        text(this.text, this.pos.x, this.pos.y)
         
         pop()
     }

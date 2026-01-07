@@ -220,9 +220,9 @@ class Enemy{
         let insideOff = visualOffset
         let h = map(this.hp, 0, this.initialHP, 0, this.h, true)
         let y = map(this.hp, 0, this.initialHP, this.y + this.h / 2, this.y, true)
-        //rect(0, y - this.y, this.w * insideOff, h * insideOff, 5)
+        rect(0, y - this.y, this.w * insideOff, h * insideOff, 5)
 
-        fill(0, map(this.hp, 0, this.initialHP, 50, 255, true))
+        noFill()
         if(this.fireDmg != undefined) stroke(255, 0, 0)
         else stroke(0)
         strokeWeight(2)

@@ -6,7 +6,7 @@ class Player{
         this.balls.push('fire', 'trans', 'lightning', 'poison', 'repro', 'cross', 'split', 'heavy', 'light', 'god', 'bomb')
         this.balls = ['cross']
 
-        this.balls = Array(50).fill('basic')
+        this.balls = Array(20).fill('basic')
 
         document.addEventListener('keyup', this.keyup.bind(this));
         document.addEventListener('keydown', this.keydown.bind(this));
@@ -34,12 +34,12 @@ class Player{
     }
 
     returnBall(ball){
-        this.balls.unshift(ball.key);
+        //this.balls.unshift(ball.key);
 
         //random balls
-        // let keys = Array.from(ballsPrefabs.keys())
-        // let randomKey = random(keys)
-        // this.balls.splice(floor(random(0, this.balls.length + 1)), 0, randomKey)
+        let keys = Array.from(ballsPrefabs.keys())
+        let randomKey = random(keys)
+        this.balls.splice(floor(random(0, this.balls.length + 1)), 0, randomKey)
     }
 
     update(dt) {
@@ -65,9 +65,6 @@ class Player{
             newBall.vel = {x: Math.cos(angle) * newBall.speed, y: Math.sin(angle) * newBall.speed}
 
             newBall.totalBounces = 0
-
-            //DEBUG
-            //newBall.collisionEnemy.bounce = Math.random() < 0.5
 
             ballManager.addBall(newBall)
             this.shootCooldown = CADENCE

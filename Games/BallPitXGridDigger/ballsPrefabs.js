@@ -61,7 +61,7 @@ let particleRaysEdges = {
 
 ballsPrefabs.set('basic', {
     r: BASIC_BALL_R,
-    collisionEnemy: { bounce: true, dmg: 1, dmgMultOnBounce: true, dmgMultOnBounceVal: 0.3, dmgMultOnBounceMaxBounces: 10},
+    collisionEnemy: { bounce: true, dmg: 1, dmgMultOnBounce: true, dmgMultOnBounceVal: 0.3, dmgMultOnBounceMaxBounces: 10 },
     collisionBottom: { return: true },
     key: 'basic',
     speed: BALL_SPEED,

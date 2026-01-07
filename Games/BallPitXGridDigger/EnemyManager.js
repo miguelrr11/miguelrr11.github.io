@@ -3,21 +3,6 @@
 class EnemyManager{
     constructor(){
         this.enemies = []
-        this.spawnMap()
-    }
-
-    spawnMap(){
-        let widthField = Math.floor(TRACK_WIDTH / ENEMY_SIZE)
-        let heightField = Math.floor(HEIGHT / ENEMY_SIZE)
-        for(let row = 1; row <= heightField; row++){
-            for(let col = 0; col < widthField; col++){
-                if(noise(col * 0.1, row * 0.1) > 0.45){
-                    let posX = START_X_TRACK + ENEMY_SIZE / 2 + col * ENEMY_SIZE
-                    let posY = row * ENEMY_SIZE
-                    this.enemies.push(new Enemy(createVector(posX, posY)))
-                }
-            }
-        }
     }
 
     findClosest(enemy, avoid = []){
@@ -79,11 +64,7 @@ class EnemyManager{
         let posY = row * ENEMY_SIZE
         if(posY){
             for(let i = START_X_TRACK + ENEMY_SIZE / 2; i < END_X_TRACK; i += ENEMY_SIZE){
-                let col = Math.floor((i - START_X_TRACK) / ENEMY_SIZE)
-                if(noise(col * 0.1, row * 0.1) > 0.45){
-                    let posX = START_X_TRACK + ENEMY_SIZE / 2 + col * ENEMY_SIZE
-                    this.enemies.push(new Enemy(createVector(posX, posY)))
-                }
+                if(Math.random() < 0.65) this.enemies.push(new Enemy(createVector(i, posY)))
             }
         }
     }
@@ -92,7 +73,7 @@ class EnemyManager{
         let rows = this.enemies.length == 0 ? 7 : 4
         for(let row = 1; row <= rows; row++){
             let canSpawn = this.canSpawnRow(row)
-            if(canSpawn) this.spawnRow(row)
+            if(canSpawn && Math.random() < 0.5) this.spawnRow(row)
         }
     }
 

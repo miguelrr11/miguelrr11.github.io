@@ -56,7 +56,7 @@ function draw(){
 
     for(let i = textAnims.length - 1; i >= 0; i--){
         let ta = textAnims[i]
-        ta.show(true)
+        ta.show()
         if(ta.finished()){
             textAnims.splice(i, 1)
         }

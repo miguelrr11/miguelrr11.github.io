@@ -262,8 +262,7 @@ class BallManager {
                 for(let en of enemyManager.enemies){
                     if(en.id != hit.enemy.id){
                         if(en.y - en.h/2 <= rayY && en.y + en.h/2 >= rayY){
-                            let dmg = ball.collisionEnemy.rayDmg ? ball.collisionEnemy.rayDmg : DEF_RAY_DMG
-                            en.hit(dmg, undefined, hit)
+                            en.hit(ball.collisionEnemy.dmg, undefined, hit)
                             this.applyStatus(ball, en)
                             hitEnemy = true
                         }
@@ -281,8 +280,7 @@ class BallManager {
                 for(let en of enemyManager.enemies){
                     if(en.id != hit.enemy.id){
                         if(en.x - en.w/2 <= rayX && en.x + en.w/2 >= rayX){
-                            let dmg = ball.collisionEnemy.rayDmg ? ball.collisionEnemy.rayDmg : DEF_RAY_DMG
-                            en.hit(dmg, undefined, hit)
+                            en.hit(ball.collisionEnemy.dmg, undefined, hit)
                             this.applyStatus(ball, en)
                             hitEnemy = true
                         }
