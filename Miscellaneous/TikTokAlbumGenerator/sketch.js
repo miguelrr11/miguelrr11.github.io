@@ -26,6 +26,10 @@ let trackContainer;
 let tracks = [];
 const gradeOptions = ['GOAT', 'S', 'A', 'B', 'C', 'D', 'F', 'Interlude'];
 
+// View toggle: 'ratings' or 'cover'
+let currentView = 'ratings';
+let viewToggleBtn;
+
 async function setup(){
     fontRegular = await loadFont('fonts/Vidaloka-Regular.ttf');
     fontRegularItalic = await loadFont('fonts/Coolvetica Rg It.otf');
@@ -36,6 +40,35 @@ async function setup(){
 
     createCanvas(WIDTH, HEIGHT)
     createFileInput(handleFile).position(width, 10).style('font-size', '20px');
+
+    // Enable drag and drop on the entire document
+    document.addEventListener('dragover', (e) => {
+        e.preventDefault();
+    });
+    document.addEventListener('drop', (e) => {
+        e.preventDefault();
+        let file = e.dataTransfer.files[0];
+        if (file && file.name.endsWith('.json')) {
+            let reader = new FileReader();
+            reader.onload = (event) => {
+                try {
+                    let data = JSON.parse(event.target.result);
+                    if (data.album) {
+                        albumData = data.album;
+                        fillFormFromData(albumData);
+                        if (currentView === 'ratings') {
+                            printAlbum();
+                        } else {
+                            printCoverScreen();
+                        }
+                    }
+                } catch (err) {
+                    console.log("Invalid JSON file");
+                }
+            };
+            reader.readAsText(file);
+        }
+    });
 
     createAlbumEditor();
 }
@@ -111,14 +144,50 @@ function createAlbumEditor() {
     downloadBtn.mousePressed(downloadJSON);
     yPos += 50;
 
-    // Download Image button
-    let downloadImgBtn = createButton('Download Image').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #9C27B0; color: white; border: none; cursor: pointer;');
-    downloadImgBtn.mousePressed(() => {
-        let albumName = titleInput.value() || 'Untitled';
-        let artistName = artistInput.value() || 'Unknown';
-        let fileName = (artistName + ' - ' + albumName).replace(/[\/\\:*?"<>|]/g, '');
-        saveCanvas(fileName, 'png');
-    });
+    // Download Images button (downloads both screens)
+    let downloadImgBtn = createButton('Download Images').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #9C27B0; color: white; border: none; cursor: pointer;');
+    downloadImgBtn.mousePressed(downloadBothImages);
+    yPos += 50;
+
+    // View Toggle button
+    viewToggleBtn = createButton('View: Ratings').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #FF9800; color: white; border: none; cursor: pointer;');
+    viewToggleBtn.mousePressed(toggleView);
+}
+
+function toggleView() {
+    if (currentView === 'ratings') {
+        currentView = 'cover';
+        viewToggleBtn.html('View: Cover');
+    } else {
+        currentView = 'ratings';
+        viewToggleBtn.html('View: Ratings');
+    }
+    if (albumData) {
+        if (currentView === 'ratings') {
+            printAlbum();
+        } else {
+            printCoverScreen();
+        }
+    }
+}
+
+async function downloadBothImages() {
+    if (!albumData) return;
+
+    let albumName = titleInput.value() || 'Untitled';
+    let artistName = artistInput.value() || 'Unknown';
+    let baseFileName = (artistName + ' - ' + albumName).replace(/[\/\\:*?"<>|]/g, '');
+
+    // Save ratings screen
+    await printAlbum();
+    saveCanvas(baseFileName + ' - Ratings', 'png');
+
+    // Small delay to ensure first save completes
+    await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Save cover screen
+    await printCoverScreen();
+    saveCanvas(baseFileName + ' - Cover', 'png');
 }
 
 function addTrackRow() {
@@ -177,7 +246,11 @@ function generateFromForm() {
         albumGrade: albumGradeSelect.value()
     };
 
-    printAlbum();
+    if (currentView === 'ratings') {
+        printAlbum();
+    } else {
+        printCoverScreen();
+    }
 }
 
 function downloadJSON() {
@@ -214,8 +287,12 @@ function downloadJSON() {
 
 function handleFile(file) {
     uploadedFile = file;
-    processFile()
-    printAlbum()
+    processFile();
+    if (currentView === 'ratings') {
+        printAlbum();
+    } else {
+        printCoverScreen();
+    }
 }
 
 function processFile(){
@@ -290,6 +367,7 @@ async function printAlbum(){
 
     
     imageMode(CORNER)
+    rectMode(CORNER)
     let y = 50
     let img = await loadImage(albumData.imageUrl);
     utils.beginShadow("#000000", 50, 0, 0);
@@ -311,19 +389,19 @@ async function printAlbum(){
     textFont(fontHeavy);
     textSize(getMaxTextSize(albumData.title, titleMaxWidth - leftMargin * 2, 100));
     fill(255);
-    textLeading(80);
+    textLeading(70);
     text(albumData.title, leftMargin, topMargin + y);
     textAlign(LEFT, TOP);
 
 
     // ARTIST
     textFont(fontRegularCondensed);
-    textLeading(60);
-    textSize(50);
+    textLeading(50);
+    textSize(45);
     fill(255);
-    text(albumData.artist, leftMargin, topMargin + y + 120, width * 0.35);
+    text(albumData.artist, leftMargin, topMargin + y + 110, width * 0.35);
 
-    let bbox = fontRegularCondensed.textBounds(albumData.artist, leftMargin, topMargin + y + 120, width * 0.35);
+    let bbox = fontRegularCondensed.textBounds(albumData.artist, leftMargin, topMargin + y + 100, width * 0.35);
 
     // YEAR
     y += bbox.h;
@@ -380,6 +458,11 @@ async function printAlbum(){
         "F": "#902020",
         "Interlude": "#b2b2b2"
     };
+
+    // Reset text state before drawing tracks
+    textFont(fontRegular);
+    textSize(60);
+    textAlign(LEFT, BASELINE);
 
     rectMode(CENTER);
     let w = (leftMargin + x) * 0.75;
@@ -471,6 +554,55 @@ async function printAlbum(){
     textSize(100);
     utils.beginShadow("#ffffff", 50, 0, 0);
     text(namingMap[albumData.albumGrade] || albumData.albumGrade, width * 0.5, height - gradeRectHeight * 0.43);
+    utils.endShadow();
+}
+
+async function printCoverScreen() {
+    background(200);
+
+    // Draw blurred background (same as ratings screen)
+    let imgBW = await loadImage(albumData.imageUrl);
+    imgBW.filter(GRAY);
+    imgBW.filter(BLUR, 2);
+    imgBW.filter(ERODE);
+    imgBW = dimImage(imgBW, 190);
+    imageMode(CENTER);
+    image(imgBW, width * 0.5, height * 0.5, height, height);
+
+    // "Album Review" text at top
+    utils.beginShadow("#000000", 30, 0, 0);
+    textAlign(CENTER, TOP);
+    textFont(fontLight);
+    textSize(55);
+    fill(255);
+    text("Album Review", width * 0.5, 260);
+    utils.endShadow();
+
+    // Large album cover in center
+    let img = await loadImage(albumData.imageUrl);
+    let coverSize = width * 0.8;
+    let coverY = height * 0.42;
+    imageMode(CENTER);
+    rectMode(CENTER);
+    utils.beginShadow("#000000", 80, 0, 0);
+    rect(width * 0.5, coverY, coverSize, coverSize);
+    image(img, width * 0.5, coverY, coverSize, coverSize);
+    utils.endShadow();
+
+    // Album title below image
+    utils.beginShadow("#000000", 20, 0, 0);
+    textAlign(CENTER, TOP);
+    textFont(fontHeavy);
+    let titleY = coverY + coverSize * 0.5 + 60;
+    textSize(getMaxTextSize(albumData.title, width - 100, 100));
+    fill(255);
+    text(albumData.title, width * 0.5, titleY);
+
+    // Artist name below title
+    textFont(fontRegularCondensed);
+    textSize(45);
+    fill(230);
+    text(albumData.artist, width * 0.5, titleY + 130);
     utils.endShadow();
 }
 
