@@ -109,6 +109,16 @@ function createAlbumEditor() {
     // Download JSON button
     let downloadBtn = createButton('Download JSON').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #2196F3; color: white; border: none; cursor: pointer;');
     downloadBtn.mousePressed(downloadJSON);
+    yPos += 50;
+
+    // Download Image button
+    let downloadImgBtn = createButton('Download Image').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #9C27B0; color: white; border: none; cursor: pointer;');
+    downloadImgBtn.mousePressed(() => {
+        let albumName = titleInput.value() || 'Untitled';
+        let artistName = artistInput.value() || 'Unknown';
+        let fileName = (artistName + ' - ' + albumName).replace(/[\/\\:*?"<>|]/g, '');
+        saveCanvas(fileName, 'png');
+    });
 }
 
 function addTrackRow() {
@@ -196,7 +206,10 @@ function downloadJSON() {
         }
     };
 
-    saveJSON(jsonData, 'album.json');
+    let albumName = titleInput.value() || 'Untitled';
+    let artistName = artistInput.value() || 'Unknown';
+    let fileName = (artistName + ' - ' + albumName).replace(/[\/\\:*?"<>|]/g, '') + '.json';
+    saveJSON(jsonData, fileName);
 }
 
 function handleFile(file) {
@@ -372,16 +385,17 @@ async function printAlbum(){
     let w = (leftMargin + x) * 0.75;
     let h = 40;
 
-    textSize(60)
-    textFont(fontRegular);
-    let textAscent_ = textAscent();
-    let textDescent_ = textDescent();
-    let textHeight = textAscent_ + textDescent_;
-    let rectCenterOffset = textAscent_ - textHeight / 2;
-
     for(let i = 0; i < albumData.tracks.length; i++){
         let track = albumData.tracks[i];
         let trackY = y;
+
+        // Set font and size fresh for each track to ensure consistent metrics
+        textSize(60);
+        textFont(fontRegular);
+        let textAscent_ = textAscent();
+        let textDescent_ = textDescent();
+        let textHeight = textAscent_ + textDescent_;
+        let rectCenterOffset = textAscent_ - textHeight / 2;
 
         // Draw rectangle aligned with text
         let gradeColor = colorMap[track.grade] || "#888888";
@@ -435,16 +449,10 @@ async function printAlbum(){
             width, height - gradeRectHeight,
             [0, .2, .38, .59, 1]
         );
-        utils.beginShadow("#ffffff", 50, 0, 0);
-    } else if(albumData.albumGrade == 'S'){
-        utils.beginShadow(colorMap[albumData.albumGrade], 35, 0, 0);
+        
     }
 
     rect(0, height - gradeRectHeight, width, gradeRectHeight, 20, 20, 0, 0);
-
-    if(albumData.albumGrade == 'GOAT' || albumData.albumGrade == 'S'){
-        utils.endShadow();
-    }
 
     let namingMap = {
         "GOAT": "GOAT",
@@ -461,9 +469,9 @@ async function printAlbum(){
     fill(255);
     textFont(fontHeavy);
     textSize(100);
+    utils.beginShadow("#ffffff", 50, 0, 0);
     text(namingMap[albumData.albumGrade] || albumData.albumGrade, width * 0.5, height - gradeRectHeight * 0.43);
-
-    //saveCanvas('tiktok_album_generator', 'png');
+    utils.endShadow();
 }
 
 function dimImage(img, amount){
