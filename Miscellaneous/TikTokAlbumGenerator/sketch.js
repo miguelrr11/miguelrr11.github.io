@@ -1,6 +1,6 @@
-//
+//Album Rating Generator for Social Media
 //Miguel Rodríguez
-//
+//17-01-2026
 
 p5.disableFriendlyErrors = true
 const WIDTH = 1080
@@ -20,6 +20,12 @@ let musicChar = '♫'
 
 var utils = new p5.Utils();
 
+// UI Elements
+let titleInput, artistInput, yearInput, genreInput, funfactInput, imageUrlInput, albumGradeSelect;
+let trackContainer;
+let tracks = [];
+const gradeOptions = ['GOAT', 'S', 'A', 'B', 'C', 'D', 'F', 'Interlude'];
+
 async function setup(){
     fontRegular = await loadFont('fonts/Vidaloka-Regular.ttf');
     fontRegularItalic = await loadFont('fonts/Coolvetica Rg It.otf');
@@ -29,7 +35,168 @@ async function setup(){
     fontLight = await loadFont('fonts/groteskLight.ttf');
 
     createCanvas(WIDTH, HEIGHT)
-    createFileInput(handleFile).position(width, 10).style('font-size', '34px');
+    createFileInput(handleFile).position(width, 10).style('font-size', '20px');
+
+    createAlbumEditor();
+}
+
+function createAlbumEditor() {
+    let xPos = width + 10;
+    let yPos = 50;
+    let inputWidth = 300;
+    let labelStyle = 'color: white; font-family: sans-serif; font-size: 14px;';
+    let inputStyle = 'font-size: 16px; padding: 5px; width: ' + inputWidth + 'px;';
+
+    // Title
+    createElement('label', 'Album Title:').position(xPos, yPos).style(labelStyle);
+    titleInput = createInput('').position(xPos, yPos + 20).style(inputStyle);
+    yPos += 60;
+
+    // Artist
+    createElement('label', 'Artist:').position(xPos, yPos).style(labelStyle);
+    artistInput = createInput('').position(xPos, yPos + 20).style(inputStyle);
+    yPos += 60;
+
+    // Year
+    createElement('label', 'Year:').position(xPos, yPos).style(labelStyle);
+    yearInput = createInput('').position(xPos, yPos + 20).style(inputStyle);
+    yPos += 60;
+
+    // Genre
+    createElement('label', 'Genre:').position(xPos, yPos).style(labelStyle);
+    genreInput = createInput('').position(xPos, yPos + 20).style(inputStyle);
+    yPos += 60;
+
+    // Fun Fact
+    createElement('label', 'Fun Fact:').position(xPos, yPos).style(labelStyle);
+    funfactInput = createElement('textarea').position(xPos, yPos + 20).style(inputStyle + ' height: 60px;');
+    yPos += 100;
+
+    // Image URL
+    createElement('label', 'Image URL:').position(xPos, yPos).style(labelStyle);
+    imageUrlInput = createInput('').position(xPos, yPos + 20).style(inputStyle);
+    yPos += 60;
+
+    // Album Grade
+    createElement('label', 'Album Grade:').position(xPos, yPos).style(labelStyle);
+    albumGradeSelect = createSelect().position(xPos, yPos + 20).style('font-size: 16px; padding: 5px;');
+    for (let grade of gradeOptions) {
+        albumGradeSelect.option(grade);
+    }
+    yPos += 60;
+
+    // Tracks section
+    createElement('label', 'Tracks:').position(xPos, yPos).style(labelStyle + ' font-weight: bold;');
+    yPos += 25;
+
+    // Track container div
+    trackContainer = createDiv('').position(xPos, yPos).style('max-height: 400px; overflow-y: auto;');
+
+    // Add initial track
+    addTrackRow();
+    yPos += 420;
+
+    // Add Track button
+    let addTrackBtn = createButton('+ Add Track').position(xPos, yPos).style('font-size: 16px; padding: 8px 16px; cursor: pointer;');
+    addTrackBtn.mousePressed(addTrackRow);
+    yPos += 50;
+
+    // Generate & Preview button
+    let generateBtn = createButton('Generate Preview').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer;');
+    generateBtn.mousePressed(generateFromForm);
+    yPos += 50;
+
+    // Download JSON button
+    let downloadBtn = createButton('Download JSON').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #2196F3; color: white; border: none; cursor: pointer;');
+    downloadBtn.mousePressed(downloadJSON);
+}
+
+function addTrackRow() {
+    let trackIndex = tracks.length;
+    let rowDiv = createDiv('').parent(trackContainer).style('margin-bottom: 8px; display: flex; gap: 5px; align-items: center;');
+
+    let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).style('color: white; font-family: sans-serif; min-width: 25px;');
+
+    let titleIn = createInput('').parent(rowDiv).style('font-size: 14px; padding: 4px; width: 180px;');
+    titleIn.attribute('placeholder', 'Track title');
+
+    let gradeSelect = createSelect().parent(rowDiv).style('font-size: 14px; padding: 4px;');
+    for (let grade of gradeOptions) {
+        gradeSelect.option(grade);
+    }
+    gradeSelect.selected('B');
+
+    let removeBtn = createButton('X').parent(rowDiv).style('font-size: 12px; padding: 4px 8px; background-color: #f44336; color: white; border: none; cursor: pointer;');
+    removeBtn.mousePressed(() => removeTrackRow(trackIndex));
+
+    tracks.push({ titleInput: titleIn, gradeSelect: gradeSelect, rowDiv: rowDiv, numSpan: trackNumSpan });
+}
+
+function removeTrackRow(index) {
+    if (tracks.length <= 1) return;
+
+    tracks[index].rowDiv.remove();
+    tracks.splice(index, 1);
+
+    // Update track numbers
+    for (let i = 0; i < tracks.length; i++) {
+        tracks[i].numSpan.html((i + 1) + '.');
+    }
+}
+
+function generateFromForm() {
+    let tracksData = [];
+    for (let track of tracks) {
+        let title = track.titleInput.value().trim();
+        if (title) {
+            tracksData.push({
+                title: title,
+                grade: track.gradeSelect.value()
+            });
+        }
+    }
+
+    albumData = {
+        title: titleInput.value() || 'Untitled Album',
+        artist: artistInput.value() || 'Unknown Artist',
+        year: yearInput.value() || new Date().getFullYear().toString(),
+        genre: genreInput.value() || 'Unknown',
+        funfact: funfactInput.value() || '',
+        tracks: tracksData,
+        imageUrl: imageUrlInput.value() || '',
+        albumGrade: albumGradeSelect.value()
+    };
+
+    printAlbum();
+}
+
+function downloadJSON() {
+    let tracksData = [];
+    for (let track of tracks) {
+        let title = track.titleInput.value().trim();
+        if (title) {
+            tracksData.push({
+                title: title,
+                grade: track.gradeSelect.value()
+            });
+        }
+    }
+
+    let jsonData = {
+        album: {
+            title: titleInput.value() || 'Untitled Album',
+            artist: artistInput.value() || 'Unknown Artist',
+            year: yearInput.value() || new Date().getFullYear().toString(),
+            runtime: '',
+            genre: genreInput.value() || 'Unknown',
+            funfact: funfactInput.value() || '',
+            tracks: tracksData,
+            imageUrl: imageUrlInput.value() || '',
+            albumGrade: albumGradeSelect.value()
+        }
+    };
+
+    saveJSON(jsonData, 'album.json');
 }
 
 function handleFile(file) {
@@ -42,9 +209,39 @@ function processFile(){
     if(uploadedFile && uploadedFile.type === 'application' && uploadedFile.subtype === 'json'){
         albumData = uploadedFile.data.album
         console.log(albumData)
-    } 
+        fillFormFromData(albumData);
+    }
     else {
         console.log("Please upload a valid json file.")
+    }
+}
+
+function fillFormFromData(data) {
+    // Fill basic fields
+    titleInput.value(data.title || '');
+    artistInput.value(data.artist || '');
+    yearInput.value(data.year || '');
+    genreInput.value(data.genre || '');
+    funfactInput.value(data.funfact || '');
+    imageUrlInput.value(data.imageUrl || '');
+    albumGradeSelect.selected(data.albumGrade || 'B');
+
+    // Clear existing tracks
+    while (tracks.length > 0) {
+        tracks[0].rowDiv.remove();
+        tracks.shift();
+    }
+
+    // Add tracks from data
+    if (data.tracks && data.tracks.length > 0) {
+        for (let track of data.tracks) {
+            addTrackRow();
+            let lastTrack = tracks[tracks.length - 1];
+            lastTrack.titleInput.value(track.title || '');
+            lastTrack.gradeSelect.selected(track.grade || 'B');
+        }
+    } else {
+        addTrackRow();
     }
 }
 
