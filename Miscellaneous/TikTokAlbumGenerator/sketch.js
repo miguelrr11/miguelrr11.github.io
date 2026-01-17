@@ -71,6 +71,12 @@ async function setup(){
     });
 
     createAlbumEditor();
+
+    // Load saved data from localStorage
+    loadFromLocalStorage();
+
+    // Auto-save to localStorage every second
+    setInterval(saveToLocalStorage, 1000);
 }
 
 function createAlbumEditor() {
@@ -152,6 +158,38 @@ function createAlbumEditor() {
     // View Toggle button
     viewToggleBtn = createButton('View: Ratings').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #FF9800; color: white; border: none; cursor: pointer;');
     viewToggleBtn.mousePressed(toggleView);
+    yPos += 50;
+
+    // Clear All button
+    let clearBtn = createButton('Clear All').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #f44336; color: white; border: none; cursor: pointer;');
+    clearBtn.mousePressed(clearAll);
+}
+
+function clearAll() {
+    // Clear all input fields
+    titleInput.value('');
+    artistInput.value('');
+    yearInput.value('');
+    genreInput.value('');
+    funfactInput.value('');
+    imageUrlInput.value('');
+    albumGradeSelect.selected('GOAT');
+
+    // Clear all tracks
+    while (tracks.length > 0) {
+        tracks[0].rowDiv.remove();
+        tracks.shift();
+    }
+    addTrackRow();
+
+    // Clear albumData
+    albumData = null;
+
+    // Clear canvas
+    background(200);
+
+    // Clear localStorage
+    localStorage.removeItem('albumGeneratorData');
 }
 
 function toggleView() {
@@ -172,7 +210,30 @@ function toggleView() {
 }
 
 async function downloadBothImages() {
-    if (!albumData) return;
+    // Update albumData from UI before downloading
+    let tracksData = [];
+    for (let track of tracks) {
+        let title = track.titleInput.value().trim();
+        if (title) {
+            tracksData.push({
+                title: title,
+                grade: track.gradeSelect.value()
+            });
+        }
+    }
+
+    albumData = {
+        title: titleInput.value() || 'Untitled Album',
+        artist: artistInput.value() || 'Unknown Artist',
+        year: yearInput.value() || new Date().getFullYear().toString(),
+        genre: genreInput.value() || 'Unknown',
+        funfact: funfactInput.value() || '',
+        tracks: tracksData,
+        imageUrl: imageUrlInput.value() || '',
+        albumGrade: albumGradeSelect.value()
+    };
+
+    if (!albumData.imageUrl) return;
 
     let albumName = titleInput.value() || 'Untitled';
     let artistName = artistInput.value() || 'Unknown';
@@ -332,6 +393,41 @@ function fillFormFromData(data) {
         }
     } else {
         addTrackRow();
+    }
+}
+
+function saveToLocalStorage() {
+    let tracksData = [];
+    for (let track of tracks) {
+        tracksData.push({
+            title: track.titleInput.value(),
+            grade: track.gradeSelect.value()
+        });
+    }
+
+    let data = {
+        title: titleInput.value(),
+        artist: artistInput.value(),
+        year: yearInput.value(),
+        genre: genreInput.value(),
+        funfact: funfactInput.value(),
+        imageUrl: imageUrlInput.value(),
+        albumGrade: albumGradeSelect.value(),
+        tracks: tracksData
+    };
+
+    localStorage.setItem('albumGeneratorData', JSON.stringify(data));
+}
+
+function loadFromLocalStorage() {
+    let savedData = localStorage.getItem('albumGeneratorData');
+    if (savedData) {
+        try {
+            let data = JSON.parse(savedData);
+            fillFormFromData(data);
+        } catch (err) {
+            console.log("Error loading saved data");
+        }
     }
 }
 
@@ -552,7 +648,7 @@ async function printAlbum(){
     fill(255);
     textFont(fontHeavy);
     textSize(100);
-    utils.beginShadow("#ffffff", 50, 0, 0);
+    utils.beginShadow("#ffffffa3", 30, 0, 0);
     text(namingMap[albumData.albumGrade] || albumData.albumGrade, width * 0.5, height - gradeRectHeight * 0.43);
     utils.endShadow();
 }
