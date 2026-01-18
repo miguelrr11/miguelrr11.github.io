@@ -571,6 +571,65 @@ function loadFromLocalStorage() {
     }
 }
 
+// Safe image loading with error handling
+async function loadImageSafe(url) {
+    return new Promise((resolve, reject) => {
+        loadImage(url,
+            (img) => resolve(img),
+            (err) => reject(err)
+        );
+    });
+}
+
+function showToast(message, isError = false) {
+    // Remove existing toast if any
+    let existingToast = document.getElementById('toast-notification');
+    if (existingToast) {
+        existingToast.remove();
+    }
+
+    let toast = document.createElement('div');
+    toast.id = 'toast-notification';
+    toast.className = 'toast' + (isError ? ' toast-error' : '');
+    toast.textContent = message;
+    document.body.appendChild(toast);
+
+    // Trigger animation
+    setTimeout(() => toast.classList.add('show'), 10);
+
+    // Remove after 4 seconds
+    setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
+
+function drawErrorState(message) {
+    background(40);
+
+    // Error icon
+    fill(239, 68, 68);
+    noStroke();
+    textAlign(CENTER, CENTER);
+    textSize(120);
+    text('⚠', width / 2, height / 2 - 100);
+
+    // Error message
+    fill(255);
+    textFont(fontHeavy);
+    textSize(48);
+    text('Image Load Failed', width / 2, height / 2 + 50);
+
+    textFont(fontLight);
+    textSize(28);
+    fill(180);
+    text(message, width / 2, height / 2 + 120, width - 100);
+
+    textSize(24);
+    fill(120);
+    text('Check the image URL and try again', width / 2, height / 2 + 200);
+}
+
 function shortenText(text, maxLength){
     if(textWidth(text) <= maxLength) return text;
     let newText = text.substring(0, text.length - 1)
@@ -593,7 +652,18 @@ function getMaxTextSize(text, maxWidth, maxStartSize){
 
 async function printAlbum(){
     background(200)
-    let imgBW = await loadImage(albumData.imageUrl);
+
+    let imgBW, img;
+    try {
+        imgBW = await loadImageSafe(albumData.imageUrl);
+        img = await loadImageSafe(albumData.imageUrl);
+    } catch (err) {
+        console.error('Failed to load image:', err);
+        drawErrorState(albumData.imageUrl || 'No URL provided');
+        showToast('Failed to load image. Check the URL.', true);
+        return;
+    }
+
     imgBW.filter(GRAY);
     imgBW.filter(BLUR, 2);
     imgBW.filter(ERODE);
@@ -601,11 +671,10 @@ async function printAlbum(){
     imageMode(CENTER)
     image(imgBW, width * 0.5, height * 0.5, height, height);
 
-    
+
     imageMode(CORNER)
     rectMode(CORNER)
     let y = 50
-    let img = await loadImage(albumData.imageUrl);
     utils.beginShadow("#000000", 50, 0, 0);
     rect(width * 0.45, y + 185, width * 0.5, width * 0.5);
     image(img, width * 0.45, y + 185, width * 0.5, width * 0.5);
@@ -787,8 +856,18 @@ async function printAlbum(){
 async function printCoverScreen() {
     background(200);
 
+    let imgBW, img;
+    try {
+        imgBW = await loadImageSafe(albumData.imageUrl);
+        img = await loadImageSafe(albumData.imageUrl);
+    } catch (err) {
+        console.error('Failed to load image:', err);
+        drawErrorState(albumData.imageUrl || 'No URL provided');
+        showToast('Failed to load image. Check the URL.', true);
+        return;
+    }
+
     // Draw blurred background (same as ratings screen)
-    let imgBW = await loadImage(albumData.imageUrl);
     imgBW.filter(GRAY);
     imgBW.filter(BLUR, 2);
     imgBW.filter(ERODE);
@@ -804,9 +883,6 @@ async function printCoverScreen() {
     fill(255);
     text("Album Review", width * 0.5, 260);
     utils.endShadow();
-
-    // Large album cover in center
-    let img = await loadImage(albumData.imageUrl);
     let coverSize = width * 0.8;
     let coverY = height * 0.42;
     imageMode(CENTER);
