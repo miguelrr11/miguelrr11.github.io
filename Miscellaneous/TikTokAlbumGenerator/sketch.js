@@ -25,10 +25,49 @@ let titleInput, artistInput, yearInput, genreInput, funfactInput, imageUrlInput,
 let trackContainer;
 let tracks = [];
 const gradeOptions = ['GOAT', 'S', 'A', 'B', 'C', 'D', 'F', 'Interlude'];
+let verticalOffsetSlider;
+let verticalOffsetLabel;
 
 // View toggle: 'ratings' or 'cover'
 let currentView = 'ratings';
 let viewToggleBtn;
+
+// Editor panel reference
+let editorPanel;
+let dragOverlay;
+
+// Undo/Redo system
+let historyStack = [];
+let historyIndex = -1;
+const MAX_HISTORY = 50;
+let isUndoRedoAction = false;
+
+// Custom color map (can be modified by user)
+let colorMap = {
+    "GOAT": "#ffffff",
+    "S": "#ffd21f",
+    "A": "#ff1fa9",
+    "B": "#bc3fde",
+    "C": "#38b6ff",
+    "D": "#14b60b",
+    "F": "#902020",
+    "Interlude": "#b2b2b2"
+};
+
+// Default colors for reset
+const defaultColorMap = {
+    "GOAT": "#ffffff",
+    "S": "#ffd21f",
+    "A": "#ff1fa9",
+    "B": "#bc3fde",
+    "C": "#38b6ff",
+    "D": "#14b60b",
+    "F": "#902020",
+    "Interlude": "#b2b2b2"
+};
+
+// Color picker references
+let colorPickers = {};
 
 async function setup(){
     fontRegular = await loadFont('fonts/Vidaloka-Regular.ttf');
@@ -38,15 +77,25 @@ async function setup(){
     fontHeavy = await loadFont('fonts/grotesk.otf');
     fontLight = await loadFont('fonts/groteskLight.ttf');
 
-    createCanvas(WIDTH, HEIGHT)
-    createFileInput(handleFile).position(width, 10).style('font-size', '20px');
+    let canvas = createCanvas(WIDTH, HEIGHT);
+    canvas.parent('canvas-container');
+
+    editorPanel = select('#editor-panel');
+    dragOverlay = select('#drag-overlay');
 
     // Enable drag and drop on the entire document
     document.addEventListener('dragover', (e) => {
         e.preventDefault();
+        dragOverlay.addClass('active');
+    });
+    document.addEventListener('dragleave', (e) => {
+        if (e.relatedTarget === null) {
+            dragOverlay.removeClass('active');
+        }
     });
     document.addEventListener('drop', (e) => {
         e.preventDefault();
+        dragOverlay.removeClass('active');
         let file = e.dataTransfer.files[0];
         if (file && file.name.endsWith('.json')) {
             let reader = new FileReader();
@@ -74,95 +123,180 @@ async function setup(){
 
     // Load saved data from localStorage
     loadFromLocalStorage();
+    loadCustomColors();
 
     // Auto-save to localStorage every second
     setInterval(saveToLocalStorage, 1000);
+
+    // Capture initial state for undo/redo
+    captureState();
+
+    // Keyboard shortcuts for undo/redo
+    document.addEventListener('keydown', (e) => {
+        if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+            e.preventDefault();
+            if (e.shiftKey) {
+                redo();
+            } else {
+                undo();
+            }
+        }
+    });
 }
 
 function createAlbumEditor() {
-    let xPos = width + 10;
-    let yPos = 50;
-    let inputWidth = 300;
-    let labelStyle = 'color: white; font-family: sans-serif; font-size: 14px;';
-    let inputStyle = 'font-size: 16px; padding: 5px; width: ' + inputWidth + 'px;';
+    // Panel Header
+    let header = createDiv('').parent(editorPanel).class('panel-header');
+    createElement('h2', 'Album Editor').parent(header);
+    createElement('p', 'Drag & drop JSON or fill manually').parent(header);
 
     // Title
-    createElement('label', 'Album Title:').position(xPos, yPos).style(labelStyle);
-    titleInput = createInput('').position(xPos, yPos + 20).style(inputStyle);
-    yPos += 60;
+    let titleGroup = createDiv('').parent(editorPanel).class('form-group');
+    createElement('label', 'Album Title').parent(titleGroup);
+    titleInput = createInput('').parent(titleGroup).class('form-input');
+    titleInput.attribute('placeholder', 'Enter album title...');
+    titleInput.elt.addEventListener('blur', captureState);
 
     // Artist
-    createElement('label', 'Artist:').position(xPos, yPos).style(labelStyle);
-    artistInput = createInput('').position(xPos, yPos + 20).style(inputStyle);
-    yPos += 60;
+    let artistGroup = createDiv('').parent(editorPanel).class('form-group');
+    createElement('label', 'Artist').parent(artistGroup);
+    artistInput = createInput('').parent(artistGroup).class('form-input');
+    artistInput.attribute('placeholder', 'Enter artist name...');
+    artistInput.elt.addEventListener('blur', captureState);
 
-    // Year
-    createElement('label', 'Year:').position(xPos, yPos).style(labelStyle);
-    yearInput = createInput('').position(xPos, yPos + 20).style(inputStyle);
-    yPos += 60;
+    // Year & Genre row
+    let rowGroup = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
 
-    // Genre
-    createElement('label', 'Genre:').position(xPos, yPos).style(labelStyle);
-    genreInput = createInput('').position(xPos, yPos + 20).style(inputStyle);
-    yPos += 60;
+    let yearGroup = createDiv('').parent(rowGroup).class('form-group').style('flex: 1;');
+    createElement('label', 'Year').parent(yearGroup);
+    yearInput = createInput('').parent(yearGroup).class('form-input');
+    yearInput.attribute('placeholder', 'e.g. 1997');
+    yearInput.elt.addEventListener('blur', captureState);
+
+    let genreGroup = createDiv('').parent(rowGroup).class('form-group').style('flex: 1;');
+    createElement('label', 'Genre').parent(genreGroup);
+    genreInput = createInput('').parent(genreGroup).class('form-input');
+    genreInput.attribute('placeholder', 'e.g. Rock');
+    genreInput.elt.addEventListener('blur', captureState);
 
     // Fun Fact
-    createElement('label', 'Fun Fact:').position(xPos, yPos).style(labelStyle);
-    funfactInput = createElement('textarea').position(xPos, yPos + 20).style(inputStyle + ' height: 60px;');
-    yPos += 100;
+    let funfactGroup = createDiv('').parent(editorPanel).class('form-group');
+    createElement('label', 'Fun Fact').parent(funfactGroup);
+    funfactInput = createElement('textarea').parent(funfactGroup).class('form-textarea');
+    funfactInput.attribute('placeholder', 'Add an interesting fact about the album...');
+    funfactInput.elt.addEventListener('blur', captureState);
 
     // Image URL
-    createElement('label', 'Image URL:').position(xPos, yPos).style(labelStyle);
-    imageUrlInput = createInput('').position(xPos, yPos + 20).style(inputStyle);
-    yPos += 60;
+    let imageGroup = createDiv('').parent(editorPanel).class('form-group');
+    createElement('label', 'Image URL').parent(imageGroup);
+    imageUrlInput = createInput('').parent(imageGroup).class('form-input');
+    imageUrlInput.attribute('placeholder', 'https://...');
+    imageUrlInput.elt.addEventListener('blur', captureState);
 
-    // Album Grade
-    createElement('label', 'Album Grade:').position(xPos, yPos).style(labelStyle);
-    albumGradeSelect = createSelect().position(xPos, yPos + 20).style('font-size: 16px; padding: 5px;');
+    // Album Grade & Vertical Offset row
+    let gradeOffsetRow = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
+
+    let gradeGroup = createDiv('').parent(gradeOffsetRow).class('form-group').style('flex: 1;');
+    createElement('label', 'Album Grade').parent(gradeGroup);
+    albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
     for (let grade of gradeOptions) {
         albumGradeSelect.option(grade);
     }
-    yPos += 60;
+    albumGradeSelect.changed(captureState);
+
+    // Vertical Offset Slider
+    let offsetGroup = createDiv('').parent(gradeOffsetRow).class('form-group').style('flex: 1;');
+    createElement('label', 'Vertical Offset').parent(offsetGroup);
+    let sliderContainer = createDiv('').parent(offsetGroup).class('slider-container');
+    verticalOffsetSlider = createSlider(-500, 500, 0, 1).parent(sliderContainer).class('form-slider');
+    verticalOffsetLabel = createSpan('0').parent(sliderContainer).class('slider-value');
+    verticalOffsetSlider.input(() => {
+        verticalOffsetLabel.html(verticalOffsetSlider.value());
+    });
+
+    // Divider
+    createDiv('').parent(editorPanel).class('section-divider');
 
     // Tracks section
-    createElement('label', 'Tracks:').position(xPos, yPos).style(labelStyle + ' font-weight: bold;');
-    yPos += 25;
+    createDiv('Tracks').parent(editorPanel).class('section-title');
 
-    // Track container div
-    trackContainer = createDiv('').position(xPos, yPos).style('max-height: 400px; overflow-y: auto;');
+    // Track container
+    trackContainer = createDiv('').parent(editorPanel).class('track-container');
 
     // Add initial track
     addTrackRow();
-    yPos += 420;
 
     // Add Track button
-    let addTrackBtn = createButton('+ Add Track').position(xPos, yPos).style('font-size: 16px; padding: 8px 16px; cursor: pointer;');
+    let addTrackBtn = createButton('+ Add Track').parent(editorPanel).class('btn btn-secondary');
     addTrackBtn.mousePressed(addTrackRow);
-    yPos += 50;
 
-    // Generate & Preview button
-    let generateBtn = createButton('Generate Preview').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #4CAF50; color: white; border: none; cursor: pointer;');
+    // Button Grid
+    let buttonGrid = createDiv('').parent(editorPanel).class('button-grid');
+
+    // Generate Preview
+    let generateBtn = createButton('Generate Preview').parent(buttonGrid).class('btn btn-primary');
     generateBtn.mousePressed(generateFromForm);
-    yPos += 50;
 
-    // Download JSON button
-    let downloadBtn = createButton('Download JSON').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #2196F3; color: white; border: none; cursor: pointer;');
-    downloadBtn.mousePressed(downloadJSON);
-    yPos += 50;
-
-    // Download Images button (downloads both screens)
-    let downloadImgBtn = createButton('Download Images').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #9C27B0; color: white; border: none; cursor: pointer;');
+    // Download row
+    let downloadRow = createDiv('').parent(buttonGrid).class('button-row');
+    let downloadJsonBtn = createButton('JSON').parent(downloadRow).class('btn btn-blue');
+    downloadJsonBtn.mousePressed(downloadJSON);
+    let downloadImgBtn = createButton('Images').parent(downloadRow).class('btn btn-purple');
     downloadImgBtn.mousePressed(downloadBothImages);
-    yPos += 50;
 
-    // View Toggle button
-    viewToggleBtn = createButton('View: Ratings').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #FF9800; color: white; border: none; cursor: pointer;');
+    // View Toggle
+    viewToggleBtn = createButton('View: Ratings').parent(buttonGrid).class('btn btn-orange');
     viewToggleBtn.mousePressed(toggleView);
-    yPos += 50;
+
+    // Undo/Redo row
+    let undoRedoRow = createDiv('').parent(buttonGrid).class('button-row');
+    let undoBtn = createButton('↶ Undo').parent(undoRedoRow).class('btn btn-secondary');
+    undoBtn.mousePressed(undo);
+    let redoBtn = createButton('↷ Redo').parent(undoRedoRow).class('btn btn-secondary');
+    redoBtn.mousePressed(redo);
 
     // Clear All button
-    let clearBtn = createButton('Clear All').position(xPos, yPos).style('font-size: 16px; padding: 10px 20px; background-color: #f44336; color: white; border: none; cursor: pointer;');
+    let clearBtn = createButton('Clear All').parent(buttonGrid).class('btn btn-danger');
     clearBtn.mousePressed(clearAll);
+
+    // Divider before color customization
+    createDiv('').parent(editorPanel).class('section-divider');
+
+    // Color customization section (collapsible)
+    let colorSection = createDiv('').parent(editorPanel).class('color-section');
+    let colorHeader = createDiv('').parent(colorSection).class('color-section-header');
+    let colorToggle = createSpan('▶').parent(colorHeader).class('color-toggle');
+    createSpan(' Customize Colors').parent(colorHeader);
+
+    let colorContent = createDiv('').parent(colorSection).class('color-content collapsed');
+
+    // Toggle collapse
+    colorHeader.mousePressed(() => {
+        if (colorContent.hasClass('collapsed')) {
+            colorContent.removeClass('collapsed');
+            colorToggle.html('▼');
+        } else {
+            colorContent.addClass('collapsed');
+            colorToggle.html('▶');
+        }
+    });
+
+    // Color pickers for each grade
+    for (let grade of gradeOptions) {
+        let colorRow = createDiv('').parent(colorContent).class('color-row');
+        createSpan(grade).parent(colorRow).class('color-label');
+        let picker = createColorPicker(colorMap[grade]).parent(colorRow).class('color-picker');
+        picker.input(() => {
+            colorMap[grade] = picker.value();
+            saveCustomColors();
+        });
+        colorPickers[grade] = picker;
+    }
+
+    // Reset colors button
+    let resetColorsBtn = createButton('Reset to Default').parent(colorContent).class('btn btn-secondary');
+    resetColorsBtn.style('margin-top', '12px');
+    resetColorsBtn.mousePressed(resetColors);
 }
 
 function clearAll() {
@@ -253,23 +387,27 @@ async function downloadBothImages() {
 
 function addTrackRow() {
     let trackIndex = tracks.length;
-    let rowDiv = createDiv('').parent(trackContainer).style('margin-bottom: 8px; display: flex; gap: 5px; align-items: center;');
+    let rowDiv = createDiv('').parent(trackContainer).class('track-row');
 
-    let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).style('color: white; font-family: sans-serif; min-width: 25px;');
+    let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).class('track-number');
 
-    let titleIn = createInput('').parent(rowDiv).style('font-size: 14px; padding: 4px; width: 180px;');
+    let titleIn = createInput('').parent(rowDiv).class('track-title-input');
     titleIn.attribute('placeholder', 'Track title');
+    titleIn.elt.addEventListener('blur', captureState);
 
-    let gradeSelect = createSelect().parent(rowDiv).style('font-size: 14px; padding: 4px;');
+    let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
     for (let grade of gradeOptions) {
         gradeSelect.option(grade);
     }
     gradeSelect.selected('B');
+    gradeSelect.changed(captureState);
 
-    let removeBtn = createButton('X').parent(rowDiv).style('font-size: 12px; padding: 4px 8px; background-color: #f44336; color: white; border: none; cursor: pointer;');
+    let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
     removeBtn.mousePressed(() => removeTrackRow(trackIndex));
 
     tracks.push({ titleInput: titleIn, gradeSelect: gradeSelect, rowDiv: rowDiv, numSpan: trackNumSpan });
+
+    captureState();
 }
 
 function removeTrackRow(index) {
@@ -282,6 +420,8 @@ function removeTrackRow(index) {
     for (let i = 0; i < tracks.length; i++) {
         tracks[i].numSpan.html((i + 1) + '.');
     }
+
+    captureState();
 }
 
 function generateFromForm() {
@@ -544,17 +684,6 @@ async function printAlbum(){
 
     let spacing = Math.min(map(albumData.tracks.length, 5, 20, 80, 45, true), 70)
 
-    let colorMap = {
-        "GOAT": "#ffffff",
-        "S": "#ffd21f",
-        "A": "#ff1fa9",
-        "B": "#bc3fde",
-        "C": "#38b6ff",
-        "D": "#14b60b",
-        "F": "#902020",
-        "Interlude": "#b2b2b2"
-    };
-
     // Reset text state before drawing tracks
     textFont(fontRegular);
     textSize(60);
@@ -564,9 +693,11 @@ async function printAlbum(){
     let w = (leftMargin + x) * 0.75;
     let h = 40;
 
+    let vertOffset = verticalOffsetSlider ? verticalOffsetSlider.value() : 0;
+
     for(let i = 0; i < albumData.tracks.length; i++){
         let track = albumData.tracks[i];
-        let trackY = y;
+        let trackY = y + vertOffset;
 
         // Set font and size fresh for each track to ensure consistent metrics
         textSize(60);
@@ -715,4 +846,150 @@ function dimImage(img, amount){
 }
 
 function draw(){
+}
+
+// ============ UNDO/REDO FUNCTIONS ============
+
+function captureState() {
+    if (isUndoRedoAction) return;
+
+    let tracksData = [];
+    for (let track of tracks) {
+        tracksData.push({
+            title: track.titleInput.value(),
+            grade: track.gradeSelect.value()
+        });
+    }
+
+    let state = {
+        title: titleInput.value(),
+        artist: artistInput.value(),
+        year: yearInput.value(),
+        genre: genreInput.value(),
+        funfact: funfactInput.value(),
+        imageUrl: imageUrlInput.value(),
+        albumGrade: albumGradeSelect.value(),
+        verticalOffset: verticalOffsetSlider ? verticalOffsetSlider.value() : 0,
+        tracks: tracksData
+    };
+
+    // Remove any states after current index (for new branch)
+    if (historyIndex < historyStack.length - 1) {
+        historyStack = historyStack.slice(0, historyIndex + 1);
+    }
+
+    // Add new state
+    historyStack.push(JSON.stringify(state));
+    historyIndex = historyStack.length - 1;
+
+    // Limit history size
+    if (historyStack.length > MAX_HISTORY) {
+        historyStack.shift();
+        historyIndex--;
+    }
+}
+
+function undo() {
+    if (historyIndex <= 0) return;
+
+    isUndoRedoAction = true;
+    historyIndex--;
+    restoreState(JSON.parse(historyStack[historyIndex]));
+    isUndoRedoAction = false;
+}
+
+function redo() {
+    if (historyIndex >= historyStack.length - 1) return;
+
+    isUndoRedoAction = true;
+    historyIndex++;
+    restoreState(JSON.parse(historyStack[historyIndex]));
+    isUndoRedoAction = false;
+}
+
+function restoreState(state) {
+    titleInput.value(state.title || '');
+    artistInput.value(state.artist || '');
+    yearInput.value(state.year || '');
+    genreInput.value(state.genre || '');
+    funfactInput.value(state.funfact || '');
+    imageUrlInput.value(state.imageUrl || '');
+    albumGradeSelect.selected(state.albumGrade || 'GOAT');
+
+    if (verticalOffsetSlider && state.verticalOffset !== undefined) {
+        verticalOffsetSlider.value(state.verticalOffset);
+        verticalOffsetLabel.html(state.verticalOffset);
+    }
+
+    // Restore tracks
+    while (tracks.length > 0) {
+        tracks[0].rowDiv.remove();
+        tracks.shift();
+    }
+
+    if (state.tracks && state.tracks.length > 0) {
+        for (let track of state.tracks) {
+            addTrackRowWithoutCapture();
+            let lastTrack = tracks[tracks.length - 1];
+            lastTrack.titleInput.value(track.title || '');
+            lastTrack.gradeSelect.selected(track.grade || 'B');
+        }
+    } else {
+        addTrackRowWithoutCapture();
+    }
+}
+
+function addTrackRowWithoutCapture() {
+    let trackIndex = tracks.length;
+    let rowDiv = createDiv('').parent(trackContainer).class('track-row');
+
+    let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).class('track-number');
+
+    let titleIn = createInput('').parent(rowDiv).class('track-title-input');
+    titleIn.attribute('placeholder', 'Track title');
+
+    let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
+    for (let grade of gradeOptions) {
+        gradeSelect.option(grade);
+    }
+    gradeSelect.selected('B');
+
+    let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
+    removeBtn.mousePressed(() => {
+        removeTrackRow(tracks.indexOf(tracks.find(t => t.rowDiv === rowDiv)));
+    });
+
+    tracks.push({ titleInput: titleIn, gradeSelect: gradeSelect, rowDiv: rowDiv, numSpan: trackNumSpan });
+}
+
+// ============ COLOR CUSTOMIZATION FUNCTIONS ============
+
+function saveCustomColors() {
+    localStorage.setItem('albumGeneratorColors', JSON.stringify(colorMap));
+}
+
+function loadCustomColors() {
+    let savedColors = localStorage.getItem('albumGeneratorColors');
+    if (savedColors) {
+        try {
+            let colors = JSON.parse(savedColors);
+            for (let grade in colors) {
+                if (colorMap.hasOwnProperty(grade)) {
+                    colorMap[grade] = colors[grade];
+                }
+            }
+        } catch (err) {
+            console.log("Error loading custom colors");
+        }
+    }
+}
+
+function resetColors() {
+    for (let grade in defaultColorMap) {
+        colorMap[grade] = defaultColorMap[grade];
+        if (colorPickers[grade]) {
+            colorPickers[grade].value(defaultColorMap[grade]);
+        }
+    }
+    saveCustomColors();
 }

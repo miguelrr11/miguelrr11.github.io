@@ -1,21 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Album Rating Generator</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
     <script src="https://cdn.jsdelivr.net/npm/p5@2.0.5/lib/p5.min.js"></script>
     <script src="libraries/p5.utils.min.js"></script>
-    <meta charset="utf-8" />
-    <style>
-      body {
-        margin: 0;
-        background-color: #3c3c3c;
-        overflow: hidden;
-      }
-    </style>
-
   </head>
   <body>
     <main>
+      <div id="canvas-container"></div>
+      <div id="editor-panel" class="editor-panel"></div>
     </main>
+
+    <!-- Drag and Drop Overlay -->
+    <div id="drag-overlay" class="drag-overlay">
+      <div class="drag-overlay-content">
+        <div class="drag-overlay-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+          </svg>
+        </div>
+        <h3>Drop JSON file here</h3>
+        <p>Release to load album data</p>
+      </div>
+    </div>
+
     <script src="Utils.js"></script>
     <script src="sketch.js"></script>
   </body>
