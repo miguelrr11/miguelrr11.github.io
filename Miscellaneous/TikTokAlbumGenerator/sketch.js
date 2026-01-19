@@ -605,6 +605,27 @@ function addTrackRow() {
     titleIn.attribute('placeholder', 'Track title');
     titleIn.elt.addEventListener('input', autoGeneratePreview);
     titleIn.elt.addEventListener('blur', captureState);
+    titleIn.elt.addEventListener('keydown', (e) => {
+        let currentIndex = tracks.findIndex(t => t.titleInput === titleIn);
+
+        if (e.key === 'Enter' || e.key === 'ArrowDown') {
+            e.preventDefault();
+            if (currentIndex < tracks.length - 1) {
+                // Focus next track
+                tracks[currentIndex + 1].titleInput.elt.focus();
+            } else if (e.key === 'Enter') {
+                // Last track + Enter - add a new one and focus it
+                addTrackRow();
+                tracks[tracks.length - 1].titleInput.elt.focus();
+            }
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            if (currentIndex > 0) {
+                // Focus previous track
+                tracks[currentIndex - 1].titleInput.elt.focus();
+            }
+        }
+    });
 
     let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
     for (let grade of gradeOptions) {
