@@ -42,6 +42,21 @@ let historyIndex = -1;
 const MAX_HISTORY = 50;
 let isUndoRedoAction = false;
 
+// Text box selection and sizing
+let textBoxes = [];
+let selectedTextBox = null;
+let sizeAdjustPanel = null;
+let textSizeOffsets = {
+    title: 0,
+    artist: 0,
+    year: 0,
+    genre: 0,
+    funfact: 0
+};
+let textLeadingOffsets = {
+    funfact: 0
+};
+
 // Custom color map (can be modified by user)
 let colorMap = {
     "GOAT": "#ffffff",
@@ -212,6 +227,10 @@ function createAlbumEditor() {
     verticalOffsetLabel = createSpan('0').parent(sliderContainer).class('slider-value');
     verticalOffsetSlider.input(() => {
         verticalOffsetLabel.html(verticalOffsetSlider.value());
+        // Auto-redraw when slider changes
+        if (albumData && currentView === 'ratings') {
+            printAlbum();
+        }
     });
 
     // Divider
@@ -297,6 +316,138 @@ function createAlbumEditor() {
     let resetColorsBtn = createButton('Reset to Default').parent(colorContent).class('btn btn-secondary');
     resetColorsBtn.style('margin-top', '12px');
     resetColorsBtn.mousePressed(resetColors);
+
+    // Size adjustment panel
+    createSizeAdjustPanel();
+}
+
+function createSizeAdjustPanel() {
+    sizeAdjustPanel = createDiv('').id('size-adjust-panel');
+    sizeAdjustPanel.style('display', 'none');
+    sizeAdjustPanel.style('position', 'fixed');
+    sizeAdjustPanel.style('bottom', '20px');
+    sizeAdjustPanel.style('left', '50%');
+    sizeAdjustPanel.style('transform', 'translateX(-50%)');
+    sizeAdjustPanel.style('background', 'rgba(40, 40, 40, 0.95)');
+    sizeAdjustPanel.style('padding', '15px 25px');
+    sizeAdjustPanel.style('border-radius', '12px');
+    sizeAdjustPanel.style('border', '2px solid rgba(255, 255, 255, 0.2)');
+    sizeAdjustPanel.style('box-shadow', '0 8px 32px rgba(0, 0, 0, 0.5)');
+    sizeAdjustPanel.style('z-index', '1000');
+    sizeAdjustPanel.style('display', 'flex');
+    sizeAdjustPanel.style('align-items', 'center');
+    sizeAdjustPanel.style('gap', '15px');
+
+    // Text Size Controls
+    let label = createSpan('Text Size:').parent(sizeAdjustPanel);
+    label.style('color', 'white');
+    label.style('font-family', 'system-ui, -apple-system, sans-serif');
+    label.style('font-size', '14px');
+
+    let decreaseBtn = createButton('−').parent(sizeAdjustPanel);
+    decreaseBtn.style('width', '40px');
+    decreaseBtn.style('height', '40px');
+    decreaseBtn.style('font-size', '24px');
+    decreaseBtn.style('background', '#444');
+    decreaseBtn.style('color', 'white');
+    decreaseBtn.style('border', 'none');
+    decreaseBtn.style('border-radius', '8px');
+    decreaseBtn.style('cursor', 'pointer');
+    decreaseBtn.mousePressed(() => adjustTextSize(-2));
+
+    let sizeDisplay = createSpan('0').parent(sizeAdjustPanel).id('size-display');
+    sizeDisplay.style('color', 'white');
+    sizeDisplay.style('font-family', 'monospace');
+    sizeDisplay.style('font-size', '16px');
+    sizeDisplay.style('min-width', '60px');
+    sizeDisplay.style('text-align', 'center');
+
+    let increaseBtn = createButton('+').parent(sizeAdjustPanel);
+    increaseBtn.style('width', '40px');
+    increaseBtn.style('height', '40px');
+    increaseBtn.style('font-size', '24px');
+    increaseBtn.style('background', '#444');
+    increaseBtn.style('color', 'white');
+    increaseBtn.style('border', 'none');
+    increaseBtn.style('border-radius', '8px');
+    increaseBtn.style('cursor', 'pointer');
+    increaseBtn.mousePressed(() => adjustTextSize(2));
+
+    // Leading Controls (for funfact only)
+    let leadingContainer = createDiv('').parent(sizeAdjustPanel).id('leading-container');
+    leadingContainer.style('display', 'none');
+    leadingContainer.style('gap', '10px');
+    leadingContainer.style('align-items', 'center');
+    leadingContainer.style('border-left', '1px solid rgba(255, 255, 255, 0.2)');
+    leadingContainer.style('padding-left', '15px');
+    leadingContainer.style('margin-left', '5px');
+
+    let leadingLabel = createSpan('Leading:').parent(leadingContainer);
+    leadingLabel.style('color', 'white');
+    leadingLabel.style('font-family', 'system-ui, -apple-system, sans-serif');
+    leadingLabel.style('font-size', '14px');
+
+    let decreaseLeadingBtn = createButton('−').parent(leadingContainer);
+    decreaseLeadingBtn.style('width', '40px');
+    decreaseLeadingBtn.style('height', '40px');
+    decreaseLeadingBtn.style('font-size', '24px');
+    decreaseLeadingBtn.style('background', '#444');
+    decreaseLeadingBtn.style('color', 'white');
+    decreaseLeadingBtn.style('border', 'none');
+    decreaseLeadingBtn.style('border-radius', '8px');
+    decreaseLeadingBtn.style('cursor', 'pointer');
+    decreaseLeadingBtn.mousePressed(() => adjustTextLeading(-2));
+
+    let leadingDisplay = createSpan('0').parent(leadingContainer).id('leading-display');
+    leadingDisplay.style('color', 'white');
+    leadingDisplay.style('font-family', 'monospace');
+    leadingDisplay.style('font-size', '16px');
+    leadingDisplay.style('min-width', '60px');
+    leadingDisplay.style('text-align', 'center');
+
+    let increaseLeadingBtn = createButton('+').parent(leadingContainer);
+    increaseLeadingBtn.style('width', '40px');
+    increaseLeadingBtn.style('height', '40px');
+    increaseLeadingBtn.style('font-size', '24px');
+    increaseLeadingBtn.style('background', '#444');
+    increaseLeadingBtn.style('color', 'white');
+    increaseLeadingBtn.style('border', 'none');
+    increaseLeadingBtn.style('border-radius', '8px');
+    increaseLeadingBtn.style('cursor', 'pointer');
+    increaseLeadingBtn.mousePressed(() => adjustTextLeading(2));
+
+    // Reset Button
+    let resetBtn = createButton('↻').parent(sizeAdjustPanel);
+    resetBtn.style('width', '40px');
+    resetBtn.style('height', '40px');
+    resetBtn.style('font-size', '20px');
+    resetBtn.style('background', '#336688');
+    resetBtn.style('color', 'white');
+    resetBtn.style('border', 'none');
+    resetBtn.style('border-radius', '8px');
+    resetBtn.style('cursor', 'pointer');
+    resetBtn.style('margin-left', '10px');
+    resetBtn.mousePressed(resetTextBoxToDefault);
+
+    // Close Button
+    let closeBtn = createButton('✕').parent(sizeAdjustPanel);
+    closeBtn.style('width', '40px');
+    closeBtn.style('height', '40px');
+    closeBtn.style('font-size', '18px');
+    closeBtn.style('background', '#883333');
+    closeBtn.style('color', 'white');
+    closeBtn.style('border', 'none');
+    closeBtn.style('border-radius', '8px');
+    closeBtn.style('cursor', 'pointer');
+    closeBtn.mousePressed(() => {
+        selectedTextBox = null;
+        sizeAdjustPanel.style('display', 'none');
+        if (currentView === 'ratings') {
+            printAlbum();
+        } else {
+            printCoverScreen();
+        }
+    });
 }
 
 function clearAll() {
@@ -329,10 +480,10 @@ function clearAll() {
 function toggleView() {
     if (currentView === 'ratings') {
         currentView = 'cover';
-        viewToggleBtn.html('View: Cover');
+        viewToggleBtn.html('View Cover');
     } else {
         currentView = 'ratings';
-        viewToggleBtn.html('View: Ratings');
+        viewToggleBtn.html('View Ratings');
     }
     if (albumData) {
         if (currentView === 'ratings') {
@@ -653,11 +804,18 @@ function getMaxTextSize(text, maxWidth, maxStartSize){
 async function printAlbum(){
     background(200)
 
+    // Save the selected box ID before clearing
+    let selectedId = selectedTextBox ? selectedTextBox.id : null;
+
+    // Clear textBoxes array at the start
+    textBoxes = [];
+
     let imgBW, img;
     try {
         imgBW = await loadImageSafe(albumData.imageUrl);
         img = await loadImageSafe(albumData.imageUrl);
-    } catch (err) {
+    }
+    catch (err) {
         console.error('Failed to load image:', err);
         drawErrorState(albumData.imageUrl || 'No URL provided');
         showToast('Failed to load image. Check the URL.', true);
@@ -678,7 +836,7 @@ async function printAlbum(){
     utils.beginShadow("#000000", 50, 0, 0);
     rect(width * 0.45, y + 185, width * 0.5, width * 0.5);
     image(img, width * 0.45, y + 185, width * 0.5, width * 0.5);
-    
+
 
     let leftMargin = 50
     let topMargin = 50
@@ -692,63 +850,140 @@ async function printAlbum(){
     utils.beginShadow("#000000", 20, 0, 0);
     textAlign(LEFT, TOP);
     textFont(fontHeavy);
-    textSize(getMaxTextSize(albumData.title, titleMaxWidth - leftMargin * 2, 100));
+
+    // Use persistent size offset
+    let titleSize = getMaxTextSize(albumData.title, titleMaxWidth - leftMargin * 2, 100) + textSizeOffsets.title;
+    titleSize = max(10, titleSize); // Minimum size
+
+    textSize(titleSize);
     fill(255);
     textLeading(70);
     text(albumData.title, leftMargin, topMargin + y);
+
+    // Get bounds and store in textBoxes
+    let titleBounds = fontHeavy.textBounds(albumData.title, leftMargin, topMargin + y, titleMaxWidth - leftMargin * 2);
+    textBoxes.push({
+        id: 'title',
+        x: titleBounds.x,
+        y: titleBounds.y,
+        w: titleBounds.w,
+        h: titleBounds.h,
+        sizeOffset: textSizeOffsets.title,
+        currentSize: titleSize
+    });
+
     textAlign(LEFT, TOP);
 
 
     // ARTIST
     textFont(fontRegularCondensed);
     textLeading(50);
-    textSize(45);
+
+    let artistSize = 45 + textSizeOffsets.artist;
+    artistSize = max(10, artistSize);
+
+    textSize(artistSize);
     fill(255);
     text(albumData.artist, leftMargin, topMargin + y + 110, width * 0.35);
 
-    let bbox = fontRegularCondensed.textBounds(albumData.artist, leftMargin, topMargin + y + 100, width * 0.35);
+    let bbox = fontRegularCondensed.textBounds(albumData.artist, leftMargin, topMargin + y + 110, width * 0.35);
+    textBoxes.push({
+        id: 'artist',
+        x: bbox.x,
+        y: bbox.y,
+        w: bbox.w,
+        h: bbox.h,
+        sizeOffset: textSizeOffsets.artist,
+        currentSize: artistSize
+    });
 
     // YEAR
     y += bbox.h;
     textFont(fontLight);
     textLeading(60);
-    textSize(38);
+
+    let yearSize = 38 + textSizeOffsets.year;
+    yearSize = max(10, yearSize);
+
+    textSize(yearSize);
     fill(230);
-    text("\n" + 
-        albumData.year + "\n", leftMargin, topMargin + y + 85, width * 0.35);
-    
+
+    // Calculate year position - it's displayed after a newline
+    let yearTextY = topMargin + y + 85 + 60; // Adding line height from the \n
+    text("\n" + albumData.year + "\n", leftMargin, topMargin + y + 85, width * 0.35);
+
+    let yearBounds = fontLight.textBounds(albumData.year, leftMargin, yearTextY, width * 0.35);
+    textBoxes.push({
+        id: 'year',
+        x: yearBounds.x,
+        y: yearBounds.y,
+        w: yearBounds.w,
+        h: yearBounds.h,
+        sizeOffset: textSizeOffsets.year,
+        currentSize: yearSize
+    });
+
     // GENRES
-    textSize(30)
-    textLeading(40)
-    text("\n" + 
-        "\n" +
-        "\n" +
-        shortenText(albumData.genre, width * 0.35), leftMargin, topMargin + y + 75, width * 0.35);
+    let genreSize = 30 + textSizeOffsets.genre;
+    genreSize = max(10, genreSize);
+
+    textSize(genreSize);
+    textLeading(40);
+    let genreText = shortenText(albumData.genre, width * 0.35);
+
+    // Genre is displayed after 3 newlines (3 * 40 leading)
+    let genreTextY = topMargin + y + 75 + (40 * 3);
+    text("\n\n\n" + genreText, leftMargin, topMargin + y + 75, width * 0.35);
+
+    let genreBounds = fontLight.textBounds(genreText, leftMargin, genreTextY, width * 0.35);
+    textBoxes.push({
+        id: 'genre',
+        x: genreBounds.x,
+        y: genreBounds.y,
+        w: genreBounds.w,
+        h: genreBounds.h,
+        sizeOffset: textSizeOffsets.genre,
+        currentSize: genreSize
+    });
 
     // funfact
-    textSize(30)
-    textLeading(40)
-    fill(230)
-    text("\n" + 
-        "\n" +
-        "\n" +
-        "\n" +
-        albumData.funfact, leftMargin, topMargin + y + 120, width * 0.35);
-    utils.endShadow();
+    let funfactSize = 30 + textSizeOffsets.funfact;
+    funfactSize = max(10, funfactSize);
 
-    // textFont(fontRegularItalic)
-    // // textSize(40);
-    // push()
-    // textAlign(LEFT, BOTTOM);
-    // //text(albumData.genres.join("\n"), leftMargin, y + 720, titleMaxWidth);
-    // pop()
+    let funfactLeading = 40 + textLeadingOffsets.funfact;
+    funfactLeading = max(10, funfactLeading);
+
+    textSize(funfactSize);
+    fill(230);
+
+    // Fixed position for funfact - use constant leading for the spacing before
+    let funfactStartY = topMargin + y + 120 + (40 * 4);
+
+    // Set leading only for the actual funfact text
+    textLeading(funfactLeading);
+
+    // Draw the spacer with default leading, then the funfact with custom leading
+    textLeading(40);
+    text("\n\n\n\n", leftMargin, topMargin + y + 120, width * 0.35);
+
+    textLeading(funfactLeading);
+    text(albumData.funfact, leftMargin, funfactStartY, width * 0.35);
+
+    let funfactBounds = fontLight.textBounds(albumData.funfact, leftMargin, funfactStartY, width * 0.35);
+    textBoxes.push({
+        id: 'funfact',
+        x: funfactBounds.x,
+        y: funfactBounds.y,
+        w: funfactBounds.w,
+        h: funfactBounds.h,
+        sizeOffset: textSizeOffsets.funfact,
+        currentSize: funfactSize
+    });
+
+    utils.endShadow();
 
     y = 800
     let x = 275
-    // fill(255)
-    // textSize(60)
-    // textFont(fontRegularCondensed)
-    // text("Tracklist", leftMargin, y, titleMaxWidth);
     y += 80
 
     let spacing = Math.min(map(albumData.tracks.length, 5, 20, 80, 45, true), 70)
@@ -831,7 +1066,9 @@ async function printAlbum(){
         
     }
 
-    rect(0, height - gradeRectHeight, width, gradeRectHeight, 20, 20, 0, 0);
+    let offYFinalRect = 0
+
+    rect(0, height - gradeRectHeight + offYFinalRect, width, gradeRectHeight, 20, 20, 0, 0);
 
     let namingMap = {
         "GOAT": "GOAT",
@@ -849,12 +1086,35 @@ async function printAlbum(){
     textFont(fontHeavy);
     textSize(100);
     utils.beginShadow("#ffffffa3", 30, 0, 0);
-    text(namingMap[albumData.albumGrade] || albumData.albumGrade, width * 0.5, height - gradeRectHeight * 0.43);
+    text(namingMap[albumData.albumGrade] || albumData.albumGrade, width * 0.5, height - gradeRectHeight * 0.43 + offYFinalRect);
     utils.endShadow();
+
+    // Restore selection after redraw
+    if (selectedId) {
+        selectedTextBox = textBoxes.find(b => b.id === selectedId);
+    }
+
+    // Draw selection outline if a text box is selected
+    if (selectedTextBox) {
+        noFill();
+        stroke(255);
+        strokeWeight(3);
+        rectMode(CORNER);
+        let padding = 5;
+        rect(selectedTextBox.x - padding, selectedTextBox.y - padding,
+             selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
+        noStroke();
+    }
 }
 
 async function printCoverScreen() {
     background(200);
+
+    // Save the selected box ID before clearing
+    let selectedId = selectedTextBox ? selectedTextBox.id : null;
+
+    // Clear textBoxes array at the start
+    textBoxes = [];
 
     let imgBW, img;
     try {
@@ -897,16 +1157,65 @@ async function printCoverScreen() {
     textAlign(CENTER, TOP);
     textFont(fontHeavy);
     let titleY = coverY + coverSize * 0.5 + 60;
-    textSize(getMaxTextSize(albumData.title, width - 100, 100));
+
+    // Title with size adjustment
+    let titleSize = getMaxTextSize(albumData.title, width - 100, 100) + textSizeOffsets.title;
+    titleSize = max(10, titleSize);
+
+    textSize(titleSize);
     fill(255);
     text(albumData.title, width * 0.5, titleY);
 
+    let titleBounds = fontHeavy.textBounds(albumData.title, width * 0.5, titleY, width - 100);
+    textBoxes.push({
+        id: 'title',
+        x: titleBounds.x,
+        y: titleBounds.y,
+        w: titleBounds.w,
+        h: titleBounds.h,
+        sizeOffset: textSizeOffsets.title,
+        currentSize: titleSize
+    });
+
     // Artist name below title
     textFont(fontRegularCondensed);
-    textSize(45);
+
+    let artistSize = 45 + textSizeOffsets.artist;
+    artistSize = max(10, artistSize);
+
+    textSize(artistSize);
     fill(230);
     text(albumData.artist, width * 0.5, titleY + 130);
+
+    let artistBounds = fontRegularCondensed.textBounds(albumData.artist, width * 0.5, titleY + 130, width - 100);
+    textBoxes.push({
+        id: 'artist',
+        x: artistBounds.x,
+        y: artistBounds.y,
+        w: artistBounds.w,
+        h: artistBounds.h,
+        sizeOffset: textSizeOffsets.artist,
+        currentSize: artistSize
+    });
+
     utils.endShadow();
+
+    // Restore selection after redraw
+    if (selectedId) {
+        selectedTextBox = textBoxes.find(b => b.id === selectedId);
+    }
+
+    // Draw selection outline if a text box is selected
+    if (selectedTextBox) {
+        noFill();
+        stroke(255);
+        strokeWeight(3);
+        rectMode(CORNER);
+        let padding = 5;
+        rect(selectedTextBox.x - padding, selectedTextBox.y - padding,
+             selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
+        noStroke();
+    }
 }
 
 function dimImage(img, amount){
@@ -922,6 +1231,153 @@ function dimImage(img, amount){
 }
 
 function draw(){
+}
+
+function mousePressed() {
+    // Check if click is on the size adjustment panel or any of its children
+    if (sizeAdjustPanel && sizeAdjustPanel.style('display') !== 'none') {
+        let panel = sizeAdjustPanel.elt;
+        let rect = panel.getBoundingClientRect();
+
+        // Get canvas position
+        let canvas = document.querySelector('canvas');
+        let canvasRect = canvas.getBoundingClientRect();
+
+        // Calculate actual mouse position in viewport
+        let mouseClientX = mouseX + canvasRect.left;
+        let mouseClientY = mouseY + canvasRect.top;
+
+        // Check if mouse is over the panel
+        if (mouseClientX >= rect.left && mouseClientX <= rect.right &&
+            mouseClientY >= rect.top && mouseClientY <= rect.bottom) {
+            // Click is on the panel, ignore it
+            return;
+        }
+    }
+
+    // Only handle clicks on the canvas
+    if (mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) {
+        return;
+    }
+
+    // Check if any text box was clicked
+    let clickedBox = null;
+    for (let i = 0; i < textBoxes.length; i++) {
+        let box = textBoxes[i];
+        if (mouseX >= box.x && mouseX <= box.x + box.w &&
+            mouseY >= box.y && mouseY <= box.y + box.h) {
+            clickedBox = box;
+            break;
+        }
+    }
+
+    if (clickedBox) {
+        // Only redraw if selection changed
+        let selectionChanged = !selectedTextBox || selectedTextBox.id !== clickedBox.id;
+        selectedTextBox = clickedBox;
+        showSizeAdjustPanel(clickedBox);
+
+        if (selectionChanged) {
+            // Redraw to show selection
+            if (currentView === 'ratings') {
+                printAlbum();
+            } else {
+                printCoverScreen();
+            }
+        }
+    } else {
+        // Clicked outside any text box - deselect
+        if (selectedTextBox) {
+            selectedTextBox = null;
+            sizeAdjustPanel.style('display', 'none');
+            if (currentView === 'ratings') {
+                printAlbum();
+            } else {
+                printCoverScreen();
+            }
+        }
+    }
+}
+
+function showSizeAdjustPanel(box) {
+    let sizeDisplay = select('#size-display');
+    if (box.sizeOffset !== undefined) {
+        sizeDisplay.html(box.sizeOffset >= 0 ? '+' + box.sizeOffset : box.sizeOffset);
+    } else {
+        sizeDisplay.html(box.baseSize || '0');
+    }
+
+    // Show leading controls only for funfact
+    let leadingContainer = select('#leading-container');
+    if (box.id === 'funfact') {
+        leadingContainer.style('display', 'flex');
+        let leadingDisplay = select('#leading-display');
+        let leadingOffset = textLeadingOffsets.funfact || 0;
+        leadingDisplay.html(leadingOffset >= 0 ? '+' + leadingOffset : leadingOffset);
+    } else {
+        leadingContainer.style('display', 'none');
+    }
+
+    sizeAdjustPanel.style('display', 'flex');
+}
+
+function adjustTextSize(delta) {
+    if (!selectedTextBox) return;
+
+    // Update the persistent offset
+    if (textSizeOffsets.hasOwnProperty(selectedTextBox.id)) {
+        textSizeOffsets[selectedTextBox.id] += delta;
+        selectedTextBox.sizeOffset = textSizeOffsets[selectedTextBox.id];
+    }
+
+    showSizeAdjustPanel(selectedTextBox);
+
+    // Redraw
+    if (currentView === 'ratings') {
+        printAlbum();
+    } else {
+        printCoverScreen();
+    }
+}
+
+function adjustTextLeading(delta) {
+    if (!selectedTextBox || selectedTextBox.id !== 'funfact') return;
+
+    // Update the persistent leading offset
+    textLeadingOffsets.funfact += delta;
+
+    showSizeAdjustPanel(selectedTextBox);
+
+    // Redraw
+    if (currentView === 'ratings') {
+        printAlbum();
+    } else {
+        printCoverScreen();
+    }
+}
+
+function resetTextBoxToDefault() {
+    if (!selectedTextBox) return;
+
+    // Reset size offset
+    if (textSizeOffsets.hasOwnProperty(selectedTextBox.id)) {
+        textSizeOffsets[selectedTextBox.id] = 0;
+        selectedTextBox.sizeOffset = 0;
+    }
+
+    // Reset leading offset if funfact
+    if (selectedTextBox.id === 'funfact') {
+        textLeadingOffsets.funfact = 0;
+    }
+
+    showSizeAdjustPanel(selectedTextBox);
+
+    // Redraw
+    if (currentView === 'ratings') {
+        printAlbum();
+    } else {
+        printCoverScreen();
+    }
 }
 
 // ============ UNDO/REDO FUNCTIONS ============
