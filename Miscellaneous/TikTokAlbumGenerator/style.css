@@ -36,7 +36,7 @@ canvas {
     border-radius: 16px;
     padding: 28px;
     width: 500px;
-    max-height: calc(100vh - 40px);
+    height: 1920px;
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);

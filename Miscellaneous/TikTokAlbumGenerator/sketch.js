@@ -2,6 +2,10 @@
 //Miguel Rodríguez
 //17-01-2026
 
+/*
+okay I have a problem: at the default zoom (100%) the UI looks nice but the canvas is huge so I can only see a portion of it, so what I do iz zoom down (to like 33%) to be able to see the whole canvas, but now the UI is small and in poor screens the text is barely readable. Is there a way to have both? to automatically set the size of the page to see the whole canvas but the UI be at a reasonable size to be able to see it. I dont want to scroll either, so i
+*/
+
 p5.disableFriendlyErrors = true
 const WIDTH = 1080
 const HEIGHT = 1920
@@ -56,6 +60,11 @@ let textSizeOffsets = {
 let textLeadingOffsets = {
     funfact: 0
 };
+
+// Image cache
+let cachedImageUrl = null;
+let cachedOriginalImage = null;
+let cachedFilteredImage = null;
 
 // Custom color map (can be modified by user)
 let colorMap = {
@@ -140,11 +149,11 @@ async function setup(){
     loadFromLocalStorage();
     loadCustomColors();
 
+    // Capture initial state for undo/redo (after everything is loaded)
+    captureState();
+
     // Auto-save to localStorage every second
     setInterval(saveToLocalStorage, 1000);
-
-    // Capture initial state for undo/redo
-    captureState();
 
     // Keyboard shortcuts for undo/redo
     document.addEventListener('keydown', (e) => {
@@ -170,6 +179,7 @@ function createAlbumEditor() {
     createElement('label', 'Album Title').parent(titleGroup);
     titleInput = createInput('').parent(titleGroup).class('form-input');
     titleInput.attribute('placeholder', 'Enter album title...');
+    titleInput.elt.addEventListener('input', autoGeneratePreview);
     titleInput.elt.addEventListener('blur', captureState);
 
     // Artist
@@ -177,6 +187,7 @@ function createAlbumEditor() {
     createElement('label', 'Artist').parent(artistGroup);
     artistInput = createInput('').parent(artistGroup).class('form-input');
     artistInput.attribute('placeholder', 'Enter artist name...');
+    artistInput.elt.addEventListener('input', autoGeneratePreview);
     artistInput.elt.addEventListener('blur', captureState);
 
     // Year & Genre row
@@ -186,12 +197,14 @@ function createAlbumEditor() {
     createElement('label', 'Year').parent(yearGroup);
     yearInput = createInput('').parent(yearGroup).class('form-input');
     yearInput.attribute('placeholder', 'e.g. 1997');
+    yearInput.elt.addEventListener('input', autoGeneratePreview);
     yearInput.elt.addEventListener('blur', captureState);
 
     let genreGroup = createDiv('').parent(rowGroup).class('form-group').style('flex: 1;');
     createElement('label', 'Genre').parent(genreGroup);
     genreInput = createInput('').parent(genreGroup).class('form-input');
     genreInput.attribute('placeholder', 'e.g. Rock');
+    genreInput.elt.addEventListener('input', autoGeneratePreview);
     genreInput.elt.addEventListener('blur', captureState);
 
     // Fun Fact
@@ -199,6 +212,7 @@ function createAlbumEditor() {
     createElement('label', 'Fun Fact').parent(funfactGroup);
     funfactInput = createElement('textarea').parent(funfactGroup).class('form-textarea');
     funfactInput.attribute('placeholder', 'Add an interesting fact about the album...');
+    funfactInput.elt.addEventListener('input', autoGeneratePreview);
     funfactInput.elt.addEventListener('blur', captureState);
 
     // Image URL
@@ -206,6 +220,7 @@ function createAlbumEditor() {
     createElement('label', 'Image URL').parent(imageGroup);
     imageUrlInput = createInput('').parent(imageGroup).class('form-input');
     imageUrlInput.attribute('placeholder', 'https://...');
+    imageUrlInput.elt.addEventListener('input', autoGeneratePreview);
     imageUrlInput.elt.addEventListener('blur', captureState);
 
     // Album Grade & Vertical Offset row
@@ -217,7 +232,10 @@ function createAlbumEditor() {
     for (let grade of gradeOptions) {
         albumGradeSelect.option(grade);
     }
-    albumGradeSelect.changed(captureState);
+    albumGradeSelect.changed(() => {
+        autoGeneratePreview();
+        captureState();
+    });
 
     // Vertical Offset Slider
     let offsetGroup = createDiv('').parent(gradeOffsetRow).class('form-group').style('flex: 1;');
@@ -252,10 +270,6 @@ function createAlbumEditor() {
     // Button Grid
     let buttonGrid = createDiv('').parent(editorPanel).class('button-grid');
 
-    // Generate Preview
-    let generateBtn = createButton('Generate Preview').parent(buttonGrid).class('btn btn-primary');
-    generateBtn.mousePressed(generateFromForm);
-
     // Download row
     let downloadRow = createDiv('').parent(buttonGrid).class('button-row');
     let downloadJsonBtn = createButton('JSON').parent(downloadRow).class('btn btn-blue');
@@ -270,9 +284,15 @@ function createAlbumEditor() {
     // Undo/Redo row
     let undoRedoRow = createDiv('').parent(buttonGrid).class('button-row');
     let undoBtn = createButton('↶ Undo').parent(undoRedoRow).class('btn btn-secondary');
-    undoBtn.mousePressed(undo);
+    undoBtn.elt.addEventListener('click', (e) => {
+        e.preventDefault();
+        undo();
+    });
     let redoBtn = createButton('↷ Redo').parent(undoRedoRow).class('btn btn-secondary');
-    redoBtn.mousePressed(redo);
+    redoBtn.elt.addEventListener('click', (e) => {
+        e.preventDefault();
+        redo();
+    });
 
     // Clear All button
     let clearBtn = createButton('Clear All').parent(buttonGrid).class('btn btn-danger');
@@ -470,6 +490,11 @@ function clearAll() {
     // Clear albumData
     albumData = null;
 
+    // Clear image cache
+    cachedImageUrl = null;
+    cachedOriginalImage = null;
+    cachedFilteredImage = null;
+
     // Clear canvas
     background(200);
 
@@ -544,6 +569,7 @@ function addTrackRow() {
 
     let titleIn = createInput('').parent(rowDiv).class('track-title-input');
     titleIn.attribute('placeholder', 'Track title');
+    titleIn.elt.addEventListener('input', autoGeneratePreview);
     titleIn.elt.addEventListener('blur', captureState);
 
     let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
@@ -551,14 +577,20 @@ function addTrackRow() {
         gradeSelect.option(grade);
     }
     gradeSelect.selected('B');
-    gradeSelect.changed(captureState);
+    gradeSelect.changed(() => {
+        autoGeneratePreview();
+        captureState();
+    });
 
     let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
     removeBtn.mousePressed(() => removeTrackRow(trackIndex));
 
     tracks.push({ titleInput: titleIn, gradeSelect: gradeSelect, rowDiv: rowDiv, numSpan: trackNumSpan });
 
-    captureState();
+    // Only capture state if history stack is not empty (i.e., not during initial setup)
+    if (historyStack.length > 0) {
+        captureState();
+    }
 }
 
 function removeTrackRow(index) {
@@ -573,6 +605,20 @@ function removeTrackRow(index) {
     }
 
     captureState();
+}
+
+// Auto-generate preview with debouncing to avoid too many redraws
+let autoGenerateTimeout = null;
+function autoGeneratePreview() {
+    // Clear any pending timeout
+    if (autoGenerateTimeout) {
+        clearTimeout(autoGenerateTimeout);
+    }
+
+    // Set a new timeout to generate after a short delay (300ms)
+    autoGenerateTimeout = setTimeout(() => {
+        generateFromForm();
+    }, 300);
 }
 
 function generateFromForm() {
@@ -716,6 +762,8 @@ function loadFromLocalStorage() {
         try {
             let data = JSON.parse(savedData);
             fillFormFromData(data);
+            // Generate the preview if data was loaded
+            generateFromForm();
         } catch (err) {
             console.log("Error loading saved data");
         }
@@ -730,6 +778,39 @@ async function loadImageSafe(url) {
             (err) => reject(err)
         );
     });
+}
+
+// Load and cache images with filters
+async function loadAndCacheImages(url) {
+    // Check if we already have this image cached
+    if (cachedImageUrl === url && cachedOriginalImage && cachedFilteredImage) {
+        return {
+            original: cachedOriginalImage,
+            filtered: cachedFilteredImage
+        };
+    }
+
+    // Load the image
+    let img = await loadImageSafe(url);
+
+    // Create a copy for filtering
+    let imgBW = img.get();
+
+    // Apply filters to the copy
+    imgBW.filter(GRAY);
+    imgBW.filter(BLUR, 2);
+    imgBW.filter(ERODE);
+    imgBW = dimImage(imgBW, 190);
+
+    // Cache everything
+    cachedImageUrl = url;
+    cachedOriginalImage = img;
+    cachedFilteredImage = imgBW;
+
+    return {
+        original: img,
+        filtered: imgBW
+    };
 }
 
 function showToast(message, isError = false) {
@@ -812,8 +893,9 @@ async function printAlbum(){
 
     let imgBW, img;
     try {
-        imgBW = await loadImageSafe(albumData.imageUrl);
-        img = await loadImageSafe(albumData.imageUrl);
+        let images = await loadAndCacheImages(albumData.imageUrl);
+        img = images.original;
+        imgBW = images.filtered;
     }
     catch (err) {
         console.error('Failed to load image:', err);
@@ -822,10 +904,6 @@ async function printAlbum(){
         return;
     }
 
-    imgBW.filter(GRAY);
-    imgBW.filter(BLUR, 2);
-    imgBW.filter(ERODE);
-    imgBW = dimImage(imgBW, 190);
     imageMode(CENTER)
     image(imgBW, width * 0.5, height * 0.5, height, height);
 
@@ -1118,8 +1196,9 @@ async function printCoverScreen() {
 
     let imgBW, img;
     try {
-        imgBW = await loadImageSafe(albumData.imageUrl);
-        img = await loadImageSafe(albumData.imageUrl);
+        let images = await loadAndCacheImages(albumData.imageUrl);
+        img = images.original;
+        imgBW = images.filtered;
     } catch (err) {
         console.error('Failed to load image:', err);
         drawErrorState(albumData.imageUrl || 'No URL provided');
@@ -1128,10 +1207,6 @@ async function printCoverScreen() {
     }
 
     // Draw blurred background (same as ratings screen)
-    imgBW.filter(GRAY);
-    imgBW.filter(BLUR, 2);
-    imgBW.filter(ERODE);
-    imgBW = dimImage(imgBW, 190);
     imageMode(CENTER);
     image(imgBW, width * 0.5, height * 0.5, height, height);
 
@@ -1330,6 +1405,9 @@ function adjustTextSize(delta) {
         selectedTextBox.sizeOffset = textSizeOffsets[selectedTextBox.id];
     }
 
+    // Capture state for undo/redo
+    captureState();
+
     showSizeAdjustPanel(selectedTextBox);
 
     // Redraw
@@ -1345,6 +1423,9 @@ function adjustTextLeading(delta) {
 
     // Update the persistent leading offset
     textLeadingOffsets.funfact += delta;
+
+    // Capture state for undo/redo
+    captureState();
 
     showSizeAdjustPanel(selectedTextBox);
 
@@ -1369,6 +1450,9 @@ function resetTextBoxToDefault() {
     if (selectedTextBox.id === 'funfact') {
         textLeadingOffsets.funfact = 0;
     }
+
+    // Capture state for undo/redo
+    captureState();
 
     showSizeAdjustPanel(selectedTextBox);
 
@@ -1402,7 +1486,9 @@ function captureState() {
         imageUrl: imageUrlInput.value(),
         albumGrade: albumGradeSelect.value(),
         verticalOffset: verticalOffsetSlider ? verticalOffsetSlider.value() : 0,
-        tracks: tracksData
+        tracks: tracksData,
+        textSizeOffsets: {...textSizeOffsets},
+        textLeadingOffsets: {...textLeadingOffsets}
     };
 
     // Remove any states after current index (for new branch)
@@ -1453,6 +1539,20 @@ function restoreState(state) {
         verticalOffsetLabel.html(state.verticalOffset);
     }
 
+    // Restore text size offsets
+    if (state.textSizeOffsets) {
+        textSizeOffsets.title = state.textSizeOffsets.title || 0;
+        textSizeOffsets.artist = state.textSizeOffsets.artist || 0;
+        textSizeOffsets.year = state.textSizeOffsets.year || 0;
+        textSizeOffsets.genre = state.textSizeOffsets.genre || 0;
+        textSizeOffsets.funfact = state.textSizeOffsets.funfact || 0;
+    }
+
+    // Restore text leading offsets
+    if (state.textLeadingOffsets) {
+        textLeadingOffsets.funfact = state.textLeadingOffsets.funfact || 0;
+    }
+
     // Restore tracks
     while (tracks.length > 0) {
         tracks[0].rowDiv.remove();
@@ -1469,6 +1569,9 @@ function restoreState(state) {
     } else {
         addTrackRowWithoutCapture();
     }
+
+    // Regenerate the album with restored state
+    generateFromForm();
 }
 
 function addTrackRowWithoutCapture() {
