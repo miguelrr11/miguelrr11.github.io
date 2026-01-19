@@ -1,5 +1,9 @@
 /* Album Rating Generator - Modern UI Styles */
 
+:root {
+    --canvas-scale: 0.5; /* Will be set by JS */
+}
+
 * {
     box-sizing: border-box;
 }
@@ -9,7 +13,7 @@ body {
     background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%);
     min-height: 100vh;
     font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    overflow-x: hidden;
+    overflow: hidden;
 }
 
 /* Main layout */
@@ -17,16 +21,22 @@ main {
     display: flex;
     gap: 30px;
     padding: 20px;
+    height: 100vh;
+    align-items: flex-start;
 }
 
-/* Canvas container */
+/* Canvas container - scales down the canvas visually */
 #canvas-container {
     flex-shrink: 0;
+    transform: scale(var(--canvas-scale));
+    transform-origin: top left;
+    /* These will be set by JS based on actual canvas size */
 }
 
 canvas {
     border-radius: 12px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+    display: block;
 }
 
 /* Editor Panel */
@@ -35,11 +45,12 @@ canvas {
     backdrop-filter: blur(20px);
     border-radius: 16px;
     padding: 28px;
-    width: 500px;
-    height: 1920px;
+    width: 420px;
+    height: calc(100vh - 40px);
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    flex-shrink: 0;
 }
 
 .editor-panel::-webkit-scrollbar {

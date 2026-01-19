@@ -2,10 +2,6 @@
 //Miguel Rodríguez
 //17-01-2026
 
-/*
-okay I have a problem: at the default zoom (100%) the UI looks nice but the canvas is huge so I can only see a portion of it, so what I do iz zoom down (to like 33%) to be able to see the whole canvas, but now the UI is small and in poor screens the text is barely readable. Is there a way to have both? to automatically set the size of the page to see the whole canvas but the UI be at a reasonable size to be able to see it. I dont want to scroll either, so i
-*/
-
 p5.disableFriendlyErrors = true
 const WIDTH = 1080
 const HEIGHT = 1920
@@ -93,6 +89,38 @@ const defaultColorMap = {
 // Color picker references
 let colorPickers = {};
 
+// Canvas scaling
+let canvasScale = 1;
+
+function calculateCanvasScale() {
+    // Calculate scale to fit canvas height in viewport with some padding
+    const viewportHeight = window.innerHeight;
+    const padding = 40; // 20px padding on each side
+    const availableHeight = viewportHeight - padding;
+
+    // Scale based on height to fit the tall canvas
+    let scale = availableHeight / HEIGHT;
+
+    // Clamp scale between reasonable values
+    scale = Math.max(0.3, Math.min(1, scale));
+
+    return scale;
+}
+
+function applyCanvasScale() {
+    canvasScale = calculateCanvasScale();
+
+    // Set CSS variable for the scale
+    document.documentElement.style.setProperty('--canvas-scale', canvasScale);
+
+    // Set the container's visual size (for layout purposes)
+    const container = document.getElementById('canvas-container');
+    if (container) {
+        container.style.width = (WIDTH * canvasScale) + 'px';
+        container.style.height = (HEIGHT * canvasScale) + 'px';
+    }
+}
+
 async function setup(){
     fontRegular = await loadFont('fonts/Vidaloka-Regular.ttf');
     fontRegularItalic = await loadFont('fonts/Coolvetica Rg It.otf');
@@ -103,6 +131,12 @@ async function setup(){
 
     let canvas = createCanvas(WIDTH, HEIGHT);
     canvas.parent('canvas-container');
+
+    // Apply initial scale
+    applyCanvasScale();
+
+    // Recalculate on window resize
+    window.addEventListener('resize', applyCanvasScale);
 
     editorPanel = select('#editor-panel');
     dragOverlay = select('#drag-overlay');
@@ -911,13 +945,15 @@ async function printAlbum(){
     imageMode(CORNER)
     rectMode(CORNER)
     let y = 50
+    let imgOff = 200
+    let sizeSclMult = 0.425
     utils.beginShadow("#000000", 50, 0, 0);
-    rect(width * 0.45, y + 185, width * 0.5, width * 0.5);
-    image(img, width * 0.45, y + 185, width * 0.5, width * 0.5);
+    rect(width * 0.52, y + imgOff, width * sizeSclMult, width * sizeSclMult);
+    image(img, width * 0.52, y + imgOff, width * sizeSclMult, width * sizeSclMult);
 
 
     let leftMargin = 50
-    let topMargin = 50
+    let topMargin = 80
     let titleMaxWidth = width
 
     if(!albumData) return;
@@ -1045,9 +1081,9 @@ async function printAlbum(){
     text("\n\n\n\n", leftMargin, topMargin + y + 120, width * 0.35);
 
     textLeading(funfactLeading);
-    text(albumData.funfact, leftMargin, funfactStartY, width * 0.35);
+    text(albumData.funfact, leftMargin, funfactStartY, width * 0.425);
 
-    let funfactBounds = fontLight.textBounds(albumData.funfact, leftMargin, funfactStartY, width * 0.35);
+    let funfactBounds = fontLight.textBounds(albumData.funfact, leftMargin, funfactStartY, width * 0.425);
     textBoxes.push({
         id: 'funfact',
         x: funfactBounds.x,
@@ -1060,9 +1096,9 @@ async function printAlbum(){
 
     utils.endShadow();
 
-    y = 800
+    //y level for tracks
+    y = 820
     let x = 275
-    y += 80
 
     let spacing = Math.min(map(albumData.tracks.length, 5, 20, 80, 45, true), 70)
 
@@ -1174,6 +1210,7 @@ async function printAlbum(){
 
     // Draw selection outline if a text box is selected
     if (selectedTextBox) {
+        push()
         noFill();
         stroke(255);
         strokeWeight(3);
@@ -1182,6 +1219,7 @@ async function printAlbum(){
         rect(selectedTextBox.x - padding, selectedTextBox.y - padding,
              selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
         noStroke();
+        pop()
     }
 }
 
@@ -1309,38 +1347,43 @@ function draw(){
 }
 
 function mousePressed() {
+    // Get canvas element and its bounding rect
+    let canvasEl = document.querySelector('canvas');
+    let canvasRect = canvasEl.getBoundingClientRect();
+
+    // Calculate the actual mouse position on the canvas accounting for scale
+    // The canvas is scaled via CSS transform, so we need to convert screen coords to canvas coords
+    let scaledMouseX = (mouseX / canvasScale);
+    let scaledMouseY = (mouseY / canvasScale);
+
     // Check if click is on the size adjustment panel or any of its children
     if (sizeAdjustPanel && sizeAdjustPanel.style('display') !== 'none') {
         let panel = sizeAdjustPanel.elt;
-        let rect = panel.getBoundingClientRect();
-
-        // Get canvas position
-        let canvas = document.querySelector('canvas');
-        let canvasRect = canvas.getBoundingClientRect();
+        let panelRect = panel.getBoundingClientRect();
 
         // Calculate actual mouse position in viewport
         let mouseClientX = mouseX + canvasRect.left;
         let mouseClientY = mouseY + canvasRect.top;
 
         // Check if mouse is over the panel
-        if (mouseClientX >= rect.left && mouseClientX <= rect.right &&
-            mouseClientY >= rect.top && mouseClientY <= rect.bottom) {
+        if (mouseClientX >= panelRect.left && mouseClientX <= panelRect.right &&
+            mouseClientY >= panelRect.top && mouseClientY <= panelRect.bottom) {
             // Click is on the panel, ignore it
             return;
         }
     }
 
-    // Only handle clicks on the canvas
-    if (mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height) {
+    // Only handle clicks on the canvas (using scaled coordinates)
+    if (scaledMouseX < 0 || scaledMouseX > width || scaledMouseY < 0 || scaledMouseY > height) {
         return;
     }
 
-    // Check if any text box was clicked
+    // Check if any text box was clicked (using scaled coordinates)
     let clickedBox = null;
     for (let i = 0; i < textBoxes.length; i++) {
         let box = textBoxes[i];
-        if (mouseX >= box.x && mouseX <= box.x + box.w &&
-            mouseY >= box.y && mouseY <= box.y + box.h) {
+        if (scaledMouseX >= box.x && scaledMouseX <= box.x + box.w &&
+            scaledMouseY >= box.y && scaledMouseY <= box.y + box.h) {
             clickedBox = box;
             break;
         }
