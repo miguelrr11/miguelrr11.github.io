@@ -889,11 +889,46 @@ function drawErrorState(message) {
     textFont(fontLight);
     textSize(28);
     fill(180);
-    text(message, width / 2, height / 2 + 120, width - 100);
+    // Use rectMode and position the text box centered
+    let boxWidth = width - 100;
+    text(message, 50, height / 2 + 120, boxWidth);
 
     textSize(24);
     fill(120);
     text('Check the image URL and try again', width / 2, height / 2 + 200);
+}
+
+// Draw a placeholder in the image area when no image is available
+function drawImagePlaceholder(x, y, w, h, isCornerMode = true) {
+    push();
+    if (isCornerMode) {
+        rectMode(CORNER);
+    } else {
+        rectMode(CENTER);
+    }
+
+    // Dark background for the placeholder
+    fill(60);
+    noStroke();
+    rect(x, y, w, h);
+
+    // Calculate center of the placeholder
+    let centerX = isCornerMode ? x + w / 2 : x;
+    let centerY = isCornerMode ? y + h / 2 : y;
+
+    // Icon
+    fill(100);
+    textAlign(CENTER, CENTER);
+    textSize(w * 0.15);
+    text('🖼', centerX, centerY - h * 0.1);
+
+    // Text
+    textFont(fontLight);
+    textSize(w * 0.06);
+    fill(120);
+    text('No Image', centerX, centerY + h * 0.15);
+
+    pop();
 }
 
 function shortenText(text, maxLength){
@@ -925,31 +960,47 @@ async function printAlbum(){
     // Clear textBoxes array at the start
     textBoxes = [];
 
-    let imgBW, img;
-    try {
-        let images = await loadAndCacheImages(albumData.imageUrl);
-        img = images.original;
-        imgBW = images.filtered;
-    }
-    catch (err) {
-        console.error('Failed to load image:', err);
-        drawErrorState(albumData.imageUrl || 'No URL provided');
-        showToast('Failed to load image. Check the URL.', true);
-        return;
-    }
-
-    imageMode(CENTER)
-    image(imgBW, width * 0.5, height * 0.5, height, height);
-
-
-    imageMode(CORNER)
-    rectMode(CORNER)
     let y = 50
     let imgOff = 200
     let sizeSclMult = 0.425
+    let hasImage = false;
+    let imgBW, img;
+
+    // Try to load image if URL is provided
+    if (albumData.imageUrl && albumData.imageUrl.trim() !== '') {
+        try {
+            let images = await loadAndCacheImages(albumData.imageUrl);
+            img = images.original;
+            imgBW = images.filtered;
+            hasImage = true;
+        }
+        catch (err) {
+            console.error('Failed to load image:', err);
+            showToast('Failed to load image. Check the URL.', true);
+            hasImage = false;
+        }
+    }
+
+    // Draw background (blurred image or dark gray)
+    if (hasImage) {
+        imageMode(CENTER);
+        image(imgBW, width * 0.5, height * 0.5, height, height);
+    } else {
+        background(50);
+    }
+
+    imageMode(CORNER)
+    rectMode(CORNER)
+
+    // Draw album cover or placeholder
     utils.beginShadow("#000000", 50, 0, 0);
-    rect(width * 0.52, y + imgOff, width * sizeSclMult, width * sizeSclMult);
-    image(img, width * 0.52, y + imgOff, width * sizeSclMult, width * sizeSclMult);
+    if (hasImage) {
+        rect(width * 0.52, y + imgOff, width * sizeSclMult, width * sizeSclMult);
+        image(img, width * 0.52, y + imgOff, width * sizeSclMult, width * sizeSclMult);
+    } else {
+        drawImagePlaceholder(width * 0.52, y + imgOff, width * sizeSclMult, width * sizeSclMult, true);
+    }
+    utils.endShadow();
 
 
     let leftMargin = 50
@@ -1232,21 +1283,32 @@ async function printCoverScreen() {
     // Clear textBoxes array at the start
     textBoxes = [];
 
+    let coverSize = width * 0.8;
+    let coverY = height * 0.42;
+    let hasImage = false;
     let imgBW, img;
-    try {
-        let images = await loadAndCacheImages(albumData.imageUrl);
-        img = images.original;
-        imgBW = images.filtered;
-    } catch (err) {
-        console.error('Failed to load image:', err);
-        drawErrorState(albumData.imageUrl || 'No URL provided');
-        showToast('Failed to load image. Check the URL.', true);
-        return;
+
+    // Try to load image if URL is provided
+    if (albumData.imageUrl && albumData.imageUrl.trim() !== '') {
+        try {
+            let images = await loadAndCacheImages(albumData.imageUrl);
+            img = images.original;
+            imgBW = images.filtered;
+            hasImage = true;
+        } catch (err) {
+            console.error('Failed to load image:', err);
+            showToast('Failed to load image. Check the URL.', true);
+            hasImage = false;
+        }
     }
 
-    // Draw blurred background (same as ratings screen)
-    imageMode(CENTER);
-    image(imgBW, width * 0.5, height * 0.5, height, height);
+    // Draw blurred background or dark gray
+    if (hasImage) {
+        imageMode(CENTER);
+        image(imgBW, width * 0.5, height * 0.5, height, height);
+    } else {
+        background(50);
+    }
 
     // "Album Review" text at top
     utils.beginShadow("#000000", 30, 0, 0);
@@ -1256,13 +1318,18 @@ async function printCoverScreen() {
     fill(255);
     text("Album Review", width * 0.5, 260);
     utils.endShadow();
-    let coverSize = width * 0.8;
-    let coverY = height * 0.42;
+
     imageMode(CENTER);
     rectMode(CENTER);
+
+    // Draw album cover or placeholder
     utils.beginShadow("#000000", 80, 0, 0);
-    rect(width * 0.5, coverY, coverSize, coverSize);
-    image(img, width * 0.5, coverY, coverSize, coverSize);
+    if (hasImage) {
+        rect(width * 0.5, coverY, coverSize, coverSize);
+        image(img, width * 0.5, coverY, coverSize, coverSize);
+    } else {
+        drawImagePlaceholder(width * 0.5, coverY, coverSize, coverSize, false);
+    }
     utils.endShadow();
 
     // Album title below image
