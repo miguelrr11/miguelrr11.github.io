@@ -567,10 +567,10 @@ async function downloadBothImages() {
     }
 
     albumData = {
-        title: titleInput.value() || 'Untitled Album',
-        artist: artistInput.value() || 'Unknown Artist',
-        year: yearInput.value() || new Date().getFullYear().toString(),
-        genre: genreInput.value() || 'Unknown',
+        title: titleInput.value() || '',
+        artist: artistInput.value() || '',
+        year: yearInput.value() || '',
+        genre: genreInput.value() || '',
         funfact: funfactInput.value() || '',
         tracks: tracksData,
         imageUrl: imageUrlInput.value() || '',
@@ -579,8 +579,8 @@ async function downloadBothImages() {
 
     if (!albumData.imageUrl) return;
 
-    let albumName = titleInput.value() || 'Untitled';
-    let artistName = artistInput.value() || 'Unknown';
+    let albumName = titleInput.value() || '';
+    let artistName = artistInput.value() || '';
     let baseFileName = (artistName + ' - ' + albumName).replace(/[\/\\:*?"<>|]/g, '');
 
     // Save ratings screen
@@ -689,10 +689,10 @@ function generateFromForm() {
     }
 
     albumData = {
-        title: titleInput.value() || 'Untitled Album',
-        artist: artistInput.value() || 'Unknown Artist',
-        year: yearInput.value() || new Date().getFullYear().toString(),
-        genre: genreInput.value() || 'Unknown',
+        title: titleInput.value() || '',
+        artist: artistInput.value() || '',
+        year: yearInput.value() || '',
+        genre: genreInput.value() || '',
         funfact: funfactInput.value() || '',
         tracks: tracksData,
         imageUrl: imageUrlInput.value() || '',
