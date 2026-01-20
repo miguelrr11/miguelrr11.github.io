@@ -561,7 +561,8 @@ async function downloadBothImages() {
         if (title) {
             tracksData.push({
                 title: title,
-                grade: track.gradeSelect.value()
+                grade: track.gradeSelect.value(),
+                customNumber: track.customNumber || null
             });
         }
     }
@@ -600,6 +601,52 @@ function addTrackRow() {
     let rowDiv = createDiv('').parent(trackContainer).class('track-row');
 
     let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).class('track-number');
+
+    // Add double-click functionality to make number editable
+    trackNumSpan.elt.addEventListener('dblclick', () => {
+        let currentText = trackNumSpan.html().replace('.', '');
+        let input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentText;
+        input.className = 'track-number-input';
+        input.style.width = '40px';
+        input.style.textAlign = 'center';
+
+        // Replace span with input
+        trackNumSpan.elt.replaceWith(input);
+        input.focus();
+        input.select();
+
+        let finishEdit = () => {
+            let newValue = input.value.trim();
+            if (newValue === '') {
+                newValue = (trackIndex + 1).toString();
+            }
+            trackNumSpan.html(newValue + '.');
+            input.replaceWith(trackNumSpan.elt);
+
+            // Update custom number in tracks array
+            let track = tracks.find(t => t.numSpan === trackNumSpan);
+            if (track) {
+                track.customNumber = newValue;
+            }
+
+            autoGeneratePreview();
+            captureState();
+        };
+
+        input.addEventListener('blur', finishEdit);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishEdit();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                trackNumSpan.html((trackIndex + 1) + '.');
+                input.replaceWith(trackNumSpan.elt);
+            }
+        });
+    });
 
     let titleIn = createInput('').parent(rowDiv).class('track-title-input');
     titleIn.attribute('placeholder', 'Track title');
@@ -640,7 +687,13 @@ function addTrackRow() {
     let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
     removeBtn.mousePressed(() => removeTrackRow(trackIndex));
 
-    tracks.push({ titleInput: titleIn, gradeSelect: gradeSelect, rowDiv: rowDiv, numSpan: trackNumSpan });
+    tracks.push({
+        titleInput: titleIn,
+        gradeSelect: gradeSelect,
+        rowDiv: rowDiv,
+        numSpan: trackNumSpan,
+        customNumber: null // Store custom number if set
+    });
 
     // Only capture state if history stack is not empty (i.e., not during initial setup)
     if (historyStack.length > 0) {
@@ -683,7 +736,8 @@ function generateFromForm() {
         if (title) {
             tracksData.push({
                 title: title,
-                grade: track.gradeSelect.value()
+                grade: track.gradeSelect.value(),
+                customNumber: track.customNumber || null
             });
         }
     }
@@ -713,7 +767,8 @@ function downloadJSON() {
         if (title) {
             tracksData.push({
                 title: title,
-                grade: track.gradeSelect.value()
+                grade: track.gradeSelect.value(),
+                customNumber: track.customNumber || null
             });
         }
     }
@@ -777,11 +832,18 @@ function fillFormFromData(data) {
 
     // Add tracks from data
     if (data.tracks && data.tracks.length > 0) {
-        for (let track of data.tracks) {
+        for (let i = 0; i < data.tracks.length; i++) {
+            let track = data.tracks[i];
             addTrackRow();
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
             lastTrack.gradeSelect.selected(track.grade || 'B');
+
+            // Restore custom number if exists
+            if (track.customNumber) {
+                lastTrack.customNumber = track.customNumber;
+                lastTrack.numSpan.html(track.customNumber + '.');
+            }
         }
     } else {
         addTrackRow();
@@ -793,7 +855,8 @@ function saveToLocalStorage() {
     for (let track of tracks) {
         tracksData.push({
             title: track.titleInput.value(),
-            grade: track.gradeSelect.value()
+            grade: track.gradeSelect.value(),
+            customNumber: track.customNumber || null
         });
     }
 
@@ -1227,10 +1290,11 @@ async function printAlbum(){
             textSize(60);
         }
 
-        // Draw text
+        // Draw text with custom number if available
         fill(255)
         textAlign(LEFT, BASELINE);
-        text(shortenText((i + 1).toString() + ". " + track.title + (track.playing ? " " + musicChar : ""), 700), leftMargin + x, trackY);
+        let trackNumber = track.customNumber || (i + 1).toString();
+        text(shortenText(trackNumber + ". " + track.title + (track.playing ? " " + musicChar : ""), 700), leftMargin + x, trackY);
 
         y += spacing;
     }
@@ -1604,7 +1668,8 @@ function captureState() {
     for (let track of tracks) {
         tracksData.push({
             title: track.titleInput.value(),
-            grade: track.gradeSelect.value()
+            grade: track.gradeSelect.value(),
+            customNumber: track.customNumber || null
         });
     }
 
@@ -1696,6 +1761,12 @@ function restoreState(state) {
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
             lastTrack.gradeSelect.selected(track.grade || 'B');
+
+            // Restore custom number if exists
+            if (track.customNumber) {
+                lastTrack.customNumber = track.customNumber;
+                lastTrack.numSpan.html(track.customNumber + '.');
+            }
         }
     } else {
         addTrackRowWithoutCapture();
@@ -1711,6 +1782,52 @@ function addTrackRowWithoutCapture() {
 
     let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).class('track-number');
 
+    // Add double-click functionality to make number editable
+    trackNumSpan.elt.addEventListener('dblclick', () => {
+        let currentText = trackNumSpan.html().replace('.', '');
+        let input = document.createElement('input');
+        input.type = 'text';
+        input.value = currentText;
+        input.className = 'track-number-input';
+        input.style.width = '40px';
+        input.style.textAlign = 'center';
+
+        // Replace span with input
+        trackNumSpan.elt.replaceWith(input);
+        input.focus();
+        input.select();
+
+        let finishEdit = () => {
+            let newValue = input.value.trim();
+            if (newValue === '') {
+                newValue = (trackIndex + 1).toString();
+            }
+            trackNumSpan.html(newValue + '.');
+            input.replaceWith(trackNumSpan.elt);
+
+            // Update custom number in tracks array
+            let track = tracks.find(t => t.numSpan === trackNumSpan);
+            if (track) {
+                track.customNumber = newValue;
+            }
+
+            autoGeneratePreview();
+            captureState();
+        };
+
+        input.addEventListener('blur', finishEdit);
+        input.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                finishEdit();
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                trackNumSpan.html((trackIndex + 1) + '.');
+                input.replaceWith(trackNumSpan.elt);
+            }
+        });
+    });
+
     let titleIn = createInput('').parent(rowDiv).class('track-title-input');
     titleIn.attribute('placeholder', 'Track title');
 
@@ -1725,7 +1842,13 @@ function addTrackRowWithoutCapture() {
         removeTrackRow(tracks.indexOf(tracks.find(t => t.rowDiv === rowDiv)));
     });
 
-    tracks.push({ titleInput: titleIn, gradeSelect: gradeSelect, rowDiv: rowDiv, numSpan: trackNumSpan });
+    tracks.push({
+        titleInput: titleIn,
+        gradeSelect: gradeSelect,
+        rowDiv: rowDiv,
+        numSpan: trackNumSpan,
+        customNumber: null
+    });
 }
 
 // ============ COLOR CUSTOMIZATION FUNCTIONS ============
