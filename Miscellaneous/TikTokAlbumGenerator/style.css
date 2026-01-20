@@ -45,7 +45,7 @@ canvas {
     backdrop-filter: blur(20px);
     border-radius: 16px;
     padding: 28px;
-    width: 420px;
+    width: 500px;
     height: calc(100vh - 40px);
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -263,6 +263,8 @@ canvas {
     background: rgba(255, 255, 255, 0.04);
     border-radius: 10px;
     transition: background 0.2s ease;
+    position: relative;
+    flex-wrap: wrap;
 }
 
 .track-row:hover {
@@ -320,6 +322,52 @@ canvas {
 
 .track-grade-select option {
     background: #1a1a2e;
+}
+
+.track-text-btn {
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(138, 180, 248, 0.15);
+    border: none;
+    border-radius: 6px;
+    color: #8ab4f8;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.track-text-btn:hover {
+    background: rgba(138, 180, 248, 0.25);
+}
+
+.track-text-input-container {
+    width: 100%;
+    margin-top: 6px;
+}
+
+.track-text-input {
+    width: 100%;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(138, 180, 248, 0.4);
+    border-radius: 6px;
+    color: #fff;
+    font-size: 12px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.track-text-input:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(138, 180, 248, 0.6);
+}
+
+.track-text-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
 }
 
 .track-remove-btn {

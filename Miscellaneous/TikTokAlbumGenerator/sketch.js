@@ -562,7 +562,8 @@ async function downloadBothImages() {
             tracksData.push({
                 title: title,
                 grade: track.gradeSelect.value(),
-                customNumber: track.customNumber || null
+                customNumber: track.customNumber || null,
+                customText: track.textInput ? track.textInput.value().trim() : null
             });
         }
     }
@@ -684,6 +685,24 @@ function addTrackRow() {
         captureState();
     });
 
+    // Text button to add custom text inside the rectangle
+    let textBtn = createButton('T').parent(rowDiv).class('track-text-btn');
+    let textInputContainer = createDiv('').parent(rowDiv).class('track-text-input-container');
+    textInputContainer.style('display', 'none');
+    let textInput = createInput('').parent(textInputContainer).class('track-text-input');
+    textInput.attribute('placeholder', 'Text inside rect...');
+    textInput.elt.addEventListener('input', autoGeneratePreview);
+    textInput.elt.addEventListener('blur', captureState);
+
+    textBtn.mousePressed(() => {
+        if (textInputContainer.style('display') === 'none') {
+            textInputContainer.style('display', 'block');
+            textInput.elt.focus();
+        } else {
+            textInputContainer.style('display', 'none');
+        }
+    });
+
     let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
     removeBtn.mousePressed(() => removeTrackRow(trackIndex));
 
@@ -692,7 +711,10 @@ function addTrackRow() {
         gradeSelect: gradeSelect,
         rowDiv: rowDiv,
         numSpan: trackNumSpan,
-        customNumber: null // Store custom number if set
+        customNumber: null, // Store custom number if set
+        customText: null, // Store custom text to display inside rectangle
+        textInput: textInput,
+        textInputContainer: textInputContainer
     });
 
     // Only capture state if history stack is not empty (i.e., not during initial setup)
@@ -713,6 +735,7 @@ function removeTrackRow(index) {
     }
 
     captureState();
+    autoGeneratePreview();
 }
 
 // Auto-generate preview with debouncing to avoid too many redraws
@@ -737,7 +760,8 @@ function generateFromForm() {
             tracksData.push({
                 title: title,
                 grade: track.gradeSelect.value(),
-                customNumber: track.customNumber || null
+                customNumber: track.customNumber || null,
+                customText: track.textInput ? track.textInput.value().trim() : null
             });
         }
     }
@@ -768,7 +792,8 @@ function downloadJSON() {
             tracksData.push({
                 title: title,
                 grade: track.gradeSelect.value(),
-                customNumber: track.customNumber || null
+                customNumber: track.customNumber || null,
+                customText: track.textInput ? track.textInput.value().trim() : null
             });
         }
     }
@@ -844,6 +869,12 @@ function fillFormFromData(data) {
                 lastTrack.customNumber = track.customNumber;
                 lastTrack.numSpan.html(track.customNumber + '.');
             }
+
+            // Restore custom text if exists
+            if (track.customText && track.customText.trim() !== '') {
+                lastTrack.textInput.value(track.customText);
+                lastTrack.textInputContainer.style('display', 'block');
+            }
         }
     } else {
         addTrackRow();
@@ -856,7 +887,8 @@ function saveToLocalStorage() {
         tracksData.push({
             title: track.titleInput.value(),
             grade: track.gradeSelect.value(),
-            customNumber: track.customNumber || null
+            customNumber: track.customNumber || null,
+            customText: track.textInput ? track.textInput.value() : null
         });
     }
 
@@ -1279,15 +1311,22 @@ async function printAlbum(){
         rect((leftMargin + x) * 0.5, trackY - rectCenterOffset, w, h, 20);
         if(track.grade == 'GOAT' || track.grade == 'S') utils.endShadow();
 
-        if(track.grade == 'GOAT'){
-            textAlign(CENTER, CENTER);
-            blendMode(MULTIPLY)
-            fill(255);
-            textFont(fontRegular);
-            textSize(50);
-            text("GOAT", (leftMargin + x) * 0.5, trackY - rectCenterOffset);
+        // Draw custom text or GOAT inside rectangle
+        if (track.customText && track.customText.trim() !== '') {
+            push()
+            // Draw custom text inside rectangle
             blendMode(BLEND)
+            textAlign(CENTER, CENTER);
+            fill(0, 160);
+            textFont(fontRegularCondensed);
+            // Calculate text size to fit inside rectangle with padding
+            let maxTextWidth = w - 40; // padding of 8 on each side
+            let customTextSize = getMaxTextSize(track.customText, maxTextWidth, 32);
+            textSize(customTextSize);
+            text(track.customText, (leftMargin + x) * 0.5, trackY - rectCenterOffset);
             textSize(60);
+            blendMode(BLEND);
+            pop()
         }
 
         // Draw text with custom number if available
@@ -1496,6 +1535,9 @@ function dimImage(img, amount){
 }
 
 function draw(){
+    if(frameCount % 60 === 0){
+        autoGeneratePreview();
+    }
 }
 
 function mousePressed() {
@@ -1669,7 +1711,8 @@ function captureState() {
         tracksData.push({
             title: track.titleInput.value(),
             grade: track.gradeSelect.value(),
-            customNumber: track.customNumber || null
+            customNumber: track.customNumber || null,
+            customText: track.textInput ? track.textInput.value() : null
         });
     }
 
@@ -1767,6 +1810,12 @@ function restoreState(state) {
                 lastTrack.customNumber = track.customNumber;
                 lastTrack.numSpan.html(track.customNumber + '.');
             }
+
+            // Restore custom text if exists
+            if (track.customText && track.customText.trim() !== '') {
+                lastTrack.textInput.value(track.customText);
+                lastTrack.textInputContainer.style('display', 'block');
+            }
         }
     } else {
         addTrackRowWithoutCapture();
@@ -1837,6 +1886,24 @@ function addTrackRowWithoutCapture() {
     }
     gradeSelect.selected('B');
 
+    // Text button to add custom text inside the rectangle
+    let textBtn = createButton('T').parent(rowDiv).class('track-text-btn');
+    let textInputContainer = createDiv('').parent(rowDiv).class('track-text-input-container');
+    textInputContainer.style('display', 'none');
+    let textInput = createInput('').parent(textInputContainer).class('track-text-input');
+    textInput.attribute('placeholder', 'Text inside rect...');
+    textInput.elt.addEventListener('input', autoGeneratePreview);
+    textInput.elt.addEventListener('blur', captureState);
+
+    textBtn.mousePressed(() => {
+        if (textInputContainer.style('display') === 'none') {
+            textInputContainer.style('display', 'block');
+            textInput.elt.focus();
+        } else {
+            textInputContainer.style('display', 'none');
+        }
+    });
+
     let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
     removeBtn.mousePressed(() => {
         removeTrackRow(tracks.indexOf(tracks.find(t => t.rowDiv === rowDiv)));
@@ -1847,7 +1914,10 @@ function addTrackRowWithoutCapture() {
         gradeSelect: gradeSelect,
         rowDiv: rowDiv,
         numSpan: trackNumSpan,
-        customNumber: null
+        customNumber: null,
+        customText: null,
+        textInput: textInput,
+        textInputContainer: textInputContainer
     });
 }
 
