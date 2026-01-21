@@ -9,111 +9,47 @@ const HEIGHT = 1920
 let uploadedFile = null
 let albumData = null
 
-let fontRegular;
-let fontRegularItalic;
-let fontRegularCrammed;
-let fontRegularCondensed;
-let fontHeavy;
-let fontLight
-
+let fontRegular, fontRegularItalic, fontRegularCrammed, fontRegularCondensed, fontHeavy, fontLight
 let musicChar = '♫'
-
 var utils = new p5.Utils();
 
 // UI Elements
 let titleInput, artistInput, yearInput, genreInput, funfactInput, imageUrlInput, albumGradeSelect;
-let trackContainer;
-let tracks = [];
+let trackContainer, tracks = [];
 const gradeOptions = ['GOAT', 'S', 'A', 'B', 'C', 'D', 'F', 'Interlude'];
-let verticalOffsetSlider;
-let verticalOffsetLabel;
+let verticalOffsetSlider, verticalOffsetLabel;
 
 // View toggle: 'ratings' or 'cover'
 let currentView = 'ratings';
-let viewToggleBtn;
-
-// Editor panel reference
-let editorPanel;
-let dragOverlay;
+let viewToggleBtn, editorPanel, dragOverlay;
 
 // Undo/Redo system
-let historyStack = [];
-let historyIndex = -1;
+let historyStack = [], historyIndex = -1;
 const MAX_HISTORY = 50;
 let isUndoRedoAction = false;
 
 // Text box selection and sizing
-let textBoxes = [];
-let selectedTextBox = null;
-let sizeAdjustPanel = null;
-let textSizeOffsets = {
-    title: 0,
-    artist: 0,
-    year: 0,
-    genre: 0,
-    funfact: 0
-};
-let textLeadingOffsets = {
-    funfact: 0
-};
+let textBoxes = [], selectedTextBox = null, sizeAdjustPanel = null;
+let textSizeOffsets = { title: 0, artist: 0, year: 0, genre: 0, funfact: 0 };
+let textLeadingOffsets = { funfact: 0 };
+let verticalOffsets = { title: 0, artist: 0, year: 0, genre: 0, funfact: 0, tracks: 0, image: 0 };
 
 // Image cache
-let cachedImageUrl = null;
-let cachedOriginalImage = null;
-let cachedFilteredImage = null;
+let cachedImageUrl = null, cachedOriginalImage = null, cachedFilteredImage = null;
 
-// Custom color map (can be modified by user)
-let colorMap = {
-    "GOAT": "#ffffff",
-    "S": "#ffd21f",
-    "A": "#ff1fa9",
-    "B": "#bc3fde",
-    "C": "#38b6ff",
-    "D": "#14b60b",
-    "F": "#902020",
-    "Interlude": "#b2b2b2"
-};
-
-// Default colors for reset
-const defaultColorMap = {
-    "GOAT": "#ffffff",
-    "S": "#ffd21f",
-    "A": "#ff1fa9",
-    "B": "#bc3fde",
-    "C": "#38b6ff",
-    "D": "#14b60b",
-    "F": "#902020",
-    "Interlude": "#b2b2b2"
-};
-
-// Color picker references
-let colorPickers = {};
-
-// Canvas scaling
-let canvasScale = 1;
+// Custom color map
+let colorMap = { "GOAT": "#ffffff", "S": "#ffd21f", "A": "#ff1fa9", "B": "#bc3fde", "C": "#38b6ff", "D": "#14b60b", "F": "#902020", "Interlude": "#b2b2b2" };
+const defaultColorMap = {...colorMap};
+let colorPickers = {}, canvasScale = 1;
 
 function calculateCanvasScale() {
-    // Calculate scale to fit canvas height in viewport with some padding
-    const viewportHeight = window.innerHeight;
-    const padding = 40; // 20px padding on each side
-    const availableHeight = viewportHeight - padding;
-
-    // Scale based on height to fit the tall canvas
-    let scale = availableHeight / HEIGHT;
-
-    // Clamp scale between reasonable values
-    scale = Math.max(0.3, Math.min(1, scale));
-
-    return scale;
+    const scale = (window.innerHeight - 40) / HEIGHT;
+    return Math.max(0.3, Math.min(1, scale));
 }
 
 function applyCanvasScale() {
     canvasScale = calculateCanvasScale();
-
-    // Set CSS variable for the scale
     document.documentElement.style.setProperty('--canvas-scale', canvasScale);
-
-    // Set the container's visual size (for layout purposes)
     const container = document.getElementById('canvas-container');
     if (container) {
         container.style.width = (WIDTH * canvasScale) + 'px';
@@ -132,25 +68,25 @@ async function setup(){
     let canvas = createCanvas(WIDTH, HEIGHT);
     canvas.parent('canvas-container');
 
-    // Apply initial scale
     applyCanvasScale();
-
-    // Recalculate on window resize
     window.addEventListener('resize', applyCanvasScale);
 
     editorPanel = select('#editor-panel');
     dragOverlay = select('#drag-overlay');
 
-    // Enable drag and drop on the entire document
-    document.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dragOverlay.addClass('active');
-    });
-    document.addEventListener('dragleave', (e) => {
-        if (e.relatedTarget === null) {
-            dragOverlay.removeClass('active');
-        }
-    });
+    setupDragDrop();
+    createAlbumEditor();
+    loadFromLocalStorage();
+    loadCustomColors();
+    captureState();
+
+    setInterval(saveToLocalStorage, 1000);
+    document.addEventListener('keydown', handleKeyboard);
+}
+
+function setupDragDrop() {
+    document.addEventListener('dragover', (e) => { e.preventDefault(); dragOverlay.addClass('active'); });
+    document.addEventListener('dragleave', (e) => { if (e.relatedTarget === null) dragOverlay.removeClass('active'); });
     document.addEventListener('drop', (e) => {
         e.preventDefault();
         dragOverlay.removeClass('active');
@@ -163,179 +99,133 @@ async function setup(){
                     if (data.album) {
                         albumData = data.album;
                         fillFormFromData(albumData);
-                        if (currentView === 'ratings') {
-                            printAlbum();
-                        } else {
-                            printCoverScreen();
-                        }
+                        currentView === 'ratings' ? printAlbum() : printCoverScreen();
                     }
-                } catch (err) {
-                    console.log("Invalid JSON file");
-                }
+                } catch (err) { console.log("Invalid JSON file"); }
             };
             reader.readAsText(file);
         }
     });
+}
 
-    createAlbumEditor();
-
-    // Load saved data from localStorage
-    loadFromLocalStorage();
-    loadCustomColors();
-
-    // Capture initial state for undo/redo (after everything is loaded)
-    captureState();
-
-    // Auto-save to localStorage every second
-    setInterval(saveToLocalStorage, 1000);
-
-    // Keyboard shortcuts for undo/redo
-    document.addEventListener('keydown', (e) => {
-        if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
-            e.preventDefault();
-            if (e.shiftKey) {
-                redo();
-            } else {
-                undo();
-            }
-        }
-    });
+function handleKeyboard(e) {
+    if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault();
+        e.shiftKey ? redo() : undo();
+    }
 }
 
 function createAlbumEditor() {
-    // Panel Header
+    // Header
     let header = createDiv('').parent(editorPanel).class('panel-header');
     createElement('h2', 'Album Editor').parent(header);
     createElement('p', 'Drag & drop JSON or fill manually').parent(header);
 
-    // Title
-    let titleGroup = createDiv('').parent(editorPanel).class('form-group');
-    createElement('label', 'Album Title').parent(titleGroup);
-    titleInput = createInput('').parent(titleGroup).class('form-input');
-    titleInput.attribute('placeholder', 'Enter album title...');
-    titleInput.elt.addEventListener('input', autoGeneratePreview);
-    titleInput.elt.addEventListener('blur', captureState);
+    // Basic inputs
+    titleInput = createFormInput('Album Title', 'Enter album title...');
+    artistInput = createFormInput('Artist', 'Enter artist name...');
 
-    // Artist
-    let artistGroup = createDiv('').parent(editorPanel).class('form-group');
-    createElement('label', 'Artist').parent(artistGroup);
-    artistInput = createInput('').parent(artistGroup).class('form-input');
-    artistInput.attribute('placeholder', 'Enter artist name...');
-    artistInput.elt.addEventListener('input', autoGeneratePreview);
-    artistInput.elt.addEventListener('blur', captureState);
-
-    // Year & Genre row
     let rowGroup = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
+    yearInput = createFormInput('Year', 'e.g. 1997', rowGroup);
+    genreInput = createFormInput('Genre', 'e.g. Rock', rowGroup);
 
-    let yearGroup = createDiv('').parent(rowGroup).class('form-group').style('flex: 1;');
-    createElement('label', 'Year').parent(yearGroup);
-    yearInput = createInput('').parent(yearGroup).class('form-input');
-    yearInput.attribute('placeholder', 'e.g. 1997');
-    yearInput.elt.addEventListener('input', autoGeneratePreview);
-    yearInput.elt.addEventListener('blur', captureState);
-
-    let genreGroup = createDiv('').parent(rowGroup).class('form-group').style('flex: 1;');
-    createElement('label', 'Genre').parent(genreGroup);
-    genreInput = createInput('').parent(genreGroup).class('form-input');
-    genreInput.attribute('placeholder', 'e.g. Rock');
-    genreInput.elt.addEventListener('input', autoGeneratePreview);
-    genreInput.elt.addEventListener('blur', captureState);
-
-    // Fun Fact
-    let funfactGroup = createDiv('').parent(editorPanel).class('form-group');
-    createElement('label', 'Fun Fact').parent(funfactGroup);
-    funfactInput = createElement('textarea').parent(funfactGroup).class('form-textarea');
-    funfactInput.attribute('placeholder', 'Add an interesting fact about the album...');
-    funfactInput.elt.addEventListener('input', autoGeneratePreview);
-    funfactInput.elt.addEventListener('blur', captureState);
-
-    // Image URL
-    let imageGroup = createDiv('').parent(editorPanel).class('form-group');
-    createElement('label', 'Image URL').parent(imageGroup);
-    imageUrlInput = createInput('').parent(imageGroup).class('form-input');
-    imageUrlInput.attribute('placeholder', 'https://...');
-    imageUrlInput.elt.addEventListener('input', autoGeneratePreview);
-    imageUrlInput.elt.addEventListener('blur', captureState);
+    funfactInput = createFormTextarea('Fun Fact', 'Add an interesting fact about the album...');
+    imageUrlInput = createFormInput('Image URL', 'https://...');
 
     // Album Grade & Vertical Offset row
     let gradeOffsetRow = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
+    albumGradeSelect = createFormSelect('Album Grade', gradeOptions, gradeOffsetRow);
+    createVerticalOffsetSlider(gradeOffsetRow);
 
-    let gradeGroup = createDiv('').parent(gradeOffsetRow).class('form-group').style('flex: 1;');
-    createElement('label', 'Album Grade').parent(gradeGroup);
-    albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
-    for (let grade of gradeOptions) {
-        albumGradeSelect.option(grade);
-    }
-    albumGradeSelect.changed(() => {
-        autoGeneratePreview();
-        captureState();
-    });
-
-    // Vertical Offset Slider
-    let offsetGroup = createDiv('').parent(gradeOffsetRow).class('form-group').style('flex: 1;');
-    createElement('label', 'Vertical Offset').parent(offsetGroup);
-    let sliderContainer = createDiv('').parent(offsetGroup).class('slider-container');
-    verticalOffsetSlider = createSlider(-500, 500, 0, 1).parent(sliderContainer).class('form-slider');
-    verticalOffsetLabel = createSpan('0').parent(sliderContainer).class('slider-value');
-    verticalOffsetSlider.input(() => {
-        verticalOffsetLabel.html(verticalOffsetSlider.value());
-        // Auto-redraw when slider changes
-        if (albumData && currentView === 'ratings') {
-            printAlbum();
-        }
-    });
-
-    // Divider
+    // Divider & Tracks
     createDiv('').parent(editorPanel).class('section-divider');
-
-    // Tracks section
     createDiv('Tracks').parent(editorPanel).class('section-title');
-
-    // Track container
     trackContainer = createDiv('').parent(editorPanel).class('track-container');
-
-    // Add initial track
     addTrackRow();
 
-    // Add Track button
     let addTrackBtn = createButton('+ Add Track').parent(editorPanel).class('btn btn-secondary');
     addTrackBtn.mousePressed(addTrackRow);
 
     // Button Grid
+    createButtonGrid();
+    createColorSection();
+    createSizeAdjustPanel();
+}
+
+function createFormInput(label, placeholder, parent = editorPanel) {
+    let group = createDiv('').parent(parent).class('form-group');
+    if (parent !== editorPanel) group.style('flex', '1');
+    createElement('label', label).parent(group);
+    let input = createInput('').parent(group).class('form-input');
+    input.attribute('placeholder', placeholder);
+    input.elt.addEventListener('input', autoGeneratePreview);
+    input.elt.addEventListener('blur', captureState);
+    return input;
+}
+
+function createFormTextarea(label, placeholder) {
+    let group = createDiv('').parent(editorPanel).class('form-group');
+    createElement('label', label).parent(group);
+    let textarea = createElement('textarea').parent(group).class('form-textarea');
+    textarea.attribute('placeholder', placeholder);
+    textarea.elt.addEventListener('input', autoGeneratePreview);
+    textarea.elt.addEventListener('blur', captureState);
+    return textarea;
+}
+
+function createFormSelect(label, options, parent = editorPanel) {
+    let group = createDiv('').parent(parent).class('form-group');
+    if (parent !== editorPanel) group.style('flex', '1');
+    createElement('label', label).parent(group);
+    let select = createSelect().parent(group).class('form-select');
+    options.forEach(opt => select.option(opt));
+    select.changed(() => { autoGeneratePreview(); captureState(); });
+    return select;
+}
+
+function createVerticalOffsetSlider(parent) {
+    let group = createDiv('').parent(parent).class('form-group').style('flex', '1');
+    createElement('label', 'Vertical Offset').parent(group);
+    let container = createDiv('').parent(group).class('slider-container');
+    verticalOffsetSlider = createSlider(-500, 500, 0, 1).parent(container).class('form-slider');
+    verticalOffsetLabel = createSpan('0').parent(container).class('slider-value');
+
+    let sliderTimeout = null;
+    verticalOffsetSlider.input(() => {
+        if (!selectedTextBox) return;
+        let value = verticalOffsetSlider.value();
+        verticalOffsetLabel.html(value);
+        verticalOffsets[selectedTextBox.id] = value;
+        if (albumData && currentView === 'ratings') printAlbum();
+
+        // Debounce capture state
+        if (sliderTimeout) clearTimeout(sliderTimeout);
+        sliderTimeout = setTimeout(() => captureState(), 500);
+    });
+
+    // Initially disable
+    verticalOffsetSlider.attribute('disabled', '');
+    verticalOffsetSlider.addClass('disabled');
+}
+
+function createButtonGrid() {
     let buttonGrid = createDiv('').parent(editorPanel).class('button-grid');
-
-    // Download row
     let downloadRow = createDiv('').parent(buttonGrid).class('button-row');
-    let downloadJsonBtn = createButton('JSON').parent(downloadRow).class('btn btn-blue');
-    downloadJsonBtn.mousePressed(downloadJSON);
-    let downloadImgBtn = createButton('Images').parent(downloadRow).class('btn btn-purple');
-    downloadImgBtn.mousePressed(downloadBothImages);
+    createButton('JSON').parent(downloadRow).class('btn btn-blue').mousePressed(downloadJSON);
+    createButton('Images').parent(downloadRow).class('btn btn-purple').mousePressed(downloadBothImages);
 
-    // View Toggle
     viewToggleBtn = createButton('View: Ratings').parent(buttonGrid).class('btn btn-orange');
     viewToggleBtn.mousePressed(toggleView);
 
-    // Undo/Redo row
     let undoRedoRow = createDiv('').parent(buttonGrid).class('button-row');
-    let undoBtn = createButton('↶ Undo').parent(undoRedoRow).class('btn btn-secondary');
-    undoBtn.elt.addEventListener('click', (e) => {
-        e.preventDefault();
-        undo();
-    });
-    let redoBtn = createButton('↷ Redo').parent(undoRedoRow).class('btn btn-secondary');
-    redoBtn.elt.addEventListener('click', (e) => {
-        e.preventDefault();
-        redo();
-    });
+    createButton('↶ Undo').parent(undoRedoRow).class('btn btn-secondary').elt.addEventListener('click', (e) => { e.preventDefault(); undo(); });
+    createButton('↷ Redo').parent(undoRedoRow).class('btn btn-secondary').elt.addEventListener('click', (e) => { e.preventDefault(); redo(); });
 
-    // Clear All button
-    let clearBtn = createButton('Clear All').parent(buttonGrid).class('btn btn-danger');
-    clearBtn.mousePressed(clearAll);
+    createButton('Clear All').parent(buttonGrid).class('btn btn-danger').mousePressed(clearAll);
+}
 
-    // Divider before color customization
+function createColorSection() {
     createDiv('').parent(editorPanel).class('section-divider');
-
-    // Color customization section (collapsible)
     let colorSection = createDiv('').parent(editorPanel).class('color-section');
     let colorHeader = createDiv('').parent(colorSection).class('color-section-header');
     let colorToggle = createSpan('▶').parent(colorHeader).class('color-toggle');
@@ -343,7 +233,6 @@ function createAlbumEditor() {
 
     let colorContent = createDiv('').parent(colorSection).class('color-content collapsed');
 
-    // Toggle collapse
     colorHeader.mousePressed(() => {
         if (colorContent.hasClass('collapsed')) {
             colorContent.removeClass('collapsed');
@@ -354,338 +243,125 @@ function createAlbumEditor() {
         }
     });
 
-    // Color pickers for each grade
-    for (let grade of gradeOptions) {
-        let colorRow = createDiv('').parent(colorContent).class('color-row');
-        createSpan(grade).parent(colorRow).class('color-label');
-        let picker = createColorPicker(colorMap[grade]).parent(colorRow).class('color-picker');
-        picker.input(() => {
-            colorMap[grade] = picker.value();
-            saveCustomColors();
-        });
+    gradeOptions.forEach(grade => {
+        let row = createDiv('').parent(colorContent).class('color-row');
+        createSpan(grade).parent(row).class('color-label');
+        let picker = createColorPicker(colorMap[grade]).parent(row).class('color-picker');
+        picker.input(() => { colorMap[grade] = picker.value(); saveCustomColors(); });
         colorPickers[grade] = picker;
-    }
+    });
 
-    // Reset colors button
-    let resetColorsBtn = createButton('Reset to Default').parent(colorContent).class('btn btn-secondary');
-    resetColorsBtn.style('margin-top', '12px');
-    resetColorsBtn.mousePressed(resetColors);
-
-    // Size adjustment panel
-    createSizeAdjustPanel();
+    createButton('Reset to Default').parent(colorContent).class('btn btn-secondary').style('margin-top', '12px').mousePressed(resetColors);
 }
 
 function createSizeAdjustPanel() {
     sizeAdjustPanel = createDiv('').id('size-adjust-panel');
-    sizeAdjustPanel.style('display', 'none');
-    sizeAdjustPanel.style('position', 'fixed');
-    sizeAdjustPanel.style('bottom', '20px');
-    sizeAdjustPanel.style('left', '50%');
-    sizeAdjustPanel.style('transform', 'translateX(-50%)');
-    sizeAdjustPanel.style('background', 'rgba(40, 40, 40, 0.95)');
-    sizeAdjustPanel.style('padding', '15px 25px');
-    sizeAdjustPanel.style('border-radius', '12px');
-    sizeAdjustPanel.style('border', '2px solid rgba(255, 255, 255, 0.2)');
-    sizeAdjustPanel.style('box-shadow', '0 8px 32px rgba(0, 0, 0, 0.5)');
-    sizeAdjustPanel.style('z-index', '1000');
-    sizeAdjustPanel.style('display', 'flex');
-    sizeAdjustPanel.style('align-items', 'center');
-    sizeAdjustPanel.style('gap', '15px');
 
-    // Text Size Controls
-    let label = createSpan('Text Size:').parent(sizeAdjustPanel);
-    label.style('color', 'white');
-    label.style('font-family', 'system-ui, -apple-system, sans-serif');
-    label.style('font-size', '14px');
+    createSpan('Text Size:').parent(sizeAdjustPanel).class('label');
+    createButton('−').parent(sizeAdjustPanel).class('btn-control').mousePressed(() => adjustTextSize(-2));
+    let sizeDisplay = createSpan('0').parent(sizeAdjustPanel).id('size-display').class('display');
+    createButton('+').parent(sizeAdjustPanel).class('btn-control').mousePressed(() => adjustTextSize(2));
 
-    let decreaseBtn = createButton('−').parent(sizeAdjustPanel);
-    decreaseBtn.style('width', '40px');
-    decreaseBtn.style('height', '40px');
-    decreaseBtn.style('font-size', '24px');
-    decreaseBtn.style('background', '#444');
-    decreaseBtn.style('color', 'white');
-    decreaseBtn.style('border', 'none');
-    decreaseBtn.style('border-radius', '8px');
-    decreaseBtn.style('cursor', 'pointer');
-    decreaseBtn.mousePressed(() => adjustTextSize(-2));
-
-    let sizeDisplay = createSpan('0').parent(sizeAdjustPanel).id('size-display');
-    sizeDisplay.style('color', 'white');
-    sizeDisplay.style('font-family', 'monospace');
-    sizeDisplay.style('font-size', '16px');
-    sizeDisplay.style('min-width', '60px');
-    sizeDisplay.style('text-align', 'center');
-
-    let increaseBtn = createButton('+').parent(sizeAdjustPanel);
-    increaseBtn.style('width', '40px');
-    increaseBtn.style('height', '40px');
-    increaseBtn.style('font-size', '24px');
-    increaseBtn.style('background', '#444');
-    increaseBtn.style('color', 'white');
-    increaseBtn.style('border', 'none');
-    increaseBtn.style('border-radius', '8px');
-    increaseBtn.style('cursor', 'pointer');
-    increaseBtn.mousePressed(() => adjustTextSize(2));
-
-    // Leading Controls (for funfact only)
     let leadingContainer = createDiv('').parent(sizeAdjustPanel).id('leading-container');
-    leadingContainer.style('display', 'none');
-    leadingContainer.style('gap', '10px');
-    leadingContainer.style('align-items', 'center');
-    leadingContainer.style('border-left', '1px solid rgba(255, 255, 255, 0.2)');
-    leadingContainer.style('padding-left', '15px');
-    leadingContainer.style('margin-left', '5px');
+    createSpan('Leading:').parent(leadingContainer).class('label');
+    createButton('−').parent(leadingContainer).class('btn-control').mousePressed(() => adjustTextLeading(-2));
+    createSpan('0').parent(leadingContainer).id('leading-display').class('display');
+    createButton('+').parent(leadingContainer).class('btn-control').mousePressed(() => adjustTextLeading(2));
 
-    let leadingLabel = createSpan('Leading:').parent(leadingContainer);
-    leadingLabel.style('color', 'white');
-    leadingLabel.style('font-family', 'system-ui, -apple-system, sans-serif');
-    leadingLabel.style('font-size', '14px');
-
-    let decreaseLeadingBtn = createButton('−').parent(leadingContainer);
-    decreaseLeadingBtn.style('width', '40px');
-    decreaseLeadingBtn.style('height', '40px');
-    decreaseLeadingBtn.style('font-size', '24px');
-    decreaseLeadingBtn.style('background', '#444');
-    decreaseLeadingBtn.style('color', 'white');
-    decreaseLeadingBtn.style('border', 'none');
-    decreaseLeadingBtn.style('border-radius', '8px');
-    decreaseLeadingBtn.style('cursor', 'pointer');
-    decreaseLeadingBtn.mousePressed(() => adjustTextLeading(-2));
-
-    let leadingDisplay = createSpan('0').parent(leadingContainer).id('leading-display');
-    leadingDisplay.style('color', 'white');
-    leadingDisplay.style('font-family', 'monospace');
-    leadingDisplay.style('font-size', '16px');
-    leadingDisplay.style('min-width', '60px');
-    leadingDisplay.style('text-align', 'center');
-
-    let increaseLeadingBtn = createButton('+').parent(leadingContainer);
-    increaseLeadingBtn.style('width', '40px');
-    increaseLeadingBtn.style('height', '40px');
-    increaseLeadingBtn.style('font-size', '24px');
-    increaseLeadingBtn.style('background', '#444');
-    increaseLeadingBtn.style('color', 'white');
-    increaseLeadingBtn.style('border', 'none');
-    increaseLeadingBtn.style('border-radius', '8px');
-    increaseLeadingBtn.style('cursor', 'pointer');
-    increaseLeadingBtn.mousePressed(() => adjustTextLeading(2));
-
-    // Reset Button
-    let resetBtn = createButton('↻').parent(sizeAdjustPanel);
-    resetBtn.style('width', '40px');
-    resetBtn.style('height', '40px');
-    resetBtn.style('font-size', '20px');
-    resetBtn.style('background', '#336688');
-    resetBtn.style('color', 'white');
-    resetBtn.style('border', 'none');
-    resetBtn.style('border-radius', '8px');
-    resetBtn.style('cursor', 'pointer');
-    resetBtn.style('margin-left', '10px');
-    resetBtn.mousePressed(resetTextBoxToDefault);
-
-    // Close Button
-    let closeBtn = createButton('✕').parent(sizeAdjustPanel);
-    closeBtn.style('width', '40px');
-    closeBtn.style('height', '40px');
-    closeBtn.style('font-size', '18px');
-    closeBtn.style('background', '#883333');
-    closeBtn.style('color', 'white');
-    closeBtn.style('border', 'none');
-    closeBtn.style('border-radius', '8px');
-    closeBtn.style('cursor', 'pointer');
-    closeBtn.mousePressed(() => {
+    createButton('↻').parent(sizeAdjustPanel).class('btn-control btn-reset').mousePressed(resetTextBoxToDefault);
+    createButton('✕').parent(sizeAdjustPanel).class('btn-control btn-close').mousePressed(() => {
         selectedTextBox = null;
         sizeAdjustPanel.style('display', 'none');
-        if (currentView === 'ratings') {
-            printAlbum();
-        } else {
-            printCoverScreen();
-        }
+        currentView === 'ratings' ? printAlbum() : printCoverScreen();
     });
 }
 
 function clearAll() {
-    // Clear all input fields
-    titleInput.value('');
-    artistInput.value('');
-    yearInput.value('');
-    genreInput.value('');
-    funfactInput.value('');
-    imageUrlInput.value('');
+    [titleInput, artistInput, yearInput, genreInput, funfactInput, imageUrlInput].forEach(inp => inp.value(''));
     albumGradeSelect.selected('GOAT');
-
-    // Clear all tracks
-    while (tracks.length > 0) {
-        tracks[0].rowDiv.remove();
-        tracks.shift();
-    }
+    while (tracks.length > 0) { tracks[0].rowDiv.remove(); tracks.shift(); }
     addTrackRow();
-
-    // Clear albumData
     albumData = null;
-
-    // Clear image cache
-    cachedImageUrl = null;
-    cachedOriginalImage = null;
-    cachedFilteredImage = null;
-
-    // Clear canvas
+    cachedImageUrl = cachedOriginalImage = cachedFilteredImage = null;
     background(200);
-
-    // Clear localStorage
     localStorage.removeItem('albumGeneratorData');
 }
 
 function toggleView() {
-    if (currentView === 'ratings') {
-        currentView = 'cover';
-        viewToggleBtn.html('View Cover');
-    } else {
-        currentView = 'ratings';
-        viewToggleBtn.html('View Ratings');
-    }
-    if (albumData) {
-        if (currentView === 'ratings') {
-            printAlbum();
-        } else {
-            printCoverScreen();
-        }
-    }
+    currentView = currentView === 'ratings' ? 'cover' : 'ratings';
+    viewToggleBtn.html(currentView === 'ratings' ? 'View Ratings' : 'View Cover');
+    if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
 }
 
 async function downloadBothImages() {
-    // Update albumData from UI before downloading
-    let tracksData = [];
-    for (let track of tracks) {
-        let title = track.titleInput.value().trim();
-        if (title) {
-            tracksData.push({
-                title: title,
-                grade: track.gradeSelect.value(),
-                customNumber: track.customNumber || null,
-                customText: track.textInput ? track.textInput.value().trim() : null
-            });
-        }
-    }
-
-    albumData = {
-        title: titleInput.value() || '',
-        artist: artistInput.value() || '',
-        year: yearInput.value() || '',
-        genre: genreInput.value() || '',
-        funfact: funfactInput.value() || '',
-        tracks: tracksData,
-        imageUrl: imageUrlInput.value() || '',
-        albumGrade: albumGradeSelect.value()
-    };
-
+    let tracksData = collectTracksData();
+    albumData = collectAlbumData(tracksData);
     if (!albumData.imageUrl) return;
 
-    let albumName = titleInput.value() || '';
-    let artistName = artistInput.value() || '';
-    let baseFileName = (artistName + ' - ' + albumName).replace(/[\/\\:*?"<>|]/g, '');
-
-    // Save ratings screen
+    let baseFileName = getBaseFileName();
     await printAlbum();
     saveCanvas(baseFileName + ' - Ratings', 'png');
-
-    // Small delay to ensure first save completes
     await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Save cover screen
     await printCoverScreen();
     saveCanvas(baseFileName + ' - Cover', 'png');
 }
 
-function addTrackRow() {
-    let trackIndex = tracks.length;
-    let rowDiv = createDiv('').parent(trackContainer).class('track-row');
-
-    let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).class('track-number');
-
-    // Add double-click functionality to make number editable
+function makeNumberEditable(trackNumSpan, trackIndex) {
     trackNumSpan.elt.addEventListener('dblclick', () => {
         let currentText = trackNumSpan.html().replace('.', '');
         let input = document.createElement('input');
         input.type = 'text';
         input.value = currentText;
         input.className = 'track-number-input';
-        input.style.width = '40px';
-        input.style.textAlign = 'center';
 
-        // Replace span with input
         trackNumSpan.elt.replaceWith(input);
         input.focus();
         input.select();
 
         let finishEdit = () => {
-            let newValue = input.value.trim();
-            if (newValue === '') {
-                newValue = (trackIndex + 1).toString();
-            }
+            let newValue = input.value.trim() || (trackIndex + 1).toString();
             trackNumSpan.html(newValue + '.');
             input.replaceWith(trackNumSpan.elt);
-
-            // Update custom number in tracks array
             let track = tracks.find(t => t.numSpan === trackNumSpan);
-            if (track) {
-                track.customNumber = newValue;
-            }
-
+            if (track) track.customNumber = newValue;
             autoGeneratePreview();
             captureState();
         };
 
         input.addEventListener('blur', finishEdit);
         input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                finishEdit();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                trackNumSpan.html((trackIndex + 1) + '.');
-                input.replaceWith(trackNumSpan.elt);
-            }
+            if (e.key === 'Enter') { e.preventDefault(); finishEdit(); }
+            else if (e.key === 'Escape') { e.preventDefault(); trackNumSpan.html((trackIndex + 1) + '.'); input.replaceWith(trackNumSpan.elt); }
         });
     });
+}
+
+function addTrackRow() {
+    addTrackRowWithCapture(true);
+}
+
+function addTrackRowWithoutCapture() {
+    addTrackRowWithCapture(false);
+}
+
+function addTrackRowWithCapture(shouldCapture) {
+    let trackIndex = tracks.length;
+    let rowDiv = createDiv('').parent(trackContainer).class('track-row');
+    let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).class('track-number');
+
+    makeNumberEditable(trackNumSpan, trackIndex);
 
     let titleIn = createInput('').parent(rowDiv).class('track-title-input');
     titleIn.attribute('placeholder', 'Track title');
     titleIn.elt.addEventListener('input', autoGeneratePreview);
     titleIn.elt.addEventListener('blur', captureState);
-    titleIn.elt.addEventListener('keydown', (e) => {
-        let currentIndex = tracks.findIndex(t => t.titleInput === titleIn);
-
-        if (e.key === 'Enter' || e.key === 'ArrowDown') {
-            e.preventDefault();
-            if (currentIndex < tracks.length - 1) {
-                // Focus next track
-                tracks[currentIndex + 1].titleInput.elt.focus();
-            } else if (e.key === 'Enter') {
-                // Last track + Enter - add a new one and focus it
-                addTrackRow();
-                tracks[tracks.length - 1].titleInput.elt.focus();
-            }
-        } else if (e.key === 'ArrowUp') {
-            e.preventDefault();
-            if (currentIndex > 0) {
-                // Focus previous track
-                tracks[currentIndex - 1].titleInput.elt.focus();
-            }
-        }
-    });
+    titleIn.elt.addEventListener('keydown', (e) => handleTrackNavigation(e, titleIn));
 
     let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
-    for (let grade of gradeOptions) {
-        gradeSelect.option(grade);
-    }
+    gradeOptions.forEach(grade => gradeSelect.option(grade));
     gradeSelect.selected('B');
-    gradeSelect.changed(() => {
-        autoGeneratePreview();
-        captureState();
-    });
+    gradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
-    // Text button to add custom text inside the rectangle
     let textBtn = createButton('T').parent(rowDiv).class('track-text-btn');
     let textInputContainer = createDiv('').parent(rowDiv).class('track-text-input-container');
     textInputContainer.style('display', 'none');
@@ -695,78 +371,60 @@ function addTrackRow() {
     textInput.elt.addEventListener('blur', captureState);
 
     textBtn.mousePressed(() => {
-        if (textInputContainer.style('display') === 'none') {
-            textInputContainer.style('display', 'block');
-            textInput.elt.focus();
-        } else {
-            textInputContainer.style('display', 'none');
-        }
+        let isHidden = textInputContainer.style('display') === 'none';
+        textInputContainer.style('display', isHidden ? 'block' : 'none');
+        if (isHidden) textInput.elt.focus();
     });
 
     let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
     removeBtn.mousePressed(() => removeTrackRow(trackIndex));
 
-    tracks.push({
-        titleInput: titleIn,
-        gradeSelect: gradeSelect,
-        rowDiv: rowDiv,
-        numSpan: trackNumSpan,
-        customNumber: null, // Store custom number if set
-        customText: null, // Store custom text to display inside rectangle
-        textInput: textInput,
-        textInputContainer: textInputContainer
-    });
+    tracks.push({ titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, textInput, textInputContainer });
 
-    // Only capture state if history stack is not empty (i.e., not during initial setup)
-    if (historyStack.length > 0) {
-        captureState();
+    if (shouldCapture && historyStack.length > 0) captureState();
+}
+
+function handleTrackNavigation(e, titleIn) {
+    let currentIndex = tracks.findIndex(t => t.titleInput === titleIn);
+    if (e.key === 'Enter' || e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (currentIndex < tracks.length - 1) tracks[currentIndex + 1].titleInput.elt.focus();
+        else if (e.key === 'Enter') { addTrackRow(); tracks[tracks.length - 1].titleInput.elt.focus(); }
+    } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (currentIndex > 0) tracks[currentIndex - 1].titleInput.elt.focus();
     }
 }
 
 function removeTrackRow(index) {
     if (tracks.length <= 1) return;
-
     tracks[index].rowDiv.remove();
     tracks.splice(index, 1);
-
-    // Update track numbers
-    for (let i = 0; i < tracks.length; i++) {
-        tracks[i].numSpan.html((i + 1) + '.');
-    }
-
+    tracks.forEach((t, i) => t.numSpan.html((i + 1) + '.'));
     captureState();
     autoGeneratePreview();
 }
 
-// Auto-generate preview with debouncing to avoid too many redraws
 let autoGenerateTimeout = null;
 function autoGeneratePreview() {
-    // Clear any pending timeout
-    if (autoGenerateTimeout) {
-        clearTimeout(autoGenerateTimeout);
-    }
-
-    // Set a new timeout to generate after a short delay (300ms)
-    autoGenerateTimeout = setTimeout(() => {
-        generateFromForm();
-    }, 300);
+    if (autoGenerateTimeout) clearTimeout(autoGenerateTimeout);
+    autoGenerateTimeout = setTimeout(generateFromForm, 300);
 }
 
-function generateFromForm() {
-    let tracksData = [];
-    for (let track of tracks) {
+function collectTracksData() {
+    return tracks.map(track => {
         let title = track.titleInput.value().trim();
-        if (title) {
-            tracksData.push({
-                title: title,
-                grade: track.gradeSelect.value(),
-                customNumber: track.customNumber || null,
-                customText: track.textInput ? track.textInput.value().trim() : null
-            });
-        }
-    }
+        return title ? {
+            title,
+            grade: track.gradeSelect.value(),
+            customNumber: track.customNumber || null,
+            customText: track.textInput ? track.textInput.value().trim() : null
+        } : null;
+    }).filter(Boolean);
+}
 
-    albumData = {
+function collectAlbumData(tracksData) {
+    return {
         title: titleInput.value() || '',
         artist: artistInput.value() || '',
         year: yearInput.value() || '',
@@ -776,28 +434,21 @@ function generateFromForm() {
         imageUrl: imageUrlInput.value() || '',
         albumGrade: albumGradeSelect.value()
     };
+}
 
-    if (currentView === 'ratings') {
-        printAlbum();
-    } else {
-        printCoverScreen();
-    }
+function getBaseFileName() {
+    let albumName = titleInput.value() || '';
+    let artistName = artistInput.value() || '';
+    return (artistName + ' - ' + albumName).replace(/[\/\\:*?"<>|]/g, '');
+}
+
+function generateFromForm() {
+    albumData = collectAlbumData(collectTracksData());
+    currentView === 'ratings' ? printAlbum() : printCoverScreen();
 }
 
 function downloadJSON() {
-    let tracksData = [];
-    for (let track of tracks) {
-        let title = track.titleInput.value().trim();
-        if (title) {
-            tracksData.push({
-                title: title,
-                grade: track.gradeSelect.value(),
-                customNumber: track.customNumber || null,
-                customText: track.textInput ? track.textInput.value().trim() : null
-            });
-        }
-    }
-
+    let tracksData = collectTracksData();
     let jsonData = {
         album: {
             title: titleInput.value() || 'Untitled Album',
@@ -811,36 +462,10 @@ function downloadJSON() {
             albumGrade: albumGradeSelect.value()
         }
     };
-
-    let albumName = titleInput.value() || 'Untitled';
-    let artistName = artistInput.value() || 'Unknown';
-    let fileName = (artistName + ' - ' + albumName).replace(/[\/\\:*?"<>|]/g, '') + '.json';
-    saveJSON(jsonData, fileName);
-}
-
-function handleFile(file) {
-    uploadedFile = file;
-    processFile();
-    if (currentView === 'ratings') {
-        printAlbum();
-    } else {
-        printCoverScreen();
-    }
-}
-
-function processFile(){
-    if(uploadedFile && uploadedFile.type === 'application' && uploadedFile.subtype === 'json'){
-        albumData = uploadedFile.data.album
-        console.log(albumData)
-        fillFormFromData(albumData);
-    }
-    else {
-        console.log("Please upload a valid json file.")
-    }
+    saveJSON(jsonData, getBaseFileName() + '.json');
 }
 
 function fillFormFromData(data) {
-    // Fill basic fields
     titleInput.value(data.title || '');
     artistInput.value(data.artist || '');
     yearInput.value(data.year || '');
@@ -849,60 +474,33 @@ function fillFormFromData(data) {
     imageUrlInput.value(data.imageUrl || '');
     albumGradeSelect.selected(data.albumGrade || 'B');
 
-    // Clear existing tracks
-    while (tracks.length > 0) {
-        tracks[0].rowDiv.remove();
-        tracks.shift();
-    }
+    while (tracks.length > 0) { tracks[0].rowDiv.remove(); tracks.shift(); }
 
-    // Add tracks from data
     if (data.tracks && data.tracks.length > 0) {
-        for (let i = 0; i < data.tracks.length; i++) {
-            let track = data.tracks[i];
+        data.tracks.forEach(track => {
             addTrackRow();
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
             lastTrack.gradeSelect.selected(track.grade || 'B');
-
-            // Restore custom number if exists
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
                 lastTrack.numSpan.html(track.customNumber + '.');
             }
-
-            // Restore custom text if exists
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
                 lastTrack.textInputContainer.style('display', 'block');
             }
-        }
-    } else {
-        addTrackRow();
-    }
+        });
+    } else addTrackRow();
 }
 
 function saveToLocalStorage() {
-    let tracksData = [];
-    for (let track of tracks) {
-        tracksData.push({
-            title: track.titleInput.value(),
-            grade: track.gradeSelect.value(),
-            customNumber: track.customNumber || null,
-            customText: track.textInput ? track.textInput.value() : null
-        });
-    }
-
-    let data = {
-        title: titleInput.value(),
-        artist: artistInput.value(),
-        year: yearInput.value(),
-        genre: genreInput.value(),
-        funfact: funfactInput.value(),
-        imageUrl: imageUrlInput.value(),
-        albumGrade: albumGradeSelect.value(),
-        tracks: tracksData
-    };
-
+    let data = collectAlbumData(tracks.map(t => ({
+        title: t.titleInput.value(),
+        grade: t.gradeSelect.value(),
+        customNumber: t.customNumber || null,
+        customText: t.textInput ? t.textInput.value() : null
+    })));
     localStorage.setItem('albumGeneratorData', JSON.stringify(data));
 }
 
@@ -910,65 +508,40 @@ function loadFromLocalStorage() {
     let savedData = localStorage.getItem('albumGeneratorData');
     if (savedData) {
         try {
-            let data = JSON.parse(savedData);
-            fillFormFromData(data);
-            // Generate the preview if data was loaded
+            fillFormFromData(JSON.parse(savedData));
             generateFromForm();
-        } catch (err) {
-            console.log("Error loading saved data");
-        }
+        } catch (err) { console.log("Error loading saved data"); }
     }
 }
 
-// Safe image loading with error handling
 async function loadImageSafe(url) {
     return new Promise((resolve, reject) => {
-        loadImage(url,
-            (img) => resolve(img),
-            (err) => reject(err)
-        );
+        loadImage(url, img => resolve(img), err => reject(err));
     });
 }
 
-// Load and cache images with filters
 async function loadAndCacheImages(url) {
-    // Check if we already have this image cached
     if (cachedImageUrl === url && cachedOriginalImage && cachedFilteredImage) {
-        return {
-            original: cachedOriginalImage,
-            filtered: cachedFilteredImage
-        };
+        return { original: cachedOriginalImage, filtered: cachedFilteredImage };
     }
 
-    // Load the image
     let img = await loadImageSafe(url);
-
-    // Create a copy for filtering
     let imgBW = img.get();
-
-    // Apply filters to the copy
     imgBW.filter(GRAY);
     imgBW.filter(BLUR, 2);
     imgBW.filter(ERODE);
     imgBW = dimImage(imgBW, 190);
 
-    // Cache everything
     cachedImageUrl = url;
     cachedOriginalImage = img;
     cachedFilteredImage = imgBW;
 
-    return {
-        original: img,
-        filtered: imgBW
-    };
+    return { original: img, filtered: imgBW };
 }
 
 function showToast(message, isError = false) {
-    // Remove existing toast if any
     let existingToast = document.getElementById('toast-notification');
-    if (existingToast) {
-        existingToast.remove();
-    }
+    if (existingToast) existingToast.remove();
 
     let toast = document.createElement('div');
     toast.id = 'toast-notification';
@@ -976,74 +549,18 @@ function showToast(message, isError = false) {
     toast.textContent = message;
     document.body.appendChild(toast);
 
-    // Trigger animation
     setTimeout(() => toast.classList.add('show'), 10);
-
-    // Remove after 4 seconds
-    setTimeout(() => {
-        toast.classList.remove('show');
-        setTimeout(() => toast.remove(), 300);
-    }, 4000);
+    setTimeout(() => { toast.classList.remove('show'); setTimeout(() => toast.remove(), 300); }, 4000);
 }
 
-function drawErrorState(message) {
-    background(40);
-
-    // Error icon
-    fill(239, 68, 68);
-    noStroke();
-    textAlign(CENTER, CENTER);
-    textSize(120);
-    text('⚠', width / 2, height / 2 - 100);
-
-    // Error message
-    fill(255);
-    textFont(fontHeavy);
-    textSize(48);
-    text('Image Load Failed', width / 2, height / 2 + 50);
-
-    textFont(fontLight);
-    textSize(28);
-    fill(180);
-    // Use rectMode and position the text box centered
-    let boxWidth = width - 100;
-    text(message, 50, height / 2 + 120, boxWidth);
-
-    textSize(24);
-    fill(120);
-    text('Check the image URL and try again', width / 2, height / 2 + 200);
-}
-
-// Draw a placeholder in the image area when no image is available
 function drawImagePlaceholder(x, y, w, h, isCornerMode = true) {
     push();
-    if (isCornerMode) {
-        rectMode(CORNER);
-    } else {
-        rectMode(CENTER);
-    }
-
-    // Dark background for the placeholder
-    fill(60);
-    noStroke();
-    rect(x, y, w, h);
-
-    // Calculate center of the placeholder
+    rectMode(isCornerMode ? CORNER : CENTER);
+    fill(60); noStroke(); rect(x, y, w, h);
     let centerX = isCornerMode ? x + w / 2 : x;
     let centerY = isCornerMode ? y + h / 2 : y;
-
-    // Icon
-    fill(100);
-    textAlign(CENTER, CENTER);
-    textSize(w * 0.15);
-    text('🖼', centerX, centerY - h * 0.1);
-
-    // Text
-    textFont(fontLight);
-    textSize(w * 0.06);
-    fill(120);
-    text('No Image', centerX, centerY + h * 0.15);
-
+    fill(100); textAlign(CENTER, CENTER); textSize(w * 0.15); text('🖼', centerX, centerY - h * 0.1);
+    textFont(fontLight); textSize(w * 0.06); fill(120); text('No Image', centerX, centerY + h * 0.15);
     pop();
 }
 
@@ -1058,252 +575,122 @@ function shortenText(text, maxLength){
 }
 
 function getMaxTextSize(text, maxWidth, maxStartSize){
-    let textSizeValue = maxStartSize;
-    textSize(textSizeValue);
-    while(textWidth(text) > maxWidth && textSizeValue > 0){
-        textSizeValue -= 1;
-        textSize(textSizeValue);
-    }
-    return textSizeValue;
+    let size = maxStartSize;
+    textSize(size);
+    while(textWidth(text) > maxWidth && size > 0){ size--; textSize(size); }
+    return size;
 }
 
 async function printAlbum(){
     background(200)
-
-    // Save the selected box ID before clearing
     let selectedId = selectedTextBox ? selectedTextBox.id : null;
-
-    // Clear textBoxes array at the start
     textBoxes = [];
 
-    let y = 50
-    let imgOff = 200
-    let sizeSclMult = 0.425
-    let hasImage = false;
-    let imgBW, img;
+    let y = 50, imgOff = 200, sizeSclMult = 0.425, hasImage = false, imgBW, img;
 
-    // Try to load image if URL is provided
     if (albumData.imageUrl && albumData.imageUrl.trim() !== '') {
         try {
             let images = await loadAndCacheImages(albumData.imageUrl);
-            img = images.original;
-            imgBW = images.filtered;
-            hasImage = true;
-        }
-        catch (err) {
+            img = images.original; imgBW = images.filtered; hasImage = true;
+        } catch (err) {
             console.error('Failed to load image:', err);
             showToast('Failed to load image. Check the URL.', true);
-            hasImage = false;
         }
     }
 
-    // Draw background (blurred image or dark gray)
-    if (hasImage) {
-        imageMode(CENTER);
-        image(imgBW, width * 0.5, height * 0.5, height, height);
-    } else {
-        background(50);
-    }
+    if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
+    else background(50);
 
-    imageMode(CORNER)
-    rectMode(CORNER)
+    imageMode(CORNER); rectMode(CORNER);
 
-    // Draw album cover or placeholder
+    // Apply image vertical offset
+    let imageVertOffset = verticalOffsets.image || 0;
+    let imageX = width * 0.52;
+    let imageY = y + imgOff + imageVertOffset;
+    let imageSize = width * sizeSclMult;
+
     utils.beginShadow("#000000", 50, 0, 0);
     if (hasImage) {
-        rect(width * 0.52, y + imgOff, width * sizeSclMult, width * sizeSclMult);
-        image(img, width * 0.52, y + imgOff, width * sizeSclMult, width * sizeSclMult);
-    } else {
-        drawImagePlaceholder(width * 0.52, y + imgOff, width * sizeSclMult, width * sizeSclMult, true);
+        rect(imageX, imageY, imageSize, imageSize);
+        image(img, imageX, imageY, imageSize, imageSize);
     }
+    else drawImagePlaceholder(imageX, imageY, imageSize, imageSize, true);
     utils.endShadow();
 
-
-    let leftMargin = 50
-    let topMargin = 80
-    let titleMaxWidth = width
+    // Add image box for selection
+    textBoxes.push({
+        id: 'image',
+        x: imageX,
+        y: imageY,
+        w: imageSize,
+        h: imageSize,
+        sizeOffset: 0,
+        currentSize: 0
+    });
 
     if(!albumData) return;
 
-    //blendMode(DIFFERENCE);
+    let leftMargin = 50, topMargin = 80;
 
-    //TITLE
+    // Draw title, artist, year, genre, funfact with vertical offsets
     utils.beginShadow("#000000", 20, 0, 0);
-    textAlign(LEFT, TOP);
-    textFont(fontHeavy);
+    textFont(fontHeavy)
 
-    // Use persistent size offset
-    let titleSize = getMaxTextSize(albumData.title, titleMaxWidth - leftMargin * 2, 100) + textSizeOffsets.title;
-    titleSize = max(10, titleSize); // Minimum size
+    let titleOffset = verticalOffsets.title || 0;
+    drawTextWithBox('title', fontHeavy, getMaxTextSize(albumData.title, width - leftMargin * 2, 100) + textSizeOffsets.title,
+                     albumData.title, leftMargin, topMargin + y + titleOffset, width - leftMargin * 2, 70);
 
-    textSize(titleSize);
-    fill(255);
-    textLeading(70);
-    text(albumData.title, leftMargin, topMargin + y);
-
-    // Get bounds and store in textBoxes
-    let titleBounds = fontHeavy.textBounds(albumData.title, leftMargin, topMargin + y, titleMaxWidth - leftMargin * 2);
-    textBoxes.push({
-        id: 'title',
-        x: titleBounds.x,
-        y: titleBounds.y,
-        w: titleBounds.w,
-        h: titleBounds.h,
-        sizeOffset: textSizeOffsets.title,
-        currentSize: titleSize
-    });
-
-    textAlign(LEFT, TOP);
-
-
-    // ARTIST
-    textFont(fontRegularCondensed);
-    textLeading(50);
-
-    let artistSize = 45 + textSizeOffsets.artist;
-    artistSize = max(10, artistSize);
-
-    textSize(artistSize);
-    fill(255);
-    text(albumData.artist, leftMargin, topMargin + y + 110, width * 0.35);
-
-    let bbox = fontRegularCondensed.textBounds(albumData.artist, leftMargin, topMargin + y + 110, width * 0.35);
-    textBoxes.push({
-        id: 'artist',
-        x: bbox.x,
-        y: bbox.y,
-        w: bbox.w,
-        h: bbox.h,
-        sizeOffset: textSizeOffsets.artist,
-        currentSize: artistSize
-    });
-
-    // YEAR
+    let artistOffset = verticalOffsets.artist || 0;
+    let bbox = drawTextWithBox('artist', fontRegularCondensed, 45 + textSizeOffsets.artist,
+                                albumData.artist, leftMargin, topMargin + y + 110 + artistOffset, width * 0.35, 50);
     y += bbox.h;
-    textFont(fontLight);
-    textLeading(60);
 
-    let yearSize = 38 + textSizeOffsets.year;
-    yearSize = max(10, yearSize);
+    let yearOffset = verticalOffsets.year || 0;
+    let yearY = topMargin + y + 85 + 60 + yearOffset;
+    textFont(fontLight); textLeading(60); textSize(38 + textSizeOffsets.year); fill(230);
+    text("\n" + albumData.year + "\n", leftMargin, topMargin + y + 85 + yearOffset, width * 0.35);
+    addTextBox('year', fontLight.textBounds(albumData.year, leftMargin, yearY, width * 0.35), 38 + textSizeOffsets.year);
 
-    textSize(yearSize);
-    fill(230);
-
-    // Calculate year position - it's displayed after a newline
-    let yearTextY = topMargin + y + 85 + 60; // Adding line height from the \n
-    text("\n" + albumData.year + "\n", leftMargin, topMargin + y + 85, width * 0.35);
-
-    let yearBounds = fontLight.textBounds(albumData.year, leftMargin, yearTextY, width * 0.35);
-    textBoxes.push({
-        id: 'year',
-        x: yearBounds.x,
-        y: yearBounds.y,
-        w: yearBounds.w,
-        h: yearBounds.h,
-        sizeOffset: textSizeOffsets.year,
-        currentSize: yearSize
-    });
-
-    // GENRES
-    let genreSize = 30 + textSizeOffsets.genre;
-    genreSize = max(10, genreSize);
-
-    textSize(genreSize);
-    textLeading(40);
+    let genreOffset = verticalOffsets.genre || 0;
+    textSize(30 + textSizeOffsets.genre); textLeading(40);
     let genreText = shortenText(albumData.genre, width * 0.35);
+    let genreY = topMargin + y + 75 + (40 * 3) + genreOffset;
+    text("\n\n\n" + genreText, leftMargin, topMargin + y + 75 + genreOffset, width * 0.35);
+    addTextBox('genre', fontLight.textBounds(genreText, leftMargin, genreY, width * 0.35), 30 + textSizeOffsets.genre);
 
-    // Genre is displayed after 3 newlines (3 * 40 leading)
-    let genreTextY = topMargin + y + 75 + (40 * 3);
-    text("\n\n\n" + genreText, leftMargin, topMargin + y + 75, width * 0.35);
-
-    let genreBounds = fontLight.textBounds(genreText, leftMargin, genreTextY, width * 0.35);
-    textBoxes.push({
-        id: 'genre',
-        x: genreBounds.x,
-        y: genreBounds.y,
-        w: genreBounds.w,
-        h: genreBounds.h,
-        sizeOffset: textSizeOffsets.genre,
-        currentSize: genreSize
-    });
-
-    // funfact
+    let funfactOffset = verticalOffsets.funfact || 0;
     let funfactSize = 30 + textSizeOffsets.funfact;
-    funfactSize = max(10, funfactSize);
-
     let funfactLeading = 40 + textLeadingOffsets.funfact;
-    funfactLeading = max(10, funfactLeading);
-
-    textSize(funfactSize);
-    fill(230);
-
-    // Fixed position for funfact - use constant leading for the spacing before
-    let funfactStartY = topMargin + y + 120 + (40 * 4);
-
-    // Set leading only for the actual funfact text
-    textLeading(funfactLeading);
-
-    // Draw the spacer with default leading, then the funfact with custom leading
-    textLeading(40);
-    text("\n\n\n\n", leftMargin, topMargin + y + 120, width * 0.35);
-
-    textLeading(funfactLeading);
-    text(albumData.funfact, leftMargin, funfactStartY, width * 0.425);
-
-    let funfactBounds = fontLight.textBounds(albumData.funfact, leftMargin, funfactStartY, width * 0.425);
-    textBoxes.push({
-        id: 'funfact',
-        x: funfactBounds.x,
-        y: funfactBounds.y,
-        w: funfactBounds.w,
-        h: funfactBounds.h,
-        sizeOffset: textSizeOffsets.funfact,
-        currentSize: funfactSize
-    });
-
+    let funfactStartY = topMargin + y + 120 + (40 * 4) + funfactOffset;
+    textLeading(40); text("\n\n\n\n", leftMargin, topMargin + y + 120 + funfactOffset, width * 0.35);
+    textSize(funfactSize); textLeading(funfactLeading); text(albumData.funfact, leftMargin, funfactStartY, width * 0.425);
+    addTextBox('funfact', fontLight.textBounds(albumData.funfact, leftMargin, funfactStartY, width * 0.425), funfactSize);
     utils.endShadow();
 
-    //y level for tracks
-    y = 820
-    let x = 275
+    // Draw tracks
+    push()
+    y = 820; let x = 275;
+    let spacing = Math.min(map(albumData.tracks.length, 5, 20, 80, 45, true), 70);
+    textFont(fontRegular); textSize(60); textAlign(LEFT, BASELINE);
+    rectMode(CENTER); let w = (leftMargin + x) * 0.75, h = 40;
+    let tracksVertOffset = verticalOffsets.tracks || 0;
 
-    let spacing = Math.min(map(albumData.tracks.length, 5, 20, 80, 45, true), 70)
-
-    // Reset text state before drawing tracks
-    textFont(fontRegular);
-    textSize(60);
-    textAlign(LEFT, BASELINE);
-
-    rectMode(CENTER);
-    let w = (leftMargin + x) * 0.75;
-    let h = 40;
-
-    let vertOffset = verticalOffsetSlider ? verticalOffsetSlider.value() : 0;
+    let tracksStartY = y + tracksVertOffset;
+    let tracksMinX = leftMargin, tracksMaxX = leftMargin + x + 700;
+    let tracksMinY = tracksStartY - 50, tracksMaxY = tracksStartY;
 
     for(let i = 0; i < albumData.tracks.length; i++){
         let track = albumData.tracks[i];
-        let trackY = y + vertOffset;
+        let trackY = tracksStartY;
+        textSize(60); textFont(fontRegular);
+        let textHeight = textAscent() + textDescent();
+        let rectCenterOffset = textAscent() - textHeight / 2;
 
-        // Set font and size fresh for each track to ensure consistent metrics
-        textSize(60);
-        textFont(fontRegular);
-        let textAscent_ = textAscent();
-        let textDescent_ = textDescent();
-        let textHeight = textAscent_ + textDescent_;
-        let rectCenterOffset = textAscent_ - textHeight / 2;
-
-        // Draw rectangle aligned with text
         let gradeColor = colorMap[track.grade] || "#888888";
         fill(gradeColor);
         if(track.grade == 'GOAT'){
-            utils.beginLinearGradient(
-                ["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd", ],//Colors
-                (leftMargin + x) * 0.5 - w * 0.5,    // gradient begin point x
-                trackY - rectCenterOffset,   // gradient begin point y
-                (leftMargin + x) * 0.5 + w * 0.5,    // gradient end point x
-                trackY - rectCenterOffset,   // gradient end point y
-                [0, .2, .38, .59, 1]           // Position of each color.
-            );
+            utils.beginLinearGradient(["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"],
+                (leftMargin + x) * 0.5 - w * 0.5, trackY - rectCenterOffset, (leftMargin + x) * 0.5 + w * 0.5, trackY - rectCenterOffset, [0, .2, .38, .59, 1]);
         }
         noStroke();
         if(track.grade == 'GOAT') utils.beginShadow("#ffffff", 50, 0, 0);
@@ -1311,215 +698,138 @@ async function printAlbum(){
         rect((leftMargin + x) * 0.5, trackY - rectCenterOffset, w, h, 20);
         if(track.grade == 'GOAT' || track.grade == 'S') utils.endShadow();
 
-        // Draw custom text or GOAT inside rectangle
         if (track.customText && track.customText.trim() !== '') {
-            push()
-            // Draw custom text inside rectangle
-            blendMode(BLEND)
-            textAlign(CENTER, CENTER);
-            fill(0, 160);
-            textFont(fontRegularCondensed);
-            // Calculate text size to fit inside rectangle with padding
-            let maxTextWidth = w - 40; // padding of 8 on each side
-            let customTextSize = getMaxTextSize(track.customText, maxTextWidth, 32);
-            textSize(customTextSize);
-            text(track.customText, (leftMargin + x) * 0.5, trackY - rectCenterOffset);
-            textSize(60);
-            blendMode(BLEND);
-            pop()
+            push(); blendMode(BLEND); textAlign(CENTER, CENTER); fill(0, 160); textFont(fontRegularCondensed);
+            let customTextSize = getMaxTextSize(track.customText, w - 40, 32);
+            textSize(customTextSize); text(track.customText, (leftMargin + x) * 0.5, trackY - rectCenterOffset);
+            textSize(60); pop();
         }
 
-        // Draw text with custom number if available
-        fill(255)
-        textAlign(LEFT, BASELINE);
+        fill(255); textAlign(LEFT, BASELINE);
         let trackNumber = track.customNumber || (i + 1).toString();
         text(shortenText(trackNumber + ". " + track.title + (track.playing ? " " + musicChar : ""), 700), leftMargin + x, trackY);
-
-        y += spacing;
+        tracksStartY += spacing;
     }
 
-    // Album grade rectangle at bottom
+    tracksMaxY = tracksStartY + 50;
+    pop()
+
+    // Add tracks box for selection
+    textBoxes.push({
+        id: 'tracks',
+        x: tracksMinX,
+        y: tracksMinY,
+        w: tracksMaxX - tracksMinX,
+        h: tracksMaxY - tracksMinY,
+        sizeOffset: 0,
+        currentSize: 0
+    });
+
+    // Album grade at bottom
     let gradeRectHeight = 150;
-    let gradeColor = colorMap[albumData.albumGrade] || "#888888";
-    fill(gradeColor);
-    rectMode(CORNER);
-    noStroke();
-
+    fill(colorMap[albumData.albumGrade] || "#888888");
+    rectMode(CORNER); noStroke();
     if(albumData.albumGrade == 'GOAT'){
-        utils.beginLinearGradient(
-            ["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"],
-            0, height - gradeRectHeight,
-            width, height - gradeRectHeight,
-            [0, .2, .38, .59, 1]
-        );
-        
+        utils.beginLinearGradient(["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"],
+            0, height - gradeRectHeight, width, height - gradeRectHeight, [0, .2, .38, .59, 1]);
     }
+    rect(0, height - gradeRectHeight, width, gradeRectHeight, 20, 20, 0, 0);
 
-    let offYFinalRect = 0
-
-    rect(0, height - gradeRectHeight + offYFinalRect, width, gradeRectHeight, 20, 20, 0, 0);
-
-    let namingMap = {
-        "GOAT": "GOAT",
-        "S": "PEAK",
-        "A": "EXCEPTIONAL",
-        "B": "STRONG",
-        "C": "DECENT",
-        "D": "MEH",
-        "F": "FLOP",
-        "Interlude": "INTERLUDE"
-    }
-
-    textAlign(CENTER, CENTER);
-    fill(255);
-    textFont(fontHeavy);
-    textSize(100);
+    push()
+    let namingMap = { "GOAT": "GOAT", "S": "PEAK", "A": "EXCEPTIONAL", "B": "STRONG", "C": "DECENT", "D": "MEH", "F": "FLOP", "Interlude": "INTERLUDE" };
+    textAlign(CENTER, CENTER); fill(255); textFont(fontHeavy); textSize(100);
     utils.beginShadow("#ffffffa3", 30, 0, 0);
-    text(namingMap[albumData.albumGrade] || albumData.albumGrade, width * 0.5, height - gradeRectHeight * 0.43 + offYFinalRect);
+    text(namingMap[albumData.albumGrade] || albumData.albumGrade, width * 0.5, height - gradeRectHeight * 0.43);
     utils.endShadow();
+    pop()
 
-    // Restore selection after redraw
-    if (selectedId) {
-        selectedTextBox = textBoxes.find(b => b.id === selectedId);
-    }
-
-    // Draw selection outline if a text box is selected
+    // Draw selection outline for any selected box
+    if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
     if (selectedTextBox) {
-        push()
+        push();
         noFill();
-        stroke(255);
+        stroke(138, 180, 248);
         strokeWeight(3);
         rectMode(CORNER);
         let padding = 5;
-        rect(selectedTextBox.x - padding, selectedTextBox.y - padding,
-             selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
-        noStroke();
-        pop()
+        rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
+        pop();
     }
+}
+
+function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading) {
+    size = max(10, size);
+    textFont(font); 
+    textSize(size); 
+    fill(255); 
+    textLeading(leading); 
+    text(textStr, x, y, maxWidth);
+    let bbox = font.textBounds(textStr, x, y, maxWidth);
+    addTextBox(id, bbox, size);
+    return bbox;
+}
+
+function addTextBox(id, bounds, size) {
+    textBoxes.push({ id, x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h, sizeOffset: textSizeOffsets[id], currentSize: size });
 }
 
 async function printCoverScreen() {
     background(200);
-
-    // Save the selected box ID before clearing
     let selectedId = selectedTextBox ? selectedTextBox.id : null;
-
-    // Clear textBoxes array at the start
     textBoxes = [];
 
-    let coverSize = width * 0.8;
-    let coverY = height * 0.42;
-    let hasImage = false;
-    let imgBW, img;
+    let coverSize = width * 0.8, coverY = height * 0.42, hasImage = false, imgBW, img;
 
-    // Try to load image if URL is provided
     if (albumData.imageUrl && albumData.imageUrl.trim() !== '') {
         try {
             let images = await loadAndCacheImages(albumData.imageUrl);
-            img = images.original;
-            imgBW = images.filtered;
-            hasImage = true;
+            img = images.original; imgBW = images.filtered; hasImage = true;
         } catch (err) {
             console.error('Failed to load image:', err);
             showToast('Failed to load image. Check the URL.', true);
-            hasImage = false;
         }
     }
 
-    // Draw blurred background or dark gray
-    if (hasImage) {
-        imageMode(CENTER);
-        image(imgBW, width * 0.5, height * 0.5, height, height);
-    } else {
-        background(50);
-    }
+    if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
+    else background(50);
 
-    // "Album Review" text at top
     utils.beginShadow("#000000", 30, 0, 0);
-    textAlign(CENTER, TOP);
-    textFont(fontLight);
-    textSize(55);
-    fill(255);
+    textAlign(CENTER, TOP); textFont(fontLight); textSize(55); fill(255);
     text("Album Review", width * 0.5, 260);
     utils.endShadow();
 
-    imageMode(CENTER);
-    rectMode(CENTER);
-
-    // Draw album cover or placeholder
+    imageMode(CENTER); rectMode(CENTER);
     utils.beginShadow("#000000", 80, 0, 0);
-    if (hasImage) {
-        rect(width * 0.5, coverY, coverSize, coverSize);
-        image(img, width * 0.5, coverY, coverSize, coverSize);
-    } else {
-        drawImagePlaceholder(width * 0.5, coverY, coverSize, coverSize, false);
-    }
+    if (hasImage) { rect(width * 0.5, coverY, coverSize, coverSize); image(img, width * 0.5, coverY, coverSize, coverSize); }
+    else drawImagePlaceholder(width * 0.5, coverY, coverSize, coverSize, false);
     utils.endShadow();
 
-    // Album title below image
-    utils.beginShadow("#000000", 20, 0, 0);
-    textAlign(CENTER, TOP);
-    textFont(fontHeavy);
-    let titleY = coverY + coverSize * 0.5 + 60;
+    push()
+    textAlign(CENTER, TOP)
 
-    // Title with size adjustment
+    utils.beginShadow("#000000", 20, 0, 0);
+    let titleY = coverY + coverSize * 0.5 + 60;
+    textFont(fontHeavy); 
     let titleSize = getMaxTextSize(albumData.title, width - 100, 100) + textSizeOffsets.title;
     titleSize = max(10, titleSize);
+    console.log(titleSize)
+    textSize(titleSize); fill(255); text(albumData.title, width * 0.5, titleY);
+    addTextBox('title', fontHeavy.textBounds(albumData.title, width * 0.5, titleY, width - 100), titleSize);
 
-    textSize(titleSize);
-    fill(255);
-    text(albumData.title, width * 0.5, titleY);
-
-    let titleBounds = fontHeavy.textBounds(albumData.title, width * 0.5, titleY, width - 100);
-    textBoxes.push({
-        id: 'title',
-        x: titleBounds.x,
-        y: titleBounds.y,
-        w: titleBounds.w,
-        h: titleBounds.h,
-        sizeOffset: textSizeOffsets.title,
-        currentSize: titleSize
-    });
-
-    // Artist name below title
     textFont(fontRegularCondensed);
-
-    let artistSize = 45 + textSizeOffsets.artist;
-    artistSize = max(10, artistSize);
-
-    textSize(artistSize);
-    fill(230);
-    text(albumData.artist, width * 0.5, titleY + 130);
-
-    let artistBounds = fontRegularCondensed.textBounds(albumData.artist, width * 0.5, titleY + 130, width - 100);
-    textBoxes.push({
-        id: 'artist',
-        x: artistBounds.x,
-        y: artistBounds.y,
-        w: artistBounds.w,
-        h: artistBounds.h,
-        sizeOffset: textSizeOffsets.artist,
-        currentSize: artistSize
-    });
-
+    let artistSize = getMaxTextSize(albumData.artist, width - 100, 50) + textSizeOffsets.artist;
+     textSize(artistSize); fill(230); text(albumData.artist, width * 0.5, titleY + 130);
+    addTextBox('artist', fontRegularCondensed.textBounds(albumData.artist, width * 0.5, titleY + 130, width - 100), artistSize);
     utils.endShadow();
 
-    // Restore selection after redraw
-    if (selectedId) {
-        selectedTextBox = textBoxes.find(b => b.id === selectedId);
-    }
-
-    // Draw selection outline if a text box is selected
+    if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
     if (selectedTextBox) {
-        noFill();
-        stroke(255);
-        strokeWeight(3);
-        rectMode(CORNER);
+        noFill(); stroke(255); strokeWeight(3); rectMode(CORNER);
         let padding = 5;
-        rect(selectedTextBox.x - padding, selectedTextBox.y - padding,
-             selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
+        rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
         noStroke();
     }
+    pop()
 }
 
 function dimImage(img, amount){
@@ -1535,220 +845,145 @@ function dimImage(img, amount){
 }
 
 function draw(){
-    if(frameCount % 60 === 0){
-        autoGeneratePreview();
-    }
+    if(frameCount % 60 === 0) autoGeneratePreview();
 }
 
 function mousePressed() {
-    // Get canvas element and its bounding rect
     let canvasEl = document.querySelector('canvas');
     let canvasRect = canvasEl.getBoundingClientRect();
+    let scaledMouseX = mouseX / canvasScale;
+    let scaledMouseY = mouseY / canvasScale;
 
-    // Calculate the actual mouse position on the canvas accounting for scale
-    // The canvas is scaled via CSS transform, so we need to convert screen coords to canvas coords
-    let scaledMouseX = (mouseX / canvasScale);
-    let scaledMouseY = (mouseY / canvasScale);
-
-    // Check if click is on the size adjustment panel or any of its children
     if (sizeAdjustPanel && sizeAdjustPanel.style('display') !== 'none') {
         let panel = sizeAdjustPanel.elt;
         let panelRect = panel.getBoundingClientRect();
-
-        // Calculate actual mouse position in viewport
         let mouseClientX = mouseX + canvasRect.left;
         let mouseClientY = mouseY + canvasRect.top;
-
-        // Check if mouse is over the panel
         if (mouseClientX >= panelRect.left && mouseClientX <= panelRect.right &&
-            mouseClientY >= panelRect.top && mouseClientY <= panelRect.bottom) {
-            // Click is on the panel, ignore it
-            return;
-        }
+            mouseClientY >= panelRect.top && mouseClientY <= panelRect.bottom) return;
     }
 
-    // Only handle clicks on the canvas (using scaled coordinates)
-    if (scaledMouseX < 0 || scaledMouseX > width || scaledMouseY < 0 || scaledMouseY > height) {
-        return;
-    }
+    if (scaledMouseX < 0 || scaledMouseX > width || scaledMouseY < 0 || scaledMouseY > height) return;
 
-    // Check if any text box was clicked (using scaled coordinates)
-    let clickedBox = null;
-    for (let i = 0; i < textBoxes.length; i++) {
-        let box = textBoxes[i];
-        if (scaledMouseX >= box.x && scaledMouseX <= box.x + box.w &&
-            scaledMouseY >= box.y && scaledMouseY <= box.y + box.h) {
-            clickedBox = box;
-            break;
-        }
-    }
+    let clickedBox = textBoxes.find(box =>
+        scaledMouseX >= box.x && scaledMouseX <= box.x + box.w &&
+        scaledMouseY >= box.y && scaledMouseY <= box.y + box.h
+    );
 
     if (clickedBox) {
-        // Only redraw if selection changed
         let selectionChanged = !selectedTextBox || selectedTextBox.id !== clickedBox.id;
         selectedTextBox = clickedBox;
-        showSizeAdjustPanel(clickedBox);
 
-        if (selectionChanged) {
-            // Redraw to show selection
-            if (currentView === 'ratings') {
-                printAlbum();
-            } else {
-                printCoverScreen();
-            }
+        // Show size adjust panel only for text boxes (not for tracks or image)
+        if (clickedBox.id !== 'tracks' && clickedBox.id !== 'image') {
+            showSizeAdjustPanel(clickedBox);
+        } else {
+            // For tracks and image, just update the vertical offset slider
+            sizeAdjustPanel.style('display', 'none');
+            updateVerticalOffsetSlider();
         }
+
+        if (selectionChanged) currentView === 'ratings' ? printAlbum() : printCoverScreen();
     } else {
-        // Clicked outside any text box - deselect
         if (selectedTextBox) {
             selectedTextBox = null;
             sizeAdjustPanel.style('display', 'none');
-            if (currentView === 'ratings') {
-                printAlbum();
-            } else {
-                printCoverScreen();
-            }
+            updateVerticalOffsetSlider();
+            currentView === 'ratings' ? printAlbum() : printCoverScreen();
         }
     }
 }
 
 function showSizeAdjustPanel(box) {
     let sizeDisplay = select('#size-display');
-    if (box.sizeOffset !== undefined) {
-        sizeDisplay.html(box.sizeOffset >= 0 ? '+' + box.sizeOffset : box.sizeOffset);
-    } else {
-        sizeDisplay.html(box.baseSize || '0');
-    }
+    sizeDisplay.html(box.sizeOffset >= 0 ? '+' + box.sizeOffset : box.sizeOffset);
 
-    // Show leading controls only for funfact
     let leadingContainer = select('#leading-container');
     if (box.id === 'funfact') {
         leadingContainer.style('display', 'flex');
         let leadingDisplay = select('#leading-display');
-        let leadingOffset = textLeadingOffsets.funfact || 0;
-        leadingDisplay.html(leadingOffset >= 0 ? '+' + leadingOffset : leadingOffset);
-    } else {
-        leadingContainer.style('display', 'none');
-    }
+        leadingDisplay.html((textLeadingOffsets.funfact || 0) >= 0 ? '+' + textLeadingOffsets.funfact : textLeadingOffsets.funfact);
+    } else leadingContainer.style('display', 'none');
 
     sizeAdjustPanel.style('display', 'flex');
+
+    // Update vertical offset slider
+    updateVerticalOffsetSlider();
+}
+
+function updateVerticalOffsetSlider() {
+    if (!verticalOffsetSlider) return;
+
+    if (selectedTextBox) {
+        // Enable slider and set value
+        verticalOffsetSlider.removeAttribute('disabled');
+        verticalOffsetSlider.removeClass('disabled');
+        let offset = verticalOffsets[selectedTextBox.id] || 0;
+        verticalOffsetSlider.value(offset);
+        verticalOffsetLabel.html(offset);
+    } else {
+        // Disable slider
+        verticalOffsetSlider.attribute('disabled', '');
+        verticalOffsetSlider.addClass('disabled');
+        verticalOffsetSlider.value(0);
+        verticalOffsetLabel.html('0');
+    }
 }
 
 function adjustTextSize(delta) {
     if (!selectedTextBox) return;
-
-    // Update the persistent offset
     if (textSizeOffsets.hasOwnProperty(selectedTextBox.id)) {
         textSizeOffsets[selectedTextBox.id] += delta;
         selectedTextBox.sizeOffset = textSizeOffsets[selectedTextBox.id];
     }
-
-    // Capture state for undo/redo
     captureState();
-
     showSizeAdjustPanel(selectedTextBox);
-
-    // Redraw
-    if (currentView === 'ratings') {
-        printAlbum();
-    } else {
-        printCoverScreen();
-    }
+    currentView === 'ratings' ? printAlbum() : printCoverScreen();
 }
 
 function adjustTextLeading(delta) {
     if (!selectedTextBox || selectedTextBox.id !== 'funfact') return;
-
-    // Update the persistent leading offset
     textLeadingOffsets.funfact += delta;
-
-    // Capture state for undo/redo
     captureState();
-
     showSizeAdjustPanel(selectedTextBox);
-
-    // Redraw
-    if (currentView === 'ratings') {
-        printAlbum();
-    } else {
-        printCoverScreen();
-    }
+    currentView === 'ratings' ? printAlbum() : printCoverScreen();
 }
 
 function resetTextBoxToDefault() {
     if (!selectedTextBox) return;
-
-    // Reset size offset
     if (textSizeOffsets.hasOwnProperty(selectedTextBox.id)) {
         textSizeOffsets[selectedTextBox.id] = 0;
         selectedTextBox.sizeOffset = 0;
     }
-
-    // Reset leading offset if funfact
-    if (selectedTextBox.id === 'funfact') {
-        textLeadingOffsets.funfact = 0;
-    }
-
-    // Capture state for undo/redo
+    if (selectedTextBox.id === 'funfact') textLeadingOffsets.funfact = 0;
     captureState();
-
     showSizeAdjustPanel(selectedTextBox);
-
-    // Redraw
-    if (currentView === 'ratings') {
-        printAlbum();
-    } else {
-        printCoverScreen();
-    }
+    currentView === 'ratings' ? printAlbum() : printCoverScreen();
 }
 
 // ============ UNDO/REDO FUNCTIONS ============
 
 function captureState() {
     if (isUndoRedoAction) return;
-
-    let tracksData = [];
-    for (let track of tracks) {
-        tracksData.push({
-            title: track.titleInput.value(),
-            grade: track.gradeSelect.value(),
-            customNumber: track.customNumber || null,
-            customText: track.textInput ? track.textInput.value() : null
-        });
-    }
-
     let state = {
-        title: titleInput.value(),
-        artist: artistInput.value(),
-        year: yearInput.value(),
-        genre: genreInput.value(),
-        funfact: funfactInput.value(),
-        imageUrl: imageUrlInput.value(),
+        title: titleInput.value(), artist: artistInput.value(), year: yearInput.value(),
+        genre: genreInput.value(), funfact: funfactInput.value(), imageUrl: imageUrlInput.value(),
         albumGrade: albumGradeSelect.value(),
-        verticalOffset: verticalOffsetSlider ? verticalOffsetSlider.value() : 0,
-        tracks: tracksData,
+        tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(),
+                                    customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null })),
         textSizeOffsets: {...textSizeOffsets},
-        textLeadingOffsets: {...textLeadingOffsets}
+        textLeadingOffsets: {...textLeadingOffsets},
+        verticalOffsets: {...verticalOffsets}
     };
 
-    // Remove any states after current index (for new branch)
-    if (historyIndex < historyStack.length - 1) {
-        historyStack = historyStack.slice(0, historyIndex + 1);
-    }
-
-    // Add new state
+    if (historyIndex < historyStack.length - 1) historyStack = historyStack.slice(0, historyIndex + 1);
     historyStack.push(JSON.stringify(state));
     historyIndex = historyStack.length - 1;
-
-    // Limit history size
-    if (historyStack.length > MAX_HISTORY) {
-        historyStack.shift();
-        historyIndex--;
-    }
+    if (historyStack.length > MAX_HISTORY) { historyStack.shift(); historyIndex--; }
 }
 
 function undo() {
     if (historyIndex <= 0) return;
-
     isUndoRedoAction = true;
     historyIndex--;
     restoreState(JSON.parse(historyStack[historyIndex]));
@@ -1757,7 +992,6 @@ function undo() {
 
 function redo() {
     if (historyIndex >= historyStack.length - 1) return;
-
     isUndoRedoAction = true;
     historyIndex++;
     restoreState(JSON.parse(historyStack[historyIndex]));
@@ -1765,160 +999,36 @@ function redo() {
 }
 
 function restoreState(state) {
-    titleInput.value(state.title || '');
-    artistInput.value(state.artist || '');
-    yearInput.value(state.year || '');
-    genreInput.value(state.genre || '');
-    funfactInput.value(state.funfact || '');
-    imageUrlInput.value(state.imageUrl || '');
+    titleInput.value(state.title || ''); artistInput.value(state.artist || '');
+    yearInput.value(state.year || ''); genreInput.value(state.genre || '');
+    funfactInput.value(state.funfact || ''); imageUrlInput.value(state.imageUrl || '');
     albumGradeSelect.selected(state.albumGrade || 'GOAT');
 
-    if (verticalOffsetSlider && state.verticalOffset !== undefined) {
-        verticalOffsetSlider.value(state.verticalOffset);
-        verticalOffsetLabel.html(state.verticalOffset);
-    }
+    if (state.textSizeOffsets) Object.assign(textSizeOffsets, state.textSizeOffsets);
+    if (state.textLeadingOffsets) textLeadingOffsets.funfact = state.textLeadingOffsets.funfact || 0;
+    if (state.verticalOffsets) Object.assign(verticalOffsets, state.verticalOffsets);
 
-    // Restore text size offsets
-    if (state.textSizeOffsets) {
-        textSizeOffsets.title = state.textSizeOffsets.title || 0;
-        textSizeOffsets.artist = state.textSizeOffsets.artist || 0;
-        textSizeOffsets.year = state.textSizeOffsets.year || 0;
-        textSizeOffsets.genre = state.textSizeOffsets.genre || 0;
-        textSizeOffsets.funfact = state.textSizeOffsets.funfact || 0;
-    }
-
-    // Restore text leading offsets
-    if (state.textLeadingOffsets) {
-        textLeadingOffsets.funfact = state.textLeadingOffsets.funfact || 0;
-    }
-
-    // Restore tracks
-    while (tracks.length > 0) {
-        tracks[0].rowDiv.remove();
-        tracks.shift();
-    }
+    while (tracks.length > 0) { tracks[0].rowDiv.remove(); tracks.shift(); }
 
     if (state.tracks && state.tracks.length > 0) {
-        for (let track of state.tracks) {
+        state.tracks.forEach(track => {
             addTrackRowWithoutCapture();
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
             lastTrack.gradeSelect.selected(track.grade || 'B');
-
-            // Restore custom number if exists
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
                 lastTrack.numSpan.html(track.customNumber + '.');
             }
-
-            // Restore custom text if exists
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
                 lastTrack.textInputContainer.style('display', 'block');
             }
-        }
-    } else {
-        addTrackRowWithoutCapture();
-    }
-
-    // Regenerate the album with restored state
-    generateFromForm();
-}
-
-function addTrackRowWithoutCapture() {
-    let trackIndex = tracks.length;
-    let rowDiv = createDiv('').parent(trackContainer).class('track-row');
-
-    let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).class('track-number');
-
-    // Add double-click functionality to make number editable
-    trackNumSpan.elt.addEventListener('dblclick', () => {
-        let currentText = trackNumSpan.html().replace('.', '');
-        let input = document.createElement('input');
-        input.type = 'text';
-        input.value = currentText;
-        input.className = 'track-number-input';
-        input.style.width = '40px';
-        input.style.textAlign = 'center';
-
-        // Replace span with input
-        trackNumSpan.elt.replaceWith(input);
-        input.focus();
-        input.select();
-
-        let finishEdit = () => {
-            let newValue = input.value.trim();
-            if (newValue === '') {
-                newValue = (trackIndex + 1).toString();
-            }
-            trackNumSpan.html(newValue + '.');
-            input.replaceWith(trackNumSpan.elt);
-
-            // Update custom number in tracks array
-            let track = tracks.find(t => t.numSpan === trackNumSpan);
-            if (track) {
-                track.customNumber = newValue;
-            }
-
-            autoGeneratePreview();
-            captureState();
-        };
-
-        input.addEventListener('blur', finishEdit);
-        input.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                finishEdit();
-            } else if (e.key === 'Escape') {
-                e.preventDefault();
-                trackNumSpan.html((trackIndex + 1) + '.');
-                input.replaceWith(trackNumSpan.elt);
-            }
         });
-    });
+    } else addTrackRowWithoutCapture();
 
-    let titleIn = createInput('').parent(rowDiv).class('track-title-input');
-    titleIn.attribute('placeholder', 'Track title');
-
-    let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
-    for (let grade of gradeOptions) {
-        gradeSelect.option(grade);
-    }
-    gradeSelect.selected('B');
-
-    // Text button to add custom text inside the rectangle
-    let textBtn = createButton('T').parent(rowDiv).class('track-text-btn');
-    let textInputContainer = createDiv('').parent(rowDiv).class('track-text-input-container');
-    textInputContainer.style('display', 'none');
-    let textInput = createInput('').parent(textInputContainer).class('track-text-input');
-    textInput.attribute('placeholder', 'Text inside rect...');
-    textInput.elt.addEventListener('input', autoGeneratePreview);
-    textInput.elt.addEventListener('blur', captureState);
-
-    textBtn.mousePressed(() => {
-        if (textInputContainer.style('display') === 'none') {
-            textInputContainer.style('display', 'block');
-            textInput.elt.focus();
-        } else {
-            textInputContainer.style('display', 'none');
-        }
-    });
-
-    let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
-    removeBtn.mousePressed(() => {
-        removeTrackRow(tracks.indexOf(tracks.find(t => t.rowDiv === rowDiv)));
-    });
-
-    tracks.push({
-        titleInput: titleIn,
-        gradeSelect: gradeSelect,
-        rowDiv: rowDiv,
-        numSpan: trackNumSpan,
-        customNumber: null,
-        customText: null,
-        textInput: textInput,
-        textInputContainer: textInputContainer
-    });
+    generateFromForm();
+    updateVerticalOffsetSlider();
 }
 
 // ============ COLOR CUSTOMIZATION FUNCTIONS ============
@@ -1932,23 +1042,17 @@ function loadCustomColors() {
     if (savedColors) {
         try {
             let colors = JSON.parse(savedColors);
-            for (let grade in colors) {
-                if (colorMap.hasOwnProperty(grade)) {
-                    colorMap[grade] = colors[grade];
-                }
-            }
-        } catch (err) {
-            console.log("Error loading custom colors");
-        }
+            Object.keys(colors).forEach(grade => {
+                if (colorMap.hasOwnProperty(grade)) colorMap[grade] = colors[grade];
+            });
+        } catch (err) { console.log("Error loading custom colors"); }
     }
 }
 
 function resetColors() {
-    for (let grade in defaultColorMap) {
+    Object.keys(defaultColorMap).forEach(grade => {
         colorMap[grade] = defaultColorMap[grade];
-        if (colorPickers[grade]) {
-            colorPickers[grade].value(defaultColorMap[grade]);
-        }
-    }
+        if (colorPickers[grade]) colorPickers[grade].value(defaultColorMap[grade]);
+    });
     saveCustomColors();
 }

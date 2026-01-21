@@ -171,6 +171,21 @@ canvas {
     outline: none;
 }
 
+.form-slider:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.form-slider:disabled::-webkit-slider-thumb {
+    background: #666;
+    cursor: not-allowed;
+}
+
+.form-slider:disabled::-moz-range-thumb {
+    background: #666;
+    cursor: not-allowed;
+}
+
 .form-slider::-webkit-slider-thumb {
     -webkit-appearance: none;
     appearance: none;
@@ -689,6 +704,83 @@ canvas {
 .toast-error {
     background: linear-gradient(135deg, #ef4444, #dc2626);
     color: #fff;
+}
+
+/* Size Adjust Panel */
+#size-adjust-panel {
+    display: none;
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(40, 40, 40, 0.95);
+    padding: 15px 25px;
+    border-radius: 12px;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    align-items: center;
+    gap: 15px;
+}
+
+#size-adjust-panel .label {
+    color: white;
+    font-family: system-ui, -apple-system, sans-serif;
+    font-size: 14px;
+}
+
+#size-adjust-panel .btn-control {
+    width: 40px;
+    height: 40px;
+    font-size: 24px;
+    background: #444;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+#size-adjust-panel .btn-control:hover {
+    background: #555;
+}
+
+#size-adjust-panel .display {
+    color: white;
+    font-family: monospace;
+    font-size: 16px;
+    min-width: 60px;
+    text-align: center;
+}
+
+#size-adjust-panel #leading-container {
+    display: none;
+    gap: 10px;
+    align-items: center;
+    border-left: 1px solid rgba(255, 255, 255, 0.2);
+    padding-left: 15px;
+    margin-left: 5px;
+}
+
+#size-adjust-panel .btn-reset {
+    background: #336688;
+    margin-left: 10px;
+}
+
+#size-adjust-panel .btn-close {
+    background: #883333;
+    font-size: 18px;
+}
+
+.track-number-input {
+    width: 40px;
+    text-align: center;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(138, 180, 248, 0.4);
+    border-radius: 4px;
+    color: #fff;
+    font-size: 13px;
+    outline: none;
 }
 
 /* Responsive */
