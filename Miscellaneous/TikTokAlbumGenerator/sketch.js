@@ -123,8 +123,16 @@ async function setup(){
 }
 
 function setupDragDrop() {
-    document.addEventListener('dragover', (e) => { e.preventDefault(); dragOverlay.addClass('active'); });
-    document.addEventListener('dragleave', (e) => { if (e.relatedTarget === null) dragOverlay.removeClass('active'); });
+    document.addEventListener('dragover', (e) => {
+        // Only show overlay if dragging files (not internal elements)
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            dragOverlay.addClass('active');
+        }
+    });
+    document.addEventListener('dragleave', (e) => {
+        if (e.relatedTarget === null) dragOverlay.removeClass('active');
+    });
     document.addEventListener('drop', (e) => {
         e.preventDefault();
         dragOverlay.removeClass('active');
@@ -160,8 +168,9 @@ function createAlbumEditor() {
     createElement('p', 'Drag & drop JSON or fill manually').parent(header);
 
     // Basic inputs
-    titleInput = createFormInput('Album Title', 'Enter album title...');
-    artistInput = createFormInput('Artist', 'Enter artist name...');
+    let rowGroupAlbum = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
+    titleInput = createFormInput('Album Title', 'Enter album title...', rowGroupAlbum);
+    artistInput = createFormInput('Artist', 'Enter artist name...', rowGroupAlbum);
 
     let rowGroup = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
     yearInput = createFormInput('Year', 'e.g. 1997', rowGroup);
@@ -757,6 +766,14 @@ function addTrackRowWithoutCapture() {
 function addTrackRowWithCapture(shouldCapture) {
     let trackIndex = tracks.length;
     let rowDiv = createDiv('').parent(trackContainer).class('track-row');
+
+    // Make row draggable
+    rowDiv.attribute('draggable', 'true');
+    setupTrackDragAndDrop(rowDiv);
+
+    // Add drag handle
+    let dragHandle = createSpan('⋮⋮').parent(rowDiv).class('track-drag-handle');
+
     let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).class('track-number');
 
     makeNumberEditable(trackNumSpan, trackIndex);
@@ -789,9 +806,80 @@ function addTrackRowWithCapture(shouldCapture) {
     let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
     removeBtn.mousePressed(() => removeTrackRow(trackIndex));
 
-    tracks.push({ titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, textInput, textInputContainer });
+    tracks.push({ titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, textInput, textInputContainer, dragHandle });
 
     if (shouldCapture && historyStack.length > 0) captureState();
+}
+
+let draggedTrackIndex = null;
+
+function setupTrackDragAndDrop(rowDiv) {
+    rowDiv.elt.addEventListener('dragstart', (e) => {
+        draggedTrackIndex = tracks.findIndex(t => t.rowDiv === rowDiv);
+        e.dataTransfer.effectAllowed = 'move';
+        rowDiv.addClass('dragging');
+    });
+
+    rowDiv.elt.addEventListener('dragend', (e) => {
+        rowDiv.removeClass('dragging');
+        draggedTrackIndex = null;
+        // Remove all drag-over classes
+        tracks.forEach(t => t.rowDiv.removeClass('drag-over'));
+    });
+
+    rowDiv.elt.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+
+        if (draggedTrackIndex !== null) {
+            let targetIndex = tracks.findIndex(t => t.rowDiv === rowDiv);
+            if (targetIndex !== draggedTrackIndex) {
+                rowDiv.addClass('drag-over');
+            }
+        }
+    });
+
+    rowDiv.elt.addEventListener('dragleave', (e) => {
+        rowDiv.removeClass('drag-over');
+    });
+
+    rowDiv.elt.addEventListener('drop', (e) => {
+        e.preventDefault();
+        rowDiv.removeClass('drag-over');
+
+        if (draggedTrackIndex !== null) {
+            let targetIndex = tracks.findIndex(t => t.rowDiv === rowDiv);
+
+            if (targetIndex !== draggedTrackIndex && targetIndex !== -1) {
+                // Reorder tracks array
+                let draggedTrack = tracks[draggedTrackIndex];
+                tracks.splice(draggedTrackIndex, 1);
+                tracks.splice(targetIndex, 0, draggedTrack);
+
+                // Reorder DOM elements
+                if (targetIndex === 0) {
+                    trackContainer.elt.insertBefore(draggedTrack.rowDiv.elt, trackContainer.elt.firstChild);
+                } else if (targetIndex >= tracks.length - 1) {
+                    trackContainer.elt.appendChild(draggedTrack.rowDiv.elt);
+                } else {
+                    trackContainer.elt.insertBefore(draggedTrack.rowDiv.elt, tracks[targetIndex + 1].rowDiv.elt);
+                }
+
+                // Update track numbers
+                updateTrackNumbers();
+                autoGeneratePreview();
+                captureState();
+            }
+        }
+    });
+}
+
+function updateTrackNumbers() {
+    tracks.forEach((t, i) => {
+        if (!t.customNumber) {
+            t.numSpan.html((i + 1) + '.');
+        }
+    });
 }
 
 function handleTrackNavigation(e, titleIn) {
@@ -810,7 +898,7 @@ function removeTrackRow(index) {
     if (tracks.length <= 1) return;
     tracks[index].rowDiv.remove();
     tracks.splice(index, 1);
-    tracks.forEach((t, i) => t.numSpan.html((i + 1) + '.'));
+    updateTrackNumbers();
     captureState();
     autoGeneratePreview();
 }
@@ -1164,7 +1252,7 @@ async function printAlbum(){
     if (showGradeLegend) {
         push()
         let legendGrades = ['GOAT', 'S', 'A', 'B', 'C'];
-        let legendLabels = ['GOAT', 'S', 'A', 'B', 'C'];
+        let legendLabels = ['GOAT', '10', '9', '8', '7'];
         let legendPadding = 15; // Padding between legend and big rectangle
         let legendRectHeight = tracksRectHeight;
         let legendY = imageY + imageSize + legendPadding * 1
