@@ -19,6 +19,20 @@ let trackContainer, tracks = [];
 const gradeOptions = ['GOAT', 'S', 'A', 'B', 'C', 'D', 'F', 'Interlude'];
 let verticalOffsetSlider, verticalOffsetLabel;
 
+// Aspect Ratio options (for ratings screen only)
+let aspectRatioSelect;
+const aspectRatioOptions = {
+    '9:16': { width: 1080, height: 1920 },   // Default - TikTok, Instagram Stories, YouTube Shorts
+    '3:5': { width: 1080, height: 1800 },    // Medium vertical
+    '8:13': { width: 1080, height: 1755 },   // Custom
+    '2:3': { width: 1080, height: 1620 },    // Photo vertical
+    '3:4': { width: 1080, height: 1440 },    // Classic Portrait
+    '4:5': { width: 1080, height: 1350 },    // Instagram Portrait
+    '5:6': { width: 1080, height: 1296 },    // Slight vertical
+    '1:1': { width: 1080, height: 1080 }     // Square
+};
+let currentAspectRatio = '9:16';
+
 // View toggle: 'ratings' or 'cover'
 let currentView = 'ratings';
 let viewToggleBtn, editorPanel, dragOverlay;
@@ -32,15 +46,36 @@ let isUndoRedoAction = false;
 let textBoxes = [], selectedTextBox = null, sizeAdjustPanel = null;
 let textSizeOffsets = { title: 0, artist: 0, year: 0, genre: 0, funfact: 0 };
 let textLeadingOffsets = { funfact: 0 };
-let verticalOffsets = { title: 0, artist: 0, year: 0, genre: 0, funfact: 0, tracks: 0, image: 0 };
+let verticalOffsetsRatings = { title: 0, artist: 0, year: 0, genre: 0, funfact: 0, tracks: 0, image: 0 };
+let verticalOffsetsCover = { title: 0, artist: 0 };
+
+// Track customization
+let tracksTextSize = 60;
+let tracksSpacing = 0; // Added to base spacing calculation
+let tracksRectHeight = 40;
+let tracksTextSizeSlider, tracksSpacingSlider, tracksRectHeightSlider;
+let tracksTextSizeLabel, tracksSpacingLabel, tracksRectHeightLabel;
+
+// Export settings
+let showGreenRectangle = true; // Only show when not downloading
+let imageFormatSelect;
+let currentImageFormat = 'png';
+let showGradeLegend = true;
+let gradeLegendCheckbox;
 
 // Image cache
 let cachedImageUrl = null, cachedOriginalImage = null, cachedFilteredImage = null;
+let lastUrlChecked = null;
 
 // Custom color map
 let colorMap = { "GOAT": "#ffffff", "S": "#ffd21f", "A": "#ff1fa9", "B": "#bc3fde", "C": "#38b6ff", "D": "#14b60b", "F": "#902020", "Interlude": "#b2b2b2" };
 const defaultColorMap = {...colorMap};
 let colorPickers = {}, canvasScale = 1;
+
+// Profile system
+let profiles = {};
+let currentProfileName = 'Default';
+let profileSelect, profileNameInput;
 
 function calculateCanvasScale() {
     const scale = (window.innerHeight - 40) / HEIGHT;
@@ -76,8 +111,11 @@ async function setup(){
 
     setupDragDrop();
     createAlbumEditor();
+    loadProfiles();
+    updateProfileSelect(); // Update profile dropdown after loading profiles
     loadFromLocalStorage();
     loadCustomColors();
+    loadLastProfile();
     captureState();
 
     setInterval(saveToLocalStorage, 1000);
@@ -85,8 +123,16 @@ async function setup(){
 }
 
 function setupDragDrop() {
-    document.addEventListener('dragover', (e) => { e.preventDefault(); dragOverlay.addClass('active'); });
-    document.addEventListener('dragleave', (e) => { if (e.relatedTarget === null) dragOverlay.removeClass('active'); });
+    document.addEventListener('dragover', (e) => {
+        // Only show overlay if dragging files (not internal elements)
+        if (e.dataTransfer.types.includes('Files')) {
+            e.preventDefault();
+            dragOverlay.addClass('active');
+        }
+    });
+    document.addEventListener('dragleave', (e) => {
+        if (e.relatedTarget === null) dragOverlay.removeClass('active');
+    });
     document.addEventListener('drop', (e) => {
         e.preventDefault();
         dragOverlay.removeClass('active');
@@ -122,8 +168,9 @@ function createAlbumEditor() {
     createElement('p', 'Drag & drop JSON or fill manually').parent(header);
 
     // Basic inputs
-    titleInput = createFormInput('Album Title', 'Enter album title...');
-    artistInput = createFormInput('Artist', 'Enter artist name...');
+    let rowGroupAlbum = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
+    titleInput = createFormInput('Album Title', 'Enter album title...', rowGroupAlbum);
+    artistInput = createFormInput('Artist', 'Enter artist name...', rowGroupAlbum);
 
     let rowGroup = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
     yearInput = createFormInput('Year', 'e.g. 1997', rowGroup);
@@ -131,6 +178,8 @@ function createAlbumEditor() {
 
     funfactInput = createFormTextarea('Fun Fact', 'Add an interesting fact about the album...');
     imageUrlInput = createFormInput('Image URL', 'https://...');
+    // Reset lastUrlChecked when URL changes so error shows again if needed
+    imageUrlInput.elt.addEventListener('input', () => { lastUrlChecked = null; });
 
     // Album Grade & Vertical Offset row
     let gradeOffsetRow = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
@@ -148,6 +197,8 @@ function createAlbumEditor() {
 
     // Button Grid
     createButtonGrid();
+    createProfileSection();
+    createTracksCustomizationSection();
     createColorSection();
     createSizeAdjustPanel();
 }
@@ -195,8 +246,17 @@ function createVerticalOffsetSlider(parent) {
         if (!selectedTextBox) return;
         let value = verticalOffsetSlider.value();
         verticalOffsetLabel.html(value);
-        verticalOffsets[selectedTextBox.id] = value;
-        if (albumData && currentView === 'ratings') printAlbum();
+
+        // Store offset in the correct object based on current view
+        if (currentView === 'ratings') {
+            verticalOffsetsRatings[selectedTextBox.id] = value;
+        } else {
+            verticalOffsetsCover[selectedTextBox.id] = value;
+        }
+
+        if (albumData) {
+            currentView === 'ratings' ? printAlbum() : printCoverScreen();
+        }
 
         // Debounce capture state
         if (sliderTimeout) clearTimeout(sliderTimeout);
@@ -210,6 +270,43 @@ function createVerticalOffsetSlider(parent) {
 
 function createButtonGrid() {
     let buttonGrid = createDiv('').parent(editorPanel).class('button-grid');
+
+    // Aspect Ratio & Image Format selectors
+    let aspectRatioRow = createDiv('').parent(buttonGrid).style('display: flex; gap: 12px; margin-bottom: 10px;');
+
+    // Aspect Ratio selector (half width)
+    let aspectRatioGroup = createDiv('').parent(aspectRatioRow).class('form-group').style('flex: 1; margin-bottom: 0;');
+    createElement('label', 'Aspect Ratio (Ratings)').parent(aspectRatioGroup);
+    aspectRatioSelect = createSelect().parent(aspectRatioGroup).class('form-select');
+    Object.keys(aspectRatioOptions).forEach(opt => aspectRatioSelect.option(opt));
+    aspectRatioSelect.selected('9:16');
+    aspectRatioSelect.changed(() => {
+        currentAspectRatio = aspectRatioSelect.value();
+        autoGeneratePreview();
+        captureState();
+    });
+
+    // Image Format selector (half width)
+    let imageFormatGroup = createDiv('').parent(aspectRatioRow).class('form-group').style('flex: 1; margin-bottom: 0;');
+    createElement('label', 'Image Format').parent(imageFormatGroup);
+    imageFormatSelect = createSelect().parent(imageFormatGroup).class('form-select');
+    ['png', 'jpg', 'jpeg', 'webp'].forEach(format => imageFormatSelect.option(format));
+    imageFormatSelect.selected('png');
+    imageFormatSelect.changed(() => {
+        currentImageFormat = imageFormatSelect.value();
+        captureState();
+    });
+
+    // Grade Legend checkbox
+    let legendCheckboxRow = createDiv('').parent(buttonGrid).class('form-group').style('margin-bottom: 10px;');
+    let legendCheckboxContainer = createDiv('').parent(legendCheckboxRow).style('display: flex; align-items: center; gap: 10px;');
+    gradeLegendCheckbox = createCheckbox('Show Grade Legend', true).parent(legendCheckboxContainer).class('checkbox-input');
+    gradeLegendCheckbox.changed(() => {
+        showGradeLegend = gradeLegendCheckbox.checked();
+        autoGeneratePreview();
+        captureState();
+    });
+
     let downloadRow = createDiv('').parent(buttonGrid).class('button-row');
     createButton('JSON').parent(downloadRow).class('btn btn-blue').mousePressed(downloadJSON);
     createButton('Images').parent(downloadRow).class('btn btn-purple').mousePressed(downloadBothImages);
@@ -222,6 +319,304 @@ function createButtonGrid() {
     createButton('↷ Redo').parent(undoRedoRow).class('btn btn-secondary').elt.addEventListener('click', (e) => { e.preventDefault(); redo(); });
 
     createButton('Clear All').parent(buttonGrid).class('btn btn-danger').mousePressed(clearAll);
+}
+
+function createProfileSection() {
+    createDiv('').parent(editorPanel).class('section-divider');
+    let profileSection = createDiv('').parent(editorPanel).class('color-section');
+    let profileHeader = createDiv('').parent(profileSection).class('color-section-header');
+    let profileToggle = createSpan('▶').parent(profileHeader).class('color-toggle');
+    createSpan(' Profiles').parent(profileHeader);
+
+    let profileContent = createDiv('').parent(profileSection).class('color-content collapsed');
+
+    profileHeader.mousePressed(() => {
+        if (profileContent.hasClass('collapsed')) {
+            profileContent.removeClass('collapsed');
+            profileToggle.html('▼');
+        } else {
+            profileContent.addClass('collapsed');
+            profileToggle.html('▶');
+        }
+    });
+
+    // Profile selector and apply/delete row
+    let selectRow = createDiv('').parent(profileContent).style('display: flex; gap: 8px; margin-bottom: 10px;');
+
+    let selectGroup = createDiv('').parent(selectRow).class('form-group').style('flex: 1; margin-bottom: 0;');
+    profileSelect = createSelect().parent(selectGroup).class('form-select');
+    profileSelect.option('Default'); // Add default initially, will be updated after loadProfiles()
+
+    createButton('Apply').parent(selectRow).class('btn btn-primary').style('width: 70px; padding: 8px;').mousePressed(applySelectedProfile);
+    createButton('Delete').parent(selectRow).class('btn btn-danger').style('width: 70px; padding: 8px;').mousePressed(deleteSelectedProfile);
+
+    // Save new profile row
+    let saveRow = createDiv('').parent(profileContent).style('display: flex; gap: 8px;');
+
+    let nameGroup = createDiv('').parent(saveRow).class('form-group').style('flex: 1; margin-bottom: 0;');
+    profileNameInput = createInput('').parent(nameGroup).class('form-input');
+    profileNameInput.attribute('placeholder', 'New profile name...');
+
+    createButton('Save').parent(saveRow).class('btn btn-secondary').style('width: 70px; padding: 8px;').mousePressed(saveNewProfile);
+}
+
+function getDefaultProfile() {
+    return {
+        tracksTextSize: 60,
+        tracksSpacing: 0,
+        tracksRectHeight: 40,
+        tracksVerticalOffset: 0,
+        colorMap: {...defaultColorMap},
+        aspectRatio: '9:16',
+        imageFormat: 'png',
+        showGradeLegend: true
+    };
+}
+
+function getCurrentProfileData() {
+    return {
+        tracksTextSize: tracksTextSize,
+        tracksSpacing: tracksSpacing,
+        tracksRectHeight: tracksRectHeight,
+        tracksVerticalOffset: verticalOffsetsRatings.tracks || 0,
+        colorMap: {...colorMap},
+        aspectRatio: currentAspectRatio,
+        imageFormat: currentImageFormat,
+        showGradeLegend: showGradeLegend
+    };
+}
+
+function applyProfile(profileData) {
+    // Apply tracks customization
+    tracksTextSize = profileData.tracksTextSize || 60;
+    tracksSpacing = profileData.tracksSpacing || 0;
+    tracksRectHeight = profileData.tracksRectHeight || 40;
+    verticalOffsetsRatings.tracks = profileData.tracksVerticalOffset || 0;
+
+    // Update track sliders
+    if (tracksTextSizeSlider) {
+        tracksTextSizeSlider.value(tracksTextSize);
+        tracksTextSizeLabel.html(tracksTextSize);
+    }
+    if (tracksSpacingSlider) {
+        tracksSpacingSlider.value(tracksSpacing);
+        tracksSpacingLabel.html(tracksSpacing);
+    }
+    if (tracksRectHeightSlider) {
+        tracksRectHeightSlider.value(tracksRectHeight);
+        tracksRectHeightLabel.html(tracksRectHeight);
+    }
+
+    // Update vertical offset slider if tracks is selected
+    if (selectedTextBox && selectedTextBox.id === 'tracks') {
+        updateVerticalOffsetSlider();
+    }
+
+    // Apply colors
+    if (profileData.colorMap) {
+        Object.keys(profileData.colorMap).forEach(grade => {
+            if (colorMap.hasOwnProperty(grade)) {
+                colorMap[grade] = profileData.colorMap[grade];
+                if (colorPickers[grade]) colorPickers[grade].value(profileData.colorMap[grade]);
+            }
+        });
+        saveCustomColors();
+    }
+
+    // Apply aspect ratio
+    if (profileData.aspectRatio && aspectRatioOptions[profileData.aspectRatio]) {
+        currentAspectRatio = profileData.aspectRatio;
+        aspectRatioSelect.selected(profileData.aspectRatio);
+    }
+
+    // Apply image format
+    if (profileData.imageFormat) {
+        currentImageFormat = profileData.imageFormat;
+        imageFormatSelect.selected(profileData.imageFormat);
+    }
+
+    // Apply grade legend preference
+    showGradeLegend = profileData.showGradeLegend !== undefined ? profileData.showGradeLegend : true;
+    if (gradeLegendCheckbox) {
+        gradeLegendCheckbox.checked(showGradeLegend);
+    }
+
+    // Update UI
+    if (albumData) {
+        currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    }
+}
+
+function saveNewProfile() {
+    let name = profileNameInput.value().trim();
+    if (!name) {
+        showToast('Please enter a profile name', true);
+        return;
+    }
+    if (name.toLowerCase() === 'default') {
+        showToast('Cannot overwrite Default profile', true);
+        return;
+    }
+
+    profiles[name] = getCurrentProfileData();
+    saveProfiles();
+    updateProfileSelect();
+    profileSelect.selected(name);
+    currentProfileName = name;
+    saveLastProfile();
+    profileNameInput.value('');
+    showToast('Profile saved: ' + name);
+}
+
+function applySelectedProfile() {
+    let selectedName = profileSelect.value();
+    if (selectedName === 'Default') {
+        applyProfile(getDefaultProfile());
+    } else if (profiles[selectedName]) {
+        applyProfile(profiles[selectedName]);
+    }
+    currentProfileName = selectedName;
+    saveLastProfile();
+    showToast('Profile applied: ' + selectedName);
+    captureState();
+}
+
+function deleteSelectedProfile() {
+    let selectedName = profileSelect.value();
+    if (selectedName === 'Default') {
+        showToast('Cannot delete Default profile', true);
+        return;
+    }
+    if (!profiles[selectedName]) {
+        showToast('Profile not found', true);
+        return;
+    }
+
+    delete profiles[selectedName];
+    saveProfiles();
+    updateProfileSelect();
+    profileSelect.selected('Default');
+    currentProfileName = 'Default';
+    saveLastProfile();
+    showToast('Profile deleted: ' + selectedName);
+}
+
+function updateProfileSelect() {
+    profileSelect.html('');
+    profileSelect.option('Default');
+    Object.keys(profiles).sort().forEach(name => {
+        profileSelect.option(name);
+    });
+}
+
+function loadProfiles() {
+    let savedProfiles = localStorage.getItem('albumGeneratorProfiles');
+    if (savedProfiles) {
+        try {
+            profiles = JSON.parse(savedProfiles);
+        } catch (err) {
+            console.log("Error loading profiles");
+            profiles = {};
+        }
+    }
+}
+
+function saveProfiles() {
+    localStorage.setItem('albumGeneratorProfiles', JSON.stringify(profiles));
+}
+
+function loadLastProfile() {
+    let lastProfile = localStorage.getItem('albumGeneratorLastProfile');
+    if (lastProfile && (lastProfile === 'Default' || profiles[lastProfile])) {
+        currentProfileName = lastProfile;
+        profileSelect.selected(lastProfile);
+        if (lastProfile === 'Default') {
+            applyProfile(getDefaultProfile());
+        } else {
+            applyProfile(profiles[lastProfile]);
+        }
+    }
+}
+
+function saveLastProfile() {
+    localStorage.setItem('albumGeneratorLastProfile', currentProfileName);
+}
+
+function createTracksCustomizationSection() {
+    createDiv('').parent(editorPanel).class('section-divider');
+    let tracksSection = createDiv('').parent(editorPanel).class('color-section');
+    let tracksHeader = createDiv('').parent(tracksSection).class('color-section-header');
+    let tracksToggle = createSpan('▶').parent(tracksHeader).class('color-toggle');
+    createSpan(' Customize Tracks').parent(tracksHeader);
+
+    let tracksContent = createDiv('').parent(tracksSection).class('color-content collapsed');
+
+    tracksHeader.mousePressed(() => {
+        if (tracksContent.hasClass('collapsed')) {
+            tracksContent.removeClass('collapsed');
+            tracksToggle.html('▼');
+        } else {
+            tracksContent.addClass('collapsed');
+            tracksToggle.html('▶');
+        }
+    });
+
+    // Text Size control
+    let textSizeRow = createDiv('').parent(tracksContent).class('slider-row');
+    createSpan('Text Size').parent(textSizeRow).class('slider-label');
+    let textSizeContainer = createDiv('').parent(textSizeRow).class('slider-container');
+    tracksTextSizeSlider = createSlider(30, 100, 60, 2).parent(textSizeContainer).class('form-slider');
+    tracksTextSizeLabel = createSpan('60').parent(textSizeContainer).class('slider-value');
+
+    tracksTextSizeSlider.input(() => {
+        tracksTextSize = tracksTextSizeSlider.value();
+        tracksTextSizeLabel.html(tracksTextSize);
+        if (albumData && currentView === 'ratings') printAlbum();
+    });
+    tracksTextSizeSlider.changed(() => captureState());
+
+    // Spacing control
+    let spacingRow = createDiv('').parent(tracksContent).class('slider-row');
+    createSpan('Spacing').parent(spacingRow).class('slider-label');
+    let spacingContainer = createDiv('').parent(spacingRow).class('slider-container');
+    tracksSpacingSlider = createSlider(-30, 50, 0, 1).parent(spacingContainer).class('form-slider');
+    tracksSpacingLabel = createSpan('0').parent(spacingContainer).class('slider-value');
+
+    tracksSpacingSlider.input(() => {
+        tracksSpacing = tracksSpacingSlider.value();
+        tracksSpacingLabel.html(tracksSpacing);
+        if (albumData && currentView === 'ratings') printAlbum();
+    });
+    tracksSpacingSlider.changed(() => captureState());
+
+    // Rectangle Height control
+    let rectHeightRow = createDiv('').parent(tracksContent).class('slider-row');
+    createSpan('Rect Height').parent(rectHeightRow).class('slider-label');
+    let rectHeightContainer = createDiv('').parent(rectHeightRow).class('slider-container');
+    tracksRectHeightSlider = createSlider(20, 80, 40, 2).parent(rectHeightContainer).class('form-slider');
+    tracksRectHeightLabel = createSpan('40').parent(rectHeightContainer).class('slider-value');
+
+    tracksRectHeightSlider.input(() => {
+        tracksRectHeight = tracksRectHeightSlider.value();
+        tracksRectHeightLabel.html(tracksRectHeight);
+        if (albumData && currentView === 'ratings') printAlbum();
+    });
+    tracksRectHeightSlider.changed(() => captureState());
+
+    // Reset button
+    createButton('Reset to Default').parent(tracksContent).class('btn btn-secondary').style('margin-top', '12px').mousePressed(() => {
+        tracksTextSize = 60;
+        tracksSpacing = 0;
+        tracksRectHeight = 40;
+        tracksTextSizeSlider.value(60);
+        tracksSpacingSlider.value(0);
+        tracksRectHeightSlider.value(40);
+        tracksTextSizeLabel.html('60');
+        tracksSpacingLabel.html('0');
+        tracksRectHeightLabel.html('40');
+        if (albumData && currentView === 'ratings') printAlbum();
+        captureState();
+    });
 }
 
 function createColorSection() {
@@ -283,6 +678,7 @@ function clearAll() {
     addTrackRow();
     albumData = null;
     cachedImageUrl = cachedOriginalImage = cachedFilteredImage = null;
+    lastUrlChecked = null;
     background(200);
     localStorage.removeItem('albumGeneratorData');
 }
@@ -299,11 +695,34 @@ async function downloadBothImages() {
     if (!albumData.imageUrl) return;
 
     let baseFileName = getBaseFileName();
+
+    // Download ratings screen with aspect ratio crop
+    showGreenRectangle = false; // Hide green rectangle for download
     await printAlbum();
-    saveCanvas(baseFileName + ' - Ratings', 'png');
+    let exportHeight = aspectRatioOptions[currentAspectRatio].height;
+
+    // Create a temporary canvas for the cropped version
+    let tempCanvas = createGraphics(WIDTH, exportHeight);
+    tempCanvas.image(get(0, 0, WIDTH, exportHeight), 0, 0);
+
+    // Get the data URL and download it manually with the correct extension
+    let dataURL = tempCanvas.canvas.toDataURL('image/' + (currentImageFormat === 'jpg' ? 'jpeg' : currentImageFormat));
+    let link = document.createElement('a');
+    link.download = baseFileName + ' - Ratings.' + currentImageFormat;
+    link.href = dataURL;
+    link.click();
+
+    tempCanvas.remove(); // Clean up
+    showGreenRectangle = true; // Show it again
+
     await new Promise(resolve => setTimeout(resolve, 100));
+
+    // Download cover screen (full size)
     await printCoverScreen();
-    saveCanvas(baseFileName + ' - Cover', 'png');
+    saveCanvas(baseFileName + ' - Cover', currentImageFormat);
+
+    // Restore the view
+    await printAlbum();
 }
 
 function makeNumberEditable(trackNumSpan, trackIndex) {
@@ -347,6 +766,14 @@ function addTrackRowWithoutCapture() {
 function addTrackRowWithCapture(shouldCapture) {
     let trackIndex = tracks.length;
     let rowDiv = createDiv('').parent(trackContainer).class('track-row');
+
+    // Make row draggable
+    rowDiv.attribute('draggable', 'true');
+    setupTrackDragAndDrop(rowDiv);
+
+    // Add drag handle
+    let dragHandle = createSpan('⋮⋮').parent(rowDiv).class('track-drag-handle');
+
     let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).class('track-number');
 
     makeNumberEditable(trackNumSpan, trackIndex);
@@ -379,9 +806,80 @@ function addTrackRowWithCapture(shouldCapture) {
     let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
     removeBtn.mousePressed(() => removeTrackRow(trackIndex));
 
-    tracks.push({ titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, textInput, textInputContainer });
+    tracks.push({ titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, textInput, textInputContainer, dragHandle });
 
     if (shouldCapture && historyStack.length > 0) captureState();
+}
+
+let draggedTrackIndex = null;
+
+function setupTrackDragAndDrop(rowDiv) {
+    rowDiv.elt.addEventListener('dragstart', (e) => {
+        draggedTrackIndex = tracks.findIndex(t => t.rowDiv === rowDiv);
+        e.dataTransfer.effectAllowed = 'move';
+        rowDiv.addClass('dragging');
+    });
+
+    rowDiv.elt.addEventListener('dragend', (e) => {
+        rowDiv.removeClass('dragging');
+        draggedTrackIndex = null;
+        // Remove all drag-over classes
+        tracks.forEach(t => t.rowDiv.removeClass('drag-over'));
+    });
+
+    rowDiv.elt.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        e.dataTransfer.dropEffect = 'move';
+
+        if (draggedTrackIndex !== null) {
+            let targetIndex = tracks.findIndex(t => t.rowDiv === rowDiv);
+            if (targetIndex !== draggedTrackIndex) {
+                rowDiv.addClass('drag-over');
+            }
+        }
+    });
+
+    rowDiv.elt.addEventListener('dragleave', (e) => {
+        rowDiv.removeClass('drag-over');
+    });
+
+    rowDiv.elt.addEventListener('drop', (e) => {
+        e.preventDefault();
+        rowDiv.removeClass('drag-over');
+
+        if (draggedTrackIndex !== null) {
+            let targetIndex = tracks.findIndex(t => t.rowDiv === rowDiv);
+
+            if (targetIndex !== draggedTrackIndex && targetIndex !== -1) {
+                // Reorder tracks array
+                let draggedTrack = tracks[draggedTrackIndex];
+                tracks.splice(draggedTrackIndex, 1);
+                tracks.splice(targetIndex, 0, draggedTrack);
+
+                // Reorder DOM elements
+                if (targetIndex === 0) {
+                    trackContainer.elt.insertBefore(draggedTrack.rowDiv.elt, trackContainer.elt.firstChild);
+                } else if (targetIndex >= tracks.length - 1) {
+                    trackContainer.elt.appendChild(draggedTrack.rowDiv.elt);
+                } else {
+                    trackContainer.elt.insertBefore(draggedTrack.rowDiv.elt, tracks[targetIndex + 1].rowDiv.elt);
+                }
+
+                // Update track numbers
+                updateTrackNumbers();
+                autoGeneratePreview();
+                captureState();
+            }
+        }
+    });
+}
+
+function updateTrackNumbers() {
+    tracks.forEach((t, i) => {
+        if (!t.customNumber) {
+            t.numSpan.html((i + 1) + '.');
+        }
+    });
 }
 
 function handleTrackNavigation(e, titleIn) {
@@ -400,7 +898,7 @@ function removeTrackRow(index) {
     if (tracks.length <= 1) return;
     tracks[index].rowDiv.remove();
     tracks.splice(index, 1);
-    tracks.forEach((t, i) => t.numSpan.html((i + 1) + '.'));
+    updateTrackNumbers();
     captureState();
     autoGeneratePreview();
 }
@@ -474,6 +972,16 @@ function fillFormFromData(data) {
     imageUrlInput.value(data.imageUrl || '');
     albumGradeSelect.selected(data.albumGrade || 'B');
 
+    if (data.aspectRatio && aspectRatioOptions[data.aspectRatio]) {
+        currentAspectRatio = data.aspectRatio;
+        aspectRatioSelect.selected(data.aspectRatio);
+    }
+
+    if (data.imageFormat) {
+        currentImageFormat = data.imageFormat;
+        imageFormatSelect.selected(data.imageFormat);
+    }
+
     while (tracks.length > 0) { tracks[0].rowDiv.remove(); tracks.shift(); }
 
     if (data.tracks && data.tracks.length > 0) {
@@ -501,6 +1009,8 @@ function saveToLocalStorage() {
         customNumber: t.customNumber || null,
         customText: t.textInput ? t.textInput.value() : null
     })));
+    data.aspectRatio = currentAspectRatio;
+    data.imageFormat = currentImageFormat;
     localStorage.setItem('albumGeneratorData', JSON.stringify(data));
 }
 
@@ -592,9 +1102,15 @@ async function printAlbum(){
         try {
             let images = await loadAndCacheImages(albumData.imageUrl);
             img = images.original; imgBW = images.filtered; hasImage = true;
-        } catch (err) {
+            lastUrlChecked = albumData.imageUrl; // Update on success
+        }
+        catch (err) {
             console.error('Failed to load image:', err);
-            showToast('Failed to load image. Check the URL.', true);
+            // Only show toast if this URL hasn't been checked before
+            if (lastUrlChecked !== albumData.imageUrl) {
+                showToast('Failed to load image. Check the URL.', true);
+                lastUrlChecked = albumData.imageUrl;
+            }
         }
     }
 
@@ -604,14 +1120,14 @@ async function printAlbum(){
     imageMode(CORNER); rectMode(CORNER);
 
     // Apply image vertical offset
-    let imageVertOffset = verticalOffsets.image || 0;
+    let imageVertOffset = verticalOffsetsRatings.image || 0;
     let imageX = width * 0.52;
     let imageY = y + imgOff + imageVertOffset;
     let imageSize = width * sizeSclMult;
 
     utils.beginShadow("#000000", 50, 0, 0);
     if (hasImage) {
-        rect(imageX, imageY, imageSize, imageSize);
+        rect(imageX+1, imageY+1, imageSize-2, imageSize-2);
         image(img, imageX, imageY, imageSize, imageSize);
     }
     else drawImagePlaceholder(imageX, imageY, imageSize, imageSize, true);
@@ -636,29 +1152,29 @@ async function printAlbum(){
     utils.beginShadow("#000000", 20, 0, 0);
     textFont(fontHeavy)
 
-    let titleOffset = verticalOffsets.title || 0;
+    let titleOffset = verticalOffsetsRatings.title || 0;
     drawTextWithBox('title', fontHeavy, getMaxTextSize(albumData.title, width - leftMargin * 2, 100) + textSizeOffsets.title,
                      albumData.title, leftMargin, topMargin + y + titleOffset, width - leftMargin * 2, 70);
 
-    let artistOffset = verticalOffsets.artist || 0;
+    let artistOffset = verticalOffsetsRatings.artist || 0;
     let bbox = drawTextWithBox('artist', fontRegularCondensed, 45 + textSizeOffsets.artist,
                                 albumData.artist, leftMargin, topMargin + y + 110 + artistOffset, width * 0.35, 50);
     y += bbox.h;
 
-    let yearOffset = verticalOffsets.year || 0;
+    let yearOffset = verticalOffsetsRatings.year || 0;
     let yearY = topMargin + y + 85 + 60 + yearOffset;
     textFont(fontLight); textLeading(60); textSize(38 + textSizeOffsets.year); fill(230);
     text("\n" + albumData.year + "\n", leftMargin, topMargin + y + 85 + yearOffset, width * 0.35);
     addTextBox('year', fontLight.textBounds(albumData.year, leftMargin, yearY, width * 0.35), 38 + textSizeOffsets.year);
 
-    let genreOffset = verticalOffsets.genre || 0;
+    let genreOffset = verticalOffsetsRatings.genre || 0;
     textSize(30 + textSizeOffsets.genre); textLeading(40);
     let genreText = shortenText(albumData.genre, width * 0.35);
     let genreY = topMargin + y + 75 + (40 * 3) + genreOffset;
     text("\n\n\n" + genreText, leftMargin, topMargin + y + 75 + genreOffset, width * 0.35);
     addTextBox('genre', fontLight.textBounds(genreText, leftMargin, genreY, width * 0.35), 30 + textSizeOffsets.genre);
 
-    let funfactOffset = verticalOffsets.funfact || 0;
+    let funfactOffset = verticalOffsetsRatings.funfact || 0;
     let funfactSize = 30 + textSizeOffsets.funfact;
     let funfactLeading = 40 + textLeadingOffsets.funfact;
     let funfactStartY = topMargin + y + 120 + (40 * 4) + funfactOffset;
@@ -670,10 +1186,10 @@ async function printAlbum(){
     // Draw tracks
     push()
     y = 820; let x = 275;
-    let spacing = Math.min(map(albumData.tracks.length, 5, 20, 80, 45, true), 70);
-    textFont(fontRegular); textSize(60); textAlign(LEFT, BASELINE);
-    rectMode(CENTER); let w = (leftMargin + x) * 0.75, h = 40;
-    let tracksVertOffset = verticalOffsets.tracks || 0;
+    let spacing = Math.min(map(albumData.tracks.length, 5, 20, 80, 45, true), 70) + tracksSpacing;
+    textFont(fontRegular); textSize(tracksTextSize); textAlign(LEFT, BASELINE);
+    rectMode(CENTER); let w = (leftMargin + x) * 0.75, h = tracksRectHeight;
+    let tracksVertOffset = verticalOffsetsRatings.tracks || 0;
 
     let tracksStartY = y + tracksVertOffset;
     let tracksMinX = leftMargin, tracksMaxX = leftMargin + x + 700;
@@ -682,7 +1198,7 @@ async function printAlbum(){
     for(let i = 0; i < albumData.tracks.length; i++){
         let track = albumData.tracks[i];
         let trackY = tracksStartY;
-        textSize(60); textFont(fontRegular);
+        textSize(tracksTextSize); textFont(fontRegular);
         let textHeight = textAscent() + textDescent();
         let rectCenterOffset = textAscent() - textHeight / 2;
 
@@ -702,7 +1218,7 @@ async function printAlbum(){
             push(); blendMode(BLEND); textAlign(CENTER, CENTER); fill(0, 160); textFont(fontRegularCondensed);
             let customTextSize = getMaxTextSize(track.customText, w - 40, 32);
             textSize(customTextSize); text(track.customText, (leftMargin + x) * 0.5, trackY - rectCenterOffset);
-            textSize(60); pop();
+            textSize(tracksTextSize); pop();
         }
 
         fill(255); textAlign(LEFT, BASELINE);
@@ -725,23 +1241,86 @@ async function printAlbum(){
         currentSize: 0
     });
 
-    // Album grade at bottom
-    let gradeRectHeight = 150;
+    // Get export dimensions based on aspect ratio
+    let exportHeight = aspectRatioOptions[currentAspectRatio].height;
+
+    // Album grade at bottom (positioned according to export height)
+    let gradeRectHeight = 115;
+    let gradeRectY = exportHeight - gradeRectHeight;
+
+    // Draw grade legend above the big rectangle
+    if (showGradeLegend) {
+        push()
+        let legendGrades = ['GOAT', 'S', 'A', 'B', 'C'];
+        let legendLabels = ['GOAT', '10', '9', '8', '7'];
+        let legendPadding = 15; // Padding between legend and big rectangle
+        let legendRectHeight = tracksRectHeight;
+        let legendY = imageY + imageSize + legendPadding * 1
+
+        let leftMargin = imageX
+        let totalWidth = imageSize
+        let gapBetween = 12;
+        let rectWidth = (totalWidth - (gapBetween * 4)) / 5;
+
+        push();
+        rectMode(CORNER);
+        textAlign(CENTER, CENTER);
+        textFont(fontRegularCondensed);
+
+        for (let i = 0; i < legendGrades.length; i++) {
+            let grade = legendGrades[i];
+            let label = legendLabels[i];
+            let x = leftMargin + i * (rectWidth + gapBetween);
+            let y = legendY
+
+            // Draw rectangle
+            let gradeColor = colorMap[grade] || "#888888";
+            fill(gradeColor);
+            noStroke();
+
+            if (grade == 'GOAT') {
+                utils.beginLinearGradient(["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"],
+                    x, y, x + rectWidth, y, [0, .2, .38, .59, 1]);
+            }
+            rect(x, y, rectWidth, legendRectHeight, 20);
+
+            // Draw label
+            fill(0, 180);
+            stroke(0, 180)
+            strokeWeight(.5)
+            textSize(getMaxTextSize(label, rectWidth - 10, 28));
+            text(label, x + rectWidth / 2, y + legendRectHeight / 2 + 2);
+        }
+        pop();
+        pop()
+    }
+
     fill(colorMap[albumData.albumGrade] || "#888888");
     rectMode(CORNER); noStroke();
     if(albumData.albumGrade == 'GOAT'){
         utils.beginLinearGradient(["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"],
-            0, height - gradeRectHeight, width, height - gradeRectHeight, [0, .2, .38, .59, 1]);
+            0, gradeRectY, width, gradeRectY, [0, .2, .38, .59, 1]);
     }
-    rect(0, height - gradeRectHeight, width, gradeRectHeight, 20, 20, 0, 0);
+    rect(0, gradeRectY, width, gradeRectHeight, 20, 20, 0, 0);
 
     push()
     let namingMap = { "GOAT": "GOAT", "S": "PEAK", "A": "EXCEPTIONAL", "B": "STRONG", "C": "DECENT", "D": "MEH", "F": "FLOP", "Interlude": "INTERLUDE" };
-    textAlign(CENTER, CENTER); fill(255); textFont(fontHeavy); textSize(100);
+    textAlign(CENTER, CENTER); fill(255); textFont(fontHeavy); textSize(85);
     utils.beginShadow("#ffffffa3", 30, 0, 0);
-    text(namingMap[albumData.albumGrade] || albumData.albumGrade, width * 0.5, height - gradeRectHeight * 0.43);
+    text(namingMap[albumData.albumGrade] || albumData.albumGrade, width * 0.5, gradeRectY + gradeRectHeight * 0.57);
     utils.endShadow();
     pop()
+
+    // Draw green rectangle to visualize export area (only when not downloading)
+    if (showGreenRectangle) {
+        push();
+        noFill();
+        stroke(0, 255, 0);
+        strokeWeight(4);
+        rectMode(CORNER);
+        rect(0, 0, WIDTH, exportHeight);
+        pop();
+    }
 
     // Draw selection outline for any selected box
     if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
@@ -784,9 +1363,14 @@ async function printCoverScreen() {
         try {
             let images = await loadAndCacheImages(albumData.imageUrl);
             img = images.original; imgBW = images.filtered; hasImage = true;
+            lastUrlChecked = albumData.imageUrl; // Update on success
         } catch (err) {
             console.error('Failed to load image:', err);
-            showToast('Failed to load image. Check the URL.', true);
+            // Only show toast if this URL hasn't been checked before
+            if (lastUrlChecked !== albumData.imageUrl) {
+                showToast('Failed to load image. Check the URL.', true);
+                lastUrlChecked = albumData.imageUrl;
+            }
         }
     }
 
@@ -808,18 +1392,20 @@ async function printCoverScreen() {
     textAlign(CENTER, TOP)
 
     utils.beginShadow("#000000", 20, 0, 0);
-    let titleY = coverY + coverSize * 0.5 + 60;
-    textFont(fontHeavy); 
+    let titleVertOffset = verticalOffsetsCover.title || 0;
+    let titleY = coverY + coverSize * 0.5 + 60 + titleVertOffset;
+    textFont(fontHeavy);
     let titleSize = getMaxTextSize(albumData.title, width - 100, 100) + textSizeOffsets.title;
     titleSize = max(10, titleSize);
-    console.log(titleSize)
     textSize(titleSize); fill(255); text(albumData.title, width * 0.5, titleY);
     addTextBox('title', fontHeavy.textBounds(albumData.title, width * 0.5, titleY, width - 100), titleSize);
 
+    let artistVertOffset = verticalOffsetsCover.artist || 0;
+    let artistY = coverY + coverSize * 0.5 + 60 + 130 + artistVertOffset;
     textFont(fontRegularCondensed);
     let artistSize = getMaxTextSize(albumData.artist, width - 100, 50) + textSizeOffsets.artist;
-     textSize(artistSize); fill(230); text(albumData.artist, width * 0.5, titleY + 130);
-    addTextBox('artist', fontRegularCondensed.textBounds(albumData.artist, width * 0.5, titleY + 130, width - 100), artistSize);
+    textSize(artistSize); fill(230); text(albumData.artist, width * 0.5, artistY);
+    addTextBox('artist', fontRegularCondensed.textBounds(albumData.artist, width * 0.5, artistY, width - 100), artistSize);
     utils.endShadow();
 
     if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
@@ -845,7 +1431,7 @@ function dimImage(img, amount){
 }
 
 function draw(){
-    if(frameCount % 60 === 0) autoGeneratePreview();
+    //if(frameCount % 60 === 0) autoGeneratePreview();
 }
 
 function mousePressed() {
@@ -915,10 +1501,17 @@ function updateVerticalOffsetSlider() {
     if (!verticalOffsetSlider) return;
 
     if (selectedTextBox) {
-        // Enable slider and set value
+        // Enable slider and set value from correct offset object
         verticalOffsetSlider.removeAttribute('disabled');
         verticalOffsetSlider.removeClass('disabled');
-        let offset = verticalOffsets[selectedTextBox.id] || 0;
+
+        let offset;
+        if (currentView === 'ratings') {
+            offset = verticalOffsetsRatings[selectedTextBox.id] || 0;
+        } else {
+            offset = verticalOffsetsCover[selectedTextBox.id] || 0;
+        }
+
         verticalOffsetSlider.value(offset);
         verticalOffsetLabel.html(offset);
     } else {
@@ -969,11 +1562,18 @@ function captureState() {
         title: titleInput.value(), artist: artistInput.value(), year: yearInput.value(),
         genre: genreInput.value(), funfact: funfactInput.value(), imageUrl: imageUrlInput.value(),
         albumGrade: albumGradeSelect.value(),
+        aspectRatio: currentAspectRatio,
+        imageFormat: currentImageFormat,
+        showGradeLegend: showGradeLegend,
         tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(),
                                     customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null })),
         textSizeOffsets: {...textSizeOffsets},
         textLeadingOffsets: {...textLeadingOffsets},
-        verticalOffsets: {...verticalOffsets}
+        verticalOffsetsRatings: {...verticalOffsetsRatings},
+        verticalOffsetsCover: {...verticalOffsetsCover},
+        tracksTextSize: tracksTextSize,
+        tracksSpacing: tracksSpacing,
+        tracksRectHeight: tracksRectHeight
     };
 
     if (historyIndex < historyStack.length - 1) historyStack = historyStack.slice(0, historyIndex + 1);
@@ -1004,9 +1604,28 @@ function restoreState(state) {
     funfactInput.value(state.funfact || ''); imageUrlInput.value(state.imageUrl || '');
     albumGradeSelect.selected(state.albumGrade || 'GOAT');
 
+    if (state.aspectRatio) {
+        currentAspectRatio = state.aspectRatio;
+        aspectRatioSelect.selected(state.aspectRatio);
+    }
+
+    if (state.imageFormat) {
+        currentImageFormat = state.imageFormat;
+        imageFormatSelect.selected(state.imageFormat);
+    }
+
+    if (state.showGradeLegend !== undefined) {
+        showGradeLegend = state.showGradeLegend;
+        if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
+    }
+
     if (state.textSizeOffsets) Object.assign(textSizeOffsets, state.textSizeOffsets);
     if (state.textLeadingOffsets) textLeadingOffsets.funfact = state.textLeadingOffsets.funfact || 0;
-    if (state.verticalOffsets) Object.assign(verticalOffsets, state.verticalOffsets);
+    if (state.verticalOffsetsRatings) Object.assign(verticalOffsetsRatings, state.verticalOffsetsRatings);
+    if (state.verticalOffsetsCover) Object.assign(verticalOffsetsCover, state.verticalOffsetsCover);
+    if (state.tracksTextSize !== undefined) tracksTextSize = state.tracksTextSize;
+    if (state.tracksSpacing !== undefined) tracksSpacing = state.tracksSpacing;
+    if (state.tracksRectHeight !== undefined) tracksRectHeight = state.tracksRectHeight;
 
     while (tracks.length > 0) { tracks[0].rowDiv.remove(); tracks.shift(); }
 

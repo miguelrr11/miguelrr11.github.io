@@ -45,7 +45,7 @@ canvas {
     backdrop-filter: blur(20px);
     border-radius: 16px;
     padding: 28px;
-    width: 500px;
+    width: 550px;
     height: calc(100vh - 40px);
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
@@ -155,10 +155,25 @@ canvas {
 }
 
 /* Slider */
+.slider-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+}
+
+.slider-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    font-weight: 500;
+    min-width: 80px;
+}
+
 .slider-container {
     display: flex;
     align-items: center;
     gap: 12px;
+    flex: 1;
 }
 
 .form-slider {
@@ -277,13 +292,47 @@ canvas {
     padding: 10px 12px;
     background: rgba(255, 255, 255, 0.04);
     border-radius: 10px;
-    transition: background 0.2s ease;
+    transition: background 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
     position: relative;
     flex-wrap: wrap;
+    cursor: grab;
+    min-height: 48px; /* Ensure consistent height */
 }
 
 .track-row:hover {
     background: rgba(255, 255, 255, 0.08);
+}
+
+.track-row.dragging {
+    opacity: 0.5;
+    cursor: grabbing;
+    transform: scale(0.95);
+}
+
+.track-row.drag-over {
+    background: rgba(138, 180, 248, 0.15);
+    border: 2px dashed rgba(138, 180, 248, 0.5);
+    transform: translateY(-2px);
+}
+
+.track-drag-handle {
+    color: rgba(255, 255, 255, 0.3);
+    font-size: 14px;
+    cursor: grab;
+    user-select: none;
+    line-height: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    transition: color 0.2s ease;
+}
+
+.track-drag-handle:hover {
+    color: rgba(255, 255, 255, 0.6);
+}
+
+.track-row:active .track-drag-handle {
+    cursor: grabbing;
 }
 
 .track-number {
@@ -291,11 +340,15 @@ canvas {
     font-size: 13px;
     font-weight: 500;
     min-width: 24px;
+    height: 32px;
+    display: flex;
+    align-items: center;
 }
 
 .track-title-input {
     flex: 1;
-    padding: 8px 10px;
+    padding: 0 10px;
+    height: 32px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid transparent;
     border-radius: 6px;
@@ -303,6 +356,7 @@ canvas {
     font-size: 13px;
     outline: none;
     transition: all 0.2s ease;
+    line-height: 32px;
 }
 
 .track-title-input:focus {
@@ -315,7 +369,8 @@ canvas {
 }
 
 .track-grade-select {
-    padding: 8px 15px 8px 10px;
+    padding: 0 30px 0 10px;
+    height: 32px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid transparent;
     border-radius: 6px;
@@ -328,6 +383,7 @@ canvas {
     background-repeat: no-repeat;
     background-position: right 10px center;
     transition: all 0.2s ease;
+    line-height: 32px;
 }
 
 .track-grade-select:focus {
@@ -340,8 +396,8 @@ canvas {
 }
 
 .track-text-btn {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -353,6 +409,7 @@ canvas {
     font-weight: 600;
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .track-text-btn:hover {
@@ -362,6 +419,8 @@ canvas {
 .track-text-input-container {
     width: 100%;
     margin-top: 6px;
+    flex-basis: 100%;
+    order: 999;
 }
 
 .track-text-input {
@@ -386,8 +445,8 @@ canvas {
 }
 
 .track-remove-btn {
-    width: 28px;
-    height: 28px;
+    width: 32px;
+    height: 32px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -395,9 +454,10 @@ canvas {
     border: none;
     border-radius: 6px;
     color: #ef4444;
-    font-size: 14px;
+    font-size: 16px;
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
 }
 
 .track-remove-btn:hover {
@@ -781,6 +841,24 @@ canvas {
     color: #fff;
     font-size: 13px;
     outline: none;
+}
+
+/* Checkbox styling */
+.checkbox-input {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.checkbox-input input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: #8ab4f8;
 }
 
 /* Responsive */
