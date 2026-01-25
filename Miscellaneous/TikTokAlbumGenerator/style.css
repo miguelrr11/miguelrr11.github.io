@@ -154,6 +154,42 @@ canvas {
     color: #fff;
 }
 
+/* Image input with upload button */
+.image-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.image-input-row .form-input {
+    flex: 1;
+}
+
+.image-upload-btn {
+    width: 42px;
+    height: 42px;
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 10px;
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.image-upload-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(138, 180, 248, 0.5);
+}
+
+.hidden-file-input {
+    display: none;
+}
+
 /* Slider */
 .slider-row {
     display: flex;
@@ -166,7 +202,8 @@ canvas {
     color: rgba(255, 255, 255, 0.7);
     font-size: 13px;
     font-weight: 500;
-    min-width: 80px;
+    min-width: 115px;
+    flex-shrink: 0;
 }
 
 .slider-container {
@@ -847,7 +884,7 @@ canvas {
 .checkbox-input {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 12px;
     color: rgba(255, 255, 255, 0.8);
     font-size: 13px;
     cursor: pointer;
@@ -857,8 +894,16 @@ canvas {
 .checkbox-input input[type="checkbox"] {
     width: 18px;
     height: 18px;
+    margin: 0;
+    flex-shrink: 0;
     cursor: pointer;
     accent-color: #8ab4f8;
+}
+
+.checkbox-input label {
+    line-height: 18px;
+    margin: 0;
+    padding: 0;
 }
 
 /* Responsive */
