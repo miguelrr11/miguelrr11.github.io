@@ -1006,7 +1006,10 @@ function addTrackRowWithCapture(shouldCapture) {
     });
 
     let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
-    removeBtn.mousePressed(() => removeTrackRow(trackIndex));
+    removeBtn.mousePressed(() => {
+        let currentIndex = tracks.findIndex(t => t.rowDiv === rowDiv);
+        if (currentIndex !== -1) removeTrackRow(currentIndex);
+    });
 
     tracks.push({ titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, textInput, textInputContainer, dragHandle });
 
@@ -1324,7 +1327,7 @@ async function printAlbum(){
     // Apply image offsets and size multiplier
     let imageVertOffset = verticalOffsetsRatings.image || 0;
     let imageHorizOffset = horizontalOffsetsRatings.image || 0;
-    let imageX = width * 0.52 + imageHorizOffset;
+    let imageX = width * 0.05 + imageHorizOffset;
     let imageY = y + imgOff + imageVertOffset;
     let imageSize = width * sizeSclMult * imageSizeMultiplier;
 
@@ -1356,20 +1359,20 @@ async function printAlbum(){
     textFont(fontHeavy)
 
     let titleOffset = verticalOffsetsRatings.title || 0;
-    let titleHorizOffset = horizontalOffsetsRatings.title || 0;
+    let titleHorizOffset = (horizontalOffsetsRatings.title || 0) + 0;
     let titleMaxWidth = maxTextboxWidths.title || defaultMaxTextboxWidths.title;
     drawTextWithBox('title', fontHeavy, getMaxTextSize(albumData.title, titleMaxWidth, 100) + textSizeOffsets.title,
                      albumData.title, leftMargin + titleHorizOffset, topMargin + y + titleOffset, titleMaxWidth, 70);
 
-    let artistOffset = verticalOffsetsRatings.artist || 0;
-    let artistHorizOffset = horizontalOffsetsRatings.artist || 0;
+    let artistOffset = verticalOffsetsRatings.artist || 10;
+    let artistHorizOffset = (horizontalOffsetsRatings.artist || 0) + width * .475;
     let artistMaxWidth = maxTextboxWidths.artist || defaultMaxTextboxWidths.artist;
     let bbox = drawTextWithBox('artist', fontRegularCondensed, 45 + textSizeOffsets.artist,
                                 albumData.artist, leftMargin + artistHorizOffset, topMargin + y + 110 + artistOffset, artistMaxWidth, 50);
     y += bbox.h;
 
     let yearOffset = verticalOffsetsRatings.year || 0;
-    let yearHorizOffset = horizontalOffsetsRatings.year || 0;
+    let yearHorizOffset = (horizontalOffsetsRatings.year || 0) + width * .475;
     let yearMaxWidth = maxTextboxWidths.year || defaultMaxTextboxWidths.year;
     let yearY = topMargin + y + 85 + 60 + yearOffset;
     textFont(fontLight); textLeading(60); textSize(38 + textSizeOffsets.year); fill(230);
@@ -1377,7 +1380,7 @@ async function printAlbum(){
     addTextBox('year', fontLight.textBounds(albumData.year, leftMargin + yearHorizOffset, yearY, yearMaxWidth), 38 + textSizeOffsets.year);
 
     let genreOffset = verticalOffsetsRatings.genre || 0;
-    let genreHorizOffset = horizontalOffsetsRatings.genre || 0;
+    let genreHorizOffset = (horizontalOffsetsRatings.genre || 0) + width * .475;
     let genreMaxWidth = maxTextboxWidths.genre || defaultMaxTextboxWidths.genre;
     textSize(30 + textSizeOffsets.genre); textLeading(40);
     let genreText = shortenText(albumData.genre, genreMaxWidth);
@@ -1386,7 +1389,7 @@ async function printAlbum(){
     addTextBox('genre', fontLight.textBounds(genreText, leftMargin + genreHorizOffset, genreY, genreMaxWidth), 30 + textSizeOffsets.genre);
 
     let funfactOffset = verticalOffsetsRatings.funfact || 0;
-    let funfactHorizOffset = horizontalOffsetsRatings.funfact || 0;
+    let funfactHorizOffset = (horizontalOffsetsRatings.funfact || 0) + width * .475;
     let funfactMaxWidth = maxTextboxWidths.funfact || defaultMaxTextboxWidths.funfact;
     let funfactSize = 30 + textSizeOffsets.funfact;
     let funfactLeading = 40 + textLeadingOffsets.funfact;
