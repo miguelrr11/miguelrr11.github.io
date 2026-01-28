@@ -1,0 +1,74 @@
+{
+  "album": {
+    "title": "Heaven or Las Vegas",
+    "artist": "Cocteau Twins",
+    "year": "1990",
+    "runtime": "",
+    "genre": "Dream Pop",
+    "funfact": "Less experimental and risky, but still so dreamy and beautiful. The lyrics are unrecognizable, as always with this band.",
+    "tracks": [
+      {
+        "title": "Cherry-coloured Funk",
+        "grade": "GOAT",
+        "customNumber": null,
+        "customText": ""
+      },
+      {
+        "title": "Pitch the Baby",
+        "grade": "S",
+        "customNumber": null,
+        "customText": ""
+      },
+      {
+        "title": "Iceblink Luck",
+        "grade": "B",
+        "customNumber": null,
+        "customText": ""
+      },
+      {
+        "title": "FIfty-fifty Clown",
+        "grade": "B",
+        "customNumber": null,
+        "customText": ""
+      },
+      {
+        "title": "Heaven or Las Vegas",
+        "grade": "S",
+        "customNumber": null,
+        "customText": ""
+      },
+      {
+        "title": "I Wear Your Ring",
+        "grade": "B",
+        "customNumber": null,
+        "customText": ""
+      },
+      {
+        "title": "Fotzepolitic",
+        "grade": "C",
+        "customNumber": null,
+        "customText": ""
+      },
+      {
+        "title": "Wolf in the Breast",
+        "grade": "B",
+        "customNumber": null,
+        "customText": ""
+      },
+      {
+        "title": "Road, River and Rail",
+        "grade": "C",
+        "customNumber": null,
+        "customText": ""
+      },
+      {
+        "title": "Frou-frou Foxes in Midsummer Fires",
+        "grade": "A",
+        "customNumber": null,
+        "customText": ""
+      }
+    ],
+    "imageUrl": "https://e.snmc.io/i/600/w/d688c2e2d37251698dbbc1355018340a/11766199/cocteau-twins-heaven-or-las-vegas-Cover-Art.jpg",
+    "albumGrade": "S"
+  }
+}
