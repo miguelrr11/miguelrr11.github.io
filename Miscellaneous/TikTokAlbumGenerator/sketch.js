@@ -2,6 +2,13 @@
 //Miguel Rodríguez
 //17-01-2026
 
+/*
+lee todo el archivo antes y el css tambien
+
+ahora mismo hay 2 tipos de textboxes, los predefinidos (artista, genero, etc) y los custom text boxes (los tracks no son textboxes).
+hay una gran inconsistencia entre ambos, los dos se controlan en diferentes partes de la ui, los predefinidos no se pueden draggear, etc. los predefinidos al seleccionarlos sale un menu inferior donde se modifican sus ajustes. Es un caos. Vamos a unificarlos para que todo sean custom boxes, y los predefinidos ya vengan con ajustes dentro predefinidos. quiero que al crear un textbox nuevo, se añada el input text en el panel como si fuese cualquier otro input text (como el del fun fact). y al seleccionar el textbox salga el menu inferior ese. entonces todo el tema de la configuracion de los customtextboxes tienes que eliminarlo.
+*/
+
 p5.disableFriendlyErrors = true
 const WIDTH = 1080
 const HEIGHT = 1920
@@ -1872,6 +1879,7 @@ async function printAlbum(){
         push()
         let legendGrades = ['GOAT', 'S', 'A', 'B', 'C'];
         let legendLabels = ['GOAT', '10', '9', '8', '7'];
+        let nOfGrades = legendGrades.length
         let legendPadding = 15; // Padding between legend and big rectangle
         let legendRectHeight = tracksRectHeight;
         let legendY = imageY + imageSize + legendPadding * 1
@@ -1879,7 +1887,7 @@ async function printAlbum(){
         let leftMargin = imageX
         let totalWidth = imageSize
         let gapBetween = 12;
-        let rectWidth = (totalWidth - (gapBetween * 4)) / 5;
+        let rectWidth = (totalWidth - (gapBetween * (nOfGrades - 1))) / nOfGrades;
 
         push();
         rectMode(CORNER);
