@@ -200,7 +200,7 @@ function createAlbumEditor() {
     createImageInputWithUpload();
 
     // Album Grade row
-    let gradeRow = createDiv('').parent(editorPanel).style('display: flex; gap: 50px; align-items: center;');
+    let gradeRow = createDiv('').parent(editorPanel).style('display: flex; gap: 35px; align-items: center;');
     let gradeGroup = createDiv('').parent(gradeRow).class('form-group').style('flex: 1;');
     createElement('label', 'Album Grade').parent(gradeGroup);
     albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
@@ -560,8 +560,9 @@ function createProfileSection() {
     profileSelect = createSelect().parent(selectGroup).class('form-select');
     profileSelect.option('Default'); // Add default initially, will be updated after loadProfiles()
 
-    createButton('Apply').parent(selectRow).class('btn btn-primary').style('width: 70px; padding: 8px;').mousePressed(applySelectedProfile);
-    createButton('Delete').parent(selectRow).class('btn btn-danger').style('width: 70px; padding: 8px;').mousePressed(deleteSelectedProfile);
+    createButton('Apply').parent(selectRow).class('btn btn-primary').style('width: 60px; padding: 8px;').mousePressed(applySelectedProfile);
+    createButton('Update').parent(selectRow).class('btn btn-blue').style('width: 60px; padding: 8px;').mousePressed(updateSelectedProfile);
+    createButton('Delete').parent(selectRow).class('btn btn-danger').style('width: 60px; padding: 8px;').mousePressed(deleteSelectedProfile);
 
     // Save new profile row
     let saveRow = createDiv('').parent(profileContent).style('display: flex; gap: 8px;');
@@ -778,6 +779,22 @@ function applySelectedProfile() {
     saveLastProfile();
     showToast('Profile applied: ' + selectedName);
     captureState();
+}
+
+function updateSelectedProfile() {
+    let selectedName = profileSelect.value();
+    if (selectedName === 'Default') {
+        showToast('Cannot update Default profile', true);
+        return;
+    }
+    if (!profiles[selectedName]) {
+        showToast('Profile not found', true);
+        return;
+    }
+
+    profiles[selectedName] = getCurrentProfileData();
+    saveProfiles();
+    showToast('Profile updated: ' + selectedName);
 }
 
 function deleteSelectedProfile() {
