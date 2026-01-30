@@ -2,13 +2,6 @@
 //Miguel Rodríguez
 //17-01-2026
 
-/*
-lee todo el archivo antes y el css tambien
-
-ahora mismo hay 2 tipos de textboxes, los predefinidos (artista, genero, etc) y los custom text boxes (los tracks no son textboxes).
-hay una gran inconsistencia entre ambos, los dos se controlan en diferentes partes de la ui, los predefinidos no se pueden draggear, etc. los predefinidos al seleccionarlos sale un menu inferior donde se modifican sus ajustes. Es un caos. Vamos a unificarlos para que todo sean custom boxes, y los predefinidos ya vengan con ajustes dentro predefinidos. quiero que al crear un textbox nuevo, se añada el input text en el panel como si fuese cualquier otro input text (como el del fun fact). y al seleccionar el textbox salga el menu inferior ese. entonces todo el tema de la configuracion de los customtextboxes tienes que eliminarlo.
-*/
-
 p5.disableFriendlyErrors = true
 const WIDTH = 1080
 const HEIGHT = 1920
@@ -28,6 +21,7 @@ let verticalOffsetSlider, verticalOffsetLabel;
 let horizontalOffsetSlider, horizontalOffsetLabel;
 let imageSizeMultiplierSlider, imageSizeMultiplierLabel;
 let maxTextboxWidthSlider, maxTextboxWidthLabel;
+let positionXInput, positionYInput, positionXLabel, positionYLabel;
 
 // Aspect Ratio options (for ratings screen only)
 let aspectRatioSelect;
@@ -95,8 +89,13 @@ let profileSelect, profileNameInput;
 // Custom textboxes system
 let customTextboxes = [];
 let customTextboxContainer;
-let isDraggingCustomTextbox = false;
-let draggedCustomTextbox = null;
+let isDraggingTextbox = false;
+let draggedTextbox = null;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragStartOffsetX = 0;
+let dragStartOffsetY = 0;
+let shiftDragAxis = null; // null, 'x', or 'y' - for shift+drag constraint
 
 function calculateCanvasScale() {
     const scale = (window.innerHeight - 40) / HEIGHT;
@@ -133,10 +132,10 @@ async function setup(){
     setupDragDrop();
     createAlbumEditor();
     loadProfiles();
-    updateProfileSelect(); // Update profile dropdown after loading profiles
-    loadFromLocalStorage();
+    updateProfileSelect();
     loadCustomColors();
-    loadLastProfile();
+    loadLastProfile(); // Apply profile first (sets defaults)
+    loadFromLocalStorage(); // Then load album data (overrides profile settings)
     captureState();
 
     setInterval(saveToLocalStorage, 1000);
@@ -200,10 +199,21 @@ function createAlbumEditor() {
     funfactInput = createFormTextarea('Fun Fact', 'Add an interesting fact about the album...');
     createImageInputWithUpload();
 
-    // Album Grade & Vertical Offset row
-    let gradeOffsetRow = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
-    albumGradeSelect = createFormSelect('Album Grade', gradeOptions, gradeOffsetRow);
-    createVerticalOffsetSlider(gradeOffsetRow);
+    // Album Grade row
+    let gradeRow = createDiv('').parent(editorPanel).style('display: flex; gap: 50px; align-items: center;');
+    let gradeGroup = createDiv('').parent(gradeRow).class('form-group').style('flex: 1;');
+    createElement('label', 'Album Grade').parent(gradeGroup);
+    albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
+    gradeOptions.forEach(opt => albumGradeSelect.option(opt));
+    albumGradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
+
+    // X/Y Position controls
+    createPositionControls(gradeRow);
+
+    // Add Custom Textbox button (right after grade and position controls)
+    let addTextboxBtn = createButton('+ Add Textbox').parent(editorPanel).class('btn btn-secondary').style('margin-bottom: 20px;');
+    addTextboxBtn.mousePressed(addCustomTextbox);
+    customTextboxContainer = createDiv('').parent(editorPanel);
 
     // Divider & Tracks
     createDiv('').parent(editorPanel).class('section-divider');
@@ -220,7 +230,6 @@ function createAlbumEditor() {
     createTracksCustomizationSection();
     createColorSection();
     createAdvancedOptionsSection();
-    createCustomTextboxSection();
     createSizeAdjustPanel();
 }
 
@@ -299,38 +308,187 @@ function createFormSelect(label, options, parent = editorPanel) {
     return select;
 }
 
-function createVerticalOffsetSlider(parent) {
-    let group = createDiv('').parent(parent).class('form-group').style('flex', '1');
-    createElement('label', 'Vertical Offset').parent(group);
-    let container = createDiv('').parent(group).class('slider-container');
-    verticalOffsetSlider = createSlider(-900, 900, 0, 1).parent(container).class('form-slider');
-    verticalOffsetLabel = createSpan('0').parent(container).class('slider-value');
+function createPositionControls(parent) {
+    let group = createDiv('').parent(parent).class('form-group').style('flex', '1.2');
+    createElement('label', 'Position').parent(group);
+    let container = createDiv('').parent(group).class('position-controls');
 
-    let sliderTimeout = null;
-    verticalOffsetSlider.input(() => {
+    // X controls
+    positionXLabel = createSpan('X').parent(container).class('position-label');
+    setupLongPressButton(createButton('−').parent(container).class('position-btn'), 'x', -1);
+    positionXInput = createInput('0').parent(container).class('position-input');
+    positionXInput.attribute('type', 'number');
+    positionXInput.elt.addEventListener('input', () => {
         if (!selectedTextBox) return;
-        let value = verticalOffsetSlider.value();
-        verticalOffsetLabel.html(value);
-
-        // Store offset in the correct object based on current view
-        if (currentView === 'ratings') {
-            verticalOffsetsRatings[selectedTextBox.id] = value;
-        } else {
-            verticalOffsetsCover[selectedTextBox.id] = value;
-        }
-
-        if (albumData) {
-            currentView === 'ratings' ? printAlbum() : printCoverScreen();
-        }
-
-        // Debounce capture state
-        if (sliderTimeout) clearTimeout(sliderTimeout);
-        sliderTimeout = setTimeout(() => captureState(), 500);
+        let value = parseInt(positionXInput.value()) || 0;
+        applyPositionChange('x', value);
     });
+    positionXInput.elt.addEventListener('blur', captureState);
+    setupLongPressButton(createButton('+').parent(container).class('position-btn'), 'x', 1);
+
+    // Y controls
+    positionYLabel = createSpan('Y').parent(container).class('position-label').style('margin-left', '6px');
+    setupLongPressButton(createButton('−').parent(container).class('position-btn'), 'y', -1);
+    positionYInput = createInput('0').parent(container).class('position-input');
+    positionYInput.attribute('type', 'number');
+    positionYInput.elt.addEventListener('input', () => {
+        if (!selectedTextBox) return;
+        let value = parseInt(positionYInput.value()) || 0;
+        applyPositionChange('y', value);
+    });
+    positionYInput.elt.addEventListener('blur', captureState);
+    setupLongPressButton(createButton('+').parent(container).class('position-btn'), 'y', 1);
 
     // Initially disable
-    verticalOffsetSlider.attribute('disabled', '');
-    verticalOffsetSlider.addClass('disabled');
+    disablePositionControls();
+}
+
+function setupLongPressButton(btn, axis, delta) {
+    let longPressTimeout = null;
+    let repeatInterval = null;
+    let hasInteracted = false;
+
+    const startAction = () => {
+        hasInteracted = true;
+        adjustPosition(axis, delta);
+
+        // Start long press detection after 500ms
+        longPressTimeout = setTimeout(() => {
+            // Start rapid repeat at 50ms intervals
+            repeatInterval = setInterval(() => {
+                adjustPosition(axis, delta);
+            }, 50);
+        }, 500);
+    };
+
+    const stopAction = () => {
+        if (longPressTimeout) {
+            clearTimeout(longPressTimeout);
+            longPressTimeout = null;
+        }
+        if (repeatInterval) {
+            clearInterval(repeatInterval);
+            repeatInterval = null;
+        }
+        if (hasInteracted) {
+            captureState();
+            hasInteracted = false;
+        }
+    };
+
+    btn.elt.addEventListener('mousedown', startAction);
+    btn.elt.addEventListener('mouseup', stopAction);
+    btn.elt.addEventListener('mouseleave', stopAction);
+    btn.elt.addEventListener('touchstart', (e) => { e.preventDefault(); startAction(); });
+    btn.elt.addEventListener('touchend', stopAction);
+    btn.elt.addEventListener('touchcancel', stopAction);
+}
+
+function adjustPosition(axis, delta) {
+    if (!selectedTextBox) return;
+
+    if (selectedTextBox.isCustom) {
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            if (axis === 'x') textbox.x += delta;
+            else textbox.y += delta;
+        }
+    } else {
+        if (currentView === 'ratings') {
+            if (axis === 'x') {
+                horizontalOffsetsRatings[selectedTextBox.id] = (horizontalOffsetsRatings[selectedTextBox.id] || 0) + delta;
+            } else {
+                verticalOffsetsRatings[selectedTextBox.id] = (verticalOffsetsRatings[selectedTextBox.id] || 0) + delta;
+            }
+        } else {
+            if (axis === 'x') {
+                horizontalOffsetsCover[selectedTextBox.id] = (horizontalOffsetsCover[selectedTextBox.id] || 0) + delta;
+            } else {
+                verticalOffsetsCover[selectedTextBox.id] = (verticalOffsetsCover[selectedTextBox.id] || 0) + delta;
+            }
+        }
+    }
+
+    updatePositionControls();
+    currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    // Note: captureState is called by setupLongPressButton after mouseup
+}
+
+function applyPositionChange(axis, value) {
+    if (!selectedTextBox) return;
+
+    if (selectedTextBox.isCustom) {
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            if (axis === 'x') textbox.x = value;
+            else textbox.y = value;
+        }
+    } else {
+        if (currentView === 'ratings') {
+            if (axis === 'x') horizontalOffsetsRatings[selectedTextBox.id] = value;
+            else verticalOffsetsRatings[selectedTextBox.id] = value;
+        } else {
+            if (axis === 'x') horizontalOffsetsCover[selectedTextBox.id] = value;
+            else verticalOffsetsCover[selectedTextBox.id] = value;
+        }
+    }
+
+    currentView === 'ratings' ? printAlbum() : printCoverScreen();
+}
+
+function updatePositionControls() {
+    if (!selectedTextBox) {
+        disablePositionControls();
+        return;
+    }
+
+    enablePositionControls();
+
+    let xVal, yVal;
+    if (selectedTextBox.isCustom) {
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            xVal = Math.round(textbox.x);
+            yVal = Math.round(textbox.y);
+        } else {
+            xVal = yVal = 0;
+        }
+    } else {
+        if (currentView === 'ratings') {
+            xVal = horizontalOffsetsRatings[selectedTextBox.id] || 0;
+            yVal = verticalOffsetsRatings[selectedTextBox.id] || 0;
+        } else {
+            xVal = horizontalOffsetsCover[selectedTextBox.id] || 0;
+            yVal = verticalOffsetsCover[selectedTextBox.id] || 0;
+        }
+    }
+
+    positionXInput.value(xVal);
+    positionYInput.value(yVal);
+}
+
+function enablePositionControls() {
+    if (positionXInput) {
+        positionXInput.removeAttribute('disabled');
+        positionXInput.removeClass('disabled');
+    }
+    if (positionYInput) {
+        positionYInput.removeAttribute('disabled');
+        positionYInput.removeClass('disabled');
+    }
+}
+
+function disablePositionControls() {
+    if (positionXInput) {
+        positionXInput.attribute('disabled', '');
+        positionXInput.addClass('disabled');
+        positionXInput.value(0);
+    }
+    if (positionYInput) {
+        positionYInput.attribute('disabled', '');
+        positionYInput.addClass('disabled');
+        positionYInput.value(0);
+    }
 }
 
 function createButtonGrid() {
@@ -417,22 +575,22 @@ function createProfileSection() {
 
 function getDefaultProfile() {
     return {
-        tracksTextSize: 60,
-        tracksSpacing: 0,
-        tracksRectHeight: 40,
+        tracksTextSize: 44,
+        tracksSpacing: -18,
+        tracksRectHeight: 28,
         tracksVerticalOffset: 0,
         colorMap: {...defaultColorMap},
-        aspectRatio: '9:16',
-        imageFormat: 'png',
+        aspectRatio: '3:4',
+        imageFormat: 'jpg',
         showGradeLegend: true,
-        verticalOffsetsRatings: {},
+        verticalOffsetsRatings: {funfact: -2},
         verticalOffsetsCover: {},
         horizontalOffsetsRatings: {},
         horizontalOffsetsCover: {},
         imageSizeMultiplier: 1.0,
         maxTextboxWidths: {...defaultMaxTextboxWidths},
-        textSizeOffsets: {},
-        textLeadingOffsets: {}
+        textSizeOffsets: {funfact: -2},
+        textLeadingOffsets: {funfact: -2}
     };
 }
 
@@ -511,6 +669,15 @@ function applyProfile(profileData) {
     if (gradeLegendCheckbox) {
         gradeLegendCheckbox.checked(showGradeLegend);
     }
+
+    // Clear existing offsets before applying profile
+    Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
+    Object.keys(verticalOffsetsCover).forEach(k => delete verticalOffsetsCover[k]);
+    Object.keys(horizontalOffsetsRatings).forEach(k => delete horizontalOffsetsRatings[k]);
+    Object.keys(horizontalOffsetsCover).forEach(k => delete horizontalOffsetsCover[k]);
+    Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
+    Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
+    Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
 
     // Apply vertical offsets
     if (profileData.verticalOffsetsRatings) {
@@ -800,6 +967,39 @@ function createAdvancedOptionsSection() {
         }
     });
 
+    // Vertical Offset slider
+    let vertOffsetRow = createDiv('').parent(advancedContent).class('slider-row');
+    createSpan('Vertical Offset').parent(vertOffsetRow).class('slider-label');
+    let vertOffsetContainer = createDiv('').parent(vertOffsetRow).class('slider-container');
+    verticalOffsetSlider = createSlider(-900, 900, 0, 1).parent(vertOffsetContainer).class('form-slider');
+    verticalOffsetLabel = createSpan('0').parent(vertOffsetContainer).class('slider-value');
+
+    // Initially disable
+    verticalOffsetSlider.attribute('disabled', '');
+    verticalOffsetSlider.addClass('disabled');
+
+    let vertSliderTimeout = null;
+    verticalOffsetSlider.input(() => {
+        if (!selectedTextBox || selectedTextBox.isCustom) return;
+        let value = verticalOffsetSlider.value();
+        verticalOffsetLabel.html(value);
+
+        if (currentView === 'ratings') {
+            verticalOffsetsRatings[selectedTextBox.id] = value;
+        } else {
+            verticalOffsetsCover[selectedTextBox.id] = value;
+        }
+
+        updatePositionControls();
+
+        if (albumData) {
+            currentView === 'ratings' ? printAlbum() : printCoverScreen();
+        }
+
+        if (vertSliderTimeout) clearTimeout(vertSliderTimeout);
+        vertSliderTimeout = setTimeout(() => captureState(), 500);
+    });
+
     // Horizontal Offset slider
     let horizOffsetRow = createDiv('').parent(advancedContent).class('slider-row');
     createSpan('Horizontal Offset').parent(horizOffsetRow).class('slider-label');
@@ -812,7 +1012,7 @@ function createAdvancedOptionsSection() {
     horizontalOffsetSlider.addClass('disabled');
 
     horizontalOffsetSlider.input(() => {
-        if (!selectedTextBox) return;
+        if (!selectedTextBox || selectedTextBox.isCustom) return;
         let value = horizontalOffsetSlider.value();
         horizontalOffsetLabel.html(value);
 
@@ -821,6 +1021,8 @@ function createAdvancedOptionsSection() {
         } else {
             horizontalOffsetsCover[selectedTextBox.id] = value;
         }
+
+        updatePositionControls();
 
         if (albumData) {
             currentView === 'ratings' ? printAlbum() : printCoverScreen();
@@ -900,31 +1102,6 @@ function createAdvancedOptionsSection() {
     });
 }
 
-function createCustomTextboxSection() {
-    createDiv('').parent(editorPanel).class('section-divider');
-    let customTextboxSection = createDiv('').parent(editorPanel).class('color-section');
-    let customTextboxHeader = createDiv('').parent(customTextboxSection).class('color-section-header');
-    let customTextboxToggle = createSpan('▶').parent(customTextboxHeader).class('color-toggle');
-    createSpan(' Custom Textboxes').parent(customTextboxHeader);
-
-    let customTextboxContent = createDiv('').parent(customTextboxSection).class('color-content collapsed');
-
-    customTextboxHeader.mousePressed(() => {
-        if (customTextboxContent.hasClass('collapsed')) {
-            customTextboxContent.removeClass('collapsed');
-            customTextboxToggle.html('▼');
-        } else {
-            customTextboxContent.addClass('collapsed');
-            customTextboxToggle.html('▶');
-        }
-    });
-
-    customTextboxContainer = createDiv('').parent(customTextboxContent).class('track-container');
-
-    let addTextboxBtn = createButton('+ Add Custom Textbox').parent(customTextboxContent).class('btn btn-primary');
-    addTextboxBtn.mousePressed(addCustomTextbox);
-}
-
 function addCustomTextbox() {
     let id = 'custom_' + Date.now();
     let textbox = {
@@ -947,165 +1124,51 @@ function addCustomTextbox() {
 }
 
 function addCustomTextboxUI(textbox) {
-    let rowDiv = createDiv('').parent(customTextboxContainer).class('track-row');
-    textbox.rowDiv = rowDiv;
+    // Create a simple form group like the other inputs
+    let group = createDiv('').parent(customTextboxContainer).class('form-group');
+    textbox.rowDiv = group;
 
-    // Text input
-    let textInput = createInput(textbox.text || '').parent(rowDiv).class('form-input').style('flex', '1');
-    textInput.attribute('placeholder', 'Enter text...');
-    textbox.textInput = textInput;
-    textInput.elt.addEventListener('input', () => {
-        textbox.text = textInput.value();
+    // Label
+    createElement('label', 'Custom Text').parent(group);
+
+    // Row with textarea and remove button
+    let inputRow = createDiv('').parent(group).style('display: flex; gap: 8px; align-items: flex-start;');
+
+    // Text input (like fun fact textarea)
+    let textarea = createElement('textarea').parent(inputRow).class('form-textarea');
+    textarea.attribute('placeholder', 'Enter text... (click on canvas to edit)');
+    textarea.style('min-height: 60px; flex: 1; margin-bottom: 0;');
+    textbox.textInput = textarea;
+    textarea.elt.value = textbox.text || '';
+    textarea.elt.addEventListener('input', () => {
+        textbox.text = textarea.elt.value;
         autoGeneratePreview();
     });
-    textInput.elt.addEventListener('blur', captureState);
-
-    // Settings button
-    let settingsBtn = createButton('⚙').parent(rowDiv).class('track-text-btn');
-    settingsBtn.attribute('title', 'Edit settings');
+    textarea.elt.addEventListener('blur', captureState);
 
     // Remove button
-    let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
+    let removeBtn = createButton('×').parent(inputRow).class('track-remove-btn').style('width: 32px; height: 32px; font-size: 18px; flex-shrink: 0;');
     removeBtn.mousePressed(() => {
         let index = customTextboxes.findIndex(t => t.id === textbox.id);
         if (index !== -1) {
+            // Deselect if this textbox is selected
+            if (selectedTextBox && selectedTextBox.id === textbox.id) {
+                selectedTextBox = null;
+                sizeAdjustPanel.style('display', 'none');
+            }
             customTextboxes.splice(index, 1);
-            rowDiv.remove();
+            group.remove();
             captureState();
             autoGeneratePreview();
         }
     });
-
-    // Settings panel (hidden by default)
-    let settingsPanel = createDiv('').parent(rowDiv).class('track-text-input-container');
-    settingsPanel.style('display', 'none');
-    settingsPanel.style('flex-direction', 'column');
-    settingsPanel.style('gap', '8px');
-    settingsPanel.style('padding', '10px');
-    settingsPanel.style('background', '#2a2a2a');
-    settingsPanel.style('border-radius', '5px');
-    settingsPanel.style('margin-top', '8px');
-
-    settingsBtn.mousePressed(() => {
-        let isHidden = settingsPanel.style('display') === 'none';
-        settingsPanel.style('display', isHidden ? 'flex' : 'none');
-    });
-
-    // Font size slider
-    let fontSizeRow = createDiv('').parent(settingsPanel).style('display', 'flex').style('align-items', 'center').style('gap', '10px');
-    createSpan('Size:').parent(fontSizeRow).style('min-width', '60px').style('color', '#ccc');
-    let fontSizeSlider = createSlider(10, 150, textbox.fontSize, 2).parent(fontSizeRow).style('flex', '1').class('form-slider');
-    let fontSizeLabel = createSpan(textbox.fontSize + '').parent(fontSizeRow).style('min-width', '40px').style('text-align', 'right').style('color', '#fff');
-    fontSizeSlider.input(() => {
-        textbox.fontSize = fontSizeSlider.value();
-        fontSizeLabel.html(textbox.fontSize);
-        autoGeneratePreview();
-    });
-    fontSizeSlider.changed(() => captureState());
-
-    // Font type select
-    let fontTypeRow = createDiv('').parent(settingsPanel).style('display', 'flex').style('align-items', 'center').style('gap', '10px');
-    createSpan('Font:').parent(fontTypeRow).style('min-width', '60px').style('color', '#ccc');
-    let fontTypeSelect = createSelect().parent(fontTypeRow).style('flex', '1').class('form-select');
-    ['fontHeavy', 'fontRegularCondensed', 'fontLight', 'fontRegularItalic', 'fontRegularCrammed', 'fontRegular'].forEach(f => fontTypeSelect.option(f));
-    fontTypeSelect.selected(textbox.fontType);
-    fontTypeSelect.changed(() => {
-        textbox.fontType = fontTypeSelect.value();
-        autoGeneratePreview();
-        captureState();
-    });
-
-    // Color picker
-    let colorRow = createDiv('').parent(settingsPanel).style('display', 'flex').style('align-items', 'center').style('gap', '10px');
-    createSpan('Color:').parent(colorRow).style('min-width', '60px').style('color', '#ccc');
-    let colorPicker = createColorPicker(textbox.color).parent(colorRow).class('color-picker');
-    colorPicker.input(() => {
-        textbox.color = colorPicker.value();
-        autoGeneratePreview();
-    });
-    colorPicker.changed(() => captureState());
-
-    // View type select
-    let viewTypeRow = createDiv('').parent(settingsPanel).style('display', 'flex').style('align-items', 'center').style('gap', '10px');
-    createSpan('Show on:').parent(viewTypeRow).style('min-width', '60px').style('color', '#ccc');
-    let viewTypeSelect = createSelect().parent(viewTypeRow).style('flex', '1').class('form-select');
-    ['both', 'ratings', 'cover'].forEach(v => {
-        viewTypeSelect.option(v.charAt(0).toUpperCase() + v.slice(1));
-    });
-    let viewTypeMap = { 'both': 'Both', 'ratings': 'Ratings', 'cover': 'Cover' };
-    viewTypeSelect.selected(viewTypeMap[textbox.viewType]);
-    viewTypeSelect.changed(() => {
-        let val = viewTypeSelect.value().toLowerCase();
-        textbox.viewType = val;
-        autoGeneratePreview();
-        captureState();
-    });
-
-    // Leading (line spacing) slider
-    let leadingRow = createDiv('').parent(settingsPanel).style('display', 'flex').style('align-items', 'center').style('gap', '10px');
-    createSpan('Spacing:').parent(leadingRow).style('min-width', '60px').style('color', '#ccc');
-    let leadingSlider = createSlider(-30, 50, textbox.leading || 0, 1).parent(leadingRow).style('flex', '1').class('form-slider');
-    let leadingLabel = createSpan((textbox.leading || 0) + '').parent(leadingRow).style('min-width', '40px').style('text-align', 'right').style('color', '#fff');
-    leadingSlider.input(() => {
-        textbox.leading = leadingSlider.value();
-        leadingLabel.html(textbox.leading);
-        autoGeneratePreview();
-    });
-    leadingSlider.changed(() => captureState());
-
-    // Max width slider
-    let maxWidthRow = createDiv('').parent(settingsPanel).style('display', 'flex').style('align-items', 'center').style('gap', '10px');
-    createSpan('Max Width:').parent(maxWidthRow).style('min-width', '60px').style('color', '#ccc');
-    let maxWidthSlider = createSlider(100, width - 100, textbox.maxWidth || width - 100, 10).parent(maxWidthRow).style('flex', '1').class('form-slider');
-    let maxWidthLabel = createSpan((textbox.maxWidth || 500) + '').parent(maxWidthRow).style('min-width', '40px').style('text-align', 'right').style('color', '#fff');
-    maxWidthSlider.input(() => {
-        textbox.maxWidth = maxWidthSlider.value();
-        maxWidthLabel.html(textbox.maxWidth);
-        autoGeneratePreview();
-    });
-    maxWidthSlider.changed(() => captureState());
-
-    // Position inputs
-    let positionRow = createDiv('').parent(settingsPanel).style('display', 'flex').style('gap', '10px');
-
-    let xGroup = createDiv('').parent(positionRow).style('flex', '1');
-    createSpan('X:').parent(xGroup).style('display', 'block').style('color', '#ccc').style('margin-bottom', '4px');
-    let xInput = createInput(textbox.x + '').parent(xGroup).class('form-input');
-    xInput.attribute('type', 'number');
-    xInput.elt.addEventListener('input', () => {
-        textbox.x = parseFloat(xInput.value()) || 0;
-        autoGeneratePreview();
-    });
-    xInput.elt.addEventListener('blur', captureState);
-
-    let yGroup = createDiv('').parent(positionRow).style('flex', '1');
-    createSpan('Y:').parent(yGroup).style('display', 'block').style('color', '#ccc').style('margin-bottom', '4px');
-    let yInput = createInput(textbox.y + '').parent(yGroup).class('form-input');
-    yInput.attribute('type', 'number');
-    yInput.elt.addEventListener('input', () => {
-        textbox.y = parseFloat(yInput.value()) || 0;
-        autoGeneratePreview();
-    });
-    yInput.elt.addEventListener('blur', captureState());
-
-    // Store UI elements for later updates
-    textbox.xInput = xInput;
-    textbox.yInput = yInput;
-    textbox.fontSizeSlider = fontSizeSlider;
-    textbox.fontSizeLabel = fontSizeLabel;
-    textbox.fontTypeSelect = fontTypeSelect;
-    textbox.colorPicker = colorPicker;
-    textbox.viewTypeSelect = viewTypeSelect;
-    textbox.leadingSlider = leadingSlider;
-    textbox.leadingLabel = leadingLabel;
-    textbox.maxWidthSlider = maxWidthSlider;
-    textbox.maxWidthLabel = maxWidthLabel;
 }
 
 function updateHorizontalOffsetSlider() {
     if (!horizontalOffsetSlider) return;
 
-    if (selectedTextBox) {
+    // Disable for custom textboxes (they use drag instead)
+    if (selectedTextBox && !selectedTextBox.isCustom) {
         horizontalOffsetSlider.removeAttribute('disabled');
         horizontalOffsetSlider.removeClass('disabled');
 
@@ -1122,14 +1185,15 @@ function updateHorizontalOffsetSlider() {
         horizontalOffsetSlider.attribute('disabled', '');
         horizontalOffsetSlider.addClass('disabled');
         horizontalOffsetSlider.value(0);
-        horizontalOffsetLabel.html('0');
+        horizontalOffsetLabel.html(selectedTextBox && selectedTextBox.isCustom ? 'Drag' : '0');
     }
 }
 
 function updateMaxTextboxWidthSlider() {
     if (!maxTextboxWidthSlider) return;
 
-    if (selectedTextBox && selectedTextBox.id !== 'tracks' && selectedTextBox.id !== 'image') {
+    // Disable for custom textboxes (they have their own control) and tracks/image
+    if (selectedTextBox && !selectedTextBox.isCustom && selectedTextBox.id !== 'tracks' && selectedTextBox.id !== 'image') {
         maxTextboxWidthSlider.removeAttribute('disabled');
         maxTextboxWidthSlider.removeClass('disabled');
 
@@ -1147,21 +1211,119 @@ function updateMaxTextboxWidthSlider() {
 function createSizeAdjustPanel() {
     sizeAdjustPanel = createDiv('').id('size-adjust-panel');
 
-    createSpan('Text Size:').parent(sizeAdjustPanel).class('label');
-    createButton('−').parent(sizeAdjustPanel).class('btn-control').mousePressed(() => adjustTextSize(-2));
-    let sizeDisplay = createSpan('0').parent(sizeAdjustPanel).id('size-display').class('display');
-    createButton('+').parent(sizeAdjustPanel).class('btn-control').mousePressed(() => adjustTextSize(2));
+    // Text Size controls (for predefined textboxes)
+    let sizeContainer = createDiv('').parent(sizeAdjustPanel).id('size-container');
+    createSpan('Text Size:').parent(sizeContainer).class('label');
+    createButton('−').parent(sizeContainer).class('btn-control').mousePressed(() => adjustTextSize(-2));
+    createSpan('0').parent(sizeContainer).id('size-display').class('display');
+    createButton('+').parent(sizeContainer).class('btn-control').mousePressed(() => adjustTextSize(2));
 
+    // Leading controls (for predefined textboxes with leading)
     let leadingContainer = createDiv('').parent(sizeAdjustPanel).id('leading-container');
     createSpan('Leading:').parent(leadingContainer).class('label');
     createButton('−').parent(leadingContainer).class('btn-control').mousePressed(() => adjustTextLeading(-2));
     createSpan('0').parent(leadingContainer).id('leading-display').class('display');
     createButton('+').parent(leadingContainer).class('btn-control').mousePressed(() => adjustTextLeading(2));
 
+    // Custom textbox controls container
+    let customContainer = createDiv('').parent(sizeAdjustPanel).id('custom-textbox-controls');
+    customContainer.style('display', 'none');
+    customContainer.style('gap', '10px');
+    customContainer.style('align-items', 'center');
+
+    // Font Size slider for custom textboxes
+    createSpan('Size:').parent(customContainer).class('label');
+    let customFontSizeSlider = createSlider(10, 150, 40, 2).parent(customContainer).id('custom-font-size-slider').class('form-slider').style('width', '80px');
+    createSpan('40').parent(customContainer).id('custom-font-size-display').class('display');
+
+    customFontSizeSlider.input(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.fontSize = customFontSizeSlider.value();
+            select('#custom-font-size-display').html(textbox.fontSize);
+            autoGeneratePreview();
+        }
+    });
+    customFontSizeSlider.changed(() => captureState());
+
+    // Leading slider for custom textboxes
+    createSpan('Lead:').parent(customContainer).class('label');
+    let customLeadingSlider = createSlider(-30, 50, 0, 1).parent(customContainer).id('custom-leading-slider').class('form-slider').style('width', '60px');
+    createSpan('0').parent(customContainer).id('custom-leading-display').class('display');
+
+    customLeadingSlider.input(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.leading = customLeadingSlider.value();
+            select('#custom-leading-display').html(textbox.leading);
+            autoGeneratePreview();
+        }
+    });
+    customLeadingSlider.changed(() => captureState());
+
+    // Font type select for custom textboxes
+    let customFontSelect = createSelect().parent(customContainer).id('custom-font-select').class('form-select').style('width', '100px');
+    ['fontHeavy', 'fontLight', 'fontRegular', 'fontRegularCondensed', 'fontRegularItalic', 'fontRegularCrammed'].forEach(f => customFontSelect.option(f));
+    customFontSelect.changed(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.fontType = customFontSelect.value();
+            autoGeneratePreview();
+            captureState();
+        }
+    });
+
+    // Color picker for custom textboxes
+    let customColorPicker = createColorPicker('#ffffff').parent(customContainer).id('custom-color-picker').class('color-picker');
+    customColorPicker.input(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.color = customColorPicker.value();
+            autoGeneratePreview();
+        }
+    });
+    customColorPicker.changed(() => captureState());
+
+    // View type select for custom textboxes
+    let customViewSelect = createSelect().parent(customContainer).id('custom-view-select').class('form-select').style('width', '80px');
+    customViewSelect.option('Both', 'both');
+    customViewSelect.option('Ratings', 'ratings');
+    customViewSelect.option('Cover', 'cover');
+    customViewSelect.changed(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.viewType = customViewSelect.value();
+            autoGeneratePreview();
+            captureState();
+        }
+    });
+
+    // Max width slider for custom textboxes
+    createSpan('Width:').parent(customContainer).class('label');
+    let customMaxWidthSlider = createSlider(100, 1000, 500, 10).parent(customContainer).id('custom-max-width-slider').class('form-slider').style('width', '80px');
+    createSpan('500').parent(customContainer).id('custom-max-width-display').class('display');
+
+    customMaxWidthSlider.input(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.maxWidth = customMaxWidthSlider.value();
+            select('#custom-max-width-display').html(textbox.maxWidth);
+            autoGeneratePreview();
+        }
+    });
+    customMaxWidthSlider.changed(() => captureState());
+
     createButton('↻').parent(sizeAdjustPanel).class('btn-control btn-reset').mousePressed(resetTextBoxToDefault);
     createButton('✕').parent(sizeAdjustPanel).class('btn-control btn-close').mousePressed(() => {
         selectedTextBox = null;
         sizeAdjustPanel.style('display', 'none');
+        updateVerticalOffsetSlider();
         currentView === 'ratings' ? printAlbum() : printCoverScreen();
     });
 }
@@ -1176,6 +1338,9 @@ function clearAll() {
     albumData = null;
     cachedImageUrl = cachedOriginalImage = cachedFilteredImage = null;
     lastUrlChecked = null;
+    selectedTextBox = null;
+    if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
+    updateVerticalOffsetSlider();
     background(200);
     localStorage.removeItem('albumGeneratorData');
 }
@@ -1183,6 +1348,10 @@ function clearAll() {
 function toggleView() {
     currentView = currentView === 'ratings' ? 'cover' : 'ratings';
     viewToggleBtn.html(currentView === 'ratings' ? 'View Ratings' : 'View Cover');
+    // Deselect textbox when switching views
+    selectedTextBox = null;
+    if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
+    updateVerticalOffsetSlider();
     if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
 }
 
@@ -1528,7 +1697,17 @@ function fillFormFromData(data) {
         });
     }
 
-    // Load all offsets and advanced options
+    // Load all offsets and advanced options - clear first, then load
+    // Clear existing offsets
+    Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
+    Object.keys(verticalOffsetsCover).forEach(k => delete verticalOffsetsCover[k]);
+    Object.keys(horizontalOffsetsRatings).forEach(k => delete horizontalOffsetsRatings[k]);
+    Object.keys(horizontalOffsetsCover).forEach(k => delete horizontalOffsetsCover[k]);
+    Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
+    Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
+    Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
+
+    // Load saved offsets
     if (data.verticalOffsetsRatings) {
         Object.keys(data.verticalOffsetsRatings).forEach(key => {
             verticalOffsetsRatings[key] = data.verticalOffsetsRatings[key];
@@ -1816,6 +1995,7 @@ async function printAlbum(){
     rectMode(CENTER); let w = (leftMargin + x) * 0.75, h = tracksRectHeight;
     let tracksVertOffset = verticalOffsetsRatings.tracks || 0;
     let tracksHorizOffset = horizontalOffsetsRatings.tracks || 0;
+    tracksHorizOffset += 10 //offset fix
 
     let tracksStartY = y + tracksVertOffset;
     let tracksMinX = leftMargin + tracksHorizOffset, tracksMaxX = leftMargin + x + 700 + tracksHorizOffset;
@@ -2206,15 +2386,32 @@ function mousePressed() {
         let selectionChanged = !selectedTextBox || selectedTextBox.id !== clickedBox.id;
         selectedTextBox = clickedBox;
 
-        // Check if it's a custom textbox
+        // Enable dragging for all textboxes
+        isDraggingTextbox = true;
+        draggedTextbox = clickedBox;
+        dragStartX = scaledMouseX;
+        dragStartY = scaledMouseY;
+        shiftDragAxis = null; // Reset axis constraint
+
+        // Store starting positions/offsets
         if (clickedBox.isCustom) {
-            isDraggingCustomTextbox = true;
-            draggedCustomTextbox = customTextboxes.find(t => t.id === clickedBox.id);
-            sizeAdjustPanel.style('display', 'none');
-            updateVerticalOffsetSlider();
+            let textbox = customTextboxes.find(t => t.id === clickedBox.id);
+            if (textbox) {
+                dragStartOffsetX = textbox.x;
+                dragStartOffsetY = textbox.y;
+            }
+        } else {
+            if (currentView === 'ratings') {
+                dragStartOffsetX = horizontalOffsetsRatings[clickedBox.id] || 0;
+                dragStartOffsetY = verticalOffsetsRatings[clickedBox.id] || 0;
+            } else {
+                dragStartOffsetX = horizontalOffsetsCover[clickedBox.id] || 0;
+                dragStartOffsetY = verticalOffsetsCover[clickedBox.id] || 0;
+            }
         }
-        // Show size adjust panel only for text boxes (not for tracks or image)
-        else if (clickedBox.id !== 'tracks' && clickedBox.id !== 'image') {
+
+        // Show size adjust panel for text boxes (not for tracks or image)
+        if (clickedBox.id !== 'tracks' && clickedBox.id !== 'image') {
             showSizeAdjustPanel(clickedBox);
         } else {
             // For tracks and image, just update the vertical offset slider
@@ -2234,39 +2431,116 @@ function mousePressed() {
 }
 
 function mouseDragged() {
-    if (isDraggingCustomTextbox && draggedCustomTextbox) {
+    if (isDraggingTextbox && draggedTextbox) {
         let scaledMouseX = mouseX / canvasScale;
         let scaledMouseY = mouseY / canvasScale;
 
-        draggedCustomTextbox.x = scaledMouseX;
-        draggedCustomTextbox.y = scaledMouseY;
+        let deltaX = scaledMouseX - dragStartX;
+        let deltaY = scaledMouseY - dragStartY;
 
-        // Update UI inputs if they exist
-        if (draggedCustomTextbox.xInput) draggedCustomTextbox.xInput.value(Math.round(scaledMouseX));
-        if (draggedCustomTextbox.yInput) draggedCustomTextbox.yInput.value(Math.round(scaledMouseY));
+        // Shift+drag: constrain to X or Y axis
+        if (keyIsDown(SHIFT)) {
+            // Determine axis on first significant movement
+            if (shiftDragAxis === null && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
+                shiftDragAxis = Math.abs(deltaX) > Math.abs(deltaY) ? 'x' : 'y';
+            }
+            // Apply constraint
+            if (shiftDragAxis === 'x') deltaY = 0;
+            else if (shiftDragAxis === 'y') deltaX = 0;
+        } else {
+            shiftDragAxis = null; // Reset if shift released
+        }
+
+        if (draggedTextbox.isCustom) {
+            // Custom textbox: update x, y directly
+            let textbox = customTextboxes.find(t => t.id === draggedTextbox.id);
+            if (textbox) {
+                if (keyIsDown(SHIFT) && shiftDragAxis) {
+                    // Constrained drag
+                    if (shiftDragAxis === 'x') {
+                        textbox.x = dragStartOffsetX + deltaX;
+                    } else {
+                        textbox.y = dragStartOffsetY + deltaY;
+                    }
+                } else {
+                    // Unconstrained drag
+                    textbox.x = scaledMouseX;
+                    textbox.y = scaledMouseY;
+                }
+            }
+        } else {
+            // Predefined textbox: update offsets
+            if (currentView === 'ratings') {
+                horizontalOffsetsRatings[draggedTextbox.id] = Math.round(dragStartOffsetX + deltaX);
+                verticalOffsetsRatings[draggedTextbox.id] = Math.round(dragStartOffsetY + deltaY);
+            } else {
+                horizontalOffsetsCover[draggedTextbox.id] = Math.round(dragStartOffsetX + deltaX);
+                verticalOffsetsCover[draggedTextbox.id] = Math.round(dragStartOffsetY + deltaY);
+            }
+
+            // Update sliders
+            updateVerticalOffsetSlider();
+            updateHorizontalOffsetSlider();
+        }
+
+        // Update position controls
+        updatePositionControls();
 
         currentView === 'ratings' ? printAlbum() : printCoverScreen();
     }
 }
 
 function mouseReleased() {
-    if (isDraggingCustomTextbox) {
-        isDraggingCustomTextbox = false;
-        draggedCustomTextbox = null;
+    if (isDraggingTextbox) {
+        isDraggingTextbox = false;
+        draggedTextbox = null;
+        shiftDragAxis = null; // Reset axis constraint
         captureState();
     }
 }
 
 function showSizeAdjustPanel(box) {
-    let sizeDisplay = select('#size-display');
-    sizeDisplay.html(box.sizeOffset >= 0 ? '+' + box.sizeOffset : box.sizeOffset);
-
+    let sizeContainer = select('#size-container');
     let leadingContainer = select('#leading-container');
-    if (box.id === 'funfact') {
-        leadingContainer.style('display', 'flex');
-        let leadingDisplay = select('#leading-display');
-        leadingDisplay.html((textLeadingOffsets.funfact || 0) >= 0 ? '+' + textLeadingOffsets.funfact : textLeadingOffsets.funfact);
-    } else leadingContainer.style('display', 'none');
+    let customContainer = select('#custom-textbox-controls');
+
+    if (box.isCustom) {
+        // Show custom textbox controls, hide predefined ones
+        sizeContainer.style('display', 'none');
+        leadingContainer.style('display', 'none');
+        customContainer.style('display', 'flex');
+
+        // Update custom controls with current values
+        let textbox = customTextboxes.find(t => t.id === box.id);
+        if (textbox) {
+            select('#custom-font-size-slider').value(textbox.fontSize);
+            select('#custom-font-size-display').html(textbox.fontSize);
+            select('#custom-leading-slider').value(textbox.leading || 0);
+            select('#custom-leading-display').html(textbox.leading || 0);
+            select('#custom-font-select').selected(textbox.fontType);
+            select('#custom-color-picker').value(textbox.color);
+            select('#custom-view-select').selected(textbox.viewType);
+            select('#custom-max-width-slider').value(textbox.maxWidth || 500);
+            select('#custom-max-width-display').html(textbox.maxWidth || 500);
+        }
+    } else {
+        // Show predefined textbox controls, hide custom ones
+        sizeContainer.style('display', 'flex');
+        customContainer.style('display', 'none');
+
+        let sizeDisplay = select('#size-display');
+        let offset = box.sizeOffset || 0;
+        sizeDisplay.html(offset >= 0 ? '+' + offset : offset);
+
+        if (box.id === 'funfact') {
+            leadingContainer.style('display', 'flex');
+            let leadingDisplay = select('#leading-display');
+            let leadingOffset = textLeadingOffsets.funfact || 0;
+            leadingDisplay.html(leadingOffset >= 0 ? '+' + leadingOffset : leadingOffset);
+        } else {
+            leadingContainer.style('display', 'none');
+        }
+    }
 
     sizeAdjustPanel.style('display', 'flex');
 
@@ -2275,29 +2549,33 @@ function showSizeAdjustPanel(box) {
 }
 
 function updateVerticalOffsetSlider() {
-    if (!verticalOffsetSlider) return;
+    if (verticalOffsetSlider) {
+        // Disable for custom textboxes (they use drag instead)
+        if (selectedTextBox && !selectedTextBox.isCustom) {
+            // Enable slider and set value from correct offset object
+            verticalOffsetSlider.removeAttribute('disabled');
+            verticalOffsetSlider.removeClass('disabled');
 
-    if (selectedTextBox) {
-        // Enable slider and set value from correct offset object
-        verticalOffsetSlider.removeAttribute('disabled');
-        verticalOffsetSlider.removeClass('disabled');
+            let offset;
+            if (currentView === 'ratings') {
+                offset = verticalOffsetsRatings[selectedTextBox.id] || 0;
+            } else {
+                offset = verticalOffsetsCover[selectedTextBox.id] || 0;
+            }
 
-        let offset;
-        if (currentView === 'ratings') {
-            offset = verticalOffsetsRatings[selectedTextBox.id] || 0;
+            verticalOffsetSlider.value(offset);
+            verticalOffsetLabel.html(offset);
         } else {
-            offset = verticalOffsetsCover[selectedTextBox.id] || 0;
+            // Disable slider
+            verticalOffsetSlider.attribute('disabled', '');
+            verticalOffsetSlider.addClass('disabled');
+            verticalOffsetSlider.value(0);
+            verticalOffsetLabel.html(selectedTextBox && selectedTextBox.isCustom ? 'N/A' : '0');
         }
-
-        verticalOffsetSlider.value(offset);
-        verticalOffsetLabel.html(offset);
-    } else {
-        // Disable slider
-        verticalOffsetSlider.attribute('disabled', '');
-        verticalOffsetSlider.addClass('disabled');
-        verticalOffsetSlider.value(0);
-        verticalOffsetLabel.html('0');
     }
+
+    // Update position controls
+    updatePositionControls();
 
     // Also update the advanced options sliders
     updateHorizontalOffsetSlider();
@@ -2325,11 +2603,28 @@ function adjustTextLeading(delta) {
 
 function resetTextBoxToDefault() {
     if (!selectedTextBox) return;
-    if (textSizeOffsets.hasOwnProperty(selectedTextBox.id)) {
-        textSizeOffsets[selectedTextBox.id] = 0;
-        selectedTextBox.sizeOffset = 0;
+
+    if (selectedTextBox.isCustom) {
+        // Reset custom textbox to defaults
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.fontSize = 40;
+            textbox.leading = 0;
+            textbox.fontType = 'fontHeavy';
+            textbox.color = '#ffffff';
+            textbox.maxWidth = width - 100;
+            textbox.x = 100;
+            textbox.y = 100;
+        }
+    } else {
+        // Reset predefined textbox
+        if (textSizeOffsets.hasOwnProperty(selectedTextBox.id)) {
+            textSizeOffsets[selectedTextBox.id] = 0;
+            selectedTextBox.sizeOffset = 0;
+        }
+        if (selectedTextBox.id === 'funfact') textLeadingOffsets.funfact = 0;
     }
-    if (selectedTextBox.id === 'funfact') textLeadingOffsets.funfact = 0;
+
     captureState();
     showSizeAdjustPanel(selectedTextBox);
     currentView === 'ratings' ? printAlbum() : printCoverScreen();
@@ -2409,8 +2704,17 @@ function restoreState(state) {
         if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
     }
 
+    // Clear existing offsets before restoring
+    Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
+    Object.keys(verticalOffsetsCover).forEach(k => delete verticalOffsetsCover[k]);
+    Object.keys(horizontalOffsetsRatings).forEach(k => delete horizontalOffsetsRatings[k]);
+    Object.keys(horizontalOffsetsCover).forEach(k => delete horizontalOffsetsCover[k]);
+    Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
+    Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
+    Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
+
     if (state.textSizeOffsets) Object.assign(textSizeOffsets, state.textSizeOffsets);
-    if (state.textLeadingOffsets) textLeadingOffsets.funfact = state.textLeadingOffsets.funfact || 0;
+    if (state.textLeadingOffsets) Object.assign(textLeadingOffsets, state.textLeadingOffsets);
     if (state.verticalOffsetsRatings) Object.assign(verticalOffsetsRatings, state.verticalOffsetsRatings);
     if (state.verticalOffsetsCover) Object.assign(verticalOffsetsCover, state.verticalOffsetsCover);
     if (state.horizontalOffsetsRatings) Object.assign(horizontalOffsetsRatings, state.horizontalOffsetsRatings);

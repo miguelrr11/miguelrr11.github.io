@@ -112,7 +112,7 @@ canvas {
 .form-textarea,
 .form-select {
     width: 100%;
-    padding: 12px 14px;
+    padding: 9px 10px;
     background: rgba(255, 255, 255, 0.06);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 10px;
@@ -152,6 +152,77 @@ canvas {
 .form-select option {
     background: #1a1a2e;
     color: #fff;
+}
+
+/* Position Controls */
+.position-controls {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    flex-wrap: nowrap;
+}
+
+.position-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    font-weight: 500;
+    min-width: 12px;
+}
+
+.position-btn {
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: 5px;
+    color: #fff;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    user-select: none;
+}
+
+.position-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(138, 180, 248, 0.5);
+}
+
+.position-btn:active {
+    background: rgba(138, 180, 248, 0.3);
+}
+
+.position-input {
+    width: 48px;
+    padding: 4px 6px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 5px;
+    color: #fff;
+    font-size: 11px;
+    text-align: center;
+    outline: none;
+    transition: all 0.2s ease;
+    -moz-appearance: textfield;
+}
+
+.position-input::-webkit-outer-spin-button,
+.position-input::-webkit-inner-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+}
+
+.position-input:focus {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(138, 180, 248, 0.5);
+}
+
+.position-input:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
 }
 
 /* Image input with upload button */
@@ -849,6 +920,12 @@ canvas {
     text-align: center;
 }
 
+#size-adjust-panel #size-container {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+}
+
 #size-adjust-panel #leading-container {
     display: none;
     gap: 10px;
@@ -856,6 +933,39 @@ canvas {
     border-left: 1px solid rgba(255, 255, 255, 0.2);
     padding-left: 15px;
     margin-left: 5px;
+}
+
+#size-adjust-panel #custom-textbox-controls {
+    display: none;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+#size-adjust-panel #custom-textbox-controls .form-slider {
+    width: 70px;
+    height: 4px;
+}
+
+#size-adjust-panel #custom-textbox-controls .form-select {
+    padding: 6px 10px;
+    font-size: 12px;
+    background-size: 8px;
+    min-width: 90px;
+}
+
+#size-adjust-panel #custom-textbox-controls .color-picker {
+    width: 36px;
+    height: 28px;
+}
+
+#size-adjust-panel #custom-textbox-controls .display {
+    min-width: 30px;
+    font-size: 12px;
+}
+
+#size-adjust-panel #custom-textbox-controls .label {
+    font-size: 12px;
 }
 
 #size-adjust-panel .btn-reset {
