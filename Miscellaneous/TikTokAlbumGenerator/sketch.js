@@ -591,7 +591,19 @@ function getDefaultProfile() {
         imageSizeMultiplier: 1.0,
         maxTextboxWidths: {...defaultMaxTextboxWidths},
         textSizeOffsets: {funfact: -2},
-        textLeadingOffsets: {funfact: -2}
+        textLeadingOffsets: {funfact: -2},
+        customTextboxes: [{
+            "id": "custom_1769772665194",
+            "text": "Album Review",
+            "x": width/2,
+            "y": 265.76598311218333,
+            "fontSize": 54,
+            "fontType": "fontLight",
+            "color": "#ffffff",
+            "viewType": "cover",
+            "leading": 0,
+            "maxWidth": 980
+        }]
     };
 }
 
@@ -612,8 +624,24 @@ function getCurrentProfileData() {
         imageSizeMultiplier: imageSizeMultiplier,
         maxTextboxWidths: {...maxTextboxWidths},
         textSizeOffsets: {...textSizeOffsets},
-        textLeadingOffsets: {...textLeadingOffsets}
+        textLeadingOffsets: {...textLeadingOffsets},
+        customTextboxes: getCustomTextboxesProperties()
     };
+}
+
+function getCustomTextboxesProperties(){
+    return customTextboxes.map(tb => ({
+        color: tb.color,
+        fontSize: tb.fontSize,
+        fontType: tb.fontType,
+        leading: tb.leading,
+        maxWidth: tb.maxWidth,
+        text: tb.text,
+        viewType: tb.viewType,
+        x: tb.x,
+        y: tb.y,
+        id: tb.id
+    }));
 }
 
 function applyProfile(profileData) {
@@ -739,6 +767,15 @@ function applyProfile(profileData) {
         updateVerticalOffsetSlider();
         updateHorizontalOffsetSlider();
         updateMaxTextboxWidthSlider();
+    }
+
+    // Apply custom textboxes if any and if they aren't already applied
+    if (profileData.customTextboxes) {
+        for(let tbData of profileData.customTextboxes) {
+            if (!customTextboxes.find(t => t.id === tbData.id)) {
+                let newTextbox = addCustomTextbox(tbData);
+            }
+        }
     }
 
     // Update UI
@@ -1119,25 +1156,27 @@ function createAdvancedOptionsSection() {
     });
 }
 
-function addCustomTextbox() {
+function addCustomTextbox(tbData) {
     let id = 'custom_' + Date.now();
     let textbox = {
-        id: id,
-        text: '',
-        x: 100,
-        y: 100,
-        fontSize: 40,
-        fontType: 'fontHeavy',
-        color: '#ffffff',
-        viewType: 'both', // 'both', 'ratings', or 'cover'
-        leading: 0, // Additional spacing added to default line height
-        maxWidth: width - 100 // Maximum width before text wraps
+        id: tbData.id || id,
+        text: tbData.text || '',
+        x: tbData.x || 100,
+        y: tbData.y || 100,
+        fontSize: tbData.fontSize || 40,
+        fontType: tbData.fontType || 'fontHeavy',
+        color: tbData.color || '#ffffff',
+        viewType: tbData.viewType || 'both', // 'both', 'ratings', or 'cover'
+        leading: tbData.leading || 0, // Additional spacing added to default line height
+        maxWidth: tbData.maxWidth || width - 100 // Maximum width before text wraps
     };
 
     customTextboxes.push(textbox);
     addCustomTextboxUI(textbox);
     captureState();
     autoGeneratePreview();
+
+    return textbox
 }
 
 function addCustomTextboxUI(textbox) {
@@ -2238,6 +2277,7 @@ function addTextBox(id, bounds, size) {
 }
 
 async function printCoverScreen() {
+    push()
     background(200);
     let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
@@ -2262,10 +2302,10 @@ async function printCoverScreen() {
     if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
     else background(50);
 
-    utils.beginShadow("#000000", 30, 0, 0);
-    textAlign(CENTER, TOP); textFont(fontLight); textSize(55); fill(255);
-    text("Album Review", width * 0.5, 260);
-    utils.endShadow();
+    // utils.beginShadow("#000000", 30, 0, 0);
+    // textAlign(CENTER, TOP); textFont(fontLight); textSize(55); fill(255);
+    // text("Album Review", width * 0.5, 260);
+    // utils.endShadow();
 
     imageMode(CENTER); rectMode(CENTER);
     utils.beginShadow("#000000", 80, 0, 0);
@@ -2312,7 +2352,7 @@ async function printCoverScreen() {
             textFont(fontObj);
             textSize(textbox.fontSize);
             fill(textbox.color);
-            textAlign(LEFT, TOP);
+            textAlign(CENTER, TOP);
 
             // Apply leading (spacing) if set
             let baseLeading = textbox.fontSize * 1.25; // Default line height
@@ -2358,6 +2398,7 @@ async function printCoverScreen() {
         rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
         noStroke();
     }
+    pop()
     pop()
 }
 
