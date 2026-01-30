@@ -498,8 +498,8 @@ function createButtonGrid() {
     let aspectRatioRow = createDiv('').parent(buttonGrid).style('display: flex; gap: 12px; margin-bottom: 10px;');
 
     // Aspect Ratio selector (half width)
-    let aspectRatioGroup = createDiv('').parent(aspectRatioRow).class('form-group').style('flex: 1; margin-bottom: 0;');
-    createElement('label', 'Aspect Ratio (Ratings)').parent(aspectRatioGroup);
+    let aspectRatioGroup = createDiv('').parent(aspectRatioRow).class('form-group').style('flex: 1; margin-bottom: 0; align-items: end;');
+    createElement('label', 'Aspect Ratio').parent(aspectRatioGroup);
     aspectRatioSelect = createSelect().parent(aspectRatioGroup).class('form-select');
     Object.keys(aspectRatioOptions).forEach(opt => aspectRatioSelect.option(opt));
     aspectRatioSelect.selected('9:16');
@@ -520,9 +520,9 @@ function createButtonGrid() {
         captureState();
     });
 
-    let downloadRow = createDiv('').parent(buttonGrid).class('button-row');
-    createButton('JSON').parent(downloadRow).class('btn btn-blue').mousePressed(downloadJSON);
-    createButton('Images').parent(downloadRow).class('btn btn-purple').mousePressed(downloadBothImages);
+    //let downloadRow = createDiv('').parent(buttonGrid).class('button-row');
+    createButton('JSON').parent(aspectRatioRow).class('btn btn-blue').mousePressed(downloadJSON);
+    createButton('Images').parent(aspectRatioRow).class('btn btn-purple').mousePressed(downloadBothImages);
 
     viewToggleBtn = createButton('View: Ratings').parent(buttonGrid).class('btn btn-orange');
     viewToggleBtn.mousePressed(toggleView);

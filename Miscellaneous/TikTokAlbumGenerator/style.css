@@ -574,8 +574,8 @@ canvas {
 
 /* Buttons */
 .btn {
-    width: 100%;
     padding: 12px 20px;
+    height: auto;
     border: none;
     border-radius: 10px;
     font-size: 14px;
