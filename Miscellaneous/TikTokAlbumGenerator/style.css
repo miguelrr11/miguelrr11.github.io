@@ -39,35 +39,42 @@ canvas {
     display: block;
 }
 
-/* Editor Panel */
+/* Editor Panel - 3-column layout */
 .editor-panel {
+    flex: 1;
+    display: flex;
+    gap: 16px;
+    height: calc(100vh - 40px);
+    min-width: 0;
+}
+
+.panel-column {
+    flex: 1;
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(20px);
     border-radius: 16px;
-    padding: 28px;
-    width: 550px;
-    height: calc(100vh - 40px);
+    padding: 20px;
     overflow-y: auto;
     border: 1px solid rgba(255, 255, 255, 0.1);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-    flex-shrink: 0;
+    min-width: 0;
 }
 
-.editor-panel::-webkit-scrollbar {
+.panel-column::-webkit-scrollbar {
     width: 8px;
 }
 
-.editor-panel::-webkit-scrollbar-track {
+.panel-column::-webkit-scrollbar-track {
     background: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
 }
 
-.editor-panel::-webkit-scrollbar-thumb {
+.panel-column::-webkit-scrollbar-thumb {
     background: rgba(255, 255, 255, 0.2);
     border-radius: 4px;
 }
 
-.editor-panel::-webkit-scrollbar-thumb:hover {
+.panel-column::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 255, 255, 0.3);
 }
 
@@ -371,7 +378,7 @@ canvas {
 
 /* Track Container */
 .track-container {
-    max-height: 650px;
+    flex: 1;
     overflow-y: auto;
     margin-bottom: 12px;
     padding-right: 8px;
@@ -465,6 +472,7 @@ canvas {
     outline: none;
     transition: all 0.2s ease;
     line-height: 32px;
+    width: 125px;
 }
 
 .track-title-input:focus {
@@ -1017,10 +1025,15 @@ canvas {
     padding: 0;
 }
 
+/* Make tracks column use flex to stretch track-container */
+.panel-tracks {
+    display: flex;
+    flex-direction: column;
+}
+
 /* Responsive */
 @media (max-width: 1400px) {
-    .editor-panel {
-        width: 340px;
-        padding: 20px;
+    .panel-column {
+        padding: 14px;
     }
 }

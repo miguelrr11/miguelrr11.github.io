@@ -182,54 +182,56 @@ function handleKeyboard(e) {
 }
 
 function createAlbumEditor() {
-    // Header
-    let header = createDiv('').parent(editorPanel).class('panel-header');
+    // Create 3-column layout
+    let panel1 = createDiv('').parent(editorPanel).class('panel-column panel-metadata');
+    let panel2 = createDiv('').parent(editorPanel).class('panel-column panel-tracks');
+    let panel3 = createDiv('').parent(editorPanel).class('panel-column panel-settings');
+
+    // === Panel 1: Album Metadata ===
+    let header = createDiv('').parent(panel1).class('panel-header');
     createElement('h2', 'Album Editor').parent(header);
     createElement('p', 'Drag & drop JSON or fill manually').parent(header);
 
-    // Basic inputs
-    let rowGroupAlbum = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
+    let rowGroupAlbum = createDiv('').parent(panel1).style('display: flex; gap: 12px;');
     titleInput = createFormInput('Album Title', 'Enter album title...', rowGroupAlbum);
     artistInput = createFormInput('Artist', 'Enter artist name...', rowGroupAlbum);
 
-    let rowGroup = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
+    let rowGroup = createDiv('').parent(panel1).style('display: flex; gap: 12px;');
     yearInput = createFormInput('Year', 'e.g. 1997', rowGroup);
     genreInput = createFormInput('Genre', 'e.g. Rock', rowGroup);
 
-    funfactInput = createFormTextarea('Fun Fact', 'Add an interesting fact about the album...');
-    createImageInputWithUpload();
+    funfactInput = createFormTextarea('Fun Fact', 'Add an interesting fact about the album...', panel1);
+    createImageInputWithUpload(panel1);
 
-    // Album Grade row
-    let gradeRow = createDiv('').parent(editorPanel).style('display: flex; gap: 35px; align-items: center;');
+    let gradeRow = createDiv('').parent(panel1).style('display: flex; gap: 35px; align-items: center;');
     let gradeGroup = createDiv('').parent(gradeRow).class('form-group').style('flex: 1;');
     createElement('label', 'Album Grade').parent(gradeGroup);
     albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
     gradeOptions.forEach(opt => albumGradeSelect.option(opt));
     albumGradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
-    // X/Y Position controls
     createPositionControls(gradeRow);
 
-    // Add Custom Textbox button (right after grade and position controls)
-    let addTextboxBtn = createButton('+ Add Textbox').parent(editorPanel).class('btn btn-secondary').style('margin-bottom: 20px;');
+    let addTextboxBtn = createButton('+ Add Textbox').parent(panel1).class('btn btn-secondary').style('margin-bottom: 20px;');
     addTextboxBtn.mousePressed(addCustomTextbox);
-    customTextboxContainer = createDiv('').parent(editorPanel);
+    customTextboxContainer = createDiv('').parent(panel1);
 
-    // Divider & Tracks
-    createDiv('').parent(editorPanel).class('section-divider');
-    createDiv('Tracks').parent(editorPanel).class('section-title');
-    trackContainer = createDiv('').parent(editorPanel).class('track-container');
+    // === Panel 2: Tracks ===
+    createDiv('Tracks').parent(panel2).class('section-title');
+    trackContainer = createDiv('').parent(panel2).class('track-container');
     addTrackRow();
 
-    let addTrackBtn = createButton('+ Add Track').parent(editorPanel).class('btn btn-secondary');
+    let addTrackBtn = createButton('+ Add Track').parent(panel2).class('btn btn-secondary');
     addTrackBtn.mousePressed(addTrackRow);
 
-    // Button Grid
-    createButtonGrid();
-    createProfileSection();
-    createTracksCustomizationSection();
-    createColorSection();
-    createAdvancedOptionsSection();
+    // === Panel 3: Settings ===
+    createButtonGrid(panel3);
+    createProfileSection(panel3);
+    createTracksCustomizationSection(panel3);
+    createColorSection(panel3);
+    createAdvancedOptionsSection(panel3);
+
+    // Size adjust panel (fixed position, not in any column)
     createSizeAdjustPanel();
 }
 
@@ -244,8 +246,8 @@ function createFormInput(label, placeholder, parent = editorPanel) {
     return input;
 }
 
-function createImageInputWithUpload() {
-    let group = createDiv('').parent(editorPanel).class('form-group');
+function createImageInputWithUpload(parent = editorPanel) {
+    let group = createDiv('').parent(parent).class('form-group');
     createElement('label', 'Image (URL or Local)').parent(group);
 
     let inputRow = createDiv('').parent(group).class('image-input-row');
@@ -288,8 +290,8 @@ function createImageInputWithUpload() {
     });
 }
 
-function createFormTextarea(label, placeholder) {
-    let group = createDiv('').parent(editorPanel).class('form-group');
+function createFormTextarea(label, placeholder, parent = editorPanel) {
+    let group = createDiv('').parent(parent).class('form-group');
     createElement('label', label).parent(group);
     let textarea = createElement('textarea').parent(group).class('form-textarea');
     textarea.attribute('placeholder', placeholder);
@@ -491,8 +493,8 @@ function disablePositionControls() {
     }
 }
 
-function createButtonGrid() {
-    let buttonGrid = createDiv('').parent(editorPanel).class('button-grid');
+function createButtonGrid(parent = editorPanel) {
+    let buttonGrid = createDiv('').parent(parent).class('button-grid');
 
     // Aspect Ratio & Image Format selectors
     let aspectRatioRow = createDiv('').parent(buttonGrid).style('display: flex; gap: 12px; margin-bottom: 10px;');
@@ -534,9 +536,9 @@ function createButtonGrid() {
     createButton('Clear All').parent(buttonGrid).class('btn btn-danger').mousePressed(clearAll);
 }
 
-function createProfileSection() {
-    createDiv('').parent(editorPanel).class('section-divider');
-    let profileSection = createDiv('').parent(editorPanel).class('color-section');
+function createProfileSection(parent = editorPanel) {
+    createDiv('').parent(parent).class('section-divider');
+    let profileSection = createDiv('').parent(parent).class('color-section');
     let profileHeader = createDiv('').parent(profileSection).class('color-section-header');
     let profileToggle = createSpan('▶').parent(profileHeader).class('color-toggle');
     createSpan(' Profiles').parent(profileHeader);
@@ -895,9 +897,9 @@ function saveLastProfile() {
     localStorage.setItem('albumGeneratorLastProfile', currentProfileName);
 }
 
-function createTracksCustomizationSection() {
-    createDiv('').parent(editorPanel).class('section-divider');
-    let tracksSection = createDiv('').parent(editorPanel).class('color-section');
+function createTracksCustomizationSection(parent = editorPanel) {
+    createDiv('').parent(parent).class('section-divider');
+    let tracksSection = createDiv('').parent(parent).class('color-section');
     let tracksHeader = createDiv('').parent(tracksSection).class('color-section-header');
     let tracksToggle = createSpan('▶').parent(tracksHeader).class('color-toggle');
     createSpan(' Customize Tracks').parent(tracksHeader);
@@ -972,9 +974,9 @@ function createTracksCustomizationSection() {
     });
 }
 
-function createColorSection() {
-    createDiv('').parent(editorPanel).class('section-divider');
-    let colorSection = createDiv('').parent(editorPanel).class('color-section');
+function createColorSection(parent = editorPanel) {
+    createDiv('').parent(parent).class('section-divider');
+    let colorSection = createDiv('').parent(parent).class('color-section');
     let colorHeader = createDiv('').parent(colorSection).class('color-section-header');
     let colorToggle = createSpan('▶').parent(colorHeader).class('color-toggle');
     createSpan(' Customize Colors').parent(colorHeader);
@@ -1002,9 +1004,9 @@ function createColorSection() {
     createButton('Reset to Default').parent(colorContent).class('btn btn-secondary').style('margin-top', '12px').mousePressed(resetColors);
 }
 
-function createAdvancedOptionsSection() {
-    createDiv('').parent(editorPanel).class('section-divider');
-    let advancedSection = createDiv('').parent(editorPanel).class('color-section');
+function createAdvancedOptionsSection(parent = editorPanel) {
+    createDiv('').parent(parent).class('section-divider');
+    let advancedSection = createDiv('').parent(parent).class('color-section');
     let advancedHeader = createDiv('').parent(advancedSection).class('color-section-header');
     let advancedToggle = createSpan('▶').parent(advancedHeader).class('color-toggle');
     createSpan(' Advanced Options').parent(advancedHeader);
