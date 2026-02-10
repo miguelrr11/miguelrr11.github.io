@@ -1449,7 +1449,7 @@ async function downloadBothImages() {
 
 function makeNumberEditable(trackNumSpan, trackIndex) {
     trackNumSpan.elt.addEventListener('dblclick', () => {
-        let currentText = trackNumSpan.html().replace('.', '');
+        let currentText = trackNumSpan.html();
         let input = document.createElement('input');
         input.type = 'text';
         input.value = currentText;
@@ -1460,8 +1460,8 @@ function makeNumberEditable(trackNumSpan, trackIndex) {
         input.select();
 
         let finishEdit = () => {
-            let newValue = input.value.trim() || (trackIndex + 1).toString();
-            trackNumSpan.html(newValue + '.');
+            let newValue = input.value.trim() || ((trackIndex + 1) + '.');
+            trackNumSpan.html(newValue);
             input.replaceWith(trackNumSpan.elt);
             let track = tracks.find(t => t.numSpan === trackNumSpan);
             if (track) track.customNumber = newValue;
@@ -1472,7 +1472,7 @@ function makeNumberEditable(trackNumSpan, trackIndex) {
         input.addEventListener('blur', finishEdit);
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') { e.preventDefault(); finishEdit(); }
-            else if (e.key === 'Escape') { e.preventDefault(); trackNumSpan.html((trackIndex + 1) + '.'); input.replaceWith(trackNumSpan.elt); }
+            else if (e.key === 'Escape') { e.preventDefault(); let track = tracks.find(t => t.numSpan === trackNumSpan); trackNumSpan.html(track && track.customNumber ? track.customNumber : (trackIndex + 1) + '.'); input.replaceWith(trackNumSpan.elt); }
         });
     });
 }
@@ -1722,7 +1722,7 @@ function fillFormFromData(data) {
             lastTrack.gradeSelect.selected(track.grade || 'STRONG');
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
-                lastTrack.numSpan.html(track.customNumber + '.');
+                lastTrack.numSpan.html(track.customNumber);
             }
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
@@ -2084,8 +2084,8 @@ async function printAlbum(){
         }
 
         fill(255); textAlign(LEFT, BASELINE);
-        let trackNumber = track.customNumber || (i + 1).toString();
-        text(shortenText(trackNumber + ". " + track.title + (track.playing ? " " + musicChar : ""), 700), leftMargin + x + tracksHorizOffset, trackY);
+        let trackNumber = track.customNumber || ((i + 1) + '.');
+        text(shortenText(trackNumber + " " + track.title + (track.playing ? " " + musicChar : ""), 700), leftMargin + x + tracksHorizOffset, trackY);
         tracksStartY += spacing;
     }
 
@@ -2806,7 +2806,7 @@ function restoreState(state) {
             lastTrack.gradeSelect.selected(track.grade || 'STRONG');
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
-                lastTrack.numSpan.html(track.customNumber + '.');
+                lastTrack.numSpan.html(track.customNumber);
             }
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
