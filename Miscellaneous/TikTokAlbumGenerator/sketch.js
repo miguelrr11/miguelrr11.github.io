@@ -16,7 +16,7 @@ var utils = new p5.Utils();
 // UI Elements
 let titleInput, artistInput, yearInput, genreInput, funfactInput, imageUrlInput, albumGradeSelect;
 let trackContainer, tracks = [];
-const gradeOptions = ['GOAT', 'S', 'A', 'B', 'C', 'D', 'F', 'Interlude', 'None'];
+const gradeOptions = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP', 'INTERLUDE', 'None'];
 let verticalOffsetSlider, verticalOffsetLabel;
 let horizontalOffsetSlider, horizontalOffsetLabel;
 let imageSizeMultiplierSlider, imageSizeMultiplierLabel;
@@ -77,7 +77,7 @@ let cachedImageUrl = null, cachedOriginalImage = null, cachedFilteredImage = nul
 let lastUrlChecked = null;
 
 // Custom color map
-let colorMap = { "GOAT": "#ffffff", "S": "#ffd21f", "A": "#ff1fa9", "B": "#bc3fde", "C": "#38b6ff", "D": "#14b60b", "F": "#902020", "Interlude": "#b2b2b2" };
+let colorMap = { "GOAT": "#ffffff", "PEAK": "#ffd21f", "EXCEPTIONAL": "#ff1fa9", "STRONG": "#bc3fde", "DECENT": "#38b6ff", "OKAY": "#14b60b", "FLOP": "#902020", "INTERLUDE": "#b2b2b2" };
 const defaultColorMap = {...colorMap};
 let colorPickers = {}, canvasScale = 1;
 
@@ -1508,7 +1508,7 @@ function addTrackRowWithCapture(shouldCapture) {
 
     let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
     gradeOptions.forEach(grade => gradeSelect.option(grade));
-    gradeSelect.selected('B');
+    gradeSelect.selected('STRONG');
     gradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
     let textBtn = createButton('T').parent(rowDiv).class('track-text-btn');
@@ -1700,7 +1700,7 @@ function fillFormFromData(data) {
     genreInput.value(data.genre || '');
     funfactInput.value(data.funfact || '');
     imageUrlInput.value(data.imageUrl || '');
-    albumGradeSelect.selected(data.albumGrade || 'B');
+    albumGradeSelect.selected(data.albumGrade || 'STRONG');
 
     if (data.aspectRatio && aspectRatioOptions[data.aspectRatio]) {
         currentAspectRatio = data.aspectRatio;
@@ -1719,7 +1719,7 @@ function fillFormFromData(data) {
             addTrackRow();
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
-            lastTrack.gradeSelect.selected(track.grade || 'B');
+            lastTrack.gradeSelect.selected(track.grade || 'STRONG');
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
                 lastTrack.numSpan.html(track.customNumber + '.');
@@ -2072,9 +2072,9 @@ async function printAlbum(){
         }
         noStroke();
         if(track.grade == 'GOAT') utils.beginShadow("#ffffff", 50, 0, 0);
-        if(track.grade == 'S') utils.beginShadow(colorMap[track.grade], 35, 0, 0);
+        if(track.grade == 'PEAK') utils.beginShadow(colorMap[track.grade], 35, 0, 0);
         rect((leftMargin + x) * 0.5 + tracksHorizOffset, trackY - rectCenterOffset, w, h, 20);
-        if(track.grade == 'GOAT' || track.grade == 'S') utils.endShadow();
+        if(track.grade == 'GOAT' || track.grade == 'PEAK') utils.endShadow();
 
         if (track.customText && track.customText.trim() !== '') {
             push(); blendMode(BLEND); textAlign(CENTER, CENTER); fill(0, 160); textFont(fontRegularCondensed);
@@ -2113,8 +2113,16 @@ async function printAlbum(){
     // Draw grade legend above the big rectangle
     if (showGradeLegend) {
         push()
-        let legendGrades = ['GOAT', 'S', 'A', 'B', 'C'];
-        let legendLabels = ['GOAT', '10', '9', '8', '7'];
+        let allLegendGrades = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP'];
+        let allLegendLabels = ['GOAT', '10', '9', '8', '7', '<7', '<5'];
+        let maxIndex = 4; // Minimum: GOAT through DECENT
+        for (let track of albumData.tracks) {
+            let idx = allLegendGrades.indexOf(track.grade);
+            if (idx > maxIndex) maxIndex = idx;
+        }
+        let legendGrades = allLegendGrades.slice(0, maxIndex + 1);
+        let legendLabels = allLegendLabels.slice(0, maxIndex + 1);
+        if (legendGrades.length > 6) legendLabels[0] = 'G';
         let nOfGrades = legendGrades.length
         let legendPadding = 15; // Padding between legend and big rectangle
         let legendRectHeight = tracksRectHeight;
@@ -2169,10 +2177,9 @@ async function printAlbum(){
         rect(0, gradeRectY, width, gradeRectHeight, 20, 20, 0, 0);
 
         push()
-        let namingMap = { "GOAT": "GOAT", "S": "PEAK", "A": "EXCEPTIONAL", "B": "STRONG", "C": "DECENT", "D": "MEH", "F": "FLOP", "Interlude": "INTERLUDE" };
         textAlign(CENTER, CENTER); fill(255); textFont(fontHeavy); textSize(85);
         utils.beginShadow("#ffffffa3", 30, 0, 0);
-        text(namingMap[albumData.albumGrade] || albumData.albumGrade, width * 0.5, gradeRectY + gradeRectHeight * 0.57);
+        text(albumData.albumGrade, width * 0.5, gradeRectY + gradeRectHeight * 0.57);
         utils.endShadow();
         pop()
     }
@@ -2796,7 +2803,7 @@ function restoreState(state) {
             addTrackRowWithoutCapture();
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
-            lastTrack.gradeSelect.selected(track.grade || 'B');
+            lastTrack.gradeSelect.selected(track.grade || 'STRONG');
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
                 lastTrack.numSpan.html(track.customNumber + '.');

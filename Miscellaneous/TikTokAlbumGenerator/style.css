@@ -492,6 +492,7 @@ canvas {
     background-position: right 10px center;
     transition: all 0.2s ease;
     line-height: 32px;
+    width: 100px;
 }
 
 .track-grade-select:focus {
