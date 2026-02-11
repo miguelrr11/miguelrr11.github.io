@@ -598,7 +598,7 @@ function getDefaultProfile() {
             "id": "custom_1769772665194",
             "text": "Album Review",
             "x": width/2,
-            "y": 265.76598311218333,
+            "y": 335,
             "fontSize": 54,
             "fontType": "fontLight",
             "color": "#ffffff",
@@ -2291,7 +2291,7 @@ async function printCoverScreen() {
     let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
 
-    let coverSize = width * 0.8, coverY = height * 0.42, hasImage = false, imgBW, img;
+    let coverSize = width * 0.8, coverY = height * 0.46, hasImage = false, imgBW, img;
 
     if (albumData.imageUrl && albumData.imageUrl.trim() !== '') {
         try {
