@@ -16,11 +16,12 @@ var utils = new p5.Utils();
 // UI Elements
 let titleInput, artistInput, yearInput, genreInput, funfactInput, imageUrlInput, albumGradeSelect;
 let trackContainer, tracks = [];
-const gradeOptions = ['GOAT', 'S', 'A', 'B', 'C', 'D', 'F', 'Interlude', 'None'];
+const gradeOptions = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP', 'INTERLUDE', 'None'];
 let verticalOffsetSlider, verticalOffsetLabel;
 let horizontalOffsetSlider, horizontalOffsetLabel;
 let imageSizeMultiplierSlider, imageSizeMultiplierLabel;
 let maxTextboxWidthSlider, maxTextboxWidthLabel;
+let positionXInput, positionYInput, positionXLabel, positionYLabel;
 
 // Aspect Ratio options (for ratings screen only)
 let aspectRatioSelect;
@@ -76,7 +77,7 @@ let cachedImageUrl = null, cachedOriginalImage = null, cachedFilteredImage = nul
 let lastUrlChecked = null;
 
 // Custom color map
-let colorMap = { "GOAT": "#ffffff", "S": "#ffd21f", "A": "#ff1fa9", "B": "#bc3fde", "C": "#38b6ff", "D": "#14b60b", "F": "#902020", "Interlude": "#b2b2b2" };
+let colorMap = { "GOAT": "#ffffff", "PEAK": "#ffd21f", "EXCEPTIONAL": "#ff1fa9", "STRONG": "#bc3fde", "DECENT": "#38b6ff", "OKAY": "#14b60b", "FLOP": "#902020", "INTERLUDE": "#b2b2b2" };
 const defaultColorMap = {...colorMap};
 let colorPickers = {}, canvasScale = 1;
 
@@ -84,6 +85,17 @@ let colorPickers = {}, canvasScale = 1;
 let profiles = {};
 let currentProfileName = 'Default';
 let profileSelect, profileNameInput;
+
+// Custom textboxes system
+let customTextboxes = [];
+let customTextboxContainer;
+let isDraggingTextbox = false;
+let draggedTextbox = null;
+let dragStartX = 0;
+let dragStartY = 0;
+let dragStartOffsetX = 0;
+let dragStartOffsetY = 0;
+let shiftDragAxis = null; // null, 'x', or 'y' - for shift+drag constraint
 
 function calculateCanvasScale() {
     const scale = (window.innerHeight - 40) / HEIGHT;
@@ -120,10 +132,10 @@ async function setup(){
     setupDragDrop();
     createAlbumEditor();
     loadProfiles();
-    updateProfileSelect(); // Update profile dropdown after loading profiles
-    loadFromLocalStorage();
+    updateProfileSelect();
     loadCustomColors();
-    loadLastProfile();
+    loadLastProfile(); // Apply profile first (sets defaults)
+    loadFromLocalStorage(); // Then load album data (overrides profile settings)
     captureState();
 
     setInterval(saveToLocalStorage, 1000);
@@ -170,43 +182,56 @@ function handleKeyboard(e) {
 }
 
 function createAlbumEditor() {
-    // Header
-    let header = createDiv('').parent(editorPanel).class('panel-header');
+    // Create 3-column layout
+    let panel1 = createDiv('').parent(editorPanel).class('panel-column panel-metadata');
+    let panel2 = createDiv('').parent(editorPanel).class('panel-column panel-tracks');
+    let panel3 = createDiv('').parent(editorPanel).class('panel-column panel-settings');
+
+    // === Panel 1: Album Metadata ===
+    let header = createDiv('').parent(panel1).class('panel-header');
     createElement('h2', 'Album Editor').parent(header);
     createElement('p', 'Drag & drop JSON or fill manually').parent(header);
 
-    // Basic inputs
-    let rowGroupAlbum = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
+    let rowGroupAlbum = createDiv('').parent(panel1).style('display: flex; gap: 12px;');
     titleInput = createFormInput('Album Title', 'Enter album title...', rowGroupAlbum);
     artistInput = createFormInput('Artist', 'Enter artist name...', rowGroupAlbum);
 
-    let rowGroup = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
+    let rowGroup = createDiv('').parent(panel1).style('display: flex; gap: 12px;');
     yearInput = createFormInput('Year', 'e.g. 1997', rowGroup);
     genreInput = createFormInput('Genre', 'e.g. Rock', rowGroup);
 
-    funfactInput = createFormTextarea('Fun Fact', 'Add an interesting fact about the album...');
-    createImageInputWithUpload();
+    funfactInput = createFormTextarea('Fun Fact', 'Add an interesting fact about the album...', panel1);
+    createImageInputWithUpload(panel1);
 
-    // Album Grade & Vertical Offset row
-    let gradeOffsetRow = createDiv('').parent(editorPanel).style('display: flex; gap: 12px;');
-    albumGradeSelect = createFormSelect('Album Grade', gradeOptions, gradeOffsetRow);
-    createVerticalOffsetSlider(gradeOffsetRow);
+    let gradeRow = createDiv('').parent(panel1).style('display: flex; gap: 35px; align-items: center;');
+    let gradeGroup = createDiv('').parent(gradeRow).class('form-group').style('flex: 1;');
+    createElement('label', 'Album Grade').parent(gradeGroup);
+    albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
+    gradeOptions.forEach(opt => albumGradeSelect.option(opt));
+    albumGradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
-    // Divider & Tracks
-    createDiv('').parent(editorPanel).class('section-divider');
-    createDiv('Tracks').parent(editorPanel).class('section-title');
-    trackContainer = createDiv('').parent(editorPanel).class('track-container');
+    createPositionControls(gradeRow);
+
+    let addTextboxBtn = createButton('+ Add Textbox').parent(panel1).class('btn btn-secondary').style('margin-bottom: 20px;');
+    addTextboxBtn.mousePressed(addCustomTextbox);
+    customTextboxContainer = createDiv('').parent(panel1);
+
+    // === Panel 2: Tracks ===
+    createDiv('Tracks').parent(panel2).class('section-title');
+    trackContainer = createDiv('').parent(panel2).class('track-container');
     addTrackRow();
 
-    let addTrackBtn = createButton('+ Add Track').parent(editorPanel).class('btn btn-secondary');
+    let addTrackBtn = createButton('+ Add Track').parent(panel2).class('btn btn-secondary');
     addTrackBtn.mousePressed(addTrackRow);
 
-    // Button Grid
-    createButtonGrid();
-    createProfileSection();
-    createTracksCustomizationSection();
-    createColorSection();
-    createAdvancedOptionsSection();
+    // === Panel 3: Settings ===
+    createButtonGrid(panel3);
+    createProfileSection(panel3);
+    createTracksCustomizationSection(panel3);
+    createColorSection(panel3);
+    createAdvancedOptionsSection(panel3);
+
+    // Size adjust panel (fixed position, not in any column)
     createSizeAdjustPanel();
 }
 
@@ -221,8 +246,8 @@ function createFormInput(label, placeholder, parent = editorPanel) {
     return input;
 }
 
-function createImageInputWithUpload() {
-    let group = createDiv('').parent(editorPanel).class('form-group');
+function createImageInputWithUpload(parent = editorPanel) {
+    let group = createDiv('').parent(parent).class('form-group');
     createElement('label', 'Image (URL or Local)').parent(group);
 
     let inputRow = createDiv('').parent(group).class('image-input-row');
@@ -265,8 +290,8 @@ function createImageInputWithUpload() {
     });
 }
 
-function createFormTextarea(label, placeholder) {
-    let group = createDiv('').parent(editorPanel).class('form-group');
+function createFormTextarea(label, placeholder, parent = editorPanel) {
+    let group = createDiv('').parent(parent).class('form-group');
     createElement('label', label).parent(group);
     let textarea = createElement('textarea').parent(group).class('form-textarea');
     textarea.attribute('placeholder', placeholder);
@@ -285,49 +310,198 @@ function createFormSelect(label, options, parent = editorPanel) {
     return select;
 }
 
-function createVerticalOffsetSlider(parent) {
-    let group = createDiv('').parent(parent).class('form-group').style('flex', '1');
-    createElement('label', 'Vertical Offset').parent(group);
-    let container = createDiv('').parent(group).class('slider-container');
-    verticalOffsetSlider = createSlider(-700, 700, 0, 1).parent(container).class('form-slider');
-    verticalOffsetLabel = createSpan('0').parent(container).class('slider-value');
+function createPositionControls(parent) {
+    let group = createDiv('').parent(parent).class('form-group').style('flex', '1.2');
+    createElement('label', 'Position').parent(group);
+    let container = createDiv('').parent(group).class('position-controls');
 
-    let sliderTimeout = null;
-    verticalOffsetSlider.input(() => {
+    // X controls
+    positionXLabel = createSpan('X').parent(container).class('position-label');
+    setupLongPressButton(createButton('−').parent(container).class('position-btn'), 'x', -1);
+    positionXInput = createInput('0').parent(container).class('position-input');
+    positionXInput.attribute('type', 'number');
+    positionXInput.elt.addEventListener('input', () => {
         if (!selectedTextBox) return;
-        let value = verticalOffsetSlider.value();
-        verticalOffsetLabel.html(value);
-
-        // Store offset in the correct object based on current view
-        if (currentView === 'ratings') {
-            verticalOffsetsRatings[selectedTextBox.id] = value;
-        } else {
-            verticalOffsetsCover[selectedTextBox.id] = value;
-        }
-
-        if (albumData) {
-            currentView === 'ratings' ? printAlbum() : printCoverScreen();
-        }
-
-        // Debounce capture state
-        if (sliderTimeout) clearTimeout(sliderTimeout);
-        sliderTimeout = setTimeout(() => captureState(), 500);
+        let value = parseInt(positionXInput.value()) || 0;
+        applyPositionChange('x', value);
     });
+    positionXInput.elt.addEventListener('blur', captureState);
+    setupLongPressButton(createButton('+').parent(container).class('position-btn'), 'x', 1);
+
+    // Y controls
+    positionYLabel = createSpan('Y').parent(container).class('position-label').style('margin-left', '6px');
+    setupLongPressButton(createButton('−').parent(container).class('position-btn'), 'y', -1);
+    positionYInput = createInput('0').parent(container).class('position-input');
+    positionYInput.attribute('type', 'number');
+    positionYInput.elt.addEventListener('input', () => {
+        if (!selectedTextBox) return;
+        let value = parseInt(positionYInput.value()) || 0;
+        applyPositionChange('y', value);
+    });
+    positionYInput.elt.addEventListener('blur', captureState);
+    setupLongPressButton(createButton('+').parent(container).class('position-btn'), 'y', 1);
 
     // Initially disable
-    verticalOffsetSlider.attribute('disabled', '');
-    verticalOffsetSlider.addClass('disabled');
+    disablePositionControls();
 }
 
-function createButtonGrid() {
-    let buttonGrid = createDiv('').parent(editorPanel).class('button-grid');
+function setupLongPressButton(btn, axis, delta) {
+    let longPressTimeout = null;
+    let repeatInterval = null;
+    let hasInteracted = false;
+
+    const startAction = () => {
+        hasInteracted = true;
+        adjustPosition(axis, delta);
+
+        // Start long press detection after 500ms
+        longPressTimeout = setTimeout(() => {
+            // Start rapid repeat at 50ms intervals
+            repeatInterval = setInterval(() => {
+                adjustPosition(axis, delta);
+            }, 50);
+        }, 500);
+    };
+
+    const stopAction = () => {
+        if (longPressTimeout) {
+            clearTimeout(longPressTimeout);
+            longPressTimeout = null;
+        }
+        if (repeatInterval) {
+            clearInterval(repeatInterval);
+            repeatInterval = null;
+        }
+        if (hasInteracted) {
+            captureState();
+            hasInteracted = false;
+        }
+    };
+
+    btn.elt.addEventListener('mousedown', startAction);
+    btn.elt.addEventListener('mouseup', stopAction);
+    btn.elt.addEventListener('mouseleave', stopAction);
+    btn.elt.addEventListener('touchstart', (e) => { e.preventDefault(); startAction(); });
+    btn.elt.addEventListener('touchend', stopAction);
+    btn.elt.addEventListener('touchcancel', stopAction);
+}
+
+function adjustPosition(axis, delta) {
+    if (!selectedTextBox) return;
+
+    if (selectedTextBox.isCustom) {
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            if (axis === 'x') textbox.x += delta;
+            else textbox.y += delta;
+        }
+    } else {
+        if (currentView === 'ratings') {
+            if (axis === 'x') {
+                horizontalOffsetsRatings[selectedTextBox.id] = (horizontalOffsetsRatings[selectedTextBox.id] || 0) + delta;
+            } else {
+                verticalOffsetsRatings[selectedTextBox.id] = (verticalOffsetsRatings[selectedTextBox.id] || 0) + delta;
+            }
+        } else {
+            if (axis === 'x') {
+                horizontalOffsetsCover[selectedTextBox.id] = (horizontalOffsetsCover[selectedTextBox.id] || 0) + delta;
+            } else {
+                verticalOffsetsCover[selectedTextBox.id] = (verticalOffsetsCover[selectedTextBox.id] || 0) + delta;
+            }
+        }
+    }
+
+    updatePositionControls();
+    currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    // Note: captureState is called by setupLongPressButton after mouseup
+}
+
+function applyPositionChange(axis, value) {
+    if (!selectedTextBox) return;
+
+    if (selectedTextBox.isCustom) {
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            if (axis === 'x') textbox.x = value;
+            else textbox.y = value;
+        }
+    } else {
+        if (currentView === 'ratings') {
+            if (axis === 'x') horizontalOffsetsRatings[selectedTextBox.id] = value;
+            else verticalOffsetsRatings[selectedTextBox.id] = value;
+        } else {
+            if (axis === 'x') horizontalOffsetsCover[selectedTextBox.id] = value;
+            else verticalOffsetsCover[selectedTextBox.id] = value;
+        }
+    }
+
+    currentView === 'ratings' ? printAlbum() : printCoverScreen();
+}
+
+function updatePositionControls() {
+    if (!selectedTextBox) {
+        disablePositionControls();
+        return;
+    }
+
+    enablePositionControls();
+
+    let xVal, yVal;
+    if (selectedTextBox.isCustom) {
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            xVal = Math.round(textbox.x);
+            yVal = Math.round(textbox.y);
+        } else {
+            xVal = yVal = 0;
+        }
+    } else {
+        if (currentView === 'ratings') {
+            xVal = horizontalOffsetsRatings[selectedTextBox.id] || 0;
+            yVal = verticalOffsetsRatings[selectedTextBox.id] || 0;
+        } else {
+            xVal = horizontalOffsetsCover[selectedTextBox.id] || 0;
+            yVal = verticalOffsetsCover[selectedTextBox.id] || 0;
+        }
+    }
+
+    positionXInput.value(xVal);
+    positionYInput.value(yVal);
+}
+
+function enablePositionControls() {
+    if (positionXInput) {
+        positionXInput.removeAttribute('disabled');
+        positionXInput.removeClass('disabled');
+    }
+    if (positionYInput) {
+        positionYInput.removeAttribute('disabled');
+        positionYInput.removeClass('disabled');
+    }
+}
+
+function disablePositionControls() {
+    if (positionXInput) {
+        positionXInput.attribute('disabled', '');
+        positionXInput.addClass('disabled');
+        positionXInput.value(0);
+    }
+    if (positionYInput) {
+        positionYInput.attribute('disabled', '');
+        positionYInput.addClass('disabled');
+        positionYInput.value(0);
+    }
+}
+
+function createButtonGrid(parent = editorPanel) {
+    let buttonGrid = createDiv('').parent(parent).class('button-grid');
 
     // Aspect Ratio & Image Format selectors
     let aspectRatioRow = createDiv('').parent(buttonGrid).style('display: flex; gap: 12px; margin-bottom: 10px;');
 
     // Aspect Ratio selector (half width)
-    let aspectRatioGroup = createDiv('').parent(aspectRatioRow).class('form-group').style('flex: 1; margin-bottom: 0;');
-    createElement('label', 'Aspect Ratio (Ratings)').parent(aspectRatioGroup);
+    let aspectRatioGroup = createDiv('').parent(aspectRatioRow).class('form-group').style('flex: 1; margin-bottom: 0; align-items: end;');
+    createElement('label', 'Aspect Ratio').parent(aspectRatioGroup);
     aspectRatioSelect = createSelect().parent(aspectRatioGroup).class('form-select');
     Object.keys(aspectRatioOptions).forEach(opt => aspectRatioSelect.option(opt));
     aspectRatioSelect.selected('9:16');
@@ -348,9 +522,9 @@ function createButtonGrid() {
         captureState();
     });
 
-    let downloadRow = createDiv('').parent(buttonGrid).class('button-row');
-    createButton('JSON').parent(downloadRow).class('btn btn-blue').mousePressed(downloadJSON);
-    createButton('Images').parent(downloadRow).class('btn btn-purple').mousePressed(downloadBothImages);
+    //let downloadRow = createDiv('').parent(buttonGrid).class('button-row');
+    createButton('JSON').parent(aspectRatioRow).class('btn btn-blue').mousePressed(downloadJSON);
+    createButton('Images').parent(aspectRatioRow).class('btn btn-purple').mousePressed(downloadBothImages);
 
     viewToggleBtn = createButton('View: Ratings').parent(buttonGrid).class('btn btn-orange');
     viewToggleBtn.mousePressed(toggleView);
@@ -362,9 +536,9 @@ function createButtonGrid() {
     createButton('Clear All').parent(buttonGrid).class('btn btn-danger').mousePressed(clearAll);
 }
 
-function createProfileSection() {
-    createDiv('').parent(editorPanel).class('section-divider');
-    let profileSection = createDiv('').parent(editorPanel).class('color-section');
+function createProfileSection(parent = editorPanel) {
+    createDiv('').parent(parent).class('section-divider');
+    let profileSection = createDiv('').parent(parent).class('color-section');
     let profileHeader = createDiv('').parent(profileSection).class('color-section-header');
     let profileToggle = createSpan('▶').parent(profileHeader).class('color-toggle');
     createSpan(' Profiles').parent(profileHeader);
@@ -388,8 +562,9 @@ function createProfileSection() {
     profileSelect = createSelect().parent(selectGroup).class('form-select');
     profileSelect.option('Default'); // Add default initially, will be updated after loadProfiles()
 
-    createButton('Apply').parent(selectRow).class('btn btn-primary').style('width: 70px; padding: 8px;').mousePressed(applySelectedProfile);
-    createButton('Delete').parent(selectRow).class('btn btn-danger').style('width: 70px; padding: 8px;').mousePressed(deleteSelectedProfile);
+    createButton('Apply').parent(selectRow).class('btn btn-primary').style('width: 60px; padding: 8px;').mousePressed(applySelectedProfile);
+    createButton('Update').parent(selectRow).class('btn btn-blue').style('width: 60px; padding: 8px;').mousePressed(updateSelectedProfile);
+    createButton('Delete').parent(selectRow).class('btn btn-danger').style('width: 60px; padding: 8px;').mousePressed(deleteSelectedProfile);
 
     // Save new profile row
     let saveRow = createDiv('').parent(profileContent).style('display: flex; gap: 8px;');
@@ -403,14 +578,34 @@ function createProfileSection() {
 
 function getDefaultProfile() {
     return {
-        tracksTextSize: 60,
-        tracksSpacing: 0,
-        tracksRectHeight: 40,
+        tracksTextSize: 44,
+        tracksSpacing: -18,
+        tracksRectHeight: 28,
         tracksVerticalOffset: 0,
         colorMap: {...defaultColorMap},
-        aspectRatio: '9:16',
-        imageFormat: 'png',
-        showGradeLegend: true
+        aspectRatio: '3:4',
+        imageFormat: 'jpg',
+        showGradeLegend: true,
+        verticalOffsetsRatings: {funfact: -2},
+        verticalOffsetsCover: {},
+        horizontalOffsetsRatings: {},
+        horizontalOffsetsCover: {},
+        imageSizeMultiplier: 1.0,
+        maxTextboxWidths: {...defaultMaxTextboxWidths},
+        textSizeOffsets: {funfact: -2},
+        textLeadingOffsets: {funfact: -2},
+        customTextboxes: [{
+            "id": "custom_1769772665194",
+            "text": "Album Review",
+            "x": width/2,
+            "y": 335,
+            "fontSize": 54,
+            "fontType": "fontLight",
+            "color": "#ffffff",
+            "viewType": "cover",
+            "leading": 0,
+            "maxWidth": 980
+        }]
     };
 }
 
@@ -423,8 +618,32 @@ function getCurrentProfileData() {
         colorMap: {...colorMap},
         aspectRatio: currentAspectRatio,
         imageFormat: currentImageFormat,
-        showGradeLegend: showGradeLegend
+        showGradeLegend: showGradeLegend,
+        verticalOffsetsRatings: {...verticalOffsetsRatings},
+        verticalOffsetsCover: {...verticalOffsetsCover},
+        horizontalOffsetsRatings: {...horizontalOffsetsRatings},
+        horizontalOffsetsCover: {...horizontalOffsetsCover},
+        imageSizeMultiplier: imageSizeMultiplier,
+        maxTextboxWidths: {...maxTextboxWidths},
+        textSizeOffsets: {...textSizeOffsets},
+        textLeadingOffsets: {...textLeadingOffsets},
+        customTextboxes: getCustomTextboxesProperties()
     };
+}
+
+function getCustomTextboxesProperties(){
+    return customTextboxes.map(tb => ({
+        color: tb.color,
+        fontSize: tb.fontSize,
+        fontType: tb.fontType,
+        leading: tb.leading,
+        maxWidth: tb.maxWidth,
+        text: tb.text,
+        viewType: tb.viewType,
+        x: tb.x,
+        y: tb.y,
+        id: tb.id
+    }));
 }
 
 function applyProfile(profileData) {
@@ -482,6 +701,85 @@ function applyProfile(profileData) {
         gradeLegendCheckbox.checked(showGradeLegend);
     }
 
+    // Clear existing offsets before applying profile
+    Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
+    Object.keys(verticalOffsetsCover).forEach(k => delete verticalOffsetsCover[k]);
+    Object.keys(horizontalOffsetsRatings).forEach(k => delete horizontalOffsetsRatings[k]);
+    Object.keys(horizontalOffsetsCover).forEach(k => delete horizontalOffsetsCover[k]);
+    Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
+    Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
+    Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
+
+    // Apply vertical offsets
+    if (profileData.verticalOffsetsRatings) {
+        Object.keys(profileData.verticalOffsetsRatings).forEach(key => {
+            verticalOffsetsRatings[key] = profileData.verticalOffsetsRatings[key];
+        });
+    }
+    if (profileData.verticalOffsetsCover) {
+        Object.keys(profileData.verticalOffsetsCover).forEach(key => {
+            verticalOffsetsCover[key] = profileData.verticalOffsetsCover[key];
+        });
+    }
+
+    // Apply horizontal offsets
+    if (profileData.horizontalOffsetsRatings) {
+        Object.keys(profileData.horizontalOffsetsRatings).forEach(key => {
+            horizontalOffsetsRatings[key] = profileData.horizontalOffsetsRatings[key];
+        });
+    }
+    if (profileData.horizontalOffsetsCover) {
+        Object.keys(profileData.horizontalOffsetsCover).forEach(key => {
+            horizontalOffsetsCover[key] = profileData.horizontalOffsetsCover[key];
+        });
+    }
+
+    // Apply image size multiplier
+    if (profileData.imageSizeMultiplier !== undefined) {
+        imageSizeMultiplier = profileData.imageSizeMultiplier;
+        if (imageSizeMultiplierSlider) {
+            imageSizeMultiplierSlider.value(imageSizeMultiplier);
+            imageSizeMultiplierLabel.html(imageSizeMultiplier.toFixed(2) + 'x');
+        }
+    }
+
+    // Apply max textbox widths
+    if (profileData.maxTextboxWidths) {
+        Object.keys(profileData.maxTextboxWidths).forEach(key => {
+            maxTextboxWidths[key] = profileData.maxTextboxWidths[key];
+        });
+    }
+
+    // Apply text size offsets
+    if (profileData.textSizeOffsets) {
+        Object.keys(profileData.textSizeOffsets).forEach(key => {
+            textSizeOffsets[key] = profileData.textSizeOffsets[key];
+        });
+    }
+
+    // Apply text leading offsets
+    if (profileData.textLeadingOffsets) {
+        Object.keys(profileData.textLeadingOffsets).forEach(key => {
+            textLeadingOffsets[key] = profileData.textLeadingOffsets[key];
+        });
+    }
+
+    // Update sliders if an item is selected
+    if (selectedTextBox) {
+        updateVerticalOffsetSlider();
+        updateHorizontalOffsetSlider();
+        updateMaxTextboxWidthSlider();
+    }
+
+    // Apply custom textboxes if any and if they aren't already applied
+    if (profileData.customTextboxes) {
+        for(let tbData of profileData.customTextboxes) {
+            if (!customTextboxes.find(t => t.id === tbData.id)) {
+                let newTextbox = addCustomTextbox(tbData);
+            }
+        }
+    }
+
     // Update UI
     if (albumData) {
         currentView === 'ratings' ? printAlbum() : printCoverScreen();
@@ -520,6 +818,22 @@ function applySelectedProfile() {
     saveLastProfile();
     showToast('Profile applied: ' + selectedName);
     captureState();
+}
+
+function updateSelectedProfile() {
+    let selectedName = profileSelect.value();
+    if (selectedName === 'Default') {
+        showToast('Cannot update Default profile', true);
+        return;
+    }
+    if (!profiles[selectedName]) {
+        showToast('Profile not found', true);
+        return;
+    }
+
+    profiles[selectedName] = getCurrentProfileData();
+    saveProfiles();
+    showToast('Profile updated: ' + selectedName);
 }
 
 function deleteSelectedProfile() {
@@ -583,9 +897,9 @@ function saveLastProfile() {
     localStorage.setItem('albumGeneratorLastProfile', currentProfileName);
 }
 
-function createTracksCustomizationSection() {
-    createDiv('').parent(editorPanel).class('section-divider');
-    let tracksSection = createDiv('').parent(editorPanel).class('color-section');
+function createTracksCustomizationSection(parent = editorPanel) {
+    createDiv('').parent(parent).class('section-divider');
+    let tracksSection = createDiv('').parent(parent).class('color-section');
     let tracksHeader = createDiv('').parent(tracksSection).class('color-section-header');
     let tracksToggle = createSpan('▶').parent(tracksHeader).class('color-toggle');
     createSpan(' Customize Tracks').parent(tracksHeader);
@@ -660,9 +974,9 @@ function createTracksCustomizationSection() {
     });
 }
 
-function createColorSection() {
-    createDiv('').parent(editorPanel).class('section-divider');
-    let colorSection = createDiv('').parent(editorPanel).class('color-section');
+function createColorSection(parent = editorPanel) {
+    createDiv('').parent(parent).class('section-divider');
+    let colorSection = createDiv('').parent(parent).class('color-section');
     let colorHeader = createDiv('').parent(colorSection).class('color-section-header');
     let colorToggle = createSpan('▶').parent(colorHeader).class('color-toggle');
     createSpan(' Customize Colors').parent(colorHeader);
@@ -690,9 +1004,9 @@ function createColorSection() {
     createButton('Reset to Default').parent(colorContent).class('btn btn-secondary').style('margin-top', '12px').mousePressed(resetColors);
 }
 
-function createAdvancedOptionsSection() {
-    createDiv('').parent(editorPanel).class('section-divider');
-    let advancedSection = createDiv('').parent(editorPanel).class('color-section');
+function createAdvancedOptionsSection(parent = editorPanel) {
+    createDiv('').parent(parent).class('section-divider');
+    let advancedSection = createDiv('').parent(parent).class('color-section');
     let advancedHeader = createDiv('').parent(advancedSection).class('color-section-header');
     let advancedToggle = createSpan('▶').parent(advancedHeader).class('color-toggle');
     createSpan(' Advanced Options').parent(advancedHeader);
@@ -709,11 +1023,44 @@ function createAdvancedOptionsSection() {
         }
     });
 
+    // Vertical Offset slider
+    let vertOffsetRow = createDiv('').parent(advancedContent).class('slider-row');
+    createSpan('Vertical Offset').parent(vertOffsetRow).class('slider-label');
+    let vertOffsetContainer = createDiv('').parent(vertOffsetRow).class('slider-container');
+    verticalOffsetSlider = createSlider(-900, 900, 0, 1).parent(vertOffsetContainer).class('form-slider');
+    verticalOffsetLabel = createSpan('0').parent(vertOffsetContainer).class('slider-value');
+
+    // Initially disable
+    verticalOffsetSlider.attribute('disabled', '');
+    verticalOffsetSlider.addClass('disabled');
+
+    let vertSliderTimeout = null;
+    verticalOffsetSlider.input(() => {
+        if (!selectedTextBox || selectedTextBox.isCustom) return;
+        let value = verticalOffsetSlider.value();
+        verticalOffsetLabel.html(value);
+
+        if (currentView === 'ratings') {
+            verticalOffsetsRatings[selectedTextBox.id] = value;
+        } else {
+            verticalOffsetsCover[selectedTextBox.id] = value;
+        }
+
+        updatePositionControls();
+
+        if (albumData) {
+            currentView === 'ratings' ? printAlbum() : printCoverScreen();
+        }
+
+        if (vertSliderTimeout) clearTimeout(vertSliderTimeout);
+        vertSliderTimeout = setTimeout(() => captureState(), 500);
+    });
+
     // Horizontal Offset slider
     let horizOffsetRow = createDiv('').parent(advancedContent).class('slider-row');
     createSpan('Horizontal Offset').parent(horizOffsetRow).class('slider-label');
     let horizOffsetContainer = createDiv('').parent(horizOffsetRow).class('slider-container');
-    horizontalOffsetSlider = createSlider(-500, 500, 0, 1).parent(horizOffsetContainer).class('form-slider');
+    horizontalOffsetSlider = createSlider(-600, 600, 0, 1).parent(horizOffsetContainer).class('form-slider');
     horizontalOffsetLabel = createSpan('0').parent(horizOffsetContainer).class('slider-value');
 
     // Initially disable
@@ -721,7 +1068,7 @@ function createAdvancedOptionsSection() {
     horizontalOffsetSlider.addClass('disabled');
 
     horizontalOffsetSlider.input(() => {
-        if (!selectedTextBox) return;
+        if (!selectedTextBox || selectedTextBox.isCustom) return;
         let value = horizontalOffsetSlider.value();
         horizontalOffsetLabel.html(value);
 
@@ -730,6 +1077,8 @@ function createAdvancedOptionsSection() {
         } else {
             horizontalOffsetsCover[selectedTextBox.id] = value;
         }
+
+        updatePositionControls();
 
         if (albumData) {
             currentView === 'ratings' ? printAlbum() : printCoverScreen();
@@ -809,10 +1158,75 @@ function createAdvancedOptionsSection() {
     });
 }
 
+function addCustomTextbox(tbData) {
+    let id = 'custom_' + Date.now();
+    let textbox = {
+        id: tbData.id || id,
+        text: tbData.text || '',
+        x: tbData.x || 100,
+        y: tbData.y || 100,
+        fontSize: tbData.fontSize || 40,
+        fontType: tbData.fontType || 'fontHeavy',
+        color: tbData.color || '#ffffff',
+        viewType: tbData.viewType || 'both', // 'both', 'ratings', or 'cover'
+        leading: tbData.leading || 0, // Additional spacing added to default line height
+        maxWidth: tbData.maxWidth || width - 100 // Maximum width before text wraps
+    };
+
+    customTextboxes.push(textbox);
+    addCustomTextboxUI(textbox);
+    captureState();
+    autoGeneratePreview();
+
+    return textbox
+}
+
+function addCustomTextboxUI(textbox) {
+    // Create a simple form group like the other inputs
+    let group = createDiv('').parent(customTextboxContainer).class('form-group');
+    textbox.rowDiv = group;
+
+    // Label
+    createElement('label', 'Custom Text').parent(group);
+
+    // Row with textarea and remove button
+    let inputRow = createDiv('').parent(group).style('display: flex; gap: 8px; align-items: flex-start;');
+
+    // Text input (like fun fact textarea)
+    let textarea = createElement('textarea').parent(inputRow).class('form-textarea');
+    textarea.attribute('placeholder', 'Enter text... (click on canvas to edit)');
+    textarea.style('min-height: 60px; flex: 1; margin-bottom: 0;');
+    textbox.textInput = textarea;
+    textarea.elt.value = textbox.text || '';
+    textarea.elt.addEventListener('input', () => {
+        textbox.text = textarea.elt.value;
+        autoGeneratePreview();
+    });
+    textarea.elt.addEventListener('blur', captureState);
+
+    // Remove button
+    let removeBtn = createButton('×').parent(inputRow).class('track-remove-btn').style('width: 32px; height: 32px; font-size: 18px; flex-shrink: 0;');
+    removeBtn.mousePressed(() => {
+        let index = customTextboxes.findIndex(t => t.id === textbox.id);
+        if (index !== -1) {
+            // Deselect if this textbox is selected
+            if (selectedTextBox && selectedTextBox.id === textbox.id) {
+                selectedTextBox = null;
+                sizeAdjustPanel.style('display', 'none');
+            }
+            customTextboxes.splice(index, 1);
+            group.remove();
+            captureState();
+            autoGeneratePreview();
+        }
+    });
+}
+
 function updateHorizontalOffsetSlider() {
     if (!horizontalOffsetSlider) return;
 
-    if (selectedTextBox) {
+    // Disable for custom textboxes (they use drag instead)
+    if (selectedTextBox && !selectedTextBox.isCustom) {
         horizontalOffsetSlider.removeAttribute('disabled');
         horizontalOffsetSlider.removeClass('disabled');
 
@@ -829,14 +1243,15 @@ function updateHorizontalOffsetSlider() {
         horizontalOffsetSlider.attribute('disabled', '');
         horizontalOffsetSlider.addClass('disabled');
         horizontalOffsetSlider.value(0);
-        horizontalOffsetLabel.html('0');
+        horizontalOffsetLabel.html(selectedTextBox && selectedTextBox.isCustom ? 'Drag' : '0');
     }
 }
 
 function updateMaxTextboxWidthSlider() {
     if (!maxTextboxWidthSlider) return;
 
-    if (selectedTextBox && selectedTextBox.id !== 'tracks' && selectedTextBox.id !== 'image') {
+    // Disable for custom textboxes (they have their own control) and tracks/image
+    if (selectedTextBox && !selectedTextBox.isCustom && selectedTextBox.id !== 'tracks' && selectedTextBox.id !== 'image') {
         maxTextboxWidthSlider.removeAttribute('disabled');
         maxTextboxWidthSlider.removeClass('disabled');
 
@@ -854,21 +1269,119 @@ function updateMaxTextboxWidthSlider() {
 function createSizeAdjustPanel() {
     sizeAdjustPanel = createDiv('').id('size-adjust-panel');
 
-    createSpan('Text Size:').parent(sizeAdjustPanel).class('label');
-    createButton('−').parent(sizeAdjustPanel).class('btn-control').mousePressed(() => adjustTextSize(-2));
-    let sizeDisplay = createSpan('0').parent(sizeAdjustPanel).id('size-display').class('display');
-    createButton('+').parent(sizeAdjustPanel).class('btn-control').mousePressed(() => adjustTextSize(2));
+    // Text Size controls (for predefined textboxes)
+    let sizeContainer = createDiv('').parent(sizeAdjustPanel).id('size-container');
+    createSpan('Text Size:').parent(sizeContainer).class('label');
+    createButton('−').parent(sizeContainer).class('btn-control').mousePressed(() => adjustTextSize(-2));
+    createSpan('0').parent(sizeContainer).id('size-display').class('display');
+    createButton('+').parent(sizeContainer).class('btn-control').mousePressed(() => adjustTextSize(2));
 
+    // Leading controls (for predefined textboxes with leading)
     let leadingContainer = createDiv('').parent(sizeAdjustPanel).id('leading-container');
     createSpan('Leading:').parent(leadingContainer).class('label');
     createButton('−').parent(leadingContainer).class('btn-control').mousePressed(() => adjustTextLeading(-2));
     createSpan('0').parent(leadingContainer).id('leading-display').class('display');
     createButton('+').parent(leadingContainer).class('btn-control').mousePressed(() => adjustTextLeading(2));
 
+    // Custom textbox controls container
+    let customContainer = createDiv('').parent(sizeAdjustPanel).id('custom-textbox-controls');
+    customContainer.style('display', 'none');
+    customContainer.style('gap', '10px');
+    customContainer.style('align-items', 'center');
+
+    // Font Size slider for custom textboxes
+    createSpan('Size:').parent(customContainer).class('label');
+    let customFontSizeSlider = createSlider(10, 150, 40, 2).parent(customContainer).id('custom-font-size-slider').class('form-slider').style('width', '80px');
+    createSpan('40').parent(customContainer).id('custom-font-size-display').class('display');
+
+    customFontSizeSlider.input(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.fontSize = customFontSizeSlider.value();
+            select('#custom-font-size-display').html(textbox.fontSize);
+            autoGeneratePreview();
+        }
+    });
+    customFontSizeSlider.changed(() => captureState());
+
+    // Leading slider for custom textboxes
+    createSpan('Lead:').parent(customContainer).class('label');
+    let customLeadingSlider = createSlider(-30, 50, 0, 1).parent(customContainer).id('custom-leading-slider').class('form-slider').style('width', '60px');
+    createSpan('0').parent(customContainer).id('custom-leading-display').class('display');
+
+    customLeadingSlider.input(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.leading = customLeadingSlider.value();
+            select('#custom-leading-display').html(textbox.leading);
+            autoGeneratePreview();
+        }
+    });
+    customLeadingSlider.changed(() => captureState());
+
+    // Font type select for custom textboxes
+    let customFontSelect = createSelect().parent(customContainer).id('custom-font-select').class('form-select').style('width', '100px');
+    ['fontHeavy', 'fontLight', 'fontRegular', 'fontRegularCondensed', 'fontRegularItalic', 'fontRegularCrammed'].forEach(f => customFontSelect.option(f));
+    customFontSelect.changed(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.fontType = customFontSelect.value();
+            autoGeneratePreview();
+            captureState();
+        }
+    });
+
+    // Color picker for custom textboxes
+    let customColorPicker = createColorPicker('#ffffff').parent(customContainer).id('custom-color-picker').class('color-picker');
+    customColorPicker.input(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.color = customColorPicker.value();
+            autoGeneratePreview();
+        }
+    });
+    customColorPicker.changed(() => captureState());
+
+    // View type select for custom textboxes
+    let customViewSelect = createSelect().parent(customContainer).id('custom-view-select').class('form-select').style('width', '80px');
+    customViewSelect.option('Both', 'both');
+    customViewSelect.option('Ratings', 'ratings');
+    customViewSelect.option('Cover', 'cover');
+    customViewSelect.changed(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.viewType = customViewSelect.value();
+            autoGeneratePreview();
+            captureState();
+        }
+    });
+
+    // Max width slider for custom textboxes
+    createSpan('Width:').parent(customContainer).class('label');
+    let customMaxWidthSlider = createSlider(100, 1000, 500, 10).parent(customContainer).id('custom-max-width-slider').class('form-slider').style('width', '80px');
+    createSpan('500').parent(customContainer).id('custom-max-width-display').class('display');
+
+    customMaxWidthSlider.input(() => {
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.maxWidth = customMaxWidthSlider.value();
+            select('#custom-max-width-display').html(textbox.maxWidth);
+            autoGeneratePreview();
+        }
+    });
+    customMaxWidthSlider.changed(() => captureState());
+
     createButton('↻').parent(sizeAdjustPanel).class('btn-control btn-reset').mousePressed(resetTextBoxToDefault);
     createButton('✕').parent(sizeAdjustPanel).class('btn-control btn-close').mousePressed(() => {
         selectedTextBox = null;
         sizeAdjustPanel.style('display', 'none');
+        updateVerticalOffsetSlider();
         currentView === 'ratings' ? printAlbum() : printCoverScreen();
     });
 }
@@ -878,9 +1391,14 @@ function clearAll() {
     albumGradeSelect.selected('GOAT');
     while (tracks.length > 0) { tracks[0].rowDiv.remove(); tracks.shift(); }
     addTrackRow();
+    customTextboxes = [];
+    if (customTextboxContainer) customTextboxContainer.html('');
     albumData = null;
     cachedImageUrl = cachedOriginalImage = cachedFilteredImage = null;
     lastUrlChecked = null;
+    selectedTextBox = null;
+    if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
+    updateVerticalOffsetSlider();
     background(200);
     localStorage.removeItem('albumGeneratorData');
 }
@@ -888,6 +1406,10 @@ function clearAll() {
 function toggleView() {
     currentView = currentView === 'ratings' ? 'cover' : 'ratings';
     viewToggleBtn.html(currentView === 'ratings' ? 'View Ratings' : 'View Cover');
+    // Deselect textbox when switching views
+    selectedTextBox = null;
+    if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
+    updateVerticalOffsetSlider();
     if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
 }
 
@@ -929,7 +1451,7 @@ async function downloadBothImages() {
 
 function makeNumberEditable(trackNumSpan, trackIndex) {
     trackNumSpan.elt.addEventListener('dblclick', () => {
-        let currentText = trackNumSpan.html().replace('.', '');
+        let currentText = trackNumSpan.html();
         let input = document.createElement('input');
         input.type = 'text';
         input.value = currentText;
@@ -940,8 +1462,8 @@ function makeNumberEditable(trackNumSpan, trackIndex) {
         input.select();
 
         let finishEdit = () => {
-            let newValue = input.value.trim() || (trackIndex + 1).toString();
-            trackNumSpan.html(newValue + '.');
+            let newValue = input.value.trim() || ((trackIndex + 1) + '.');
+            trackNumSpan.html(newValue);
             input.replaceWith(trackNumSpan.elt);
             let track = tracks.find(t => t.numSpan === trackNumSpan);
             if (track) track.customNumber = newValue;
@@ -952,7 +1474,7 @@ function makeNumberEditable(trackNumSpan, trackIndex) {
         input.addEventListener('blur', finishEdit);
         input.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') { e.preventDefault(); finishEdit(); }
-            else if (e.key === 'Escape') { e.preventDefault(); trackNumSpan.html((trackIndex + 1) + '.'); input.replaceWith(trackNumSpan.elt); }
+            else if (e.key === 'Escape') { e.preventDefault(); let track = tracks.find(t => t.numSpan === trackNumSpan); trackNumSpan.html(track && track.customNumber ? track.customNumber : (trackIndex + 1) + '.'); input.replaceWith(trackNumSpan.elt); }
         });
     });
 }
@@ -988,7 +1510,7 @@ function addTrackRowWithCapture(shouldCapture) {
 
     let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
     gradeOptions.forEach(grade => gradeSelect.option(grade));
-    gradeSelect.selected('B');
+    gradeSelect.selected('STRONG');
     gradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
     let textBtn = createButton('T').parent(rowDiv).class('track-text-btn');
@@ -1006,7 +1528,10 @@ function addTrackRowWithCapture(shouldCapture) {
     });
 
     let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
-    removeBtn.mousePressed(() => removeTrackRow(trackIndex));
+    removeBtn.mousePressed(() => {
+        let currentIndex = tracks.findIndex(t => t.rowDiv === rowDiv);
+        if (currentIndex !== -1) removeTrackRow(currentIndex);
+    });
 
     tracks.push({ titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, textInput, textInputContainer, dragHandle });
 
@@ -1159,7 +1684,12 @@ function downloadJSON() {
             funfact: funfactInput.value() || '',
             tracks: tracksData,
             imageUrl: imageUrlInput.value() || '',
-            albumGrade: albumGradeSelect.value()
+            albumGrade: albumGradeSelect.value(),
+            customTextboxes: customTextboxes.map(t => ({
+                id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
+                fontType: t.fontType, color: t.color, viewType: t.viewType,
+                leading: t.leading || 0, maxWidth: t.maxWidth || width - 100
+            }))
         }
     };
     saveJSON(jsonData, getBaseFileName() + '.json');
@@ -1172,7 +1702,7 @@ function fillFormFromData(data) {
     genreInput.value(data.genre || '');
     funfactInput.value(data.funfact || '');
     imageUrlInput.value(data.imageUrl || '');
-    albumGradeSelect.selected(data.albumGrade || 'B');
+    albumGradeSelect.selected(data.albumGrade || 'STRONG');
 
     if (data.aspectRatio && aspectRatioOptions[data.aspectRatio]) {
         currentAspectRatio = data.aspectRatio;
@@ -1191,10 +1721,10 @@ function fillFormFromData(data) {
             addTrackRow();
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
-            lastTrack.gradeSelect.selected(track.grade || 'B');
+            lastTrack.gradeSelect.selected(track.grade || 'STRONG');
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
-                lastTrack.numSpan.html(track.customNumber + '.');
+                lastTrack.numSpan.html(track.customNumber);
             }
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
@@ -1202,6 +1732,107 @@ function fillFormFromData(data) {
             }
         });
     } else addTrackRow();
+
+    // Load custom textboxes
+    customTextboxes = [];
+    if (customTextboxContainer) customTextboxContainer.html('');
+    if (data.customTextboxes && data.customTextboxes.length > 0) {
+        data.customTextboxes.forEach(textboxData => {
+            let textbox = {
+                id: textboxData.id,
+                text: textboxData.text || '',
+                x: textboxData.x || 100,
+                y: textboxData.y || 100,
+                fontSize: textboxData.fontSize || 40,
+                fontType: textboxData.fontType || 'fontHeavy',
+                color: textboxData.color || '#ffffff',
+                viewType: textboxData.viewType || 'both',
+                leading: textboxData.leading || 0,
+                maxWidth: textboxData.maxWidth || width - 100
+            };
+            customTextboxes.push(textbox);
+            addCustomTextboxUI(textbox);
+        });
+    }
+
+    // Load all offsets and advanced options - clear first, then load
+    // Clear existing offsets
+    Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
+    Object.keys(verticalOffsetsCover).forEach(k => delete verticalOffsetsCover[k]);
+    Object.keys(horizontalOffsetsRatings).forEach(k => delete horizontalOffsetsRatings[k]);
+    Object.keys(horizontalOffsetsCover).forEach(k => delete horizontalOffsetsCover[k]);
+    Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
+    Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
+    Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
+
+    // Load saved offsets
+    if (data.verticalOffsetsRatings) {
+        Object.keys(data.verticalOffsetsRatings).forEach(key => {
+            verticalOffsetsRatings[key] = data.verticalOffsetsRatings[key];
+        });
+    }
+    if (data.verticalOffsetsCover) {
+        Object.keys(data.verticalOffsetsCover).forEach(key => {
+            verticalOffsetsCover[key] = data.verticalOffsetsCover[key];
+        });
+    }
+    if (data.horizontalOffsetsRatings) {
+        Object.keys(data.horizontalOffsetsRatings).forEach(key => {
+            horizontalOffsetsRatings[key] = data.horizontalOffsetsRatings[key];
+        });
+    }
+    if (data.horizontalOffsetsCover) {
+        Object.keys(data.horizontalOffsetsCover).forEach(key => {
+            horizontalOffsetsCover[key] = data.horizontalOffsetsCover[key];
+        });
+    }
+    if (data.imageSizeMultiplier !== undefined) {
+        imageSizeMultiplier = data.imageSizeMultiplier;
+        if (imageSizeMultiplierSlider) {
+            imageSizeMultiplierSlider.value(imageSizeMultiplier);
+            imageSizeMultiplierLabel.html(imageSizeMultiplier.toFixed(2) + 'x');
+        }
+    }
+    if (data.maxTextboxWidths) {
+        Object.keys(data.maxTextboxWidths).forEach(key => {
+            maxTextboxWidths[key] = data.maxTextboxWidths[key];
+        });
+    }
+    if (data.textSizeOffsets) {
+        Object.keys(data.textSizeOffsets).forEach(key => {
+            textSizeOffsets[key] = data.textSizeOffsets[key];
+        });
+    }
+    if (data.textLeadingOffsets) {
+        Object.keys(data.textLeadingOffsets).forEach(key => {
+            textLeadingOffsets[key] = data.textLeadingOffsets[key];
+        });
+    }
+    if (data.showGradeLegend !== undefined) {
+        showGradeLegend = data.showGradeLegend;
+        if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
+    }
+    if (data.tracksTextSize !== undefined) {
+        tracksTextSize = data.tracksTextSize;
+        if (tracksTextSizeSlider) {
+            tracksTextSizeSlider.value(tracksTextSize);
+            tracksTextSizeLabel.html(tracksTextSize);
+        }
+    }
+    if (data.tracksSpacing !== undefined) {
+        tracksSpacing = data.tracksSpacing;
+        if (tracksSpacingSlider) {
+            tracksSpacingSlider.value(tracksSpacing);
+            tracksSpacingLabel.html(tracksSpacing);
+        }
+    }
+    if (data.tracksRectHeight !== undefined) {
+        tracksRectHeight = data.tracksRectHeight;
+        if (tracksRectHeightSlider) {
+            tracksRectHeightSlider.value(tracksRectHeight);
+            tracksRectHeightLabel.html(tracksRectHeight);
+        }
+    }
 }
 
 function saveToLocalStorage() {
@@ -1213,6 +1844,24 @@ function saveToLocalStorage() {
     })));
     data.aspectRatio = currentAspectRatio;
     data.imageFormat = currentImageFormat;
+    data.showGradeLegend = showGradeLegend;
+    data.customTextboxes = customTextboxes.map(t => ({
+        id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
+        fontType: t.fontType, color: t.color, viewType: t.viewType,
+        leading: t.leading || 0, maxWidth: t.maxWidth || 500
+    }));
+    // Save all offsets and advanced options
+    data.verticalOffsetsRatings = {...verticalOffsetsRatings};
+    data.verticalOffsetsCover = {...verticalOffsetsCover};
+    data.horizontalOffsetsRatings = {...horizontalOffsetsRatings};
+    data.horizontalOffsetsCover = {...horizontalOffsetsCover};
+    data.imageSizeMultiplier = imageSizeMultiplier;
+    data.maxTextboxWidths = {...maxTextboxWidths};
+    data.textSizeOffsets = {...textSizeOffsets};
+    data.textLeadingOffsets = {...textLeadingOffsets};
+    data.tracksTextSize = tracksTextSize;
+    data.tracksSpacing = tracksSpacing;
+    data.tracksRectHeight = tracksRectHeight;
     localStorage.setItem('albumGeneratorData', JSON.stringify(data));
 }
 
@@ -1324,7 +1973,7 @@ async function printAlbum(){
     // Apply image offsets and size multiplier
     let imageVertOffset = verticalOffsetsRatings.image || 0;
     let imageHorizOffset = horizontalOffsetsRatings.image || 0;
-    let imageX = width * 0.52 + imageHorizOffset;
+    let imageX = width * 0.05 + imageHorizOffset;
     let imageY = y + imgOff + imageVertOffset;
     let imageSize = width * sizeSclMult * imageSizeMultiplier;
 
@@ -1356,20 +2005,20 @@ async function printAlbum(){
     textFont(fontHeavy)
 
     let titleOffset = verticalOffsetsRatings.title || 0;
-    let titleHorizOffset = horizontalOffsetsRatings.title || 0;
+    let titleHorizOffset = (horizontalOffsetsRatings.title || 0) + 0;
     let titleMaxWidth = maxTextboxWidths.title || defaultMaxTextboxWidths.title;
     drawTextWithBox('title', fontHeavy, getMaxTextSize(albumData.title, titleMaxWidth, 100) + textSizeOffsets.title,
                      albumData.title, leftMargin + titleHorizOffset, topMargin + y + titleOffset, titleMaxWidth, 70);
 
-    let artistOffset = verticalOffsetsRatings.artist || 0;
-    let artistHorizOffset = horizontalOffsetsRatings.artist || 0;
+    let artistOffset = verticalOffsetsRatings.artist || 10;
+    let artistHorizOffset = (horizontalOffsetsRatings.artist || 0) + width * .475;
     let artistMaxWidth = maxTextboxWidths.artist || defaultMaxTextboxWidths.artist;
     let bbox = drawTextWithBox('artist', fontRegularCondensed, 45 + textSizeOffsets.artist,
                                 albumData.artist, leftMargin + artistHorizOffset, topMargin + y + 110 + artistOffset, artistMaxWidth, 50);
     y += bbox.h;
 
     let yearOffset = verticalOffsetsRatings.year || 0;
-    let yearHorizOffset = horizontalOffsetsRatings.year || 0;
+    let yearHorizOffset = (horizontalOffsetsRatings.year || 0) + width * .475;
     let yearMaxWidth = maxTextboxWidths.year || defaultMaxTextboxWidths.year;
     let yearY = topMargin + y + 85 + 60 + yearOffset;
     textFont(fontLight); textLeading(60); textSize(38 + textSizeOffsets.year); fill(230);
@@ -1377,7 +2026,7 @@ async function printAlbum(){
     addTextBox('year', fontLight.textBounds(albumData.year, leftMargin + yearHorizOffset, yearY, yearMaxWidth), 38 + textSizeOffsets.year);
 
     let genreOffset = verticalOffsetsRatings.genre || 0;
-    let genreHorizOffset = horizontalOffsetsRatings.genre || 0;
+    let genreHorizOffset = (horizontalOffsetsRatings.genre || 0) + width * .475;
     let genreMaxWidth = maxTextboxWidths.genre || defaultMaxTextboxWidths.genre;
     textSize(30 + textSizeOffsets.genre); textLeading(40);
     let genreText = shortenText(albumData.genre, genreMaxWidth);
@@ -1386,7 +2035,7 @@ async function printAlbum(){
     addTextBox('genre', fontLight.textBounds(genreText, leftMargin + genreHorizOffset, genreY, genreMaxWidth), 30 + textSizeOffsets.genre);
 
     let funfactOffset = verticalOffsetsRatings.funfact || 0;
-    let funfactHorizOffset = horizontalOffsetsRatings.funfact || 0;
+    let funfactHorizOffset = (horizontalOffsetsRatings.funfact || 0) + width * .475;
     let funfactMaxWidth = maxTextboxWidths.funfact || defaultMaxTextboxWidths.funfact;
     let funfactSize = 30 + textSizeOffsets.funfact;
     let funfactLeading = 40 + textLeadingOffsets.funfact;
@@ -1404,6 +2053,7 @@ async function printAlbum(){
     rectMode(CENTER); let w = (leftMargin + x) * 0.75, h = tracksRectHeight;
     let tracksVertOffset = verticalOffsetsRatings.tracks || 0;
     let tracksHorizOffset = horizontalOffsetsRatings.tracks || 0;
+    tracksHorizOffset += 10 //offset fix
 
     let tracksStartY = y + tracksVertOffset;
     let tracksMinX = leftMargin + tracksHorizOffset, tracksMaxX = leftMargin + x + 700 + tracksHorizOffset;
@@ -1424,9 +2074,9 @@ async function printAlbum(){
         }
         noStroke();
         if(track.grade == 'GOAT') utils.beginShadow("#ffffff", 50, 0, 0);
-        if(track.grade == 'S') utils.beginShadow(colorMap[track.grade], 35, 0, 0);
+        if(track.grade == 'PEAK') utils.beginShadow(colorMap[track.grade], 35, 0, 0);
         rect((leftMargin + x) * 0.5 + tracksHorizOffset, trackY - rectCenterOffset, w, h, 20);
-        if(track.grade == 'GOAT' || track.grade == 'S') utils.endShadow();
+        if(track.grade == 'GOAT' || track.grade == 'PEAK') utils.endShadow();
 
         if (track.customText && track.customText.trim() !== '') {
             push(); blendMode(BLEND); textAlign(CENTER, CENTER); fill(0, 160); textFont(fontRegularCondensed);
@@ -1436,8 +2086,8 @@ async function printAlbum(){
         }
 
         fill(255); textAlign(LEFT, BASELINE);
-        let trackNumber = track.customNumber || (i + 1).toString();
-        text(shortenText(trackNumber + ". " + track.title + (track.playing ? " " + musicChar : ""), 700), leftMargin + x + tracksHorizOffset, trackY);
+        let trackNumber = track.customNumber || ((i + 1) + '.');
+        text(shortenText(trackNumber + " " + track.title + (track.playing ? " " + musicChar : ""), 700), leftMargin + x + tracksHorizOffset, trackY);
         tracksStartY += spacing;
     }
 
@@ -1465,8 +2115,17 @@ async function printAlbum(){
     // Draw grade legend above the big rectangle
     if (showGradeLegend) {
         push()
-        let legendGrades = ['GOAT', 'S', 'A', 'B', 'C'];
-        let legendLabels = ['GOAT', '10', '9', '8', '7'];
+        let allLegendGrades = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP'];
+        let allLegendLabels = ['GOAT', '10', '9', '8', '7', '<7', '<5'];
+        let maxIndex = 4; // Minimum: GOAT through DECENT
+        for (let track of albumData.tracks) {
+            let idx = allLegendGrades.indexOf(track.grade);
+            if (idx > maxIndex) maxIndex = idx;
+        }
+        let legendGrades = allLegendGrades.slice(0, maxIndex + 1);
+        let legendLabels = allLegendLabels.slice(0, maxIndex + 1);
+        if (legendGrades.length > 6) legendLabels[0] = 'G';
+        let nOfGrades = legendGrades.length
         let legendPadding = 15; // Padding between legend and big rectangle
         let legendRectHeight = tracksRectHeight;
         let legendY = imageY + imageSize + legendPadding * 1
@@ -1474,7 +2133,7 @@ async function printAlbum(){
         let leftMargin = imageX
         let totalWidth = imageSize
         let gapBetween = 12;
-        let rectWidth = (totalWidth - (gapBetween * 4)) / 5;
+        let rectWidth = (totalWidth - (gapBetween * (nOfGrades - 1))) / nOfGrades;
 
         push();
         rectMode(CORNER);
@@ -1520,13 +2179,70 @@ async function printAlbum(){
         rect(0, gradeRectY, width, gradeRectHeight, 20, 20, 0, 0);
 
         push()
-        let namingMap = { "GOAT": "GOAT", "S": "PEAK", "A": "EXCEPTIONAL", "B": "STRONG", "C": "DECENT", "D": "MEH", "F": "FLOP", "Interlude": "INTERLUDE" };
         textAlign(CENTER, CENTER); fill(255); textFont(fontHeavy); textSize(85);
         utils.beginShadow("#ffffffa3", 30, 0, 0);
-        text(namingMap[albumData.albumGrade] || albumData.albumGrade, width * 0.5, gradeRectY + gradeRectHeight * 0.57);
+        text(albumData.albumGrade, width * 0.5, gradeRectY + gradeRectHeight * 0.57);
         utils.endShadow();
         pop()
     }
+
+    // Draw custom textboxes
+    push();
+    customTextboxes.forEach(textbox => {
+        if (textbox.viewType === 'ratings' || textbox.viewType === 'both') {
+            let fontObj;
+            switch(textbox.fontType) {
+                case 'fontHeavy': fontObj = fontHeavy; break;
+                case 'fontLight': fontObj = fontLight; break;
+                case 'fontRegular': fontObj = fontRegular; break;
+                case 'fontRegularItalic': fontObj = fontRegularItalic; break;
+                case 'fontRegularCrammed': fontObj = fontRegularCrammed; break;
+                case 'fontRegularCondensed': fontObj = fontRegularCondensed; break;
+                default: fontObj = fontHeavy;
+            }
+
+            textFont(fontObj);
+            textSize(textbox.fontSize);
+            fill(textbox.color);
+            textAlign(LEFT, TOP);
+
+            // Apply leading (spacing) if set
+            let baseLeading = textbox.fontSize * 1.25; // Default line height
+            textLeading(baseLeading + (textbox.leading || 0));
+
+            if (textbox.text) {
+                utils.beginShadow("#000000", 20, 0, 0);
+                text(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
+                utils.endShadow();
+
+                // Add to textBoxes for selection
+                let bounds = fontObj.textBounds(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
+                textBoxes.push({
+                    id: textbox.id,
+                    x: bounds.x,
+                    y: bounds.y,
+                    w: Math.max(bounds.w, 50),
+                    h: Math.max(bounds.h, 30),
+                    sizeOffset: 0,
+                    currentSize: textbox.fontSize,
+                    isCustom: true
+                });
+            } else {
+                // Empty textbox - show placeholder for dragging
+                textBoxes.push({
+                    id: textbox.id,
+                    x: textbox.x,
+                    y: textbox.y,
+                    w: 100,
+                    h: 40,
+                    sizeOffset: 0,
+                    currentSize: textbox.fontSize,
+                    isCustom: true
+                });
+            }
+        }
+    });
+    pop();
 
     // Draw green rectangle to visualize export area (only when not downloading)
     if (showGreenRectangle) {
@@ -1570,11 +2286,12 @@ function addTextBox(id, bounds, size) {
 }
 
 async function printCoverScreen() {
+    push()
     background(200);
     let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
 
-    let coverSize = width * 0.8, coverY = height * 0.42, hasImage = false, imgBW, img;
+    let coverSize = width * 0.8, coverY = height * 0.46, hasImage = false, imgBW, img;
 
     if (albumData.imageUrl && albumData.imageUrl.trim() !== '') {
         try {
@@ -1594,10 +2311,10 @@ async function printCoverScreen() {
     if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
     else background(50);
 
-    utils.beginShadow("#000000", 30, 0, 0);
-    textAlign(CENTER, TOP); textFont(fontLight); textSize(55); fill(255);
-    text("Album Review", width * 0.5, 260);
-    utils.endShadow();
+    // utils.beginShadow("#000000", 30, 0, 0);
+    // textAlign(CENTER, TOP); textFont(fontLight); textSize(55); fill(255);
+    // text("Album Review", width * 0.5, 260);
+    // utils.endShadow();
 
     imageMode(CENTER); rectMode(CENTER);
     utils.beginShadow("#000000", 80, 0, 0);
@@ -1627,6 +2344,62 @@ async function printCoverScreen() {
     addTextBox('artist', fontRegularCondensed.textBounds(albumData.artist, width * 0.5 + artistHorizOffset, artistY, width - 100), artistSize);
     utils.endShadow();
 
+    // Draw custom textboxes
+    customTextboxes.forEach(textbox => {
+        if (textbox.viewType === 'cover' || textbox.viewType === 'both') {
+            let fontObj;
+            switch(textbox.fontType) {
+                case 'fontHeavy': fontObj = fontHeavy; break;
+                case 'fontLight': fontObj = fontLight; break;
+                case 'fontRegular': fontObj = fontRegular; break;
+                case 'fontRegularItalic': fontObj = fontRegularItalic; break;
+                case 'fontRegularCrammed': fontObj = fontRegularCrammed; break;
+                case 'fontRegularCondensed': fontObj = fontRegularCondensed; break;
+                default: fontObj = fontHeavy;
+            }
+
+            textFont(fontObj);
+            textSize(textbox.fontSize);
+            fill(textbox.color);
+            textAlign(CENTER, TOP);
+
+            // Apply leading (spacing) if set
+            let baseLeading = textbox.fontSize * 1.25; // Default line height
+            textLeading(baseLeading + (textbox.leading || 0));
+
+            if (textbox.text) {
+                utils.beginShadow("#000000", 20, 0, 0);
+                text(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
+                utils.endShadow();
+
+                // Add to textBoxes for selection
+                let bounds = fontObj.textBounds(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
+                textBoxes.push({
+                    id: textbox.id,
+                    x: bounds.x,
+                    y: bounds.y,
+                    w: Math.max(bounds.w, 50),
+                    h: Math.max(bounds.h, 30),
+                    sizeOffset: 0,
+                    currentSize: textbox.fontSize,
+                    isCustom: true
+                });
+            } else {
+                // Empty textbox - show placeholder for dragging
+                textBoxes.push({
+                    id: textbox.id,
+                    x: textbox.x,
+                    y: textbox.y,
+                    w: 100,
+                    h: 40,
+                    sizeOffset: 0,
+                    currentSize: textbox.fontSize,
+                    isCustom: true
+                });
+            }
+        }
+    });
+
     if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
     if (selectedTextBox) {
         noFill(); stroke(255); strokeWeight(3); rectMode(CORNER);
@@ -1634,6 +2407,7 @@ async function printCoverScreen() {
         rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
         noStroke();
     }
+    pop()
     pop()
 }
 
@@ -1679,7 +2453,31 @@ function mousePressed() {
         let selectionChanged = !selectedTextBox || selectedTextBox.id !== clickedBox.id;
         selectedTextBox = clickedBox;
 
-        // Show size adjust panel only for text boxes (not for tracks or image)
+        // Enable dragging for all textboxes
+        isDraggingTextbox = true;
+        draggedTextbox = clickedBox;
+        dragStartX = scaledMouseX;
+        dragStartY = scaledMouseY;
+        shiftDragAxis = null; // Reset axis constraint
+
+        // Store starting positions/offsets
+        if (clickedBox.isCustom) {
+            let textbox = customTextboxes.find(t => t.id === clickedBox.id);
+            if (textbox) {
+                dragStartOffsetX = textbox.x;
+                dragStartOffsetY = textbox.y;
+            }
+        } else {
+            if (currentView === 'ratings') {
+                dragStartOffsetX = horizontalOffsetsRatings[clickedBox.id] || 0;
+                dragStartOffsetY = verticalOffsetsRatings[clickedBox.id] || 0;
+            } else {
+                dragStartOffsetX = horizontalOffsetsCover[clickedBox.id] || 0;
+                dragStartOffsetY = verticalOffsetsCover[clickedBox.id] || 0;
+            }
+        }
+
+        // Show size adjust panel for text boxes (not for tracks or image)
         if (clickedBox.id !== 'tracks' && clickedBox.id !== 'image') {
             showSizeAdjustPanel(clickedBox);
         } else {
@@ -1699,16 +2497,117 @@ function mousePressed() {
     }
 }
 
-function showSizeAdjustPanel(box) {
-    let sizeDisplay = select('#size-display');
-    sizeDisplay.html(box.sizeOffset >= 0 ? '+' + box.sizeOffset : box.sizeOffset);
+function mouseDragged() {
+    if (isDraggingTextbox && draggedTextbox) {
+        let scaledMouseX = mouseX / canvasScale;
+        let scaledMouseY = mouseY / canvasScale;
 
+        let deltaX = scaledMouseX - dragStartX;
+        let deltaY = scaledMouseY - dragStartY;
+
+        // Shift+drag: constrain to X or Y axis
+        if (keyIsDown(SHIFT)) {
+            // Determine axis on first significant movement
+            if (shiftDragAxis === null && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
+                shiftDragAxis = Math.abs(deltaX) > Math.abs(deltaY) ? 'x' : 'y';
+            }
+            // Apply constraint
+            if (shiftDragAxis === 'x') deltaY = 0;
+            else if (shiftDragAxis === 'y') deltaX = 0;
+        } else {
+            shiftDragAxis = null; // Reset if shift released
+        }
+
+        if (draggedTextbox.isCustom) {
+            // Custom textbox: update x, y directly
+            let textbox = customTextboxes.find(t => t.id === draggedTextbox.id);
+            if (textbox) {
+                if (keyIsDown(SHIFT) && shiftDragAxis) {
+                    // Constrained drag
+                    if (shiftDragAxis === 'x') {
+                        textbox.x = dragStartOffsetX + deltaX;
+                    } else {
+                        textbox.y = dragStartOffsetY + deltaY;
+                    }
+                } else {
+                    // Unconstrained drag
+                    textbox.x = scaledMouseX;
+                    textbox.y = scaledMouseY;
+                }
+            }
+        } else {
+            // Predefined textbox: update offsets
+            if (currentView === 'ratings') {
+                horizontalOffsetsRatings[draggedTextbox.id] = Math.round(dragStartOffsetX + deltaX);
+                verticalOffsetsRatings[draggedTextbox.id] = Math.round(dragStartOffsetY + deltaY);
+            } else {
+                horizontalOffsetsCover[draggedTextbox.id] = Math.round(dragStartOffsetX + deltaX);
+                verticalOffsetsCover[draggedTextbox.id] = Math.round(dragStartOffsetY + deltaY);
+            }
+
+            // Update sliders
+            updateVerticalOffsetSlider();
+            updateHorizontalOffsetSlider();
+        }
+
+        // Update position controls
+        updatePositionControls();
+
+        currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    }
+}
+
+function mouseReleased() {
+    if (isDraggingTextbox) {
+        isDraggingTextbox = false;
+        draggedTextbox = null;
+        shiftDragAxis = null; // Reset axis constraint
+        captureState();
+    }
+}
+
+function showSizeAdjustPanel(box) {
+    let sizeContainer = select('#size-container');
     let leadingContainer = select('#leading-container');
-    if (box.id === 'funfact') {
-        leadingContainer.style('display', 'flex');
-        let leadingDisplay = select('#leading-display');
-        leadingDisplay.html((textLeadingOffsets.funfact || 0) >= 0 ? '+' + textLeadingOffsets.funfact : textLeadingOffsets.funfact);
-    } else leadingContainer.style('display', 'none');
+    let customContainer = select('#custom-textbox-controls');
+
+    if (box.isCustom) {
+        // Show custom textbox controls, hide predefined ones
+        sizeContainer.style('display', 'none');
+        leadingContainer.style('display', 'none');
+        customContainer.style('display', 'flex');
+
+        // Update custom controls with current values
+        let textbox = customTextboxes.find(t => t.id === box.id);
+        if (textbox) {
+            select('#custom-font-size-slider').value(textbox.fontSize);
+            select('#custom-font-size-display').html(textbox.fontSize);
+            select('#custom-leading-slider').value(textbox.leading || 0);
+            select('#custom-leading-display').html(textbox.leading || 0);
+            select('#custom-font-select').selected(textbox.fontType);
+            select('#custom-color-picker').value(textbox.color);
+            select('#custom-view-select').selected(textbox.viewType);
+            select('#custom-max-width-slider').value(textbox.maxWidth || 500);
+            select('#custom-max-width-display').html(textbox.maxWidth || 500);
+        }
+    } else {
+        // Show predefined textbox controls, hide custom ones
+        sizeContainer.style('display', 'flex');
+        customContainer.style('display', 'none');
+
+        let sizeDisplay = select('#size-display');
+        let offset = box.sizeOffset || 0;
+        sizeDisplay.html(offset >= 0 ? '+' + offset : offset);
+
+        if (box.id === 'funfact') {
+            leadingContainer.style('display', 'flex');
+            let leadingDisplay = select('#leading-display');
+            let leadingOffset = textLeadingOffsets.funfact || 0;
+            leadingDisplay.html(leadingOffset >= 0 ? '+' + leadingOffset : leadingOffset);
+        } else {
+            leadingContainer.style('display', 'none');
+        }
+    }
 
     sizeAdjustPanel.style('display', 'flex');
 
@@ -1717,29 +2616,33 @@ function showSizeAdjustPanel(box) {
 }
 
 function updateVerticalOffsetSlider() {
-    if (!verticalOffsetSlider) return;
+    if (verticalOffsetSlider) {
+        // Disable for custom textboxes (they use drag instead)
+        if (selectedTextBox && !selectedTextBox.isCustom) {
+            // Enable slider and set value from correct offset object
+            verticalOffsetSlider.removeAttribute('disabled');
+            verticalOffsetSlider.removeClass('disabled');
 
-    if (selectedTextBox) {
-        // Enable slider and set value from correct offset object
-        verticalOffsetSlider.removeAttribute('disabled');
-        verticalOffsetSlider.removeClass('disabled');
+            let offset;
+            if (currentView === 'ratings') {
+                offset = verticalOffsetsRatings[selectedTextBox.id] || 0;
+            } else {
+                offset = verticalOffsetsCover[selectedTextBox.id] || 0;
+            }
 
-        let offset;
-        if (currentView === 'ratings') {
-            offset = verticalOffsetsRatings[selectedTextBox.id] || 0;
+            verticalOffsetSlider.value(offset);
+            verticalOffsetLabel.html(offset);
         } else {
-            offset = verticalOffsetsCover[selectedTextBox.id] || 0;
+            // Disable slider
+            verticalOffsetSlider.attribute('disabled', '');
+            verticalOffsetSlider.addClass('disabled');
+            verticalOffsetSlider.value(0);
+            verticalOffsetLabel.html(selectedTextBox && selectedTextBox.isCustom ? 'N/A' : '0');
         }
-
-        verticalOffsetSlider.value(offset);
-        verticalOffsetLabel.html(offset);
-    } else {
-        // Disable slider
-        verticalOffsetSlider.attribute('disabled', '');
-        verticalOffsetSlider.addClass('disabled');
-        verticalOffsetSlider.value(0);
-        verticalOffsetLabel.html('0');
     }
+
+    // Update position controls
+    updatePositionControls();
 
     // Also update the advanced options sliders
     updateHorizontalOffsetSlider();
@@ -1767,11 +2670,28 @@ function adjustTextLeading(delta) {
 
 function resetTextBoxToDefault() {
     if (!selectedTextBox) return;
-    if (textSizeOffsets.hasOwnProperty(selectedTextBox.id)) {
-        textSizeOffsets[selectedTextBox.id] = 0;
-        selectedTextBox.sizeOffset = 0;
+
+    if (selectedTextBox.isCustom) {
+        // Reset custom textbox to defaults
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) {
+            textbox.fontSize = 40;
+            textbox.leading = 0;
+            textbox.fontType = 'fontHeavy';
+            textbox.color = '#ffffff';
+            textbox.maxWidth = width - 100;
+            textbox.x = 100;
+            textbox.y = 100;
+        }
+    } else {
+        // Reset predefined textbox
+        if (textSizeOffsets.hasOwnProperty(selectedTextBox.id)) {
+            textSizeOffsets[selectedTextBox.id] = 0;
+            selectedTextBox.sizeOffset = 0;
+        }
+        if (selectedTextBox.id === 'funfact') textLeadingOffsets.funfact = 0;
     }
-    if (selectedTextBox.id === 'funfact') textLeadingOffsets.funfact = 0;
+
     captureState();
     showSizeAdjustPanel(selectedTextBox);
     currentView === 'ratings' ? printAlbum() : printCoverScreen();
@@ -1790,6 +2710,11 @@ function captureState() {
         showGradeLegend: showGradeLegend,
         tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(),
                                     customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null })),
+        customTextboxes: customTextboxes.map(t => ({
+            id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
+            fontType: t.fontType, color: t.color, viewType: t.viewType,
+            leading: t.leading || 0, maxWidth: t.maxWidth || 500
+        })),
         textSizeOffsets: {...textSizeOffsets},
         textLeadingOffsets: {...textLeadingOffsets},
         verticalOffsetsRatings: {...verticalOffsetsRatings},
@@ -1846,8 +2771,17 @@ function restoreState(state) {
         if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
     }
 
+    // Clear existing offsets before restoring
+    Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
+    Object.keys(verticalOffsetsCover).forEach(k => delete verticalOffsetsCover[k]);
+    Object.keys(horizontalOffsetsRatings).forEach(k => delete horizontalOffsetsRatings[k]);
+    Object.keys(horizontalOffsetsCover).forEach(k => delete horizontalOffsetsCover[k]);
+    Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
+    Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
+    Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
+
     if (state.textSizeOffsets) Object.assign(textSizeOffsets, state.textSizeOffsets);
-    if (state.textLeadingOffsets) textLeadingOffsets.funfact = state.textLeadingOffsets.funfact || 0;
+    if (state.textLeadingOffsets) Object.assign(textLeadingOffsets, state.textLeadingOffsets);
     if (state.verticalOffsetsRatings) Object.assign(verticalOffsetsRatings, state.verticalOffsetsRatings);
     if (state.verticalOffsetsCover) Object.assign(verticalOffsetsCover, state.verticalOffsetsCover);
     if (state.horizontalOffsetsRatings) Object.assign(horizontalOffsetsRatings, state.horizontalOffsetsRatings);
@@ -1871,10 +2805,10 @@ function restoreState(state) {
             addTrackRowWithoutCapture();
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
-            lastTrack.gradeSelect.selected(track.grade || 'B');
+            lastTrack.gradeSelect.selected(track.grade || 'STRONG');
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
-                lastTrack.numSpan.html(track.customNumber + '.');
+                lastTrack.numSpan.html(track.customNumber);
             }
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
@@ -1882,6 +2816,28 @@ function restoreState(state) {
             }
         });
     } else addTrackRowWithoutCapture();
+
+    // Restore custom textboxes
+    customTextboxes = [];
+    if (customTextboxContainer) customTextboxContainer.html('');
+    if (state.customTextboxes && state.customTextboxes.length > 0) {
+        state.customTextboxes.forEach(textboxData => {
+            let textbox = {
+                id: textboxData.id,
+                text: textboxData.text || '',
+                x: textboxData.x || 100,
+                y: textboxData.y || 100,
+                fontSize: textboxData.fontSize || 40,
+                fontType: textboxData.fontType || 'fontHeavy',
+                color: textboxData.color || '#ffffff',
+                viewType: textboxData.viewType || 'both',
+                leading: textboxData.leading || 0,
+                maxWidth: textboxData.maxWidth || width - 100
+            };
+            customTextboxes.push(textbox);
+            addCustomTextboxUI(textbox);
+        });
+    }
 
     generateFromForm();
     updateVerticalOffsetSlider();
