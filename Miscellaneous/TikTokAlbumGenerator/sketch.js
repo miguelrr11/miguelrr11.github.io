@@ -2080,7 +2080,7 @@ async function printAlbum(){
 
         if (track.customText && track.customText.trim() !== '') {
             push(); blendMode(BLEND); textAlign(CENTER, CENTER); fill(0, 160); textFont(fontRegularCondensed);
-            let customTextSize = getMaxTextSize(track.customText, w - 40, 32);
+            let customTextSize = getMaxTextSize(track.customText, w - 40, 28);
             textSize(customTextSize); text(track.customText, (leftMargin + x) * 0.5 + tracksHorizOffset, trackY - rectCenterOffset);
             textSize(tracksTextSize); pop();
         }
@@ -2161,7 +2161,7 @@ async function printAlbum(){
             fill(0, 180);
             stroke(0, 180)
             strokeWeight(.5)
-            textSize(getMaxTextSize(label, rectWidth - 10, 28));
+            textSize(getMaxTextSize(label, rectWidth - 10, 26));
             text(label, x + rectWidth / 2, y + legendRectHeight / 2 + 2);
         }
         pop();
