@@ -9,7 +9,7 @@ function drawBody(body){
     if(inside && !editorMode) fill(150)
     rect(0, 0, body.w, body.h)
     pop()
-    drawDebugBody(body)
+    if(showDebug) drawDebugBody(body)
 }
 
 function drawDebugBody(body){
@@ -81,7 +81,7 @@ function drawDebugBody(body){
     }
 
     // Angular velocity arc
-    if (Math.abs(body.angVel) > 0.001) {
+    if (Math.abs(body.angVel) > 0.01) {
         push();
         noFill();
         let arcR = 15;

@@ -12,10 +12,11 @@ bridge: special dynamic body that is very thin and meant to connect two points,
 */
 
 p5.disableFriendlyErrors = true
-const WIDTH = 600
-const HEIGHT = 600
+let WIDTH = 600
+let HEIGHT = 600
 
 const gravity = 0.1
+const airFriction = 0.01
 let MAXSTEPS = 20
 
 let bodies = []
@@ -23,8 +24,8 @@ let springs = []
 
 let gridMouseX = 0
 let gridMouseY = 0
-let nCells = 50
-let cellSize = WIDTH / nCells
+let cellSize = 15
+let nCells = 30
 
 // Editor state
 let editorMode = null // 'static', 'dynamic', 'spring', 'bridge', delete
@@ -32,90 +33,43 @@ let dragStart = null  // {x, y} for body creation drag
 let springStart = null // {body, anchor} for spring first click
 let simRunning = true
 let buttonSimRunning = null
+let snapGrid = false
+let buttonSnapGrid = null
 let buttons = []
+let buttonShowDebug = null
+let showDebug = false
 let fpsArr = Array(30).fill(60)
+let collisionPoints = []
 
 function setup(){
+    WIDTH = windowWidth
+    HEIGHT = windowHeight
+    nCells = Math.floor(WIDTH / cellSize)
     createCanvas(WIDTH, HEIGHT)
 
-    // Dynamic box
-    let massB = 1
-    let wB = 100
-    let hB = 50
-    let iner = (1/12)*massB*(wB*wB + hB*hB)
-    bodies.push({
-        w: wB,
-        h: hB,
-        pos: {x: width/2, y: height/2},
-        vel: {x: 0, y: 0},
-        angle: 0.3,
-        angVel: 0,
-        mass: massB,
-        invMass: 1/massB,
-        inertia: iner,
-        invInertia: 1 / iner,
-        isStatic: false,
-        friction: 0.3
-    })
+    createBodyFromRect(100, height - 50, width - 100, height - 30, true) // floor
+    createBodyFromRect(30, height/2, 50, height - 30, true) // left wall
+    createBodyFromRect(width - 50, height/2, width - 30, height - 30, true) // right wall
 
-    bodies.push({
-        w: wB,
-        h: hB,
-        pos: {x: width/2 - 50, y: height/2 - 150},
-        vel: {x: 0, y: 0},
-        angle: 0.5,
-        angVel: 0,
-        mass: massB,
-        invMass: 1/massB,
-        inertia: iner,
-        invInertia: 1 / iner,
-        isStatic: false,
-        friction: 0.3
-    })
+    //random bodies
+    for(let i = 0; i < 15; i++){
+        let x1 = random(100, width - 200)
+        let y1 = random(100, height - 200)
+        let x2 = x1 + random(30, 80)
+        let y2 = y1 + random(30, 80)
+        createBodyFromRect(x1, y1, x2, y2, false)
+    }
 
-    // Static thin body (former segment)
-    bodies.push({
-        w: 400,
-        h: 4,
-        pos: {x: 300, y: 400},
-        vel: {x: 0, y: 0},
-        angle: 0,
-        angVel: 0,
-        mass: Infinity,
-        invMass: 0,
-        inertia: Infinity,
-        invInertia: 0,
-        isStatic: true,
-        friction: 0.5
-    })
+    //connect random springs
+    // for(let i = 0; i < 4; i++){
+    //     let bodyA = random(bodies)
+    //     let bodyB = random(bodies)
+    //     if(bodyA === bodyB) continue
+    //     let anchorA = floor(random(4))
+    //     let anchorB = floor(random(4))
+    //     connectSpring(bodyA, anchorA, bodyB, anchorB)
+    // }
 
-    for(let b of bodies) updateCornerLocations(b)
-
-    // Spring: fixed ceiling point → first box (anchor 3 = left)
-    springs.push({
-        bodyA: null,
-        bodyB: bodies[0],
-        anchorA: 0,
-        anchorB: 3,
-        worldAnchorA: {x: width/2, y: 50},
-        worldAnchorB: {x: 0, y: 0},
-        restLength: 150,
-        stiffness: 5,
-        damping: 0.5
-    })
-
-    // Spring: first box (anchor 1 = right) → second box (anchor 3 = left)
-    springs.push({
-        bodyA: bodies[0],
-        bodyB: bodies[1],
-        anchorA: 1,
-        anchorB: 3,
-        worldAnchorA: {x: 0, y: 0},
-        worldAnchorB: {x: 0, y: 0},
-        restLength: 100,
-        stiffness: 1,
-        damping: 0.3
-    })
 
     // Editor buttons
     let modes = ['static', 'dynamic', 'spring', 'bridge', 'delete']
@@ -126,12 +80,40 @@ function setup(){
             springStart = null
             dragStart = null
         })
+        btn.position(10 , 10 + modes.indexOf(m) * 30)
         buttons.push({el: btn, mode: m})
     }
     buttonSimRunning = createButton('Pause')
     buttonSimRunning.mousePressed(() => {
         simRunning = !simRunning
         buttonSimRunning.html(simRunning ? 'Pause' : 'Resume')
+    })
+    buttonSimRunning.position(10, 10 + modes.length * 30)
+    buttonSnapGrid = createButton(`Snap: ${snapGrid ? 'On' : 'Off'}`)
+    buttonSnapGrid.mousePressed(() => { 
+        snapGrid = !snapGrid
+        buttonSnapGrid.html(`Snap: ${snapGrid ? 'On' : 'Off'}`)
+    })
+    buttonSnapGrid.position(10, 10 + (modes.length + 1) * 30)
+    buttonShowDebug = createButton(`Debug: ${showDebug ? 'On' : 'Off'}`)
+    buttonShowDebug.mousePressed(() => {
+        showDebug = !showDebug
+        buttonShowDebug.html(`Debug: ${showDebug ? 'On' : 'Off'}`)
+    })
+    buttonShowDebug.position(10, 10 + (modes.length + 2) * 30)
+}
+
+function connectSpring(bodyA, anchorA, bodyB, anchorB){
+    let posA = getAnchorWorldPos(bodyA, anchorA) || { x: gridMouseX, y: gridMouseY }
+    let posB = getAnchorWorldPos(bodyB, anchorB) || { x: gridMouseX, y: gridMouseY }
+    let d = Math.hypot(posB.x - posA.x, posB.y - posA.y)
+    springs.push({
+        bodyA, bodyB, anchorA, anchorB,
+        worldAnchorA: posA,
+        worldAnchorB: posB,
+        restLength: d,
+        stiffness: 3,
+        damping: 0.3
     })
 }
 
@@ -141,7 +123,7 @@ function createBodyFromRect(x1, y1, x2, y2, isStatic){
     let w = Math.abs(x2 - x1)
     let h = Math.abs(y2 - y1)
     if(w < 5 || h < 5) return
-    let m = isStatic ? Infinity : Math.max(1, w * h / 5000)
+    let m = isStatic ? Infinity : w * h / (cellSize * cellSize)
     let inv = isStatic ? 0 : 1 / m
     let iner = (1/12) * m * (w*w + h*h)
     let invI = isStatic ? 0 : 1 / iner
@@ -167,7 +149,7 @@ function createBridgeElement(x1, y1, x2, y2){
     let h = 4 // fixed height for bridge elements
     let angle = Math.atan2(y2 - y1, x2 - x1)
 
-    let m = 1
+    let m = w * h / 10000
     let inv = 1 / m
     let iner = (1/12) * m * (w*w + h*h)
     let invI = 1 / iner
@@ -237,36 +219,14 @@ function mousePressed(){
             } 
             else {
                 if(hit.body !== springStart.body || hit.anchor !== springStart.anchor){
-                    let d = Math.hypot(hit.pos.x - springStart.pos.x, hit.pos.y - springStart.pos.y)
-                    springs.push({
-                        bodyA: springStart.body,
-                        bodyB: hit.body,
-                        anchorA: springStart.anchor,
-                        anchorB: hit.anchor,
-                        worldAnchorA: {x: 0, y: 0},
-                        worldAnchorB: {x: 0, y: 0},
-                        restLength: Math.max(d, 10),
-                        stiffness: 3,
-                        damping: 0.3
-                    })
+                    connectSpring(springStart.body, springStart.anchor, hit.body, hit.anchor)
                 }
                 springStart = null
             }
         }
         else{
             if(springStart){
-                let d = Math.hypot(gridMouseX - springStart.pos.x, gridMouseY - springStart.pos.y)
-                springs.push({
-                    bodyA: springStart.body,
-                    bodyB: null,
-                    anchorA: springStart.anchor,
-                    anchorB: null,
-                    worldAnchorA: {x: 0, y: 0},
-                    worldAnchorB: {x: gridMouseX, y: gridMouseY},
-                    restLength: Math.max(d, 10),
-                    stiffness: 3,
-                    damping: 0.3
-                })
+                connectSpring(springStart.body, springStart.anchor, null, null)
             }
             springStart = null
         }
@@ -302,6 +262,7 @@ function mousePressed(){
         for(let b of bodies){
             if(pointInRect({x: gridMouseX, y: gridMouseY}, b)){
                 b.dragging = true
+                b.offsetDrag = {x: gridMouseX - b.pos.x, y: gridMouseY - b.pos.y}
             }
         }
     }
@@ -329,10 +290,10 @@ function draw(){
     let gridMouseYFloor = Math.floor(mouseY / cellSize) * cellSize
     let gridMouseXCeil = Math.ceil(mouseX / cellSize) * cellSize
     let gridMouseYCeil = Math.ceil(mouseY / cellSize) * cellSize
-    gridMouseX = Math.abs(mouseX - gridMouseXFloor) < Math.abs(mouseX - gridMouseXCeil) ? 
-        gridMouseXFloor : gridMouseXCeil
-    gridMouseY = Math.abs(mouseY - gridMouseYFloor) < Math.abs(mouseY - gridMouseYCeil) ? 
-        gridMouseYFloor : gridMouseYCeil
+    gridMouseX = snapGrid ? (Math.abs(mouseX - gridMouseXFloor) < Math.abs(mouseX - gridMouseXCeil) ? 
+        gridMouseXFloor : gridMouseXCeil) : mouseX
+    gridMouseY = snapGrid ? (Math.abs(mouseY - gridMouseYFloor) < Math.abs(mouseY - gridMouseYCeil) ? 
+        gridMouseYFloor : gridMouseYCeil) : mouseY
 
     //draw grid
     stroke(50)
@@ -342,7 +303,7 @@ function draw(){
     }
 
     // Style editor buttons
-    for(let btn of buttons.concat([ {el: buttonSimRunning, mode: null} ])){
+    for(let btn of buttons.concat([ {el: buttonSimRunning, mode: null}, {el: buttonSnapGrid, mode: null}, {el: buttonShowDebug, mode: null} ])){
         btn.el.style('background', editorMode === btn.mode ? '#555' : '#222')
         btn.el.style('color', '#fff')
         btn.el.style('border', (editorMode === btn.mode && btn.mode) ? '2px solid #fff' : '1px solid #666')
@@ -352,11 +313,11 @@ function draw(){
 
     for(let b of bodies){
         b.oldPos = {x: b.pos.x, y: b.pos.y}
+        b.oldPosFree = b.posFree ? {x: b.posFree.x, y: b.posFree.y} : {x: b.pos.x, y: b.pos.y}
         if(b.dragging && mouseIsPressed){
-            b.pos.x = gridMouseX
-            b.pos.y = gridMouseY
-            b.vel.x = 0
-            b.vel.y = 0
+            b.pos = {x: gridMouseX - b.offsetDrag.x, y: gridMouseY - b.offsetDrag.y}
+            b.posFree = {x: mouseX, y: mouseY}
+            b.vel = {x: 0, y: 0}
         }
     }
 
@@ -380,6 +341,13 @@ function draw(){
             b.pos.x += b.vel.x * dt
             b.pos.y += b.vel.y * dt
             b.angle += b.angVel * dt
+
+            let air = airFriction * dt
+
+            b.vel.x -= b.vel.x * air
+            b.vel.y -= b.vel.y * air
+            b.angVel -= b.angVel * air
+
         }
 
         // Update geometry
@@ -393,6 +361,8 @@ function draw(){
                     let b = bodies[j]
                     let collision = satRectRect(a, b)
                     if(collision && !(a.isBridge && b.isBridge)){
+                        collisionPoints.push(collision.contact)
+
                         let normal = collision.normal
                         let depth = collision.depth
 
@@ -419,6 +389,13 @@ function draw(){
 
     calculateStressBodies()
 
+    for(let b of bodies){
+        if(b.dragging && !b.isStatic){
+            b.vel.x = b.posFree.x - b.oldPosFree.x
+            b.vel.y = b.posFree.y - b.oldPosFree.y
+        }
+    }
+
     // Draw
     for(let sp of springs) drawSpring(sp)
     for(let b of bodies) drawBody(b)
@@ -430,8 +407,21 @@ function draw(){
     fill(255)
     noStroke()
     textSize(14)
-    textAlign(LEFT, TOP)
-    text(`FPS: ${fpsMean}`, 10, 10)
+    textAlign(RIGHT, TOP)
+    text(`FPS: ${fpsMean}`, width - 10, 10)
+
+    if(showDebug){
+        push()
+        noFill()
+        strokeWeight(1.5)
+        stroke(255, 255, 0)
+        for(let colPoint of collisionPoints){
+            ellipse(colPoint.x, colPoint.y, 5, 5)
+        }
+        pop()
+    }
+
+    collisionPoints = []
 
 }
 
@@ -592,6 +582,7 @@ function resolveCollision(bodyA, bodyB, normal, contact){
 // Returns the world position of a body's anchor point
 // 4 anchors at midpoints of all edges: 0=top, 1=right, 2=bottom, 3=left
 function getAnchorWorldPos(body, anchorIndex){
+    if(!body || anchorIndex < 0 || anchorIndex > 3) return {x: gridMouseX, y: gridMouseY}
     let offsets = [
         {x: 0,          y: -body.h/2}, // 0: top
         {x:  body.w/2,  y: 0},         // 1: right
