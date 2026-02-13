@@ -1,9 +1,12 @@
 function drawBody(body){
+    let inside = pointInRect({x: mouseX, y: mouseY}, body)
     push()
     translate(body.pos.x, body.pos.y)
     rotate(body.angle)
     rectMode(CENTER)
     fill(lerppColor([75, 75, 57], [255, 0, 0], body.stress))
+    if(inside && editorMode === 'delete') fill(255, 0, 0)
+    if(inside && !editorMode) fill(150)
     rect(0, 0, body.w, body.h)
     pop()
     drawDebugBody(body)
@@ -12,6 +15,7 @@ function drawBody(body){
 function drawDebugBody(body){
     let px = body.pos.x
     let py = body.pos.y
+
 
     // Edges
     push()
@@ -77,24 +81,38 @@ function drawDebugBody(body){
     }
 
     // Angular velocity arc
-    if(Math.abs(body.angVel) > 0.001){
-        push()
-        noFill()
-        let arcR = 15
-        let arcSpan = constrain(body.angVel * 20, -PI, PI)
-        stroke(255, 0, 255)
-        strokeWeight(1.5)
-        arc(px, py, arcR * 2, arcR * 2, body.angle, body.angle + arcSpan)
-        // Arc arrowhead
-        let tipAng = body.angle + arcSpan
-        let tipX = px + arcR * cos(tipAng)
-        let tipY = py + arcR * sin(tipAng)
-        let perpAng = tipAng + (arcSpan > 0 ? HALF_PI : -HALF_PI)
-        let aSize = 4
-        line(tipX, tipY, tipX - aSize * cos(perpAng - 0.4), tipY - aSize * sin(perpAng - 0.4))
-        line(tipX, tipY, tipX - aSize * cos(perpAng + 0.4), tipY - aSize * sin(perpAng + 0.4))
-        pop()
+    if (Math.abs(body.angVel) > 0.001) {
+        push();
+        noFill();
+        let arcR = 15;
+        let arcSpan = constrain(body.angVel * 20, -PI, PI);
+        stroke(255, 0, 255);
+        strokeWeight(1.5);
+
+        let startAngle = body.angle;
+        let endAngle = body.angle + arcSpan;
+
+        if(body.angVel < 0){
+            startAngle = body.angle + arcSpan;
+            endAngle = body.angle;
+        }
+
+        arc(px, py, arcR * 2, arcR * 2, startAngle, endAngle);
+
+        let tipAng = body.angleVel > 0 ? body.angle + arcSpan : body.angle + arcSpan;
+        let tipX = px + arcR * cos(tipAng);
+        let tipY = py + arcR * sin(tipAng);
+
+        let tangentAng = tipAng + (body.angVel > 0 ? -HALF_PI : HALF_PI);
+        let aSize = 6;
+
+        line(tipX, tipY, tipX + aSize * cos(tangentAng - 0.4), tipY + aSize * sin(tangentAng - 0.4));
+        line(tipX, tipY, tipX + aSize * cos(tangentAng + 0.4), tipY + aSize * sin(tangentAng + 0.4));
+
+        pop();
     }
+
+
 }
 
 function drawSpring(sp){
@@ -129,6 +147,18 @@ function drawSpring(sp){
     let dy = posB.y - posA.y
     let len = Math.hypot(dx, dy)
     if(len < 0.01){ pop(); return }
+
+    let midX = (posA.x + posB.x) / 2
+    let midY = (posA.y + posB.y) / 2
+    let angle = atan2(dy, dx)
+    let localMouseX = cos(-angle) * (mouseX - midX) - sin(-angle) * (mouseY - midY)
+    let localMouseY = sin(-angle) * (mouseX - midX) + cos(-angle) * (mouseY - midY)
+    let inside = false
+    if(localMouseX > -len/2 - 5 && localMouseX < len/2 + 5 && localMouseY > -10 && localMouseY < 10) inside = true
+    if(inside && editorMode == 'delete'){ 
+        strokeWeight(4)
+        stroke(255, 0, 0)
+    }
 
     let dirX = dx / len
     let dirY = dy / len

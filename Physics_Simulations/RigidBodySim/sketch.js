@@ -2,12 +2,21 @@
 //Miguel Rodríguez
 //13-02-2026
 
+/*
+static body: infinite mass, immovable
+dynamic body: finite mass, affected by forces, collisions
+spring: connects two anchor points on bodies (or world), 
+        applies force based on displacement from rest length
+bridge: special dynamic body that is very thin and meant to connect two points,
+        they do not collide with each other to allow building structures
+*/
+
 p5.disableFriendlyErrors = true
 const WIDTH = 600
 const HEIGHT = 600
 
 const gravity = 0.1
-const MAXSTEPS = 20
+let MAXSTEPS = 20
 
 let bodies = []
 let springs = []
@@ -18,12 +27,13 @@ let nCells = 50
 let cellSize = WIDTH / nCells
 
 // Editor state
-let editorMode = null // 'static', 'dynamic', 'spring', 'bridge'
+let editorMode = null // 'static', 'dynamic', 'spring', 'bridge', delete
 let dragStart = null  // {x, y} for body creation drag
 let springStart = null // {body, anchor} for spring first click
 let simRunning = true
 let buttonSimRunning = null
 let buttons = []
+let fpsArr = Array(30).fill(60)
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
@@ -108,7 +118,7 @@ function setup(){
     })
 
     // Editor buttons
-    let modes = ['static', 'dynamic', 'spring', 'bridge']
+    let modes = ['static', 'dynamic', 'spring', 'bridge', 'delete']
     for(let m of modes){
         let btn = createButton(m)
         btn.mousePressed(() => {
@@ -170,7 +180,8 @@ function createBridgeElement(x1, y1, x2, y2){
         mass: m, invMass: inv,
         inertia: iner, invInertia: invI,
         isStatic: false,
-        friction: 0.3
+        friction: 0.3,
+        isBridge: true
     }
     updateCornerLocations(body)
     bodies.push(body)
@@ -260,6 +271,32 @@ function mousePressed(){
             springStart = null
         }
     } 
+    else if(editorMode === 'delete'){
+        // Check springs
+        for(let i = springs.length - 1; i >= 0; i--){
+            let sp = springs[i]
+            let posA = getSpringEndPos(sp, 'A')
+            let posB = getSpringEndPos(sp, 'B')
+            let midX = (posA.x + posB.x) / 2
+            let midY = (posA.y + posB.y) / 2
+            let dx = posB.x - posA.x
+            let dy = posB.y - posA.y
+            let len = Math.hypot(dx, dy)
+            let angle = atan2(dy, dx)
+            let localMouseX = cos(-angle) * (mouseX - midX) - sin(-angle) * (mouseY - midY)
+            let localMouseY = sin(-angle) * (mouseX - midX) + cos(-angle) * (mouseY - midY)
+            if(localMouseX > -len/2 - 5 && localMouseX < len/2 + 5 && localMouseY > -10 && localMouseY < 10){
+                springs.splice(i, 1)
+            }
+        }
+        // Check bodies
+        for(let i = bodies.length - 1; i >= 0; i--){
+            if(pointInRect({x: mouseX, y: mouseY}, bodies[i])){
+                bodies.splice(i, 1)
+                break
+            }
+        }
+    } 
     else {
         // No mode: drag bodies
         for(let b of bodies){
@@ -284,6 +321,9 @@ function mouseReleased(){
 
 function draw(){
     background(0)
+
+    fpsArr.shift()
+    fpsArr.push(frameRate())
 
     let gridMouseXFloor = Math.floor(mouseX / cellSize) * cellSize
     let gridMouseYFloor = Math.floor(mouseY / cellSize) * cellSize
@@ -352,7 +392,7 @@ function draw(){
                     let a = bodies[i]
                     let b = bodies[j]
                     let collision = satRectRect(a, b)
-                    if(collision){
+                    if(collision && !(a.isBridge && b.isBridge)){
                         let normal = collision.normal
                         let depth = collision.depth
 
@@ -385,6 +425,14 @@ function draw(){
 
     // Editor overlays
     drawEditor()
+
+    let fpsMean = round(fpsArr.reduce((a, b) => a + b, 0) / fpsArr.length)
+    fill(255)
+    noStroke()
+    textSize(14)
+    textAlign(LEFT, TOP)
+    text(`FPS: ${fpsMean}`, 10, 10)
+
 }
 
 
