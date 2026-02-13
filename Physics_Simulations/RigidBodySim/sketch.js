@@ -18,7 +18,7 @@ let nCells = 50
 let cellSize = WIDTH / nCells
 
 // Editor state
-let editorMode = null // 'static', 'dynamic', 'spring'
+let editorMode = null // 'static', 'dynamic', 'spring', 'bridge'
 let dragStart = null  // {x, y} for body creation drag
 let springStart = null // {body, anchor} for spring first click
 let simRunning = true
@@ -108,7 +108,7 @@ function setup(){
     })
 
     // Editor buttons
-    let modes = ['static', 'dynamic', 'spring']
+    let modes = ['static', 'dynamic', 'spring', 'bridge']
     for(let m of modes){
         let btn = createButton(m)
         btn.mousePressed(() => {
@@ -143,6 +143,33 @@ function createBodyFromRect(x1, y1, x2, y2, isStatic){
         mass: m, invMass: inv,
         inertia: iner, invInertia: invI,
         isStatic: isStatic,
+        friction: 0.3
+    }
+    updateCornerLocations(body)
+    bodies.push(body)
+}
+
+function createBridgeElement(x1, y1, x2, y2){
+    //thin body from x1y1 to x2y2
+    let cx = (x1 + x2) / 2
+    let cy = (y1 + y2) / 2
+    let w = Math.hypot(x2 - x1, y2 - y1)
+    let h = 4 // fixed height for bridge elements
+    let angle = Math.atan2(y2 - y1, x2 - x1)
+
+    let m = 1
+    let inv = 1 / m
+    let iner = (1/12) * m * (w*w + h*h)
+    let invI = 1 / iner
+
+    let body = {
+        w: w, h: h,
+        pos: {x: cx, y: cy},
+        vel: {x: 0, y: 0},
+        angle: angle, angVel: 0,
+        mass: m, invMass: inv,
+        inertia: iner, invInertia: invI,
+        isStatic: false,
         friction: 0.3
     }
     updateCornerLocations(body)
@@ -188,7 +215,7 @@ function findNearestAnchor(mx, my, threshold){
 function mousePressed(){
     if(gridMouseY < 0 || gridMouseX < 0 || gridMouseX > WIDTH || gridMouseY > HEIGHT) return
 
-    if(editorMode === 'static' || editorMode === 'dynamic'){
+    if(editorMode === 'static' || editorMode === 'dynamic' || editorMode === 'bridge'){
         dragStart = {x: gridMouseX, y: gridMouseY}
     } 
     else if(editorMode === 'spring'){
@@ -246,6 +273,10 @@ function mousePressed(){
 function mouseReleased(){
     if(dragStart && (editorMode === 'static' || editorMode === 'dynamic')){
         createBodyFromRect(dragStart.x, dragStart.y, gridMouseX, gridMouseY, editorMode === 'static')
+        dragStart = null
+    }
+    if(dragStart && editorMode === 'bridge'){
+        createBridgeElement(dragStart.x, dragStart.y, gridMouseX, gridMouseY)
         dragStart = null
     }
     for(let b of bodies) b.dragging = false

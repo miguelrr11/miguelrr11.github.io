@@ -95,16 +95,6 @@ function drawDebugBody(body){
         line(tipX, tipY, tipX - aSize * cos(perpAng + 0.4), tipY - aSize * sin(perpAng + 0.4))
         pop()
     }
-
-    //text stress
-    if(body.stress !== undefined){
-        push()
-        fill(255)
-        noStroke()
-        textAlign(CENTER, CENTER)
-        text(body.stress.toFixed(2), px, py - body.h / 2 - 10)
-        pop()
-    }
 }
 
 function drawSpring(sp){
@@ -208,17 +198,27 @@ function drawEditor(){
         stroke(editorMode === 'static' ? '#f80' : '#0af')
         strokeWeight(1)
         drawingContext.setLineDash([5, 5])
-        let x1 = Math.min(dragStart.x, mouseX)
-        let y1 = Math.min(dragStart.y, mouseY)
-        let w = Math.abs(mouseX - dragStart.x)
-        let h = Math.abs(mouseY - dragStart.y)
+        let x1 = Math.min(dragStart.x, gridMouseX)
+        let y1 = Math.min(dragStart.y, gridMouseY)
+        let w = Math.abs(gridMouseX - dragStart.x)
+        let h = Math.abs(gridMouseY - dragStart.y)
         rect(x1, y1, w, h)
+        pop()
+    }
+
+    if(dragStart && mouseIsPressed && editorMode === 'bridge'){
+        push()
+        noFill()
+        stroke('#0ff')
+        strokeWeight(3)
+        drawingContext.setLineDash([7, 7])
+        line(dragStart.x, dragStart.y, gridMouseX, gridMouseY)
         pop()
     }
 
     // Anchor points (always visible, highlighted in spring mode)
     let inSpringMode = editorMode === 'spring'
-    let hovered = inSpringMode ? findNearestAnchor(mouseX, mouseY, 20) : null
+    let hovered = inSpringMode ? findNearestAnchor(gridMouseX, gridMouseY, 20) : null
 
     for(let b of bodies){
         for(let a = 0; a < 4; a++){
@@ -248,7 +248,7 @@ function drawEditor(){
         stroke(0, 255, 100, 150)
         strokeWeight(1)
         drawingContext.setLineDash([4, 4])
-        line(startPos.x, startPos.y, mouseX, mouseY)
+        line(startPos.x, startPos.y, gridMouseX, gridMouseY)
         pop()
     }
 }
