@@ -9,10 +9,11 @@ const HEIGHT = 600
 const gravity = 0.1
 
 let bodies = []
-let segments = []
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
+
+    // Dynamic box
     let massB = 1
     let wB = 100
     let hB = 50
@@ -23,31 +24,47 @@ function setup(){
         pos: {x: width/2, y: height/2},
         vel: {x: 0, y: 0},
         angle: 0.3,
-        angVel: 0.03,
+        angVel: 0,
         mass: massB,
         invMass: 1/massB,
         inertia: iner,
-        invInertia: 1 / iner
+        invInertia: 1 / iner,
+        isStatic: false,
+        friction: 0.3
     })
 
-    let newSeg = {
-        start: {x: 100, y: 400},
-        end: {x: 500, y: 400}
-    }
-    newSeg.normal = calcutateSegNormal(newSeg)
-    segments.push(newSeg)
-}
+    bodies.push({
+        w: wB,
+        h: hB,
+        pos: {x: width/2 - 50, y: height/2 - 150},
+        vel: {x: 0, y: 0},
+        angle: 0.5,
+        angVel: 0,
+        mass: massB,
+        invMass: 1/massB,
+        inertia: iner,
+        invInertia: 1 / iner,
+        isStatic: false,
+        friction: 0.3
+    })
 
-function calcutateSegNormal(seg){
-    let dx = seg.end.x - seg.start.x
-    let dy = seg.end.y - seg.start.y
+    // Static thin body (former segment)
+    bodies.push({
+        w: 400,
+        h: 4,
+        pos: {x: 300, y: 400},
+        vel: {x: 0, y: 0},
+        angle: 0,
+        angVel: 0,
+        mass: Infinity,
+        invMass: 0,
+        inertia: Infinity,
+        invInertia: 0,
+        isStatic: true,
+        friction: 0.5
+    })
 
-    let length = Math.hypot(dx, dy)
-    dx /= length
-    dy /= length
-
-    let segNormal = { x: -dy, y: dx }
-    return segNormal
+    for(let b of bodies) updateCornerLocations(b)
 }
 
 function draw(){
@@ -55,15 +72,13 @@ function draw(){
 
     for(let b of bodies){
         b.oldPos = {x: b.pos.x, y: b.pos.y}
+        if(pointInRect({x: mouseX, y: mouseY}, b) && mouseIsPressed && !b.isStatic){
+            b.pos.x = mouseX
+            b.pos.y = mouseY
+            b.vel.x = 0
+            b.vel.y = 0
+        }
     }
-
-    if(pointInRect({x: mouseX, y: mouseY}, bodies[0]) && mouseIsPressed){
-        bodies[0].pos.x = mouseX
-        bodies[0].pos.y = mouseY
-    }
-
-    segments[0].end.y = mouseY
-    segments[0].normal = calcutateSegNormal(segments[0])
 
     const STEPS = 50
     for(let step = 0; step < STEPS; step++){
@@ -71,11 +86,12 @@ function draw(){
 
         // Apply gravity
         for(let b of bodies){
-            b.vel.y += gravity * dt
+            if(!b.isStatic) b.vel.y += gravity * dt
         }
 
         // Integrate
         for(let b of bodies){
+            if(b.isStatic) continue
             b.pos.x += b.vel.x * dt
             b.pos.y += b.vel.y * dt
             b.angle += b.angVel * dt
@@ -84,84 +100,102 @@ function draw(){
         // Update geometry
         for(let b of bodies) updateCornerLocations(b)
 
-        // Collisions (you can still use iterations here)
+        // Collisions
         for(let iter = 0; iter < 3; iter++){
-            for(let b of bodies){
-                for(let seg of segments){
-                    let collision = satRectSegment(b, seg)
+            for(let i = 0; i < bodies.length; i++){
+                for(let j = i + 1; j < bodies.length; j++){
+                    let a = bodies[i]
+                    let b = bodies[j]
+                    let collision = satRectRect(a, b)
                     if(collision){
                         let normal = collision.normal
                         let depth = collision.depth
-                        let centerToSeg = {
-                            x: b.pos.x - seg.start.x,
-                            y: b.pos.y - seg.start.y
+
+                        // Split separation by inverse mass ratio
+                        let totalInvMass = a.invMass + b.invMass
+                        if(totalInvMass > 0){
+                            let aRatio = a.invMass / totalInvMass
+                            let bRatio = b.invMass / totalInvMass
+                            let correction = depth / 3
+                            a.pos.x += normal.x * correction * aRatio
+                            a.pos.y += normal.y * correction * aRatio
+                            b.pos.x -= normal.x * correction * bRatio
+                            b.pos.y -= normal.y * correction * bRatio
                         }
-                        if(centerToSeg.x * normal.x + centerToSeg.y * normal.y < 0){
-                            normal.x *= -1
-                            normal.y *= -1
-                        }
-                        b.pos.x += normal.x * depth / 3
-                        b.pos.y += normal.y * depth / 3
+
+                        updateCornerLocations(a)
                         updateCornerLocations(b)
-                        resolveCollision(b, seg, normal, collision.contact)
+                        resolveCollision(a, b, normal, collision.contact)
                     }
                 }
             }
         }
     }
 
-
-    // 5️⃣ Draw
+    // Draw
     for(let b of bodies) drawBody(b)
-    for(let s of segments) drawSegment(s)
 }
 
 
-
-function satRectSegment(body, segment){
-
-    let axes = []
-
-    // rectangle axes
-    axes.push({ x: cos(body.angle), y: sin(body.angle) })
-    axes.push({ x: -sin(body.angle), y: cos(body.angle) })
-
-    // segment normal
-    let dx = segment.end.x - segment.start.x
-    let dy = segment.end.y - segment.start.y
-    let len = Math.hypot(dx, dy)
-    dx /= len
-    dy /= len
-    axes.push({ x: -dy, y: dx })
+// SAT collision between two rectangles
+// Returns {normal, depth, contact} with normal pointing from bodyB toward bodyA
+function satRectRect(bodyA, bodyB){
+    let axes = [bodyA.axis1, bodyA.axis2, bodyB.axis1, bodyB.axis2]
 
     let minOverlap = Infinity
     let smallestAxis = null
+    let smallestAxisIndex = -1
 
-    for(let axis of axes){
+    for(let i = 0; i < 4; i++){
+        let axis = axes[i]
+        let projA = projectPoints(bodyA.corners, axis)
+        let projB = projectPoints(bodyB.corners, axis)
 
-        let projRect = projectPoints(body.corners, axis)
-        let projSeg = projectSegment(segment, axis)
+        let overlap = Math.min(projA.max, projB.max)
+                     - Math.max(projA.min, projB.min)
 
-        let overlap = Math.min(projRect.max, projSeg.max)
-                     - Math.max(projRect.min, projSeg.min)
-
-        if(overlap <= 0){
-            return null
-        }
+        if(overlap <= 0) return null
 
         if(overlap < minOverlap){
             minOverlap = overlap
-            smallestAxis = axis
+            smallestAxis = {x: axis.x, y: axis.y}
+            smallestAxisIndex = i
         }
     }
 
-    let contactPoint = body.corners[0]
-    let maxPenetration = -Infinity
-    for(let c of body.corners){
-        let penetration = (c.x - segment.start.x) * smallestAxis.x + (c.y - segment.start.y) * smallestAxis.y
-        if(penetration > maxPenetration){
-            maxPenetration = penetration
-            contactPoint = c
+    // Orient normal from B toward A
+    let BtoA = {
+        x: bodyA.pos.x - bodyB.pos.x,
+        y: bodyA.pos.y - bodyB.pos.y
+    }
+    if(BtoA.x * smallestAxis.x + BtoA.y * smallestAxis.y < 0){
+        smallestAxis.x *= -1
+        smallestAxis.y *= -1
+    }
+
+    // Contact point: corner of incident body penetrating reference body
+    let contactPoint
+    if(smallestAxisIndex < 2){
+        // Axis from A (reference face): B's corner penetrates A
+        contactPoint = bodyB.corners[0]
+        let maxProj = -Infinity
+        for(let c of bodyB.corners){
+            let proj = c.x * smallestAxis.x + c.y * smallestAxis.y
+            if(proj > maxProj){
+                maxProj = proj
+                contactPoint = c
+            }
+        }
+    } else {
+        // Axis from B (reference face): A's corner penetrates B
+        contactPoint = bodyA.corners[0]
+        let minProj = Infinity
+        for(let c of bodyA.corners){
+            let proj = c.x * smallestAxis.x + c.y * smallestAxis.y
+            if(proj < minProj){
+                minProj = proj
+                contactPoint = c
+            }
         }
     }
 
@@ -172,33 +206,87 @@ function satRectSegment(body, segment){
     }
 }
 
-function resolveCollision(body, seg, normal, contact){
-
-    // vector from center to contact
-    let r = {
-        x: contact.x - body.pos.x,
-        y: contact.y - body.pos.y
+// Two-body impulse resolution
+// Normal must point from bodyB toward bodyA
+function resolveCollision(bodyA, bodyB, normal, contact){
+    // Moment arms from centers to contact
+    let rA = {
+        x: contact.x - bodyA.pos.x,
+        y: contact.y - bodyA.pos.y
+    }
+    let rB = {
+        x: contact.x - bodyB.pos.x,
+        y: contact.y - bodyB.pos.y
     }
 
-    // relative velocity at contact point along normal
-    let velAtPoint = {
-        x: body.vel.x - body.angVel * r.y,
-        y: body.vel.y + body.angVel * r.x
+    // Velocity at contact for each body
+    let velA = {
+        x: bodyA.vel.x - bodyA.angVel * rA.y,
+        y: bodyA.vel.y + bodyA.angVel * rA.x
     }
-    let velAlongNormal = velAtPoint.x * normal.x + velAtPoint.y * normal.y
+    let velB = {
+        x: bodyB.vel.x - bodyB.angVel * rB.y,
+        y: bodyB.vel.y + bodyB.angVel * rB.x
+    }
 
-    if(velAlongNormal > 0) return // separating
+    // Relative velocity along normal (A relative to B)
+    let relVelAlongNormal = (velA.x - velB.x) * normal.x + (velA.y - velB.y) * normal.y
+
+    if(relVelAlongNormal > 0) return // separating
 
     let e = 0.2 // restitution
 
-    // impulse scalar
-    let rCrossN = r.x * normal.y - r.y * normal.x
-    let j = -(1 + e) * velAlongNormal / (body.invMass + rCrossN * rCrossN * body.invInertia)
+    let rACrossN = rA.x * normal.y - rA.y * normal.x
+    let rBCrossN = rB.x * normal.y - rB.y * normal.x
 
-    // apply linear and angular impulse
-    body.vel.x += normal.x * j * body.invMass
-    body.vel.y += normal.y * j * body.invMass
-    body.angVel += rCrossN * j * body.invInertia
+    let denominator = bodyA.invMass + bodyB.invMass
+                    + rACrossN * rACrossN * bodyA.invInertia
+                    + rBCrossN * rBCrossN * bodyB.invInertia
+
+    let j = -(1 + e) * relVelAlongNormal / denominator
+
+    // Apply normal impulse to A (positive direction)
+    bodyA.vel.x  += normal.x * j * bodyA.invMass
+    bodyA.vel.y  += normal.y * j * bodyA.invMass
+    bodyA.angVel += rACrossN * j * bodyA.invInertia
+
+    // Apply normal impulse to B (negative direction)
+    bodyB.vel.x  -= normal.x * j * bodyB.invMass
+    bodyB.vel.y  -= normal.y * j * bodyB.invMass
+    bodyB.angVel -= rBCrossN * j * bodyB.invInertia
+
+    // Friction impulse (Coulomb model)
+    let tangent = {
+        x: (velA.x - velB.x) - relVelAlongNormal * normal.x,
+        y: (velA.y - velB.y) - relVelAlongNormal * normal.y
+    }
+    let tangentLen = Math.hypot(tangent.x, tangent.y)
+    if(tangentLen < 0.0001) return // no sliding
+    tangent.x /= tangentLen
+    tangent.y /= tangentLen
+
+    let rACrossT = rA.x * tangent.y - rA.y * tangent.x
+    let rBCrossT = rB.x * tangent.y - rB.y * tangent.x
+    let frictionDenom = bodyA.invMass + bodyB.invMass
+                      + rACrossT * rACrossT * bodyA.invInertia
+                      + rBCrossT * rBCrossT * bodyB.invInertia
+
+    let jt = -tangentLen / frictionDenom
+
+    // Clamp by Coulomb's law: |jt| <= mu * |j|
+    let mu = Math.sqrt(bodyA.friction * bodyB.friction)
+    if(Math.abs(jt) > mu * j){
+        jt = -mu * j
+    }
+
+    // Apply friction impulse
+    bodyA.vel.x  += tangent.x * jt * bodyA.invMass
+    bodyA.vel.y  += tangent.y * jt * bodyA.invMass
+    bodyA.angVel += rACrossT * jt * bodyA.invInertia
+
+    bodyB.vel.x  -= tangent.x * jt * bodyB.invMass
+    bodyB.vel.y  -= tangent.y * jt * bodyB.invMass
+    bodyB.angVel -= rBCrossT * jt * bodyB.invInertia
 }
 
 function pointInRect(point, body){
@@ -224,28 +312,6 @@ function projectPoints(points, axis){
     return {min, max}
 }
 
-function projectSegment(seg, axis){
-    const thickness = 0.1
-    let dots = [
-        seg.start.x * axis.x + seg.start.y * axis.y,
-        seg.end.x * axis.x + seg.end.y * axis.y
-    ]
-    let min = Math.min(dots[0], dots[1]) - thickness
-    let max = Math.max(dots[0], dots[1]) + thickness
-    return {min, max}
-}
-
-function detectCollBodySeg(body, segment){
-    for(let edge of body.edges){
-        let collPoint = linelineIntersect(edge.start, edge.end, segment.start, segment.end)
-        if(collPoint){
-            fill(0, 0, 255)
-            ellipse(collPoint.x, collPoint.y, 10, 10)
-            return collPoint
-        }
-    }
-}
-
 function updateCornerLocations(body){
     let hw = body.w / 2
     let hh = body.h / 2
@@ -265,7 +331,6 @@ function updateCornerLocations(body){
     ]
     body.axis1 = { x: cos(body.angle), y: sin(body.angle) }
     body.axis2 = { x: -sin(body.angle), y: cos(body.angle) }
-
 }
 
 function linelineIntersect(p1, p2, p3, p4){
@@ -298,6 +363,17 @@ function drawBody(body){
     fill(100)
     rect(0, 0, body.w, body.h)
     pop()
+    drawDebugBody(body)
+    
+}
+
+function drawDebugBody(body){
+    //draw vectors, normals, etc for debugging  
+    push()
+    // Example: draw velocity vector
+    stroke(0, 0, 255)
+    line(body.pos.x, body.pos.y, body.pos.x + body.vel.x * 10, body.pos.y + body.vel.y * 10)
+    pop()
 
     push()
     fill(255, 0, 0)
@@ -308,12 +384,5 @@ function drawBody(body){
     for(let e of body.edges){
         line(e.start.x, e.start.y, e.end.x, e.end.y)
     }
-    pop()
-} 
-
-function drawSegment(seg){
-    push()
-    stroke(255)
-    line(seg.start.x, seg.start.y, seg.end.x, seg.end.y)
     pop()
 }
