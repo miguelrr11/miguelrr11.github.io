@@ -4,6 +4,28 @@
 // Math Utilities
 // ===================
 
+function linelineIntersect(p1, p2, p3, p4){
+    let den = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y)
+    if(den == 0) return null // Parallel lines
+    let t = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / den
+    let u = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / den
+    if(t >= 0 && t <= 1 && u >= 0 && u <= 1){
+        return {
+            x: p1.x + t * (p2.x - p1.x),
+            y: p1.y + t * (p2.y - p1.y)
+        }
+    }
+    return null
+}
+
+function normalizeVec(v){
+    let mag = sqrt(v.x * v.x + v.y * v.y)
+    if(mag > 0){
+        v.x /= mag
+        v.y /= mag
+    }
+}
+
 function mapp(value, start1, stop1, start2, stop2, clamped = false) {
     let res = start2 + ((value - start1) / (stop1 - start1)) * (stop2 - start2);
     if (clamped) {

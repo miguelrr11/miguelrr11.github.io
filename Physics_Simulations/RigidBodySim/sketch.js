@@ -7,8 +7,23 @@ const WIDTH = 600
 const HEIGHT = 600
 
 const gravity = 0.1
+const MAXSTEPS = 20
 
 let bodies = []
+let springs = []
+
+let gridMouseX = 0
+let gridMouseY = 0
+let nCells = 50
+let cellSize = WIDTH / nCells
+
+// Editor state
+let editorMode = null // 'static', 'dynamic', 'spring'
+let dragStart = null  // {x, y} for body creation drag
+let springStart = null // {body, anchor} for spring first click
+let simRunning = true
+let buttonSimRunning = null
+let buttons = []
 
 function setup(){
     createCanvas(WIDTH, HEIGHT)
@@ -65,22 +80,218 @@ function setup(){
     })
 
     for(let b of bodies) updateCornerLocations(b)
+
+    // Spring: fixed ceiling point → first box (anchor 3 = left)
+    springs.push({
+        bodyA: null,
+        bodyB: bodies[0],
+        anchorA: 0,
+        anchorB: 3,
+        worldAnchorA: {x: width/2, y: 50},
+        worldAnchorB: {x: 0, y: 0},
+        restLength: 150,
+        stiffness: 5,
+        damping: 0.5
+    })
+
+    // Spring: first box (anchor 1 = right) → second box (anchor 3 = left)
+    springs.push({
+        bodyA: bodies[0],
+        bodyB: bodies[1],
+        anchorA: 1,
+        anchorB: 3,
+        worldAnchorA: {x: 0, y: 0},
+        worldAnchorB: {x: 0, y: 0},
+        restLength: 100,
+        stiffness: 1,
+        damping: 0.3
+    })
+
+    // Editor buttons
+    let modes = ['static', 'dynamic', 'spring']
+    for(let m of modes){
+        let btn = createButton(m)
+        btn.mousePressed(() => {
+            editorMode = editorMode === m ? null : m
+            springStart = null
+            dragStart = null
+        })
+        buttons.push({el: btn, mode: m})
+    }
+    buttonSimRunning = createButton('Pause')
+    buttonSimRunning.mousePressed(() => {
+        simRunning = !simRunning
+        buttonSimRunning.html(simRunning ? 'Pause' : 'Resume')
+    })
+}
+
+function createBodyFromRect(x1, y1, x2, y2, isStatic){
+    let cx = (x1 + x2) / 2
+    let cy = (y1 + y2) / 2
+    let w = Math.abs(x2 - x1)
+    let h = Math.abs(y2 - y1)
+    if(w < 5 || h < 5) return
+    let m = isStatic ? Infinity : Math.max(1, w * h / 5000)
+    let inv = isStatic ? 0 : 1 / m
+    let iner = (1/12) * m * (w*w + h*h)
+    let invI = isStatic ? 0 : 1 / iner
+    let body = {
+        w: w, h: h,
+        pos: {x: cx, y: cy},
+        vel: {x: 0, y: 0},
+        angle: 0, angVel: 0,
+        mass: m, invMass: inv,
+        inertia: iner, invInertia: invI,
+        isStatic: isStatic,
+        friction: 0.3
+    }
+    updateCornerLocations(body)
+    bodies.push(body)
+}
+
+function calculateStressBodies(){
+    for(let b of bodies){
+        b.stress = 0
+        for(let sp of springs){
+            if(sp.bodyA === b || sp.bodyB === b){
+                let posA = getSpringEndPos(sp, 'A')
+                let posB = getSpringEndPos(sp, 'B')
+                let dx = posB.x - posA.x
+                let dy = posB.y - posA.y
+                let currentLength = Math.hypot(dx, dy)
+                let displacement = currentLength - sp.restLength
+                let forceMag = sp.stiffness * abs(displacement)
+                b.stress += forceMag / (b.w * b.h)
+            }   
+        }
+        b.stress *= 10
+    }
+}
+
+// Find the closest anchor point to the mouse within a threshold
+function findNearestAnchor(mx, my, threshold){
+    let best = null
+    let bestDist = threshold
+    for(let b of bodies){
+        for(let a = 0; a < 4; a++){
+            let p = getAnchorWorldPos(b, a)
+            let d = Math.hypot(mx - p.x, my - p.y)
+            if(d < bestDist){
+                bestDist = d
+                best = {body: b, anchor: a, pos: p}
+            }
+        }
+    }
+    return best
+}
+
+function mousePressed(){
+    if(gridMouseY < 0 || gridMouseX < 0 || gridMouseX > WIDTH || gridMouseY > HEIGHT) return
+
+    if(editorMode === 'static' || editorMode === 'dynamic'){
+        dragStart = {x: gridMouseX, y: gridMouseY}
+    } 
+    else if(editorMode === 'spring'){
+        let hit = findNearestAnchor(gridMouseX, gridMouseY, 20)
+        if(hit){
+            if(!springStart){
+                springStart = hit
+            } 
+            else {
+                if(hit.body !== springStart.body || hit.anchor !== springStart.anchor){
+                    let d = Math.hypot(hit.pos.x - springStart.pos.x, hit.pos.y - springStart.pos.y)
+                    springs.push({
+                        bodyA: springStart.body,
+                        bodyB: hit.body,
+                        anchorA: springStart.anchor,
+                        anchorB: hit.anchor,
+                        worldAnchorA: {x: 0, y: 0},
+                        worldAnchorB: {x: 0, y: 0},
+                        restLength: Math.max(d, 10),
+                        stiffness: 3,
+                        damping: 0.3
+                    })
+                }
+                springStart = null
+            }
+        }
+        else{
+            if(springStart){
+                let d = Math.hypot(gridMouseX - springStart.pos.x, gridMouseY - springStart.pos.y)
+                springs.push({
+                    bodyA: springStart.body,
+                    bodyB: null,
+                    anchorA: springStart.anchor,
+                    anchorB: null,
+                    worldAnchorA: {x: 0, y: 0},
+                    worldAnchorB: {x: gridMouseX, y: gridMouseY},
+                    restLength: Math.max(d, 10),
+                    stiffness: 3,
+                    damping: 0.3
+                })
+            }
+            springStart = null
+        }
+    } 
+    else {
+        // No mode: drag bodies
+        for(let b of bodies){
+            if(pointInRect({x: gridMouseX, y: gridMouseY}, b)){
+                b.dragging = true
+            }
+        }
+    }
+}
+
+function mouseReleased(){
+    if(dragStart && (editorMode === 'static' || editorMode === 'dynamic')){
+        createBodyFromRect(dragStart.x, dragStart.y, gridMouseX, gridMouseY, editorMode === 'static')
+        dragStart = null
+    }
+    for(let b of bodies) b.dragging = false
 }
 
 function draw(){
     background(0)
 
+    let gridMouseXFloor = Math.floor(mouseX / cellSize) * cellSize
+    let gridMouseYFloor = Math.floor(mouseY / cellSize) * cellSize
+    let gridMouseXCeil = Math.ceil(mouseX / cellSize) * cellSize
+    let gridMouseYCeil = Math.ceil(mouseY / cellSize) * cellSize
+    gridMouseX = Math.abs(mouseX - gridMouseXFloor) < Math.abs(mouseX - gridMouseXCeil) ? 
+        gridMouseXFloor : gridMouseXCeil
+    gridMouseY = Math.abs(mouseY - gridMouseYFloor) < Math.abs(mouseY - gridMouseYCeil) ? 
+        gridMouseYFloor : gridMouseYCeil
+
+    //draw grid
+    stroke(50)
+    for(let i = 0; i <= nCells; i++){
+        line(i * cellSize, 0, i * cellSize, HEIGHT)
+        line(0, i * cellSize, WIDTH, i * cellSize)
+    }
+
+    // Style editor buttons
+    for(let btn of buttons.concat([ {el: buttonSimRunning, mode: null} ])){
+        btn.el.style('background', editorMode === btn.mode ? '#555' : '#222')
+        btn.el.style('color', '#fff')
+        btn.el.style('border', (editorMode === btn.mode && btn.mode) ? '2px solid #fff' : '1px solid #666')
+        btn.el.style('padding', '4px 10px')
+        btn.el.style('cursor', 'pointer')
+    }
+
     for(let b of bodies){
         b.oldPos = {x: b.pos.x, y: b.pos.y}
-        if(pointInRect({x: mouseX, y: mouseY}, b) && mouseIsPressed && !b.isStatic){
-            b.pos.x = mouseX
-            b.pos.y = mouseY
+        if(b.dragging && mouseIsPressed){
+            b.pos.x = gridMouseX
+            b.pos.y = gridMouseY
             b.vel.x = 0
             b.vel.y = 0
         }
     }
 
-    const STEPS = 50
+    for(let b of bodies) updateCornerLocations(b)
+
+    const STEPS = simRunning ? MAXSTEPS : 0
     for(let step = 0; step < STEPS; step++){
         let dt = 1 / STEPS
 
@@ -88,6 +299,9 @@ function draw(){
         for(let b of bodies){
             if(!b.isStatic) b.vel.y += gravity * dt
         }
+
+        // Apply spring forces
+        applySpringForces(dt)
 
         // Integrate
         for(let b of bodies){
@@ -132,14 +346,21 @@ function draw(){
         }
     }
 
+    calculateStressBodies()
+
     // Draw
+    for(let sp of springs) drawSpring(sp)
     for(let b of bodies) drawBody(b)
+
+    // Editor overlays
+    drawEditor()
 }
 
 
 // SAT collision between two rectangles
 // Returns {normal, depth, contact} with normal pointing from bodyB toward bodyA
 function satRectRect(bodyA, bodyB){
+    if(bodyA.isStatic && bodyB.isStatic) return null
     let axes = [bodyA.axis1, bodyA.axis2, bodyB.axis1, bodyB.axis2]
 
     let minOverlap = Infinity
@@ -289,6 +510,91 @@ function resolveCollision(bodyA, bodyB, normal, contact){
     bodyB.angVel -= rBCrossT * jt * bodyB.invInertia
 }
 
+// Returns the world position of a body's anchor point
+// 4 anchors at midpoints of all edges: 0=top, 1=right, 2=bottom, 3=left
+function getAnchorWorldPos(body, anchorIndex){
+    let offsets = [
+        {x: 0,          y: -body.h/2}, // 0: top
+        {x:  body.w/2,  y: 0},         // 1: right
+        {x: 0,          y:  body.h/2}, // 2: bottom
+        {x: -body.w/2,  y: 0}          // 3: left
+    ]
+    let lx = offsets[anchorIndex].x
+    let ly = offsets[anchorIndex].y
+    let c = cos(body.angle)
+    let s = sin(body.angle)
+    return {
+        x: body.pos.x + lx * c - ly * s,
+        y: body.pos.y + lx * s + ly * c
+    }
+}
+
+// Returns the velocity at a body's anchor point (linear + angular contribution)
+function getAnchorVelocity(body, anchorWorldPos){
+    let rx = anchorWorldPos.x - body.pos.x
+    let ry = anchorWorldPos.y - body.pos.y
+    return {
+        x: body.vel.x - body.angVel * ry,
+        y: body.vel.y + body.angVel * rx
+    }
+}
+
+// Get the world position of either end of a spring
+function getSpringEndPos(spring, side){
+    let body = side === 'A' ? spring.bodyA : spring.bodyB
+    let anchor = side === 'A' ? spring.anchorA : spring.anchorB
+    let worldAnchor = side === 'A' ? spring.worldAnchorA : spring.worldAnchorB
+    if(body === null) return {x: worldAnchor.x, y: worldAnchor.y}
+    return getAnchorWorldPos(body, anchor)
+}
+
+function applySpringForces(dt){
+    for(let sp of springs){
+        let posA = getSpringEndPos(sp, 'A')
+        let posB = getSpringEndPos(sp, 'B')
+
+        let dx = posB.x - posA.x
+        let dy = posB.y - posA.y
+        let currentLength = Math.hypot(dx, dy)
+        if(currentLength < 0.0001) continue
+
+        // Unit direction A → B
+        let dirX = dx / currentLength
+        let dirY = dy / currentLength
+
+        // Spring force: pulls together when stretched, pushes apart when compressed
+        let displacement = currentLength - sp.restLength
+        let forceMag = sp.stiffness * displacement
+
+        // Damping: project relative velocity onto spring axis
+        let velA = sp.bodyA ? getAnchorVelocity(sp.bodyA, posA) : {x: 0, y: 0}
+        let velB = sp.bodyB ? getAnchorVelocity(sp.bodyB, posB) : {x: 0, y: 0}
+        let relVelAlongSpring = (velB.x - velA.x) * dirX + (velB.y - velA.y) * dirY
+        forceMag += sp.damping * relVelAlongSpring
+
+        let fx = forceMag * dirX
+        let fy = forceMag * dirY
+
+        // Apply to body A (force toward B)
+        if(sp.bodyA && !sp.bodyA.isStatic){
+            let rAx = posA.x - sp.bodyA.pos.x
+            let rAy = posA.y - sp.bodyA.pos.y
+            sp.bodyA.vel.x += fx * sp.bodyA.invMass * dt
+            sp.bodyA.vel.y += fy * sp.bodyA.invMass * dt
+            sp.bodyA.angVel += (rAx * fy - rAy * fx) * sp.bodyA.invInertia * dt
+        }
+
+        // Apply to body B (force toward A, opposite)
+        if(sp.bodyB && !sp.bodyB.isStatic){
+            let rBx = posB.x - sp.bodyB.pos.x
+            let rBy = posB.y - sp.bodyB.pos.y
+            sp.bodyB.vel.x -= fx * sp.bodyB.invMass * dt
+            sp.bodyB.vel.y -= fy * sp.bodyB.invMass * dt
+            sp.bodyB.angVel -= (rBx * fy - rBy * fx) * sp.bodyB.invInertia * dt
+        }
+    }
+}
+
 function pointInRect(point, body){
     let localX = point.x - body.pos.x
     let localY = point.y - body.pos.y
@@ -333,56 +639,5 @@ function updateCornerLocations(body){
     body.axis2 = { x: -sin(body.angle), y: cos(body.angle) }
 }
 
-function linelineIntersect(p1, p2, p3, p4){
-    let den = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y)
-    if(den == 0) return null // Parallel lines
-    let t = ((p4.x - p3.x) * (p1.y - p3.y) - (p4.y - p3.y) * (p1.x - p3.x)) / den
-    let u = ((p2.x - p1.x) * (p1.y - p3.y) - (p2.y - p1.y) * (p1.x - p3.x)) / den
-    if(t >= 0 && t <= 1 && u >= 0 && u <= 1){
-        return {
-            x: p1.x + t * (p2.x - p1.x),
-            y: p1.y + t * (p2.y - p1.y)
-        }
-    }
-    return null
-}
 
-function normalizeVec(v){
-    let mag = sqrt(v.x * v.x + v.y * v.y)
-    if(mag > 0){
-        v.x /= mag
-        v.y /= mag
-    }
-}
 
-function drawBody(body){
-    push()
-    translate(body.pos.x, body.pos.y)
-    rotate(body.angle)
-    rectMode(CENTER)
-    fill(100)
-    rect(0, 0, body.w, body.h)
-    pop()
-    drawDebugBody(body)
-    
-}
-
-function drawDebugBody(body){
-    //draw vectors, normals, etc for debugging  
-    push()
-    // Example: draw velocity vector
-    stroke(0, 0, 255)
-    line(body.pos.x, body.pos.y, body.pos.x + body.vel.x * 10, body.pos.y + body.vel.y * 10)
-    pop()
-
-    push()
-    fill(255, 0, 0)
-    for(let c of body.corners){
-        ellipse(c.x, c.y, 7, 7)
-    }
-    stroke(0, 255, 0)
-    for(let e of body.edges){
-        line(e.start.x, e.start.y, e.end.x, e.end.y)
-    }
-    pop()
-}
