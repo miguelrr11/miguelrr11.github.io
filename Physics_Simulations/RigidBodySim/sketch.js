@@ -41,10 +41,17 @@ let showDebug = false
 let fpsArr = Array(30).fill(60)
 let collisionPoints = []
 
+function windowResized(){
+    WIDTH = windowWidth
+    HEIGHT = windowHeight
+    nCells = Math.floor(Math.max(WIDTH, HEIGHT) / cellSize)
+    resizeCanvas(WIDTH, HEIGHT)
+}
+
 function setup(){
     WIDTH = windowWidth
     HEIGHT = windowHeight
-    nCells = Math.floor(WIDTH / cellSize)
+    nCells = Math.floor(Math.max(WIDTH, HEIGHT) / cellSize)
     createCanvas(WIDTH, HEIGHT)
 
     createBodyFromRect(100, height - 50, width - 100, height - 30, true) // floor
@@ -52,12 +59,20 @@ function setup(){
     createBodyFromRect(width - 50, height/2, width - 30, height - 30, true) // right wall
 
     //random bodies
-    for(let i = 0; i < 15; i++){
+    for(let i = 0; i < 1; i++){
         let x1 = random(100, width - 200)
         let y1 = random(100, height - 200)
         let x2 = x1 + random(30, 80)
         let y2 = y1 + random(30, 80)
         createBodyFromRect(x1, y1, x2, y2, false)
+    }
+
+    //random circles
+    for(let i = 0; i < 1; i++){
+        let x = random(100, width - 100)
+        let y = random(100, height - 200)
+        let r = random(15, 40)
+        createBodyFromCircle(x, y, r, false)
     }
 
     //connect random springs
@@ -117,6 +132,37 @@ function connectSpring(bodyA, anchorA, bodyB, anchorB){
     })
 }
 
+function createBodyFromCircle(x, y, r, isStatic){
+    if(r < 3) return
+
+    let area = Math.PI * r * r
+    let m = isStatic ? Infinity : area / (cellSize * cellSize)
+    let inv = isStatic ? 0 : 1 / m
+
+    // Inertia of solid disk
+    let iner = (1/2) * m * r * r
+    let invI = isStatic ? 0 : 1 / iner
+
+    let body = {
+        shape: 'circle',
+        area: area,
+        r: r,
+        pos: {x, y},
+        vel: {x: 0, y: 0},
+        angle: 0,
+        angVel: 0,
+        mass: m,
+        invMass: inv,
+        inertia: iner,
+        invInertia: invI,
+        isStatic: isStatic,
+        friction: 0.3
+    }
+
+    bodies.push(body)
+}
+
+
 function createBodyFromRect(x1, y1, x2, y2, isStatic){
     let cx = (x1 + x2) / 2
     let cy = (y1 + y2) / 2
@@ -128,6 +174,8 @@ function createBodyFromRect(x1, y1, x2, y2, isStatic){
     let iner = (1/12) * m * (w*w + h*h)
     let invI = isStatic ? 0 : 1 / iner
     let body = {
+        area: w * h,
+        shape: 'rect',
         w: w, h: h,
         pos: {x: cx, y: cy},
         vel: {x: 0, y: 0},
@@ -155,6 +203,7 @@ function createBridgeElement(x1, y1, x2, y2){
     let invI = 1 / iner
 
     let body = {
+        shape: 'rect',
         w: w, h: h,
         pos: {x: cx, y: cy},
         vel: {x: 0, y: 0},
@@ -181,7 +230,7 @@ function calculateStressBodies(){
                 let currentLength = Math.hypot(dx, dy)
                 let displacement = currentLength - sp.restLength
                 let forceMag = sp.stiffness * abs(displacement)
-                b.stress += forceMag / (b.w * b.h)
+                b.stress += forceMag / b.area
             }   
         }
         b.stress *= 10
@@ -251,7 +300,12 @@ function mousePressed(){
         }
         // Check bodies
         for(let i = bodies.length - 1; i >= 0; i--){
-            if(pointInRect({x: mouseX, y: mouseY}, bodies[i])){
+            let body = bodies[i]
+            if(body.shape === 'rect' && pointInRect({x: mouseX, y: mouseY}, body)){
+                bodies.splice(i, 1)
+                break
+            }
+            if(body.shape === 'circle' && pointInCircle({x: mouseX, y: mouseY}, body)){
                 bodies.splice(i, 1)
                 break
             }
@@ -260,7 +314,11 @@ function mousePressed(){
     else {
         // No mode: drag bodies
         for(let b of bodies){
-            if(pointInRect({x: gridMouseX, y: gridMouseY}, b)){
+            if(b.shape === 'rect' && pointInRect({x: gridMouseX, y: gridMouseY}, b)){
+                b.dragging = true
+                b.offsetDrag = {x: gridMouseX - b.pos.x, y: gridMouseY - b.pos.y}
+            }
+            if(b.shape === 'circle' && pointInCircle({x: gridMouseX, y: gridMouseY}, b)){
                 b.dragging = true
                 b.offsetDrag = {x: gridMouseX - b.pos.x, y: gridMouseY - b.pos.y}
             }
@@ -359,7 +417,12 @@ function draw(){
                 for(let j = i + 1; j < bodies.length; j++){
                     let a = bodies[i]
                     let b = bodies[j]
-                    let collision = satRectRect(a, b)
+                    let collision = null
+                    if(a.shape === 'rect' && b.shape === 'rect') collision = satRectRect(a, b)
+                    else if(a.shape === 'circle' && b.shape === 'circle') collision = satCircleCircle(a, b)
+                    else if(a.shape === 'rect' && b.shape === 'circle') collision = satRectCircle(a, b)
+                    else if(a.shape === 'circle' && b.shape === 'rect') collision = satRectCircle(b, a)
+
                     if(collision && !(a.isBridge && b.isBridge)){
                         collisionPoints.push(collision.contact)
 
@@ -398,7 +461,10 @@ function draw(){
 
     // Draw
     for(let sp of springs) drawSpring(sp)
-    for(let b of bodies) drawBody(b)
+    for(let b of bodies){
+        if(b.shape == 'rect') drawBody(b)
+        if(b.shape == 'circle') drawBodyCircle(b)
+    }
 
     // Editor overlays
     drawEditor()
@@ -496,6 +562,124 @@ function satRectRect(bodyA, bodyB){
     }
 }
 
+function satCircleCircle(a, b){
+    let dx = a.pos.x - b.pos.x
+    let dy = a.pos.y - b.pos.y
+    let dist = Math.hypot(dx, dy)
+    let rSum = a.r + b.r
+
+    if(dist >= rSum) return null
+
+    let normal = {
+        x: dx / dist,
+        y: dy / dist
+    }
+
+    let depth = rSum - dist
+
+    let contact = {
+        x: b.pos.x + normal.x * b.r,
+        y: b.pos.y + normal.y * b.r
+    }
+
+    return { normal, depth, contact }
+}
+
+function satRectCircle(rect, circle){
+   
+    // Ensure rect is rectangle
+    if(rect.shape === 'circle'){
+        // Swap and call again
+        let temp = rect
+        rect = circle
+        circle = temp
+    }
+
+    // Transform circle center to rectangle local space
+    let dx = circle.pos.x - rect.pos.x
+    let dy = circle.pos.y - rect.pos.y
+
+    let c = cos(-rect.angle)
+    let s = sin(-rect.angle)
+
+    let localX = dx * c - dy * s
+    let localY = dx * s + dy * c
+
+    let hw = rect.w / 2
+    let hh = rect.h / 2
+
+    // Check if circle center is inside rectangle
+    let insideX = Math.abs(localX) <= hw
+    let insideY = Math.abs(localY) <= hh
+
+    let closestX = constrain(localX, -hw, hw)
+    let closestY = constrain(localY, -hh, hh)
+
+    let normalLocal = {x: 0, y: 0}
+    let depth = 0
+
+    if(insideX && insideY){
+        // Circle center is inside rectangle
+        // Push toward nearest face
+        // Normal should point FROM circle TO rect (inward to rect)
+
+        let dxFace = hw - Math.abs(localX)
+        let dyFace = hh - Math.abs(localY)
+
+        if(dxFace < dyFace){
+            normalLocal.x = localX > 0 ? -1 : 1  // Flipped: points inward to rect
+            depth = circle.r + dxFace
+            // Set contact to the nearest vertical edge
+            closestX = (localX > 0 ? hw : -hw)
+            closestY = localY
+        } else {
+            normalLocal.y = localY > 0 ? -1 : 1  // Flipped: points inward to rect
+            depth = circle.r + dyFace
+            // Set contact to the nearest horizontal edge
+            closestX = localX
+            closestY = (localY > 0 ? hh : -hh)
+        }
+    }
+    else {
+        // Outside case
+        // Normal should point FROM circle TO rect (toward closest point on rect)
+        let diffX = localX - closestX
+        let diffY = localY - closestY
+        let distSq = diffX*diffX + diffY*diffY
+
+        if(distSq > circle.r * circle.r) return null
+
+        let dist = Math.sqrt(distSq)
+
+        normalLocal.x = -diffX / dist  // Flipped: points from circle to rect
+        normalLocal.y = -diffY / dist  // Flipped: points from circle to rect
+        depth = circle.r - dist
+    }
+
+    // Convert normal back to world space
+    let normal = {
+        x: normalLocal.x * cos(rect.angle) - normalLocal.y * sin(rect.angle),
+        y: normalLocal.x * sin(rect.angle) + normalLocal.y * cos(rect.angle)
+    }
+
+    // Contact point on rectangle surface
+    let contactLocal = {
+        x: closestX,
+        y: closestY
+    }
+
+    let contact = {
+        x: rect.pos.x + contactLocal.x * cos(rect.angle) - contactLocal.y * sin(rect.angle),
+        y: rect.pos.y + contactLocal.x * sin(rect.angle) + contactLocal.y * cos(rect.angle)
+    }
+
+    return {
+        normal,
+        depth,
+        contact
+    }
+}
+
 // Two-body impulse resolution
 // Normal must point from bodyB toward bodyA
 function resolveCollision(bodyA, bodyB, normal, contact){
@@ -583,20 +767,31 @@ function resolveCollision(bodyA, bodyB, normal, contact){
 // 4 anchors at midpoints of all edges: 0=top, 1=right, 2=bottom, 3=left
 function getAnchorWorldPos(body, anchorIndex){
     if(!body || anchorIndex < 0 || anchorIndex > 3) return {x: gridMouseX, y: gridMouseY}
-    let offsets = [
-        {x: 0,          y: -body.h/2}, // 0: top
-        {x:  body.w/2,  y: 0},         // 1: right
-        {x: 0,          y:  body.h/2}, // 2: bottom
-        {x: -body.w/2,  y: 0}          // 3: left
-    ]
-    let lx = offsets[anchorIndex].x
-    let ly = offsets[anchorIndex].y
-    let c = cos(body.angle)
-    let s = sin(body.angle)
-    return {
-        x: body.pos.x + lx * c - ly * s,
-        y: body.pos.y + lx * s + ly * c
+    if(body.shape === 'circle'){
+        let angle = anchorIndex * (Math.PI/2) + body.angle
+        return {
+            x: body.pos.x + Math.cos(angle) * body.r,
+            y: body.pos.y + Math.sin(angle) * body.r
+        }
     }
+    else if(body.shape === 'rect'){
+        let offsets = [
+            {x: 0,          y: -body.h/2}, // 0: top
+            {x:  body.w/2,  y: 0},         // 1: right
+            {x: 0,          y:  body.h/2}, // 2: bottom
+            {x: -body.w/2,  y: 0}          // 3: left
+        ]
+        let lx = offsets[anchorIndex].x
+        let ly = offsets[anchorIndex].y
+        let c = cos(body.angle)
+        let s = sin(body.angle)
+        return {
+            x: body.pos.x + lx * c - ly * s,
+            y: body.pos.y + lx * s + ly * c
+        }
+    }
+    console.log('Unknown shape in getAnchorWorldPos')
+    return null
 }
 
 // Returns the velocity at a body's anchor point (linear + angular contribution)
@@ -675,6 +870,12 @@ function pointInRect(point, body){
     return abs(rotatedX) <= body.w / 2 && abs(rotatedY) <= body.h / 2
 }
 
+function pointInCircle(point, body){
+    let dx = point.x - body.pos.x
+    let dy = point.y - body.pos.y
+    return dx*dx + dy*dy <= body.r * body.r
+}
+
 function projectPoints(points, axis){
     let min = Infinity
     let max = -Infinity
@@ -689,6 +890,7 @@ function projectPoints(points, axis){
 }
 
 function updateCornerLocations(body){
+    if(body.shape === 'circle') return
     let hw = body.w / 2
     let hh = body.h / 2
     let c = cos(body.angle)
@@ -708,6 +910,3 @@ function updateCornerLocations(body){
     body.axis1 = { x: cos(body.angle), y: sin(body.angle) }
     body.axis2 = { x: -sin(body.angle), y: cos(body.angle) }
 }
-
-
-

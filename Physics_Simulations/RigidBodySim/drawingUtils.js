@@ -12,6 +12,91 @@ function drawBody(body){
     if(showDebug) drawDebugBody(body)
 }
 
+function drawBodyCircle(body){
+    let inside = pointInCircle({x: mouseX, y: mouseY}, body)
+    push()
+    translate(body.pos.x, body.pos.y)
+    fill(lerppColor([75, 75, 57], [255, 0, 0], body.stress))
+    if(inside && editorMode === 'delete') fill(255, 0, 0)
+    if(inside && !editorMode) fill(150)
+    ellipse(0, 0, body.r * 2, body.r * 2)
+    pop()
+    if(showDebug) drawDebugBodyCircle(body)
+}
+
+function drawDebugBodyCircle(body){
+    let px = body.pos.x
+    let py = body.pos.y
+
+
+    // Center of mass
+    push()
+    noStroke()
+    fill(255)
+    ellipse(px, py, 4, 4)
+    pop()
+
+    // Velocity arrow
+    let speed = Math.hypot(body.vel.x, body.vel.y)
+    if(speed > 0.01){
+        push()
+        let scale = 10
+        let ex = px + body.vel.x * scale
+        let ey = py + body.vel.y * scale
+        stroke(0, 120, 255)
+        strokeWeight(2)
+        line(px, py, ex, ey)
+        // Arrowhead
+        let ang = atan2(body.vel.y, body.vel.x)
+        let aSize = 5
+        line(ex, ey, ex - aSize * cos(ang - 0.4), ey - aSize * sin(ang - 0.4))
+        line(ex, ey, ex - aSize * cos(ang + 0.4), ey - aSize * sin(ang + 0.4))
+        pop()
+    }
+
+    // Angular velocity arc
+    if (Math.abs(body.angVel) > 0.01) {
+        push();
+        noFill();
+        let arcR = 15;
+        let arcSpan = constrain(body.angVel * 20, -PI, PI);
+        stroke(255, 0, 255);
+        strokeWeight(1.5);
+
+        let startAngle = body.angle;
+        let endAngle = body.angle + arcSpan;
+
+        if(body.angVel < 0){
+            startAngle = body.angle + arcSpan;
+            endAngle = body.angle;
+        }
+
+        arc(px, py, arcR * 2, arcR * 2, startAngle, endAngle);
+
+        let tipAng = body.angleVel > 0 ? body.angle + arcSpan : body.angle + arcSpan;
+        let tipX = px + arcR * cos(tipAng);
+        let tipY = py + arcR * sin(tipAng);
+
+        let tangentAng = tipAng + (body.angVel > 0 ? -HALF_PI : HALF_PI);
+        let aSize = 6;
+
+        line(tipX, tipY, tipX + aSize * cos(tangentAng - 0.4), tipY + aSize * sin(tangentAng - 0.4));
+        line(tipX, tipY, tipX + aSize * cos(tangentAng + 0.4), tipY + aSize * sin(tangentAng + 0.4));
+
+        pop();
+    }
+
+    push()
+    stroke(255, 0, 0)
+    strokeWeight(1)
+    let endX = body.pos.x + cos(body.angle) * body.r * .5
+    let endY = body.pos.y + sin(body.angle) * body.r * .5
+    line(body.pos.x, body.pos.y, endX, endY)
+
+    pop()
+
+}
+
 function drawDebugBody(body){
     let px = body.pos.x
     let py = body.pos.y
