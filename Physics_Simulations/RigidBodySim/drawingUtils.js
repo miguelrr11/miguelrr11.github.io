@@ -1,6 +1,10 @@
 function drawBody(body){
     let inside = pointInRect({x: mouseX, y: mouseY}, body)
     push()
+    if(simState.selectedBody === body){
+        strokeWeight(1.5)
+        stroke(0, 255, 100)
+    }
     translate(body.pos.x, body.pos.y)
     rotate(body.angle)
     rectMode(CENTER)
@@ -15,6 +19,10 @@ function drawBody(body){
 function drawBodyCircle(body){
     let inside = pointInCircle({x: mouseX, y: mouseY}, body)
     push()
+    if(simState.selectedBody === body){
+        strokeWeight(1.5)
+        stroke(0, 255, 100)
+    }
     translate(body.pos.x, body.pos.y)
     fill(lerppColor([75, 75, 57], [255, 0, 0], body.stress))
     if(inside && simState.createMode === 'delete') fill(255, 0, 0)
@@ -73,15 +81,15 @@ function drawDebugBodyCircle(body){
 
         arc(px, py, arcR * 2, arcR * 2, startAngle, endAngle);
 
-        let tipAng = body.angleVel > 0 ? body.angle + arcSpan : body.angle + arcSpan;
+        let tipAng = body.angle + arcSpan;
         let tipX = px + arcR * Math.cos(tipAng);
         let tipY = py + arcR * Math.sin(tipAng);
 
         let tangentAng = tipAng + (body.angVel > 0 ? -HALF_PI : HALF_PI);
-        let aSize = 6;
+        let aSize = 5;
 
-        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng - 0.4), tipY + aSize * Math.sin(tangentAng - 0.4));
-        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng + 0.4), tipY + aSize * Math.sin(tangentAng + 0.4));
+        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng - 0.6), tipY + aSize * Math.sin(tangentAng - 0.6));
+        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng + 0.6), tipY + aSize * Math.sin(tangentAng + 0.6));
 
         pop();
     }
@@ -189,10 +197,10 @@ function drawDebugBody(body){
         let tipY = py + arcR * Math.sin(tipAng);
 
         let tangentAng = tipAng + (body.angVel > 0 ? -HALF_PI : HALF_PI);
-        let aSize = 6;
+        let aSize = 5;
 
-        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng - 0.4), tipY + aSize * Math.sin(tangentAng - 0.4));
-        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng + 0.4), tipY + aSize * Math.sin(tangentAng + 0.4));
+        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng - 0.6), tipY + aSize * Math.sin(tangentAng - 0.6));
+        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng + 0.6), tipY + aSize * Math.sin(tangentAng + 0.6));
 
         pop();
     }
@@ -347,7 +355,7 @@ function drawEditor(){
     let hovered = inSpringMode ? findNearestAnchor(gridMouseX, gridMouseY, 20) : null
 
     for(let b of bodies){
-        for(let a = 0; a < 4; a++){
+        for(let a = 0; a < 5; a++){
             let p = getAnchorWorldPos(b, a)
             let isHovered = hovered && hovered.body === b && hovered.anchor === a
             let isSelected = springStart && springStart.body === b && springStart.anchor === a

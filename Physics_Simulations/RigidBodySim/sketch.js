@@ -40,13 +40,17 @@ let collisionPoints = []
 
 let simState = {
     staticDynamicMode: 'dynamic',
-    createMode: 'rect',
+    createMode: 'drag',
     running: true,
     snapGrid: false,
-    showDebug: false
+    showDebug: false,
+    autoLengthSpring: false,
+    lengthSpring: 10,  //in cells
+    selectedBody: null
 }
 
 let panel
+let cteAngVelSlider, cteAngVelCB
 
 function windowResized(){
     WIDTH = windowWidth
@@ -69,6 +73,7 @@ async function setup(){
         x: 10,
         y: 10,
         w: 200,
+        retractable: true,
         font: fontPanel,
         title: "Rigid Body Sim"
     })
@@ -78,13 +83,34 @@ async function setup(){
     let staticDynamicSelect = panel.createSelect(["Static", "Dynamic"], "Dynamic")
     staticDynamicSelect.setFunc((arg) => {simState.staticDynamicMode = arg.toLowerCase()}, true)
     panel.createSeparator()
-    let createSelect = panel.createSelect(["Rect", "Circle", "Bridge", "Spring", "Delete", "Drag"], "Rect")
+    let createSelect = panel.createSelect(["Rect", "Circle", "Bridge", "Spring", "Delete", "Drag"], "Drag")
     createSelect.setFunc((arg) => {
         simState.createMode = arg.toLowerCase()
         springStart = null
         dragStart = null
     }, true)
+
     panel.createSeparator()
+    let automaticLengthToggle = panel.createCheckbox("Auto-length Springs", false)
+    automaticLengthToggle.setFunc((arg) => {simState.autoLengthSpring = arg})
+    let lengthSlider = panel.createSlider(1, 30, 10, 'Length', true)
+    lengthSlider.setFunc((arg) => {simState.lengthSpring = arg})
+    panel.createSeparator()
+
+    cteAngVelCB = panel.createCheckbox("Constant Angular Velocity", false)
+    cteAngVelCB.setFunc((arg) => {
+        if(simState.selectedBody){
+            simState.selectedBody.cteAngVelToggle = arg
+        }
+    })
+    cteAngVelSlider = panel.createSlider(-0.5, 0.5, 0, 'Const. Ang. Vel.', true)
+    cteAngVelSlider.setFunc((arg) => {
+        if(simState.selectedBody){
+            simState.selectedBody.cteAngVel = arg
+        }
+    })
+    panel.createSeparator()
+
     let buttonPause = panel.createButton("Pause Simulation")
     buttonPause.w += 15
     buttonPause.setFunc(() => {
@@ -101,7 +127,7 @@ async function setup(){
     createBodyFromRect(width - 50, height/2, width - 30, height - 30, true) // right wall
 
     //random bodies
-    for(let i = 0; i < 25; i++){
+    for(let i = 0; i < 1; i++){
         let x1 = random(100, width - 200)
         let y1 = random(100, height - 200)
         let x2 = x1 + random(30, 80)
@@ -110,7 +136,7 @@ async function setup(){
     }
 
     //random circles
-    for(let i = 0; i < 25; i++){
+    for(let i = 0; i < 1; i++){
         let x = random(100, width - 100)
         let y = random(100, height - 200)
         let r = random(15, 30)
@@ -128,10 +154,16 @@ async function setup(){
     // }
 }
 
+function setSelectedBody(body){
+    simState.selectedBody = body
+    cteAngVelSlider.setValue(body ? body.angVel : 0)
+    cteAngVelCB.setValue(body ? body.cteAngVelToggle : false)
+}
+
 function connectSpring(bodyA, anchorA, bodyB, anchorB){
     let posA = getAnchorWorldPos(bodyA, anchorA) || { x: gridMouseX, y: gridMouseY }
     let posB = getAnchorWorldPos(bodyB, anchorB) || { x: gridMouseX, y: gridMouseY }
-    let d = Math.hypot(posB.x - posA.x, posB.y - posA.y)
+    let d = simState.autoLengthSpring ? Math.hypot(posB.x - posA.x, posB.y - posA.y) : simState.lengthSpring * cellSize 
     springs.push({
         bodyA, bodyB, anchorA, anchorB,
         worldAnchorA: posA,
@@ -166,7 +198,8 @@ function createBodyFromCircle(x, y, r, isStatic){
         inertia: iner,
         invInertia: invI,
         isStatic: isStatic,
-        friction: 0.3
+        friction: 1,
+        cteAngVel: 0
     }
 
     bodies.push(body)
@@ -192,41 +225,33 @@ function createBodyFromRect(x1, y1, x2, y2, isStatic){
         mass: m, invMass: inv,
         inertia: iner, invInertia: invI,
         isStatic: isStatic,
-        friction: 0.3
+        friction: 1,
+        cteAngVel: 0,
+        cteAngVelToggle: false
     }
     updateCornerLocations(body)
     bodies.push(body)
+    return body
 }
 
-function createBridgeElement(x1, y1, x2, y2){
-    //thin body from x1y1 to x2y2
+function createBridgeElement(x1, y1, x2, y2, isStatic = false){
     let cx = (x1 + x2) / 2
     let cy = (y1 + y2) / 2
     let w = Math.hypot(x2 - x1, y2 - y1)
-    let h = 4 // fixed height for bridge elements
-    let angle = Math.atan2(y2 - y1, x2 - x1)
+    let h = 6
 
-    let m = w * h / 10000
-    let inv = 1 / m
-    let iner = (1/12) * m * (w*w + h*h)
-    let invI = 1 / iner
+    let rx1 = cx - w/2
+    let ry1 = cy - h/2
+    let rx2 = cx + w/2
+    let ry2 = cy + h/2
 
-    let body = {
-        area: w * h,
-        shape: 'rect',
-        w: w, h: h,
-        pos: {x: cx, y: cy},
-        vel: {x: 0, y: 0},
-        angle: angle, angVel: 0,
-        mass: m, invMass: inv,
-        inertia: iner, invInertia: invI,
-        isStatic: false,
-        friction: 0.3,
-        isBridge: true
-    }
-    updateCornerLocations(body)
-    bodies.push(body)
+    let bridge = createBodyFromRect(rx1, ry1, rx2, ry2, isStatic)
+    if(!bridge) return null
+    bridge.isBridge = true
+    bridge.angle = atan2(y2 - y1, x2 - x1)
+    return bridge
 }
+
 
 function calculateStressBodies(){
     for(let b of bodies){
@@ -252,7 +277,7 @@ function findNearestAnchor(mx, my, threshold){
     let best = null
     let bestDist = threshold
     for(let b of bodies){
-        for(let a = 0; a < 4; a++){
+        for(let a = 0; a < 5; a++){
             let p = getAnchorWorldPos(b, a)
             let d = Math.hypot(mx - p.x, my - p.y)
             if(d < bestDist){
@@ -265,7 +290,7 @@ function findNearestAnchor(mx, my, threshold){
 }
 
 function mousePressed(){
-    if(gridMouseY < 0 || gridMouseX < 0 || gridMouseX > WIDTH || gridMouseY > HEIGHT) return
+    if(gridMouseY < 0 || gridMouseX < 0 || gridMouseX > WIDTH || gridMouseY > HEIGHT || panel.isMouseInside()) return
 
     if(simState.createMode === 'rect' || simState.createMode === 'bridge' || simState.createMode === 'circle'){
         dragStart = {x: gridMouseX, y: gridMouseY}
@@ -327,12 +352,17 @@ function mousePressed(){
             if(b.shape === 'rect' && pointInRect({x: gridMouseX, y: gridMouseY}, b)){
                 b.dragging = true
                 b.offsetDrag = {x: gridMouseX - b.pos.x, y: gridMouseY - b.pos.y}
+                setSelectedBody(b)
+                return
             }
             if(b.shape === 'circle' && pointInCircle({x: gridMouseX, y: gridMouseY}, b)){
                 b.dragging = true
                 b.offsetDrag = {x: gridMouseX - b.pos.x, y: gridMouseY - b.pos.y}
+                setSelectedBody(b)
+                return
             }
         }
+        setSelectedBody(null)
     }
 }
 
@@ -347,7 +377,7 @@ function mouseReleased(){
         dragStart = null
     }
     if(dragStart && simState.createMode === 'bridge'){
-        createBridgeElement(dragStart.x, dragStart.y, gridMouseX, gridMouseY)
+        createBridgeElement(dragStart.x, dragStart.y, gridMouseX, gridMouseY, simState.staticDynamicMode === 'static')
         dragStart = null
     }
     for(let b of bodies) b.dragging = false
@@ -405,11 +435,16 @@ function draw(){
 
         // Integrate
         for(let b of bodies){
-            if(b.isStatic) continue
-            b.pos.x += b.vel.x * dt
-            b.pos.y += b.vel.y * dt
+            if(b.cteAngVelToggle){
+                b.angVel = b.cteAngVel
+            }
             b.angle += b.angVel * dt
 
+            if(b.isStatic) continue
+
+            b.pos.x += b.vel.x * dt
+            b.pos.y += b.vel.y * dt
+            
             let air = airFriction * dt
 
             b.vel.x -= b.vel.x * air
@@ -453,7 +488,7 @@ function draw(){
 
                         // Split separation by inverse mass ratio
                         let invMassSum = a.invMass + b.invMass
-                        if(invMassSum === 0) return
+                        if(invMassSum === 0) continue
 
                         const percent = 0.8
                         const slop = 0.01
@@ -492,6 +527,16 @@ function draw(){
     for(let b of bodies){
         if(b.shape == 'rect') drawBody(b)
         if(b.shape == 'circle') drawBodyCircle(b)
+    }
+
+    for(let i = bodies.length - 1; i >= 0; i--){
+        let body = bodies[i]
+        if(body.pos.y > HEIGHT + 200){
+            bodies.splice(i, 1)
+        }
+        if(body.pos.x < -200 || body.pos.x > WIDTH + 200){
+            bodies.splice(i, 1)
+        }
     }
 
     // Editor overlays
@@ -799,9 +844,15 @@ function resolveCollision(bodyA, bodyB, normal, contact){
 }
 
 // Returns the world position of a body's anchor point
-// 4 anchors at midpoints of all edges: 0=top, 1=right, 2=bottom, 3=left
+// 4 anchors at midpoints of all edges: 0=top, 1=right, 2=bottom, 3=left, 4=center
 function getAnchorWorldPos(body, anchorIndex){
-    if(!body || anchorIndex < 0 || anchorIndex > 3) return {x: gridMouseX, y: gridMouseY}
+    if(!body || anchorIndex < 0 || anchorIndex > 4) return null
+    if(anchorIndex === 4){
+        return {
+            x: body.pos.x,
+            y: body.pos.y
+        }
+    }
     if(body.shape === 'circle'){
         let angle = anchorIndex * (Math.PI/2) + body.angle
         return {

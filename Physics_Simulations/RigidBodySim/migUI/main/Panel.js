@@ -88,6 +88,10 @@ class Panel{
 	    this.lastBU = undefined
 	}
 
+	isMouseInside(){
+		return mouseX > this.pos.x && mouseX < this.pos.x + this.w && mouseY > this.pos.y && mouseY < this.pos.y + this.h
+	}
+
 	reposition(x, y){
 		let dx = x - this.pos.x
 		let dy = y - this.pos.y
