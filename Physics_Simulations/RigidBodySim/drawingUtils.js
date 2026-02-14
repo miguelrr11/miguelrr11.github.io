@@ -5,11 +5,11 @@ function drawBody(body){
     rotate(body.angle)
     rectMode(CENTER)
     fill(lerppColor([75, 75, 57], [255, 0, 0], body.stress))
-    if(inside && editorMode === 'delete') fill(255, 0, 0)
-    if(inside && !editorMode) fill(150)
+    if(inside && simState.createMode === 'delete') fill(255, 0, 0)
+    if(inside && !simState.createMode) fill(150)
     rect(0, 0, body.w, body.h)
     pop()
-    if(showDebug) drawDebugBody(body)
+    if(simState.showDebug) drawDebugBody(body)
 }
 
 function drawBodyCircle(body){
@@ -17,11 +17,11 @@ function drawBodyCircle(body){
     push()
     translate(body.pos.x, body.pos.y)
     fill(lerppColor([75, 75, 57], [255, 0, 0], body.stress))
-    if(inside && editorMode === 'delete') fill(255, 0, 0)
-    if(inside && !editorMode) fill(150)
+    if(inside && simState.createMode === 'delete') fill(255, 0, 0)
+    if(inside && !simState.createMode) fill(150)
     ellipse(0, 0, body.r * 2, body.r * 2)
     pop()
-    if(showDebug) drawDebugBodyCircle(body)
+    if(simState.showDebug) drawDebugBodyCircle(body)
 }
 
 function drawDebugBodyCircle(body){
@@ -49,8 +49,8 @@ function drawDebugBodyCircle(body){
         // Arrowhead
         let ang = atan2(body.vel.y, body.vel.x)
         let aSize = 5
-        line(ex, ey, ex - aSize * cos(ang - 0.4), ey - aSize * sin(ang - 0.4))
-        line(ex, ey, ex - aSize * cos(ang + 0.4), ey - aSize * sin(ang + 0.4))
+        line(ex, ey, ex - aSize * Math.cos(ang - 0.4), ey - aSize * Math.sin(ang - 0.4))
+        line(ex, ey, ex - aSize * Math.cos(ang + 0.4), ey - aSize * Math.sin(ang + 0.4))
         pop()
     }
 
@@ -59,7 +59,7 @@ function drawDebugBodyCircle(body){
         push();
         noFill();
         let arcR = 15;
-        let arcSpan = constrain(body.angVel * 20, -PI, PI);
+        let arcSpan = constrainn(body.angVel * 20, -PI, PI);
         stroke(255, 0, 255);
         strokeWeight(1.5);
 
@@ -74,14 +74,14 @@ function drawDebugBodyCircle(body){
         arc(px, py, arcR * 2, arcR * 2, startAngle, endAngle);
 
         let tipAng = body.angleVel > 0 ? body.angle + arcSpan : body.angle + arcSpan;
-        let tipX = px + arcR * cos(tipAng);
-        let tipY = py + arcR * sin(tipAng);
+        let tipX = px + arcR * Math.cos(tipAng);
+        let tipY = py + arcR * Math.sin(tipAng);
 
         let tangentAng = tipAng + (body.angVel > 0 ? -HALF_PI : HALF_PI);
         let aSize = 6;
 
-        line(tipX, tipY, tipX + aSize * cos(tangentAng - 0.4), tipY + aSize * sin(tangentAng - 0.4));
-        line(tipX, tipY, tipX + aSize * cos(tangentAng + 0.4), tipY + aSize * sin(tangentAng + 0.4));
+        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng - 0.4), tipY + aSize * Math.sin(tangentAng - 0.4));
+        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng + 0.4), tipY + aSize * Math.sin(tangentAng + 0.4));
 
         pop();
     }
@@ -89,8 +89,8 @@ function drawDebugBodyCircle(body){
     push()
     stroke(255, 0, 0)
     strokeWeight(1)
-    let endX = body.pos.x + cos(body.angle) * body.r * .5
-    let endY = body.pos.y + sin(body.angle) * body.r * .5
+    let endX = body.pos.x + Math.cos(body.angle) * body.r * .5
+    let endY = body.pos.y + Math.sin(body.angle) * body.r * .5
     line(body.pos.x, body.pos.y, endX, endY)
 
     pop()
@@ -160,8 +160,8 @@ function drawDebugBody(body){
         // Arrowhead
         let ang = atan2(body.vel.y, body.vel.x)
         let aSize = 5
-        line(ex, ey, ex - aSize * cos(ang - 0.4), ey - aSize * sin(ang - 0.4))
-        line(ex, ey, ex - aSize * cos(ang + 0.4), ey - aSize * sin(ang + 0.4))
+        line(ex, ey, ex - aSize * Math.cos(ang - 0.4), ey - aSize * Math.sin(ang - 0.4))
+        line(ex, ey, ex - aSize * Math.cos(ang + 0.4), ey - aSize * Math.sin(ang + 0.4))
         pop()
     }
 
@@ -170,7 +170,7 @@ function drawDebugBody(body){
         push();
         noFill();
         let arcR = 15;
-        let arcSpan = constrain(body.angVel * 20, -PI, PI);
+        let arcSpan = constrainn(body.angVel * 20, -PI, PI);
         stroke(255, 0, 255);
         strokeWeight(1.5);
 
@@ -185,14 +185,14 @@ function drawDebugBody(body){
         arc(px, py, arcR * 2, arcR * 2, startAngle, endAngle);
 
         let tipAng = body.angleVel > 0 ? body.angle + arcSpan : body.angle + arcSpan;
-        let tipX = px + arcR * cos(tipAng);
-        let tipY = py + arcR * sin(tipAng);
+        let tipX = px + arcR * Math.cos(tipAng);
+        let tipY = py + arcR * Math.sin(tipAng);
 
         let tangentAng = tipAng + (body.angVel > 0 ? -HALF_PI : HALF_PI);
         let aSize = 6;
 
-        line(tipX, tipY, tipX + aSize * cos(tangentAng - 0.4), tipY + aSize * sin(tangentAng - 0.4));
-        line(tipX, tipY, tipX + aSize * cos(tangentAng + 0.4), tipY + aSize * sin(tangentAng + 0.4));
+        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng - 0.4), tipY + aSize * Math.sin(tangentAng - 0.4));
+        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng + 0.4), tipY + aSize * Math.sin(tangentAng + 0.4));
 
         pop();
     }
@@ -211,12 +211,12 @@ function drawSpring(sp){
     // Color: blue (compressed) → green (rest) → red (stretched)
     let r, g, b
     if(stress < 0){
-        let t = constrain(-stress * 3, 0, 1)
+        let t = constrainn(-stress * 3, 0, 1)
         r = lerp(0, 50, t)
         g = lerp(200, 100, t)
         b = lerp(50, 255, t)
     } else {
-        let t = constrain(stress * 3, 0, 1)
+        let t = constrainn(stress * 3, 0, 1)
         r = lerp(0, 255, t)
         g = lerp(200, 50, t)
         b = lerp(50, 50, t)
@@ -236,11 +236,11 @@ function drawSpring(sp){
     let midX = (posA.x + posB.x) / 2
     let midY = (posA.y + posB.y) / 2
     let angle = atan2(dy, dx)
-    let localMouseX = cos(-angle) * (mouseX - midX) - sin(-angle) * (mouseY - midY)
-    let localMouseY = sin(-angle) * (mouseX - midX) + cos(-angle) * (mouseY - midY)
+    let localMouseX = Math.cos(-angle) * (mouseX - midX) - Math.sin(-angle) * (mouseY - midY)
+    let localMouseY = Math.sin(-angle) * (mouseX - midX) + Math.cos(-angle) * (mouseY - midY)
     let inside = false
     if(localMouseX > -len/2 - 5 && localMouseX < len/2 + 5 && localMouseY > -10 && localMouseY < 10) inside = true
-    if(inside && editorMode == 'delete'){ 
+    if(inside && simState.createMode == 'delete'){ 
         strokeWeight(4)
         stroke(255, 0, 0)
     }
@@ -307,10 +307,10 @@ function drawSpring(sp){
 
 function drawEditor(){
     // Body creation preview
-    if(dragStart && mouseIsPressed && (editorMode === 'static' || editorMode === 'dynamic')){
+    if(dragStart && mouseIsPressed && simState.createMode === 'rect'){
         push()
         noFill()
-        stroke(editorMode === 'static' ? '#f80' : '#0af')
+        stroke(simState.staticDynamicMode === 'static' ? '#f80' : '#0af')
         strokeWeight(1)
         drawingContext.setLineDash([5, 5])
         let x1 = Math.min(dragStart.x, gridMouseX)
@@ -321,7 +321,18 @@ function drawEditor(){
         pop()
     }
 
-    if(dragStart && mouseIsPressed && editorMode === 'bridge'){
+    if(dragStart && mouseIsPressed && simState.createMode === 'circle'){
+        push()
+        noFill()
+        stroke(simState.staticDynamicMode === 'static' ? '#f80' : '#0af')
+        strokeWeight(1)
+        drawingContext.setLineDash([5, 5])
+        let r = Math.hypot(gridMouseX - dragStart.x, gridMouseY - dragStart.y)
+        ellipse(dragStart.x, dragStart.y, r * 2, r * 2)
+        pop()
+    }
+
+    if(dragStart && mouseIsPressed && simState.createMode === 'bridge'){
         push()
         noFill()
         stroke('#0ff')
@@ -332,7 +343,7 @@ function drawEditor(){
     }
 
     // Anchor points (always visible, highlighted in spring mode)
-    let inSpringMode = editorMode === 'spring'
+    let inSpringMode = simState.createMode === 'spring'
     let hovered = inSpringMode ? findNearestAnchor(gridMouseX, gridMouseY, 20) : null
 
     for(let b of bodies){

@@ -16,8 +16,11 @@ let WIDTH = 600
 let HEIGHT = 600
 
 const gravity = 0.1
-const airFriction = 0.01
+const airFriction = 0.005
 let MAXSTEPS = 20
+
+const percent = 0.8   // correction strength
+const slop = 0.01     // penetration allowed before correction
 
 let bodies = []
 let springs = []
@@ -27,19 +30,23 @@ let gridMouseY = 0
 let cellSize = 15
 let nCells = 30
 
+let grid = null
+
 // Editor state
-let editorMode = null // 'static', 'dynamic', 'spring', 'bridge', delete
 let dragStart = null  // {x, y} for body creation drag
 let springStart = null // {body, anchor} for spring first click
-let simRunning = true
-let buttonSimRunning = null
-let snapGrid = false
-let buttonSnapGrid = null
-let buttons = []
-let buttonShowDebug = null
-let showDebug = false
 let fpsArr = Array(30).fill(60)
 let collisionPoints = []
+
+let simState = {
+    staticDynamicMode: 'dynamic',
+    createMode: 'rect',
+    running: true,
+    snapGrid: false,
+    showDebug: false
+}
+
+let panel
 
 function windowResized(){
     WIDTH = windowWidth
@@ -48,18 +55,53 @@ function windowResized(){
     resizeCanvas(WIDTH, HEIGHT)
 }
 
-function setup(){
+async function setup(){
+    let fontPanel = await loadFont("migUI/main/bnr.ttf")
+
+    grid = new SpatialHash(cellSize)
+
     WIDTH = windowWidth
     HEIGHT = windowHeight
     nCells = Math.floor(Math.max(WIDTH, HEIGHT) / cellSize)
     createCanvas(WIDTH, HEIGHT)
 
+    panel = new Panel({
+        x: 10,
+        y: 10,
+        w: 200,
+        font: fontPanel,
+        title: "Rigid Body Sim"
+    })
+    panel.darkCol[3] = 175
+
+    panel.createSeparator()
+    let staticDynamicSelect = panel.createSelect(["Static", "Dynamic"], "Dynamic")
+    staticDynamicSelect.setFunc((arg) => {simState.staticDynamicMode = arg.toLowerCase()}, true)
+    panel.createSeparator()
+    let createSelect = panel.createSelect(["Rect", "Circle", "Bridge", "Spring", "Delete", "Drag"], "Rect")
+    createSelect.setFunc((arg) => {
+        simState.createMode = arg.toLowerCase()
+        springStart = null
+        dragStart = null
+    }, true)
+    panel.createSeparator()
+    let buttonPause = panel.createButton("Pause Simulation")
+    buttonPause.w += 15
+    buttonPause.setFunc(() => {
+        simState.running = !simState.running
+        buttonPause.setText(simState.running ? "Pause Simulation" : "Resume Simulation")
+    })
+    panel.createSeparator()
+    let snapToggle = panel.createCheckbox("Snap to Grid", false)
+    snapToggle.setFunc((arg) => {simState.snapGrid = arg})
+    let debugToggle = panel.createCheckbox("Show Debug", false)
+    debugToggle.setFunc((arg) => {simState.showDebug = arg})
     createBodyFromRect(100, height - 50, width - 100, height - 30, true) // floor
     createBodyFromRect(30, height/2, 50, height - 30, true) // left wall
     createBodyFromRect(width - 50, height/2, width - 30, height - 30, true) // right wall
 
     //random bodies
-    for(let i = 0; i < 1; i++){
+    for(let i = 0; i < 25; i++){
         let x1 = random(100, width - 200)
         let y1 = random(100, height - 200)
         let x2 = x1 + random(30, 80)
@@ -68,10 +110,10 @@ function setup(){
     }
 
     //random circles
-    for(let i = 0; i < 1; i++){
+    for(let i = 0; i < 25; i++){
         let x = random(100, width - 100)
         let y = random(100, height - 200)
-        let r = random(15, 40)
+        let r = random(15, 30)
         createBodyFromCircle(x, y, r, false)
     }
 
@@ -84,38 +126,6 @@ function setup(){
     //     let anchorB = floor(random(4))
     //     connectSpring(bodyA, anchorA, bodyB, anchorB)
     // }
-
-
-    // Editor buttons
-    let modes = ['static', 'dynamic', 'spring', 'bridge', 'delete']
-    for(let m of modes){
-        let btn = createButton(m)
-        btn.mousePressed(() => {
-            editorMode = editorMode === m ? null : m
-            springStart = null
-            dragStart = null
-        })
-        btn.position(10 , 10 + modes.indexOf(m) * 30)
-        buttons.push({el: btn, mode: m})
-    }
-    buttonSimRunning = createButton('Pause')
-    buttonSimRunning.mousePressed(() => {
-        simRunning = !simRunning
-        buttonSimRunning.html(simRunning ? 'Pause' : 'Resume')
-    })
-    buttonSimRunning.position(10, 10 + modes.length * 30)
-    buttonSnapGrid = createButton(`Snap: ${snapGrid ? 'On' : 'Off'}`)
-    buttonSnapGrid.mousePressed(() => { 
-        snapGrid = !snapGrid
-        buttonSnapGrid.html(`Snap: ${snapGrid ? 'On' : 'Off'}`)
-    })
-    buttonSnapGrid.position(10, 10 + (modes.length + 1) * 30)
-    buttonShowDebug = createButton(`Debug: ${showDebug ? 'On' : 'Off'}`)
-    buttonShowDebug.mousePressed(() => {
-        showDebug = !showDebug
-        buttonShowDebug.html(`Debug: ${showDebug ? 'On' : 'Off'}`)
-    })
-    buttonShowDebug.position(10, 10 + (modes.length + 2) * 30)
 }
 
 function connectSpring(bodyA, anchorA, bodyB, anchorB){
@@ -162,7 +172,6 @@ function createBodyFromCircle(x, y, r, isStatic){
     bodies.push(body)
 }
 
-
 function createBodyFromRect(x1, y1, x2, y2, isStatic){
     let cx = (x1 + x2) / 2
     let cy = (y1 + y2) / 2
@@ -203,6 +212,7 @@ function createBridgeElement(x1, y1, x2, y2){
     let invI = 1 / iner
 
     let body = {
+        area: w * h,
         shape: 'rect',
         w: w, h: h,
         pos: {x: cx, y: cy},
@@ -257,10 +267,10 @@ function findNearestAnchor(mx, my, threshold){
 function mousePressed(){
     if(gridMouseY < 0 || gridMouseX < 0 || gridMouseX > WIDTH || gridMouseY > HEIGHT) return
 
-    if(editorMode === 'static' || editorMode === 'dynamic' || editorMode === 'bridge'){
+    if(simState.createMode === 'rect' || simState.createMode === 'bridge' || simState.createMode === 'circle'){
         dragStart = {x: gridMouseX, y: gridMouseY}
     } 
-    else if(editorMode === 'spring'){
+    else if(simState.createMode === 'spring'){
         let hit = findNearestAnchor(gridMouseX, gridMouseY, 20)
         if(hit){
             if(!springStart){
@@ -280,7 +290,7 @@ function mousePressed(){
             springStart = null
         }
     } 
-    else if(editorMode === 'delete'){
+    else if(simState.createMode === 'delete'){
         // Check springs
         for(let i = springs.length - 1; i >= 0; i--){
             let sp = springs[i]
@@ -292,8 +302,8 @@ function mousePressed(){
             let dy = posB.y - posA.y
             let len = Math.hypot(dx, dy)
             let angle = atan2(dy, dx)
-            let localMouseX = cos(-angle) * (mouseX - midX) - sin(-angle) * (mouseY - midY)
-            let localMouseY = sin(-angle) * (mouseX - midX) + cos(-angle) * (mouseY - midY)
+            let localMouseX = Math.cos(-angle) * (mouseX - midX) - Math.sin(-angle) * (mouseY - midY)
+            let localMouseY = Math.sin(-angle) * (mouseX - midX) + Math.cos(-angle) * (mouseY - midY)
             if(localMouseX > -len/2 - 5 && localMouseX < len/2 + 5 && localMouseY > -10 && localMouseY < 10){
                 springs.splice(i, 1)
             }
@@ -327,11 +337,16 @@ function mousePressed(){
 }
 
 function mouseReleased(){
-    if(dragStart && (editorMode === 'static' || editorMode === 'dynamic')){
-        createBodyFromRect(dragStart.x, dragStart.y, gridMouseX, gridMouseY, editorMode === 'static')
+    if(dragStart && simState.createMode === 'rect'){
+        createBodyFromRect(dragStart.x, dragStart.y, gridMouseX, gridMouseY, simState.staticDynamicMode === 'static')
         dragStart = null
     }
-    if(dragStart && editorMode === 'bridge'){
+    if(dragStart && simState.createMode === 'circle'){
+        let r = Math.hypot(gridMouseX - dragStart.x, gridMouseY - dragStart.y)
+        createBodyFromCircle(dragStart.x, dragStart.y, r, simState.staticDynamicMode === 'static')
+        dragStart = null
+    }
+    if(dragStart && simState.createMode === 'bridge'){
         createBridgeElement(dragStart.x, dragStart.y, gridMouseX, gridMouseY)
         dragStart = null
     }
@@ -341,6 +356,10 @@ function mouseReleased(){
 function draw(){
     background(0)
 
+    grid.clear()
+
+    push()
+
     fpsArr.shift()
     fpsArr.push(frameRate())
 
@@ -348,9 +367,9 @@ function draw(){
     let gridMouseYFloor = Math.floor(mouseY / cellSize) * cellSize
     let gridMouseXCeil = Math.ceil(mouseX / cellSize) * cellSize
     let gridMouseYCeil = Math.ceil(mouseY / cellSize) * cellSize
-    gridMouseX = snapGrid ? (Math.abs(mouseX - gridMouseXFloor) < Math.abs(mouseX - gridMouseXCeil) ? 
+    gridMouseX = simState.snapGrid ? (Math.abs(mouseX - gridMouseXFloor) < Math.abs(mouseX - gridMouseXCeil) ? 
         gridMouseXFloor : gridMouseXCeil) : mouseX
-    gridMouseY = snapGrid ? (Math.abs(mouseY - gridMouseYFloor) < Math.abs(mouseY - gridMouseYCeil) ? 
+    gridMouseY = simState.snapGrid ? (Math.abs(mouseY - gridMouseYFloor) < Math.abs(mouseY - gridMouseYCeil) ? 
         gridMouseYFloor : gridMouseYCeil) : mouseY
 
     //draw grid
@@ -358,15 +377,6 @@ function draw(){
     for(let i = 0; i <= nCells; i++){
         line(i * cellSize, 0, i * cellSize, HEIGHT)
         line(0, i * cellSize, WIDTH, i * cellSize)
-    }
-
-    // Style editor buttons
-    for(let btn of buttons.concat([ {el: buttonSimRunning, mode: null}, {el: buttonSnapGrid, mode: null}, {el: buttonShowDebug, mode: null} ])){
-        btn.el.style('background', editorMode === btn.mode ? '#555' : '#222')
-        btn.el.style('color', '#fff')
-        btn.el.style('border', (editorMode === btn.mode && btn.mode) ? '2px solid #fff' : '1px solid #666')
-        btn.el.style('padding', '4px 10px')
-        btn.el.style('cursor', 'pointer')
     }
 
     for(let b of bodies){
@@ -381,7 +391,7 @@ function draw(){
 
     for(let b of bodies) updateCornerLocations(b)
 
-    const STEPS = simRunning ? MAXSTEPS : 0
+    const STEPS = simState.running ? MAXSTEPS : 0
     for(let step = 0; step < STEPS; step++){
         let dt = 1 / STEPS
 
@@ -418,10 +428,22 @@ function draw(){
                     let a = bodies[i]
                     let b = bodies[j]
                     let collision = null
-                    if(a.shape === 'rect' && b.shape === 'rect') collision = satRectRect(a, b)
-                    else if(a.shape === 'circle' && b.shape === 'circle') collision = satCircleCircle(a, b)
+                    if(a.shape === 'rect' && b.shape === 'rect'){ 
+                        // if(Math.abs(a.pos.x - b.pos.x) > a.w/2 + b.w/2) continue
+                        // if(Math.abs(a.pos.y - b.pos.y) > a.h/2 + b.h/2) continue
+                        collision = satRectRect(a, b)
+                    }
+                    else if(a.shape === 'circle' && b.shape === 'circle'){ 
+                        collision = satCircleCircle(a, b)
+                    }
                     else if(a.shape === 'rect' && b.shape === 'circle') collision = satRectCircle(a, b)
-                    else if(a.shape === 'circle' && b.shape === 'rect') collision = satRectCircle(b, a)
+                    else if(a.shape === 'circle' && b.shape === 'rect') {
+                        collision = satRectCircle(b, a)
+                        if(collision) {
+                            collision.normal.x *= -1
+                            collision.normal.y *= -1
+                        }
+                    }
 
                     if(collision && !(a.isBridge && b.isBridge)){
                         collisionPoints.push(collision.contact)
@@ -430,16 +452,22 @@ function draw(){
                         let depth = collision.depth
 
                         // Split separation by inverse mass ratio
-                        let totalInvMass = a.invMass + b.invMass
-                        if(totalInvMass > 0){
-                            let aRatio = a.invMass / totalInvMass
-                            let bRatio = b.invMass / totalInvMass
-                            let correction = depth / 3
-                            a.pos.x += normal.x * correction * aRatio
-                            a.pos.y += normal.y * correction * aRatio
-                            b.pos.x -= normal.x * correction * bRatio
-                            b.pos.y -= normal.y * correction * bRatio
-                        }
+                        let invMassSum = a.invMass + b.invMass
+                        if(invMassSum === 0) return
+
+                        const percent = 0.8
+                        const slop = 0.01
+
+                        let correctionMag = Math.max(depth - slop, 0) * percent / invMassSum
+
+                        let nx = normal.x * correctionMag
+                        let ny = normal.y * correctionMag
+
+                        a.pos.x += nx * a.invMass
+                        a.pos.y += ny * a.invMass
+                        b.pos.x -= nx * b.invMass
+                        b.pos.y -= ny * b.invMass
+
 
                         updateCornerLocations(a)
                         updateCornerLocations(b)
@@ -474,9 +502,11 @@ function draw(){
     noStroke()
     textSize(14)
     textAlign(RIGHT, TOP)
-    text(`FPS: ${fpsMean}`, width - 10, 10)
+    textLeading(8)
+    text(`FPS: ${fpsMean}\n
+          N Bodies: ${bodies.length}`, width - 10, 10)
 
-    if(showDebug){
+    if(simState.showDebug){
         push()
         noFill()
         strokeWeight(1.5)
@@ -489,6 +519,11 @@ function draw(){
 
     collisionPoints = []
 
+    pop()
+
+    panel.update();
+    panel.show();
+
 }
 
 
@@ -496,6 +531,7 @@ function draw(){
 // Returns {normal, depth, contact} with normal pointing from bodyB toward bodyA
 function satRectRect(bodyA, bodyB){
     if(bodyA.isStatic && bodyB.isStatic) return null
+
     let axes = [bodyA.axis1, bodyA.axis2, bodyB.axis1, bodyB.axis2]
 
     let minOverlap = Infinity
@@ -565,10 +601,16 @@ function satRectRect(bodyA, bodyB){
 function satCircleCircle(a, b){
     let dx = a.pos.x - b.pos.x
     let dy = a.pos.y - b.pos.y
-    let dist = Math.hypot(dx, dy)
     let rSum = a.r + b.r
 
-    if(dist >= rSum) return null
+    if(Math.abs(dx) > rSum) return null
+    if(Math.abs(dy) > rSum) return null
+
+    let distSq = dx*dx + dy*dy
+    if(distSq >= rSum*rSum) return null
+    
+    let dist = Math.sqrt(distSq)
+
 
     let normal = {
         x: dx / dist,
@@ -586,39 +628,30 @@ function satCircleCircle(a, b){
 }
 
 function satRectCircle(rect, circle){
-   
-    // Ensure rect is rectangle
-    if(rect.shape === 'circle'){
-        // Swap and call again
-        let temp = rect
-        rect = circle
-        circle = temp
-    }
+
+    let sinA = Math.sin(rect.angle)
+    let cosA = Math.cos(rect.angle)
 
     // Transform circle center to rectangle local space
     let dx = circle.pos.x - rect.pos.x
     let dy = circle.pos.y - rect.pos.y
 
-    let c = cos(-rect.angle)
-    let s = sin(-rect.angle)
+    let localX =  dx * cosA + dy * sinA
+    let localY = -dx * sinA + dy * cosA
 
-    let localX = dx * c - dy * s
-    let localY = dx * s + dy * c
-
-    let hw = rect.w / 2
-    let hh = rect.h / 2
+    let hw = rect.w * .5
+    let hh = rect.h * .5
 
     // Check if circle center is inside rectangle
-    let insideX = Math.abs(localX) <= hw
-    let insideY = Math.abs(localY) <= hh
+    let inside = Math.abs(localX) <= hw && Math.abs(localY) <= hh
 
-    let closestX = constrain(localX, -hw, hw)
-    let closestY = constrain(localY, -hh, hh)
+    let closestX = localX < -hw ? -hw : (localX > hw ? hw : localX)
+    let closestY = localY < -hh ? -hh : (localY > hh ? hh : localY)
 
     let normalLocal = {x: 0, y: 0}
     let depth = 0
 
-    if(insideX && insideY){
+    if(inside){
         // Circle center is inside rectangle
         // Push toward nearest face
         // Normal should point FROM circle TO rect (inward to rect)
@@ -656,10 +689,12 @@ function satRectCircle(rect, circle){
         depth = circle.r - dist
     }
 
+   
+
     // Convert normal back to world space
     let normal = {
-        x: normalLocal.x * cos(rect.angle) - normalLocal.y * sin(rect.angle),
-        y: normalLocal.x * sin(rect.angle) + normalLocal.y * cos(rect.angle)
+        x: normalLocal.x * cosA - normalLocal.y * sinA,
+        y: normalLocal.x * sinA + normalLocal.y * cosA
     }
 
     // Contact point on rectangle surface
@@ -669,8 +704,8 @@ function satRectCircle(rect, circle){
     }
 
     let contact = {
-        x: rect.pos.x + contactLocal.x * cos(rect.angle) - contactLocal.y * sin(rect.angle),
-        y: rect.pos.y + contactLocal.x * sin(rect.angle) + contactLocal.y * cos(rect.angle)
+        x: rect.pos.x + contactLocal.x * cosA - contactLocal.y * sinA,
+        y: rect.pos.y + contactLocal.x * sinA + contactLocal.y * cosA
     }
 
     return {
@@ -783,8 +818,8 @@ function getAnchorWorldPos(body, anchorIndex){
         ]
         let lx = offsets[anchorIndex].x
         let ly = offsets[anchorIndex].y
-        let c = cos(body.angle)
-        let s = sin(body.angle)
+        let c = Math.cos(body.angle)
+        let s = Math.sin(body.angle)
         return {
             x: body.pos.x + lx * c - ly * s,
             y: body.pos.y + lx * s + ly * c
@@ -863,8 +898,8 @@ function applySpringForces(dt){
 function pointInRect(point, body){
     let localX = point.x - body.pos.x
     let localY = point.y - body.pos.y
-    let c = cos(-body.angle)
-    let s = sin(-body.angle)
+    let c = Math.cos(-body.angle)
+    let s = Math.sin(-body.angle)
     let rotatedX = localX * c - localY * s
     let rotatedY = localX * s + localY * c
     return abs(rotatedX) <= body.w / 2 && abs(rotatedY) <= body.h / 2
@@ -893,8 +928,8 @@ function updateCornerLocations(body){
     if(body.shape === 'circle') return
     let hw = body.w / 2
     let hh = body.h / 2
-    let c = cos(body.angle)
-    let s = sin(body.angle)
+    let c = Math.cos(body.angle)
+    let s = Math.sin(body.angle)
     body.corners = [
         {x: body.pos.x + (-hw * c - -hh * s), y: body.pos.y + (-hw * s + -hh * c)},
         {x: body.pos.x + ( hw * c - -hh * s), y: body.pos.y + ( hw * s + -hh * c)},
@@ -907,6 +942,6 @@ function updateCornerLocations(body){
         {start: body.corners[2], end: body.corners[3]},
         {start: body.corners[3], end: body.corners[0]}
     ]
-    body.axis1 = { x: cos(body.angle), y: sin(body.angle) }
-    body.axis2 = { x: -sin(body.angle), y: cos(body.angle) }
+    body.axis1 = { x: Math.cos(body.angle), y: Math.sin(body.angle) }
+    body.axis2 = { x: -sin(body.angle), y: Math.cos(body.angle) }
 }

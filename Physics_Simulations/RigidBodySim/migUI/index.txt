@@ -1,0 +1,17 @@
+<script src="migUI/main/Panel.js"></script>
+<script src="migUI/Elements/Button.js"></script>
+<script src="migUI/Elements/Checkbox.js"></script>
+<script src="migUI/Elements/ColorPicker.js"></script>
+<script src="migUI/Elements/Input.js"></script>
+<script src="migUI/Elements/Select.js"></script>
+<script src="migUI/Elements/Sentence.js"></script>
+<script src="migUI/Elements/Slider.js"></script>
+<script src="migUI/Elements/NumberPicker.js"></script>
+<script src="migUI/Elements/OptionPicker.js"></script>
+<script src="migUI/Elements/Plot.js"></script>
+<script src="migUI/Elements/Tab.js"></script>
+<script src="migUI/Elements/TabManager.js"></script>
+
+async function setup(){
+    let fontPanel = await loadFont("migUI/main/bnr.ttf")
+}
