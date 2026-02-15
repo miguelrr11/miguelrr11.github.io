@@ -21,6 +21,7 @@ let rectDescription = "Rectangles are dynamic bodies defined by their width and 
 let circleDescription = "Circles are dynamic bodies defined by their radius. They can rotate and interact with other bodies in the simulation."
 let deleteDescription = "Click on a body or spring to delete it."
 let dragDescription = "Click and drag bodies to move them around."
+let ropeDescription = "Ropes are made of multiple bridge elements connected by bridge joints."
 
 p5.disableFriendlyErrors = true
 let WIDTH = 600
@@ -36,14 +37,15 @@ const slop = 0.01     // penetration allowed before correction
 let bodies = []
 let springs = []
 let bridgeJoints = []
+let ropes = []  //just for rendering, they are actually made of bridges and bridge joints
 
 let globalID = 0
 
-const BRIDGE_ENDPOINT_ANCHORS = [1, 3]
-const BRIDGE_JOINT_CONNECT_DIST = 12
-const BRIDGE_JOINT_ITERATIONS = 10
-const BRIDGE_JOINT_STIFFNESS = 0.9
-const BRIDGE_JOINT_DAMPING = 0.2
+const BRIDGE_ENDPOINT_ANCHORS = [0, 1, 2, 3, 4]
+let BRIDGE_JOINT_CONNECT_DIST = 12
+let BRIDGE_JOINT_ITERATIONS = 6
+let BRIDGE_JOINT_STIFFNESS = 0.9
+let BRIDGE_JOINT_DAMPING = 0.95
 
 let gridMouseX = 0
 let gridMouseY = 0
@@ -54,7 +56,7 @@ let grid = null
 
 // Editor state
 let dragStart = null  // {x, y} for body creation drag
-let springStart = null // {body, anchor} for spring first click
+let springRopeStart = null // {body, anchor} for spring first click
 let fpsArr = Array(30).fill(60)
 let collisionPoints = []
 
@@ -134,6 +136,7 @@ function loadStateFromLocal(){
         bodies = []
         springs = []
         bridgeJoints = []
+        ropes = []
         parsed.bodies.forEach(b => {
             let newBody = null
             if(b.shape == "rect") newBody = createBodyFromRect(b.pos.x, b.pos.y, b.pos.x + b.w, b.pos.y + b.h, b.isStatic, b.angle)
@@ -187,17 +190,22 @@ async function setup(){
     panel.darkCol[3] = 175
 
     panel.createSeparator()
+    
+    panel.createText("Create Mode")
+    let createSelect = panel.createSelect(["Rect", "Circle", "Bridge", "Spring", "Rope", "Delete", "Drag"], "Drag")
+    createSelect.setFunc((arg) => {
+        simState.createMode = arg.toLowerCase()
+        springRopeStart = null
+        dragStart = null
+    }, true)
+    createSelect.setHoverText([rectDescription, circleDescription, bridgeDescription, springDescription, ropeDescription, deleteDescription, dragDescription])
+
+    panel.createSeparator()
+    panel.createText("Body Type")
     let staticDynamicSelect = panel.createSelect(["Static", "Dynamic"], "Dynamic")
     staticDynamicSelect.setFunc((arg) => {simState.staticDynamicMode = arg.toLowerCase()}, true)
     staticDynamicSelect.setHoverText([staticDescription, dynamicDescription])
-    panel.createSeparator()
-    let createSelect = panel.createSelect(["Rect", "Circle", "Bridge", "Spring", "Delete", "Drag"], "Drag")
-    createSelect.setFunc((arg) => {
-        simState.createMode = arg.toLowerCase()
-        springStart = null
-        dragStart = null
-    }, true)
-    createSelect.setHoverText([rectDescription, circleDescription, bridgeDescription, springDescription, deleteDescription, dragDescription])
+    
 
     panel.createSeparator()
     let automaticLengthToggle = panel.createCheckbox("Auto-length Springs", false)
@@ -360,7 +368,7 @@ function createBodyFromRect(x1, y1, x2, y2, isStatic, angle = 0){
     return body
 }
 
-function createBridgeElement(x1, y1, x2, y2, isStatic = false, angle = undefined){
+function createBridgeElement(x1, y1, x2, y2, isStatic = false, angle = undefined, autoConnect = true){
     let cx = (x1 + x2) / 2
     let cy = (y1 + y2) / 2
     let w = Math.hypot(x2 - x1, y2 - y1)
@@ -376,11 +384,24 @@ function createBridgeElement(x1, y1, x2, y2, isStatic = false, angle = undefined
     bridge.shape = 'bridge'
     if(angle === undefined) bridge.angle = atan2(y2 - y1, x2 - x1)
     updateCornerLocations(bridge)
-    autoConnectBridgeJoints(bridge)
+    if(autoConnect) autoConnectBridgeJoints(bridge)
     return bridge
 }
 
-function createRope(x1, y1, x2, y2){
+function createRope(bodyA, anchorA, bodyB, anchorB, worldAnchorA = null, worldAnchorB = null){
+    let posA = worldAnchorA || getAnchorWorldPos(bodyA, anchorA) || { x: gridMouseX, y: gridMouseY }
+    let posB = worldAnchorB || getAnchorWorldPos(bodyB, anchorB) || { x: gridMouseX, y: gridMouseY }
+    let x1 = posA.x
+    let y1 = posA.y
+    let x2 = posB.x
+    let y2 = posB.y
+
+    let start = bodyA && anchorA !== null ? {body: bodyA, anchor: anchorA} : null
+    let end = bodyB && anchorB !== null ? {body: bodyB, anchor: anchorB} : null
+
+    let rope = {start, end, segments: []}
+    ropes.push(rope)
+    
     let segmentSize = 20
     let totalLength = Math.hypot(x2 - x1, y2 - y1)
     let numSegments = Math.ceil(totalLength / segmentSize)
@@ -393,7 +414,7 @@ function createRope(x1, y1, x2, y2){
         let by1 = lerp(y1, y2, t1)
         let bx2 = lerp(x1, x2, t2)
         let by2 = lerp(y1, y2, t2)
-        let bridge = createBridgeElement(bx1, by1, bx2, by2, i==0)
+        let bridge = createBridgeElement(bx1, by1, bx2, by2, false, undefined, false)
         if(!bridge) continue
         bridge.isRope = true
         ropeBodies.push(bridge)
@@ -401,7 +422,16 @@ function createRope(x1, y1, x2, y2){
             let prev = ropeBodies[i - 1]
             createBridgeJoint(prev, 1, bridge, 3)
         }
+        rope.segments.push(bridge)
     }
+    if(bodyA && anchorA !== null){
+        createBridgeJoint(bodyA, anchorA, ropeBodies[0], 0)
+    }
+    if(bodyB && anchorB !== null){
+        createBridgeJoint(bodyB, anchorB, ropeBodies[ropeBodies.length - 1], 2)
+    }
+    if(!bodyA && simState.staticDynamicMode == 'static') ropeBodies[0].isStatic = true
+    if(!bodyB && simState.staticDynamicMode == 'static') ropeBodies[ropeBodies.length - 1].isStatic = true
     return ropeBodies.length > 0 ? ropeBodies[0] : null
 }
 
@@ -452,23 +482,61 @@ function mousePressed(){
     else if(simState.createMode === 'spring'){
         let hit = findNearestAnchor(gridMouseX, gridMouseY, 20)
         if(hit){
-            if(!springStart){
-                springStart = hit
+            if(!springRopeStart){
+                springRopeStart = hit
             } 
             else {
-                if(hit.body !== springStart.body || hit.anchor !== springStart.anchor){
-                    createSpring(springStart.body, springStart.anchor, hit.body, hit.anchor)
+                if((hit.body !== springRopeStart.body || hit.anchor !== springRopeStart.anchor) && springRopeStart.body){
+                    createSpring(springRopeStart.body, springRopeStart.anchor, hit.body, hit.anchor)
                 }
-                springStart = null
+                else if(hit.body !== springRopeStart.body || hit.anchor !== springRopeStart.anchor){
+                    createSpring(null, null, hit.body, hit.anchor, null, springRopeStart, null)
+                }
+                springRopeStart = null
             }
         }
         else{
-            if(springStart){
-                createSpring(springStart.body, springStart.anchor, null, null)
+            if(springRopeStart && springRopeStart.body){
+                createSpring(springRopeStart.body, springRopeStart.anchor, null, null)
+                springRopeStart = null
             }
-            springStart = null
+            else if(!springRopeStart){
+                springRopeStart = {x: gridMouseX, y: gridMouseY}
+            }
+            else springRopeStart = null
         }
-    } 
+    }
+    else if(simState.createMode === 'rope'){
+        let hit = findNearestAnchor(gridMouseX, gridMouseY, 20)
+        if(hit){
+            if(!springRopeStart){
+                springRopeStart = hit
+            } 
+            else {
+                if((hit.body !== springRopeStart.body || hit.anchor !== springRopeStart.anchor) && springRopeStart.body){
+                    createRope(springRopeStart.body, springRopeStart.anchor, hit.body, hit.anchor)
+                }
+                else if(hit.body !== springRopeStart.body || hit.anchor !== springRopeStart.anchor){
+                    createRope(null, null, hit.body, hit.anchor, springRopeStart, null)
+                }
+                springRopeStart = null
+            }
+        }
+        else{
+            if(springRopeStart && springRopeStart.body){
+                createRope(springRopeStart.body, springRopeStart.anchor, null, null)
+                springRopeStart = null
+            }
+            else if(springRopeStart){
+                createRope(null, null, null, null, springRopeStart.start ? springRopeStart.start.pos : springRopeStart, {x: gridMouseX, y: gridMouseY})
+                springRopeStart = null
+            }
+            else if(!springRopeStart){
+                springRopeStart = {x: gridMouseX, y: gridMouseY}
+            }
+            else springRopeStart = null
+        }
+    }
     else if(simState.createMode === 'delete'){
         // Check springs
         for(let i = springs.length - 1; i >= 0; i--){
@@ -683,11 +751,12 @@ function draw(){
 
     // Draw
     for(let sp of springs) drawSpring(sp)
-    for(let joint of bridgeJoints) drawBridgeJoint(joint)
+    for(let rope of ropes) drawRope(rope)
     for(let b of bodies){
         if(b.shape == 'rect' || b.shape == 'bridge') drawBody(b)
         if(b.shape == 'circle') drawBodyCircle(b)
     }
+    for(let joint of bridgeJoints) drawBridgeJoint(joint)
 
     let removedBody = false
     for(let i = bodies.length - 1; i >= 0; i--){
@@ -1015,7 +1084,7 @@ function resolveCollision(bodyA, bodyB, normal, contact){
 // 4 anchors at midpoints of all edges: 0=top, 1=right, 2=bottom, 3=left, 4=center
 function getAnchorWorldPos(body, anchorIndex){
     if(!body || anchorIndex < 0 || anchorIndex > 4) return null
-    if(anchorIndex === 4){
+    if(anchorIndex === 4 || anchorIndex === null || anchorIndex === undefined){
         return {
             x: body.pos.x,
             y: body.pos.y
@@ -1085,7 +1154,7 @@ function hasBridgeJoint(bodyA, anchorA, bodyB, anchorB){
 
 function createBridgeJoint(bodyA, anchorA, bodyB, anchorB){
     if(!bodyA || !bodyB || bodyA === bodyB) return null
-    if(!isBridge(bodyA) || !isBridge(bodyB)) return null
+    //if(!isBridge(bodyA) || !isBridge(bodyB)) return null
     if(hasBridgeJoint(bodyA, anchorA, bodyB, anchorB)) return null
 
     let worldA = getAnchorWorldPos(bodyA, anchorA)
@@ -1117,7 +1186,7 @@ function autoConnectBridgeJoints(newBridge){
         let bestDist = BRIDGE_JOINT_CONNECT_DIST
 
         for(let bodyB of bodies){
-            if(bodyB === newBridge || !isBridge(bodyB)) continue
+            if(bodyB === newBridge) continue
 
             for(let anchorB of BRIDGE_ENDPOINT_ANCHORS){
                 let targetAlreadyUsed = usedTargets.some((target) => target.body === bodyB && target.anchor === anchorB)

@@ -1,4 +1,5 @@
 function drawBody(body){
+    if(body.isRope) return  // Space key to hide ropes
     let inside = pointInRect({x: mouseX, y: mouseY}, body)
     push()
     if(simState.selectedBody === body){
@@ -314,6 +315,8 @@ function drawSpring(sp){
 }
 
 function drawBridgeJoint(joint){
+    if(joint.bodyA && joint.bodyA.isRope) return
+    if(joint.bodyB && joint.bodyB.isRope) return
     let posA = localPointToWorld(joint.bodyA, joint.localA)
     let posB = localPointToWorld(joint.bodyB, joint.localB)
     let mx = (posA.x + posB.x) / 2
@@ -323,6 +326,30 @@ function drawBridgeJoint(joint){
     stroke(255, 220, 120, 180)
     strokeWeight(2)
     line(posA.x, posA.y, posB.x, posB.y)
+    if(joint.bodyA && joint.bodyA.isRope) {pop(); return}
+    if(joint.bodyB && joint.bodyB.isRope) {pop(); return}
+    noStroke()
+    fill(255, 220, 120, 180)
+    ellipse(posA.x, posA.y, 10, 10)
+    ellipse(posB.x, posB.y, 10, 10)
+    pop()
+}
+
+function drawRope(rope){
+    push()
+    noFill()
+    noStroke()
+    beginShape()
+    stroke(75, 75, 57)
+    strokeWeight(4)
+    let startPos = rope.start ? getAnchorWorldPos(rope.start.body, rope.start.anchor) : null
+    let endPos = rope.end ? getAnchorWorldPos(rope.end.body, rope.end.anchor) : null
+    if(startPos) vertex(startPos.x, startPos.y)
+    for(let p of rope.segments){
+        vertex(p.pos.x, p.pos.y)
+    }
+    if(endPos) vertex(endPos.x, endPos.y)
+    endShape()
     pop()
 }
 
@@ -364,7 +391,7 @@ function drawEditor(){
     }
 
     // Anchor points (always visible, highlighted in spring mode)
-    let inSpringMode = simState.createMode === 'spring'
+    let inSpringMode = simState.createMode === 'spring' || simState.createMode === 'rope'
     let hovered = inSpringMode ? findNearestAnchor(gridMouseX, gridMouseY, 20) : null
 
     for(let b of bodies){
@@ -372,7 +399,7 @@ function drawEditor(){
         for(let a = 0; a < 5; a++){
             let p = getAnchorWorldPos(b, a)
             let isHovered = hovered && hovered.body === b && hovered.anchor === a
-            let isSelected = springStart && springStart.body === b && springStart.anchor === a
+            let isSelected = springRopeStart && springRopeStart.body === b && springRopeStart.anchor === a
             push()
             noStroke()
             if(isSelected){
@@ -400,7 +427,7 @@ function drawEditor(){
             if(!BRIDGE_ENDPOINT_ANCHORS.includes(a)) continue
             let p = getAnchorWorldPos(b, a)
             let isHovered = hovered && hovered.body === b && hovered.anchor === a
-            let isSelected = springStart && springStart.body === b && springStart.anchor === a
+            let isSelected = springRopeStart && springRopeStart.body === b && springRopeStart.anchor === a
             push()
             noStroke()
             if(isSelected){
@@ -418,8 +445,8 @@ function drawEditor(){
     }
 
     // Spring creation preview line
-    if(springStart && inSpringMode){
-        let startPos = getAnchorWorldPos(springStart.body, springStart.anchor)
+    if(springRopeStart && inSpringMode){
+        let startPos = springRopeStart.body ? getAnchorWorldPos(springRopeStart.body, springRopeStart.anchor) : {x: springRopeStart.x, y: springRopeStart.y}
         push()
         stroke(0, 255, 100, 150)
         strokeWeight(1)
