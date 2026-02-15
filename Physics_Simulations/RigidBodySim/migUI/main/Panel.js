@@ -757,9 +757,10 @@ function showHoveredTextMIGUI(textHover, ogpanel){
 	strokeWeight(1)
 	textSize(text_SizeMIGUI-2)
 	textAlign(LEFT, TOP)
+	let horizontalOffset = 20
 	let bbox = textFont().textBounds(textHover, mouseX, mouseY, w);
 	let off = 5
-	let x = bbox.x - off
+	let x = bbox.x - off + horizontalOffset
 	let y = bbox.y - off
 	if(x + bbox.w + off*2 > width) x = width - bbox.w - off*2
 	if(y + bbox.h + off*2 > height) y = height - bbox.h - off*2

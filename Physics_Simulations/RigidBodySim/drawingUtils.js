@@ -313,6 +313,19 @@ function drawSpring(sp){
     pop()
 }
 
+function drawBridgeJoint(joint){
+    let posA = localPointToWorld(joint.bodyA, joint.localA)
+    let posB = localPointToWorld(joint.bodyB, joint.localB)
+    let mx = (posA.x + posB.x) / 2
+    let my = (posA.y + posB.y) / 2
+
+    push()
+    stroke(255, 220, 120, 180)
+    strokeWeight(2)
+    line(posA.x, posA.y, posB.x, posB.y)
+    pop()
+}
+
 function drawEditor(){
     // Body creation preview
     if(dragStart && mouseIsPressed && simState.createMode === 'rect'){
@@ -355,6 +368,7 @@ function drawEditor(){
     let hovered = inSpringMode ? findNearestAnchor(gridMouseX, gridMouseY, 20) : null
 
     for(let b of bodies){
+        if(b.isRope) continue
         for(let a = 0; a < 5; a++){
             let p = getAnchorWorldPos(b, a)
             let isHovered = hovered && hovered.body === b && hovered.anchor === a
@@ -369,6 +383,34 @@ function drawEditor(){
                 ellipse(p.x, p.y, 10, 10)
             } else {
                 fill(255, 255, 255, inSpringMode ? 180 : 60)
+                ellipse(p.x, p.y, 6, 6)
+            }
+            pop()
+        }
+    }
+
+    // Anchor points (always visible, highlighted in spring mode)
+    let inBridgeMode = simState.createMode === 'bridge'
+    hovered = inBridgeMode ? findNearestAnchor(gridMouseX, gridMouseY, 20, BRIDGE_ENDPOINT_ANCHORS) : null
+
+    for(let b of bodies){
+        if(b.isRope) continue
+        if(!isBridge(b)) continue
+        for(let a = 0; a < 5; a++){
+            if(!BRIDGE_ENDPOINT_ANCHORS.includes(a)) continue
+            let p = getAnchorWorldPos(b, a)
+            let isHovered = hovered && hovered.body === b && hovered.anchor === a
+            let isSelected = springStart && springStart.body === b && springStart.anchor === a
+            push()
+            noStroke()
+            if(isSelected){
+                fill(0, 255, 100)
+                ellipse(p.x, p.y, 12, 12)
+            } else if(isHovered){
+                fill(255, 255, 0)
+                ellipse(p.x, p.y, 10, 10)
+            } else {
+                fill(255, 255, 255, inBridgeMode ? 180 : 60)
                 ellipse(p.x, p.y, 6, 6)
             }
             pop()

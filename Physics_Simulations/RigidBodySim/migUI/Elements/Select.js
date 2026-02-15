@@ -137,13 +137,31 @@ class Select{
 	}
 
 	setHoverText(text){
+		//if text is not an array, make it one the length of the options with the same text, otherwise use the array as is
+		if(!Array.isArray(text)){
+			let arr = []
+			for(let i = 0; i < this.options.length; i++){
+				arr.push(text)
+			}
+			text = arr
+		}
 		this.hoverText = text
 		this.hoveringCounter = 0
 		this.readyToShow = false
 	}
 
+	getIndexHovered(){
+		for(let i = 0; i < this.options.length; i++){
+			if(this.isHovering(i)){
+				return i
+			}
+		}
+		return undefined
+	}
+
 	showHoveredText(){
 		if(!this.readyToShow) return
-		showHoveredTextMIGUI(this.hoverText, this.panel)
+		let indexHovered = this.getIndexHovered()
+		if(indexHovered !== undefined && this.hoverText[indexHovered]) showHoveredTextMIGUI(this.hoverText[indexHovered], this.panel)
 	}
 }
