@@ -544,6 +544,7 @@ function mousePressed(){
             }
             else springRopeStart = null
         }
+        return
     }
     else if(simState.createMode === 'rope'){
         let hit = findNearestAnchor(gridMouseX, gridMouseY, 20)
@@ -575,6 +576,7 @@ function mousePressed(){
             }
             else springRopeStart = null
         }
+        return
     }
 
     setHoveredBody()
@@ -634,6 +636,7 @@ function mousePressed(){
         }
         if(ropeIndexToRemove !== null) ropes.splice(ropeIndexToRemove, 1)
         cleanupBridgeJoints()
+        return
     } 
     else {
         // No mode: drag bodies
@@ -651,6 +654,8 @@ function mousePressed(){
         }
         
         setSelectedBody(null)
+
+        return
     }
 }
 
@@ -728,7 +733,8 @@ function draw(){
     for(let b of bodies){
         b.oldPos = {x: b.pos.x, y: b.pos.y}
         b.oldPosFree = b.posFree ? {x: b.posFree.x, y: b.posFree.y} : {x: b.pos.x, y: b.pos.y}
-        if(b.dragging && mouseIsPressed){
+        b.posFree = {x: mouseX, y: mouseY}
+        if(simState.createMode === 'drag' && b.dragging && mouseIsPressed){
             b.pos = {x: gridMouseX - b.offsetDrag.x, y: gridMouseY - b.offsetDrag.y}
             b.posFree = {x: mouseX, y: mouseY}
             b.vel = {x: 0, y: 0}
