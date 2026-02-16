@@ -29,12 +29,12 @@ let HEIGHT = 600
 
 const gravity = 0.1
 const airFriction = 0.005
-let MAXSTEPS = 20
+let MAXSTEPS = 10
 
 const percent = 0.8   // correction strength
 const slop = 0.01     // penetration allowed before correction
 
-const ROPE_SEGMENT_LENGTH = .5  // in cells
+const ROPE_SEGMENT_LENGTH = .75  // in cells
 
 let bodies = []
 let springs = []
@@ -49,6 +49,7 @@ let BRIDGE_JOINT_CONNECT_DIST = 12  //distance at which bridge joints will autom
 let BRIDGE_JOINT_ITERATIONS = 6
 let BRIDGE_JOINT_STIFFNESS = 0.95
 let BRIDGE_JOINT_DAMPING = 0.95
+let MAX_STRESS_BRIDGE_JOINT = 1
 
 let gridMouseX = 0
 let gridMouseY = 0
@@ -489,6 +490,8 @@ function calculateStressBodies(){
     }
 }
 
+
+
 // Find the closest anchor point to the mouse within a threshold
 function findNearestAnchor(mx, my, threshold, availableAnchors = null){
     let best = null
@@ -510,10 +513,7 @@ function findNearestAnchor(mx, my, threshold, availableAnchors = null){
 function mousePressed(){
     if(gridMouseY < 0 || gridMouseX < 0 || gridMouseX > WIDTH || gridMouseY > HEIGHT || panel.isMouseInside()) return
 
-    setHoveredBody()
-    let HB = simState.hoveredBody
-    let HBindex = HB.shape == 'spring' ? springs.indexOf(HB) : bodies.indexOf(HB)
-    if(!HB) return
+    
 
     if(simState.createMode === 'rect' || simState.createMode === 'bridge' || simState.createMode === 'circle'){
         dragStart = {x: gridMouseX, y: gridMouseY}
@@ -576,7 +576,13 @@ function mousePressed(){
             else springRopeStart = null
         }
     }
-    else if(simState.createMode === 'delete'){
+
+    setHoveredBody()
+    let HB = simState.hoveredBody
+    if(!HB) return
+    let HBindex = HB.shape == 'spring' ? springs.indexOf(HB) : bodies.indexOf(HB)
+
+    if(simState.createMode === 'delete'){
         // Check springs
         if(HB.shape === 'spring'){
             springs.splice(HBindex, 1)
@@ -872,7 +878,10 @@ function draw(){
     textAlign(RIGHT, TOP)
     textLeading(8)
     text(`FPS: ${fpsMean}\n
-          N Bodies: ${bodies.length}`, width - 10, 10)
+          N Bodies: ${bodies.length}\n
+          N Springs: ${springs.length}\n
+          N Ropes: ${ropes.length}\n
+          `, width - 10, 10)
 
     if(simState.showDebug){
         push()
@@ -1263,7 +1272,8 @@ function createBridgeJoint(bodyA, anchorA, bodyB, anchorB){
         anchorB,
         localA: worldPointToLocal(bodyA, worldA),
         localB: worldPointToLocal(bodyB, worldB),
-        id: globalID++
+        id: globalID++,
+        stress: 0
     }
     addJoint(joint)
     return joint
@@ -1340,71 +1350,146 @@ function autoConnectBridgeJoints(newBridge){
 }
 
 function solveBridgeJoints(){
-    if(bridgeJoints.length === 0) return
+    const jointCount = bridgeJoints.length;
+    if(jointCount === 0) return;
+
+    const stiffness = BRIDGE_JOINT_STIFFNESS;
+    const damping = BRIDGE_JOINT_DAMPING;
+    const minDist = 0.0001;
 
     for(let iter = 0; iter < BRIDGE_JOINT_ITERATIONS; iter++){
-        for(let joint of bridgeJoints){
-            let bodyA = joint.bodyA
-            let bodyB = joint.bodyB
-            if(!bodyA || !bodyB) continue
-            if(bodyA.isStatic && bodyB.isStatic) continue
+        for(let i = 0; i < jointCount; i++){
+            const joint = bridgeJoints[i];
+            const bodyA = joint.bodyA;
+            const bodyB = joint.bodyB;
+            
+            // Early exit conditions
+            if(!bodyA || !bodyB) continue;
+            const aStatic = bodyA.isStatic;
+            const bStatic = bodyB.isStatic;
+            if(aStatic && bStatic) continue;
 
-            let worldA = localPointToWorld(bodyA, joint.localA)
-            let worldB = localPointToWorld(bodyB, joint.localB)
+            // Compute world positions inline to avoid function call overhead
+            const localA = joint.localA;
+            const localB = joint.localB;
+            const cosA = Math.cos(bodyA.angle);
+            const sinA = Math.sin(bodyA.angle);
+            const cosB = Math.cos(bodyB.angle);
+            const sinB = Math.sin(bodyB.angle);
+            
+            const worldAx = bodyA.pos.x + (localA.x * cosA - localA.y * sinA);
+            const worldAy = bodyA.pos.y + (localA.x * sinA + localA.y * cosA);
+            const worldBx = bodyB.pos.x + (localB.x * cosB - localB.y * sinB);
+            const worldBy = bodyB.pos.y + (localB.x * sinB + localB.y * cosB);
 
-            let dx = worldB.x - worldA.x
-            let dy = worldB.y - worldA.y
-            let dist = Math.hypot(dx, dy)
-            if(dist < 0.0001) continue
+            const dx = worldBx - worldAx;
+            const dy = worldBy - worldAy;
+            const distSq = dx * dx + dy * dy;
+            
+            if(distSq < minDist * minDist) continue;
+            
+            const dist = Math.sqrt(distSq);
+            const invDist = 1 / dist;
+            const nx = dx * invDist;
+            const ny = dy * invDist;
 
-            let nx = dx / dist
-            let ny = dy / dist
+            // Relative positions
+            const rAx = worldAx - bodyA.pos.x;
+            const rAy = worldAy - bodyA.pos.y;
+            const rBx = worldBx - bodyB.pos.x;
+            const rBy = worldBy - bodyB.pos.y;
 
-            let rAx = worldA.x - bodyA.pos.x
-            let rAy = worldA.y - bodyA.pos.y
-            let rBx = worldB.x - bodyB.pos.x
-            let rBy = worldB.y - bodyB.pos.y
+            const rACrossN = rAx * ny - rAy * nx;
+            const rBCrossN = rBx * ny - rBy * nx;
+            
+            const invMassSum = bodyA.invMass + bodyB.invMass
+                             + rACrossN * rACrossN * bodyA.invInertia
+                             + rBCrossN * rBCrossN * bodyB.invInertia;
+            
+            if(invMassSum === 0) continue;
 
-            let rACrossN = rAx * ny - rAy * nx
-            let rBCrossN = rBx * ny - rBy * nx
-            let invMassSum = bodyA.invMass + bodyB.invMass
-                           + rACrossN * rACrossN * bodyA.invInertia
-                           + rBCrossN * rBCrossN * bodyB.invInertia
-            if(invMassSum === 0) continue
+            const invMassSumRecip = 1 / invMassSum;
+            const positionImpulse = dist * stiffness * invMassSumRecip;
 
-            let positionImpulse = (dist * BRIDGE_JOINT_STIFFNESS) / invMassSum
-
-            if(!bodyA.isStatic){
-                bodyA.pos.x += nx * positionImpulse * bodyA.invMass
-                bodyA.pos.y += ny * positionImpulse * bodyA.invMass
-                bodyA.angle += rACrossN * positionImpulse * bodyA.invInertia
+            // Apply position correction
+            if(!aStatic){
+                const impulseA = positionImpulse * bodyA.invMass;
+                bodyA.pos.x += nx * impulseA;
+                bodyA.pos.y += ny * impulseA;
+                bodyA.angle += rACrossN * positionImpulse * bodyA.invInertia;
             }
-            if(!bodyB.isStatic){
-                bodyB.pos.x -= nx * positionImpulse * bodyB.invMass
-                bodyB.pos.y -= ny * positionImpulse * bodyB.invMass
-                bodyB.angle -= rBCrossN * positionImpulse * bodyB.invInertia
+            if(!bStatic){
+                const impulseB = positionImpulse * bodyB.invMass;
+                bodyB.pos.x -= nx * impulseB;
+                bodyB.pos.y -= ny * impulseB;
+                bodyB.angle -= rBCrossN * positionImpulse * bodyB.invInertia;
             }
 
-            let velA = getAnchorVelocity(bodyA, worldA)
-            let velB = getAnchorVelocity(bodyB, worldB)
-            let relVelAlongJoint = (velB.x - velA.x) * nx + (velB.y - velA.y) * ny
-            let dampingImpulse = (relVelAlongJoint * BRIDGE_JOINT_DAMPING) / invMassSum
+            // Compute velocities inline
+            const velAx = bodyA.vel.x - rAy * bodyA.angVel;
+            const velAy = bodyA.vel.y + rAx * bodyA.angVel;
+            const velBx = bodyB.vel.x - rBy * bodyB.angVel;
+            const velBy = bodyB.vel.y + rBx * bodyB.angVel;
+            
+            const relVelAlongJoint = (velBx - velAx) * nx + (velBy - velAy) * ny;
+            const dampingImpulse = relVelAlongJoint * damping * invMassSumRecip;
 
-            if(!bodyA.isStatic){
-                bodyA.vel.x += nx * dampingImpulse * bodyA.invMass
-                bodyA.vel.y += ny * dampingImpulse * bodyA.invMass
-                bodyA.angVel += rACrossN * dampingImpulse * bodyA.invInertia
+            // Apply damping
+            if(!aStatic){
+                const dampA = dampingImpulse * bodyA.invMass;
+                bodyA.vel.x += nx * dampA;
+                bodyA.vel.y += ny * dampA;
+                bodyA.angVel += rACrossN * dampingImpulse * bodyA.invInertia;
             }
-            if(!bodyB.isStatic){
-                bodyB.vel.x -= nx * dampingImpulse * bodyB.invMass
-                bodyB.vel.y -= ny * dampingImpulse * bodyB.invMass
-                bodyB.angVel -= rBCrossN * dampingImpulse * bodyB.invInertia
+            if(!bStatic){
+                const dampB = dampingImpulse * bodyB.invMass;
+                bodyB.vel.x -= nx * dampB;
+                bodyB.vel.y -= ny * dampB;
+                bodyB.angVel -= rBCrossN * dampingImpulse * bodyB.invInertia;
             }
 
-            updateCornerLocations(bodyA)
-            updateCornerLocations(bodyB)
+            joint.stress = positionImpulse;
+
+            updateCornerLocations(bodyA);
+            updateCornerLocations(bodyB);
         }
     }
+    handleBreakingJoints();
+}
+
+function handleBreakingJoints(){
+    for(let i = bridgeJoints.length - 1; i >= 0; i--){
+        let joint = bridgeJoints[i]
+        if(joint.stress > MAX_STRESS_BRIDGE_JOINT){
+            divideRope(joint.bodyA, joint.bodyB)
+            removeJoint(joint)
+        }
+    }
+}
+
+function divideRope(bodyA, bodyB){
+    //remove the rope and create two new ropes from the break point to the original endpoints
+    let ropeIndex = findRopeIndexByBody(bodyA)
+    if(ropeIndex === -1) ropeIndex = findRopeIndexByBody(bodyB)
+    if(ropeIndex === -1) return
+    let rope = ropes[ropeIndex]
+    let segments = rope.segments
+    let indexBodyA = segments.findIndex((seg) => seg.id === bodyA.id)
+    let indexBodyB = segments.findIndex((seg) => seg.id === bodyB.id)
+    let segmentsA = segments.slice(0, indexBodyA)
+    let segmentsB = segments.slice(indexBodyB + 1)
+    rope.segments = segmentsA
+    let newRope = {
+        start: (segmentsB[0] && segmentsB[0].body) ? segmentsB[0].body : null,
+        end: (segmentsB[segmentsB.length - 1] && segmentsB[segmentsB.length - 1].body) ? segmentsB[segmentsB.length - 1].body : null,
+        segments: segmentsB,
+        id: globalID++
+    }
+    ropes.push(newRope)
+}
+
+function findRopeIndexByBody(body){
+    return ropes.findIndex((rope) => rope.segments.some((seg) => seg.id === body.id))
 }
 
 function cleanupBridgeJoints(){
@@ -1478,13 +1563,15 @@ function applySpringForces(dt){
 }
 
 function pointInRect(point, body){
+    //if body is bridge, augment its height for easier clicking
+    let effectiveHeight = isBridge(body) ? body.h + 10 : body.h
     let localX = point.x - body.pos.x
     let localY = point.y - body.pos.y
     let c = Math.cos(-body.angle)
     let s = Math.sin(-body.angle)
     let rotatedX = localX * c - localY * s
     let rotatedY = localX * s + localY * c
-    return abs(rotatedX) <= body.w / 2 && abs(rotatedY) <= body.h / 2
+    return abs(rotatedX) <= body.w / 2 && abs(rotatedY) <= effectiveHeight / 2
 }
 
 function pointInCircle(point, body){

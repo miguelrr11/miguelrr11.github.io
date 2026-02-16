@@ -126,8 +126,10 @@ function drawDebugBody(body){
     push()
     noStroke()
     fill(255, 0, 0)
-    for(let c of body.corners){
+    for(let i = 0; i < body.corners.length; i++){
+        let c = body.corners[i]
         ellipse(c.x, c.y, 5, 5)
+        text(i, c.x + 6, c.y - 6)
     }
     pop()
 
@@ -321,8 +323,6 @@ function drawBridgeJoint(joint){
     if(joint.bodyB && joint.bodyB.isRope) return
     let posA = localPointToWorld(joint.bodyA, joint.localA)
     let posB = localPointToWorld(joint.bodyB, joint.localB)
-    let mx = (posA.x + posB.x) / 2
-    let my = (posA.y + posB.y) / 2
 
     push()
     stroke(255, 220, 120, 180)
@@ -342,18 +342,51 @@ function drawRope(rope){
     push()
     noFill()
     noStroke()
-    beginShape()
     stroke(75, 75, 57)
-    strokeWeight(4)
+    strokeWeight(5)
+    if(rope.segments.length == 0) return
+    if(rope.segments.length == 1){
+        let c0 = p.corners[0]
+        let c1 = p.corners[1]
+        let c2 = p.corners[2]
+        let c3 = p.corners[3]
+        let mid1 = {x: (c0.x + c3.x) / 2, y: (c0.y + c3.y) / 2}
+        let mid2 = {x: (c2.x + c1.x) / 2, y: (c2.y + c1.y) / 2}
+        line(mid1.x, mid1.y, mid2.x, mid2.y)
+    }
+
+    beginShape()
     let startPos = rope.start ? getAnchorWorldPos(rope.start.body, rope.start.anchor) : null
     let endPos = rope.end ? getAnchorWorldPos(rope.end.body, rope.end.anchor) : null
-    if(startPos) vertex(startPos.x, startPos.y)
+    //if(startPos) vertex(startPos.x, startPos.y)
     for(let p of rope.segments){
+        let c0 = p.corners[0]
+        let c1 = p.corners[1]
+        let c2 = p.corners[2]
+        let c3 = p.corners[3]
+        let mid1 = {x: (c0.x + c3.x) / 2, y: (c0.y + c3.y) / 2}
+        let mid2 = {x: (c2.x + c1.x) / 2, y: (c2.y + c1.y) / 2}
+        vertex(mid1.x, mid1.y)
         vertex(p.pos.x, p.pos.y)
+        vertex(mid2.x, mid2.y)
     }
-    if(endPos) vertex(endPos.x, endPos.y)
+    //if(endPos) vertex(endPos.x, endPos.y)
     endShape()
     pop()
+
+    //debug
+    // push()
+    // noStroke()
+    // for(let bj of bridgeJoints){
+    //     let posA = localPointToWorld(bj.bodyA, bj.localA)
+    //     let posB = localPointToWorld(bj.bodyB, bj.localB)
+    //     let midX = (posA.x + posB.x) / 2
+    //     let midY = (posA.y + posB.y) / 2
+    //     textSize(map(bj.stress, 0, 2, 8, 16))
+    //     fill(bj.stress > MAX_STRESS_BRIDGE_JOINT ? [255, 0, 0] : [255, 255, 255])
+    //     text(bj.stress.toFixed(1), midX, midY)
+    // }
+    // pop()
 }
 
 function drawEditor(){
