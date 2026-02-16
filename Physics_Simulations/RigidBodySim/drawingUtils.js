@@ -1,5 +1,5 @@
 function drawBody(body){
-    if(body.isRope && !simState.showDebug) return  // Space key to hide ropes
+    if(body.isRope && !simState.showDebug) return
     let inside = pointInRect({x: mouseX, y: mouseY}, body)
     push()
     if(simState.selectedBody === body){
@@ -15,6 +15,15 @@ function drawBody(body){
     rect(0, 0, body.w, body.h)
     pop()
     if(simState.showDebug) drawDebugBody(body)
+
+    //debug (draw body id)
+    // push()
+    // noStroke()
+    // fill(255)
+    // textSize(12)
+    // textAlign(CENTER, CENTER)
+    // text(body.id, body.pos.x, body.pos.y)
+    // pop()
 }
 
 function drawBodyCircle(body){
@@ -129,7 +138,7 @@ function drawDebugBody(body){
     for(let i = 0; i < body.corners.length; i++){
         let c = body.corners[i]
         ellipse(c.x, c.y, 5, 5)
-        text(i, c.x + 6, c.y - 6)
+        //text(i, c.x + 6, c.y - 6)
     }
     pop()
 
@@ -323,6 +332,17 @@ function drawBridgeJoint(joint){
     if(joint.bodyB && joint.bodyB.isRope) return
     let posA = localPointToWorld(joint.bodyA, joint.localA)
     let posB = localPointToWorld(joint.bodyB, joint.localB)
+    
+
+    //debug: draw stress value
+    // push()
+    //let midPos = {x: (posA.x + posB.x) / 2, y: (posA.y + posB.y) / 2}
+    // noStroke()
+    // fill(joint.stress > MAX_STRESS_BRIDGE_JOINT ? [255, 0, 0] : [255, 255, 255])
+    // textSize(12)
+    // textAlign(CENTER, CENTER)
+    // text(joint.stress.toFixed(1), midPos.x, midPos.y - 10)
+    // pop()
 
     push()
     stroke(255, 220, 120, 180)
@@ -339,13 +359,14 @@ function drawBridgeJoint(joint){
 
 function drawRope(rope){
     if(simState.showDebug) return
+    if(rope.segments.length == 0) return
     push()
     noFill()
     noStroke()
     stroke(75, 75, 57)
     strokeWeight(5)
-    if(rope.segments.length == 0) return
     if(rope.segments.length == 1){
+        let p = rope.segments[0]
         let c0 = p.corners[0]
         let c1 = p.corners[1]
         let c2 = p.corners[2]
@@ -356,19 +377,21 @@ function drawRope(rope){
     }
 
     beginShape()
-    let startPos = rope.start ? getAnchorWorldPos(rope.start.body, rope.start.anchor) : null
-    let endPos = rope.end ? getAnchorWorldPos(rope.end.body, rope.end.anchor) : null
+    // let startPos = rope.start ? getAnchorWorldPos(rope.start.body, rope.start.anchor) : null
+    // let endPos = rope.end ? getAnchorWorldPos(rope.end.body, rope.end.anchor) : null
     //if(startPos) vertex(startPos.x, startPos.y)
     for(let p of rope.segments){
-        let c0 = p.corners[0]
-        let c1 = p.corners[1]
-        let c2 = p.corners[2]
-        let c3 = p.corners[3]
-        let mid1 = {x: (c0.x + c3.x) / 2, y: (c0.y + c3.y) / 2}
-        let mid2 = {x: (c2.x + c1.x) / 2, y: (c2.y + c1.y) / 2}
-        vertex(mid1.x, mid1.y)
+        // let c0 = p.corners[0]
+        // let c1 = p.corners[1]
+        // let c2 = p.corners[2]
+        // let c3 = p.corners[3]
+        // let mid1 = {x: (c0.x + c3.x) / 2, y: (c0.y + c3.y) / 2}
+        // let mid2 = {x: (c2.x + c1.x) / 2, y: (c2.y + c1.y) / 2}
+        // vertex(mid1.x, mid1.y)
+        // vertex(p.pos.x, p.pos.y)
+        // vertex(mid2.x, mid2.y)
+
         vertex(p.pos.x, p.pos.y)
-        vertex(mid2.x, mid2.y)
     }
     //if(endPos) vertex(endPos.x, endPos.y)
     endShape()
@@ -430,27 +453,27 @@ function drawEditor(){
     let inSpringMode = simState.createMode === 'spring' || simState.createMode === 'rope'
     let hovered = inSpringMode ? findNearestAnchor(gridMouseX, gridMouseY, 20) : null
 
-    for(let b of bodies){
-        if(b.isRope) continue
-        for(let a = 0; a < 5; a++){
-            let p = getAnchorWorldPos(b, a)
-            let isHovered = hovered && hovered.body === b && hovered.anchor === a
-            let isSelected = springRopeStart && springRopeStart.body === b && springRopeStart.anchor === a
-            push()
-            noStroke()
-            if(isSelected){
-                fill(0, 255, 100)
-                ellipse(p.x, p.y, 12, 12)
-            } else if(isHovered){
-                fill(255, 255, 0)
-                ellipse(p.x, p.y, 10, 10)
-            } else {
-                fill(255, 255, 255, inSpringMode ? 180 : 60)
-                ellipse(p.x, p.y, 6, 6)
-            }
-            pop()
-        }
-    }
+    // for(let b of bodies){
+    //     if(b.isRope) continue
+    //     for(let a = 0; a < 5; a++){
+    //         let p = getAnchorWorldPos(b, a)
+    //         let isHovered = hovered && hovered.body === b && hovered.anchor === a
+    //         let isSelected = springRopeStart && springRopeStart.body === b && springRopeStart.anchor === a
+    //         push()
+    //         noStroke()
+    //         if(isSelected){
+    //             fill(0, 255, 100)
+    //             ellipse(p.x, p.y, 12, 12)
+    //         } else if(isHovered){
+    //             fill(255, 255, 0)
+    //             ellipse(p.x, p.y, 10, 10)
+    //         } else {
+    //             fill(255, 255, 255, inSpringMode ? 180 : 60)
+    //             ellipse(p.x, p.y, 6, 6)
+    //         }
+    //         pop()
+    //     }
+    // }
 
     // Anchor points (always visible, highlighted in spring mode)
     let inBridgeMode = simState.createMode === 'bridge'

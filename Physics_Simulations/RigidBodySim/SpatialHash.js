@@ -1,56 +1,108 @@
-const CELL_SIZE = 100
-
 class SpatialHash {
     constructor(cellSize){
         this.cellSize = cellSize
-        this.map = new Map()
+        this.grid = new Array(gridWidth * gridHeight);
+        for (let i = 0; i < this.grid.length; i++) {
+            this.grid[i] = {
+                bodies: [],
+                frame: -1
+            }
+        }
+        this.frameId = 0;
+        this.pairFrame = 0;
     }
 
-    clear(){
-        this.map.clear()
+    beginFrame(){
+        this.frameId++;
     }
 
-    _hash(x, y){
-        return `${x},${y}`
-    }
 
-    insert(body){
-        let minX = Math.floor(body.aabb.minX / this.cellSize)
-        let maxX = Math.floor(body.aabb.maxX / this.cellSize)
-        let minY = Math.floor(body.aabb.minY / this.cellSize)
-        let maxY = Math.floor(body.aabb.maxY / this.cellSize)
+    computePairs(callback){
+        this.pairFrame++;
 
-        for(let x = minX; x <= maxX; x++){
-            for(let y = minY; y <= maxY; y++){
-                let key = this._hash(x, y)
+        for(let i = 0; i < this.grid.length; i++){
 
-                if(!this.map.has(key)){
-                    this.map.set(key, [])
+            const cell = this.grid[i];
+
+            if(cell.frame !== this.frameId) continue;
+
+            const bodies = cell.bodies;
+            const count = bodies.length;
+
+            for(let a = 0; a < count; a++){
+                const bodyA = bodies[a];
+
+                for(let b = a + 1; b < count; b++){
+                    const bodyB = bodies[b];
+
+                    if(bodyA.id < bodyB.id){
+                        if(bodyB._pairStamp === this.pairFrame &&
+                        bodyB._pairWith === bodyA.id) continue;
+
+                        bodyB._pairStamp = this.pairFrame;
+                        bodyB._pairWith = bodyA.id;
+                    } 
+                    else {
+                        if(bodyA._pairStamp === this.pairFrame &&
+                        bodyA._pairWith === bodyB.id) continue;
+
+                        bodyA._pairStamp = this.pairFrame;
+                        bodyA._pairWith = bodyB.id;
+                    }
+
+                    callback(bodyA, bodyB);
                 }
-
-                this.map.get(key).push(body)
             }
         }
     }
 
-    getPotentialPairs(){
-        let pairs = new Set()
 
-        for(let cell of this.map.values()){
-            for(let i = 0; i < cell.length; i++){
-                for(let j = i + 1; j < cell.length; j++){
-                    let a = cell[i]
-                    let b = cell[j]
-
-                    let id = a.id < b.id
-                        ? `${a.id}-${b.id}`
-                        : `${b.id}-${a.id}`
-
-                    pairs.add(id)
+    visualizeGrid(){
+        push()
+        noStroke()
+        fill(255, 70)
+        for(let y = 0; y <= gridHeight - 1; y++){
+            for(let x = 0; x <= gridWidth - 1; x++){
+                const index = y * gridWidth + x;
+                const cell = this.grid[index];
+                if(cell.frame === this.frameId){
+                    rect(x * this.cellSize, y * this.cellSize, this.cellSize, this.cellSize)
                 }
             }
         }
-
-        return pairs
+        pop()
     }
+
+
+    insertBody(body){
+        computeAABB(body);
+
+        const invCell = 1 / this.cellSize;
+
+        const minCellX = Math.floor(body.minX * invCell);
+        const maxCellX = Math.floor(body.maxX * invCell);
+        const minCellY = Math.floor(body.minY * invCell);
+        const maxCellY = Math.floor(body.maxY * invCell);
+
+        for(let y = minCellY; y <= maxCellY; y++){
+            for(let x = minCellX; x <= maxCellX; x++){
+
+                if(x < 0 || x >= gridWidth) continue;
+                if(y < 0 || y >= gridHeight) continue;
+
+                const index = y * gridWidth + x;
+                const cell = this.grid[index];
+
+                if(cell.frame !== this.frameId){
+                    cell.bodies.length = 0;
+                    cell.frame = this.frameId;
+                }
+
+                cell.bodies.push(body);
+            }
+        }
+    }
+
+
+
 }

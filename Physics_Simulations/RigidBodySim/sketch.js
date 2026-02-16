@@ -10,6 +10,7 @@ spring: connects two anchor points on bodies (or world),
 bridge: special dynamic body that is very thin and meant to connect two points,
         they do not collide with each other to allow building structures.
         They can connect with each other through "bridge joints"
+bridge joint: connects two bodies together. These two bodies will not collide with each other
 */
 
 //descriptions
@@ -26,6 +27,11 @@ let ropeDescription = "Ropes are made of multiple bridge elements connected by b
 p5.disableFriendlyErrors = true
 let WIDTH = 600
 let HEIGHT = 600
+
+// Spatial hash
+const CELL_SIZE_SH = 20
+let gridWidth = Math.ceil(WIDTH / CELL_SIZE_SH)
+let gridHeight = Math.ceil(HEIGHT / CELL_SIZE_SH)
 
 const gravity = 0.1
 const airFriction = 0.005
@@ -49,14 +55,15 @@ let BRIDGE_JOINT_CONNECT_DIST = 12  //distance at which bridge joints will autom
 let BRIDGE_JOINT_ITERATIONS = 6
 let BRIDGE_JOINT_STIFFNESS = 0.95
 let BRIDGE_JOINT_DAMPING = 0.95
-let MAX_STRESS_BRIDGE_JOINT = 1
+let MAX_STRESS_BRIDGE_JOINT = .5  //distance in cells at which bridge joints will break
+let ACTIVE_MAX_STRESS_BRIDGE_JOINT = .5
 
 let gridMouseX = 0
 let gridMouseY = 0
 let cellSize = 30
 let nCells = 30
 
-let grid = null
+let spatialHash = null
 
 // Editor state
 let dragStart = null  // {x, y} for body creation drag
@@ -73,12 +80,13 @@ let simState = {
     autoLengthSpring: false,
     lengthSpring: 10,  //in cells
     selectedBody: null,
-    hoveredBody: null
+    hoveredBody: null,
+    unbreakableJoints: false
 }
 
 let panel
 let createSelect, staticDynamicSelect, automaticLengthToggle, lengthSlider
-let cteAngVelSlider, cteAngVelCB
+let cteAngVelSlider, cteAngVelCB, unbreakJointsToggle
 
 function saveStateToLocal(){
     let savedBodies = bodies.map(b => {
@@ -204,11 +212,14 @@ function windowResized(){
 async function setup(){
     let fontPanel = await loadFont("migUI/main/bnr.ttf")
 
-    grid = new SpatialHash(cellSize)
+   
 
     WIDTH = windowWidth
     HEIGHT = windowHeight
+    gridWidth = Math.ceil(WIDTH / CELL_SIZE_SH)
+    gridHeight = Math.ceil(HEIGHT / CELL_SIZE_SH)
     nCells = Math.floor(Math.max(WIDTH, HEIGHT) / cellSize)
+    spatialHash = new SpatialHash(CELL_SIZE_SH)
     createCanvas(WIDTH, HEIGHT)
 
     panel = new Panel({
@@ -242,7 +253,7 @@ async function setup(){
     panel.createSeparator()
     automaticLengthToggle = panel.createCheckbox("Auto-length Springs", false)
     automaticLengthToggle.setFunc((arg) => {simState.autoLengthSpring = arg})
-    lengthSlider = panel.createSlider(1, 30, 10, 'Length', true)
+    lengthSlider = panel.createSlider(1, 30, 10, '', true)
     lengthSlider.setFunc((arg) => {simState.lengthSpring = arg})
     panel.createSeparator()
 
@@ -252,12 +263,24 @@ async function setup(){
             simState.selectedBody.cteAngVelToggle = arg
         }
     })
-    cteAngVelSlider = panel.createSlider(-0.5, 0.5, 0, 'Const. Ang. Vel.', true)
+    cteAngVelSlider = panel.createSlider(-0.5, 0.5, 0, '', true)
     cteAngVelSlider.setFunc((arg) => {
         if(simState.selectedBody){
             simState.selectedBody.cteAngVel = arg
         }
     })
+
+    panel.createSeparator()
+
+    unbreakJointsToggle = panel.createCheckbox("Unbreakable Joints", false)
+    unbreakJointsToggle.setFunc((arg) => {
+        if(arg){
+            simState.unbreakableJoints = true
+        } else {
+            simState.unbreakableJoints = false
+        }
+    })
+
     panel.createSeparator()
 
     let buttonPause = panel.createButton("Pause Simulation")
@@ -282,11 +305,17 @@ async function setup(){
 
 
     createBodyFromRect(100, height - 50, width - 100, height - 30, true) // floor
-    createBodyFromRect(30, height/2, 50, height - 30, true) // left wall
-    createBodyFromRect(width - 50, height/2, width - 30, height - 30, true) // right wall
+    createBodyFromRect(30, 0, 90, height - 30, true) // left wall
+    createBodyFromRect(width - 90, 0, width - 30, height - 30, true) // right wall
+
+    for(let i = 0; i < 500; i++){
+        let x = random(100, width - 100)
+        let y = random(100, height - 200)
+        createBodyFromCircle(x, y, random(10, 20), false)
+    }
 
     //random bodies
-    for(let i = 0; i < 1; i++){
+    for(let i = 0; i < 10; i++){
         let x1 = random(100, width - 200)
         let y1 = random(100, height - 200)
         let x2 = x1 + random(30, 80)
@@ -294,13 +323,6 @@ async function setup(){
         createBodyFromRect(x1, y1, x2, y2, false)
     }
 
-    //random circles
-    for(let i = 0; i < 1; i++){
-        let x = random(100, width - 100)
-        let y = random(100, height - 200)
-        let r = random(15, 30)
-        createBodyFromCircle(x, y, r, false)
-    }
 
     //connect random springs
     // for(let i = 0; i < 4; i++){
@@ -311,6 +333,31 @@ async function setup(){
     //     let anchorB = floor(random(4))
     //     createSpring(bodyA, anchorA, bodyB, anchorB)
     // }
+}
+
+function computeAABB(body){
+    if(body.shape != 'circle') {
+        const hw = body.w * 0.5;
+        const hh = body.h * 0.5;
+
+        const cos = Math.cos(body.angle);
+        const sin = Math.sin(body.angle);
+        // rotated AABB half extents
+        const ex = Math.abs(hw * cos) + Math.abs(hh * sin);
+        const ey = Math.abs(hw * sin) + Math.abs(hh * cos);
+
+        body.minX = body.pos.x - ex;
+        body.maxX = body.pos.x + ex;
+        body.minY = body.pos.y - ey;
+        body.maxY = body.pos.y + ey;
+    } 
+    
+    else {
+        body.minX = body.pos.x - body.r
+        body.maxX = body.pos.x + body.r
+        body.minY = body.pos.y - body.r
+        body.maxY = body.pos.y + body.r
+    }
 }
 
 function setSelectedBody(body){
@@ -364,10 +411,12 @@ function createBodyFromCircle(x, y, r, isStatic, angle = 0){
         isStatic: isStatic,
         friction: 1,
         cteAngVel: 0,
-        cteAngVelToggle: false
+        cteAngVelToggle: false,
+        id: globalID++,
+        _pairStamp: -1,
+        _pairWith: -1
     }
 
-    body.id = globalID++
     bodies.push(body)
     return body
 }
@@ -396,7 +445,9 @@ function createBodyFromRect(x1, y1, x2, y2, isStatic, angle = 0){
         friction: 1,
         cteAngVel: 0,
         cteAngVelToggle: false,
-        id
+        id: id,
+        _pairStamp: -1,
+        _pairWith: -1
     }
     updateCornerLocations(body)
     bodies.push(body)
@@ -489,8 +540,6 @@ function calculateStressBodies(){
         b.stress *= 10
     }
 }
-
-
 
 // Find the closest anchor point to the mouse within a threshold
 function findNearestAnchor(mx, my, threshold, availableAnchors = null){
@@ -665,6 +714,7 @@ function setUIfromSimState(){
     automaticLengthToggle.setValue(simState.automaticLength)
     lengthSlider.setValue(simState.lengthSpring)
     createSelect.setValue(simState.createMode.charAt(0).toUpperCase() + simState.createMode.slice(1))
+    unbreakJointsToggle.setValue(simState.unbreakableJoints)
     staticDynamicSelect.setValue(simState.staticDynamicMode.charAt(0).toUpperCase() + simState.staticDynamicMode.slice(1))
 }
 
@@ -707,7 +757,6 @@ function mouseReleased(){
 function draw(){
     background(0)
 
-    grid.clear()
 
     push()
 
@@ -783,61 +832,24 @@ function draw(){
         solveBridgeJoints()
 
         // Collisions
-        for(let iter = 0; iter < 3; iter++){
-            for(let i = 0; i < bodies.length; i++){
-                for(let j = i + 1; j < bodies.length; j++){
-                    let a = bodies[i]
-                    let b = bodies[j]
-                    if(a.isRope && b.isRope) continue
-                    let collision = null
-                    if((a.shape === 'rect' || a.shape === 'bridge') && (b.shape === 'rect' || b.shape === 'bridge')){ 
-                        // if(Math.abs(a.pos.x - b.pos.x) > a.w/2 + b.w/2) continue
-                        // if(Math.abs(a.pos.y - b.pos.y) > a.h/2 + b.h/2) continue
-                        collision = satRectRect(a, b)
-                    }
-                    else if(a.shape === 'circle' && b.shape === 'circle'){ 
-                        collision = satCircleCircle(a, b)
-                    }
-                    else if((a.shape === 'rect' || a.shape === 'bridge') && b.shape === 'circle') collision = satRectCircle(a, b)
-                    else if(a.shape === 'circle' && (b.shape === 'rect' || b.shape === 'bridge')) {
-                        collision = satRectCircle(b, a)
-                        if(collision) {
-                            collision.normal.x *= -1
-                            collision.normal.y *= -1
-                        }
-                    }
+        // for(let iter = 0; iter < 3; iter++){
+        //     for(let i = 0; i < bodies.length; i++){
+        //         for(let j = i + 1; j < bodies.length; j++){
+        //             handleCollision(bodies[i], bodies[j])
+        //         }
+        //     }
+        // }
 
-                    if(collision && !(isBridge(a) && isBridge(b))){
-                        collisionPoints.push(collision.contact)
+        spatialHash.beginFrame();
 
-                        let normal = collision.normal
-                        let depth = collision.depth
-
-                        // Split separation by inverse mass ratio
-                        let invMassSum = a.invMass + b.invMass
-                        if(invMassSum === 0) continue
-
-                        const percent = 0.8
-                        const slop = 0.01
-
-                        let correctionMag = Math.max(depth - slop, 0) * percent / invMassSum
-
-                        let nx = normal.x * correctionMag
-                        let ny = normal.y * correctionMag
-
-                        a.pos.x += nx * a.invMass
-                        a.pos.y += ny * a.invMass
-                        b.pos.x -= nx * b.invMass
-                        b.pos.y -= ny * b.invMass
-
-
-                        updateCornerLocations(a)
-                        updateCornerLocations(b)
-                        resolveCollision(a, b, normal, collision.contact)
-                    }
-                }
-            }
+        for(body of bodies){
+            spatialHash.insertBody(body);
         }
+
+        spatialHash.computePairs((a,b) => {
+            handleCollision(a,b);
+        });
+
     }
 
     calculateStressBodies()
@@ -902,11 +914,66 @@ function draw(){
 
     collisionPoints = []
 
+    spatialHash.visualizeGrid()
+
     pop()
 
     panel.update();
     panel.show();
 
+}
+
+function handleCollision(bodyA, bodyB){
+    let a = bodyA
+    let b = bodyB
+    if(a.isRope && b.isRope) return
+    if(jointConnectionSet.has(`${a.id}-${b.id}`) || jointConnectionSet.has(`${b.id}-${a.id}`)) return
+    let collision = null
+    if((a.shape === 'rect' || a.shape === 'bridge') && (b.shape === 'rect' || b.shape === 'bridge')){ 
+        // if(Math.abs(a.pos.x - b.pos.x) > a.w/2 + b.w/2) continue
+        // if(Math.abs(a.pos.y - b.pos.y) > a.h/2 + b.h/2) continue
+        collision = satRectRect(a, b)
+    }
+    else if(a.shape === 'circle' && b.shape === 'circle'){ 
+        collision = satCircleCircle(a, b)
+    }
+    else if((a.shape === 'rect' || a.shape === 'bridge') && b.shape === 'circle') collision = satRectCircle(a, b)
+    else if(a.shape === 'circle' && (b.shape === 'rect' || b.shape === 'bridge')) {
+        collision = satRectCircle(b, a)
+        if(collision) {
+            collision.normal.x *= -1
+            collision.normal.y *= -1
+        }
+    }
+
+    if(collision && !(isBridge(a) && isBridge(b))){
+        collisionPoints.push(collision.contact)
+
+        let normal = collision.normal
+        let depth = collision.depth
+
+        // Split separation by inverse mass ratio
+        let invMassSum = a.invMass + b.invMass
+        if(invMassSum === 0) return
+
+        const percent = 0.8
+        const slop = 0.01
+
+        let correctionMag = Math.max(depth - slop, 0) * percent / invMassSum
+
+        let nx = normal.x * correctionMag
+        let ny = normal.y * correctionMag
+
+        a.pos.x += nx * a.invMass
+        a.pos.y += ny * a.invMass
+        b.pos.x -= nx * b.invMass
+        b.pos.y -= ny * b.invMass
+
+
+        updateCornerLocations(a)
+        updateCornerLocations(b)
+        resolveCollision(a, b, normal, collision.contact)
+    }
 }
 
 function isBridge(body){
@@ -1373,7 +1440,7 @@ function solveBridgeJoints(){
             if(!bodyA || !bodyB) continue;
             const aStatic = bodyA.isStatic;
             const bStatic = bodyB.isStatic;
-            if(aStatic && bStatic) continue;
+            //if(aStatic && bStatic) continue;
 
             // Compute world positions inline to avoid function call overhead
             const localA = joint.localA;
@@ -1395,6 +1462,10 @@ function solveBridgeJoints(){
             if(distSq < minDist * minDist) continue;
             
             const dist = Math.sqrt(distSq);
+
+            joint.stress = (dist * stiffness) / cellSize
+            if(aStatic && bStatic) continue;
+
             const invDist = 1 / dist;
             const nx = dx * invDist;
             const ny = dy * invDist;
@@ -1415,7 +1486,7 @@ function solveBridgeJoints(){
             if(invMassSum === 0) continue;
 
             const invMassSumRecip = 1 / invMassSum;
-            const positionImpulse = dist * stiffness * invMassSumRecip;
+            const positionImpulse = dist * stiffness * invMassSumRecip
 
             // Apply position correction
             if(!aStatic){
@@ -1454,8 +1525,6 @@ function solveBridgeJoints(){
                 bodyB.angVel -= rBCrossN * dampingImpulse * bodyB.invInertia;
             }
 
-            joint.stress = positionImpulse;
-
             updateCornerLocations(bodyA);
             updateCornerLocations(bodyB);
         }
@@ -1464,9 +1533,10 @@ function solveBridgeJoints(){
 }
 
 function handleBreakingJoints(){
+    ACTIVE_MAX_STRESS_BRIDGE_JOINT = simState.unbreakableJoints ? Infinity : MAX_STRESS_BRIDGE_JOINT
     for(let i = bridgeJoints.length - 1; i >= 0; i--){
         let joint = bridgeJoints[i]
-        if(joint.stress > MAX_STRESS_BRIDGE_JOINT){
+        if(joint.stress > ACTIVE_MAX_STRESS_BRIDGE_JOINT){
             divideRope(joint.bodyA, joint.bodyB)
             removeJoint(joint)
         }
@@ -1474,7 +1544,7 @@ function handleBreakingJoints(){
 }
 
 function divideRope(bodyA, bodyB){
-    //remove the rope and create two new ropes from the break point to the original endpoints
+    if(!bodyA.isRope || !bodyB.isRope) return
     let ropeIndex = findRopeIndexByBody(bodyA)
     if(ropeIndex === -1) ropeIndex = findRopeIndexByBody(bodyB)
     if(ropeIndex === -1) return
@@ -1482,8 +1552,8 @@ function divideRope(bodyA, bodyB){
     let segments = rope.segments
     let indexBodyA = segments.findIndex((seg) => seg.id === bodyA.id)
     let indexBodyB = segments.findIndex((seg) => seg.id === bodyB.id)
-    let segmentsA = segments.slice(0, indexBodyA)
-    let segmentsB = segments.slice(indexBodyB + 1)
+    let segmentsA = segments.slice(0, indexBodyA + 1)
+    let segmentsB = segments.slice(indexBodyB)
     rope.segments = segmentsA
     let newRope = {
         start: (segmentsB[0] && segmentsB[0].body) ? segmentsB[0].body : null,
