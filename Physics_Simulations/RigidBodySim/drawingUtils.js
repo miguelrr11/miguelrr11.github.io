@@ -1,5 +1,5 @@
 function drawBody(body){
-    if(body.isRope) return  // Space key to hide ropes
+    if(body.isRope && !simState.showDebug) return  // Space key to hide ropes
     let inside = pointInRect({x: mouseX, y: mouseY}, body)
     push()
     if(simState.selectedBody === body){
@@ -107,6 +107,8 @@ function drawDebugBodyCircle(body){
 }
 
 function drawDebugBody(body){
+    if(body.isRope) return
+    
     let px = body.pos.x
     let py = body.pos.y
 
@@ -336,6 +338,7 @@ function drawBridgeJoint(joint){
 }
 
 function drawRope(rope){
+    if(simState.showDebug) return
     push()
     noFill()
     noStroke()

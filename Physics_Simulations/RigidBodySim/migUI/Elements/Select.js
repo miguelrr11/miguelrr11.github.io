@@ -27,6 +27,11 @@ class Select{
 		this.rad = radMIGUI
 	}
 
+	setValue(value){
+		let index = this.options.indexOf(value)
+		if(index != -1) this.selected = index
+	}
+
 	setFunc(func, arg = false){
 		this.func = func
 		this.arg = arg
