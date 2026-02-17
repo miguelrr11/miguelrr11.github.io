@@ -1,6 +1,6 @@
 function drawBody(body){
     if(body.isRope && !simState.showDebug) return
-    let inside = pointInRect({x: mouseX, y: mouseY}, body)
+    let inside = pointInRect({x: freeMouseX, y: freeMouseY}, body)
     push()
     noStroke()
     if(simState.selectedBody === body){
@@ -37,7 +37,7 @@ function drawBody(body){
 }
 
 function drawBodyCircle(body){
-    let inside = pointInCircle({x: mouseX, y: mouseY}, body)
+    let inside = pointInCircle({x: freeMouseX, y: freeMouseY}, body)
     push()
     noStroke()
     if(simState.selectedBody === body){

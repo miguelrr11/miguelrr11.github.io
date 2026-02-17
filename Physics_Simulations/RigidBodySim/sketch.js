@@ -30,7 +30,7 @@ let WIDTH = 600
 let HEIGHT = 600
 
 let startCircles = 50
-let startRects = 15
+let startRects = 20
 let nCollisionsFrame = 0
 
 // Spatial hash
@@ -55,6 +55,15 @@ let ropes = []  //just for rendering, they are actually made of bridges and brid
 
 let globalID = 0
 
+//Zoom and scale
+let xOff = 0
+let yOff = 0
+let prevMouseX = 0
+let prevMouseY = 0
+let zoom = 1
+
+const RANGE_OUT_OF_BOUNDS = 5000
+
 const colBody = [180]
 const colAnchor = [255, 100, 100]
 
@@ -68,10 +77,12 @@ let ACTIVE_MAX_STRESS_JOINT = .5
 
 let gridMouseX = 0
 let gridMouseY = 0
+let freeMouseX = 0
+let freeMouseY = 0
 let cellSize = 30
 let nCells = 30
 
-let spatialHash = null
+let tree = null
 
 // Editor state
 let dragStart = null  // {x, y} for body creation drag
@@ -226,10 +237,8 @@ async function setup(){
 
     WIDTH = windowWidth
     HEIGHT = windowHeight
-    gridWidth = Math.ceil(WIDTH / CELL_SIZE_SH)
-    gridHeight = Math.ceil(HEIGHT / CELL_SIZE_SH)
     nCells = Math.floor(Math.max(WIDTH, HEIGHT) / cellSize)
-    spatialHash = new SpatialHash(CELL_SIZE_SH)
+    tree = new DynamicAABBTree(5)
     createCanvas(WIDTH, HEIGHT)
 
     tabs = new TabManager({
@@ -369,6 +378,7 @@ function clearSim(){
     springs = []
     bridgeJoints = []
     ropes = []
+    tree = new DynamicAABBTree(5)
 }
 
 function computeAABB(body){
@@ -450,10 +460,12 @@ function createBodyFromCircle(x, y, r, isStatic, angle = 0){
         cteAngVelToggle: false,
         id: globalID++,
         _pairStamp: -1,
-        _pairWith: -1
+        _pairWith: -1,
+        _treeNode: null,
     }
 
     bodies.push(body)
+    tree.insert(body)
     return body
 }
 
@@ -484,10 +496,12 @@ function createBodyFromRect(x1, y1, x2, y2, isStatic, angle = 0, isFromRope = fa
         cteAngVelToggle: false,
         id: id,
         _pairStamp: -1,
-        _pairWith: -1
+        _pairWith: -1,
+        _treeNode: null,
     }
     updateCornerLocations(body)
     bodies.push(body)
+    tree.insert(body)
     return body
 }
 
@@ -619,9 +633,7 @@ function findNearestAnchorGivenBody(mx, my, body, threshold, availableAnchors = 
 }
 
 function mousePressed(){
-    if(gridMouseY < 0 || gridMouseX < 0 || gridMouseX > WIDTH || gridMouseY > HEIGHT || panel.isMouseInside()) return
-
-    
+    if(panel.isMouseInside()) return
 
     if(simState.createMode === 'rect' || simState.createMode === 'bridge' || simState.createMode === 'circle'){
         dragStart = {x: gridMouseX, y: gridMouseY}
@@ -704,7 +716,7 @@ function mousePressed(){
         let ropeIndexToRemove = null
         
         if((HB.shape === 'rect' || HB.shape === 'bridge')){
-            bodies.splice(HBindex, 1)
+            removeBody(HBindex)
             if(HB.isRope){
                 for(let j = ropes.length - 1; j >= 0; j--){
                     if(ropeIndexToRemove !== null){
@@ -722,7 +734,7 @@ function mousePressed(){
             }
         }
         else if(HB.shape === 'circle'){
-            bodies.splice(HBindex, 1)
+            removeBody(HBindex)
         }
 
         //removes the rope associated with the segment if we removed a rope segment, and all its segments and joints
@@ -767,6 +779,25 @@ function mousePressed(){
     }
 }
 
+function removeBody(index){
+    let body = bodies[index]
+    bodies.splice(index, 1)
+    tree.remove(body)
+}
+
+function mouseDragged() {
+    //drag only if were in drag or delete mode AND if we are not hovering a body
+    if(simState.hoveredBody || (simState.createMode !== 'drag' && simState.createMode !== 'delete')) return
+    if(!prevMouseX) prevMouseX = mouseX
+    if(!prevMouseY) prevMouseY = mouseY
+    let dx = mouseX - prevMouseX;
+    let dy = mouseY - prevMouseY; 
+    xOff += dx;
+    yOff += dy;
+    prevMouseX = mouseX;
+    prevMouseY = mouseY;
+}
+
 function setUIfromSimState(){
     cteAngVelSlider.setValue(simState.selectedBody ? simState.selectedBody.cteAngVel : 0)
     cteAngVelCB.setValue(simState.selectedBody ? simState.selectedBody.cteAngVelToggle : false)
@@ -798,6 +829,9 @@ function findHoveredSpring(){
 }
 
 function mouseReleased(){
+    prevMouseX = undefined
+    prevMouseY = undefined
+
     if(dragStart && simState.createMode === 'rect'){
         createBodyFromRect(dragStart.x, dragStart.y, gridMouseX, gridMouseY, simState.staticDynamicMode === 'static')
         dragStart = null
@@ -814,6 +848,22 @@ function mouseReleased(){
     for(let b of bodies) b.dragging = false
 }
 
+function mouseWheel(event) {
+    let worldX = (mouseX - xOff) / zoom;
+    let worldY = (mouseY - yOff) / zoom;
+    zoom += event.delta / 1000;
+    zoom = Math.max(0.1, Math.min(zoom, 3));
+    xOff = mouseX - worldX * zoom;
+    yOff = mouseY - worldY * zoom;
+    return false;
+}
+
+function getRelativePos(x, y){
+    let worldX = (x - xOff) / zoom;
+    let worldY = (y - yOff) / zoom;
+    return {x: worldX, y: worldY}
+}
+
 function setGridMousePos(){
     let gridMouseXFloor = Math.floor(mouseX / cellSize) * cellSize
     let gridMouseYFloor = Math.floor(mouseY / cellSize) * cellSize
@@ -823,6 +873,12 @@ function setGridMousePos(){
         gridMouseXFloor : gridMouseXCeil) : mouseX
     gridMouseY = simState.snapGrid ? (Math.abs(mouseY - gridMouseYFloor) < Math.abs(mouseY - gridMouseYCeil) ? 
         gridMouseYFloor : gridMouseYCeil) : mouseY
+    let scaled = getRelativePos(gridMouseX, gridMouseY)
+    gridMouseX = scaled.x
+    gridMouseY = scaled.y
+    let scaledFree = getRelativePos(mouseX, mouseY)
+    freeMouseX = scaledFree.x
+    freeMouseY = scaledFree.y
 }
 
 function draw(){
@@ -854,13 +910,11 @@ function draw(){
 
         solveBridgeJoints()
 
-        spatialHash.beginFrame();
-
         for(body of bodies){
-            spatialHash.insertBody(body);
+            tree.update(body);
         }
 
-        spatialHash.computePairs((a,b) => {
+        tree.computePairs((a,b) => {
             handleCollision(a,b);
         });
 
@@ -885,8 +939,17 @@ function draw(){
     // Draw
     push()
 
-    if(simState.showDebug) spatialHash.visualizeGrid()
-    drawGrid()
+    translate(xOff, yOff)
+    scale(zoom)
+
+    if(simState.showDebug){ 
+        push()
+        noFill()
+        stroke(255, 0, 0, 100)
+        tree.visualize()
+        pop()
+    }
+    if(zoom > 0.8 && simState.snapGrid) showGridPoints()
     for(let sp of springs) drawSpring(sp)
     for(let rope of ropes) drawRope(rope)
     for(let b of bodies){
@@ -895,16 +958,20 @@ function draw(){
     }
     for(let joint of bridgeJoints) drawBridgeJoint(joint)
     drawEditor()
-    drawFPSandINFO()
 
     pop()
 
+    push()
     tabs.update();
     tabs.show();
+    pop()
+
+    drawFPSandINFO()
 
 }
 
 function drawFPSandINFO(){
+    push()
     fpsArr.shift()
     fpsArr.push(frameRate())
     let fpsMean = round(fpsArr.reduce((a, b) => a + b, 0) / fpsArr.length)
@@ -918,25 +985,28 @@ function drawFPSandINFO(){
           N Springs: ${springs.length}\n
           N Ropes: ${ropes.length}\n
           N Collisions: ${nCollisionsFrame}\n
+          N Leafs: ${tree.nLeafs}
           `, width - 10, 10)
+    pop()
 }
 
 function handleOutOfBounds(){
     let removedBody = false
     for(let i = bodies.length - 1; i >= 0; i--){
         let body = bodies[i]
-        if(body.pos.y > HEIGHT + 200){
-            bodies.splice(i, 1)
+        if(body.pos.y > HEIGHT + RANGE_OUT_OF_BOUNDS || body.pos.y < -RANGE_OUT_OF_BOUNDS){
+            removeBody(i)
             removedBody = true
         }
-        if(body.pos.x < -200 || body.pos.x > WIDTH + 200){
-            bodies.splice(i, 1)
+        if(body.pos.x < -RANGE_OUT_OF_BOUNDS || body.pos.x > WIDTH + RANGE_OUT_OF_BOUNDS){
+            removeBody(i)
             removedBody = true
         }
     }
     if(removedBody) cleanupBridgeJoints()
 }
 
+//not used
 function drawGrid(){
     push()
     stroke(40)
@@ -944,6 +1014,50 @@ function drawGrid(){
     for(let i = 0; i <= nCells; i++){
         line(i * cellSize, 0, i * cellSize, HEIGHT)
         line(0, i * cellSize, WIDTH, i * cellSize)
+    }
+    pop()
+}
+
+function getEdges() {
+    let minX = (0 - xOff) / zoom
+    let maxX = (WIDTH - xOff) / zoom
+    let minY = (0 - yOff) / zoom
+    let maxY = (HEIGHT - yOff) / zoom
+    return [
+        minX,
+        maxX,
+        minY,
+        maxY
+    ]
+}
+
+function showGridPoints(){
+    push()
+    let edges = getEdges()
+    let minX = edges[0]
+    let maxX = edges[1]
+    let minY = edges[2]
+    let maxY = edges[3]
+    let startX = Math.floor(minX / cellSize) * cellSize
+    let startY = Math.floor(minY / cellSize) * cellSize
+
+    strokeWeight((1 / zoom) * 2)
+    
+    let fadeDistance = (maxX - minX) * 0.1  //10% of the screen dims
+    
+    for(let x = startX; x <= maxX; x += cellSize){
+        for(let y = startY; y <= maxY; y += cellSize){
+            let distFromLeft = x - minX
+            let distFromRight = maxX - x
+            let distFromTop = y - minY
+            let distFromBottom = maxY - y
+            let minDistToEdge = Math.min(distFromLeft, distFromRight, distFromTop, distFromBottom)
+            let fadeFactor = Math.min(minDistToEdge / fadeDistance, 1)
+            let baseAlpha = map(zoom, 0.4, 0.8, 0, 150, true)
+            let alpha = baseAlpha * fadeFactor
+            stroke(255, alpha)
+            point(x, y)
+        }
     }
     pop()
 }
@@ -1224,7 +1338,7 @@ function handleDragBody(){
         b.oldPosFree = b.posFree ? {x: b.posFree.x, y: b.posFree.y} : {x: b.pos.x, y: b.pos.y}
         if(simState.createMode === 'drag' && b.dragging && mouseIsPressed){
             b.pos = {x: gridMouseX - b.offsetDrag.x, y: gridMouseY - b.offsetDrag.y}
-            b.posFree = {x: mouseX, y: mouseY}
+            b.posFree = {x: freeMouseX, y: freeMouseY}
             b.vel = {x: 0, y: 0}
         }
     }
@@ -1413,11 +1527,11 @@ function setHoveredBody(){
     simState.hoveredBody = null
     simState.hoveredSpring = null
     for(let b of bodies){
-        if((b.shape == 'rect' || b.shape == 'bridge') && pointInRect({x: mouseX, y: mouseY}, b, true)){
+        if((b.shape == 'rect' || b.shape == 'bridge') && pointInRect({x: freeMouseX, y: freeMouseY}, b, true)){
             simState.hoveredBody = b
             return
         }
-        if(b.shape === 'circle' && pointInCircle({x: mouseX, y: mouseY}, b, true)){
+        if(b.shape === 'circle' && pointInCircle({x: freeMouseX, y: freeMouseY}, b, true)){
             simState.hoveredBody = b
             return
         }
