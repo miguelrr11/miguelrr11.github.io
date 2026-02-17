@@ -67,6 +67,11 @@ function getSimpleInt(n) {
     return (n / 1000000000).toFixed(2) + "B";
 }
 
+function roundToNearest(value, reference) {
+  const magnitude = Math.pow(10, Math.floor(Math.log10(reference)));
+  return Math.round(value / magnitude) * magnitude;
+}
+
 function constrainn(value, min, max) {
     return Math.min(Math.max(value, min), max);
 }

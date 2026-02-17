@@ -89,6 +89,7 @@ class Panel{
 	}
 
 	isMouseInside(){
+		if(this.isRetracted) return this.retractButton.beingHovered
 		return mouseX > this.pos.x && mouseX < this.pos.x + this.w && mouseY > this.pos.y && mouseY < this.pos.y + this.h
 	}
 

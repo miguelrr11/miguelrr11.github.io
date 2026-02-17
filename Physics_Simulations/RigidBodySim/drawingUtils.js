@@ -2,6 +2,7 @@ function drawBody(body){
     if(body.isRope && !simState.showDebug) return
     let inside = pointInRect({x: mouseX, y: mouseY}, body)
     push()
+    noStroke()
     if(simState.selectedBody === body){
         strokeWeight(1.5)
         stroke(0, 255, 100)
@@ -9,7 +10,7 @@ function drawBody(body){
     translate(body.pos.x, body.pos.y)
     rotate(body.angle)
     rectMode(CENTER)
-    fill(lerppColor([75, 75, 57], [255, 0, 0], body.stress))
+    fill(lerppColor(colBody, [255, 0, 0], body.stress))
     if(inside && simState.createMode === 'delete') fill(255, 0, 0)
     if(inside && !simState.createMode) fill(150)
     rect(0, 0, body.w, body.h)
@@ -29,12 +30,13 @@ function drawBody(body){
 function drawBodyCircle(body){
     let inside = pointInCircle({x: mouseX, y: mouseY}, body)
     push()
+    noStroke()
     if(simState.selectedBody === body){
         strokeWeight(1.5)
         stroke(0, 255, 100)
     }
     translate(body.pos.x, body.pos.y)
-    fill(lerppColor([75, 75, 57], [255, 0, 0], body.stress))
+    fill(lerppColor(colBody, [255, 0, 0], body.stress))
     if(inside && simState.createMode === 'delete') fill(255, 0, 0)
     if(inside && !simState.createMode) fill(150)
     ellipse(0, 0, body.r * 2, body.r * 2)
@@ -65,15 +67,15 @@ function drawDebugBodyCircle(body){
         strokeWeight(2)
         line(px, py, ex, ey)
         // Arrowhead
-        let ang = atan2(body.vel.y, body.vel.x)
-        let aSize = 5
-        line(ex, ey, ex - aSize * Math.cos(ang - 0.4), ey - aSize * Math.sin(ang - 0.4))
-        line(ex, ey, ex - aSize * Math.cos(ang + 0.4), ey - aSize * Math.sin(ang + 0.4))
+        // let ang = atan2(body.vel.y, body.vel.x)
+        // let aSize = 5
+        // line(ex, ey, ex - aSize * Math.cos(ang - 0.4), ey - aSize * Math.sin(ang - 0.4))
+        // line(ex, ey, ex - aSize * Math.cos(ang + 0.4), ey - aSize * Math.sin(ang + 0.4))
         pop()
     }
 
     // Angular velocity arc
-    if (Math.abs(body.angVel) > 0.01) {
+    if (Math.abs(body.angVel) > 0.005) {
         push();
         noFill();
         let arcR = 15;
@@ -91,27 +93,27 @@ function drawDebugBodyCircle(body){
 
         arc(px, py, arcR * 2, arcR * 2, startAngle, endAngle);
 
-        let tipAng = body.angle + arcSpan;
-        let tipX = px + arcR * Math.cos(tipAng);
-        let tipY = py + arcR * Math.sin(tipAng);
+        // let tipAng = body.angle + arcSpan;
+        // let tipX = px + arcR * Math.cos(tipAng);
+        // let tipY = py + arcR * Math.sin(tipAng);
 
-        let tangentAng = tipAng + (body.angVel > 0 ? -HALF_PI : HALF_PI);
-        let aSize = 5;
+        // let tangentAng = tipAng + (body.angVel > 0 ? -HALF_PI : HALF_PI);
+        // let aSize = 5;
 
-        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng - 0.6), tipY + aSize * Math.sin(tangentAng - 0.6));
-        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng + 0.6), tipY + aSize * Math.sin(tangentAng + 0.6));
+        // line(tipX, tipY, tipX + aSize * Math.cos(tangentAng - 0.6), tipY + aSize * Math.sin(tangentAng - 0.6));
+        // line(tipX, tipY, tipX + aSize * Math.cos(tangentAng + 0.6), tipY + aSize * Math.sin(tangentAng + 0.6));
 
         pop();
     }
 
-    push()
-    stroke(255, 0, 0)
-    strokeWeight(1)
-    let endX = body.pos.x + Math.cos(body.angle) * body.r * .5
-    let endY = body.pos.y + Math.sin(body.angle) * body.r * .5
-    line(body.pos.x, body.pos.y, endX, endY)
+    // push()
+    // stroke(255, 0, 0)
+    // strokeWeight(1)
+    // let endX = body.pos.x + Math.cos(body.angle) * body.r * .5
+    // let endY = body.pos.y + Math.sin(body.angle) * body.r * .5
+    // line(body.pos.x, body.pos.y, endX, endY)
 
-    pop()
+    // pop()
 
 }
 
@@ -180,15 +182,15 @@ function drawDebugBody(body){
         strokeWeight(2)
         line(px, py, ex, ey)
         // Arrowhead
-        let ang = atan2(body.vel.y, body.vel.x)
-        let aSize = 5
-        line(ex, ey, ex - aSize * Math.cos(ang - 0.4), ey - aSize * Math.sin(ang - 0.4))
-        line(ex, ey, ex - aSize * Math.cos(ang + 0.4), ey - aSize * Math.sin(ang + 0.4))
+        // let ang = atan2(body.vel.y, body.vel.x)
+        // let aSize = 5
+        // line(ex, ey, ex - aSize * Math.cos(ang - 0.4), ey - aSize * Math.sin(ang - 0.4))
+        // line(ex, ey, ex - aSize * Math.cos(ang + 0.4), ey - aSize * Math.sin(ang + 0.4))
         pop()
     }
 
     // Angular velocity arc
-    if (Math.abs(body.angVel) > 0.01) {
+    if (Math.abs(body.angVel) > 0.005) {
         push();
         noFill();
         let arcR = 15;
@@ -206,15 +208,15 @@ function drawDebugBody(body){
 
         arc(px, py, arcR * 2, arcR * 2, startAngle, endAngle);
 
-        let tipAng = body.angleVel > 0 ? body.angle + arcSpan : body.angle + arcSpan;
-        let tipX = px + arcR * Math.cos(tipAng);
-        let tipY = py + arcR * Math.sin(tipAng);
+        // let tipAng = body.angleVel > 0 ? body.angle + arcSpan : body.angle + arcSpan;
+        // let tipX = px + arcR * Math.cos(tipAng);
+        // let tipY = py + arcR * Math.sin(tipAng);
 
-        let tangentAng = tipAng + (body.angVel > 0 ? -HALF_PI : HALF_PI);
-        let aSize = 5;
+        // let tangentAng = tipAng + (body.angVel > 0 ? -HALF_PI : HALF_PI);
+        // let aSize = 5;
 
-        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng - 0.6), tipY + aSize * Math.sin(tangentAng - 0.6));
-        line(tipX, tipY, tipX + aSize * Math.cos(tangentAng + 0.6), tipY + aSize * Math.sin(tangentAng + 0.6));
+        // line(tipX, tipY, tipX + aSize * Math.cos(tangentAng - 0.6), tipY + aSize * Math.sin(tangentAng - 0.6));
+        // line(tipX, tipY, tipX + aSize * Math.cos(tangentAng + 0.6), tipY + aSize * Math.sin(tangentAng + 0.6));
 
         pop();
     }
@@ -338,7 +340,7 @@ function drawBridgeJoint(joint){
     // push()
     //let midPos = {x: (posA.x + posB.x) / 2, y: (posA.y + posB.y) / 2}
     // noStroke()
-    // fill(joint.stress > MAX_STRESS_BRIDGE_JOINT ? [255, 0, 0] : [255, 255, 255])
+    // fill(joint.stress > MAX_STRESS_JOINT ? [255, 0, 0] : [255, 255, 255])
     // textSize(12)
     // textAlign(CENTER, CENTER)
     // text(joint.stress.toFixed(1), midPos.x, midPos.y - 10)
@@ -363,7 +365,7 @@ function drawRope(rope){
     push()
     noFill()
     noStroke()
-    stroke(75, 75, 57)
+    stroke(colBody)
     strokeWeight(5)
     if(rope.segments.length == 1){
         let p = rope.segments[0]
@@ -406,7 +408,7 @@ function drawRope(rope){
     //     let midX = (posA.x + posB.x) / 2
     //     let midY = (posA.y + posB.y) / 2
     //     textSize(map(bj.stress, 0, 2, 8, 16))
-    //     fill(bj.stress > MAX_STRESS_BRIDGE_JOINT ? [255, 0, 0] : [255, 255, 255])
+    //     fill(bj.stress > MAX_STRESS_JOINT ? [255, 0, 0] : [255, 255, 255])
     //     text(bj.stress.toFixed(1), midX, midY)
     // }
     // pop()
@@ -450,57 +452,34 @@ function drawEditor(){
     }
 
     // Anchor points (always visible, highlighted in spring mode)
-    let inSpringMode = simState.createMode === 'spring' || simState.createMode === 'rope'
-    let hovered = inSpringMode ? findNearestAnchor(gridMouseX, gridMouseY, 20) : null
+    let inSpringMode = simState.createMode === 'spring' || simState.createMode === 'rope' || simState.createMode === 'bridge'
+    let hovered = inSpringMode ? findNearestAnchorGivenBody(gridMouseX, gridMouseY, simState.hoveredBody, 20) : null
 
-    // for(let b of bodies){
-    //     if(b.isRope) continue
-    //     for(let a = 0; a < 5; a++){
-    //         let p = getAnchorWorldPos(b, a)
-    //         let isHovered = hovered && hovered.body === b && hovered.anchor === a
-    //         let isSelected = springRopeStart && springRopeStart.body === b && springRopeStart.anchor === a
-    //         push()
-    //         noStroke()
-    //         if(isSelected){
-    //             fill(0, 255, 100)
-    //             ellipse(p.x, p.y, 12, 12)
-    //         } else if(isHovered){
-    //             fill(255, 255, 0)
-    //             ellipse(p.x, p.y, 10, 10)
-    //         } else {
-    //             fill(255, 255, 255, inSpringMode ? 180 : 60)
-    //             ellipse(p.x, p.y, 6, 6)
-    //         }
-    //         pop()
-    //     }
-    // }
-
-    // Anchor points (always visible, highlighted in spring mode)
-    let inBridgeMode = simState.createMode === 'bridge'
-    hovered = inBridgeMode ? findNearestAnchor(gridMouseX, gridMouseY, 20, BRIDGE_ENDPOINT_ANCHORS) : null
-
-    for(let b of bodies){
-        if(b.isRope) continue
-        if(!isBridge(b)) continue
-        for(let a = 0; a < 5; a++){
-            if(!BRIDGE_ENDPOINT_ANCHORS.includes(a)) continue
-            let p = getAnchorWorldPos(b, a)
-            let isHovered = hovered && hovered.body === b && hovered.anchor === a
-            let isSelected = springRopeStart && springRopeStart.body === b && springRopeStart.anchor === a
-            push()
-            noStroke()
+    if(inSpringMode){
+        push()
+        noStroke()
+        fill(colAnchor)
+        for(let b of bodies){
+            if(b.isRope) continue
+            for(let a = 0; a < 5; a++){
+                let p = getAnchorWorldPos(b, a)
+                ellipse(p.x, p.y, 6, 6)
+            }
+        }
+        if(hovered){
+            let isHovered = hovered
+            let isSelected = springRopeStart
+            let p = getAnchorWorldPos(hovered.body, hovered.anchor)
             if(isSelected){
                 fill(0, 255, 100)
                 ellipse(p.x, p.y, 12, 12)
-            } else if(isHovered){
+            } 
+            else if(isHovered){
                 fill(255, 255, 0)
                 ellipse(p.x, p.y, 10, 10)
-            } else {
-                fill(255, 255, 255, inBridgeMode ? 180 : 60)
-                ellipse(p.x, p.y, 6, 6)
-            }
-            pop()
+            } 
         }
+        pop()
     }
 
     // Spring creation preview line
@@ -513,4 +492,20 @@ function drawEditor(){
         line(startPos.x, startPos.y, gridMouseX, gridMouseY)
         pop()
     }
+
+    if(simState.showDebug){
+        push()
+        noFill()
+        strokeWeight(1.5)
+        stroke(255, 255, 0)
+        let collArr = Array.from(collisionPoints).map(str => {
+            let [x, y] = str.split(',').map(Number)
+            return {x, y}
+        })
+        for(let colPoint of collArr){
+            ellipse(colPoint.x, colPoint.y, 8, 8)
+        }
+        pop()
+    }
+    
 }

@@ -26,25 +26,20 @@ class SpatialHash {
 
             if(cell.frame !== this.frameId) continue;
 
-            const bodies = cell.bodies;
-            const count = bodies.length;
+            for(let a = 0; a < cell.bodies.length; a++){
+                const bodyA = cell.bodies[a];
 
-            for(let a = 0; a < count; a++){
-                const bodyA = bodies[a];
-
-                for(let b = a + 1; b < count; b++){
-                    const bodyB = bodies[b];
+                for(let b = a + 1; b < cell.bodies.length; b++){
+                    const bodyB = cell.bodies[b];
 
                     if(bodyA.id < bodyB.id){
-                        if(bodyB._pairStamp === this.pairFrame &&
-                        bodyB._pairWith === bodyA.id) continue;
+                        if(bodyB._pairStamp === this.pairFrame && bodyB._pairWith === bodyA.id) continue;
 
                         bodyB._pairStamp = this.pairFrame;
                         bodyB._pairWith = bodyA.id;
                     } 
                     else {
-                        if(bodyA._pairStamp === this.pairFrame &&
-                        bodyA._pairWith === bodyB.id) continue;
+                        if(bodyA._pairStamp === this.pairFrame && bodyA._pairWith === bodyB.id) continue;
 
                         bodyA._pairStamp = this.pairFrame;
                         bodyA._pairWith = bodyB.id;
@@ -60,7 +55,7 @@ class SpatialHash {
     visualizeGrid(){
         push()
         noStroke()
-        fill(255, 70)
+        fill(0, 255, 0, 100)
         for(let y = 0; y <= gridHeight - 1; y++){
             for(let x = 0; x <= gridWidth - 1; x++){
                 const index = y * gridWidth + x;
