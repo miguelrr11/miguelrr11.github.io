@@ -14,6 +14,15 @@ function drawBody(body){
     if(inside && simState.createMode === 'delete') fill(255, 0, 0)
     if(inside && !simState.createMode) fill(150)
     rect(0, 0, body.w, body.h)
+    if(body.shape != 'bridge' && body.isStatic){
+        translate(-body.pos.x, -body.pos.y)
+        stroke(150)
+        strokeWeight(1)
+        for(let c of body.corners){
+            line(c.x - 4, c.y - 4, c.x + 4, c.y + 4)
+            line(c.x + 4, c.y - 4, c.x - 4, c.y + 4)
+        }
+    }
     pop()
     if(simState.showDebug) drawDebugBody(body)
 
@@ -40,6 +49,15 @@ function drawBodyCircle(body){
     if(inside && simState.createMode === 'delete') fill(255, 0, 0)
     if(inside && !simState.createMode) fill(150)
     ellipse(0, 0, body.r * 2, body.r * 2)
+    if(body.isStatic){
+        translate(-body.pos.x, -body.pos.y)
+        stroke(150)
+        strokeWeight(1)
+        let c = {x: body.pos.x, y: body.pos.y}
+        line(c.x - 4, c.y - 4, c.x + 4, c.y + 4)
+        line(c.x + 4, c.y - 4, c.x - 4, c.y + 4)
+    }
+
     pop()
     if(simState.showDebug) drawDebugBodyCircle(body)
 }

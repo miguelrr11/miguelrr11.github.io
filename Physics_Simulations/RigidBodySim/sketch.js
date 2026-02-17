@@ -29,8 +29,8 @@ p5.disableFriendlyErrors = true
 let WIDTH = 600
 let HEIGHT = 600
 
-let startCircles = 100
-let startRects = 30
+let startCircles = 50
+let startRects = 15
 let nCollisionsFrame = 0
 
 // Spatial hash
@@ -327,9 +327,6 @@ async function setup(){
     buttonSave.setFunc(() => {saveStateToLocal()})
     let buttonLoad = panel.createButton("Load")
     buttonLoad.setFunc(() => {loadStateFromLocal()})
-
-
-
 
     createBodyFromRect(100, height - 50, width - 100, height - 30, true) // floor
     createBodyFromRect(30, 0, 90, height - 30, true) // left wall
@@ -807,10 +804,6 @@ function mouseReleased(){
     if(dragStart && simState.createMode === 'bridge'){
         createBridgeElement(dragStart.x, dragStart.y, gridMouseX, gridMouseY, simState.staticDynamicMode === 'static')
         dragStart = null
-    }
-    if(dragStart && simState.createMode === 'rope'){
-        console.log("Creating rope with endpoints", dragStart, {x: gridMouseX, y: gridMouseY})
-        createRope(null, null, null, null, {x: dragStart.x, y: dragStart.y}, {x: gridMouseX, y: gridMouseY})
     }
     for(let b of bodies) b.dragging = false
 }
