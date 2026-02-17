@@ -96,6 +96,7 @@ let simState = {
 let tabs
 let panel
 let panelOptions
+let panelAdvancedOptions
 let createSelect, staticDynamicSelect, automaticLengthToggle, lengthSlider
 let cteAngVelSlider, cteAngVelCB, unbreakJointsCB, gravityCB
 
@@ -254,8 +255,11 @@ async function setup(){
     panel = tabs.createTab("Main")
     panel.darkCol[3] = 175
 
-    panelOptions = tabs.createTab("Options")
+    panelOptions = tabs.createTab("Body")
     panelOptions.darkCol[3] = 175
+
+    panelAdvancedOptions = tabs.createTab("Advanced")
+    panelAdvancedOptions.darkCol[3] = 175
     
     panel.createText("Create Mode")
     createSelect = panel.createSelect(["Rect", "Circle", "Bridge", "Spring", "Rope", "Delete", "Drag"], "Drag")
@@ -311,14 +315,16 @@ async function setup(){
 
     panelOptions.createSeparator()
 
-    let snapToggle = panelOptions.createCheckbox("Snap to Grid", false)
+    let snapToggle = panelAdvancedOptions.createCheckbox("Snap to Grid", false)
     snapToggle.setFunc((arg) => {simState.snapGrid = arg})
-    let debugToggle = panelOptions.createCheckbox("Show Debug", false)
+    let debugToggle = panelAdvancedOptions.createCheckbox("Show Debug", false)
     debugToggle.setFunc((arg) => {simState.showDebug = arg})
 
-    let iterSlider = panelOptions.createSlider(1, 20, MAXSTEPS, 'Solver Iterations', true)
+    panelAdvancedOptions.createSeparator()
+
+    let iterSlider = panelAdvancedOptions.createSlider(1, 20, MAXSTEPS, 'Solver Iterations', true)
     iterSlider.setFunc((arg) => {MAXSTEPS = arg})
-    let iterJointSlider = panelOptions.createSlider(1, 20, JOINT_ITERATIONS, 'Joint Iterations', true)
+    let iterJointSlider = panelAdvancedOptions.createSlider(1, 20, JOINT_ITERATIONS, 'Joint Iterations', true)
     iterJointSlider.setFunc((arg) => {JOINT_ITERATIONS = arg})
 
     panel.createSeparator()
