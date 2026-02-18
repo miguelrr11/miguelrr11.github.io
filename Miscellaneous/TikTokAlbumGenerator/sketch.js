@@ -142,6 +142,27 @@ async function setup(){
     document.addEventListener('keydown', handleKeyboard);
 }
 
+function createTracksFromPaste(texto){
+    for(let i = tracks.length-1; i > 0; i--) removeTrackRow(i)
+    const lineas = texto.split(/\r?\n/);
+    let trackIndex = 0
+    for(let linea of lineas){
+        setTrackText(tracks[trackIndex], linea)
+        addTrackRowWithCapture()
+        trackIndex++
+    }
+}
+
+function setTrackText(trackObj, newText) {
+    // trackObj es un objeto de tracks[], por ejemplo tracks[0]
+    trackObj.titleInput.value(newText); // Cambia el valor en p5.js
+    // Disparar eventos para que tu sistema lo detecte
+    const evt = new Event('input', { bubbles: true });
+    trackObj.titleInput.elt.dispatchEvent(evt);
+    trackObj.titleInput.elt.dispatchEvent(new Event('blur', { bubbles: true }));
+}
+
+
 function setupDragDrop() {
     document.addEventListener('dragover', (e) => {
         // Only show overlay if dragging files (not internal elements)
@@ -221,8 +242,28 @@ function createAlbumEditor() {
     trackContainer = createDiv('').parent(panel2).class('track-container');
     addTrackRow();
 
-    let addTrackBtn = createButton('+ Add Track').parent(panel2).class('btn btn-secondary');
-    addTrackBtn.mousePressed(addTrackRow);
+    // Create a container for the buttons
+    let trackButtonsRow = createDiv('').parent(panel2)
+        .style('display: flex; gap: 8px; margin-top: 10px;');
+
+    // Add Track button (half-width)
+    let addTrackBtn = createButton('Add Track').parent(trackButtonsRow)
+        .class('btn btn-secondary')
+        .style('flex: 1');
+
+    // Paste Tracks button (half-width)
+    let pasteTracksBtn = createButton('Paste Tracks').parent(trackButtonsRow)
+        .class('btn btn-secondary')
+        .style('flex: 1');
+
+    pasteTracksBtn.mousePressed(async () => {
+        try {
+            const texto = await navigator.clipboard.readText();
+            createTracksFromPaste(texto);
+        } catch (err) {
+            console.error("No se pudo leer el clipboard:", err);
+        }
+    });
 
     // === Panel 3: Settings ===
     createButtonGrid(panel3);
