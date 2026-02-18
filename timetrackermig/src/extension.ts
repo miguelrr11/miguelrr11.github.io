@@ -75,7 +75,7 @@ class TimeTracker {
 
     private setActive(active: boolean) {
             this.isActive = active;
-            this.statusBar.color = active ? "green" : "red";
+            this.statusBar.color = active ? "green" : "grey";
         }
 
     public async showStats() {
