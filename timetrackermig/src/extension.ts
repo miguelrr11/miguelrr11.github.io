@@ -15,7 +15,7 @@ class TimeTracker {
     constructor(private context: vscode.ExtensionContext) {
         this.statusBar = vscode.window.createStatusBarItem(
             vscode.StatusBarAlignment.Left,
-            100
+            0
         );
 
         this.statusBar.text = "$(circle-filled)";
@@ -65,6 +65,7 @@ class TimeTracker {
         vscode.workspace.onDidChangeTextDocument(reset);
         vscode.window.onDidChangeTextEditorSelection(reset);
         vscode.window.onDidChangeActiveTextEditor(reset);
+        vscode.window.onDidChangeTextEditorVisibleRanges(reset);
         vscode.window.onDidChangeWindowState(state => {
             if (!state.focused) {
                 this.inactivitySeconds = this.idleThreshold;
@@ -73,23 +74,79 @@ class TimeTracker {
     }
 
     private setActive(active: boolean) {
-        this.isActive = active;
-        this.statusBar.color = active ? "green" : "red";
-    }
+            this.isActive = active;
+            this.statusBar.color = active ? "green" : "red";
+        }
 
     public async showStats() {
         await this.saveToday();
 
         const data = this.readData();
+
         const today = this.getTodayKey();
         const todaySeconds = data[today] || 0;
 
         const todayFormatted = this.formatTime(todaySeconds);
 
+        const action = await vscode.window.showInformationMessage(
+            `Today: ${todayFormatted}`,
+            "Show More"
+        );
+
+        if (action === "Show More") {
+            this.showDetailedStats(data);
+        }
+    }
+
+    private showDetailedStats(data: Record<string, number>) {
+        const now = new Date();
+
+        let weekSeconds = 0;
+        let monthSeconds = 0;
+        let allTimeSeconds = 0;
+
+        const currentWeek = this.getWeekNumber(now);
+        const currentMonth = now.getMonth();
+        const currentYear = now.getFullYear();
+
+        for (const dateStr in data) {
+            const seconds = data[dateStr];
+            const date = new Date(dateStr);
+
+            allTimeSeconds += seconds;
+
+            if (
+                date.getFullYear() === currentYear &&
+                this.getWeekNumber(date) === currentWeek
+            ) {
+                weekSeconds += seconds;
+            }
+
+            if (
+                date.getFullYear() === currentYear &&
+                date.getMonth() === currentMonth
+            ) {
+                monthSeconds += seconds;
+            }
+        }
+
         vscode.window.showInformationMessage(
-            `Today: ${todayFormatted}`
+            `Week: ${this.formatTime(weekSeconds)} | ` +
+            `Month: ${this.formatTime(monthSeconds)} | ` +
+            `All Time: ${this.formatTime(allTimeSeconds)}`
         );
     }
+
+    private getWeekNumber(date: Date): number {
+        const temp = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()));
+        const dayNum = temp.getUTCDay() || 7;
+        temp.setUTCDate(temp.getUTCDate() + 4 - dayNum);
+        const yearStart = new Date(Date.UTC(temp.getUTCFullYear(), 0, 1));
+        return Math.ceil((((temp.getTime() - yearStart.getTime()) / 86400000) + 1) / 7);
+    }
+
+
+
 
     private async saveToday() {
         const data = this.readData();
