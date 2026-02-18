@@ -175,6 +175,7 @@ function saveStateToLocal(){
             id: r.id
         }
     })
+    simState.hoveredBody = null
     localStorage.setItem("rigidBodySimState", JSON.stringify({simState, bodies: savedBodies, springs: savedSprings, bridgeJoints: savedBridgeJoints, ropes: savedRopes}))
 }
 
@@ -408,6 +409,7 @@ function computeAABB(body){
 
 function setSelectedBody(body){
     simState.selectedBody = body
+    simState.draggingBody = body
     cteAngVelSlider.setValue(body ? body.angVel : 0)
     cteAngVelCB.setValue(body ? body.cteAngVelToggle : false)
 }
@@ -476,7 +478,6 @@ function createBodyFromRect(x1, y1, x2, y2, isStatic, angle = 0, isFromRope = fa
     let h = Math.abs(y2 - y1)
     if(w < 5 || h < 5) return
     let m = isStatic ? Infinity : w * h / (cellSize * cellSize)
-    if(isFromRope) m = 0.001  //bodies from ropes are lighter
     let inv = isStatic ? 0 : 1 / m
     let iner = (1/12) * m * (w*w + h*h)
     let invI = isStatic ? 0 : 1 / iner
@@ -700,7 +701,7 @@ function mousePressed(){
     }
 
     setHoveredBody()
-    let HB = simState.hoveredBody
+    let HB = simState.hoveredBody || simState.hoveredSpring
     if(!HB) return
     let HBindex = HB.shape == 'spring' ? springs.indexOf(HB) : bodies.indexOf(HB)
 
@@ -758,7 +759,9 @@ function mousePressed(){
         cleanupBridgeJoints()
         return
     } 
-    else {
+    else if(simState.createMode === 'drag'){
+        let dragBody = simState.draggingBody
+        if(!dragBody) dragBody = HB
         // No mode: drag bodies
         if((HB.shape === 'rect' || HB.shape === 'bridge')){
             HB.dragging = true
@@ -820,8 +823,8 @@ function findHoveredSpring(){
         let dy = posB.y - posA.y
         let len = Math.hypot(dx, dy)
         let angle = atan2(dy, dx)
-        let localMouseX = Math.cos(-angle) * (mouseX - midX) - Math.sin(-angle) * (mouseY - midY)
-        let localMouseY = Math.sin(-angle) * (mouseX - midX) + Math.cos(-angle) * (mouseY - midY)
+        let localMouseX = Math.cos(-angle) * (gridMouseX - midX) - Math.sin(-angle) * (gridMouseY - midY)
+        let localMouseY = Math.sin(-angle) * (gridMouseX - midX) + Math.cos(-angle) * (gridMouseY - midY)
         if(localMouseX > -len/2 - 5 && localMouseX < len/2 + 5 && localMouseY > -10 && localMouseY < 10){
             return sp
         }
@@ -865,20 +868,13 @@ function getRelativePos(x, y){
 }
 
 function setGridMousePos(){
-    let gridMouseXFloor = Math.floor(mouseX / cellSize) * cellSize
-    let gridMouseYFloor = Math.floor(mouseY / cellSize) * cellSize
-    let gridMouseXCeil = Math.ceil(mouseX / cellSize) * cellSize
-    let gridMouseYCeil = Math.ceil(mouseY / cellSize) * cellSize
-    gridMouseX = simState.snapGrid ? (Math.abs(mouseX - gridMouseXFloor) < Math.abs(mouseX - gridMouseXCeil) ? 
-        gridMouseXFloor : gridMouseXCeil) : mouseX
-    gridMouseY = simState.snapGrid ? (Math.abs(mouseY - gridMouseYFloor) < Math.abs(mouseY - gridMouseYCeil) ? 
-        gridMouseYFloor : gridMouseYCeil) : mouseY
-    let scaled = getRelativePos(gridMouseX, gridMouseY)
-    gridMouseX = scaled.x
-    gridMouseY = scaled.y
-    let scaledFree = getRelativePos(mouseX, mouseY)
-    freeMouseX = scaledFree.x
-    freeMouseY = scaledFree.y
+    let world = getRelativePos(mouseX, mouseY)
+    let gridMouseXFloor = Math.floor(world.x / cellSize) * cellSize
+    let gridMouseYFloor = Math.floor(world.y / cellSize) * cellSize
+    gridMouseX = simState.snapGrid ? gridMouseXFloor : world.x
+    gridMouseY = simState.snapGrid ? gridMouseYFloor : world.y
+    freeMouseX = world.x
+    freeMouseY = world.y
 }
 
 function draw(){
@@ -961,13 +957,21 @@ function draw(){
 
     pop()
 
-    push()
+    push()  
     tabs.update();
     tabs.show();
     pop()
 
     drawFPSandINFO()
 
+}
+
+function doubleClicked(){
+    if(panel.isMouseInside()) return
+    if(simState.createMode === 'delete') return
+    if(simState.createMode === 'rect') createBodyFromRect(gridMouseX - 15, gridMouseY - 15, gridMouseX + 15, gridMouseY + 15, simState.staticDynamicMode === 'static')
+    if(simState.createMode === 'circle') createBodyFromCircle(gridMouseX, gridMouseY, 15, simState.staticDynamicMode === 'static')
+    if(simState.createMode === 'bridge') createBridgeElement(gridMouseX - 30, gridMouseY - 5, gridMouseX + 30, gridMouseY + 5, simState.staticDynamicMode === 'static')
 }
 
 function drawFPSandINFO(){
@@ -1122,10 +1126,14 @@ function handleCollision(bodyA, bodyB){
         let nx = normal.x * correctionMag
         let ny = normal.y * correctionMag
 
-        a.pos.x += nx * a.invMass
-        a.pos.y += ny * a.invMass
-        b.pos.x -= nx * b.invMass
-        b.pos.y -= ny * b.invMass
+        if(!a.isStatic){
+            a.pos.x += nx * a.invMass
+            a.pos.y += ny * a.invMass
+        }
+        if(!b.isStatic){
+            b.pos.x -= nx * b.invMass
+            b.pos.y -= ny * b.invMass
+        }
 
 
         updateCornerLocations(a)

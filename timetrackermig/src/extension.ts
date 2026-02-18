@@ -9,7 +9,7 @@ class TimeTracker {
     private interval: NodeJS.Timeout | undefined;
     private statusBar: vscode.StatusBarItem;
     private storagePath: string;
-    private idleThreshold = 20; // seconds
+    private idleThreshold = 120; // seconds
     
 
     constructor(private context: vscode.ExtensionContext) {
@@ -66,11 +66,11 @@ class TimeTracker {
         vscode.window.onDidChangeTextEditorSelection(reset);
         vscode.window.onDidChangeActiveTextEditor(reset);
         vscode.window.onDidChangeTextEditorVisibleRanges(reset);
-        vscode.window.onDidChangeWindowState(state => {
-            if (!state.focused) {
-                this.inactivitySeconds = this.idleThreshold;
-            }
-        });
+        // vscode.window.onDidChangeWindowState(state => {
+        //     if (!state.focused) {
+        //         this.inactivitySeconds = this.idleThreshold;
+        //     }
+        // });
     }
 
     private setActive(active: boolean) {
