@@ -47,13 +47,14 @@ main { max-width: 1000px; margin: auto; }
 footer { text-align: center; margin-top: 40px; color: #aaa; }
 
 
+
 h1, h2 { color: #fff; }
 h1 { font-size: 1.8em; }
 h2 { font-size: 2.2em; margin-bottom: 10px; }
 p { font-size: 0.7em; color: #ccc; }
 
 ul { list-style: none; padding: 0; }
-li { margin: 8px 0; }
+li { margin: 5px 0; }
 
 
 a {
@@ -80,19 +81,18 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
 }
+
+
 .category-cards-wrapper {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-  gap: 20px;
-  margin: 20px 0;
-  align-items: stretch;   
-  justify-items: stretch; 
+  column-count: 3;
+  column-gap: 20px;
 }
 
 .category-card {
-  display: flex;          
-  flex-direction: column;
-  width: auto;
+  break-inside: avoid;
+  margin-bottom: 20px;
+  display: inline-block;
+  width: 100%;
 
   background-color: #1d1d1d;
   border-radius: 10px;
@@ -101,10 +101,8 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
   transition: transform 0.3s ease;
 }
 
-
 .category-card h2 { margin-bottom: 10px; }
 .category-card ul { margin: 0; padding: 0; }
-
 
 .card-image {
   width: 100%;

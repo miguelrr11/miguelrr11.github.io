@@ -64,6 +64,7 @@ let tracksSpacing = 0; // Added to base spacing calculation
 let tracksRectHeight = 40;
 let tracksTextSizeSlider, tracksSpacingSlider, tracksRectHeightSlider;
 let tracksTextSizeLabel, tracksSpacingLabel, tracksRectHeightLabel;
+let automaticAlignmentCheckbox
 
 // Export settings
 let showGreenRectangle = true; // Only show when not downloading
@@ -145,10 +146,13 @@ async function setup(){
 function createTracksFromPaste(texto){
     for(let i = tracks.length-1; i > 0; i--) removeTrackRow(i)
     const lineas = texto.split(/\r?\n/);
+    console.log(lineas)
     let trackIndex = 0
-    for(let linea of lineas){
+    for(let i = 0; i < lineas.length; i++){
+        let linea = lineas[i]
+        if(linea.trim() === '') continue
         setTrackText(tracks[trackIndex], linea)
-        addTrackRowWithCapture()
+        if(i < lineas.length - 2) addTrackRowWithCapture()
         trackIndex++
     }
 }
@@ -617,6 +621,28 @@ function createProfileSection(parent = editorPanel) {
     createButton('Save').parent(saveRow).class('btn btn-secondary').style('width: 70px; padding: 8px;').mousePressed(saveNewProfile);
 }
 
+function alignMainElementsToImage(){
+    let xWithNoOffset = width * 0.475
+
+    let sizeSclMult = 0.425
+
+    let imageHorizOffset = horizontalOffsetsRatings.image || 0;
+    let imageX = width * 0.05 + imageHorizOffset;
+    let imageSize = width * sizeSclMult * imageSizeMultiplier;
+
+    let imageXRight = imageX + imageSize;
+
+    let marginNeeded = Math.round(imageXRight - xWithNoOffset - 20)
+
+    horizontalOffsetsRatings.artist = marginNeeded;
+    horizontalOffsetsRatings.year = marginNeeded;
+    horizontalOffsetsRatings.genre = marginNeeded;
+    horizontalOffsetsRatings.funfact = marginNeeded;
+
+    captureState();
+    currentView === 'ratings' ? printAlbum() : printCoverScreen();    
+}
+
 function getDefaultProfile() {
     return {
         tracksTextSize: 44,
@@ -629,9 +655,9 @@ function getDefaultProfile() {
         showGradeLegend: true,
         verticalOffsetsRatings: {funfact: -2},
         verticalOffsetsCover: {},
-        horizontalOffsetsRatings: {},
+        horizontalOffsetsRatings: {artist: -40, funfact: -40, year: -40, genre: -40},
         horizontalOffsetsCover: {},
-        imageSizeMultiplier: 1.0,
+        imageSizeMultiplier: 0.95,
         maxTextboxWidths: {...defaultMaxTextboxWidths},
         textSizeOffsets: {funfact: -2},
         textLeadingOffsets: {funfact: -2},
@@ -1142,7 +1168,10 @@ function createAdvancedOptionsSection(parent = editorPanel) {
             currentView === 'ratings' ? printAlbum() : printCoverScreen();
         }
     });
-    imageSizeMultiplierSlider.changed(() => captureState());
+    imageSizeMultiplierSlider.changed(() => {
+        captureState()
+        alignMainElementsToImage();
+    });
 
     // Max Textbox Width slider
     let maxWidthRow = createDiv('').parent(advancedContent).class('slider-row');
@@ -1176,11 +1205,21 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         captureState();
     });
 
+    let automaticAlignmentCheckboxRow = createDiv('').parent(advancedContent).style('margin-top: 12px;');
+    automaticAlignmentCheckbox = createCheckbox('Auto-Align Main Text to Image', true).parent(automaticAlignmentCheckboxRow).class('checkbox-input');
+        automaticAlignmentCheckbox.changed(() => {
+        if(automaticAlignmentCheckbox.checked()){
+            alignMainElementsToImage();
+        }    
+    });
+
     // Reset button
     createButton('Reset Advanced Options').parent(advancedContent).class('btn btn-secondary').style('margin-top', '12px').mousePressed(() => {
         imageSizeMultiplier = 1.0;
         imageSizeMultiplierSlider.value(1.0);
         imageSizeMultiplierLabel.html('1.0x');
+
+        automaticAlignmentCheckbox.checked(true);
 
         // Reset horizontal offsets
         Object.keys(horizontalOffsetsRatings).forEach(k => horizontalOffsetsRatings[k] = 0);
@@ -2584,6 +2623,12 @@ function mouseDragged() {
             } else {
                 horizontalOffsetsCover[draggedTextbox.id] = Math.round(dragStartOffsetX + deltaX);
                 verticalOffsetsCover[draggedTextbox.id] = Math.round(dragStartOffsetY + deltaY);
+            }
+
+            if(draggedTextbox.id === 'image' && automaticAlignmentCheckbox.checked){
+                alignMainElementsToImage()
+                captureState()
+                currentView === 'ratings' ? printAlbum() : printCoverScreen();
             }
 
             // Update sliders
