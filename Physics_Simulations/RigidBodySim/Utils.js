@@ -129,7 +129,17 @@ function modifyColor(col, amt) {
 }
 
 function lerppColor(color1, color2, t) {
-    return color1.map((c, i) => (1 - t) * c + t * color2[i]);
+    //convert both colors into 3 number arrays. colors can be just a number, a 1 number array, a 3 number array and a p5 color object (which has a ._color.coords array with the color values)
+    let c1, c2;
+    if (color1._color && color1._color.coords) c1 = color1._color.coords;
+    else if (Array.isArray(color1) && color1.length == 3) c1 = color1;
+    else if (Array.isArray(color1) && color1.length == 1) c1 = [color1[0], color1[0], color1[0]];
+    else c1 = [color1, color1, color1];
+    if (color2._color && color2._color.coords) c2 = color2._color.coords;
+    else if (Array.isArray(color2) && color2.length == 3) c2 = color2;
+    else if (Array.isArray(color2) && color2.length == 1) c2 = [color2[0], color2[0], color2[0]];
+    else c2 = [color2, color2, color2];
+    return c1.map((c, i) => (1 - t) * c + t * c2[i]);
 }
 
 function hexToRgb(hex) {

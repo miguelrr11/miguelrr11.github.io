@@ -10,11 +10,13 @@ function drawBody(body){
     translate(body.pos.x, body.pos.y)
     rotate(body.angle)
     rectMode(CENTER)
-    fill(lerppColor(colBody, [255, 0, 0], body.stress))
+    if(simState.showDebug) fill(lerppColor(colBody, [255, 0, 0], body.stress))
+    else fill(colBody)
     if(inside && simState.createMode === 'delete') fill(255, 0, 0)
     if(inside && !simState.createMode) fill(150)
     rect(0, 0, body.w, body.h)
     if(body.shape != 'bridge' && body.isStatic){
+        rotate(-body.angle)
         translate(-body.pos.x, -body.pos.y)
         stroke(150)
         strokeWeight(1)
@@ -45,7 +47,8 @@ function drawBodyCircle(body){
         stroke(0, 255, 100)
     }
     translate(body.pos.x, body.pos.y)
-    fill(lerppColor(colBody, [255, 0, 0], body.stress))
+    if(simState.showDebug) fill(lerppColor(colBody, [255, 0, 0], body.stress))
+    else fill(colBody)
     if(inside && simState.createMode === 'delete') fill(255, 0, 0)
     if(inside && !simState.createMode) fill(150)
     ellipse(0, 0, body.r * 2, body.r * 2)
@@ -525,5 +528,113 @@ function drawEditor(){
         }
         pop()
     }
+
+    push()
+    if(simState.settingPortals){
+        fill(simState.portalSettingStage === 'A' ? [0, 255, 255] : [255, 100, 0])
+        noStroke()
+        ellipse(freeMouseX, freeMouseY, 10, 10)
+    }
+
+    if(simState.portalA){
+        let p = simState.portalA
+        if(!p.body.edges) updateCornerLocations(p.body)
+        if(p.edgeIndex === undefined) {pop(); return}
+        let edge = p.body.edges[p.edgeIndex]
+        stroke(0, 255, 255)
+        strokeWeight(7)
+        line(edge.start.x, edge.start.y, edge.end.x, edge.end.y)
+    }
     
+    if(simState.portalB){
+        let p = simState.portalB
+        if(!p.body.edges) updateCornerLocations(p.body)
+        if(p.edgeIndex === undefined) {pop(); return}
+        let edge = p.body.edges[p.edgeIndex]
+        stroke(255, 100, 0)
+        strokeWeight(7)
+        line(edge.start.x, edge.start.y, edge.end.x, edge.end.y)
+    }
+    pop()
+    
+}
+
+function drawFPSandINFO(){
+    push()
+    fpsArr.shift()
+    fpsArr.push(frameRate())
+    let fpsMean = round(fpsArr.reduce((a, b) => a + b, 0) / fpsArr.length)
+    fill(255)
+    noStroke()
+    textSize(14)
+    textAlign(RIGHT, TOP)
+    textLeading(8)
+    text(`FPS: ${fpsMean}\n
+          N Bodies: ${bodies.length}\n
+          N Springs: ${springs.length}\n
+          N Ropes: ${ropes.length}\n
+          N Collisions: ${nCollisionsFrame}\n
+          N Leafs: ${tree.nLeafs}\n
+          Dragging Body: ${simState.draggingBody ? simState.draggingBody.id : 'None'}\n
+          Zoom: ${zoom.toFixed(2)}
+          `, width - 10, 10)
+    pop()
+}
+
+//not used
+function drawGrid(){
+    push()
+    stroke(40)
+    strokeWeight(1)
+    for(let i = 0; i <= nCells; i++){
+        line(i * cellSize, 0, i * cellSize, HEIGHT)
+        line(0, i * cellSize, WIDTH, i * cellSize)
+    }
+    pop()
+}
+
+function showGridPoints(){
+    push()
+    let edges = getEdges()
+    let minX = edges[0]
+    let maxX = edges[1]
+    let minY = edges[2]
+    let maxY = edges[3]
+    let startX = Math.floor(minX / cellSize) * cellSize
+    let startY = Math.floor(minY / cellSize) * cellSize
+
+    strokeWeight((1 / zoom) * 2)
+    
+    let fadeDistance = (maxX - minX) * 0.1  //10% of the screen dims
+
+    let baseAlpha = map(zoom, 0.8, 0.95, 0, 180, true)
+    
+    for(let x = startX; x <= maxX; x += cellSize){
+        for(let y = startY; y <= maxY; y += cellSize){
+            let distFromLeft = x - minX
+            let distFromRight = maxX - x
+            let distFromTop = y - minY
+            let distFromBottom = maxY - y
+            let minDistToEdge = Math.min(distFromLeft, distFromRight, distFromTop, distFromBottom)
+            let fadeFactor = Math.min(minDistToEdge / fadeDistance, 1)
+            let alpha = baseAlpha * fadeFactor
+            stroke(255, alpha)
+            point(x, y)
+        }
+    }
+    pop()
+}
+
+function drawDebugAux(){
+    return
+    push()
+    let body = simState.hoveredBody
+    if(!body) return
+    let edge = getClosestEdgeOfBodyToPoint(freeMouseX, freeMouseY, body)
+    if(edge){
+        stroke(255, 0, 0)
+        strokeWeight(2)
+        line(edge.start.x, edge.start.y, edge.end.x, edge.end.y)
+    }
+    pop()
 }
