@@ -383,6 +383,45 @@ function draw() {
   const GLYPHS = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ!@#$%^&*()_+-=<>?/\\[]{}";
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  // --- Single shared RAF loop ---
+  const activeElements = new Map(); // el -> { spans, isSpaceAt, len }
+  let rafId = null;
+
+  function tick() {
+    if (activeElements.size === 0) {
+      rafId = null;
+      return;
+    }
+    activeElements.forEach(({ spans, isSpaceAt, len }) => {
+      for (let i = 0; i < len; i++) {
+        const s = spans[i];
+        if (s.dataset.space === "1") continue;
+        s.textContent = GLYPHS[(Math.random() * GLYPHS.length) | 0];
+      }
+    });
+    rafId = requestAnimationFrame(tick);
+  }
+
+  function ensureLoop() {
+    if (!rafId) rafId = requestAnimationFrame(tick);
+  }
+
+  function addToLoop(el) {
+    const spans = [...el.querySelectorAll("span")];
+    activeElements.set(el, {
+      spans,
+      isSpaceAt: (i) => spans[i]?.dataset.space === "1",
+      len: spans.length,
+    });
+    ensureLoop();
+  }
+
+  function removeFromLoop(el) {
+    activeElements.delete(el);
+    // rafId will naturally stop next tick if map is empty
+  }
+
+  // --- Helpers ---
   function splitIntoSpans(el) {
     if (el._spanned) return;
     const text = el.textContent;
@@ -390,15 +429,15 @@ function draw() {
     [...text].forEach((ch, i) => {
       const span = document.createElement("span");
       if (ch === " ") {
-        span.textContent = "\u00A0";   // NBSP preserves width
-        span.dataset.space = "1";      // mark as a space
+        span.textContent = "\u00A0";
+        span.dataset.space = "1";
       } else {
         span.textContent = ch;
       }
       span.dataset.i = i;
       el.appendChild(span);
     });
-    el.dataset.original = text; // keep the original (with regular spaces)
+    el.dataset.original = text;
     el._spanned = true;
   }
 
@@ -407,121 +446,85 @@ function draw() {
     const len = Math.min(spans.length, str.length);
     for (let i = 0; i < len; i++) {
       const s = spans[i];
-      if (s.dataset.space === "1") continue;        // never touch spaces
-      const ch = str[i] === " " ? "\u00A0" : str[i]; // normalize if needed
-      s.textContent = ch;
+      if (s.dataset.space === "1") continue;
+      s.textContent = str[i] === " " ? "\u00A0" : str[i];
     }
   }
 
   function randomString(len, isSpaceAt) {
     let out = "";
     for (let i = 0; i < len; i++) {
-      if (isSpaceAt(i)) {
-        out += "\u00A0";               // keep NBSP
-      } else {
-        out += GLYPHS[(Math.random() * GLYPHS.length) | 0];
-      }
+      out += isSpaceAt(i) ? "\u00A0" : GLYPHS[(Math.random() * GLYPHS.length) | 0];
     }
     return out;
   }
 
+  // --- Scramble / stop ---
   function startScramble(el, durationMs = 2000) {
     splitIntoSpans(el);
+    if (prefersReduced) return;
 
-    // If already scrambling, just refresh the timer and bail out.
-    if (el._scrambling) {
-      if (el._scrambleTO) clearTimeout(el._scrambleTO);
-      el._scrambleTO = setTimeout(() => stopScramble(el), durationMs);
-      return el._stopScramble;
-    }
-
-    if (prefersReduced) return; // respect reduced motion
-
-    const spans = el.querySelectorAll("span");
-    const len = spans.length;
-    const isSpaceAt = (i) => spans[i]?.dataset.space === "1";
-
-    el._scrambling = true;
-
-    const tick = () => {
-      if (!el._scrambling) return;
-      const scrambled = randomString(len, isSpaceAt);
-      setTextFromString(el, scrambled);
-      el._scrambleRAF = requestAnimationFrame(tick);
-    };
-
-    el._scrambleRAF = requestAnimationFrame(tick);
-
-    // Auto-stop timer (NEW)
+    // Refresh auto-stop timer if already active
+    if (el._scrambleTO) clearTimeout(el._scrambleTO);
     el._scrambleTO = setTimeout(() => stopScramble(el), durationMs);
 
-    // stopper with reveal that also respects spaces
-    el._stopScramble = () => {
-      el._scrambling = false;
-      if (el._scrambleRAF) cancelAnimationFrame(el._scrambleRAF);
-      if (el._scrambleTO) clearTimeout(el._scrambleTO);
-      el._scrambleTO = null;
-
-      const original = el.dataset.original || "";
-      const steps = 18;
-      let k = 0;
-
-      const reveal = () => {
-        const revealCount = Math.floor((k / steps) * (len));
-        const head = original.slice(0, revealCount).replace(/ /g, "\u00A0");
-        const tail = randomString(Math.max(0, len - revealCount), (i) => isSpaceAt(i + revealCount));
-        setTextFromString(el, head + tail);
-
-        k++;
-        if (k <= steps) {
-          el._revealRAF = requestAnimationFrame(reveal);
-        } else {
-          // final: write the true original while preserving NBSP in spans
-          const finalStr = original.replace(/ /g, "\u00A0");
-          setTextFromString(el, finalStr);
-        }
-      };
-
-      el._revealRAF = requestAnimationFrame(reveal);
-    };
-
-    return el._stopScramble;
+    if (!el._scrambling) {
+      el._scrambling = true;
+      addToLoop(el);
+    }
   }
 
   function stopScramble(el) {
-    if (typeof el._stopScramble === "function") {
-      el._stopScramble();
-      el._stopScramble = null;
-    }
+    if (!el._scrambling) return;
+    el._scrambling = false;
+    if (el._scrambleTO) { clearTimeout(el._scrambleTO); el._scrambleTO = null; }
+    removeFromLoop(el);
+
+    // Reveal animation — still per-element but uses its own lightweight RAF chain
+    const spans = [...el.querySelectorAll("span")];
+    const len = spans.length;
+    const isSpaceAt = (i) => spans[i]?.dataset.space === "1";
+    const original = el.dataset.original || "";
+    const steps = 18;
+    let k = 0;
+
+    if (el._revealRAF) cancelAnimationFrame(el._revealRAF);
+
+    const reveal = () => {
+      const revealCount = Math.floor((k / steps) * len);
+      const head = original.slice(0, revealCount).replace(/ /g, "\u00A0");
+      const tail = randomString(Math.max(0, len - revealCount), (i) => isSpaceAt(i + revealCount));
+      setTextFromString(el, head + tail);
+      k++;
+      if (k <= steps) {
+        el._revealRAF = requestAnimationFrame(reveal);
+      } else {
+        setTextFromString(el, original.replace(/ /g, "\u00A0"));
+        el._revealRAF = null;
+      }
+    };
+
+    el._revealRAF = requestAnimationFrame(reveal);
   }
 
-  const msScramble = 50
+  // --- Binding ---
+  const msScramble = 50;
 
   function bindMatrixLinks(root = document) {
     let links = root.querySelectorAll("a.matrix-link");
-    let moreLInks = root.querySelectorAll("h1.matrix-link");
+    let moreLinks = root.querySelectorAll("h1.matrix-link");
     let spanLinks = root.querySelectorAll("span.matrix-link");
-    links = [...links, ...moreLInks, ...spanLinks];
+    links = [...links, ...moreLinks, ...spanLinks];
     links.forEach((el) => {
       if (el._matrixBound) return;
       el._matrixBound = true;
 
       splitIntoSpans(el);
 
-      el.addEventListener("mouseenter", () => {
-        el._stopScramble = startScramble(el, msScramble); 
-      });
-      el.addEventListener("mouseleave", () => {
-        stopScramble(el); // still stop early on leave
-      });
-
-      // Keyboard users
-      el.addEventListener("focus", () => {
-        el._stopScramble = startScramble(el, msScramble);
-      });
-      el.addEventListener("blur", () => {
-        stopScramble(el);
-      });
+      el.addEventListener("mouseenter", () => startScramble(el, msScramble));
+      el.addEventListener("mouseleave", () => stopScramble(el));
+      el.addEventListener("focus",      () => startScramble(el, msScramble));
+      el.addEventListener("blur",       () => stopScramble(el));
     });
   }
 
@@ -531,7 +534,6 @@ function draw() {
     bindMatrixLinks();
   }
 
-  // Expose for dynamically-added links
   window.MatrixLinks = { bind: bindMatrixLinks, start: startScramble, stop: stopScramble };
 })();
 </script>
@@ -541,15 +543,62 @@ function draw() {
 (() => {
   const prefersReduced = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
-  // If your hover-scramble code already did span-wrapping, this will detect and skip.
+  const FLICKERS_PER_TICK = 300; // flicker up to this many elements per tick
+
+  // ── Shared element registry ──────────────────────────────────────────────
+  const registry = [];   // all ambient elements
+  let loopTimer = null;
+
+  const MIN_DELAY = 1200;
+  const MAX_DELAY = 2600;
+
+  function randomInt(min, max) {
+    return Math.floor(Math.random() * (max - min + 1)) + min;
+  }
+
+  function scheduleNext() {
+    if (loopTimer) return;                          // already scheduled
+    if (registry.length === 0) return;             // nothing to do
+    loopTimer = setTimeout(onTick, randomInt(MIN_DELAY, MAX_DELAY));
+  }
+
+  function onTick() {
+    const count = Math.min(FLICKERS_PER_TICK, registry.length);
+    const picked = new Set();
+    while (picked.size < count) picked.add(randomInt(0, registry.length - 1));
+
+    picked.forEach(i => {
+      const el = registry[i];
+      const spans = el.querySelectorAll("span");
+      if (spans.length === 0) return;
+      const span = spans[randomInt(0, spans.length - 1)];
+      if (!span.classList.contains("is-flickering")) {
+        span.classList.add("is-flickering");
+        span.addEventListener("animationend", function handler() {
+          span.classList.remove("is-flickering");
+          span.removeEventListener("animationend", handler);
+        });
+      }
+    });
+  }
+
+  // Single shared visibility listener — pause/resume the one global timer
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) {
+      scheduleNext();
+    } else {
+      clearTimeout(loopTimer);
+      loopTimer = null;
+    }
+  });
+
+  // ── Per-element helpers ──────────────────────────────────────────────────
   function splitIntoSpans(el) {
     if (el._spanned) return;
-    // If it already contains spans, assume someone else wrapped it.
     if (el.querySelector("span")) { el._spanned = true; return; }
-
     const text = el.textContent;
     el.textContent = "";
-    for (const ch of [...text]) {
+    for (const ch of text) {
       const span = document.createElement("span");
       span.textContent = ch;
       el.appendChild(span);
@@ -557,97 +606,25 @@ function draw() {
     el._spanned = true;
   }
 
-  function randomInt(min, max) {
-    return Math.floor(Math.random() * (max - min + 1)) + min;
-  }
-
-  // Start a gentle loop for a single link element
   function startAmbient(el) {
     if (prefersReduced || el._ambientOn) return;
     splitIntoSpans(el);
     el._ambientOn = true;
-
-    const spans = () => el.querySelectorAll("span");
-    const minDelay = 1200;  // ms between flickers
-    const maxDelay = 2600;  // vary timing so it feels organic
-
-    let timer;
-    let paused = false;
-
-    function scheduleNext() {
-      if (!el._ambientOn || paused) return;
-      const delay = randomInt(minDelay, maxDelay);
-      timer = setTimeout(() => {
-        if (!el._ambientOn || paused) return;
-
-        const s = spans();
-        if (s.length === 0) { scheduleNext(); return; }
-
-        // Flicker 1–2 random characters (usually 1)
-        const count = 1;
-        const chosen = new Set();
-        for (let k = 0; k < count; k++) {
-          let idx = randomInt(0, s.length - 1);
-          while (chosen.has(idx) && chosen.size < s.length) {
-            idx = randomInt(0, s.length - 1);
-          }
-          chosen.add(idx);
-        }
-
-        chosen.forEach(i => {
-          const span = s[i];
-          if (!span) return;
-          // If it’s already flickering, skip to avoid stacking animations
-          if (span.classList.contains("is-flickering")) return;
-
-          span.classList.add("is-flickering");
-          span.addEventListener("animationend", function handler() {
-            span.classList.remove("is-flickering");
-            span.removeEventListener("animationend", handler);
-          });
-        });
-
-        scheduleNext(); // chain
-      }, delay);
-    }
-
-    // Pause when tab is hidden to save work
-    function onVisChange() {
-      paused = document.hidden;
-      if (!paused) scheduleNext();
-      else clearTimeout(timer);
-    }
-    document.addEventListener("visibilitychange", onVisChange);
-
-    // Store cleaners so we can stop later if needed
-    el._ambientCleanup = () => {
-      clearTimeout(timer);
-      document.removeEventListener("visibilitychange", onVisChange);
-      el._ambientOn = false;
-    };
-
+    registry.push(el);
     scheduleNext();
   }
 
   function stopAmbient(el) {
-    if (el._ambientCleanup) {
-      el._ambientCleanup();
-      el._ambientCleanup = null;
-    }
+    if (!el._ambientOn) return;
+    el._ambientOn = false;
+    const idx = registry.indexOf(el);
+    if (idx !== -1) registry.splice(idx, 1);
   }
 
+  // ── Binding ──────────────────────────────────────────────────────────────
   function bindAmbient(root = document) {
-    root.querySelectorAll("a.ambient-matrix").forEach(el => {
-      if (el._ambientBound) return;
-      el._ambientBound = true;
-      startAmbient(el);
-    });
-    root.querySelectorAll("h1.ambient-matrix").forEach(el => {
-      if (el._ambientBound) return;
-      el._ambientBound = true;
-      startAmbient(el);
-    });
-    root.querySelectorAll("span.ambient-matrix").forEach(el => {
+    const selector = "a.ambient-matrix, h1.ambient-matrix, span.ambient-matrix";
+    root.querySelectorAll(selector).forEach(el => {
       if (el._ambientBound) return;
       el._ambientBound = true;
       startAmbient(el);
@@ -660,7 +637,6 @@ function draw() {
     bindAmbient();
   }
 
-  // Expose tiny API if you inject links later
   window.AmbientMatrix = { bind: bindAmbient, start: startAmbient, stop: stopAmbient };
 })();
 </script>
