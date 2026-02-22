@@ -166,6 +166,13 @@ function draw(){
     collisionPoints = new Set()
     nCollisionsFrame = 0
 
+    if(simState.centerCameraOnBody && !simState.centerCameraOnBody.dragging){
+        xOff = lerp(xOff, width/2 - simState.centerCameraOnBody.pos.x * zoom, 0.1)
+        yOff = lerp(yOff, height/2 - simState.centerCameraOnBody.pos.y * zoom, 0.1)
+    }
+
+    let startTimePhysics = performance.now()
+
     setGridMousePos()
     
     handleDragBody()
@@ -216,6 +223,11 @@ function draw(){
         b.vel.y = b.posFree.y - b.oldPosFree.y
     }
 
+    let endTimePhysics = performance.now()
+    let physicsTime = endTimePhysics - startTimePhysics
+
+    let startTimeRender = performance.now()
+
 
     // Draw
     push()
@@ -248,6 +260,12 @@ function draw(){
     tabs.update();
     tabs.show();
     pop()
+
+    let endTimeRender = performance.now()
+    let renderTime = endTimeRender - startTimeRender
+
+    simState.physicsTime = physicsTime
+    simState.renderTime = renderTime
 
     drawFPSandINFO()
 

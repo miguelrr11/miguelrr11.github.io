@@ -210,84 +210,109 @@ function handleCollision(bodyA, bodyB){
         collisionPoints.add(`${roundToNearest(collision.contact.x, 10)},${roundToNearest(collision.contact.y, 10)}`)
         nCollisionsFrame++
 
-        if (
-            (isRectOrBridge(a) && b.shape === 'circle') ||
-            (a.shape === 'circle' && isRectOrBridge(b))  // fix 1: added parentheses
-        ) {
-            if (
-                (simState.portalA && (simState.portalA.body === a || simState.portalA.body === b)) ||  // fix 2
-                (simState.portalB && (simState.portalB.body === a || simState.portalB.body === b))
-            ) {
-                let rectWithPortal = isRectOrBridge(a) ? a : b;
-                let circle       = a.shape === 'circle' ? a : b;
+        if (simState.portalA && simState.portalB) {
+            let portalOnRect = null
+            let rectWithPortal = null
+            let traveler = null
 
-                // fix 3: cleanly find which portal is on this rect
-                let portalOnRect =
-                    (simState.portalA && simState.portalA.body === rectWithPortal) ? simState.portalA :
-                    (simState.portalB && simState.portalB.body === rectWithPortal) ? simState.portalB :
-                    null;
+            for (let [host, other] of [[a, b], [b, a]]) {
+                if (!isRectOrBridge(host)) continue
+                let candidate =
+                    (simState.portalA.body === host) ? simState.portalA :
+                    (simState.portalB.body === host) ? simState.portalB :
+                    null
+                if (candidate) {
+                    portalOnRect   = candidate
+                    rectWithPortal = host
+                    traveler       = other
+                    break
+                }
+            }
 
-                if (!portalOnRect) return;
+            if (portalOnRect && traveler) {
+                let e = rectWithPortal.edges[portalOnRect.edgeIndex]
 
-                let e = rectWithPortal.edges[portalOnRect.edgeIndex];  // fix 6
+                let crossingEdge = false
+                if (traveler.shape === 'circle') {
+                    crossingEdge = circleLineCollision(
+                        { pos: traveler.pos, r: traveler.r },
+                        { start: e.start, end: e.end }
+                    )
+                } 
+                else {
+                    crossingEdge = traveler.edges.some(
+                        edge => linelineIntersect(edge.start, edge.end, e.start, e.end)
+                    )
+                }
 
-                if (circleLineCollision({ pos: circle.pos, r: circle.r }, { start: e.start, end: e.end })) {
-                    let centerOfMassInside = pointInRect({ x: circle.pos.x, y: circle.pos.y }, rectWithPortal);
+                if (crossingEdge) {
+                    let centerInside = pointInRect({ x: traveler.pos.x, y: traveler.pos.y }, rectWithPortal)
 
-                    if (centerOfMassInside && (circle.canTransportThroughPortal || circle.canTransportThroughPortal === undefined)) {
-                        let fromPortal = portalOnRect;
-                        let toPortal   = fromPortal === simState.portalA ? simState.portalB : simState.portalA;
+                    if (centerInside && (traveler.canTransportThroughPortal || traveler.canTransportThroughPortal === undefined)) {
+                        let toPortal = portalOnRect === simState.portalA ? simState.portalB : simState.portalA
+                        if (!toPortal) return
 
-                        if (!toPortal) return;  // fix 7: destination portal may not exist yet
+                        let fromEdge = rectWithPortal.edges[portalOnRect.edgeIndex]
+                        let toEdge   = toPortal.body.edges[toPortal.edgeIndex]
 
-                        let fromEdge = rectWithPortal.edges[fromPortal.edgeIndex];
-                        let toEdge   = toPortal.body.edges[toPortal.edgeIndex];
 
-                        let fromAngle = Math.atan2(fromEdge.end.y - fromEdge.start.y, fromEdge.end.x - fromEdge.start.x);
+                        let fromAngle = Math.atan2(fromEdge.end.y - fromEdge.start.y, fromEdge.end.x - fromEdge.start.x)
                         let toAngle   = Math.atan2(toEdge.end.y   - toEdge.start.y,   toEdge.end.x   - toEdge.start.x) - Math.PI
-                        let angleDiff = toAngle - fromAngle;
+                        let angleDiff = toAngle - fromAngle
 
-                        // fix 4: actually apply the velocity rotation
-                        let cos = Math.cos(angleDiff);
-                        let sin = Math.sin(angleDiff);
-                        let vx = circle.vel.x;
-                        let vy = circle.vel.y;
-                        circle.vel.x = vx * cos - vy * sin;
-                        circle.vel.y = vx * sin + vy * cos;
+                        let cos = Math.cos(angleDiff)
+                        let sin = Math.sin(angleDiff)
+                        let vx = traveler.vel.x
+                        let vy = traveler.vel.y
+                        traveler.vel.x = vx * cos - vy * sin
+                        traveler.vel.y = vx * sin + vy * cos
+
+                        if (traveler.shape !== 'circle') {
+                            traveler.angle += angleDiff
+                        }
 
                         let fromEdgeCenter = {
                             x: (fromEdge.start.x + fromEdge.end.x) / 2,
                             y: (fromEdge.start.y + fromEdge.end.y) / 2
-                        };
+                        }
                         let toEdgeCenter = {
                             x: (toEdge.start.x + toEdge.end.x) / 2,
                             y: (toEdge.start.y + toEdge.end.y) / 2
-                        };
+                        }
 
                         let relPos = {
-                            x: circle.pos.x - fromEdgeCenter.x,
-                            y: circle.pos.y - fromEdgeCenter.y
-                        };
+                            x: traveler.pos.x - fromEdgeCenter.x,
+                            y: traveler.pos.y - fromEdgeCenter.y
+                        }
 
-                        // fix 5: rotate by -fromAngle to enter edge-local space, then +toAngle to leave it
-                        let cosFrom = Math.cos(-fromAngle);
-                        let sinFrom = Math.sin(-fromAngle);
+                        //scale relPos to the length of the toPortal
+                        let fromEdgeLength = sqDist(fromEdge.start.x, fromEdge.start.y, fromEdge.end.x, fromEdge.end.y)
+                        let toEdgeLength = sqDist(toEdge.start.x, toEdge.start.y, toEdge.end.x, toEdge.end.y)
+                        let scale = Math.sqrt(toEdgeLength / fromEdgeLength)
+                        relPos.x *= scale
+                        relPos.y *= scale
+
+                        let cosFrom = Math.cos(-fromAngle)
+                        let sinFrom = Math.sin(-fromAngle)
                         let relPosLocal = {
                             x: relPos.x * cosFrom - relPos.y * sinFrom,
                             y: relPos.x * sinFrom + relPos.y * cosFrom
-                        };
+                        }
 
-                        let cosTo = Math.cos(toAngle);
-                        let sinTo = Math.sin(toAngle);
+                        let cosTo = Math.cos(toAngle)
+                        let sinTo = Math.sin(toAngle)
                         let relPosFinal = {
                             x: relPosLocal.x * cosTo - relPosLocal.y * sinTo,
                             y: relPosLocal.x * sinTo + relPosLocal.y * cosTo
-                        };
-                        circle.pos.x = toEdgeCenter.x + relPosFinal.x;
-                        circle.pos.y = toEdgeCenter.y + relPosFinal.y;
-                        circle.canTransportThroughPortal = false;
+                        }
+
+                        traveler.pos.x = toEdgeCenter.x + relPosFinal.x
+                        traveler.pos.y = toEdgeCenter.y + relPosFinal.y
+                        traveler.canTransportThroughPortal = false
+
+                        updateCornerLocations(traveler)
                     }
-                    return;
+                    return
                 }
             }
         }
@@ -295,7 +320,6 @@ function handleCollision(bodyA, bodyB){
         let normal = collision.normal
         let depth = collision.depth
 
-        // Split separation by inverse mass ratio
         let invMassSum = a.invMass + b.invMass
         if(invMassSum === 0) return
 
@@ -315,7 +339,6 @@ function handleCollision(bodyA, bodyB){
             b.pos.x -= nx * b.invMass
             b.pos.y -= ny * b.invMass
         }
-
 
         updateCornerLocations(a)
         updateCornerLocations(b)

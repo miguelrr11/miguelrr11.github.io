@@ -3,6 +3,7 @@ function mousePressed(){
 
     setHoveredBody()
     let HB = simState.hoveredBody || simState.hoveredSpring
+    let HC = simState.hoveredCornerIndex
 
     if(simState.settingPortals){
         if(!HB || isRectOrBridge(HB) === false) return
@@ -148,8 +149,13 @@ function mousePressed(){
     else if(simState.createMode === 'drag'){
         let dragBody = simState.draggingBody
         if(!dragBody) dragBody = HB
+        if(isRectOrBridge(dragBody) && dragBody.isStatic && HC !== null){
+            setSelectedBody(dragBody)
+            simState.draggingCornerIndex = HC
+            return
+        }
         // No mode: drag bodies
-        if((HB.shape === 'rect' || HB.shape === 'bridge')){
+        if(isRectOrBridge(HB)){
             HB.dragging = true
             HB.offsetDrag = {x: gridMouseX - HB.pos.x, y: gridMouseY - HB.pos.y}
             setSelectedBody(HB)
@@ -170,8 +176,10 @@ function mousePressed(){
 }
 
 function mouseReleased(){
-    prevMouseX = undefined
-    prevMouseY = undefined
+    prevMouseX = null
+    prevMouseY = null
+
+    simState.draggingBody = null
 
     if(dragStart && simState.createMode === 'rect'){
         createBodyFromRect(dragStart.x, dragStart.y, gridMouseX, gridMouseY, simState.staticDynamicMode === 'static')
@@ -229,8 +237,13 @@ function setGridMousePos(){
 }
 
 function doubleClicked(){
+    simState.centerCameraOnBody = null
     if(panel.isMouseInside()) return
     if(simState.createMode === 'delete') return
+    if(simState.hoveredBody){
+        simState.centerCameraOnBody = simState.hoveredBody
+        return
+    }
     if(simState.createMode === 'rect') createBodyFromRect(gridMouseX - 15, gridMouseY - 15, gridMouseX + 15, gridMouseY + 15, simState.staticDynamicMode === 'static')
     if(simState.createMode === 'circle') createBodyFromCircle(gridMouseX, gridMouseY, 15, simState.staticDynamicMode === 'static')
     if(simState.createMode === 'bridge') createBridgeElement(gridMouseX - 30, gridMouseY - 5, gridMouseX + 30, gridMouseY + 5, simState.staticDynamicMode === 'static')
@@ -284,11 +297,21 @@ function logStateAndEverything(){
 }
 
 function setHoveredBody(){
-    //iterate through all bodies and springs and find if mouse is hovering over any of them, and set simState.hoveredBody
     simState.hoveredBody = null
     simState.hoveredSpring = null
+    simState.hoveredCornerIndex = null
     for(let b of bodies){
-        if((b.shape == 'rect' || b.shape == 'bridge') && pointInRect({x: freeMouseX, y: freeMouseY}, b, true)){
+        if(isRectOrBridge(b) && b.isStatic){
+            for(let i = 0; i < b.corners.length; i++){
+                let c = b.corners[i]
+                if(dist(c.x, c.y, freeMouseX, freeMouseY) < 10){
+                    simState.hoveredBody = b
+                    simState.hoveredCornerIndex = i
+                    return
+                }
+            }
+        }
+        if(isRectOrBridge(b) && pointInRect({x: freeMouseX, y: freeMouseY}, b, true)){
             simState.hoveredBody = b
             return
         }
@@ -326,6 +349,7 @@ function findHoveredSpring(){
 function setSelectedBody(body){
     simState.selectedBody = body
     simState.draggingBody = body
+    simState.draggingCornerIndex = null
     cteAngVelSlider.setValue(body ? body.angVel : 0)
     cteAngVelCB.setValue(body ? body.cteAngVelToggle : false)
 }
@@ -335,11 +359,24 @@ function handleDragBody(){
         b.oldPos = {x: b.pos.x, y: b.pos.y}
         b.posFree = b.posFree ? {x: b.posFree.x, y: b.posFree.y} : {x: b.pos.x, y: b.pos.y}
         b.oldPosFree = b.posFree ? {x: b.posFree.x, y: b.posFree.y} : {x: b.pos.x, y: b.pos.y}
-        if(simState.createMode === 'drag' && b.dragging && mouseIsPressed){
+        if(simState.createMode === 'drag' && simState.draggingBody === b && mouseIsPressed && simState.draggingCornerIndex !== null){
+            let cornerIndex = simState.draggingCornerIndex
+            let oppositeCornerIndex = (cornerIndex + 2) % 4
+            let cornerPos = b.corners[cornerIndex]
+            let oppositeCornerPos = b.corners[oppositeCornerIndex]
+            let angleBefore = atan2(cornerPos.y - oppositeCornerPos.y, cornerPos.x - oppositeCornerPos.x)
+            let newCornerPos = {x: gridMouseX, y: gridMouseY}
+            let angleAfter = atan2(newCornerPos.y - oppositeCornerPos.y, newCornerPos.x - oppositeCornerPos.x)
+            let angleDiff = angleAfter - angleBefore
+            b.angle += angleDiff
+            updateCornerLocations(b)
+        }
+        else if(simState.createMode === 'drag' && simState.draggingBody === b && mouseIsPressed && b.offsetDrag){
             b.pos = {x: gridMouseX - b.offsetDrag.x, y: gridMouseY - b.offsetDrag.y}
             b.posFree = {x: freeMouseX, y: freeMouseY}
             b.vel = {x: 0, y: 0}
         }
+        
     }
 }
 

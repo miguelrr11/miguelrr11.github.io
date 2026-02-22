@@ -4,6 +4,10 @@
 // Math Utilities
 // ===================
 
+function sqDist(x1, y1, x2, y2){
+  return (x1 - x2) * (x1 - x2) + (y1 - y2) * (y1 - y2)
+}
+
 function linelineIntersect(p1, p2, p3, p4){
     let den = (p4.y - p3.y) * (p2.x - p1.x) - (p4.x - p3.x) * (p2.y - p1.y)
     if(den == 0) return null // Parallel lines

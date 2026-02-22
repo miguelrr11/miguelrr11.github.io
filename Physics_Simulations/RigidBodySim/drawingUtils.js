@@ -16,6 +16,7 @@ function drawBody(body){
     if(inside && !simState.createMode) fill(150)
     rect(0, 0, body.w, body.h)
     if(body.shape != 'bridge' && body.isStatic){
+        push()
         rotate(-body.angle)
         translate(-body.pos.x, -body.pos.y)
         stroke(150)
@@ -24,6 +25,19 @@ function drawBody(body){
             line(c.x - 4, c.y - 4, c.x + 4, c.y + 4)
             line(c.x + 4, c.y - 4, c.x - 4, c.y + 4)
         }
+        pop()
+    }
+    if(simState.selectedBody === body && body.isStatic){
+        push()
+        rotate(-body.angle)
+        translate(-body.pos.x, -body.pos.y)
+        noFill()
+        strokeWeight(1)
+        stroke(0, 255, 100)
+        for(let c of body.corners){
+            ellipse(c.x, c.y, 12, 12)
+        }
+        pop()
     }
     pop()
     if(simState.showDebug) drawDebugBody(body)
@@ -87,15 +101,9 @@ function drawDebugBodyCircle(body){
         stroke(0, 120, 255)
         strokeWeight(2)
         line(px, py, ex, ey)
-        // Arrowhead
-        // let ang = atan2(body.vel.y, body.vel.x)
-        // let aSize = 5
-        // line(ex, ey, ex - aSize * Math.cos(ang - 0.4), ey - aSize * Math.sin(ang - 0.4))
-        // line(ex, ey, ex - aSize * Math.cos(ang + 0.4), ey - aSize * Math.sin(ang + 0.4))
         pop()
     }
 
-    // Angular velocity arc
     if (Math.abs(body.angVel) > 0.005) {
         push();
         noFill();
@@ -113,28 +121,22 @@ function drawDebugBodyCircle(body){
         }
 
         arc(px, py, arcR * 2, arcR * 2, startAngle, endAngle);
-
-        // let tipAng = body.angle + arcSpan;
-        // let tipX = px + arcR * Math.cos(tipAng);
-        // let tipY = py + arcR * Math.sin(tipAng);
-
-        // let tangentAng = tipAng + (body.angVel > 0 ? -HALF_PI : HALF_PI);
-        // let aSize = 5;
-
-        // line(tipX, tipY, tipX + aSize * Math.cos(tangentAng - 0.6), tipY + aSize * Math.sin(tangentAng - 0.6));
-        // line(tipX, tipY, tipX + aSize * Math.cos(tangentAng + 0.6), tipY + aSize * Math.sin(tangentAng + 0.6));
-
         pop();
     }
 
-    // push()
-    // stroke(255, 0, 0)
-    // strokeWeight(1)
-    // let endX = body.pos.x + Math.cos(body.angle) * body.r * .5
-    // let endY = body.pos.y + Math.sin(body.angle) * body.r * .5
-    // line(body.pos.x, body.pos.y, endX, endY)
-
-    // pop()
+    if(simState.selectedBody === body){
+        push()
+        fill(255)
+        stroke(0)
+        strokeWeight(1)
+        textAlign(CENTER, CENTER)
+        textSize(9)
+        text('id ' + body.id + '\n' +
+            'v: ' + body.vel.x.toFixed(1) + ', ' + body.vel.y.toFixed(1) + '\n' +
+            'w: ' + body.angVel.toFixed(2) + '\n' + 
+            'm: ' + body.mass.toFixed(1), px, py)
+        pop()
+    }
 
 }
 
@@ -531,14 +533,28 @@ function drawEditor(){
 
     push()
     if(simState.settingPortals){
-        fill(simState.portalSettingStage === 'A' ? [0, 255, 255] : [255, 100, 0])
-        noStroke()
-        ellipse(freeMouseX, freeMouseY, 10, 10)
+        setHoveredBody()
+        let HB = simState.hoveredBody
+
+        if(!HB || isRectOrBridge(HB) === false) {pop(); return}
+        let [edge, index] = getClosestEdgeOfBodyToPoint(freeMouseX, freeMouseY, HB)
+        if(!edge) return
+        if(simState.portalSettingStage === 'A'){
+            stroke(0, 255, 255)
+            strokeWeight(7)
+            line(edge.start.x, edge.start.y, edge.end.x, edge.end.y)
+        }
+        else if(simState.portalSettingStage === 'B'){
+            stroke(255, 100, 0)
+            strokeWeight(7)
+            line(edge.start.x, edge.start.y, edge.end.x, edge.end.y)
+        }
+        
     }
 
     if(simState.portalA){
         let p = simState.portalA
-        if(!p.body.edges) updateCornerLocations(p.body)
+        if(!p.body.edges) return
         if(p.edgeIndex === undefined) {pop(); return}
         let edge = p.body.edges[p.edgeIndex]
         stroke(0, 255, 255)
@@ -548,7 +564,7 @@ function drawEditor(){
     
     if(simState.portalB){
         let p = simState.portalB
-        if(!p.body.edges) updateCornerLocations(p.body)
+        if(!p.body.edges) return
         if(p.edgeIndex === undefined) {pop(); return}
         let edge = p.body.edges[p.edgeIndex]
         stroke(255, 100, 0)
@@ -570,13 +586,16 @@ function drawFPSandINFO(){
     textAlign(RIGHT, TOP)
     textLeading(8)
     text(`FPS: ${fpsMean}\n
-          N Bodies: ${bodies.length}\n
-          N Springs: ${springs.length}\n
-          N Ropes: ${ropes.length}\n
-          N Collisions: ${nCollisionsFrame}\n
-          N Leafs: ${tree.nLeafs}\n
-          Dragging Body: ${simState.draggingBody ? simState.draggingBody.id : 'None'}\n
-          Zoom: ${zoom.toFixed(2)}
+        N Bodies: ${bodies.length}\n
+        N Springs: ${springs.length}\n
+        N Ropes: ${ropes.length}\n
+        N Collisions: ${nCollisionsFrame}\n
+        N Leafs: ${tree.nLeafs}\n
+        Dragging Body: ${simState.draggingBody ? simState.draggingBody.id : 'None'}\n
+        Dragging Corner: ${simState.draggingCornerIndex !== null ? simState.draggingCornerIndex : 'None'}\n
+        Zoom: ${zoom.toFixed(2)}\n
+        Physics Time: ${simState.physicsTime.toFixed(1)} ms\n
+        Render Time: ${simState.renderTime.toFixed(1)} ms
           `, width - 10, 10)
     pop()
 }

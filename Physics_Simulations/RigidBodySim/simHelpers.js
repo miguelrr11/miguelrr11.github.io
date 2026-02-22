@@ -103,7 +103,6 @@ function loadStateFromLocal(){
     let saved = localStorage.getItem("rigidBodySimState")
     if(saved){
         tree = new DynamicAABBTree(5)
-        globalID = 0
         let parsed = JSON.parse(saved)
         simState = parsed.simState
         bodies = []
@@ -122,8 +121,8 @@ function loadStateFromLocal(){
             newBody.isRope = b.isRope
             newBody.id = b.id
         })
-        simState.portalA.body = simState.portalA ? bodies.find(b => b.id === simState.portalA.bodyID) : null
-        simState.portalB.body = simState.portalB ? bodies.find(b => b.id === simState.portalB.bodyID) : null
+        if(simState.portalA && simState.portalA.bodyID != undefined) simState.portalA.body = bodies.find(b => b.id === simState.portalA.bodyID)
+        if(simState.portalB && simState.portalB.bodyID != undefined) simState.portalB.body = bodies.find(b => b.id === simState.portalB.bodyID)
         parsed.springs.forEach(s => {
             let bodyA = bodies.find(b => b.id == s.bodyA)
             let bodyB = bodies.find(b => b.id == s.bodyB)
@@ -153,7 +152,7 @@ function createSpring(bodyA, anchorA, bodyB, anchorB, restLength = null, worldAn
     let posA = worldAnchorA || getAnchorWorldPos(bodyA, anchorA) || { x: gridMouseX, y: gridMouseY }
     let posB = worldAnchorB || getAnchorWorldPos(bodyB, anchorB) || { x: gridMouseX, y: gridMouseY }
     let d = restLength !== null ? restLength : (simState.autoLengthSpring ? Math.hypot(posB.x - posA.x, posB.y - posA.y) : simState.lengthSpring * cellSize)
-    let id = globalID++
+    let id = simState.globalID++
     let newSpring = {
         bodyA, bodyB, anchorA, anchorB,
         worldAnchorA: posA,
@@ -195,7 +194,7 @@ function createBodyFromCircle(x, y, r, isStatic, angle = 0){
         friction: 1,
         cteAngVel: 0,
         cteAngVelToggle: false,
-        id: globalID++,
+        id: simState.globalID++,
         _pairStamp: -1,
         _pairWith: -1,
         _treeNode: null,
@@ -216,7 +215,7 @@ function createBodyFromRect(x1, y1, x2, y2, isStatic, angle = 0, isFromRope = fa
     let inv = isStatic ? 0 : 1 / m
     let iner = (1/12) * m * (w*w + h*h)
     let invI = isStatic ? 0 : 1 / iner
-    let id = globalID++
+    let id = simState.globalID++
     let body = {
         area: w * h,
         shape: 'rect',
@@ -256,8 +255,8 @@ function createBridgeElement(x1, y1, x2, y2, isStatic = false, angle = undefined
     if(!bridge) return null
     bridge.shape = 'bridge'
     if(angle === undefined) bridge.angle = atan2(y2 - y1, x2 - x1)
-    updateCornerLocations(bridge)
     if(autoConnect) autoConnectBridgeJoints(bridge)
+    updateCornerLocations(bridge)
     return bridge
 }
 
@@ -272,7 +271,7 @@ function createRope(bodyA, anchorA, bodyB, anchorB, worldAnchorA = null, worldAn
     let start = bodyA && anchorA !== null ? {body: bodyA, anchor: anchorA} : null
     let end = bodyB && anchorB !== null ? {body: bodyB, anchor: anchorB} : null
 
-    let rope = {start, end, segments: [], id: globalID++}
+    let rope = {start, end, segments: [], id: simState.globalID++}
     ropes.push(rope)
     
     let segmentSize = ROPE_SEGMENT_LENGTH * cellSize
@@ -366,7 +365,7 @@ function createBridgeJoint(bodyA, anchorA, bodyB, anchorB){
         anchorB,
         localA: worldPointToLocal(bodyA, worldA),
         localB: worldPointToLocal(bodyB, worldB),
-        id: globalID++,
+        id: simState.globalID++,
         stress: 0
     }
     addJoint(joint)
@@ -385,6 +384,8 @@ function removeBody(index){
     let body = bodies[index]
     bodies.splice(index, 1)
     tree.remove(body)
+    if(simState.portalA && simState.portalA.body === body) simState.portalA = null
+    if(simState.portalB && simState.portalB.body === body) simState.portalB = null
 }
 
 function handleOutOfBounds(){
@@ -453,7 +454,7 @@ function divideRope(bodyA, bodyB){
         start: (segmentsB[0] && segmentsB[0].body) ? segmentsB[0].body : null,
         end: (segmentsB[segmentsB.length - 1] && segmentsB[segmentsB.length - 1].body) ? segmentsB[segmentsB.length - 1].body : null,
         segments: segmentsB,
-        id: globalID++
+        id: simState.globalID++
     }
     ropes.push(newRope)
 }

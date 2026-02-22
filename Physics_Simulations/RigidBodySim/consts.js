@@ -13,8 +13,8 @@ p5.disableFriendlyErrors = true
 let WIDTH = 600
 let HEIGHT = 600
 
-let startCircles = 50
-let startRects = 20
+let startCircles = 400
+let startRects = 0
 let nCollisionsFrame = 0
 
 // Spatial hash
@@ -23,7 +23,7 @@ let gridWidth = Math.ceil(WIDTH / CELL_SIZE_SH)
 let gridHeight = Math.ceil(HEIGHT / CELL_SIZE_SH)
 
 const gravity = 0.1
-const airFriction = 0.005
+const airFriction = 0.0025 //0.005
 let MAXSTEPS = 10
 
 const percent = 0.8   // correction strength
@@ -37,7 +37,6 @@ let bridgeJoints = []
 let jointConnectionSet = new Set() //to make lookup fast
 let ropes = []  //just for rendering, they are actually made of bridges and bridge joints
 
-let globalID = 0
 
 //Zoom and scale
 let xOff = 0
@@ -85,7 +84,8 @@ let simState = {
     selectedBody: null,
     hoveredBody: null,
     unbreakableJoints: false,
-    gravityEnabled: true
+    gravityEnabled: true,
+    globalID: 0
 }
 
 let tabs
