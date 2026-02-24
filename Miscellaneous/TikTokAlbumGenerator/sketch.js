@@ -57,6 +57,8 @@ let horizontalOffsetsCover = { title: 0, artist: 0 };
 let imageSizeMultiplier = 1.0;
 let maxTextboxWidths = { title: 980, artist: 378, year: 378, genre: 378, funfact: 459 };
 const defaultMaxTextboxWidths = { title: 980, artist: 378, year: 378, genre: 378, funfact: 459 };
+let textAlignRatings = { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' };
+let textAlignCover = { title: 'center', artist: 'center' };
 
 // Track customization
 let tracksTextSize = 60;
@@ -661,6 +663,8 @@ function getDefaultProfile() {
         maxTextboxWidths: {...defaultMaxTextboxWidths},
         textSizeOffsets: {funfact: -2},
         textLeadingOffsets: {funfact: -2},
+        textAlignRatings: { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' },
+        textAlignCover: { title: 'center', artist: 'center' },
         customTextboxes: [{
             "id": "custom_1769772665194",
             "text": "Album Review",
@@ -671,7 +675,8 @@ function getDefaultProfile() {
             "color": "#ffffff",
             "viewType": "cover",
             "leading": 0,
-            "maxWidth": 980
+            "maxWidth": 980,
+            "textAlign": "center"
         }]
     };
 }
@@ -694,6 +699,8 @@ function getCurrentProfileData() {
         maxTextboxWidths: {...maxTextboxWidths},
         textSizeOffsets: {...textSizeOffsets},
         textLeadingOffsets: {...textLeadingOffsets},
+        textAlignRatings: {...textAlignRatings},
+        textAlignCover: {...textAlignCover},
         customTextboxes: getCustomTextboxesProperties()
     };
 }
@@ -707,6 +714,7 @@ function getCustomTextboxesProperties(){
         maxWidth: tb.maxWidth,
         text: tb.text,
         viewType: tb.viewType,
+        textAlign: tb.textAlign || 'left',
         x: tb.x,
         y: tb.y,
         id: tb.id
@@ -776,6 +784,8 @@ function applyProfile(profileData) {
     Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
     Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
     Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
+    Object.keys(textAlignRatings).forEach(k => textAlignRatings[k] = 'left');
+    Object.keys(textAlignCover).forEach(k => textAlignCover[k] = 'center');
 
     // Apply vertical offsets
     if (profileData.verticalOffsetsRatings) {
@@ -828,6 +838,18 @@ function applyProfile(profileData) {
     if (profileData.textLeadingOffsets) {
         Object.keys(profileData.textLeadingOffsets).forEach(key => {
             textLeadingOffsets[key] = profileData.textLeadingOffsets[key];
+        });
+    }
+
+    // Apply text alignment settings
+    if (profileData.textAlignRatings) {
+        Object.keys(profileData.textAlignRatings).forEach(key => {
+            textAlignRatings[key] = profileData.textAlignRatings[key];
+        });
+    }
+    if (profileData.textAlignCover) {
+        Object.keys(profileData.textAlignCover).forEach(key => {
+            textAlignCover[key] = profileData.textAlignCover[key];
         });
     }
 
@@ -1248,7 +1270,8 @@ function addCustomTextbox(tbData) {
         fontSize: tbData.fontSize || 40,
         fontType: tbData.fontType || 'fontHeavy',
         color: tbData.color || '#ffffff',
-        viewType: tbData.viewType || 'both', // 'both', 'ratings', or 'cover'
+        viewType: tbData.viewType || currentView,
+        textAlign: tbData.textAlign || (currentView === 'cover' ? 'center' : 'left'),
         leading: tbData.leading || 0, // Additional spacing added to default line height
         maxWidth: tbData.maxWidth || width - 100 // Maximum width before text wraps
     };
@@ -1426,21 +1449,6 @@ function createSizeAdjustPanel() {
     });
     customColorPicker.changed(() => captureState());
 
-    // View type select for custom textboxes
-    let customViewSelect = createSelect().parent(customContainer).id('custom-view-select').class('form-select').style('width', '80px');
-    customViewSelect.option('Both', 'both');
-    customViewSelect.option('Ratings', 'ratings');
-    customViewSelect.option('Cover', 'cover');
-    customViewSelect.changed(() => {
-        if (!selectedTextBox || !selectedTextBox.isCustom) return;
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
-        if (textbox) {
-            textbox.viewType = customViewSelect.value();
-            autoGeneratePreview();
-            captureState();
-        }
-    });
-
     // Max width slider for custom textboxes
     createSpan('Width:').parent(customContainer).class('label');
     let customMaxWidthSlider = createSlider(100, 1000, 500, 10).parent(customContainer).id('custom-max-width-slider').class('form-slider').style('width', '80px');
@@ -1456,6 +1464,26 @@ function createSizeAdjustPanel() {
         }
     });
     customMaxWidthSlider.changed(() => captureState());
+
+    // Alignment selector (shared for all textboxes)
+    let alignContainer = createDiv('').parent(sizeAdjustPanel).id('align-container').style('display', 'flex').style('align-items', 'center').style('gap', '4px');
+    createSpan('Align:').parent(alignContainer).class('label');
+    let alignSelect = createSelect().parent(alignContainer).id('align-select').class('form-select').style('width', '75px');
+    alignSelect.option('left');
+    alignSelect.option('center');
+    alignSelect.option('right');
+    alignSelect.changed(() => {
+        if (!selectedTextBox) return;
+        let align = alignSelect.value();
+        if (selectedTextBox.isCustom) {
+            let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+            if (textbox) { textbox.textAlign = align; autoGeneratePreview(); captureState(); }
+        } else {
+            if (currentView === 'ratings') textAlignRatings[selectedTextBox.id] = align;
+            else textAlignCover[selectedTextBox.id] = align;
+            autoGeneratePreview(); captureState();
+        }
+    });
 
     createButton('↻').parent(sizeAdjustPanel).class('btn-control btn-reset').mousePressed(resetTextBoxToDefault);
     createButton('✕').parent(sizeAdjustPanel).class('btn-control btn-close').mousePressed(() => {
@@ -1768,7 +1796,7 @@ function downloadJSON() {
             customTextboxes: customTextboxes.map(t => ({
                 id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
                 fontType: t.fontType, color: t.color, viewType: t.viewType,
-                leading: t.leading || 0, maxWidth: t.maxWidth || width - 100
+                textAlign: t.textAlign || 'left', leading: t.leading || 0, maxWidth: t.maxWidth || width - 100
             }))
         }
     };
@@ -1827,6 +1855,7 @@ function fillFormFromData(data) {
                 fontType: textboxData.fontType || 'fontHeavy',
                 color: textboxData.color || '#ffffff',
                 viewType: textboxData.viewType || 'both',
+                textAlign: textboxData.textAlign || 'left',
                 leading: textboxData.leading || 0,
                 maxWidth: textboxData.maxWidth || width - 100
             };
@@ -1844,6 +1873,8 @@ function fillFormFromData(data) {
     Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
     Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
     Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
+    Object.keys(textAlignRatings).forEach(k => textAlignRatings[k] = 'left');
+    Object.keys(textAlignCover).forEach(k => textAlignCover[k] = 'center');
 
     // Load saved offsets
     if (data.verticalOffsetsRatings) {
@@ -1888,6 +1919,12 @@ function fillFormFromData(data) {
             textLeadingOffsets[key] = data.textLeadingOffsets[key];
         });
     }
+    if (data.textAlignRatings) {
+        Object.keys(data.textAlignRatings).forEach(key => { textAlignRatings[key] = data.textAlignRatings[key]; });
+    }
+    if (data.textAlignCover) {
+        Object.keys(data.textAlignCover).forEach(key => { textAlignCover[key] = data.textAlignCover[key]; });
+    }
     if (data.showGradeLegend !== undefined) {
         showGradeLegend = data.showGradeLegend;
         if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
@@ -1928,7 +1965,7 @@ function saveToLocalStorage() {
     data.customTextboxes = customTextboxes.map(t => ({
         id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
         fontType: t.fontType, color: t.color, viewType: t.viewType,
-        leading: t.leading || 0, maxWidth: t.maxWidth || 500
+        textAlign: t.textAlign || 'left', leading: t.leading || 0, maxWidth: t.maxWidth || 500
     }));
     // Save all offsets and advanced options
     data.verticalOffsetsRatings = {...verticalOffsetsRatings};
@@ -1942,6 +1979,8 @@ function saveToLocalStorage() {
     data.tracksTextSize = tracksTextSize;
     data.tracksSpacing = tracksSpacing;
     data.tracksRectHeight = tracksRectHeight;
+    data.textAlignRatings = {...textAlignRatings};
+    data.textAlignCover = {...textAlignCover};
     localStorage.setItem('albumGeneratorData', JSON.stringify(data));
 }
 
@@ -2088,13 +2127,13 @@ async function printAlbum(){
     let titleHorizOffset = (horizontalOffsetsRatings.title || 0) + 0;
     let titleMaxWidth = maxTextboxWidths.title || defaultMaxTextboxWidths.title;
     drawTextWithBox('title', fontHeavy, getMaxTextSize(albumData.title, titleMaxWidth, 100) + textSizeOffsets.title,
-                     albumData.title, leftMargin + titleHorizOffset, topMargin + y + titleOffset, titleMaxWidth, 70);
+                     albumData.title, leftMargin + titleHorizOffset, topMargin + y + titleOffset, titleMaxWidth, 70, textAlignRatings.title || 'left');
 
     let artistOffset = verticalOffsetsRatings.artist || 10;
     let artistHorizOffset = (horizontalOffsetsRatings.artist || 0) + width * .475;
     let artistMaxWidth = maxTextboxWidths.artist || defaultMaxTextboxWidths.artist;
     let bbox = drawTextWithBox('artist', fontRegularCondensed, 45 + textSizeOffsets.artist,
-                                albumData.artist, leftMargin + artistHorizOffset, topMargin + y + 110 + artistOffset, artistMaxWidth, 50);
+                                albumData.artist, leftMargin + artistHorizOffset, topMargin + y + 110 + artistOffset, artistMaxWidth, 50, textAlignRatings.artist || 'left');
     y += bbox.h;
 
     let yearOffset = verticalOffsetsRatings.year || 0;
@@ -2102,17 +2141,19 @@ async function printAlbum(){
     let yearMaxWidth = maxTextboxWidths.year || defaultMaxTextboxWidths.year;
     let yearY = topMargin + y + 85 + 60 + yearOffset;
     textFont(fontLight); textLeading(60); textSize(38 + textSizeOffsets.year); fill(230);
+    textAlign(getP5Align(textAlignRatings.year || 'left'), BASELINE);
     text("\n" + albumData.year + "\n", leftMargin + yearHorizOffset, topMargin + y + 85 + yearOffset, yearMaxWidth);
-    addTextBox('year', fontLight.textBounds(albumData.year, leftMargin + yearHorizOffset, yearY, yearMaxWidth), 38 + textSizeOffsets.year);
+    addTextBox('year', getAlignedBounds(fontLight.textBounds(albumData.year, leftMargin + yearHorizOffset, yearY, yearMaxWidth), leftMargin + yearHorizOffset, textAlignRatings.year || 'left'), 38 + textSizeOffsets.year);
 
     let genreOffset = verticalOffsetsRatings.genre || 0;
     let genreHorizOffset = (horizontalOffsetsRatings.genre || 0) + width * .475;
     let genreMaxWidth = maxTextboxWidths.genre || defaultMaxTextboxWidths.genre;
     textSize(30 + textSizeOffsets.genre); textLeading(40);
+    textAlign(getP5Align(textAlignRatings.genre || 'left'), BASELINE);
     let genreText = shortenText(albumData.genre, genreMaxWidth);
     let genreY = topMargin + y + 75 + (40 * 3) + genreOffset;
     text("\n\n\n" + genreText, leftMargin + genreHorizOffset, topMargin + y + 75 + genreOffset, genreMaxWidth);
-    addTextBox('genre', fontLight.textBounds(genreText, leftMargin + genreHorizOffset, genreY, genreMaxWidth), 30 + textSizeOffsets.genre);
+    addTextBox('genre', getAlignedBounds(fontLight.textBounds(genreText, leftMargin + genreHorizOffset, genreY, genreMaxWidth), leftMargin + genreHorizOffset, textAlignRatings.genre || 'left'), 30 + textSizeOffsets.genre);
 
     let funfactOffset = verticalOffsetsRatings.funfact || 0;
     let funfactHorizOffset = (horizontalOffsetsRatings.funfact || 0) + width * .475;
@@ -2120,9 +2161,10 @@ async function printAlbum(){
     let funfactSize = 30 + textSizeOffsets.funfact;
     let funfactLeading = 40 + textLeadingOffsets.funfact;
     let funfactStartY = topMargin + y + 120 + (40 * 4) + funfactOffset;
+    textAlign(getP5Align(textAlignRatings.funfact || 'left'), BASELINE);
     textLeading(40); text("\n\n\n\n", leftMargin + funfactHorizOffset, topMargin + y + 120 + funfactOffset, funfactMaxWidth);
     textSize(funfactSize); textLeading(funfactLeading); text(albumData.funfact, leftMargin + funfactHorizOffset, funfactStartY, funfactMaxWidth);
-    addTextBox('funfact', fontLight.textBounds(albumData.funfact, leftMargin + funfactHorizOffset, funfactStartY, funfactMaxWidth), funfactSize);
+    addTextBox('funfact', getAlignedBounds(fontLight.textBounds(albumData.funfact, leftMargin + funfactHorizOffset, funfactStartY, funfactMaxWidth), leftMargin + funfactHorizOffset, textAlignRatings.funfact || 'left'), funfactSize);
     utils.endShadow();
 
     // Draw tracks
@@ -2281,10 +2323,11 @@ async function printAlbum(){
                 default: fontObj = fontHeavy;
             }
 
+            let tbAlign = textbox.textAlign || 'left';
             textFont(fontObj);
             textSize(textbox.fontSize);
             fill(textbox.color);
-            textAlign(LEFT, TOP);
+            textAlign(getP5Align(tbAlign), TOP);
 
             // Apply leading (spacing) if set
             let baseLeading = textbox.fontSize * 1.25; // Default line height
@@ -2297,12 +2340,13 @@ async function printAlbum(){
 
                 // Add to textBoxes for selection
                 let bounds = fontObj.textBounds(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
+                let alignedBounds = getAlignedBounds(bounds, textbox.x, tbAlign);
                 textBoxes.push({
                     id: textbox.id,
-                    x: bounds.x,
-                    y: bounds.y,
-                    w: Math.max(bounds.w, 50),
-                    h: Math.max(bounds.h, 30),
+                    x: alignedBounds.x,
+                    y: alignedBounds.y,
+                    w: Math.max(alignedBounds.w, 50),
+                    h: Math.max(alignedBounds.h, 30),
                     sizeOffset: 0,
                     currentSize: textbox.fontSize,
                     isCustom: true
@@ -2349,15 +2393,26 @@ async function printAlbum(){
     }
 }
 
-function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading) {
+function getP5Align(align) {
+    if (align === 'center') return CENTER;
+    if (align === 'right') return RIGHT;
+    return LEFT;
+}
+
+function getAlignedBounds(bounds, anchorX, align) {
+    return bounds //it just works, trust me
+}
+
+function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align = 'left') {
     size = max(10, size);
-    textFont(font); 
-    textSize(size); 
-    fill(255); 
-    textLeading(leading); 
+    textFont(font);
+    textSize(size);
+    fill(255);
+    textLeading(leading);
+    textAlign(getP5Align(align), BASELINE);
     text(textStr, x, y, maxWidth);
     let bbox = font.textBounds(textStr, x, y, maxWidth);
-    addTextBox(id, bbox, size);
+    addTextBox(id, getAlignedBounds(bbox, x, align), size);
     return bbox;
 }
 
@@ -2403,25 +2458,30 @@ async function printCoverScreen() {
     utils.endShadow();
 
     push()
-    textAlign(CENTER, TOP)
 
     utils.beginShadow("#000000", 20, 0, 0);
     let titleVertOffset = verticalOffsetsCover.title || 0;
     let titleHorizOffset = horizontalOffsetsCover.title || 0;
     let titleY = coverY + coverSize * 0.5 + 60 + titleVertOffset;
+    let titleAlignCover = textAlignCover.title || 'center';
     textFont(fontHeavy);
+    textAlign(getP5Align(titleAlignCover), TOP);
     let titleSize = getMaxTextSize(albumData.title, width - 100, 100) + textSizeOffsets.title;
     titleSize = max(10, titleSize);
     textSize(titleSize); fill(255); text(albumData.title, width * 0.5 + titleHorizOffset, titleY);
-    addTextBox('title', fontHeavy.textBounds(albumData.title, width * 0.5 + titleHorizOffset, titleY, width - 100), titleSize);
+    let titleBounds = fontHeavy.textBounds(albumData.title, width * 0.5 + titleHorizOffset, titleY, width - 100);
+    addTextBox('title', getAlignedBounds(titleBounds, width * 0.5 + titleHorizOffset, titleAlignCover), titleSize);
 
     let artistVertOffset = verticalOffsetsCover.artist || 0;
     let artistHorizOffset = horizontalOffsetsCover.artist || 0;
     let artistY = coverY + coverSize * 0.5 + 60 + 130 + artistVertOffset;
+    let artistAlignCover = textAlignCover.artist || 'center';
     textFont(fontRegularCondensed);
+    textAlign(getP5Align(artistAlignCover), TOP);
     let artistSize = getMaxTextSize(albumData.artist, width - 100, 50) + textSizeOffsets.artist;
     textSize(artistSize); fill(230); text(albumData.artist, width * 0.5 + artistHorizOffset, artistY);
-    addTextBox('artist', fontRegularCondensed.textBounds(albumData.artist, width * 0.5 + artistHorizOffset, artistY, width - 100), artistSize);
+    let artistBounds = fontRegularCondensed.textBounds(albumData.artist, width * 0.5 + artistHorizOffset, artistY, width - 100);
+    addTextBox('artist', getAlignedBounds(artistBounds, width * 0.5 + artistHorizOffset, artistAlignCover), artistSize);
     utils.endShadow();
 
     // Draw custom textboxes
@@ -2438,10 +2498,11 @@ async function printCoverScreen() {
                 default: fontObj = fontHeavy;
             }
 
+            let tbAlign = textbox.textAlign || 'left';
             textFont(fontObj);
             textSize(textbox.fontSize);
             fill(textbox.color);
-            textAlign(CENTER, TOP);
+            textAlign(getP5Align(tbAlign), TOP);
 
             // Apply leading (spacing) if set
             let baseLeading = textbox.fontSize * 1.25; // Default line height
@@ -2454,12 +2515,13 @@ async function printCoverScreen() {
 
                 // Add to textBoxes for selection
                 let bounds = fontObj.textBounds(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
+                let alignedBounds = getAlignedBounds(bounds, textbox.x, tbAlign);
                 textBoxes.push({
                     id: textbox.id,
-                    x: bounds.x,
-                    y: bounds.y,
-                    w: Math.max(bounds.w, 50),
-                    h: Math.max(bounds.h, 30),
+                    x: alignedBounds.x,
+                    y: alignedBounds.y,
+                    w: Math.max(alignedBounds.w, 50),
+                    h: Math.max(alignedBounds.h, 30),
                     sizeOffset: 0,
                     currentSize: textbox.fontSize,
                     isCustom: true
@@ -2482,7 +2544,10 @@ async function printCoverScreen() {
 
     if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
     if (selectedTextBox) {
-        noFill(); stroke(255); strokeWeight(3); rectMode(CORNER);
+        noFill(); 
+        stroke(255); 
+        strokeWeight(3); 
+        rectMode(CORNER);
         let padding = 5;
         rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
         noStroke();
@@ -2611,8 +2676,8 @@ function mouseDragged() {
                     }
                 } else {
                     // Unconstrained drag
-                    textbox.x = scaledMouseX;
-                    textbox.y = scaledMouseY;
+                    textbox.x = dragStartOffsetX + deltaX;
+                    textbox.y = dragStartOffsetY + deltaY;
                 }
             }
         } else {
@@ -2672,7 +2737,6 @@ function showSizeAdjustPanel(box) {
             select('#custom-leading-display').html(textbox.leading || 0);
             select('#custom-font-select').selected(textbox.fontType);
             select('#custom-color-picker').value(textbox.color);
-            select('#custom-view-select').selected(textbox.viewType);
             select('#custom-max-width-slider').value(textbox.maxWidth || 500);
             select('#custom-max-width-display').html(textbox.maxWidth || 500);
         }
@@ -2693,6 +2757,19 @@ function showSizeAdjustPanel(box) {
         } else {
             leadingContainer.style('display', 'none');
         }
+    }
+
+    // Sync alignment selector
+    let alignSelect = select('#align-select');
+    if (alignSelect) {
+        let align;
+        if (box.isCustom) {
+            let textbox = customTextboxes.find(t => t.id === box.id);
+            align = textbox ? (textbox.textAlign || 'left') : 'left';
+        } else {
+            align = currentView === 'ratings' ? (textAlignRatings[box.id] || 'left') : (textAlignCover[box.id] || 'center');
+        }
+        alignSelect.selected(align);
     }
 
     sizeAdjustPanel.style('display', 'flex');
@@ -2811,7 +2888,9 @@ function captureState() {
         maxTextboxWidths: {...maxTextboxWidths},
         tracksTextSize: tracksTextSize,
         tracksSpacing: tracksSpacing,
-        tracksRectHeight: tracksRectHeight
+        tracksRectHeight: tracksRectHeight,
+        textAlignRatings: {...textAlignRatings},
+        textAlignCover: {...textAlignCover}
     };
 
     if (historyIndex < historyStack.length - 1) historyStack = historyStack.slice(0, historyIndex + 1);
@@ -2865,9 +2944,13 @@ function restoreState(state) {
     Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
     Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
     Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
+    Object.keys(textAlignRatings).forEach(k => textAlignRatings[k] = 'left');
+    Object.keys(textAlignCover).forEach(k => textAlignCover[k] = 'center');
 
     if (state.textSizeOffsets) Object.assign(textSizeOffsets, state.textSizeOffsets);
     if (state.textLeadingOffsets) Object.assign(textLeadingOffsets, state.textLeadingOffsets);
+    if (state.textAlignRatings) Object.assign(textAlignRatings, state.textAlignRatings);
+    if (state.textAlignCover) Object.assign(textAlignCover, state.textAlignCover);
     if (state.verticalOffsetsRatings) Object.assign(verticalOffsetsRatings, state.verticalOffsetsRatings);
     if (state.verticalOffsetsCover) Object.assign(verticalOffsetsCover, state.verticalOffsetsCover);
     if (state.horizontalOffsetsRatings) Object.assign(horizontalOffsetsRatings, state.horizontalOffsetsRatings);
@@ -2917,6 +3000,7 @@ function restoreState(state) {
                 fontType: textboxData.fontType || 'fontHeavy',
                 color: textboxData.color || '#ffffff',
                 viewType: textboxData.viewType || 'both',
+                textAlign: textboxData.textAlign || 'left',
                 leading: textboxData.leading || 0,
                 maxWidth: textboxData.maxWidth || width - 100
             };
