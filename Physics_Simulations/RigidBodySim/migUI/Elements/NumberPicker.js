@@ -52,7 +52,7 @@ class NumberPicker{
 	}
 
 	setValue(value){
-		this.value = value
+		this.value = constrain(value, this.min, this.max)
 	}
 
 	getValue(){

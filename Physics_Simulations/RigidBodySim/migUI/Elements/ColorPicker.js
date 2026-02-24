@@ -45,6 +45,13 @@ class ColorPicker{
 		this.defaultCol = def ? def : this.finalCol
 	}
 
+	setValue(col){
+		this.finalCol = col
+		this.hue = [...col]
+		this.saturation = [...col]
+		this.alpha = col[3]
+	}
+
 	setFunc(func, arg = false){
 		this.func = func
 		this.arg = arg

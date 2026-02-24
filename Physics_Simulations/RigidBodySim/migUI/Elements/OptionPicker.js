@@ -32,6 +32,11 @@ class OptionPicker{
 		this.disabled = false
 	}
 
+	setValue(option){
+		let index = this.options.indexOf(option)
+		if(index != -1) this.selectedIndex = index
+	}
+
 	setFunc(func, arg = false){
 		this.func = func
 		this.arg = arg
