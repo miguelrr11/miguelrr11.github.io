@@ -227,7 +227,7 @@ function createAlbumEditor() {
     yearInput = createFormInput('Year', 'e.g. 1997', rowGroup);
     genreInput = createFormInput('Genre', 'e.g. Rock', rowGroup);
 
-    funfactInput = createFormTextarea('Fun Fact', 'Add an interesting fact about the album...', panel1);
+    funfactInput = createFormTextarea('Description', 'Add a description or fun fact about the album...', panel1);
     createImageInputWithUpload(panel1);
 
     let gradeRow = createDiv('').parent(panel1).style('display: flex; gap: 35px; align-items: center;');
