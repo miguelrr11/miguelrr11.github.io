@@ -20,6 +20,15 @@ function mousePressed(){
         return
     }
 
+    if(simState.settingThruster){
+        if(!HB || isRectOrBridge(HB) === false) return
+        let [edge, index] = getClosestEdgeOfBodyToPoint(freeMouseX, freeMouseY, HB)
+        if(!edge) return
+        simState.settingThruster = false
+        HB.thrusters = HB.thrusters ? HB.thrusters.concat(index) : [index]
+        return
+    }
+
     if(simState.createMode === 'rect' || simState.createMode === 'bridge' || simState.createMode === 'circle'){
         dragStart = {x: gridMouseX, y: gridMouseY}
     } 

@@ -39,8 +39,18 @@ function drawBody(body){
         }
         pop()
     }
+    if(body.thrusters){
+        push()
+        rotate(-body.angle)
+        translate(-body.pos.x, -body.pos.y)
+        for(let i = 0; i < body.thrusters.length; i++){
+            drawThruster(body, body.thrusters[i])
+        }
+        pop()
+    }
     pop()
     if(simState.showDebug) drawDebugBody(body)
+
 
     //debug (draw body id)
     // push()
@@ -571,8 +581,38 @@ function drawEditor(){
         strokeWeight(7)
         line(edge.start.x, edge.start.y, edge.end.x, edge.end.y)
     }
+
+    if(simState.settingThruster){
+        setHoveredBody()
+        let HB = simState.hoveredBody
+
+        if(!HB || isRectOrBridge(HB) === false) {pop(); return}
+        let [edge, index] = getClosestEdgeOfBodyToPoint(freeMouseX, freeMouseY, HB)
+        drawThruster(HB, index)
+    }
+
     pop()
     
+}
+
+function drawThruster(body, edgeIndex){
+    if(edgeIndex === undefined) return
+    let edge = body.edges[edgeIndex]
+    if(!edge) return
+    push()
+    stroke(255, 0, 0)
+    strokeWeight(5)
+    line(edge.start.x, edge.start.y, edge.end.x, edge.end.y)
+    let midX = (edge.start.x + edge.end.x) / 2
+    let midY = (edge.start.y + edge.end.y) / 2
+    let dx = edge.end.x - edge.start.x
+    let dy = edge.end.y - edge.start.y
+    let len = Math.hypot(dx, dy)
+    let nx = -dy / len
+    let ny = dx / len
+    let normalLen = -20
+    line(midX, midY, midX + nx * normalLen, midY + ny * normalLen)
+    pop()
 }
 
 function drawFPSandINFO(){

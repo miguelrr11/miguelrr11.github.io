@@ -66,6 +66,11 @@ async function setup(){
         startSettingPortals()
     })
 
+    setThrusterButton = panel.createButton("Set Thruster")
+    setThrusterButton.setFunc(() => {
+        startSettingThruster()
+    })
+
     panel.createSeparator()
     panel.createText("Body Type")
     staticDynamicSelect = panel.createSelect(["Static", "Dynamic"], "Dynamic")
@@ -122,6 +127,10 @@ async function setup(){
     iterSlider.setFunc((arg) => {MAXSTEPS = arg})
     let iterJointSlider = panelAdvancedOptions.createSlider(1, 20, JOINT_ITERATIONS, 'Joint Iterations', true)
     iterJointSlider.setFunc((arg) => {JOINT_ITERATIONS = arg})
+    panelAdvancedOptions.createSeparator()
+
+    let restitutionSlider = panelAdvancedOptions.createSlider(0, 1, RESTITUTION, 'Restitution', true)
+    restitutionSlider.setFunc((arg) => {RESTITUTION = arg})
 
     panel.createSeparator()
 
@@ -160,8 +169,43 @@ async function setup(){
     // }
 }
 
+let screenVelocity = { vx: 0, vy: 0 };
+
+let _lastScreenPos = {
+  x: window.screenX,
+  y: window.screenY,
+  time: performance.now()
+};
+
+function updateScreenVelocity() {
+  const now = performance.now();
+
+  const x = window.screenX;
+  const y = window.screenY;
+
+  const dt = (now - _lastScreenPos.time) / 1000;
+
+  let newx = 0;
+  let newy = 0;
+
+  if (dt > 0) {
+    newx = (x - _lastScreenPos.x) / dt;
+    newy = (y - _lastScreenPos.y) / dt;
+  }
+
+  _lastScreenPos.x = x;
+  _lastScreenPos.y = y;
+  _lastScreenPos.time = now;
+
+  return [newx, newy];
+}
+
 function draw(){
     background(0)
+
+    const [newx, newy] = updateScreenVelocity();
+    screenVelocity.vx = newx
+    screenVelocity.vy = newy
 
     collisionPoints = new Set()
     nCollisionsFrame = 0
@@ -185,8 +229,16 @@ function draw(){
     for(let step = 0; step < STEPS; step++){
 
         for(let b of bodies){
-            if(!b.isStatic) b.vel.y += gravityDT
+            if(!b.isStatic) {
+                b.vel.y += gravityDT
+                if(Math.abs(screenVelocity.vx) > 0.1 || Math.abs(screenVelocity.vy) > 0.1) {
+                    b.pos.x -= screenVelocity.vx * dt * 0.01
+                    b.pos.y -= screenVelocity.vy * dt * 0.01
+                }
+            }
         }
+
+        applyThrusters(dt)
 
         applySpringForces(dt)
 

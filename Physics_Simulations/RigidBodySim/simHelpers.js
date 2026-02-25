@@ -498,10 +498,16 @@ function autoConnectBridgeJoints(newBridge){
 
 function startSettingPortals(){
     removePortals()
+    simState.settingThruster = false
     simState.settingPortals = true
     simState.portalSettingStage = 'A'
     simState.portalA = null
     simState.portalB = null
+}
+
+function startSettingThruster(){
+    simState.settingPortals = false
+    simState.settingThruster = true
 }
 
 function removePortals(){

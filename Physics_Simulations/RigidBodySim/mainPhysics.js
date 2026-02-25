@@ -492,7 +492,7 @@ function resolveCollision(bodyA, bodyB, normal, contact){
 
     if(relVelAlongNormal > 0) return // separating
 
-    let e = 0.2 // restitution
+    let e = RESTITUTION // restitution
 
     let rACrossN = rA.x * normal.y - rA.y * normal.x
     let rBCrossN = rB.x * normal.y - rB.y * normal.x
@@ -621,20 +621,47 @@ function applySpringForces(dt){
 
         // Apply to body A (force toward B)
         if(sp.bodyA && !sp.bodyA.isStatic){
-            let rAx = posA.x - sp.bodyA.pos.x
-            let rAy = posA.y - sp.bodyA.pos.y
-            sp.bodyA.vel.x += fx * sp.bodyA.invMass * dt
-            sp.bodyA.vel.y += fy * sp.bodyA.invMass * dt
-            sp.bodyA.angVel += (rAx * fy - rAy * fx) * sp.bodyA.invInertia * dt
+            applyForce(sp.bodyA, {x: fx, y: fy}, posA, dt)
         }
 
         // Apply to body B (force toward A, opposite)
         if(sp.bodyB && !sp.bodyB.isStatic){
-            let rBx = posB.x - sp.bodyB.pos.x
-            let rBy = posB.y - sp.bodyB.pos.y
-            sp.bodyB.vel.x -= fx * sp.bodyB.invMass * dt
-            sp.bodyB.vel.y -= fy * sp.bodyB.invMass * dt
-            sp.bodyB.angVel -= (rBx * fy - rBy * fx) * sp.bodyB.invInertia * dt
+            applyForce(sp.bodyB, {x: -fx, y: -fy}, posB, dt)
+        }
+    }
+}
+
+function applyForce(body, force, point, dt){
+    if(body.isStatic) return
+    let rAx = point.x - body.pos.x
+    let rAy = point.y - body.pos.y
+    body.vel.x += force.x * body.invMass * dt
+    body.vel.y += force.y * body.invMass * dt
+    body.angVel += (rAx * force.y - rAy * force.x) * body.invInertia * dt
+}
+
+function applyThrusters(dt){
+    // iterates through bodies and if a body contains a a thruster (just an edge index), applies a force in the direction normal to that edge
+    for(let b of bodies){
+        if(!b.thrusters || b.isStatic || b.shape == 'circle') continue
+        for(let edgeIndex of b.thrusters){
+            let edge = b.edges[edgeIndex]
+            let start = edge.start
+            let end = edge.end
+            let normal = {
+                x: end.y - start.y,
+                y: start.x - end.x
+            }
+            let thrustMag = -0.005 * b.mass
+            let force = {
+                x: normal.x * thrustMag,
+                y: normal.y * thrustMag
+            }
+            let midPoint = {
+                x: (start.x + end.x) / 2,
+                y: (start.y + end.y) / 2
+            }
+            applyForce(b, force, midPoint, dt)
         }
     }
 }

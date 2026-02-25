@@ -13,8 +13,8 @@ p5.disableFriendlyErrors = true
 let WIDTH = 600
 let HEIGHT = 600
 
-let startCircles = 400
-let startRects = 0
+let startCircles = 0
+let startRects = 1
 let nCollisionsFrame = 0
 
 // Spatial hash
@@ -57,6 +57,7 @@ let JOINT_STIFFNESS = 0.95
 let JOINT_DAMPING = 0.95
 let MAX_STRESS_JOINT = .5  //distance in cells at which bridge joints will break
 let ACTIVE_MAX_STRESS_JOINT = .5
+let RESTITUTION = 0.2
 
 let gridMouseX = 0
 let gridMouseY = 0
@@ -94,4 +95,4 @@ let panelOptions
 let panelAdvancedOptions
 let createSelect, staticDynamicSelect, automaticLengthToggle, lengthSlider
 let cteAngVelSlider, cteAngVelCB, unbreakJointsCB, gravityCB
-let setPortalsButton
+let setPortalsButton, setThrusterButton
