@@ -1,0 +1,239 @@
+Commits per project (25-02-2026)
+
+Pegar esto en la terminal:
+
+$validParents = @(
+    "Algorithms",
+    "Games",
+    "IAs",
+    "Math",
+    "Physics_Simulations",
+    "WebGL",
+    "Automatas"
+)
+
+$results = @{}
+$categoryTotals = @{}
+
+git log --pretty=format:"%H" | ForEach-Object {
+    $commit = $_
+
+    git show --name-only --pretty=format: $commit |
+    Where-Object { $_ -ne "" } |
+    ForEach-Object {
+
+        $parts = $_.Split("/")
+
+        if ($parts.Length -eq 3 -and $validParents -contains $parts[0]) {
+
+            $parent = $parts[0]
+            $folder = $parts[1]
+
+            # clave única por carpeta+commit
+            $key = "$folder|$parent|$commit"
+            $results[$key] = $true
+        }
+    }
+}
+
+# Agrupar por carpeta hija
+$grouped = $results.Keys |
+ForEach-Object {
+    $parts = $_.Split("|")
+    "$($parts[0])|$($parts[1])"
+} |
+Group-Object |
+Sort-Object Count -Descending
+
+Write-Host "==== COMMITS POR PROYECTO ===="
+
+$totalGlobal = 0
+
+foreach ($group in $grouped) {
+
+    $split = $group.Name.Split("|")
+    $folder = $split[0]
+    $parent = $split[1]
+    $count = $group.Count
+
+    "{0,-6} {1,-20} {2,-20}" -f $count, $folder, $parent
+
+    $totalGlobal += $count
+
+    if ($categoryTotals.ContainsKey($parent)) {
+        $categoryTotals[$parent] += $count
+    } else {
+        $categoryTotals[$parent] = $count
+    }
+}
+
+Write-Host ""
+Write-Host "==== TOTALES POR CATEGORIA ===="
+
+foreach ($cat in $categoryTotals.GetEnumerator() | Sort-Object Value -Descending) {
+    "{0,-6} {1}" -f $cat.Value, $cat.Key
+}
+
+Write-Host ""
+Write-Host "==== TOTAL GLOBAL ===="
+Write-Host $totalGlobal
+
+==== COMMITS POR PROYECTO ====
+82     ProcRoadv2           Algorithms
+43     WebViewer            Algorithms
+29     Ovejas_VS_Lobos      IAs
+29     Grid_Digger          Games
+23     RuneCode             Games
+22     RigidBodySim         Physics_Simulations
+16     Drift                Games
+15     EvoPlant             Physics_Simulations
+14     Wave_Function_Collapse_Painter Algorithms
+14     Mathematical_Evaluator Math
+12     Spotify_Lyrics       Algorithms
+11     pathTest             Algorithms
+10     Logic_Sim_v3         Algorithms
+10     Music_And_Lyrics_Visualizer Algorithms
+9      Enigma               Algorithms
+8      Particulate          Games
+7      Smart_Pendulums_V2   IAs
+7      Easy_Animation       Algorithms
+7      BallPitClone         Games
+6      TODOs                Algorithms
+6      Splines              Math
+5      Hex_CA               Automatas
+4      Langtons_Loop        Automatas
+4      p5                   Algorithms
+4      CubicBezierSpline    Math
+4      Belt_It              Games
+4      Self-avoiding_Walk_2024_03_22_19_26_57 Algorithms
+4      Black_hole_visualizer_2024_03_22_19_27_00 Physics_Simulations
+4      NoHitManager         Algorithms
+3      SmartPendulum        IAs
+3      p5                   IAs
+3      p5                   Math
+3      p5                   Games
+3      p5                   Automatas
+3      SoftBodyCreator      Algorithms
+3      Smart_SpaceShips     IAs
+3      MNCA_Circles         Automatas
+3      Montecarlo's_Pi_Estimation_2024_03_22_19_27_07 Math
+3      Sudoku               Games
+3      Smart_Rockets_(natural_selection)_2024_03_24_10_51_08 IAs
+3      p5                   Physics_Simulations
+2      Smart_Cars v3        IAs
+2      Plant_Generator      Physics_Simulations
+2      HermiteSpline        Math
+2      Particle_Lenia       Automatas
+2      BeatRing             Algorithms
+2      1-D_Cellular_Automata_2024_03_22_19_27_12 Automatas
+2      Break_Bricks_2024_03_22_19_26_28 Games
+2      Reaction_Diffusion_2024_03_22_19_26_44 Physics_Simulations
+2      Two_orbiting_bodies_2024_03_22_19_26_58 Physics_Simulations
+2      PID                  Algorithms
+2      CreaturesAnimation   Algorithms
+2      Smart_Cars v2        IAs
+2      3_en_raya_2024_03_22_19_27_11 Games
+2      Particle_Life        Physics_Simulations
+2      Brian's_Brain_2024_03_22_19_27_13 Automatas
+2      Double_Pendulum_2024_03_22_19_27_01 Physics_Simulations
+2      Game_of_Life_2024_03_22_19_27_16 Automatas
+2      Wave_Function_Collapse_(Island)_2024_03_22_19_26_51 Algorithms
+2      Hormiga_de_Langton_2024_03_22_19_27_15 Automatas
+2      DLA                  Algorithms
+2      Multiple_Neighbours_CA Automatas
+2      Markov_Poetry        Algorithms
+2      Snake_2024_03_22_19_27_10 Games
+2      RT_Fluid_Dynamics    Physics_Simulations
+2      Wave_Function_Collapse_(coloured_tiles)_2024_03_22_19_26_52 Algorithms
+2      A_algorithm_2024_03_22_19_26_55 Algorithms
+2      Inverse_Kinematics_2024_03_22_19_26_35 Physics_Simulations
+2      Flight_game_2024_03_22_19_26_32 Games
+2      Wave_Function_Collapse_(normal_tiles)_2024_03_22_19_26_53 Algorithms
+2      Smart_Birds          IAs
+2      Falling_Sand_2024_03_22_19_27_09 Physics_Simulations
+2      Maze_generator_2024_03_22_19_26_54 Algorithms
+2      Bubble_Sort_Visualization_2024_03_22_19_27_06 Algorithms
+2      Flow_Free_Game_2024_03_22_19_25_04 Games
+2      Buscaminas_2024_03_22_19_26_38 Games
+2      TicTacToeTreeViz     Physics_Simulations
+2      Smart_Cars v4        IAs
+2      Flappy_Bird_2024_03_22_19_26_31 Games
+2      Flocking_Sim_-_Boids_v1_2024_03_22_19_26_36 Physics_Simulations
+2      Smart_Snakes         IAs
+2      2048_Game_2024_03_22_19_26_40 Games
+2      Smooth_Life          Automatas
+1      Marching_Squares     Algorithms
+1      Ascii_Camera         Algorithms
+1      TorusKnot            Math
+1      Element_Pixel        Physics_Simulations
+1      KD_tree              Algorithms
+1      Rippling_Water       Algorithms
+1      Springs              Physics_Simulations
+1      TinyGarden           Games
+1      Cloth_Sim            Physics_Simulations
+1      Smart_Double_Pendulums IAs
+1      CoolerBezier         Math
+1      Slime_Mold           Physics_Simulations
+1      Paper_Rock_Scissors  Physics_Simulations
+1      Mandelbrot_Set       WebGL
+1      Circle_Pixel_Genarator Automatas
+1      L_System_Renderer    Algorithms
+1      Voronoi              Algorithms
+1      Gravity_Trajectory   Physics_Simulations
+1      Voronoi_Diagram      WebGL
+1      Bezier_cubic         Math
+1      One More Line        Games
+1      Worms                Physics_Simulations
+1      Logic_Sim_v2         Algorithms
+1      SmoothLifeWebGL      WebGL
+1      CirclesColliding     Physics_Simulations
+1      Music_Visualizer     Algorithms
+1      TSP                  Algorithms
+1      Smart_Numbers        IAs
+1      spotiPlaylistSorter  Algorithms
+1      Wallpaper_Generator_Noise_Flow_Field Physics_Simulations
+1      Metaballs            Algorithms
+1      BallPitXGridDigger   Games
+1      TSP_GA               IAs
+1      Mini Golf            Games
+1      prueba_Musixmatch    Algorithms
+1      Fourier_Series       Math
+1      Bezier               Math
+1      Noise_Flow_Field     Physics_Simulations
+1      3d_Cube_Projection   Math
+1      Ball Blast           Games
+1      BLANCO_WEBGL         WebGL
+1      BrainFuckViz         Algorithms
+1      Fractal_Noise        WebGL
+1      Delaunay_Triangulation Math
+1      BallXPitClone        Games
+1      Nexus_Attack         Games
+1      Smart_Double_Pendulums_V2 IAs
+1      3d_Sphere_Projection Math
+1      FractalDimension     Algorithms
+1      BallPitCloneXGridDiggerGame Games
+1      aa                   Games
+1      Curves_table_Lissajous Math
+1      Flocking_Boids       Physics_Simulations
+1      Logic_Sim            Algorithms
+1      Path_Following       Physics_Simulations
+1      Tetris               Games
+1      Gravity_Basins       WebGL
+1      Lineas_Topograficas  Algorithms
+1      Smart_XOR_migNEAT    IAs
+1      Inverse_Kinematics   Math
+1      FLIP                 Physics_Simulations
+1      Ant_Sim              Physics_Simulations
+1      TBOImapGenerator     Algorithms
+
+==== TOTALES POR CATEGORIA ====
+258    Algorithms
+119    Games
+78     Physics_Simulations
+63     IAs
+42     Math
+30     Automatas
+6      WebGL
+
+==== TOTAL GLOBAL ====
+596

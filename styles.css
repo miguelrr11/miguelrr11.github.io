@@ -71,7 +71,6 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
 
 .category-card:hover { transform: scale(1.02); }
 .category-card h2 { font-size: 1.8em; margin-bottom: 10px; }
-.category-card ul { padding: 0; }
 
 
 .category {
@@ -84,16 +83,12 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
 
 
 .category-cards-wrapper {
-  column-count: 3;
-  column-gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .category-card {
-  break-inside: avoid;
-  margin-bottom: 20px;
-  display: inline-block;
-  width: 100%;
-
   background-color: #1d1d1d;
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0,0,0,0.3);
@@ -112,6 +107,16 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
   background-size: cover;
   background-position: center;
   transition: transform 0.3s ease;
+}
+
+.category-card ul {
+  column-count: 3;
+  column-gap: 30px;
+}
+
+.category-card li {
+  break-inside: avoid;
+  margin-bottom: 8px;
 }
 
 .card-title { text-align: center; margin-top: 8px; font-size: 1rem; }

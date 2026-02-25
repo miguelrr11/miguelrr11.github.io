@@ -750,6 +750,8 @@ function draw() {
 
     const data = await response.json();
 
+    console.log(data)
+
     // Find JavaScript and Total entries
     const jsData = data.find(item => item.language === 'JavaScript');
     const totalData = data.find(item => item.language === 'Total');
@@ -762,9 +764,11 @@ function draw() {
     }
 
     if (totalData) {
+      stats.push(`<li><span class="matrix-link ambient-matrix">First Commit: 26-01-2024</span></li>`);
       stats.push(`<li><span class="matrix-link ambient-matrix">Total Lines: ${totalData.lines.toLocaleString()}</span></li>`);
       stats.push(`<li><span class="matrix-link ambient-matrix">Total Files: ${totalData.files}</span></li>`);
       stats.push(`<li><span class="matrix-link ambient-matrix">Total Comments: ${totalData.comments}</span></li>`);
+      stats.push(`<li><span class="matrix-link ambient-matrix">Total Commits: 596</span></li>`);
     }
 
     // Update the content
