@@ -61,6 +61,13 @@
 
     <div class="searchbar" role="search">
       <input id="projectSearch" type="search" placeholder="Search projects…" aria-label="Search projects" autocomplete="off" />
+      <button class="dice-button" onclick="goToRandomPage()" aria-label="Random page">
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
     </div>
 
     <div class="category-cards-wrapper">
@@ -352,7 +359,7 @@ document.querySelectorAll('.card-video').forEach(video => {
 <script>
 function setup() {
   pixelDensity(1);
-  frameRate(10)
+  frameRate(45)
   const c = createCanvas(windowWidth, windowHeight);
   c.style('position','fixed');
   c.style('inset','0');
@@ -372,7 +379,7 @@ function windowResized() {
 
 function draw() {
   background(0)
-  //updateTopo()
+  updateTopo()
   showTopo()
 }
 </script>
@@ -786,6 +793,19 @@ function draw() {
     statsContent.innerHTML = '<li>Error loading stats</li>';
   }
 })();
+</script>
+
+<!-- Random page button -->
+<script>
+  const allLinks = Array.from(
+    document.querySelectorAll('.category-cards-wrapper a')
+  ).filter(link => !link.href.includes("Miscellaneous"));
+
+  function goToRandomPage() {
+      if (!allLinks.length) return;
+      const randomLink = allLinks[Math.floor(Math.random() * allLinks.length)];
+      window.location.href = randomLink.href;
+  }
 </script>
 
 
