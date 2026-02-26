@@ -146,23 +146,45 @@ async function setup(){
 }
 
 function createTracksFromPaste(texto){
+    function getLastNumber(line){
+        const match = line.match(/(\d+(?:[.,]\d+)?)\s*$/);
+
+        if(match){
+            const number = parseFloat(match[1].replace(',', '.'));
+            const text = line.slice(0, match.index).trimEnd();
+            return { number, text };
+        }
+
+        return { number: null, text: line };
+    }
+
     for(let i = tracks.length-1; i > 0; i--) removeTrackRow(i)
     const lineas = texto.split(/\r?\n/);
-    console.log(lineas)
     let trackIndex = 0
     for(let i = 0; i < lineas.length; i++){
         let linea = lineas[i]
         if(linea.trim() === '') continue
-        setTrackText(tracks[trackIndex], linea)
+        let lineObj = getLastNumber(linea)
+        let grade = lineObj.number
+        let finalGrade
+        let text = lineObj.text
+        setTrackText(tracks[trackIndex], text)
+        if(grade == null) finalGrade = 'Interlude'
+        else if(grade >= 10.5) finalGrade = 'GOAT'
+        else if(grade >= 10) finalGrade = 'PEAK'
+        else if(grade >= 9) finalGrade = 'EXCEPTIONAL'
+        else if(grade >= 8) finalGrade = 'STRONG'
+        else if(grade >= 7) finalGrade = 'DECENT'
+        else if(grade >= 5) finalGrade = 'OKAY'
+        else finalGrade = 'FLOP'
+        tracks[trackIndex].gradeSelect.value(finalGrade)
         if(i < lineas.length - 2) addTrackRowWithCapture()
         trackIndex++
     }
 }
 
 function setTrackText(trackObj, newText) {
-    // trackObj es un objeto de tracks[], por ejemplo tracks[0]
-    trackObj.titleInput.value(newText); // Cambia el valor en p5.js
-    // Disparar eventos para que tu sistema lo detecte
+    trackObj.titleInput.value(newText);
     const evt = new Event('input', { bubbles: true });
     trackObj.titleInput.elt.dispatchEvent(evt);
     trackObj.titleInput.elt.dispatchEvent(new Event('blur', { bubbles: true }));
@@ -624,6 +646,7 @@ function createProfileSection(parent = editorPanel) {
 }
 
 function alignMainElementsToImage(){
+    if(automaticAlignmentCheckbox.checked() === false) return;
     let xWithNoOffset = width * 0.475
 
     let sizeSclMult = 0.425
