@@ -80,7 +80,7 @@ let cachedImageUrl = null, cachedOriginalImage = null, cachedFilteredImage = nul
 let lastUrlChecked = null;
 
 // Custom color map
-let colorMap = { "GOAT": "#ffffff", "PEAK": "#ffd21f", "EXCEPTIONAL": "#ff1fa9", "STRONG": "#bc3fde", "DECENT": "#38b6ff", "OKAY": "#14b60b", "FLOP": "#902020", "INTERLUDE": "#b2b2b2" };
+let colorMap = { "GOAT": "#ffffff", "PEAK": "#ffd21f", "EXCEPTIONAL": "#ff1fa9", "STRONG": "#bc3fde", "DECENT": "#38b6ff", "OKAY": "#14b60b", "FLOP": "#902020", "INTERLUDE": "#b2b2b2", "None": "#5c5c5c" };
 const defaultColorMap = {...colorMap};
 let colorPickers = {}, canvasScale = 1;
 
@@ -257,6 +257,11 @@ function createAlbumEditor() {
     createElement('label', 'Album Grade').parent(gradeGroup);
     albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
     gradeOptions.forEach(opt => albumGradeSelect.option(opt));
+    let options = albumGradeSelect.elt.options;
+    for(let i = 0; i < gradeOptions.length; i++) {
+        options[i].style.backgroundColor = colorMap[gradeOptions[i]];
+        options[i].style.color = getContrastYIQ(colorMap[gradeOptions[i]]);
+    }
     albumGradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
     createPositionControls(gradeRow);
@@ -278,6 +283,9 @@ function createAlbumEditor() {
     let addTrackBtn = createButton('Add Track').parent(trackButtonsRow)
         .class('btn btn-secondary')
         .style('flex: 1');
+    addTrackBtn.mousePressed(() => {
+        addTrackRow();
+    });
 
     // Paste Tracks button (half-width)
     let pasteTracksBtn = createButton('Paste Tracks').parent(trackButtonsRow)
@@ -1654,7 +1662,14 @@ function addTrackRowWithCapture(shouldCapture) {
     titleIn.elt.addEventListener('keydown', (e) => handleTrackNavigation(e, titleIn));
 
     let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
-    gradeOptions.forEach(grade => gradeSelect.option(grade));
+    gradeOptions.forEach(grade => {
+        gradeSelect.option(grade)
+    });
+    let options = gradeSelect.elt.options;
+    for(let i = 0; i < gradeOptions.length; i++) {
+        options[i].style.backgroundColor = colorMap[gradeOptions[i]];
+        options[i].style.color = getContrastYIQ(colorMap[gradeOptions[i]]);
+    }
     gradeSelect.selected('STRONG');
     gradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
@@ -1681,6 +1696,26 @@ function addTrackRowWithCapture(shouldCapture) {
     tracks.push({ titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, textInput, textInputContainer, dragHandle });
 
     if (shouldCapture && historyStack.length > 0) captureState();
+}
+
+function getContrastYIQ(hexcolor) {
+    if (!hexcolor || typeof hexcolor !== "string") {
+        return "rgb(0,0,0)"; // fallback
+    }
+
+    if (!hexcolor.startsWith("#") || hexcolor.length < 7) {
+        return "rgb(0,0,0)"; // fallback
+    }
+
+    hexcolor = hexcolor.replace('#', '');
+
+    let r = parseInt(hexcolor.substr(0, 2), 16);
+    let g = parseInt(hexcolor.substr(2, 2), 16);
+    let b = parseInt(hexcolor.substr(4, 2), 16);
+
+    let yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+
+    return (yiq >= 128) ? 'rgb(0,0,0)' : 'rgb(255,255,255)';
 }
 
 let draggedTrackIndex = null;
