@@ -56,7 +56,7 @@ let horizontalOffsetsRatings = { title: 0, artist: 0, year: 0, genre: 0, funfact
 let horizontalOffsetsCover = { title: 0, artist: 0 };
 let imageSizeMultiplier = 1.0;
 let maxTextboxWidths = { title: 980, artist: 378, year: 378, genre: 378, funfact: 459 };
-const defaultMaxTextboxWidths = { title: 980, artist: 378, year: 378, genre: 378, funfact: 459 };
+const defaultMaxTextboxWidths = { title: 980, artist: 450, year: 378, genre: 378, funfact: 480 };
 let textAlignRatings = { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' };
 let textAlignCover = { title: 'center', artist: 'center' };
 
@@ -678,18 +678,18 @@ function getDefaultProfile() {
         aspectRatio: '3:4',
         imageFormat: 'jpg',
         showGradeLegend: true,
-        verticalOffsetsRatings: {funfact: -2},
-        verticalOffsetsCover: {},
+        verticalOffsetsRatings: {funfact: -21},
+        verticalOffsetsCover: {artist: -15},
         horizontalOffsetsRatings: {artist: -40, funfact: -40, year: -40, genre: -40},
         horizontalOffsetsCover: {},
         imageSizeMultiplier: 0.95,
         maxTextboxWidths: {...defaultMaxTextboxWidths},
-        textSizeOffsets: {funfact: -2},
-        textLeadingOffsets: {funfact: -2},
+        textSizeOffsets: {funfact: -4},
+        textLeadingOffsets: {funfact: -4},
         textAlignRatings: { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' },
         textAlignCover: { title: 'center', artist: 'center' },
         customTextboxes: [{
-            "id": "custom_1769772665194",
+            "id": "album_review",
             "text": "Album Review",
             "x": width/2,
             "y": 335,
@@ -700,6 +700,19 @@ function getDefaultProfile() {
             "leading": 0,
             "maxWidth": 980,
             "textAlign": "center"
+        },
+        {
+            "color": "#ffffff",
+            "fontSize": 44,
+            "fontType": "fontRegular",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "comentario",
+            "viewType": "cover",
+            "textAlign": "center",
+            "x": width/2,
+            "y": 1574,
+            "id": "comentario"
         }]
     };
 }
@@ -750,6 +763,7 @@ function applyProfile(profileData) {
     tracksSpacing = profileData.tracksSpacing || 0;
     tracksRectHeight = profileData.tracksRectHeight || 40;
     verticalOffsetsRatings.tracks = profileData.tracksVerticalOffset || 0;
+    customTextboxes = customTextboxes.filter(tb => tb.id !== 'album_review' && tb.id !== 'comentario');
 
     // Update track sliders
     if (tracksTextSizeSlider) {
