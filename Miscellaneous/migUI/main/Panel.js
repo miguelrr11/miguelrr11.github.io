@@ -9,7 +9,7 @@ let text_SizeMIGUI = 14
 let title_SizeMIGUI = text_SizeMIGUI * 1.3
 let radMIGUI = 3.5
 let text_offset_xMIGUI = 2
-let width_elementsMIGUI = 190
+let width_elementsMIGUI = 150
 let clipping_length_normalMIGUI = 20
 let clipping_length_titleMIGUI = 11
 let picker_width = 100
@@ -86,6 +86,11 @@ class Panel{
 
 	    this.lastCB = undefined
 	    this.lastBU = undefined
+	}
+
+	isMouseInside(){
+		if(this.isRetracted) return this.retractButton.beingHovered
+		return mouseX > this.pos.x && mouseX < this.pos.x + this.w && mouseY > this.pos.y && mouseY < this.pos.y + this.h
 	}
 
 	reposition(x, y){
@@ -653,7 +658,7 @@ class Panel{
 			cursor(ARROW)
 			return
 		}
-		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI)
+		rect(this.pos.x, this.pos.y, this.w-bordeMIGUI, this.h-bordeMIGUI, radMIGUI)
 		//Titulo
 		textSize(title_SizeMIGUI+3)
 		stroke([...this.lightCol, 140])
@@ -753,9 +758,10 @@ function showHoveredTextMIGUI(textHover, ogpanel){
 	strokeWeight(1)
 	textSize(text_SizeMIGUI-2)
 	textAlign(LEFT, TOP)
+	let horizontalOffset = 20
 	let bbox = textFont().textBounds(textHover, mouseX, mouseY, w);
 	let off = 5
-	let x = bbox.x - off
+	let x = bbox.x - off + horizontalOffset
 	let y = bbox.y - off
 	if(x + bbox.w + off*2 > width) x = width - bbox.w - off*2
 	if(y + bbox.h + off*2 > height) y = height - bbox.h - off*2

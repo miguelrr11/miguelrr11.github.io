@@ -32,6 +32,10 @@ class Sentence{
 		return this.words
 	}
 
+	setValue(text){
+		this.setText(text)
+	}
+
 	setText(words){
 		this.words = words
 		//this.words = wrapText(words, undefined, this.isTitle ? text_SizeMIGUI : title_SizeMIGUI)

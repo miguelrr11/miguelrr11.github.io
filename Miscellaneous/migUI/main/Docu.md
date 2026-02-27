@@ -208,8 +208,7 @@ function setup() {
 }
 
 function draw() {
-    panel.update();
-    panel.show();
+    
 
     let r1 = cb.isChecked();
     let r2 = sl.getValue();
