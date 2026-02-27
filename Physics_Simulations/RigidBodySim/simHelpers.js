@@ -38,7 +38,8 @@ function saveStateToLocal(){
             cteAngVel: b.cteAngVel,
             cteAngVelToggle: b.cteAngVelToggle,
             angle: b.angle,
-            isRope: b.isRope
+            isRope: b.isRope,
+            thrusters: b.thrusters ? b.thrusters : null
         }}
         if(b.shape === 'circle') {
             return {
@@ -93,6 +94,7 @@ function saveStateToLocal(){
     copyOfSimState.selectedBody = null
     copyOfSimState.hoveredSpring = null
     copyOfSimState.draggingBody = null
+    copyOfSimState.centerCameraOnBody = null
     copyOfSimState.portalA = simState.portalA ? {bodyID: simState.portalA.body.id, edgeIndex: simState.portalA.edgeIndex} : null
     copyOfSimState.portalB = simState.portalB ? {bodyID: simState.portalB.body.id, edgeIndex: simState.portalB.edgeIndex} : null
     console.log(copyOfSimState)
@@ -120,6 +122,7 @@ function loadStateFromLocal(){
             }
             newBody.isRope = b.isRope
             newBody.id = b.id
+            if(b.thrusters) newBody.thrusters = b.thrusters
         })
         if(simState.portalA && simState.portalA.bodyID != undefined) simState.portalA.body = bodies.find(b => b.id === simState.portalA.bodyID)
         if(simState.portalB && simState.portalB.bodyID != undefined) simState.portalB.body = bodies.find(b => b.id === simState.portalB.bodyID)

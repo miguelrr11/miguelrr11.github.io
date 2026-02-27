@@ -39,7 +39,7 @@ function drawBody(body){
         }
         pop()
     }
-    if(body.thrusters){
+    if(body.thrusters && body.thrusters.length > 0){
         push()
         rotate(-body.angle)
         translate(-body.pos.x, -body.pos.y)

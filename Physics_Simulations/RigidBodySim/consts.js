@@ -13,7 +13,7 @@ p5.disableFriendlyErrors = true
 let WIDTH = 600
 let HEIGHT = 600
 
-let startCircles = 0
+let startCircles = 300
 let startRects = 1
 let nCollisionsFrame = 0
 
@@ -45,7 +45,7 @@ let prevMouseX = 0
 let prevMouseY = 0
 let zoom = 1
 
-const RANGE_OUT_OF_BOUNDS = 5000
+const RANGE_OUT_OF_BOUNDS = 50000
 
 const colBody = [180]
 const colAnchor = [255, 100, 100]
