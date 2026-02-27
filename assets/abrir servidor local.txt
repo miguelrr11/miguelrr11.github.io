@@ -1,5 +1,7 @@
 python3 -m http.server 8000 
 ó
 http-server /Users/miguelrodriguezmbp/Desktop/p5js
+ó
+npx http-server
 
-para refrescar pagina en navegador: CMD + SHIFT + R (fuerza refrescar cambios, darle al simbolo de refrescar no funciona siempre, mejor utilizar el cmd+shift+r)
+para refrescar pagina en navegador: CMD + SHIFT + R

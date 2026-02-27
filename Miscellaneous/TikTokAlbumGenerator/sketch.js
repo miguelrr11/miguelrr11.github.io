@@ -56,7 +56,7 @@ let horizontalOffsetsRatings = { title: 0, artist: 0, year: 0, genre: 0, funfact
 let horizontalOffsetsCover = { title: 0, artist: 0 };
 let imageSizeMultiplier = 1.0;
 let maxTextboxWidths = { title: 980, artist: 378, year: 378, genre: 378, funfact: 459 };
-const defaultMaxTextboxWidths = { title: 980, artist: 378, year: 378, genre: 378, funfact: 459 };
+const defaultMaxTextboxWidths = { title: 980, artist: 450, year: 378, genre: 378, funfact: 480 };
 let textAlignRatings = { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' };
 let textAlignCover = { title: 'center', artist: 'center' };
 
@@ -80,7 +80,7 @@ let cachedImageUrl = null, cachedOriginalImage = null, cachedFilteredImage = nul
 let lastUrlChecked = null;
 
 // Custom color map
-let colorMap = { "GOAT": "#ffffff", "PEAK": "#ffd21f", "EXCEPTIONAL": "#ff1fa9", "STRONG": "#bc3fde", "DECENT": "#38b6ff", "OKAY": "#14b60b", "FLOP": "#902020", "INTERLUDE": "#b2b2b2" };
+let colorMap = { "GOAT": "#ffffff", "PEAK": "#ffd21f", "EXCEPTIONAL": "#ff1fa9", "STRONG": "#bc3fde", "DECENT": "#38b6ff", "OKAY": "#14b60b", "FLOP": "#902020", "INTERLUDE": "#b2b2b2", "None": "#5c5c5c" };
 const defaultColorMap = {...colorMap};
 let colorPickers = {}, canvasScale = 1;
 
@@ -146,23 +146,45 @@ async function setup(){
 }
 
 function createTracksFromPaste(texto){
+    function getLastNumber(line){
+        const match = line.match(/(\d+(?:[.,]\d+)?)\s*$/);
+
+        if(match){
+            const number = parseFloat(match[1].replace(',', '.'));
+            const text = line.slice(0, match.index).trimEnd();
+            return { number, text };
+        }
+
+        return { number: null, text: line };
+    }
+
     for(let i = tracks.length-1; i > 0; i--) removeTrackRow(i)
     const lineas = texto.split(/\r?\n/);
-    console.log(lineas)
     let trackIndex = 0
     for(let i = 0; i < lineas.length; i++){
         let linea = lineas[i]
         if(linea.trim() === '') continue
-        setTrackText(tracks[trackIndex], linea)
+        let lineObj = getLastNumber(linea)
+        let grade = lineObj.number
+        let finalGrade
+        let text = lineObj.text
+        setTrackText(tracks[trackIndex], text)
+        if(grade == null) finalGrade = 'Interlude'
+        else if(grade >= 10.5) finalGrade = 'GOAT'
+        else if(grade >= 10) finalGrade = 'PEAK'
+        else if(grade >= 9) finalGrade = 'EXCEPTIONAL'
+        else if(grade >= 8) finalGrade = 'STRONG'
+        else if(grade >= 7) finalGrade = 'DECENT'
+        else if(grade >= 5) finalGrade = 'OKAY'
+        else finalGrade = 'FLOP'
+        tracks[trackIndex].gradeSelect.value(finalGrade)
         if(i < lineas.length - 2) addTrackRowWithCapture()
         trackIndex++
     }
 }
 
 function setTrackText(trackObj, newText) {
-    // trackObj es un objeto de tracks[], por ejemplo tracks[0]
-    trackObj.titleInput.value(newText); // Cambia el valor en p5.js
-    // Disparar eventos para que tu sistema lo detecte
+    trackObj.titleInput.value(newText);
     const evt = new Event('input', { bubbles: true });
     trackObj.titleInput.elt.dispatchEvent(evt);
     trackObj.titleInput.elt.dispatchEvent(new Event('blur', { bubbles: true }));
@@ -235,6 +257,11 @@ function createAlbumEditor() {
     createElement('label', 'Album Grade').parent(gradeGroup);
     albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
     gradeOptions.forEach(opt => albumGradeSelect.option(opt));
+    let options = albumGradeSelect.elt.options;
+    for(let i = 0; i < gradeOptions.length; i++) {
+        options[i].style.backgroundColor = colorMap[gradeOptions[i]];
+        options[i].style.color = getContrastYIQ(colorMap[gradeOptions[i]]);
+    }
     albumGradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
     createPositionControls(gradeRow);
@@ -256,6 +283,9 @@ function createAlbumEditor() {
     let addTrackBtn = createButton('Add Track').parent(trackButtonsRow)
         .class('btn btn-secondary')
         .style('flex: 1');
+    addTrackBtn.mousePressed(() => {
+        addTrackRow();
+    });
 
     // Paste Tracks button (half-width)
     let pasteTracksBtn = createButton('Paste Tracks').parent(trackButtonsRow)
@@ -624,6 +654,7 @@ function createProfileSection(parent = editorPanel) {
 }
 
 function alignMainElementsToImage(){
+    if(automaticAlignmentCheckbox.checked() === false) return;
     let xWithNoOffset = width * 0.475
 
     let sizeSclMult = 0.425
@@ -655,18 +686,18 @@ function getDefaultProfile() {
         aspectRatio: '3:4',
         imageFormat: 'jpg',
         showGradeLegend: true,
-        verticalOffsetsRatings: {funfact: -2},
-        verticalOffsetsCover: {},
+        verticalOffsetsRatings: {funfact: -21},
+        verticalOffsetsCover: {artist: -15},
         horizontalOffsetsRatings: {artist: -40, funfact: -40, year: -40, genre: -40},
         horizontalOffsetsCover: {},
         imageSizeMultiplier: 0.95,
         maxTextboxWidths: {...defaultMaxTextboxWidths},
-        textSizeOffsets: {funfact: -2},
-        textLeadingOffsets: {funfact: -2},
+        textSizeOffsets: {funfact: -4},
+        textLeadingOffsets: {funfact: -4},
         textAlignRatings: { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' },
         textAlignCover: { title: 'center', artist: 'center' },
         customTextboxes: [{
-            "id": "custom_1769772665194",
+            "id": "album_review",
             "text": "Album Review",
             "x": width/2,
             "y": 335,
@@ -677,6 +708,19 @@ function getDefaultProfile() {
             "leading": 0,
             "maxWidth": 980,
             "textAlign": "center"
+        },
+        {
+            "color": "#ffffff",
+            "fontSize": 44,
+            "fontType": "fontRegular",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "comentario",
+            "viewType": "cover",
+            "textAlign": "center",
+            "x": width/2,
+            "y": 1574,
+            "id": "comentario"
         }]
     };
 }
@@ -727,6 +771,7 @@ function applyProfile(profileData) {
     tracksSpacing = profileData.tracksSpacing || 0;
     tracksRectHeight = profileData.tracksRectHeight || 40;
     verticalOffsetsRatings.tracks = profileData.tracksVerticalOffset || 0;
+    customTextboxes = customTextboxes.filter(tb => tb.id !== 'album_review' && tb.id !== 'comentario');
 
     // Update track sliders
     if (tracksTextSizeSlider) {
@@ -1617,7 +1662,14 @@ function addTrackRowWithCapture(shouldCapture) {
     titleIn.elt.addEventListener('keydown', (e) => handleTrackNavigation(e, titleIn));
 
     let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
-    gradeOptions.forEach(grade => gradeSelect.option(grade));
+    gradeOptions.forEach(grade => {
+        gradeSelect.option(grade)
+    });
+    let options = gradeSelect.elt.options;
+    for(let i = 0; i < gradeOptions.length; i++) {
+        options[i].style.backgroundColor = colorMap[gradeOptions[i]];
+        options[i].style.color = getContrastYIQ(colorMap[gradeOptions[i]]);
+    }
     gradeSelect.selected('STRONG');
     gradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
@@ -1644,6 +1696,26 @@ function addTrackRowWithCapture(shouldCapture) {
     tracks.push({ titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, textInput, textInputContainer, dragHandle });
 
     if (shouldCapture && historyStack.length > 0) captureState();
+}
+
+function getContrastYIQ(hexcolor) {
+    if (!hexcolor || typeof hexcolor !== "string") {
+        return "rgb(0,0,0)"; // fallback
+    }
+
+    if (!hexcolor.startsWith("#") || hexcolor.length < 7) {
+        return "rgb(0,0,0)"; // fallback
+    }
+
+    hexcolor = hexcolor.replace('#', '');
+
+    let r = parseInt(hexcolor.substr(0, 2), 16);
+    let g = parseInt(hexcolor.substr(2, 2), 16);
+    let b = parseInt(hexcolor.substr(4, 2), 16);
+
+    let yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+
+    return (yiq >= 128) ? 'rgb(0,0,0)' : 'rgb(255,255,255)';
 }
 
 let draggedTrackIndex = null;
