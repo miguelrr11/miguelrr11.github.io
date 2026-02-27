@@ -13,8 +13,8 @@ p5.disableFriendlyErrors = true
 let WIDTH = 600
 let HEIGHT = 600
 
-let startCircles = 0
-let startRects = 1
+let startCircles = 300
+let startRects = 0
 let nCollisionsFrame = 0
 
 // Spatial hash

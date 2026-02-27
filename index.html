@@ -28,34 +28,54 @@
     
     <!-- <h2 class="featured-title">Featured</h2> -->
     <div class="cards-wrapper">
-      <a href="Algorithms/Logic_Sim_v3/" class="card">
-        <video class="card-video" src="assets/githubPages/vids/DigitalLogicSimVid.mp4" muted playsinline preload="auto" poster="assets/githubPages/imgs/DigitalLogicSimVid.jpg"></video>
+      <a href="https://miguelrr11.github.io/Algorithms/Logic_Sim_v3/" class="card">
+        <img class="card-image" src="assets/githubPages/imgs/DigitalLogicSimVid.jpg">
+        <video class="card-video" src="assets/githubPages/vids/DigitalLogicSimVid.mp4" muted playsinline preload="auto"></video>
         <div class="card-title">Digital Logic Sim</div>
       </a>
-
-      <!-- <a href="IAs/Smart_Pendulums_V2/" class="card">
-        <video class="card-video" src="assets/githubPages/vids/pend.mp4" muted playsinline preload="auto" poster="assets/githubPages/imgs/pend.jpg"></video>
-        <div class="card-title">NEAT Pendulums</div>
-      </a>
-
-      <a href="Algorithms/Wave_Function_Collapse_Painter/" class="card">
-        <video class="card-video" src="assets/githubPages/vids/WFC.mp4" muted playsinline preload="auto" poster="assets/githubPages/imgs/WFC.jpg"></video>
-        <div class="card-title">Wave Function Collapse Painter</div>
-      </a> -->
       
       <a href="https://miguelrr11.github.io/Algorithms/ProcRoadv2/" class="card">
-        <video class="card-video" src="assets/githubPages/vids/vid_road.mp4" muted playsinline preload="auto" poster="assets/githubPages/imgs/vid-road.png"></video>
+        <img class="card-image" src="assets/githubPages/imgs/vid-road.png">
+        <video class="card-video" src="assets/githubPages/vids/vid_road.mp4" muted playsinline preload="auto"></video>
         <div class="card-title">Road Generator</div>
       </a>
 
       <a href="https://miguelrr11.github.io/tfg_latex_etsiinf-2023.02.20/" class="card">
-        <video class="card-video" src="assets/githubPages/vids/TFG.mp4" muted playsinline preload="auto" poster="assets/githubPages/imgs/TFG.jpg"></video>
+        <img class="card-image" src="assets/githubPages/imgs/TFG.jpg">
+        <video class="card-video" src="assets/githubPages/vids/TFG.mp4" muted playsinline preload="auto"></video>
         <div class="card-title">Lake Ecosystem</div>
       </a>
 
-      <a href="Algorithms/WebViewer/" class="card">
-        <video class="card-video" src="assets/githubPages/vids/wiki.mp4" muted playsinline preload="auto" poster="assets/githubPages/imgs/wiki.jpg"></video>
+      <a href="https://miguelrr11.github.io/Algorithms/WebViewer/" class="card">
+        <img class="card-image" src="assets/githubPages/imgs/wiki.jpg">
+        <video class="card-video" src="assets/githubPages/vids/wiki.mp4" muted playsinline preload="auto"></video>
         <div class="card-title">WikiGraph</div>
+      </a>
+    </div>
+
+    <div class="cards-wrapper">
+      <a href="https://miguelrr11.github.io/IAs/Smart_Pendulums_V2/" class="card">
+        <img class="card-image" src="assets/githubPages/imgs/pend.jpg">
+        <video class="card-video" src="assets/githubPages/vids/pend.mp4" muted playsinline preload="auto"></video>
+        <div class="card-title">NEAT Pendulums</div>
+      </a>
+      
+      <a href="https://miguelrr11.github.io/Math/Mathematical_Evaluator/" class="card">
+        <img class="card-image" src="assets/githubPages/imgs/graphing.png">
+        <video class="card-video" src="assets/githubPages/vids/graphing.mp4" muted playsinline preload="auto"></video>
+        <div class="card-title">Graphing Calculator</div>
+      </a>
+
+      <a href="https://miguelrr11.github.io/IAs/Ovejas_VS_Lobos/" class="card">
+        <img class="card-image" src="assets/githubPages/imgs/sheepvsfoxes.png">
+        <video class="card-video" src="assets/githubPages/vids/sheepvsfoxes.mp4" muted playsinline preload="auto"></video>
+        <div class="card-title">Sheep VS Foxes</div>
+      </a>
+
+      <a href="https://miguelrr11.github.io/Physics_Simulations/RigidBodySim/" class="card">
+        <img class="card-image" src="assets/githubPages/imgs/rigid.png">
+        <video class="card-video" src="assets/githubPages/vids/rigid.mp4" muted playsinline preload="auto"></video>
+        <div class="card-title">Rigid Body Simulation</div>
       </a>
     </div>
 
@@ -346,11 +366,21 @@
 
 <!-- Video play on hover -->
 <script>
-document.querySelectorAll('.card-video').forEach(video => {
-  video.addEventListener('mouseenter', () => video.play());
-  video.addEventListener('mouseleave', () => {
-    video.pause();
-    video.currentTime = 0; // reset to first frame
+document.querySelectorAll('.card').forEach(card => {
+  const video = card.querySelector('.card-video');
+
+  card.addEventListener('mouseenter', () => {
+    video.style.opacity = 1;
+    video.play();
+  });
+
+  card.addEventListener('mouseleave', () => {
+    video.style.opacity = 0;
+
+    setTimeout(() => {
+      video.pause();
+      video.currentTime = 0;
+    }, 350); // match CSS transition time
   });
 });
 </script>
