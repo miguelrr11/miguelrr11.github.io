@@ -700,9 +700,9 @@ function getDefaultProfile() {
             "id": "album_review",
             "text": "Album Review",
             "x": width/2,
-            "y": 335,
-            "fontSize": 54,
-            "fontType": "fontLight",
+            "y": 358,
+            "fontSize": 72,
+            "fontType": "fontRegularCondensed",
             "color": "#ffffff",
             "viewType": "cover",
             "leading": 0,
@@ -1094,15 +1094,15 @@ function createTracksCustomizationSection(parent = editorPanel) {
 
     // Reset button
     createButton('Reset to Default').parent(tracksContent).class('btn btn-secondary').style('margin-top', '12px').mousePressed(() => {
-        tracksTextSize = 60;
-        tracksSpacing = 0;
-        tracksRectHeight = 40;
-        tracksTextSizeSlider.value(60);
-        tracksSpacingSlider.value(0);
-        tracksRectHeightSlider.value(40);
-        tracksTextSizeLabel.html('60');
-        tracksSpacingLabel.html('0');
-        tracksRectHeightLabel.html('40');
+        tracksTextSize = 44;
+        tracksSpacing = -18;
+        tracksRectHeight = 28;
+        tracksTextSizeSlider.value(44);
+        tracksSpacingSlider.value(-18);
+        tracksRectHeightSlider.value(28);
+        tracksTextSizeLabel.html('44');
+        tracksSpacingLabel.html('-18');
+        tracksRectHeightLabel.html('28');
         if (albumData && currentView === 'ratings') printAlbum();
         captureState();
     });
@@ -2275,7 +2275,7 @@ async function printAlbum(){
         if (track.customText && track.customText.trim() !== '') {
             push(); blendMode(BLEND); textAlign(CENTER, CENTER); fill(0, 160); textFont(fontRegularCondensed);
             let customTextSize = getMaxTextSize(track.customText, w - 20, 28);
-            textSize(customTextSize); text(track.customText, (leftMargin + x) * 0.5 + tracksHorizOffset, trackY - rectCenterOffset);
+            textSize(customTextSize); text(track.customText, (leftMargin + x) * 0.5 + tracksHorizOffset, trackY - rectCenterOffset+2);
             textSize(tracksTextSize); pop();
         }
 
@@ -2948,7 +2948,7 @@ function captureState() {
         customTextboxes: customTextboxes.map(t => ({
             id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
             fontType: t.fontType, color: t.color, viewType: t.viewType,
-            leading: t.leading || 0, maxWidth: t.maxWidth || 500
+            leading: t.leading || 0, maxWidth: t.maxWidth || 500, textAlign: t.textAlign || 'left'
         })),
         textSizeOffsets: {...textSizeOffsets},
         textLeadingOffsets: {...textLeadingOffsets},
