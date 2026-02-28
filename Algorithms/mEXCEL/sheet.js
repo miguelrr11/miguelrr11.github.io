@@ -83,9 +83,16 @@ class Sheet{
                 this.selectCell(this.grid[this.selectedCell.row][nextCol])
             }
         }
+        else if(this.selectedCell) this.selectedCell.compute()
+        // else if(e.key === "Backspace" && this.selectedCell){
+        //     this.selectedCell.rawVal = ""
+        //     this.cellsMap.delete(this.getCellKey(this.selectedCell.col, this.selectedCell.row))
+        //     this.selectedCell.updateDepenencies()
+        // }
     }
 
     onClick(){
+        if(this.selectedCell) this.selectedCell.compute()
         let clickedCell = undefined
         for(let i = 0; i < this.nRows; i++){
             for(let j = 0; j < this.nCols; j++){
@@ -141,7 +148,7 @@ class Sheet{
     showGrid(){
         push()
         noFill()
-        stroke(50)
+        stroke(130)
         strokeWeight(1)
         for(let i = 0; i < this.nCols; i++){
             line(i*widthCell, 0, i*widthCell, HEIGHT)
@@ -158,25 +165,26 @@ class Sheet{
         }
         push()
         translate(widthCell - 5, heightCell * .5)
-        fill(20)
+        fill(0)
         noStroke()
         textSize(13)
         textAlign(RIGHT, CENTER)
         for(let i = 0; i < this.nRows; i++){
             for(let j = 0; j < this.nCols; j++){
                 let cell = this.grid[i][j]
-                cell.computeReferences()
-                let tx = cell.value || cell.rawVal
+                cell.computeDependingOn()
+                cell.computeDepencyOf()
+                let tx = cell.value == undefined ? "" : cell.value
                 if(cell == this.selectedCell) tx = cell.rawVal || ""
                 text(tx, cell.pos.x, cell.pos.y)
             }
         }
         pop()
-        if(this.selectedCell && this.selectedCell.cellRefs.size > 0){
+        if(this.selectedCell && this.selectedCell.dependingOn.size > 0){
             stroke("#aa49ff")
             strokeWeight(2)
             noFill()
-            for(let cellRef of this.selectedCell.cellRefs){
+            for(let cellRef of this.selectedCell.dependingOn){
                 let refCell = this.cellsMap.get(cellRef)
                 if(refCell){
                     rect(refCell.pos.x, refCell.pos.y, widthCell, heightCell)

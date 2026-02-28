@@ -56,7 +56,7 @@ let horizontalOffsetsRatings = { title: 0, artist: 0, year: 0, genre: 0, funfact
 let horizontalOffsetsCover = { title: 0, artist: 0 };
 let imageSizeMultiplier = 1.0;
 let maxTextboxWidths = { title: 980, artist: 378, year: 378, genre: 378, funfact: 459 };
-const defaultMaxTextboxWidths = { title: 980, artist: 450, year: 378, genre: 378, funfact: 480 };
+const defaultMaxTextboxWidths = { title: 980, artist: 480, year: 480, genre: 480, funfact: 480 };
 let textAlignRatings = { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' };
 let textAlignCover = { title: 'center', artist: 'center' };
 
@@ -178,7 +178,7 @@ function createTracksFromPaste(texto){
         else if(grade >= 5) finalGrade = 'OKAY'
         else finalGrade = 'FLOP'
         tracks[trackIndex].gradeSelect.value(finalGrade)
-        if(i < lineas.length - 2) addTrackRowWithCapture()
+        if(i < lineas.length - 1) addTrackRowWithCapture()
         trackIndex++
     }
 }
@@ -2274,7 +2274,7 @@ async function printAlbum(){
 
         if (track.customText && track.customText.trim() !== '') {
             push(); blendMode(BLEND); textAlign(CENTER, CENTER); fill(0, 160); textFont(fontRegularCondensed);
-            let customTextSize = getMaxTextSize(track.customText, w - 40, 28);
+            let customTextSize = getMaxTextSize(track.customText, w - 20, 28);
             textSize(customTextSize); text(track.customText, (leftMargin + x) * 0.5 + tracksHorizOffset, trackY - rectCenterOffset);
             textSize(tracksTextSize); pop();
         }

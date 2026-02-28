@@ -7,19 +7,47 @@ class Cell{
         this.pos = {x: col*widthCell, y: row*heightCell}
 
         this.enteredCellLast = false
-        this.cellRefs = new Set()
+        this.dependingOn = new Set()
+        this.dependencyOf = new Set()
     }
 
-    computeReferences(){
-        this.cellRefs = new Set()
+    computeDepencyOf(){
+        //check if this.dependencyOf still holds, if not remove it
+        for(let cellRef of this.dependencyOf){
+            let cell = this.sheet.cellsMap.get(cellRef)
+            if(cell && cell.dependingOn.has(this.sheet.getCellKey(this.col, this.row))){
+                cell.dependingOn.delete(this.sheet.getCellKey(this.col, this.row))
+            }
+            else{
+                this.dependencyOf.delete(cellRef)
+            }
+        }
+    }
+
+    computeDependingOn(){
+        this.dependingOn = new Set()
         if(this.rawVal.startsWith("=")){
             const cellRefRegex = /([A-Z]+)(\d+)/g
             let match = null
             while((match = cellRefRegex.exec(this.rawVal)) !== null){
                 const col = match[1].charCodeAt(0) - 65
                 const row = parseInt(match[2])
-                this.cellRefs.add(this.sheet.getCellKey(col, row))
+                const cellKey = this.sheet.getCellKey(col, row)
+                this.dependingOn.add(cellKey)
+                // Update the dependencyOf set of the referenced cell
+                const referencedCell = this.sheet.cellsMap.get(cellKey)
+                if(referencedCell){
+                    referencedCell.dependencyOf.add(this.sheet.getCellKey(this.col, this.row))
+                }
             }
+        }
+    }
+
+    updateDepenencies(){
+        //when a cell changes, we need to update the cells that depend on it
+        for(let cellRef of this.dependencyOf){
+            let cell = this.sheet.cellsMap.get(cellRef)
+            if(cell) cell.compute()
         }
     }
 
@@ -28,6 +56,7 @@ class Cell{
             // if its not a formula, try to compute the value (eg 2+2)
             try {
                 this.value = eval(this.rawVal)
+                this.updateDepenencies()
             } 
             catch(e) {
                 this.value = this.rawVal
@@ -43,6 +72,7 @@ class Cell{
             })
             try {
                 this.value = eval(formula)
+                this.updateDepenencies()
             }
             catch(e) {
                 this.value = `#ERROR`
