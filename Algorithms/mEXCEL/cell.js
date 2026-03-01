@@ -27,9 +27,23 @@ class Cell{
     computeDependingOn(){
         this.dependingOn = new Set()
         if(this.rawVal.startsWith("=")){
+            //turn range syntax into individual cell references (eg A1:A5 -> A1, A2, A3, A4, A5)
+            let newRawVal = this.rawVal.replace(/([A-Z]+\d+):([A-Z]+\d+)/g, (match, startRef, endRef) => {
+                const startCol = startRef.charCodeAt(0) - 65
+                const startRow = parseInt(startRef.substring(1))
+                const endCol = endRef.charCodeAt(0) - 65
+                const endRow = parseInt(endRef.substring(1))
+                let result = ""
+                for(let i = startRow; i <= endRow; i++){
+                    for(let j = startCol; j <= endCol; j++){
+                        result += this.sheet.getCellKey(j, i) + "+"
+                    }
+                }
+                return result.slice(0, -1) // Remove trailing comma
+            })
             const cellRefRegex = /([A-Z]+)(\d+)/g
             let match = null
-            while((match = cellRefRegex.exec(this.rawVal)) !== null){
+            while((match = cellRefRegex.exec(newRawVal)) !== null){
                 const col = match[1].charCodeAt(0) - 65
                 const row = parseInt(match[2])
                 const cellKey = this.sheet.getCellKey(col, row)
@@ -65,6 +79,7 @@ class Cell{
         else{
             //substitute cell references with their values
             let formula = this.rawVal.substring(1)
+            formula = this.sheet.replaceFunctions(formula)
             const cellRefRegex = /([A-Z]+)(\d+)/g
             formula = formula.replace(cellRefRegex, (match, colLetters, rowNumber) => {
                 const cell = this.sheet.cellsMap.get(this.sheet.getCellKey(colLetters.charCodeAt(0) - 65, parseInt(rowNumber)))
@@ -80,7 +95,7 @@ class Cell{
         }
     }
 
-    mouseInside(){
-        return inBounds(mouseX, mouseY, this.pos.x, this.pos.y, widthCell, heightCell)
+    mouseInside(x = mouseX, y = mouseY){
+        return inBounds(x-heightCell, y-heightCell, this.pos.x, this.pos.y, widthCell, heightCell)
     }
 }
