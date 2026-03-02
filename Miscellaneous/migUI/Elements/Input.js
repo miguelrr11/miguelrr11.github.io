@@ -35,6 +35,7 @@ class Input {
 
         document.addEventListener("keyup", this.evaluateKey.bind(this))
         document.addEventListener("paste", this.handlePaste.bind(this))
+        document.addEventListener("mousedown", this.reallocateCursor.bind(this))
     }
     
     setFunc(func, arg = false) {
@@ -230,6 +231,26 @@ class Input {
             this.beingHovered = false
     }
 
+    reallocateCursor() {
+        if(!this.active) return
+        push()
+        noStroke()
+        fill(this.lightCol)
+        textSize(this.textSize)
+        let relativeX = mouseX - this.pos.x - bordeMIGUI - text_offset_xMIGUI
+        let accumWidth = 0
+        let i = this.firstCursor
+        while(i < this.sentence.length) {
+            let charW = textWidth(this.sentence.charAt(i))
+            if(accumWidth + charW / 2 > relativeX) break
+            accumWidth += charW
+            i++
+        }
+        this.cursorPos = i
+        this.relCursorPos = this.cursorPos - this.firstCursor
+        pop()
+    }
+
     evaluate() {
         this.active = inBoundsMIGUI(mouseX, mouseY, this.pos.x, this.pos.y, this.w, this.h)
         return this.active
@@ -284,6 +305,7 @@ class Input {
 		else if(this.hoverText && (!hoveringBounds || mouseIsPressed)){
 			this.hoveringCounter = 0
 		}
+        
 
 		pop()
 		return this.beingHovered ? this : false

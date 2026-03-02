@@ -136,7 +136,7 @@ async function setup(){
     plot.setColors([
         255, 180, 120, 70 
     ])
-    
+    console.log(tabs)
 }
 
 

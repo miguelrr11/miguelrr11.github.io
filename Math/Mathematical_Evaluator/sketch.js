@@ -62,6 +62,7 @@ function setup(){
 
 }
 
+
 function updateGraphs(){
     for(let g of graphs){
         g.graph.update()
@@ -70,6 +71,7 @@ function updateGraphs(){
 
 
 function createGraph(arg){
+    if(arg.trim() == "") return
     graphs.push({
         cb: panel.createCheckbox(arg, true),
         graph: new Graph(arg, colors[graphs.length%(colors.length)])

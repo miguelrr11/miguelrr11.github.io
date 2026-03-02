@@ -26,7 +26,7 @@ class Input{
 		this.frame = 0
 		this.coolDownBS = 0
 
-		document.addEventListener('keyup', this.evaluateKey.bind(this));
+		document.addEventListener('keydown', this.evaluateKey.bind(this));
 	}
 
 	setText(text){
@@ -47,15 +47,18 @@ class Input{
 		if(this.func){ 
 			if(this.arg) this.func(this.sentence)
 			else this.func()
-			this.sentence = ""
-			this.clippedSentence = ""
-			this.cursorPos = 0
-			this.relCursorPos = 0
-			this.firstCursor = 0
+			// this.sentence = ""
+			// this.clippedSentence = ""
+			// this.cursorPos = 0
+			// this.relCursorPos = 0
+			// this.firstCursor = 0
 		}
 	}
 
 	evaluateKey(event) {
+		if (event.code === 'Space') {
+			event.preventDefault();
+		}
 	    let c = event.key;
 	    if (this.active) {
 	    	this.coolDownBS = 0
