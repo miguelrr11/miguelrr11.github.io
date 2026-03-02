@@ -553,7 +553,8 @@ function integrateBodies(dt){
         if(b.cteAngVelToggle){
             b.angVel = b.cteAngVel
         }
-        b.angle += b.angVel * dt
+        
+        if(!b.isStatic || (b.isStatic && b.cteAngVelToggle)) b.angle += b.angVel * dt
 
         if(b.isStatic) continue
 
