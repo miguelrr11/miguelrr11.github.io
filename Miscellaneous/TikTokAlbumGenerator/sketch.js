@@ -46,6 +46,10 @@ let historyStack = [], historyIndex = -1;
 const MAX_HISTORY = 50;
 let isUndoRedoAction = false;
 
+// Monaco sync flags
+let isUpdatingMonacoFromUI = false;
+let isUpdatingEditorFromMonaco = false;
+
 // Text box selection and sizing
 let textBoxes = [], selectedTextBox = null, sizeAdjustPanel = null;
 let textSizeOffsets = { title: 0, artist: 0, year: 0, genre: 0, funfact: 0 };
@@ -211,11 +215,10 @@ function setupDragDrop() {
             reader.onload = (event) => {
                 try {
                     let data = JSON.parse(event.target.result);
-                    if (data.album) {
-                        albumData = data.album;
-                        fillFormFromData(albumData);
-                        currentView === 'ratings' ? printAlbum() : printCoverScreen();
-                    }
+                    let loadData = data.album || data;
+                    fillFormFromData(loadData);
+                    generateFromForm();
+                    captureState();
                 } catch (err) { console.log("Invalid JSON file"); }
             };
             reader.readAsText(file);
@@ -232,9 +235,58 @@ function handleKeyboard(e) {
 
 function createAlbumEditor() {
     // Create 3-column layout
+
+    //const json = window.monacoEditor.getValue();
+    
+    let panelEditor = createDiv('').parent(editorPanel).class('panel-column panel-editor').id('panel-editor');
     let panel1 = createDiv('').parent(editorPanel).class('panel-column panel-metadata');
     let panel2 = createDiv('').parent(editorPanel).class('panel-column panel-tracks');
     let panel3 = createDiv('').parent(editorPanel).class('panel-column panel-settings');
+    
+    let buttonToggleJSONeditor = createButton('Switch to JSON Mode').parent(panel3).class('btn btn-secondary').style('margin-bottom: 20px;');
+
+    let monacoReady = false;
+
+    const toggleEditor = () => {
+        editorPanel.toggleClass('editor-open');
+        buttonToggleJSONeditor.html(editorPanel.hasClass('editor-open') ? 'Switch to UI Mode' : 'Switch to JSON Mode');
+
+        if (editorPanel.hasClass('editor-open')) {
+            if (!monacoReady) {
+                monacoReady = true;
+                require(['vs/editor/editor.main'], function() {
+                    window.monacoEditor = monaco.editor.create(document.getElementById('panel-editor'), {
+                        value: '{}',
+                        language: 'json',
+                        theme: 'vs-dark',
+                        automaticLayout: true
+                    });
+
+                    syncEditorFromUI();
+
+                    window.monacoEditor.onDidChangeModelContent(() => {
+                        if (isUpdatingMonacoFromUI) return;
+                        try {
+                            const data = JSON.parse(window.monacoEditor.getValue());
+                            isUpdatingEditorFromMonaco = true;
+                            isUndoRedoAction = true;
+                            fillFormFromData(data);
+                            isUndoRedoAction = false;
+                            generateFromForm();
+                            captureState();
+                            isUpdatingEditorFromMonaco = false;
+                        } catch (e) {
+                            // user is mid-typing, JSON not valid yet
+                        }
+                    });
+                });
+            } else {
+                syncEditorFromUI();
+            }
+        }
+    };
+
+    buttonToggleJSONeditor.mousePressed(toggleEditor);
 
     // === Panel 1: Album Metadata ===
     let header = createDiv('').parent(panel1).class('panel-header');
@@ -310,6 +362,54 @@ function createAlbumEditor() {
 
     // Size adjust panel (fixed position, not in any column)
     createSizeAdjustPanel();
+}
+
+function setDataEditor(data){
+    window.monacoEditor.setValue(JSON.stringify(data, null, 2));
+}
+
+function getDataEditor(){
+    try {
+        const data = JSON.parse(window.monacoEditor.getValue());
+        return data;
+    } catch (e) {
+        console.error('Invalid JSON:', e);
+    }
+}
+
+function syncEditorFromUI() {
+    if (!window.monacoEditor || isUpdatingEditorFromMonaco) return;
+    let data = {
+        title: titleInput.value(), artist: artistInput.value(), year: yearInput.value(),
+        genre: genreInput.value(), funfact: funfactInput.value(), imageUrl: imageUrlInput.value(),
+        albumGrade: albumGradeSelect.value(),
+        aspectRatio: currentAspectRatio,
+        imageFormat: currentImageFormat,
+        showGradeLegend: showGradeLegend,
+        tracks: tracks.map(t => ({
+            title: t.titleInput.value(), grade: t.gradeSelect.value(),
+            customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null
+        })),
+        customTextboxes: customTextboxes.map(t => ({
+            id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
+            fontType: t.fontType, color: t.color, viewType: t.viewType,
+            textAlign: t.textAlign || 'left', leading: t.leading || 0, maxWidth: t.maxWidth || 500
+        })),
+        verticalOffsetsRatings: {...verticalOffsetsRatings},
+        verticalOffsetsCover: {...verticalOffsetsCover},
+        horizontalOffsetsRatings: {...horizontalOffsetsRatings},
+        horizontalOffsetsCover: {...horizontalOffsetsCover},
+        imageSizeMultiplier,
+        maxTextboxWidths: {...maxTextboxWidths},
+        textSizeOffsets: {...textSizeOffsets},
+        textLeadingOffsets: {...textLeadingOffsets},
+        tracksTextSize, tracksSpacing, tracksRectHeight,
+        textAlignRatings: {...textAlignRatings},
+        textAlignCover: {...textAlignCover}
+    };
+    isUpdatingMonacoFromUI = true;
+    window.monacoEditor.setValue(JSON.stringify(data, null, 2));
+    isUpdatingMonacoFromUI = false;
 }
 
 function createFormInput(label, placeholder, parent = editorPanel) {
@@ -2060,7 +2160,8 @@ function loadFromLocalStorage() {
     let savedData = localStorage.getItem('albumGeneratorData');
     if (savedData) {
         try {
-            fillFormFromData(JSON.parse(savedData));
+            let parsedData = JSON.parse(savedData);
+            fillFormFromData(parsedData);
             generateFromForm();
         } catch (err) { console.log("Error loading saved data"); }
     }
@@ -2969,6 +3070,7 @@ function captureState() {
     historyStack.push(JSON.stringify(state));
     historyIndex = historyStack.length - 1;
     if (historyStack.length > MAX_HISTORY) { historyStack.shift(); historyIndex--; }
+    syncEditorFromUI();
 }
 
 function undo() {
@@ -2977,6 +3079,7 @@ function undo() {
     historyIndex--;
     restoreState(JSON.parse(historyStack[historyIndex]));
     isUndoRedoAction = false;
+    syncEditorFromUI();
 }
 
 function redo() {
@@ -2985,6 +3088,7 @@ function redo() {
     historyIndex++;
     restoreState(JSON.parse(historyStack[historyIndex]));
     isUndoRedoAction = false;
+    syncEditorFromUI();
 }
 
 function restoreState(state) {

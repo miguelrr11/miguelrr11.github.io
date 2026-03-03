@@ -601,6 +601,7 @@ canvas {
     background: rgba(255, 255, 255, 0.08);
     color: #fff;
     border: 1px solid rgba(255, 255, 255, 0.15);
+    width: stretch;
 }
 
 .btn-secondary:hover {
@@ -1036,4 +1037,19 @@ canvas {
     .panel-column {
         padding: 14px;
     }
+}
+
+.panel-editor {
+  flex: 2;
+  display: none;
+}
+
+/* When editor is active, hide panels 1&2, show editor panel */
+.editor-panel.editor-open .panel-metadata,
+.editor-panel.editor-open .panel-tracks {
+  display: none;
+}
+
+.editor-panel.editor-open .panel-editor {
+  display: block;
 }
