@@ -3,8 +3,8 @@
 //31-03-2025
 
 p5.disableFriendlyErrors = true;
-const WIDTH = 900;
-const HEIGHT = 250;
+let WIDTH = 900;
+let HEIGHT = 250;
 
 let font;
 let scl = 5;
@@ -21,8 +21,20 @@ let wpmArr = []
 let camPos;
 let camTarget;
 
+let failTime = 0
+const maxFailTime = 3000
+
+function windowResized() {
+    WIDTH = windowWidth;
+    HEIGHT = windowHeight;
+    resizeCanvas(WIDTH, HEIGHT);
+    updateCameraTarget();
+}
+
 
 async function setup() {
+    WIDTH = windowWidth;
+    HEIGHT = windowHeight;
     font = await loadFont("font.ttf");
     createCanvas(WIDTH, HEIGHT);
     textAlign(LEFT, TOP);
@@ -34,7 +46,7 @@ async function setup() {
     updateCameraTarget();
 
     let str = ""
-    for(let i = 0; i < 300; i++){
+    for(let i = 0; i < 3000; i++){
         let randomWord = random(words)
         str += randomWord + " ";
     }
@@ -46,8 +58,15 @@ async function setup() {
 function draw() {
     background(0);
 
+    failTime = lerp(failTime, 0, 0.025);
+    if(failTime < 0.1) failTime = 0;
+
+    push()
     fill(150)
-    text(wpm.toFixed(1) + " WPM", 10, 10);
+    textSize(32)
+    textAlign(CENTER, TOP);
+    text(wpm.toFixed(1) + " WPM", width/2, 10);
+    pop()
 
     updateCameraTarget();
     scl = lerp(scl, sclTarget, 0.1);
@@ -55,19 +74,23 @@ function draw() {
     translate(camPos.x, camPos.y);
     scale(scl);
 
+
     let displayLine = lines[cursor.line].replace(/ /g, "_");
     let cursorX = textWidth(displayLine.substring(0, cursor.col));
     let cursorY = (textLeading() * cursor.line) - 2;
     let cursorW = textWidth("M"); 
     let cursorH = textAscent() + textDescent();
 
-    fill(255, Math.abs(Math.cos(frameCount / 25)) * 255);
+
+    let red = map(failTime, 0, maxFailTime, 255, 0);
+    fill(255, red, red, Math.abs(Math.cos(frameCount / 25)) * 255);
     rect(cursorX, cursorY, cursorW, cursorH);
 
     let wholeLinesLesson = lessonLines.join("\n");
     fill(100);
     text(wholeLinesLesson, 0, 0);
 
+    
     fill(255);
     let wholeText = lines.join("\n");
     text(wholeText, 0, 0);
@@ -153,10 +176,7 @@ function insertNewLine() {
 }
 
 function keyTyped() {
-    if (key === "Enter") {
-        insertNewLine();
-    } 
-    else if (key !== "Tab" && keyCode !== 8) {
+    if (key !== "Tab" && keyCode !== 8) {
         let charOfLesson = lessonLines.join("\n").charAt(lines.join("\n").length);
         if(key === charOfLesson){ 
             insertChar(key);
@@ -168,19 +188,14 @@ function keyTyped() {
                 }
             }
         }
+        else failTime = maxFailTime
     }
 }
 
 function keyPressed() {
     if (keyCode === 8) {
         deleteChar();
-    } 
-    else if (key === "Tab") {
-        insertChar(" ");
-        insertChar(" ");
-        insertChar(" ");
-        insertChar(" ");
-    } 
+    }
     else if (keyCode === 37) {
         if (cursor.col > 0) {
             cursor.col--;
