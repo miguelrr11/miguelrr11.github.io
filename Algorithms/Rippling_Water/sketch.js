@@ -43,7 +43,7 @@ function draw(){
     }
     updatePixels()
 
-    let temp = next
-    cur = next
+    let temp = next  // ✅ proper three-step swap
+    next = cur
     cur = temp
 }
