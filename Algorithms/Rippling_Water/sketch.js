@@ -21,14 +21,19 @@ function setup(){
     pixelDensity(1)
 }
 
-function mouseDragged(){
-    if(mouseX < WIDTH && mouseY < HEIGHT){
-        cur[mouseX][mouseY] = 2500
-    }
-}
 
 function draw(){
     background(0)
+
+    if(Math.random() < 0.05){
+        let x = floor(random(WIDTH))
+        let y = floor(random(HEIGHT))
+        cur[x][y] = 5000
+    }
+
+    if(mouseIsPressed && mouseX < WIDTH && mouseY < HEIGHT){
+        cur[mouseX][mouseY] = 5000
+    }
 
     loadPixels()
     for(let i = 1; i < WIDTH-1; i++){
