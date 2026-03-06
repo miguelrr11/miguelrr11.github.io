@@ -854,6 +854,11 @@ canvas {
     border-radius: 4px;
 }
 
+.checkbox-input input[type="checkbox"] {
+    margin: 0;
+    vertical-align: middle;
+}
+
 /* Toast Notifications */
 .toast {
     position: fixed;
@@ -1022,8 +1027,10 @@ canvas {
 
 .checkbox-input label {
     line-height: 18px;
-    margin: 0;
     padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
 }
 
 /* Make tracks column use flex to stretch track-container */

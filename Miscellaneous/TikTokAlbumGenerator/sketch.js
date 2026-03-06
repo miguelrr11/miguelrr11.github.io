@@ -104,6 +104,9 @@ let dragStartOffsetX = 0;
 let dragStartOffsetY = 0;
 let shiftDragAxis = null; // null, 'x', or 'y' - for shift+drag constraint
 
+let draggedTrackIndex = null;
+let autoGenerateTimeout = null;
+
 function calculateCanvasScale() {
     const scale = (window.innerHeight - 40) / HEIGHT;
     return Math.max(0.3, Math.min(1, scale));
@@ -194,7 +197,6 @@ function setTrackText(trackObj, newText) {
     trackObj.titleInput.elt.dispatchEvent(evt);
     trackObj.titleInput.elt.dispatchEvent(new Event('blur', { bubbles: true }));
 }
-
 
 function setupDragDrop() {
     document.addEventListener('dragover', (e) => {
@@ -1822,8 +1824,6 @@ function getContrastYIQ(hexcolor) {
     return (yiq >= 128) ? 'rgb(0,0,0)' : 'rgb(255,255,255)';
 }
 
-let draggedTrackIndex = null;
-
 function setupTrackDragAndDrop(rowDiv) {
     rowDiv.elt.addEventListener('dragstart', (e) => {
         draggedTrackIndex = tracks.findIndex(t => t.rowDiv === rowDiv);
@@ -1914,7 +1914,6 @@ function removeTrackRow(index) {
     autoGeneratePreview();
 }
 
-let autoGenerateTimeout = null;
 function autoGeneratePreview() {
     if (autoGenerateTimeout) clearTimeout(autoGenerateTimeout);
     autoGenerateTimeout = setTimeout(generateFromForm, 300);
@@ -2756,11 +2755,6 @@ function updateVisibilityCustomTextBoxesUI(){
             else ctb.rowDiv.show()
         }
     }
-}
-
-function draw(){
-    //if(frameCount % 60 === 0) autoGeneratePreview();
-    
 }
 
 function mousePressed() {
