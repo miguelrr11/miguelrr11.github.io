@@ -144,6 +144,7 @@ async function setup(){
     loadLastProfile(); // Apply profile first (sets defaults)
     loadFromLocalStorage(); // Then load album data (overrides profile settings)
     captureState();
+    updateVisibilityCustomTextBoxesUI()
 
     setInterval(saveToLocalStorage, 1000);
     document.addEventListener('keydown', handleKeyboard);
@@ -317,6 +318,8 @@ function createAlbumEditor() {
     albumGradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
     createPositionControls(gradeRow);
+
+     createDiv('').parent(panel1).class('section-divider')
 
     let addTextboxBtn = createButton('+ Add Textbox').parent(panel1).class('btn btn-secondary').style('margin-bottom: 20px;');
     addTextboxBtn.mousePressed(addCustomTextbox);
@@ -1664,6 +1667,7 @@ function toggleView() {
     if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
     updateVerticalOffsetSlider();
     if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    updateVisibilityCustomTextBoxesUI()
 }
 
 async function downloadBothImages() {
@@ -2741,8 +2745,22 @@ function dimImage(img, amount){
     return img;
 }
 
+function updateVisibilityCustomTextBoxesUI(){
+    for(let ctb of customTextboxes){
+        if(currentView == "ratings"){
+            if(ctb.viewType == "cover") ctb.rowDiv.hide()
+            else ctb.rowDiv.show()
+        }
+        else {
+            if(ctb.viewType == "ratings") ctb.rowDiv.hide()
+            else ctb.rowDiv.show()
+        }
+    }
+}
+
 function draw(){
     //if(frameCount % 60 === 0) autoGeneratePreview();
+    
 }
 
 function mousePressed() {
