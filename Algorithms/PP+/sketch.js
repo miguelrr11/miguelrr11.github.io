@@ -11,6 +11,8 @@ let it
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     it = new Interpreter()
+    it.set(sourceCode)
+    it.run()
 }
 
 function draw(){

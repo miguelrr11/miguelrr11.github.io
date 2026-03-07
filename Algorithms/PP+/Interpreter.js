@@ -1,13 +1,16 @@
 class Interpreter {
     constructor(){
         this.env = {}
-        this.sourceCode = "number a = -5 * -(2 * !false)\n"
+    }
+
+    set(sourceCode){
+        this.sourceCode = sourceCode
         this.tokens = this.lex(this.sourceCode)
         this.ast = this.parse(this.tokens)
-        console.log(this.ast)
-        debugAST(this.ast)
-        this.execute(this.ast)
-        console.log(this.env)
+    }
+
+    run(){
+        return this.execute(this.ast)
     }
 
     /*
@@ -36,6 +39,12 @@ class Interpreter {
             let lookAhead = text.charAt(curPos)
             let lookTwoAhead = text.charAt(curPos+1)
             if(lookAhead == ' ') curPos++
+            else if(lookAhead == '#' && lookTwoAhead == '#'){
+                curPos++
+                while(curPos < text.length && text.charAt(curPos) != '\n'){
+                    curPos++
+                }
+            }
             else if(lookAhead == '+' && lookTwoAhead != '='){
                 curPos++
                 tokens.push({type: 'plus', value: '+', pos: tokenStartPos})
@@ -51,6 +60,10 @@ class Interpreter {
             else if(lookAhead == '/' && lookTwoAhead != '='){
                 curPos++
                 tokens.push({type: 'divide', value: '/', pos: tokenStartPos})
+            }
+            else if(lookAhead == '%'){
+                curPos++
+                tokens.push({type: 'remainder', value: '%', pos: tokenStartPos})
             }
             else if(lookAhead == '=' && lookTwoAhead != '='){
                 curPos++
@@ -131,6 +144,36 @@ class Interpreter {
                     case 'number':
                         type = 'declaration'
                         break
+                    case 'string':
+                        type = 'declaration'
+                        break
+                    case 'boolean':
+                        type = 'declaration'
+                        break
+                    case 'if':
+                        type = 'if'
+                        break
+                    case 'else':
+                        type = 'else'
+                        break
+                    case 'while':
+                        type = 'while'
+                        break
+                    case 'say':
+                        type = 'ownFunction'
+                        break
+                    case 'func':
+                        type = 'functionDeclaration'
+                        break
+                    case 'ret':
+                        type = 'return'
+                        break
+                    case 'break':
+                        type = 'break'
+                        break
+                    case 'continue':
+                        type = 'continue'
+                        break
                     default:
                         type = 'identifier'
                 }
@@ -138,7 +181,17 @@ class Interpreter {
             }
             else if(lookAhead == '"'){
                 curPos++
-                tokens.push({type: 'quote', value: '"', pos: tokenStartPos})
+                let string = ''
+                while(curPos < text.length && text.charAt(curPos) != '"'){
+                    string += text.charAt(curPos)
+                    curPos++
+                }
+                if(text.charAt(curPos) != '"'){
+                    console.log('Unterminated string at col: ' + tokenStartPos)
+                    return
+                }
+                curPos++
+                tokens.push({type: 'string', value: string, pos: tokenStartPos})
             }
             else if(lookAhead === '!'){
                 curPos++
@@ -152,24 +205,36 @@ class Interpreter {
                 curPos++
                 tokens.push({type: 'rparen', value: ')', pos: tokenStartPos})
             }
+            else if(lookAhead === '{'){
+                curPos++
+                tokens.push({type: 'lbrack', value: '{', pos: tokenStartPos})
+            }
+            else if(lookAhead === '}'){
+                curPos++
+                tokens.push({type: 'rbrack', value: '}', pos: tokenStartPos})
+            }
+            else if(lookAhead === ','){
+                curPos++
+                tokens.push({type: 'comma', value: ',', pos: tokenStartPos})
+            }
             else if(lookAhead === '\n'){
                 curPos++
                 tokens.push({type: 'newline', value: '\n', pos: tokenStartPos})
             }
             
             else {
-                console.log('Unkown character: ' + lookAhead + ' at col: ' + curPos)
+                console.log('Unknown character: ' + lookAhead + ' at col: ' + curPos)
                 return
             }
 
         }
         tokens.push({type: 'EOF', value: '\n', pos: curPos})
-        console.log(tokens)
         return tokens
     }
 
     parse(tokens){
         let current = 0;
+        let loopDepth = 0
 
         function skipNewlines(){
             while(peek().type === "newline"){
@@ -220,6 +285,212 @@ class Interpreter {
 
             if(peek().type === "identifier" && tokens[current+1]?.type === "equals"){
                 return parseAssignment()
+            }
+
+            if(peek().type === "if"){
+
+                consume() // if
+                expect("lparen") // (
+                let condition = parseExpression()
+                expect("rparen") // )
+
+                expect("lbrack") // {
+
+                let body = []
+
+                skipNewlines()
+
+                while(peek().type !== "rbrack"){
+                    body.push(parseStatement())
+                    skipNewlines()
+                }
+
+                expect("rbrack") // }
+                skipNewlines()
+
+
+                // check for else if
+                let alternate = null
+
+                if (peek().type === "else") {
+
+                    consume() // else
+
+                    if (peek().type === "if") {
+
+                        // else if → recursive parsing
+
+                        alternate = parseStatement()
+
+                    } else {
+
+                        expect("lbrack")
+
+                        let elseBody = []
+
+                        skipNewlines()
+
+                        while (peek().type !== "rbrack") {
+                            elseBody.push(parseStatement())
+                            skipNewlines()
+                        }
+
+                        expect("rbrack")
+
+                        alternate = {
+                            type: "BlockStatement",
+                            body: elseBody
+                        }
+                    }
+                }
+                skipNewlines()
+
+                return {
+                    type: "IfStatement",
+                    condition: condition,
+                    body: {
+                        type: "BlockStatement",
+                        body
+                    },
+                    alternate: alternate
+                }
+            }
+
+            if(peek().type === "while"){
+
+                consume() // while
+                expect("lparen") // (
+                let condition = parseExpression()
+                expect("rparen") // )
+
+                expect("lbrack") // {
+
+                loopDepth++
+
+                let body = []
+
+                skipNewlines()
+
+                while (peek().type !== "rbrack") {
+                    body.push(parseStatement())
+                    skipNewlines()
+                }
+
+                expect("rbrack")
+
+                loopDepth--
+
+                return {
+                    type: "WhileStatement",
+                    condition: condition,
+                    body: {
+                        type: "BlockStatement",
+                        body  
+                    }
+                }
+            }
+            
+            if(peek().type === "ownFunction"){
+
+                consume() // say
+                expect("lparen") // (
+
+                let args = []
+
+                if(peek().type !== "rparen"){
+                    args.push(parseExpression())
+                    while(peek().type === "comma"){
+                        consume() // ,
+                        args.push(parseExpression())
+                    }
+                }
+
+                expect("rparen") // )
+
+                return {
+                    type: "OwnFunctionCall",
+                    name: "say",
+                    arguments: args
+                }
+            }
+
+            if(peek().type === "functionDeclaration"){
+
+                consume() // func
+                let id = expect("identifier")
+
+                expect("lparen") // (
+
+                let params = []
+
+                if(peek().type !== "rparen"){
+                    params.push(expect("identifier").value)
+                    while(peek().type === "comma"){
+                        consume() // ,
+                        params.push(expect("identifier").value)
+                    }
+                }
+
+                expect("rparen") // )
+
+                expect("lbrack") // {
+
+                let body = []
+
+                skipNewlines()
+
+                while(peek().type !== "rbrack"){
+                    body.push(parseStatement())
+                    skipNewlines()
+                }
+
+                expect("rbrack") // }
+
+                return {
+                    type: "FunctionDeclaration",
+                    name: id.value,
+                    params: params,
+                    body: {
+                        type: "BlockStatement",
+                        body
+                    }
+                }
+            }
+
+            if (peek().type === "return") {
+
+                consume() // return
+
+                let value = null
+
+                if (peek().type !== "newline" && peek().type !== "rbrack") {
+                    value = parseExpression()
+                }
+
+                return {
+                    type: "ReturnStatement",
+                    value: value
+                }
+            }
+
+            if(peek().type === 'break'){
+                if(loopDepth === 0){
+                    throw new Error("Break statement not within loop")
+                }
+                consume()
+                return {
+                    type: "break"
+                }
+            }
+
+            if(peek().type === 'continue'){
+                if(loopDepth === 0){
+                    throw new Error("Continue statement not within loop")
+                }
+                consume()
+                return {
+                    type: "continue"
+                }
             }
 
             return parseExpression()
@@ -339,7 +610,7 @@ class Interpreter {
 
             let node = parseUnary()
 
-            while(peek().type === "multiply" || peek().type === "divide"){
+            while(peek().type === "multiply" || peek().type === "divide" || peek().type === "remainder"){
 
                 let operator = consume()
 
@@ -385,8 +656,43 @@ class Interpreter {
                 }
             }
 
-            if(token.type === "identifier"){
+            if(token.type === "string"){
                 consume()
+                return {
+                    type: "Literal",
+                    value: token.value
+                }
+            }
+
+            if(token.type === "identifier"){
+
+                consume()
+
+                // function call
+                if(peek().type === "lparen"){
+
+                    consume()
+
+                    let args = []
+
+                    if(peek().type !== "rparen"){
+                        args.push(parseExpression())
+
+                        while(peek().type === "comma"){
+                            consume()
+                            args.push(parseExpression())
+                        }
+                    }
+
+                    expect("rparen")
+
+                    return {
+                        type: "FunctionCall",
+                        name: token.value,
+                        arguments: args
+                    }
+                }
+
                 return {
                     type: "Identifier",
                     name: token.value
@@ -411,15 +717,52 @@ class Interpreter {
                 return expr
             }
 
+            
+
             throw new Error("Unexpected token: " + token.value)
         }
 
         return parseProgram()
     }
-
+ 
     execute(node){
 
         switch(node.type){
+
+            case "break":
+                return {
+                    type: "break"
+                }
+
+            case "continue":
+                return {
+                    type: "continue"
+                }
+
+            case "BlockStatement":
+
+                let blockResult;
+
+                for (const stmt of node.body) {
+
+                    blockResult = this.execute(stmt)
+
+                    if (blockResult && (
+                        blockResult.type === "return" ||
+                        blockResult.type === "break" ||
+                        blockResult.type === "continue"
+                    )) {
+                        return blockResult
+                    }
+                }
+
+                return blockResult
+
+            case "ReturnStatement":
+                return {
+                    type: "return",
+                    value: node.value ? this.execute(node.value) : null
+                }
 
             case "Program":
                 let result;
@@ -432,7 +775,8 @@ class Interpreter {
             case "VariableDeclaration":
                 if(node.value){
                     this.env[node.identifier] = this.execute(node.value)
-                }else{
+                }
+                else{
                     this.env[node.identifier] = null
                 }
                 return this.env[node.identifier]
@@ -458,6 +802,7 @@ class Interpreter {
                     case "-": return left - right
                     case "*": return left * right
                     case "/": return left / right
+                    case "%": return left % right
                 }
 
                 throw new Error("Unknown operator " + node.operator)
@@ -481,6 +826,37 @@ class Interpreter {
 
                 throw new Error("Unknown condition operator " + node.operator)
 
+            case "IfStatement":
+
+                if (this.execute(node.condition)) {
+                    return this.execute(node.body)
+                }
+
+                if (node.alternate) {
+                    return this.execute(node.alternate)
+                }
+                return
+            
+            case "WhileStatement":
+
+               while (this.execute(node.condition)) {
+
+                    let result = this.execute(node.body)
+
+                    if (result && result.type === "return") {
+                        return result
+                    }
+
+                    if (result && result.type === "break") {
+                        return
+                    }
+
+                    if (result && result.type === "continue") {
+                        continue
+                    }
+                }
+
+                return
 
             case "Literal":
                 return node.value
@@ -503,8 +879,66 @@ class Interpreter {
                     case "not": return !arg
                 }
 
+            case "OwnFunctionCall":
+
+                let args = node.arguments.map(arg => this.execute(arg))
+
+                switch(node.name){
+                    case "say":
+                        console.log(...args)
+                        return
+                    default:
+                        throw new Error("Unknown function: " + node.name)
+                }
+
+            case "FunctionDeclaration":
+
+                this.env[node.name] = {
+                    params: node.params,
+                    body: node.body
+                }
+
+                return
+
+            case "FunctionCall":
+
+                const func = this.env[node.name]
+
+                if (!func) {
+                    throw new Error("Undefined function: " + node.name)
+                }
+
+                const previousEnv = this.env
+
+                // Create child scope (lexical environment)
+                this.env = Object.create(previousEnv)
+
+                // Bind parameters
+                for (let i = 0; i < func.params.length; i++) {
+
+                    const param = func.params[i]
+                    const argNode = node.arguments[i]
+
+                    this.env[param] = this.execute(argNode)
+
+                }
+
+                // Execute function body
+                const functionResult = this.execute(func.body)
+
+                // Restore environment
+                this.env = previousEnv
+
+                // Handle return propagation
+                if (functionResult && functionResult.type === "return") {
+                    return functionResult.value
+                }
+
+                return null
+
 
             default:
+                console.log(this.env)
                 throw new Error("Unknown AST node " + node.type)
         }
     }
@@ -544,6 +978,18 @@ function debugAST(node, indent = "", isLast = true){
     if(node.type === "VariableDeclaration")
         label += ` (${node.identifier})`
 
+    if(node.type === "AssignmentExpression")
+        label += ` (${node.identifier})`
+
+    if(node.type === "ConditionExpression")
+        label += ` (${node.operator})`
+
+    if(node.type === "UnaryExpression")
+        label += ` (${node.operator})`
+
+    if(node.type === "IfStatement")
+        label += ` (${node.condition.operator})`
+
     console.log(indent + branch + label)
 
     let children = []
@@ -559,6 +1005,15 @@ function debugAST(node, indent = "", isLast = true){
 
     if(node.type === "VariableDeclaration" && node.value)
         children = [node.value]
+
+    if(node.type === "ConditionExpression")
+        children = [node.left, node.right]
+
+    if(node.type === "UnaryExpression")
+        children = [node.argument]
+
+    if(node.type === "IfStatement")
+        children = [node.condition, ...node.body]
 
     children.forEach((child, i) =>
         debugAST(child, nextIndent, i === children.length - 1)
