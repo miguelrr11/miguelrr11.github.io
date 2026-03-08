@@ -1,3 +1,36 @@
+const ownFunctions = {
+    say: (...args) => {
+        console.log(...args)
+    },
+    rect: (x, y, w, h) => {
+        rect(x, y, w, h)
+    },
+    fill: (r, g, b) => {
+        fill(r, g, b)
+    },
+    translate: (x, y) => {
+        translate(x, y)
+    },
+    rotate: (angle) => {
+        rotate(angle)
+    },
+    radians: (angle) => {
+        return radians(angle)
+    },
+    cos: (angle) => {
+        return Math.cos(angle)
+    },
+    sin: (angle) => {
+        return Math.sin(angle)
+    },
+    random: (min, max) => {
+        return random(min, max)
+    },
+    clear: () => {
+        background(50)
+    }
+}
+
 class Interpreter {
     constructor(){
         this.env = {}
@@ -11,6 +44,56 @@ class Interpreter {
 
     run(){
         return this.execute(this.ast)
+    }
+
+    callFunc(node){
+        let func
+        func = this.env[node.name]
+        if (!func) {
+            throw new Error("Undefined function: " + node.name)
+        }
+
+        const previousEnv = this.env
+
+        // Create child scope (lexical environment)
+        //this is wrong because it elimintes changes done to global variables, lets fix it by only creating a child scope for the function parameters, and keeping the rest of the environment intact
+        this.env = Object.create(previousEnv)
+
+        // Bind parameters
+        for (let i = 0; i < func.params.length; i++) {
+
+            const param = func.params[i]
+            const argNode = node.arguments[i]
+
+            this.env[param] = this.execute(argNode)
+
+        }
+
+        // Execute function body
+        const functionResult = this.execute(func.body)
+
+        // Restore environment
+        this.env = previousEnv
+
+        // Handle return propagation
+        if (functionResult && functionResult.type === "return") {
+            return functionResult.value
+        }
+
+        return null
+    }
+
+    lookupVariable(name){
+        let scope = this.env
+
+        while(scope){
+            if(Object.prototype.hasOwnProperty.call(scope, name)){
+                return scope[name]
+            }
+            scope = Object.getPrototypeOf(scope)
+        }
+
+        throw new Error("Undefined variable: " + name)
     }
 
     /*
@@ -30,6 +113,41 @@ class Interpreter {
         - identifier
         - condition
     */
+
+    searchFunctionCall(funcName){
+        //searches in the programs body for a function call with the given name, and returns the node of the first one it finds, or null if it doesn't find any
+        function searchNode(node){
+            if(node.type === "FunctionCall" && node.name === funcName){
+                return node
+            }
+
+            for(let key in node){
+                if(node[key] && typeof node[key] === "object"){
+                    let result = searchNode(node[key])
+                    if(result) return result
+                }
+            }
+
+            return null
+        }
+
+        return searchNode(this.ast)
+    }
+
+    assignVariable(name, value){
+        let scope = this.env
+
+        while(scope){
+            if(Object.prototype.hasOwnProperty.call(scope, name)){
+                scope[name] = value
+                return value
+            }
+
+            scope = Object.getPrototypeOf(scope)
+        }
+
+        throw new Error("Variable not declared: " + name)
+    }
 
     lex(text){
         let tokens = []
@@ -120,7 +238,7 @@ class Interpreter {
             else if(isDigit(lookAhead)){
                 let str = lookAhead
                 curPos++
-                while(curPos < text.length && isDigit(text.charAt(curPos))){
+                while(curPos < text.length && (isDigit(text.charAt(curPos)) || text.charAt(curPos) == '.')){
                     str += text.charAt(curPos)
                     curPos++
                 }
@@ -159,9 +277,6 @@ class Interpreter {
                     case 'while':
                         type = 'while'
                         break
-                    case 'say':
-                        type = 'ownFunction'
-                        break
                     case 'func':
                         type = 'functionDeclaration'
                         break
@@ -175,7 +290,10 @@ class Interpreter {
                         type = 'continue'
                         break
                     default:
-                        type = 'identifier'
+                        if(str in ownFunctions){
+                            type = 'ownFunction'
+                        }
+                        else type = 'identifier'
                 }
                 tokens.push({type: type, value: str, pos: tokenStartPos})
             }
@@ -390,29 +508,7 @@ class Interpreter {
                 }
             }
             
-            if(peek().type === "ownFunction"){
-
-                consume() // say
-                expect("lparen") // (
-
-                let args = []
-
-                if(peek().type !== "rparen"){
-                    args.push(parseExpression())
-                    while(peek().type === "comma"){
-                        consume() // ,
-                        args.push(parseExpression())
-                    }
-                }
-
-                expect("rparen") // )
-
-                return {
-                    type: "OwnFunctionCall",
-                    name: "say",
-                    arguments: args
-                }
-            }
+            
 
             if(peek().type === "functionDeclaration"){
 
@@ -648,6 +744,32 @@ class Interpreter {
 
             let token = peek()
 
+            if(peek().type === "ownFunction"){
+
+                let name = peek().value
+
+                consume() // say
+                expect("lparen") // (
+
+                let args = []
+
+                if(peek().type !== "rparen"){
+                    args.push(parseExpression())
+                    while(peek().type === "comma"){
+                        consume() // ,
+                        args.push(parseExpression())
+                    }
+                }
+
+                expect("rparen") // )
+
+                return {
+                    type: "OwnFunctionCall",
+                    name: name,
+                    arguments: args
+                }
+            }
+
             if(token.type === "number"){
                 consume()
                 return {
@@ -717,8 +839,7 @@ class Interpreter {
                 return expr
             }
 
-            
-
+    
             throw new Error("Unexpected token: " + token.value)
         }
 
@@ -781,15 +902,9 @@ class Interpreter {
                 }
                 return this.env[node.identifier]
 
-
             case "AssignmentExpression":
-                if(!(node.identifier in this.env)){
-                    throw new Error("Variable not declared: " + node.identifier)
-                }
-
                 let val = this.execute(node.value)
-                this.env[node.identifier] = val
-                return val
+                return this.assignVariable(node.identifier, val)
 
 
             case "BinaryExpression":
@@ -807,7 +922,6 @@ class Interpreter {
 
                 throw new Error("Unknown operator " + node.operator)
 
-
             case "ConditionExpression":
 
                 let l = this.execute(node.left)
@@ -823,7 +937,6 @@ class Interpreter {
                     case "&&": return l && r
                     case "||": return l || r
                 }
-
                 throw new Error("Unknown condition operator " + node.operator)
 
             case "IfStatement":
@@ -863,12 +976,7 @@ class Interpreter {
 
 
             case "Identifier":
-
-                if(!(node.name in this.env)){
-                    throw new Error("Undefined variable: " + node.name)
-                }
-
-                return this.env[node.name]
+                return this.lookupVariable(node.name)
             
             case "UnaryExpression":
 
@@ -883,59 +991,21 @@ class Interpreter {
 
                 let args = node.arguments.map(arg => this.execute(arg))
 
-                switch(node.name){
-                    case "say":
-                        console.log(...args)
-                        return
-                    default:
-                        throw new Error("Unknown function: " + node.name)
+                if(node.name in ownFunctions){
+                    return ownFunctions[node.name](...args)
                 }
-
+                throw new Error("Undefined function: " + node.name)
+                
             case "FunctionDeclaration":
-
+                
                 this.env[node.name] = {
                     params: node.params,
                     body: node.body
                 }
-
                 return
 
             case "FunctionCall":
-
-                const func = this.env[node.name]
-
-                if (!func) {
-                    throw new Error("Undefined function: " + node.name)
-                }
-
-                const previousEnv = this.env
-
-                // Create child scope (lexical environment)
-                this.env = Object.create(previousEnv)
-
-                // Bind parameters
-                for (let i = 0; i < func.params.length; i++) {
-
-                    const param = func.params[i]
-                    const argNode = node.arguments[i]
-
-                    this.env[param] = this.execute(argNode)
-
-                }
-
-                // Execute function body
-                const functionResult = this.execute(func.body)
-
-                // Restore environment
-                this.env = previousEnv
-
-                // Handle return propagation
-                if (functionResult && functionResult.type === "return") {
-                    return functionResult.value
-                }
-
-                return null
-
+                return this.callFunc(node)
 
             default:
                 console.log(this.env)

@@ -16,5 +16,5 @@ function setup(){
 }
 
 function draw(){
-    background(0)
+    it.callFunc(it.searchFunctionCall("draw"))
 }
