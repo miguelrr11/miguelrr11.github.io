@@ -85,3 +85,14 @@ let pushUnshift = `
 `
 
 let sourceCode = pushUnshift
+
+/*
+push  			arr->(x)       	
+unshift			arr<-(x)	   	
+pop				arr-> 	   		
+shift 			arr<-  	   		
+
+getlast 		arr[*]
+split(sx, ex)	arr[sx | ex]
+
+*/
