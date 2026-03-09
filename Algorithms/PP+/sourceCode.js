@@ -37,4 +37,28 @@ let test3 = `
     say(stop)
 `
 
-let sourceCode = test2
+let testArr = `
+    func f(){
+        ret 1
+    }
+    var arr = [1, 2, 3]
+    arr[f()] = 2 + 2
+    say(arr[0])
+`
+
+let testFor = `
+    var iters = 0
+    for(i 0:10 step 0){
+        say("hol.a")
+        iters++
+        if(iters > 100){
+            ret
+        }
+    }
+`
+
+let dummy = `
+    var a
+`
+
+let sourceCode = testFor

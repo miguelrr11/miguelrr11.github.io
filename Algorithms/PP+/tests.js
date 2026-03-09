@@ -15,19 +15,19 @@ const tests = [
 
     // ─── VARIABLES ────────────────────────────────────────────────────────────
     {
-        desc: "Declare and read a number variable",
-        source: `number x = 42`,
+        desc: "Declare and read a var variable",
+        source: `var x = 42`,
         expect: 42
     },
     {
         desc: "Declare variable without initializer (should be null)",
-        source: `number x`,
+        source: `var x`,
         expect: null
     },
     {
         desc: "Reassign a variable",
         source: `
-            number x = 5
+            var x = 5
             x = 99
         `,
         expect: 99
@@ -39,66 +39,66 @@ const tests = [
     },
     {
         desc: "Reading undeclared variable throws",
-        source: `number x = y`,
+        source: `var x = y`,
         throws: true
     },
 
     // ─── ARITHMETIC ───────────────────────────────────────────────────────────
     {
         desc: "Addition",
-        source: `number x = 3 + 4`,
+        source: `var x = 3 + 4`,
         expect: 7
     },
     {
         desc: "Subtraction",
-        source: `number x = 10 - 3`,
+        source: `var x = 10 - 3`,
         expect: 7
     },
     {
         desc: "Multiplication",
-        source: `number x = 6 * 7`,
+        source: `var x = 6 * 7`,
         expect: 42
     },
     {
         desc: "Division",
-        source: `number x = 20 / 4`,
+        source: `var x = 20 / 4`,
         expect: 5
     },
     {
         desc: "Remainder / modulo",
-        source: `number x = 17 % 5`,
+        source: `var x = 17 % 5`,
         expect: 2
     },
     {
         desc: "Operator precedence: * before +",
-        source: `number x = 2 + 3 * 4`,
+        source: `var x = 2 + 3 * 4`,
         expect: 14
     },
     {
         desc: "Parentheses override precedence",
-        source: `number x = (2 + 3) * 4`,
+        source: `var x = (2 + 3) * 4`,
         expect: 20
     },
     {
         desc: "Unary negation",
-        source: `number x = -7`,
+        source: `var x = -7`,
         expect: -7
     },
     {
         desc: "Chained arithmetic",
-        source: `number x = 1 + 2 + 3 + 4`,
+        source: `var x = 1 + 2 + 3 + 4`,
         expect: 10
     },
     {
         desc: "Increment operator",
-        source: `number x = 5
+        source: `var x = 5
             x++
             `,
         expect: 6
     },
     {
         desc: "Decrement operator",
-        source: `number x = 5
+        source: `var x = 5
             x--
             `,
         expect: 4
@@ -108,7 +108,7 @@ const tests = [
     {
         desc: "+= operator",
         source: `
-            number x = 10
+            var x = 10
             x += 5
         `,
         expect: 15
@@ -116,7 +116,7 @@ const tests = [
     {
         desc: "-= operator",
         source: `
-            number x = 10
+            var x = 10
             x -= 3
         `,
         expect: 7
@@ -124,7 +124,7 @@ const tests = [
     {
         desc: "*= operator",
         source: `
-            number x = 4
+            var x = 4
             x *= 3
         `,
         expect: 12
@@ -132,7 +132,7 @@ const tests = [
     {
         desc: "/= operator",
         source: `
-            number x = 20
+            var x = 20
             x /= 4
         `,
         expect: 5
@@ -141,91 +141,91 @@ const tests = [
     // ─── STRINGS ──────────────────────────────────────────────────────────────
     {
         desc: "String literal",
-        source: `number x = "hello"`,
+        source: `var x = "hello"`,
         expect: "hello"
     },
     {
         desc: "String concatenation with +",
-        source: `number x = "hello" + " world"`,
+        source: `var x = "hello" + " world"`,
         expect: "hello world"
     },
 
     // ─── BOOLEANS ─────────────────────────────────────────────────────────────
     {
         desc: "Boolean true literal",
-        source: `number x = true`,
+        source: `var x = true`,
         expect: true
     },
     {
         desc: "Boolean false literal",
-        source: `number x = false`,
+        source: `var x = false`,
         expect: false
     },
     {
         desc: "Logical NOT on true",
-        source: `number x = !true`,
+        source: `var x = !true`,
         expect: false
     },
     {
         desc: "Logical NOT on false",
-        source: `number x = !false`,
+        source: `var x = !false`,
         expect: true
     },
 
     // ─── CONDITIONS ───────────────────────────────────────────────────────────
     {
         desc: "Greater than (true)",
-        source: `number x = 5 > 3`,
+        source: `var x = 5 > 3`,
         expect: true
     },
     {
         desc: "Greater than (false)",
-        source: `number x = 3 > 5`,
+        source: `var x = 3 > 5`,
         expect: false
     },
     {
         desc: "Less than",
-        source: `number x = 2 < 10`,
+        source: `var x = 2 < 10`,
         expect: true
     },
     {
         desc: "Equals ==",
-        source: `number x = 7 == 7`,
+        source: `var x = 7 == 7`,
         expect: true
     },
     {
         desc: "Not equals !=",
-        source: `number x = 7 != 8`,
+        source: `var x = 7 != 8`,
         expect: true
     },
     {
         desc: "Greater than or equal (equal case)",
-        source: `number x = 5 >= 5`,
+        source: `var x = 5 >= 5`,
         expect: true
     },
     {
         desc: "Less than or equal",
-        source: `number x = 3 <= 4`,
+        source: `var x = 3 <= 4`,
         expect: true
     },
     {
         desc: "Logical AND (both true)",
-        source: `number x = true && true`,
+        source: `var x = true && true`,
         expect: true
     },
     {
         desc: "Logical AND (one false)",
-        source: `number x = true && false`,
+        source: `var x = true && false`,
         expect: false
     },
     {
         desc: "Logical OR (one true)",
-        source: `number x = false || true`,
+        source: `var x = false || true`,
         expect: true
     },
     {
         desc: "Logical OR (both false)",
-        source: `number x = false || false`,
+        source: `var x = false || false`,
         expect: false
     },
 
@@ -233,7 +233,7 @@ const tests = [
     {
         desc: "If branch taken",
         source: `
-            number x = 0
+            var x = 0
             if (true) {
                 x = 1
             }
@@ -243,7 +243,7 @@ const tests = [
     {
         desc: "If branch !taken",
         source: `
-            number x = 0
+            var x = 0
             if (false) {
                 x = 1
             }
@@ -253,7 +253,7 @@ const tests = [
     {
         desc: "If-else: if branch",
         source: `
-            number x = 0
+            var x = 0
             if (10 > 5) {
                 x = 1
             } else {
@@ -265,7 +265,7 @@ const tests = [
     {
         desc: "If-else: else branch",
         source: `
-            number x = 0
+            var x = 0
             if (1 > 5) {
                 x = 1
             } else {
@@ -277,8 +277,8 @@ const tests = [
     {
         desc: "Else-if chain: first branch",
         source: `
-            number x = 0
-            number y = 1
+            var x = 0
+            var y = 1
             if (y == 1) {
                 x = 10
             } else if (y == 2) {
@@ -292,8 +292,8 @@ const tests = [
     {
         desc: "Else-if chain: middle branch",
         source: `
-            number x = 0
-            number y = 2
+            var x = 0
+            var y = 2
             if (y == 1) {
                 x = 10
             } else if (y == 2) {
@@ -307,8 +307,8 @@ const tests = [
     {
         desc: "Else-if chain: final else",
         source: `
-            number x = 0
-            number y = 99
+            var x = 0
+            var y = 99
             if (y == 1) {
                 x = 10
             } else if (y == 2) {
@@ -322,10 +322,10 @@ const tests = [
 
     // ─── WHILE LOOPS ──────────────────────────────────────────────────────────
     {
-        desc: "While loop runs correct number of times",
+        desc: "While loop runs correct var of times",
         source: `
-            number x = 0
-            number i = 0
+            var x = 0
+            var i = 0
             while (i < 5) {
                 x += 1
                 i += 1
@@ -336,7 +336,7 @@ const tests = [
     {
         desc: "While loop body never runs when condition is false",
         source: `
-            number x = 42
+            var x = 42
             while (false) {
                 x = 0
             }
@@ -346,8 +346,8 @@ const tests = [
     {
         desc: "While loop accumulates sum 1..10",
         source: `
-            number x = 0
-            number i = 1
+            var x = 0
+            var i = 1
             while (i <= 10) {
                 x += i
                 i += 1
@@ -358,8 +358,8 @@ const tests = [
     {
         desc: "While loop accumulates sum 1..10 and breaks at 5",
         source: `
-            number x = 0
-            number i = 1
+            var x = 0
+            var i = 1
             while (i <= 10) {
                 x += i
                 i += 1
@@ -371,10 +371,10 @@ const tests = [
         expect: 15
     },
     {
-        desc: "While loop accumulates sum 1..10 and continues at even numbers",
+        desc: "While loop accumulates sum 1..10 and continues at even vars",
         source: `
-            number x = 0
-            number i = 1
+            var x = 0
+            var i = 1
             while (i <= 10) {
                 i += 1
                 if(i % 2 == 0){
@@ -385,7 +385,70 @@ const tests = [
         `,
         expect: 35
     },
-
+    // ─── ARRAYS ────────────────────────────────────────────────────────────
+    {
+        desc: "Array literal",
+        source: `
+            var x = [1, 2, 3]
+        `,
+        expect: [1, 2, 3]
+    },
+    {
+        desc: "Array indexing",
+        source: `
+            var arr = [1, 2, 3]
+            var x = arr[0]
+        `,
+        expect: 1
+    },
+    {
+        desc: "Array assignment",
+        source: `
+            var arr = [1, 2, 3]
+            arr[0] = 4
+            var x = arr
+        `,
+        expect: [4, 2, 3]
+    },
+    // ─── ARRAY MORE COMPLEX ────────────────────────────────────────────────────────────
+    {
+        desc: "Array assignment with function call index and expression value",
+        source: `
+            var arr = [1, 2, 3]
+            func getIndex() {
+                ret 0
+            }
+            arr[getIndex()] = 4
+            var x = arr
+        `,
+        expect: [4, 2, 3]
+    },
+    {
+        desc: "Array assignment with function call index and expression value (complex)",
+        source: `
+            var arr = [1, 2, 3]
+            func getIndex() {
+                ret 0
+            }
+            arr[getIndex()] = 2 + 2
+            var x = arr
+        `,
+        expect: [4, 2, 3]
+    },
+    {
+        desc: "Classic array indexing in loop",
+        source: `
+            var arr = [10, 20, 30]
+            var sum = 0
+            var i = 0
+            while (i < 3) {
+                sum += arr[i]
+                i += 1
+            }
+            var x = sum
+        `,
+        expect: 60
+    },
     // ─── FUNCTIONS ────────────────────────────────────────────────────────────
     {
         desc: "Function declaration and call",
@@ -393,7 +456,7 @@ const tests = [
             func double(n) {
                 ret n * 2
             }
-            number x = double(7)
+            var x = double(7)
         `,
         expect: 14
     },
@@ -403,7 +466,7 @@ const tests = [
             func add(a, b) {
                 ret a + b
             }
-            number x = add(3, 4)
+            var x = add(3, 4)
         `,
         expect: 7
     },
@@ -416,7 +479,7 @@ const tests = [
                 }
                 ret 0
             }
-            number x = test(10)
+            var x = test(10)
         `,
         expect: 1
     },
@@ -425,7 +488,7 @@ const tests = [
         source: `
             func nothing() {
             }
-            number x = nothing()
+            var x = nothing()
         `,
         expect: null
     },
@@ -438,7 +501,7 @@ const tests = [
                 }
                 ret n * factorial(n - 1)
             }
-            number x = factorial(5)
+            var x = factorial(5)
         `,
         expect: 120
     },
@@ -451,16 +514,16 @@ const tests = [
                 }
                 ret fib(n - 1) + fib(n - 2)
             }
-            number x = fib(8)
+            var x = fib(8)
         `,
         expect: 21
     },
     {
         desc: "Function scope does !leak into outer scope",
         source: `
-            number x = 100
+            var x = 100
             func setLocal() {
-                number x = 999
+                var x = 999
             }
             setLocal()
         `,
@@ -469,14 +532,126 @@ const tests = [
     {
         desc: "Function can read outer scope variables",
         source: `
-            number base = 10
+            var base = 10
             func addBase(n) {
                 ret base + n
             }
-            number x = addBase(5)
+            var x = addBase(5)
         `,
         expect: 15
     },
+    // ─── FOR LOOPS ────────────────────────────────────────────────────────────
+     /*
+            possible syntaxes:
+                for(<variable_name> <start (expression)>:<end (expression)> step <step (expression)>)
+                for(<variable_name> <expression>:<expression>)
+
+                examples:
+                    for(i 0:10 step 2){...}
+                    for(j 10:getEnd() step -1){...}
+                    for(k 0:100 step getStep()){...}
+
+                the variable doesnt need a declaration (var not needed)
+                step is optional, it defaults to 1
+                getEnd can be 2 things:
+                    - a number: when the iterator reaches it, the loop ends
+                    - a boolean: if false, the loop ends
+
+                IMPORTANT DESIGN CHOICES:
+                    - the Start Index expression is executed ONCE
+                    - the End Index expression is executed EVERY ITERATION
+                    - the Step expression is executed ONCE
+            */
+    {
+        desc: "For loop with numeric end and step",
+        source: `
+            var sum = 0 
+            for(i 0:10 step 2){
+                sum += i
+            }
+            var x = sum
+        `,
+        expect: 20
+    },
+    {
+        desc: "For loop with function call end and step",
+        source: `
+            func getEnd(){
+                ret 10
+            }
+            func getStep(){ 
+                ret 2
+            }
+            var sum = 0
+            for(i 0:getEnd() step getStep()){
+                sum += i
+            }
+            var x = sum
+        `,
+        expect: 20  
+    },
+    {
+        desc: "For loop with boolean end condition",
+        source: `
+            var sum = 0
+            var i = 0
+            func shouldContinue(n){
+                ret n <= 10
+            }
+            for(i 0:shouldContinue(i) step 1){
+                sum = i
+            }
+            var x = sum
+        `,
+        expect: 10
+    },
+    // start index and step should only be called once, end condition should be called every iteration
+    {
+        desc: "For loop with function call end and step (check calls)",
+        source: `
+            var calls = 0
+            func getEnd(){
+                calls++
+                ret 10
+            }
+            func getStep(){
+                calls++
+                ret 2
+            }
+            var sum = 0
+            for(i 0:getEnd() step getStep()){
+                sum += i
+            }   
+            var x = calls
+        `,
+        expect: 7 // step called once, end called every iteration (5 iterations) plus getEnd = 7
+    },
+    {
+        desc: 'For loop with negative step',
+        source: `
+            var sum = 0
+            for(i 10:0 step -1){
+                sum += i
+            }
+            var x = sum
+        `,
+        expect: 55
+    },
+    {
+        desc: 'For loop with negative step and boolean end condition',
+        source: `
+            var sum = 0
+            var i = 10
+            func shouldContinue(n){
+                ret n >= 0
+            }
+            for(i 10:shouldContinue(i) step -1){
+                sum += i
+            }
+            var x = sum
+        `,
+        expect: 55
+    }
 ]
 
 
@@ -498,17 +673,22 @@ function runTests() {
 
             const interp = new Interpreter()
             interp.set(test.source)
-            interp.compile()
+            interp.prepare()
             interp.run()
             const output = interp.env["x"] // adjust if your API differs
 
             if (test.throws) {
                 result.error = "Expected an error to be thrown, but none was"
-            } else if (typeof test.expect === "function") {
+            } 
+            else if (typeof test.expect === "function") {
                 result.passed = test.expect(output)
                 if (!result.passed) result.error = `Custom check failed. Got: ${JSON.stringify(output)}`
-            } else {
-                result.passed = output === test.expect
+            } 
+            else {
+                if(test.expect != undefined && test.expect != null && test.expect.constructor.name == 'Array') {
+                    result.passed = JSON.stringify(output) === JSON.stringify(test.expect);
+                }
+                else {result.passed = output === test.expect}
                 if (!result.passed) result.error = `Expected ${JSON.stringify(test.expect)}, got ${JSON.stringify(output)}`
             }
 
@@ -546,5 +726,3 @@ function runTests() {
 
     return { passed, failed, results }
 }
-
-runTests()

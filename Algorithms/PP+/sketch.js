@@ -11,9 +11,10 @@ let it
 function setup(){
     createCanvas(WIDTH, HEIGHT)
     frameRate(60)
+    runTests()
     it = new Interpreter()
     it.set(sourceCode)
-    it.compile()
+    it.prepare()
     it.run()
 }
 

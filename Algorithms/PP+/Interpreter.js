@@ -46,7 +46,7 @@ class Interpreter {
         this.sourceCode = sourceCode
     }
 
-    compile(){
+    prepare(){
         this.tokens = this.lex(this.sourceCode)
         this.ast = this.parse(this.tokens)
     }
@@ -269,6 +269,7 @@ class Interpreter {
                     str += text.charAt(curPos)
                     curPos++
                 }
+                if(text.charAt(curPos) == '[' && text.charAt(curPos+1) == ']') {str += '[]'; curPos += 2} // for array declarations
                 let type = ''
                 switch (str){
                     case 'true':
@@ -277,10 +278,7 @@ class Interpreter {
                     case 'false':
                         type = 'boolean'
                         break
-                    case 'number':
-                        type = 'declaration'
-                        break
-                    case 'string':
+                    case 'var':
                         type = 'declaration'
                         break
                     case 'boolean':
@@ -306,6 +304,12 @@ class Interpreter {
                         break
                     case 'continue':
                         type = 'continue'
+                        break
+                    case 'for':
+                        type = 'for'
+                        break
+                    case 'step':
+                        type = 'step'
                         break
                     default:
                         if(str in ownFunctions){
@@ -357,7 +361,32 @@ class Interpreter {
                 curPos++
                 tokens.push({type: 'newline', value: '\n', pos: tokenStartPos})
             }
-            
+            else if (lookAhead === '[') {
+                tokens.push({
+                    type: 'lArr',
+                    value: '[',
+                    pos: tokenStartPos,
+                });
+
+                curPos++;
+            }
+            else if (lookAhead === ']') {
+                tokens.push({
+                    type: 'rArr',
+                    value: ']',
+                    pos: tokenStartPos,
+                });
+
+                curPos++;
+            }
+            else if (lookAhead === '.'){
+                curPos++
+                tokens.push({type: 'dot', value: '.', pos: tokenStartPos})
+            }
+            else if(lookAhead === ':'){
+                curPos++
+                tokens.push({type: 'colon', value: ':', pos: tokenStartPos})
+            }
             else {
                 console.log('Unknown character: ' + lookAhead + ' at col: ' + curPos)
                 return
@@ -421,6 +450,10 @@ class Interpreter {
 
             if(peek().type === "identifier" && tokens[current+1]?.type === "equals"){
                 return parseAssignment()
+            }
+
+            if(peek().type === "identifier" && tokens[current+1]?.type === "lArr"){
+                return parseArrayAssignment()
             }
 
             if(peek().type === "if"){
@@ -525,8 +558,52 @@ class Interpreter {
                     }
                 }
             }
-            
-            
+
+            if(peek().type === "for"){
+                consume()
+                expect("lparen")
+                let iterator = parseDeclaration(true)
+                let startLoop = parseExpression()
+                expect("colon")
+                let endLoop = parseExpression()
+                let step = 1
+                if(peek().type === "step"){
+                    consume()
+                    step = parseExpression()
+                }
+                expect("rparen")
+                expect("lbrack") // {
+
+                loopDepth++
+
+                let body = []
+
+                skipNewlines()
+
+                while (peek().type !== "rbrack") {
+                    body.push(parseStatement())
+                    skipNewlines()
+                }
+
+                expect("rbrack")
+
+                loopDepth--
+
+                let forObj = {
+                    type: "ForStatement",
+                    startLoop: startLoop,
+                    endLoop: endLoop,
+                    step: step,
+                    iterator: iterator,
+                    body: {
+                        type: "BlockStatement",
+                        body  
+                    }
+                }
+
+                return forObj
+
+            }
 
             if(peek().type === "functionDeclaration"){
 
@@ -610,9 +687,9 @@ class Interpreter {
             return parseExpression()
         }
 
-        function parseDeclaration(){
+        function parseDeclaration(isForLoop = false){
 
-            consume() // declaration keyword: number
+            if(!isForLoop) consume() // declaration keyword: number
             let id = expect("identifier")
 
             let initializer = null
@@ -640,6 +717,21 @@ class Interpreter {
                 type: "AssignmentExpression",
                 identifier: id.value,
                 value: expr
+            }
+        }
+
+        function parseArrayAssignment(){
+            let id = consume() // array name
+            expect("lArr") // [
+            let index = parseExpression()
+            expect("rArr") // ]
+            expect("equals") // =
+            let value = parseExpression()
+            return {
+                type: "ArrayAssignmentExpression",
+                identifier: id.value,
+                index: index,
+                value: value
             }
         }
 
@@ -787,7 +879,7 @@ class Interpreter {
 
                 let name = peek().value
 
-                consume() // say
+                consume()
                 expect("lparen") // (
 
                 let args = []
@@ -831,26 +923,31 @@ class Interpreter {
 
                 // function call
                 if(peek().type === "lparen"){
-
                     consume()
-
                     let args = []
-
                     if(peek().type !== "rparen"){
                         args.push(parseExpression())
-
                         while(peek().type === "comma"){
                             consume()
                             args.push(parseExpression())
                         }
                     }
-
                     expect("rparen")
-
                     return {
                         type: "FunctionCall",
                         name: token.value,
                         arguments: args
+                    }
+                }
+
+                if (peek().type === "lArr") {
+                    consume() // [
+                    let index = parseExpression()
+                    expect("rArr") // ]
+                    return {
+                        type: "ArrayAccess",
+                        array: token.value,
+                        index
                     }
                 }
 
@@ -876,6 +973,25 @@ class Interpreter {
                 expect("rparen") // )
 
                 return expr
+            }
+
+            if (token.type === "lArr") {
+                consume() // [
+                let elements = []
+                skipNewlines()
+                if (peek().type !== "rArr") {
+                    elements.push(parseExpression())
+                    while (peek().type === "comma") {
+                        consume()
+                        skipNewlines()
+                        elements.push(parseExpression())
+                    }
+                }
+                expect("rArr") // ]
+                return {
+                    type: "ArrayLiteral",
+                    elements
+                }
             }
 
     
@@ -945,6 +1061,18 @@ class Interpreter {
                 let val = this.execute(node.value)
                 return this.assignVariable(node.identifier, val)
 
+            case "ArrayAssignmentExpression":
+                let arr = this.lookupVariable(node.identifier)
+                if(!arr || !Array.isArray(arr)){
+                    throw new Error(node.identifier + " is not an array")
+                }
+                let idx = this.execute(node.index)
+                if(idx < 0 || idx >= arr.length){
+                    throw new Error("Index out of bounds")
+                }
+                let valArr = this.execute(node.value)
+                arr[idx] = valArr
+                return valArr
 
             case "BinaryExpression":
 
@@ -1010,6 +1138,62 @@ class Interpreter {
 
                 return
 
+            /*
+            possible syntaxes:
+                for(<variable_name> <start (expression)>:<end (expression)> step <step (expression)>)
+                for(<variable_name> <expression>:<expression>)
+
+                examples:
+                    for(i 0:10 step 2){...}
+                    for(j 10:getEnd() step -1){...}
+                    for(k 0:100 step getStep()){...}
+
+                the variable doesnt need a declaration (var not needed)
+                step is optional, it defaults to 1
+                getEnd can be 2 things:
+                    - a number: when the iterator reaches it, the loop ends
+                    - a boolean: if false, the loop ends
+
+                IMPORTANT DESIGN CHOICES:
+                    - the Start Index expression is executed ONCE
+                    - the End Index expression is executed EVERY ITERATION
+                    - the Step expression is executed ONCE
+
+                to make this an infinite loop just put step to 0 or a false condition for the end index
+            */
+            case "ForStatement":
+                this.execute(node.iterator)
+
+                let start = this.execute(node.startLoop)
+                let step = node.step != undefined ? this.execute(node.step) : 1
+
+                this.env[node.iterator.identifier] = start
+
+                while (true) {
+                    let end = this.execute(node.endLoop)
+                    let i = this.env[node.iterator.identifier]
+
+                    let condition =
+                        (typeof end === "number" && (
+                            (step > 0 && i < end) ||
+                            (step < 0 && i > end)
+                        )) ||
+                        (typeof end === "boolean" && end) ||
+                        (step == 0)
+
+                    if (!condition) break
+
+                    let result = this.execute(node.body)
+
+                    if (result?.type === "return") return result
+                    if (result?.type === "break") return
+                    if (result?.type === "continue") continue
+
+                    this.env[node.iterator.identifier] += step
+                }
+
+                return
+
             case "Literal":
                 return node.value
 
@@ -1046,8 +1230,21 @@ class Interpreter {
             case "FunctionCall":
                 return this.callFunc(node)
 
+            case "ArrayLiteral":
+                return node.elements.map(element => this.execute(element))
+
+            case "ArrayAccess":
+                let array = this.lookupVariable(node.array)
+                if(!array || !Array.isArray(array)){
+                    throw new Error(node.array + " is not an array")
+                }
+                let index = this.execute(node.index)
+                if(index < 0 || index >= array.length){
+                    throw new Error("Index out of bounds")
+                }
+                return array[index]
+
             default:
-                console.log(this.env)
                 throw new Error("Unknown AST node " + node.type)
         }
     }
