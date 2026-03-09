@@ -28,6 +28,12 @@ const ownFunctions = {
     },
     clear: () => {
         background(50)
+    },
+    noise: (x, y = undefined, z = undefined) => {
+        return noise(x, y, z)
+    },
+    noStroke: () => {
+        noStroke()
     }
 }
 
@@ -38,6 +44,9 @@ class Interpreter {
 
     set(sourceCode){
         this.sourceCode = sourceCode
+    }
+
+    compile(){
         this.tokens = this.lex(this.sourceCode)
         this.ast = this.parse(this.tokens)
     }
@@ -47,6 +56,7 @@ class Interpreter {
     }
 
     callFunc(node){
+        if(!node) return
         let func
         func = this.env[node.name]
         if (!func) {
@@ -96,24 +106,6 @@ class Interpreter {
         throw new Error("Undefined variable: " + name)
     }
 
-    /*
-    types:
-        - plus
-        - minus
-        - multiply
-        - divide
-        - equals
-        - plusEquals
-        - minusEquals
-        - multiplyEquals
-        - divideEquals
-        - number
-        - boolean
-        - declaration
-        - identifier
-        - condition
-    */
-
     searchFunctionCall(funcName){
         //searches in the programs body for a function call with the given name, and returns the node of the first one it finds, or null if it doesn't find any
         function searchNode(node){
@@ -149,6 +141,24 @@ class Interpreter {
         throw new Error("Variable not declared: " + name)
     }
 
+    /*
+    types:
+        - plus
+        - minus
+        - multiply
+        - divide
+        - equals
+        - plusEquals
+        - minusEquals
+        - multiplyEquals
+        - divideEquals
+        - number
+        - boolean
+        - declaration
+        - identifier
+        - condition
+    */
+
     lex(text){
         let tokens = []
         let curPos = 0
@@ -163,11 +173,11 @@ class Interpreter {
                     curPos++
                 }
             }
-            else if(lookAhead == '+' && lookTwoAhead != '='){
+            else if(lookAhead == '+' && lookTwoAhead != '=' && lookTwoAhead != '+'){
                 curPos++
                 tokens.push({type: 'plus', value: '+', pos: tokenStartPos})
             }
-            else if(lookAhead == '-' && lookTwoAhead != '='){
+            else if(lookAhead == '-' && lookTwoAhead != '=' && lookTwoAhead != '-'){
                 curPos++
                 tokens.push({type: 'minus', value: '-', pos: tokenStartPos})
             }
@@ -191,9 +201,17 @@ class Interpreter {
                 curPos += 2
                 tokens.push({type: 'plusEquals', value: '+=', pos: tokenStartPos})
             }
+            else if(lookAhead == '+' && lookTwoAhead == '+'){
+                curPos += 2
+                tokens.push({type: 'increment', value: '++', pos: tokenStartPos})
+            }
             else if(lookAhead == '-' && lookTwoAhead == '='){
                 curPos += 2
                 tokens.push({type: 'minusEquals', value: '-=', pos: tokenStartPos})
+            }
+            else if(lookAhead == '-' && lookTwoAhead == '-'){
+                curPos += 2
+                tokens.push({type: 'decrement', value: '--', pos: tokenStartPos})
             }
             else if(lookAhead == '*' && lookTwoAhead == '='){
                 curPos += 2
@@ -695,6 +713,27 @@ class Interpreter {
                         operator: binaryOperator,
                         left: node,
                         right: rightNode
+                    }
+                }
+            }
+
+            while(peek().type === "increment" || peek().type === "decrement"){
+                let operator = consume()
+
+                let binaryOperator = operator.type === "increment" ? "+" : "-"
+
+                node = {
+                    type: "AssignmentExpression",
+                    operator: operator.value,
+                    identifier: node.type === "Identifier" ? node.name : (() => {throw new Error("Left-hand side of assignment must be an identifier")})(),
+                    value: {
+                        type: "BinaryExpression",
+                        operator: binaryOperator,
+                        left: node,
+                        right: {
+                            type: "Literal",
+                            value: 1
+                        }
                     }
                 }
             }

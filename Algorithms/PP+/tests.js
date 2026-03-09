@@ -89,6 +89,20 @@ const tests = [
         source: `number x = 1 + 2 + 3 + 4`,
         expect: 10
     },
+    {
+        desc: "Increment operator",
+        source: `number x = 5
+            x++
+            `,
+        expect: 6
+    },
+    {
+        desc: "Decrement operator",
+        source: `number x = 5
+            x--
+            `,
+        expect: 4
+    },
 
     // ─── COMPOUND ASSIGNMENT ──────────────────────────────────────────────────
     {
@@ -484,6 +498,7 @@ function runTests() {
 
             const interp = new Interpreter()
             interp.set(test.source)
+            interp.compile()
             interp.run()
             const output = interp.env["x"] // adjust if your API differs
 
