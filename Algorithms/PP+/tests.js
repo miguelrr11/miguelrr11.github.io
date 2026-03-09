@@ -605,7 +605,6 @@ const tests = [
         `,
         expect: 10
     },
-    // start index and step should only be called once, end condition should be called every iteration
     {
         desc: "For loop with function call end and step (check calls)",
         source: `
@@ -624,7 +623,7 @@ const tests = [
             }   
             var x = calls
         `,
-        expect: 7 // step called once, end called every iteration (5 iterations) plus getEnd = 7
+        expect: 7
     },
     {
         desc: 'For loop with negative step',
@@ -651,7 +650,17 @@ const tests = [
             var x = sum
         `,
         expect: 55
-    }
+    },
+    {
+        desc: 'For loop with explicit condition in end',
+        source: `
+            var x = 0
+            for(i 0:(x<10)){
+                x++
+            }
+        `,
+        expect: 10
+    },
 ]
 
 

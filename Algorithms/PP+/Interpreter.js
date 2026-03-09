@@ -165,7 +165,7 @@ class Interpreter {
         while(curPos < text.length){
             let tokenStartPos = curPos
             let lookAhead = text.charAt(curPos)
-            let lookTwoAhead = text.charAt(curPos+1)
+            let lookTwoAhead = text.charAt(curPos+1) || ''
             if(lookAhead == ' ') curPos++
             else if(lookAhead == '#' && lookTwoAhead == '#'){
                 curPos++
@@ -177,7 +177,7 @@ class Interpreter {
                 curPos++
                 tokens.push({type: 'plus', value: '+', pos: tokenStartPos})
             }
-            else if(lookAhead == '-' && lookTwoAhead != '=' && lookTwoAhead != '-'){
+            else if(lookAhead == '-' && lookTwoAhead != '=' && lookTwoAhead != '-' && lookTwoAhead != '>'){
                 curPos++
                 tokens.push({type: 'minus', value: '-', pos: tokenStartPos})
             }
@@ -237,13 +237,21 @@ class Interpreter {
                 curPos += 2
                 tokens.push({type: 'condition', value: '<=', pos: tokenStartPos})
             }
-            else if(lookAhead == '<'){
+            else if(lookAhead == '<' && lookTwoAhead != '=' && lookTwoAhead != '-'){
                 curPos++
                 tokens.push({type: 'condition', value: '<', pos: tokenStartPos})
             }
             else if(lookAhead == '>'){
                 curPos++
                 tokens.push({type: 'condition', value: '>', pos: tokenStartPos})
+            }
+            else if(lookAhead == '-' && lookTwoAhead == '>'){
+                curPos += 2
+                tokens.push({type: 'arrow', value: '->', pos: tokenStartPos})
+            }
+            else if(lookAhead == '<' && lookTwoAhead == '-'){
+                curPos += 2
+                tokens.push({type: 'arrow', value: '<-', pos: tokenStartPos})
             }
             else if(lookAhead == '&' && lookTwoAhead == '&'){
                 curPos += 2
@@ -735,6 +743,33 @@ class Interpreter {
             }
         }
 
+        function parseArrayPushPopShiftUnshift(){
+            let id = consume() //consume identifier
+            let arrow = consume() //consume arrow (left or right)
+
+            //now either we have a push/unshift operation (arr->(x) or arr<-(x))
+            //or we have a pop/shift operation (arr-> or arr<-)
+
+            if(peek().type == 'lparen'){
+                //push/unshift operation
+                consume('lparen')
+
+                let element = parseExpression()
+            
+                expect('rparen')
+
+                let node = {
+                    type: "ArrayPushUnshift",
+                    array: id.value,
+                    elementToBeAdded: element,
+                    operation: arrow.value == '->' ? 'push' : 'unshift'
+                }
+                console.log(node)
+
+                return node
+            }
+        }
+
         function parseExpression() {
             return parseCondition()
         }
@@ -875,6 +910,8 @@ class Interpreter {
 
             let token = peek()
 
+            
+
             if(peek().type === "ownFunction"){
 
                 let name = peek().value
@@ -915,6 +952,10 @@ class Interpreter {
                     type: "Literal",
                     value: token.value
                 }
+            }
+
+            if(peek().type === "identifier" && tokens[current+1]?.type === "arrow"){
+                return parseArrayPushPopShiftUnshift()
             }
 
             if(token.type === "identifier"){
@@ -993,6 +1034,8 @@ class Interpreter {
                     elements
                 }
             }
+
+           
 
     
             throw new Error("Unexpected token: " + token.value)
@@ -1165,7 +1208,7 @@ class Interpreter {
                 this.execute(node.iterator)
 
                 let start = this.execute(node.startLoop)
-                let step = node.step != undefined ? this.execute(node.step) : 1
+                let step = typeof node.step == 'number' ? node.step : this.execute(node.step)
 
                 this.env[node.iterator.identifier] = start
 
@@ -1243,6 +1286,14 @@ class Interpreter {
                     throw new Error("Index out of bounds")
                 }
                 return array[index]
+
+            case "ArrayPushUnshift":
+                let arrayPP = this.lookupVariable(node.array)
+                let element = this.execute(node.elementToBeAdded)
+                let operation = node.operation
+                operation == 'push' ? arrayPP.push(element) : arrayPP.unshift(element)
+
+                return arrayPP.length
 
             default:
                 throw new Error("Unknown AST node " + node.type)

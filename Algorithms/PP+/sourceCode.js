@@ -57,8 +57,31 @@ let testFor = `
     }
 `
 
+let gridTest = `
+    ##doesnt work because I didnt implement the syntax of concatenating arrays with the [] operator, but it works if you assign the inner arrays separately
+    ##var grid = [[0, 1], [2, 3]]
+    ##say(grid[0][1])
+
+    var grid = [0, 0]
+    grid[0] = [0, 1]
+    grid[1] = [2, 3]
+    say(grid[0])
+`
+
 let dummy = `
     var a
 `
 
-let sourceCode = testFor
+// a->(x) works but a[i]->(x) doesnt because it expects an assignment (=), not a push/unshift
+let pushUnshift = `
+    var a = []
+    for(i 0:i<10){
+        a[i]->([])
+        for(j 0:j<10){
+            say(i + " " + j)
+        }
+    }
+    say(a)
+`
+
+let sourceCode = pushUnshift
