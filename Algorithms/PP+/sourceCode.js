@@ -72,7 +72,6 @@ let dummy = `
     var a
 `
 
-// a->(x) works but a[i]->(x) doesnt because it expects an assignment (=), not a push/unshift
 let pushUnshift = `
     var a = [[[], 2],[3, 4]]
     a[0][0]->(9)
@@ -87,14 +86,25 @@ let testPop = `
     a->
 `
 
-let sourceCode = testPop
+let testWeird = `
+    var a = [1, 2, 3]
+    a->([<-a])
+    say(a)
+`
+
+let testLength = `
+    var a = [1, 2, 3]
+    say(|a|)
+    var b = "Hello"
+    say(|b|)
+`
+
+let sourceCode = testLength
 
 /*
 DONE
 push  			arr->(x)       	
 unshift			arr<-(x)	   
-
-TODO
 let x = arr.pop()	    var x = arr->
 let y = arr.shift()     var y = <-arr
 

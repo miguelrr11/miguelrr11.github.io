@@ -1300,6 +1300,197 @@ const tests = [
         `,
         expect: 10
     },
+    // --- LENGTH OF ARRAYS ---
+    {
+        desc: "Length of flat array",
+        source: `
+            var arr = [1, 2, 3]
+            var x = |arr|
+        `,
+        expect: 3
+    },
+    {
+        desc: "Length of empty array",
+        source: `
+            var arr = []
+            var x = |arr|
+        `,
+        expect: 0
+    },
+    {
+        desc: "Length of single element array",
+        source: `
+            var arr = [42]
+            var x = |arr|
+        `,
+        expect: 1
+    },
+    {
+        desc: "Length of nested array (counts top-level only)",
+        source: `
+            var arr = [[1, 2], [3, 4], [5, 6]]
+            var x = |arr|
+        `,
+        expect: 3
+    },
+    {
+        desc: "Length of sub-array via index",
+        source: `
+            var arr = [[1, 2, 3], [4, 5]]
+            var x = |arr[0]|
+        `,
+        expect: 3
+    },
+    {
+        desc: "Length changes after push",
+        source: `
+            var arr = [1, 2, 3]
+            arr->(4)
+            var x = |arr|
+        `,
+        expect: 4
+    },
+    {
+        desc: "Length changes after pop",
+        source: `
+            var arr = [1, 2, 3]
+            arr->
+            var x = |arr|
+        `,
+        expect: 2
+    },
+    {
+        desc: "Length changes after unshift",
+        source: `
+            var arr = [1, 2, 3]
+            arr<-(0)
+            var x = |arr|
+        `,
+        expect: 4
+    },
+    {
+        desc: "Length changes after shift",
+        source: `
+            var arr = [1, 2, 3]
+            <-arr
+            var x = |arr|
+        `,
+        expect: 2
+    },
+    {
+        desc: "Length used as loop bound",
+        source: `
+            var arr = [10, 20, 30, 40]
+            var sum = 0
+            for(i 0:|arr|){
+                sum = sum + arr[i]
+            }
+            var x = sum
+        `,
+        expect: 100
+    },
+    {
+        desc: "Length used in condition",
+        source: `
+            var arr = [1, 2, 3]
+            var x = false
+            if(|arr| == 3){
+                x = true
+            }
+        `,
+        expect: true
+    },
+    {
+        desc: "Length in expression",
+        source: `
+            var arr = [1, 2, 3, 4]
+            var x = |arr| * 2
+        `,
+        expect: 8
+    },
+    {
+        desc: "Length of array built dynamically",
+        source: `
+            var arr = []
+            arr->(1)
+            arr->(2)
+            arr->(3)
+            var x = |arr|
+        `,
+        expect: 3
+    },
+
+    // --- LENGTH OF STRINGS ---
+    {
+        desc: "Length of string",
+        source: `
+            var s = "Hello"
+            var x = |s|
+        `,
+        expect: 5
+    },
+    {
+        desc: "Length of empty string",
+        source: `
+            var s = ""
+            var x = |s|
+        `,
+        expect: 0
+    },
+    {
+        desc: "Length of string literal inline",
+        source: `
+            var x = |"Hello World"|
+        `,
+        expect: 11
+    },
+    {
+        desc: "Length of string used in condition",
+        source: `
+            var s = "Hi"
+            var x = false
+            if(|s| < 5){
+                x = true
+            }
+        `,
+        expect: true
+    },
+    {
+        desc: "Length of string used in expression",
+        source: `
+            var s = "abc"
+            var x = |s| + 1
+        `,
+        expect: 4
+    },
+
+    // --- LENGTH IN FUNCTIONS ---
+    {
+        desc: "Length passed to function",
+        source: `
+            func lenOf(arr){
+                ret |arr|
+            }
+            var arr = [1, 2, 3, 4, 5]
+            var x = lenOf(arr)
+        `,
+        expect: 5
+    },
+    {
+        desc: "Function uses length as loop bound",
+        source: `
+            func sum(arr){
+                var total = 0
+                for(i 0:|arr|){
+                    total = total + arr[i]
+                }
+                ret total
+            }
+            var x = sum([1, 2, 3, 4])
+        `,
+        expect: 10
+    }
+
 ]
 
 

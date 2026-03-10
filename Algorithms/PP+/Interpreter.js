@@ -37,6 +37,21 @@ const ownFunctions = {
     }
 }
 
+/*
+Caminos de operaciones de arrays, porque son un poco lio
+
+Operacion   Sintaxis	    Camino
+
+push()      arr->(x)	    parsePrimary → identifier case → arrow → lparen → ArrayPushUnshift push
+unshift()   arr<-(x)	    parsePrimary → identifier case → arrow → lparen → ArrayPushUnshift unshift
+push()      arr[i]->(x) 	parseArrayAssignment → parseArrayPushPopShiftUnshift → lparen → ArrayPushUnshift push
+unshift()   arr[i]<-(x)	    parseArrayAssignment → parseArrayPushPopShiftUnshift → lparen → ArrayPushUnshift unshift
+pop()       arr->	        parsePrimary → identifier case → arrow → no lparen → PopOperation
+pop()       arr[i]->	    parseArrayAssignment → parseArrayPushPopShiftUnshift → no lparen → PopOperation
+shift()     <-arr	        parsePrimary → <- check → ShiftOperation
+shift()     <-arr[i]	    parsePrimary → <- check → collect indices → ShiftOperation
+*/
+
 class Interpreter {
     constructor(){
         this.env = {}
@@ -167,6 +182,10 @@ class Interpreter {
             let lookAhead = text.charAt(curPos)
             let lookTwoAhead = text.charAt(curPos+1) || ''
             if(lookAhead == ' ') curPos++
+            else if(lookAhead == "|" && lookTwoAhead != "|"){
+                curPos++
+                tokens.push({type: 'pipe', value: '|', pos: tokenStartPos})
+            }
             else if(lookAhead == '#' && lookTwoAhead == '#'){
                 curPos++
                 while(curPos < text.length && text.charAt(curPos) != '\n'){
@@ -415,8 +434,8 @@ class Interpreter {
             }
         }
 
-        function peek(){
-            return tokens[current]
+        function peek(overflow = 0){
+            return tokens[current + overflow]
         }
 
         function consume(){
@@ -457,13 +476,13 @@ class Interpreter {
             }
 
             //var num = 5
-            if(peek().type === "identifier" && tokens[current+1]?.type === "equals"){
+            if(peek().type === "identifier" && peek(1)?.type === "equals"){
                 return parseAssignment()
             }
 
             //arr[i] = 5
             //arr[i]->(x) or arr[i]<-(x)
-            if(peek().type === "identifier" && tokens[current+1]?.type === "lArr"){
+            if(peek().type === "identifier" && peek(1)?.type === "lArr"){
                 return parseArrayAssignment()
             }
 
@@ -784,7 +803,14 @@ class Interpreter {
                 return node
             }
             else {
-                //pop/shift operation TODO
+                if(arrow.value !== '->'){
+                    throw new Error("Invalid syntax: did you mean <-" + id.value + "?")
+                }
+                return {
+                    type: "PopOperation",
+                    array: id.value,
+                    index: index && index.length > 0 ? index : null
+                }
             }
         }
 
@@ -972,31 +998,20 @@ class Interpreter {
                 }
             }
 
-            //arr->(x) or arr<-(x)  (push or unshift)
-            if(peek().type === "identifier" 
-                && tokens[current+1]?.type === "arrow" 
-                && tokens[current+2]?.type === "lparen"){
-                let id = consume() // array name
-                return parseArrayPushPopShiftUnshift(id, null)
-            }
-
-            //arr-> (pop)
-            if(peek().type === "identifier" && tokens[current+1]?.type === "arrow"){
+            //<-arr or <-arr[i][j] (shift)
+            if(peek().type === "arrow" && peek().value === "<-" && peek(1)?.type === "identifier"){
+                consume() // <-
                 let id = consume()
-                consume()
-                return {
-                    type: "PopOperation",
-                    array: id.value
+                let index = []
+                while(peek().type === "lArr"){
+                    consume()
+                    index.push(parseExpression())
+                    expect("rArr")
                 }
-            }
-
-            //<-arr (shift)
-            if(peek().type === "arrow" && tokens[current+1]?.type === "identifier"){
-                consume()
-                let id = consume()
                 return {
                     type: "ShiftOperation",
-                    array: id.value
+                    array: id.value,
+                    index: index.length > 0 ? index : null
                 }
             }
 
@@ -1023,13 +1038,40 @@ class Interpreter {
                     }
                 }
 
-                if (peek().type === "lArr") {
-                    let index = []
-                    while(peek().type === "lArr"){
-                        consume()
-                        index.push(parseExpression())
-                        expect("rArr") // ]
-                    } // [
+                // collect array indices (if any)
+                let index = []
+                while(peek().type === "lArr"){
+                    consume()
+                    index.push(parseExpression())
+                    expect("rArr")
+                }
+
+                // after indices, check for arrow operations (push/pop/unshift/shift)
+                if(peek().type === "arrow"){
+                    let arrow = consume()
+                    if(peek().type === "lparen"){
+                        // push or unshift: arr->(x) or arr[i]->(x)
+                        consume() // lparen
+                        let element = parseExpression()
+                        expect("rparen")
+                        return {
+                            type: "ArrayPushUnshift",
+                            array: token.value,
+                            elementToBeAdded: element,
+                            operation: arrow.value === '->' ? 'push' : 'unshift',
+                            index: index.length > 0 ? index : null
+                        }
+                    } else {
+                        // pop or shift: arr-> or arr[i]->
+                        return {
+                            type: arrow.value === '->' ? "PopOperation" : "ShiftOperation",
+                            array: token.value,
+                            index: index.length > 0 ? index : null
+                        }
+                    }
+                }
+
+                if(index.length > 0){
                     return {
                         type: "ArrayAccess",
                         array: token.value,
@@ -1080,8 +1122,15 @@ class Interpreter {
                 }
             }
 
-           
-
+            if(token.type === "pipe"){
+                consume()
+                let element = parseExpression()     //will work with arrays of strings
+                expect("pipe")
+                return {
+                    type: "LengthOperation",
+                    element: element
+                }
+            }
     
             throw new Error("Unexpected token: " + token.value)
         }
@@ -1379,19 +1428,36 @@ class Interpreter {
 
                 return arrayPP.length
 
-            case "PopOperation":
+            case "PopOperation": {
                 let arrPop = this.lookupVariable(node.array)
-                if(!arrPop || !Array.isArray(arrPop)){
-                    throw new Error(node.array + " is not an array")
+                if(!arrPop || !Array.isArray(arrPop)) throw new Error(node.array + " is not an array")
+                let targetPop = arrPop
+                if(node.index && node.index.length > 0){
+                    for(let idx of node.index){
+                        targetPop = targetPop[this.execute(idx)]
+                        if(!Array.isArray(targetPop)) throw new Error("Not an array")
+                    }
                 }
-                return arrPop.pop()
+                return targetPop.pop()
+            }
 
-            case "ShiftOperation":
+            case "ShiftOperation": {
                 let arrShift = this.lookupVariable(node.array)
-                if(!arrShift || !Array.isArray(arrShift)){
-                    throw new Error(node.array + " is not an array")
+                if(!arrShift || !Array.isArray(arrShift)) throw new Error(node.array + " is not an array")
+                let targetShift = arrShift
+                if(node.index && node.index.length > 0){
+                    for(let idx of node.index){
+                        targetShift = targetShift[this.execute(idx)]
+                        if(!Array.isArray(targetShift)) throw new Error("Not an array")
+                    }
                 }
-                return arrShift.shift()
+                return targetShift.shift()
+            }
+
+            case "LengthOperation": {
+                let element = this.execute(node.element)
+                return element.length
+            }
 
             default:
                 throw new Error("Unknown AST node " + node.type)
