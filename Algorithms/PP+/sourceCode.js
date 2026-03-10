@@ -74,25 +74,38 @@ let dummy = `
 
 // a->(x) works but a[i]->(x) doesnt because it expects an assignment (=), not a push/unshift
 let pushUnshift = `
-    var a = []
-    for(i 0:i<10){
-        a[i]->([])
-        for(j 0:j<10){
-            say(i + " " + j)
-        }
-    }
-    say(a)
+    var a = [[[], 2],[3, 4]]
+    a[0][0]->(9)
+
+    say(a[0])
 `
 
 let sourceCode = pushUnshift
 
 /*
+DONE
 push  			arr->(x)       	
-unshift			arr<-(x)	   	
-pop				arr-> 	   		
-shift 			arr<-  	   		
+unshift			arr<-(x)	   
+
+TODO
+let x = arr.pop()	    var x = arr->
+let y = arr.shift()     var y = <-arr
 
 getlast 		arr[*]
 split(sx, ex)	arr[sx | ex]
+
+.length         |arr|
+
+a->(x) needs to work, but also
+a[i]->(x) needs to work, but also
+a[i][j]->(x) and so on
+
+TODO:
+
+match x {
+    1 -> say("one")
+    2 -> say("two")
+    _ -> say("other")
+}
 
 */

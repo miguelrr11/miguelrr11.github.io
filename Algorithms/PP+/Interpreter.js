@@ -456,10 +456,13 @@ class Interpreter {
                 return parseDeclaration()
             }
 
+            //var num = 5
             if(peek().type === "identifier" && tokens[current+1]?.type === "equals"){
                 return parseAssignment()
             }
 
+            //arr[i] = 5
+            //arr[i]->(x) or arr[i]<-(x)
             if(peek().type === "identifier" && tokens[current+1]?.type === "lArr"){
                 return parseArrayAssignment()
             }
@@ -730,21 +733,33 @@ class Interpreter {
 
         function parseArrayAssignment(){
             let id = consume() // array name
-            expect("lArr") // [
-            let index = parseExpression()
-            expect("rArr") // ]
-            expect("equals") // =
-            let value = parseExpression()
-            return {
-                type: "ArrayAssignmentExpression",
-                identifier: id.value,
-                index: index,
-                value: value
+
+            // this saves all indices in case of multiple dimensions, 
+            // for example arr[i][j] would have indices [i, j]
+            // (i and j being expressions)
+            let index = []
+            while(peek().type === "lArr"){
+                consume()
+                index.push(parseExpression())
+                expect("rArr") // ]
+            } // [
+            
+            if(peek().type === 'equals'){
+                consume() // =
+                let value = parseExpression()
+                return {
+                    type: "ArrayAssignmentExpression",
+                    identifier: id.value,
+                    index: index,
+                    value: value
+                }
+            }
+            else if(peek().type === "arrow"){
+                return parseArrayPushPopShiftUnshift(id, index)
             }
         }
 
-        function parseArrayPushPopShiftUnshift(){
-            let id = consume() //consume identifier
+        function parseArrayPushPopShiftUnshift(id, index){
             let arrow = consume() //consume arrow (left or right)
 
             //now either we have a push/unshift operation (arr->(x) or arr<-(x))
@@ -762,11 +777,14 @@ class Interpreter {
                     type: "ArrayPushUnshift",
                     array: id.value,
                     elementToBeAdded: element,
-                    operation: arrow.value == '->' ? 'push' : 'unshift'
+                    operation: arrow.value == '->' ? 'push' : 'unshift',
+                    index: index
                 }
-                console.log(node)
 
                 return node
+            }
+            else {
+                //pop/shift operation TODO
             }
         }
 
@@ -911,7 +929,7 @@ class Interpreter {
             let token = peek()
 
             
-
+            //say()
             if(peek().type === "ownFunction"){
 
                 let name = peek().value
@@ -954,8 +972,10 @@ class Interpreter {
                 }
             }
 
+            //arr->(x) or arr<-(x)
             if(peek().type === "identifier" && tokens[current+1]?.type === "arrow"){
-                return parseArrayPushPopShiftUnshift()
+                let id = consume() // array name
+                return parseArrayPushPopShiftUnshift(id, null)
             }
 
             if(token.type === "identifier"){
@@ -982,9 +1002,12 @@ class Interpreter {
                 }
 
                 if (peek().type === "lArr") {
-                    consume() // [
-                    let index = parseExpression()
-                    expect("rArr") // ]
+                    let index = []
+                    while(peek().type === "lArr"){
+                        consume()
+                        index.push(parseExpression())
+                        expect("rArr") // ]
+                    } // [
                     return {
                         type: "ArrayAccess",
                         array: token.value,
@@ -1104,18 +1127,25 @@ class Interpreter {
                 let val = this.execute(node.value)
                 return this.assignVariable(node.identifier, val)
 
-            case "ArrayAssignmentExpression":
+            case "ArrayAssignmentExpression": {
                 let arr = this.lookupVariable(node.identifier)
-                if(!arr || !Array.isArray(arr)){
+                if (!arr || !Array.isArray(arr)) {
                     throw new Error(node.identifier + " is not an array")
                 }
-                let idx = this.execute(node.index)
-                if(idx < 0 || idx >= arr.length){
-                    throw new Error("Index out of bounds")
-                }
                 let valArr = this.execute(node.value)
-                arr[idx] = valArr
+                let subArrayAA = arr
+                for (let i = 0; i < node.index.length - 1; i++) {
+                    let idx = this.execute(node.index[i])
+                    if (!Array.isArray(subArrayAA[idx])) {
+                        throw new Error("Index does not point to an array")
+                    }
+                    subArrayAA = subArrayAA[idx]
+                }
+
+                let lastIdx = this.execute(node.index[node.index.length - 1])
+                subArrayAA[lastIdx] = valArr
                 return valArr
+            }
 
             case "BinaryExpression":
 
@@ -1281,17 +1311,49 @@ class Interpreter {
                 if(!array || !Array.isArray(array)){
                     throw new Error(node.array + " is not an array")
                 }
-                let index = this.execute(node.index)
-                if(index < 0 || index >= array.length){
-                    throw new Error("Index out of bounds")
+                if(!node.index || node.index.length == 0){
+                    throw new Error(node.array + " has invalid index")
                 }
-                return array[index]
+                let subArray = array
+                let finalIndex
+                for(let index of node.index){
+                    let idx = this.execute(index)
+                    finalIndex = idx
+                    if(idx < 0 || idx >= subArray.length){
+                        throw new Error("Index out of bounds")
+                    }
+                    subArray = subArray[idx]
+                }
+                return subArray
 
             case "ArrayPushUnshift":
                 let arrayPP = this.lookupVariable(node.array)
                 let element = this.execute(node.elementToBeAdded)
                 let operation = node.operation
-                operation == 'push' ? arrayPP.push(element) : arrayPP.unshift(element)
+                let indexPP = node.index
+
+                if(!arrayPP || !Array.isArray(arrayPP)){
+                    throw new Error(node.array + " is not an array")
+                }
+                if(indexPP != null && indexPP.length > 0){
+                    // we have multiple indices, for example arr[i][j], so we need to access the correct subarray
+                    let subArray = arrayPP
+                    for(let index of indexPP){
+                        let idx = this.execute(index)
+                        if(idx < 0 || idx >= subArray.length){
+                            throw new Error("Index out of bounds")
+                        }
+                        subArray = subArray[idx]
+                        if(!subArray || !Array.isArray(subArray)){
+                            throw new Error("Not an array")
+                        }
+                    }
+                    operation == 'push' ? subArray.push(element) : subArray.unshift(element)
+
+                } 
+                else {
+                    operation == 'push' ? arrayPP.push(element) : arrayPP.unshift(element)
+                }
 
                 return arrayPP.length
 

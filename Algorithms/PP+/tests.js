@@ -449,6 +449,422 @@ const tests = [
         `,
         expect: 60
     },
+    // --- ARRAY CREATION ---
+    {
+        desc: "Empty array literal",
+        source: `
+            var arr = []
+            var x = arr
+        `,
+        expect: []
+    },
+    {
+        desc: "Array literal with values",
+        source: `
+            var arr = [1, 2, 3]
+            var x = arr
+        `,
+        expect: [1, 2, 3]
+    },
+    {
+        desc: "Nested array literal",
+        source: `
+            var arr = [[1, 2], [3, 4]]
+            var x = arr
+        `,
+        expect: [[1, 2], [3, 4]]
+    },
+    {
+        desc: "Deeply nested array",
+        source: `
+            var arr = [[[1, 2], [3, 4]], [[5, 6]]]
+            var x = arr
+        `,
+        expect: [[[1, 2], [3, 4]], [[5, 6]]]
+    },
+    {
+        desc: "Array with mixed types",
+        source: `
+            var arr = [1, "hello", true]
+            var x = arr
+        `,
+        expect: [1, "hello", true]
+    },
+    {
+        desc: "Array with expressions as elements",
+        source: `
+            var a = 2
+            var arr = [a + 1, a * 3, a]
+            var x = arr
+        `,
+        expect: [3, 6, 2]
+    },
+
+    // --- ARRAY ACCESS ---
+    {
+        desc: "Access first element",
+        source: `
+            var arr = [10, 20, 30]
+            var x = arr[0]
+        `,
+        expect: 10
+    },
+    {
+        desc: "Access last element",
+        source: `
+            var arr = [10, 20, 30]
+            var x = arr[2]
+        `,
+        expect: 30
+    },
+    {
+        desc: "Access nested element 2D",
+        source: `
+            var arr = [[1, 2], [3, 4]]
+            var x = arr[1][0]
+        `,
+        expect: 3
+    },
+    {
+        desc: "Access nested element 3D",
+        source: `
+            var arr = [[[1, 2], [3, 4]], [[5, 6]]]
+            var x = arr[0][1][1]
+        `,
+        expect: 4
+    },
+    {
+        desc: "Access element with variable index",
+        source: `
+            var arr = [10, 20, 30]
+            var i = 1
+            var x = arr[i]
+        `,
+        expect: 20
+    },
+    {
+        desc: "Access element with expression index",
+        source: `
+            var arr = [10, 20, 30, 40]
+            var i = 1
+            var x = arr[i + 1]
+        `,
+        expect: 30
+    },
+    {
+        desc: "Use array element in expression",
+        source: `
+            var arr = [3, 4]
+            var x = arr[0] * arr[1]
+        `,
+        expect: 12
+    },
+
+    // --- ARRAY ASSIGNMENT ---
+    {
+        desc: "Assign to first element",
+        source: `
+            var arr = [1, 2, 3]
+            arr[0] = 99
+            var x = arr
+        `,
+        expect: [99, 2, 3]
+    },
+    {
+        desc: "Assign to middle element",
+        source: `
+            var arr = [1, 2, 3]
+            arr[1] = 99
+            var x = arr
+        `,
+        expect: [1, 99, 3]
+    },
+    {
+        desc: "Assign to nested element 2D",
+        source: `
+            var arr = [[1, 2], [3, 4]]
+            arr[0][1] = 99
+            var x = arr
+        `,
+        expect: [[1, 99], [3, 4]]
+    },
+    {
+        desc: "Assign to nested element 3D",
+        source: `
+            var arr = [[[1, 2], [3, 4]], [[5, 6]]]
+            arr[0][1][0] = 99
+            var x = arr
+        `,
+        expect: [[[1, 2], [99, 4]], [[5, 6]]]
+    },
+    {
+        desc: "Assign with variable index",
+        source: `
+            var arr = [1, 2, 3]
+            var i = 2
+            arr[i] = 99
+            var x = arr
+        `,
+        expect: [1, 2, 99]
+    },
+    {
+        desc: "Assign expression result to element",
+        source: `
+            var arr = [1, 2, 3]
+            arr[0] = arr[1] + arr[2]
+            var x = arr
+        `,
+        expect: [5, 2, 3]
+    },
+    {
+        desc: "Overwrite entire sub-array",
+        source: `
+            var arr = [[1, 2], [3, 4]]
+            arr[0] = [9, 8, 7]
+            var x = arr
+        `,
+        expect: [[9, 8, 7], [3, 4]]
+    },
+
+    // --- PUSH (->) ---
+    {
+        desc: "Push to end of flat array",
+        source: `
+            var arr = [1, 2, 3]
+            arr->(4)
+            var x = arr
+        `,
+        expect: [1, 2, 3, 4]
+    },
+    {
+        desc: "Push to empty array",
+        source: `
+            var arr = []
+            arr->(42)
+            var x = arr
+        `,
+        expect: [42]
+    },
+    {
+        desc: "Multiple pushes",
+        source: `
+            var arr = []
+            arr->(1)
+            arr->(2)
+            arr->(3)
+            var x = arr
+        `,
+        expect: [1, 2, 3]
+    },
+    {
+        desc: "Push to sub-array via index",
+        source: `
+            var arr = [[1, 2], [3, 4]]
+            arr[1]->(5)
+            var x = arr
+        `,
+        expect: [[1, 2], [3, 4, 5]]
+    },
+    {
+        desc: "Push to deeply nested sub-array",
+        source: `
+            var arr = [[[1, 2], [3, 4]], [[5, 6]]]
+            arr[0][0]->(99)
+            var x = arr
+        `,
+        expect: [[[1, 2, 99], [3, 4]], [[5, 6]]]
+    },
+    {
+        desc: "Push expression result",
+        source: `
+            var arr = [1, 2]
+            var a = 3
+            arr->(a * 2)
+            var x = arr
+        `,
+        expect: [1, 2, 6]
+    },
+
+    // --- UNSHIFT (<-) ---
+    {
+        desc: "Unshift to front of flat array",
+        source: `
+            var arr = [1, 2, 3]
+            arr<-(0)
+            var x = arr
+        `,
+        expect: [0, 1, 2, 3]
+    },
+    {
+        desc: "Unshift to empty array",
+        source: `
+            var arr = []
+            arr<-(42)
+            var x = arr
+        `,
+        expect: [42]
+    },
+    {
+        desc: "Multiple unshifts",
+        source: `
+            var arr = []
+            arr<-(3)
+            arr<-(2)
+            arr<-(1)
+            var x = arr
+        `,
+        expect: [1, 2, 3]
+    },
+    {
+        desc: "Unshift to sub-array via index",
+        source: `
+            var arr = [[1, 2], [3, 4]]
+            arr[0]<-(0)
+            var x = arr
+        `,
+        expect: [[0, 1, 2], [3, 4]]
+    },
+
+    // --- ARRAYS IN LOOPS ---
+    {
+        desc: "Fill array with for loop",
+        source: `
+            var arr = [0, 0, 0, 0, 0]
+            for(i 0:5){
+                arr[i] = i * 2
+            }
+            var x = arr
+        `,
+        expect: [0, 2, 4, 6, 8]
+    },
+    {
+        desc: "Accumulate into array with while loop",
+        source: `
+            var arr = []
+            var i = 0
+            while(i < 4){
+                arr->(i * i)
+                i++
+            }
+            var x = arr
+        `,
+        expect: [0, 1, 4, 9]
+    },
+    {
+        desc: "Sum array elements with for loop",
+        source: `
+            var arr = [1, 2, 3, 4, 5]
+            var sum = 0
+            for(i 0:5){
+                sum = sum + arr[i]
+            }
+            var x = sum
+        `,
+        expect: 15
+    },
+    {
+        desc: "Build 2D array with nested for loops",
+        source: `
+            var arr = [[0, 0], [0, 0]]
+            for(i 0:2){
+                for(j 0:2){
+                    arr[i][j] = i + j
+                }
+            }
+            var x = arr
+        `,
+        expect: [[0, 1], [1, 2]]
+    },
+    {
+        desc: "Reverse array by pushing in reverse order",
+        source: `
+            var arr = [1, 2, 3, 4]
+            var rev = []
+            var i = 3
+            while(i >= 0){
+                rev->(arr[i])
+                i--
+            }
+            var x = rev
+        `,
+        expect: [4, 3, 2, 1]
+    },
+
+    // --- ARRAYS IN FUNCTIONS ---
+    {
+        desc: "Pass array to function and read element",
+        source: `
+            func first(arr){
+                ret arr[0]
+            }
+            var arr = [10, 20, 30]
+            var x = first(arr)
+        `,
+        expect: 10
+    },
+    {
+        desc: "Function returns array",
+        source: `
+            func makeArr(){
+                ret [7, 8, 9]
+            }
+            var x = makeArr()
+        `,
+        expect: [7, 8, 9]
+    },
+    {
+        desc: "Function sums array elements",
+        source: `
+            func sum(arr){
+                var total = 0
+                for(i 0:3){
+                    total = total + arr[i]
+                }
+                ret total
+            }
+            var x = sum([1, 2, 3])
+        `,
+        expect: 6
+    },
+
+    // --- EDGE CASES ---
+    {
+        desc: "Assign array to another variable (shared reference)",
+        source: `
+            var a = [1, 2, 3]
+            var b = a
+            b[0] = 99
+            var x = a
+        `,
+        expect: [99, 2, 3]
+    },
+    {
+        desc: "Array of empty arrays",
+        source: `
+            var arr = [[], [], []]
+            arr[1]->(5)
+            var x = arr
+        `,
+        expect: [[], [5], []]
+    },
+    {
+        desc: "Chain push then access",
+        source: `
+            var arr = [1, 2]
+            arr->(3)
+            var x = arr[2]
+        `,
+        expect: 3
+    },
+    {
+        desc: "Nested array access after push to sub-array",
+        source: `
+            var arr = [[1], [2]]
+            arr[0]->(9)
+            var x = arr[0][1]
+        `,
+        expect: 9
+    },
     // ─── FUNCTIONS ────────────────────────────────────────────────────────────
     {
         desc: "Function declaration and call",
