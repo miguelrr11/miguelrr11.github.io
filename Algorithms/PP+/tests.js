@@ -1,15 +1,4 @@
-// ─────────────────────────────────────────────
-//  Test Runner for your language
-//  Usage: import your Interpreter, then call runTests()
-// ─────────────────────────────────────────────
-//
-//  Each test has:
-//    source   – source code in your language
-//    expect   – the expected return value of execute()
-//               OR a function (val) => boolean for custom checks
-//    desc     – human-readable description
-
-//import { Interpreter } from "./Interpreter.js" // adjust path as needed
+// tests made with claude code, yeah im not writing 200 tests manually
 
 const tests = [
 
@@ -1489,7 +1478,347 @@ const tests = [
             var x = sum([1, 2, 3, 4])
         `,
         expect: 10
-    }
+    },
+    // --- BASIC MATCHING ---
+    {
+        desc: "Match literal number",
+        source: `
+            var x = 0
+            match(2){
+                1 -> x = 1
+                2 -> x = 2
+                3 -> x = 3
+            }
+        `,
+        expect: 2
+    },
+    {
+        desc: "Match falls through to correct case",
+        source: `
+            var x = 0
+            match(3){
+                1 -> x = 1
+                2 -> x = 2
+                3 -> x = 3
+            }
+        `,
+        expect: 3
+    },
+    {
+        desc: "No match and no default leaves value unchanged",
+        source: `
+            var x = 99
+            match(5){
+                1 -> x = 1
+                2 -> x = 2
+            }
+        `,
+        expect: 99
+    },
+    {
+        desc: "Match against variable",
+        source: `
+            var val = 7
+            var x = 0
+            match(val){
+                7 -> x = 42
+                8 -> x = 99
+            }
+        `,
+        expect: 42
+    },
+    {
+        desc: "Match against expression as subject",
+        source: `
+            var x = 0
+            var a = 3
+            match(a * 2){
+                5 -> x = 5
+                6 -> x = 6
+                7 -> x = 7
+            }
+        `,
+        expect: 6
+    },
+
+    // --- DEFAULT CASE ---
+    {
+        desc: "Default fires when nothing matches",
+        source: `
+            var x = 0
+            match(99){
+                1 -> x = 1
+                2 -> x = 2
+                _ -> x = 42
+            }
+        `,
+        expect: 42
+    },
+    {
+        desc: "Default does not fire when something matches",
+        source: `
+            var x = 0
+            match(1){
+                1 -> x = 1
+                _ -> x = 99
+            }
+        `,
+        expect: 1
+    },
+    {
+        desc: "Default with block body",
+        source: `
+            var x = 0
+            match(5){
+                1 -> x = 1
+                _ -> {
+                    var tmp = 10
+                    x = tmp * 2
+                }
+            }
+        `,
+        expect: 20
+    },
+
+    // --- EXPRESSION ARMS ---
+    {
+        desc: "Arm matched by expression",
+        source: `
+            var x = 0
+            var a = 3
+            match(6){
+                (a + 3) -> x = 1
+                (a + 4) -> x = 2
+            }
+        `,
+        expect: 1
+    },
+    {
+        desc: "Arm matched by function call result",
+        source: `
+            var x = 0
+            func double(n){ ret n * 2 }
+            match(10){
+                double(4) -> x = 1
+                double(5) -> x = 2
+                double(6) -> x = 3
+            }
+        `,
+        expect: 2
+    },
+
+    // --- BLOCK BODIES ---
+    {
+        desc: "Matched arm with block body executes fully",
+        source: `
+            var x = 0
+            match(2){
+                1 -> x = 1
+                2 -> {
+                    var tmp = 5
+                    x = tmp * 2
+                }
+            }
+        `,
+        expect: 10
+    },
+    {
+        desc: "Block arm can call functions",
+        source: `
+            var x = 0
+            func set(n){ x = n }
+            match(3){
+                1 -> x = 1
+                3 -> {
+                    set(77)
+                }
+            }
+        `,
+        expect: 77
+    },
+
+    // --- DUPLICATE ARMS ---
+    {
+        desc: "First matching arm wins, second duplicate is skipped",
+        source: `
+            var x = 0
+            match(3){
+                3 -> x = 1
+                3 -> x = 2
+            }
+        `,
+        expect: 2
+    },
+    {
+        desc: "Two defaults: first default arm wins",
+        source: `
+            var x = 0
+            match(99){
+                1 -> x = 1
+                _ -> x = 10
+                _ -> x = 20
+            }
+        `,
+        expect: 20
+    },
+
+    // --- RETURN INSIDE MATCH ---
+    {
+        desc: "Return inside match propagates out of function",
+        source: `
+            func test(n){
+                match(n){
+                    1 -> ret 100
+                    2 -> ret 200
+                }
+                ret 0
+            }
+            var x = test(2)
+        `,
+        expect: 200
+    },
+    {
+        desc: "Return in arm skips subsequent arms",
+        source: `
+            var x = 0
+            func test(){
+                match(3){
+                    3 -> ret
+                    3 -> x = 99
+                }
+            }
+            test()
+        `,
+        expect: 0
+    },
+    {
+        desc: "Return in default propagates",
+        source: `
+            func test(n){
+                match(n){
+                    1 -> ret 1
+                    _ -> ret 42
+                }
+                ret 0
+            }
+            var x = test(99)
+        `,
+        expect: 42
+    },
+
+    // --- NESTED MATCH ---
+    {
+        desc: "Nested match basic",
+        source: `
+            var x = 0
+            var a = 2
+            match(a){
+                1 -> x = 1
+                2 -> match(a){
+                    2 -> x = 99
+                    3 -> x = 3
+                }
+            }
+        `,
+        expect: 99
+    },
+    {
+        desc: "Nested match inner default fires",
+        source: `
+            var x = 0
+            var a = 2
+            match(a){
+                2 -> match(5){
+                    1 -> x = 1
+                    _ -> x = 55
+                }
+            }
+        `,
+        expect: 55
+    },
+
+    // --- MATCH WITH ARRAYS ---
+    {
+        desc: "Match can push to array in arm",
+        source: `
+            var arr = []
+            match(2){
+                1 -> arr->(1)
+                2 -> arr->(2)
+                3 -> arr->(3)
+            }
+            var x = arr[0]
+        `,
+        expect: 2
+    },
+    {
+        desc: "Match inside loop accumulates correctly",
+        source: `
+            var arr = []
+            for(i 0:4){
+                match(i){
+                    0 -> arr->("zero")
+                    1 -> arr->("one")
+                    2 -> arr->("two")
+                    _ -> arr->("other")
+                }
+            }
+            var x = arr
+        `,
+        expect: ["zero", "one", "two", "other"]
+    },
+
+    // --- MATCH WITH BOOLEANS ---
+    {
+        desc: "Match on boolean true",
+        source: `
+            var x = 0
+            match(true){
+                false -> x = 1
+                true  -> x = 2
+            }
+        `,
+        expect: 2
+    },
+    {
+        desc: "Match on boolean expression",
+        source: `
+            var x = 0
+            var a = 5
+            match(a > 3){
+                false -> x = 0
+                true  -> x = 1
+            }
+        `,
+        expect: 1
+    },
+
+    // --- MATCH WITH STRINGS ---
+    {
+        desc: "Match on string value",
+        source: `
+            var x = 0
+            var s = "hello"
+            match(s){
+                "world" -> x = 1
+                "hello" -> x = 2
+                _ -> x = 3
+            }
+        `,
+        expect: 2
+    },
+    {
+        desc: "Match on string default",
+        source: `
+            var x = 0
+            var s = "bye"
+            match(s){
+                "hello" -> x = 1
+                _ -> x = 99
+            }
+        `,
+        expect: 99
+    },
 
 ]
 
@@ -1567,7 +1896,7 @@ function runTests() {
     }
 
     console.log("\n───────────────────────────────────────")
-    console.log(failed === 0 ? "  🎉 All tests passed!" : `  ⚠️  ${failed} test(s) failed`)
+    console.log(failed === 0 ? `  🎉 All ${passed} tests passed!`  : `  ⚠️  ${failed} test(s) failed`)
     console.log("───────────────────────────────────────\n")
 
     return { passed, failed, results }

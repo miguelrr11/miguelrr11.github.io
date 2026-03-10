@@ -94,12 +94,47 @@ let testWeird = `
 
 let testLength = `
     var a = [1, 2, 3]
-    say(|a|)
-    var b = "Hello"
-    say(|b|)
+    for(i |a|-1:-1 step -1){
+        say(a[i])
+    }
 `
 
-let sourceCode = testLength
+let matchTest = `
+    var x = 6
+    var a = []
+    match(x){
+        1 -> match(x){
+            1 -> say("should print if x == 1")
+            (x + 1 - 1) -> say("should print if x == 1")
+        }
+        3 -> ret
+        3 -> say("if x == 3 it shouldn't print bc it returned")
+        6 -> {
+                func test(){
+                    say("this, as weird as it is, should print")
+                }
+                test()
+            }
+        _ -> say("other")   ## shouldn't print ever
+        _ -> say("other 2") ## should print if x didnt match
+    }
+    say(a)
+    say(x)
+`
+
+let matchPropagate =  `
+    func test(n){
+        match(n){
+            1 -> ret 1
+            _ -> ret 42
+        }
+        ret 0
+    }
+    var x = test(99)
+    say(x)
+`
+
+let sourceCode = matchPropagate
 
 /*
 DONE
@@ -116,10 +151,16 @@ arr.length         |arr|
 
 TODO:
 
-match x {
+match (x) {
     1 -> say("one")
     2 -> say("two")
     _ -> say("other")
+}
+
+match (<expression>){
+    <expression> -> <statement>
+    <expression> -> <statement>
+    _ -> <statement>
 }
 
 */

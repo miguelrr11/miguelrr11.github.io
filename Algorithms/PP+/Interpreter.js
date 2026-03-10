@@ -338,6 +338,9 @@ class Interpreter {
                     case 'step':
                         type = 'step'
                         break
+                    case 'match':
+                        type = 'match'
+                        break
                     default:
                         if(str in ownFunctions){
                             type = 'ownFunction'
@@ -383,6 +386,10 @@ class Interpreter {
             else if(lookAhead === ','){
                 curPos++
                 tokens.push({type: 'comma', value: ',', pos: tokenStartPos})
+            }
+            else if(lookAhead === '_'){
+                curPos++
+                tokens.push({type: 'underscore', value: '_', pos: tokenStartPos})
             }
             else if(lookAhead === '\n'){
                 curPos++
@@ -711,6 +718,56 @@ class Interpreter {
                 consume()
                 return {
                     type: "continue"
+                }
+            }
+
+            if(peek().type === 'match'){
+                consume() // match
+                expect("lparen")
+                let baseComparison = parseExpression()
+                expect("rparen")
+                expect("lbrack")
+                skipNewlines()
+                let matches = []
+                while(peek().type !== "rbrack"){
+                    let match
+                    if(peek().type == "underscore"){
+                        match = "default"
+                        consume()
+                    }
+                    else{
+                        match = parseExpression()
+                    }
+                    expect("arrow")
+                    let action = parseStatement()
+                    matches.push({match, action})
+                    skipNewlines()
+                }
+                expect("rbrack")
+                return {
+                    type: "MatchStatement",
+                    baseComparison,
+                    matches
+                }
+            }
+
+            if(peek().type === 'lbrack'){
+                expect("lbrack") // {
+
+                let body = []
+
+                skipNewlines()
+
+                while(peek().type !== "rbrack"){
+                    body.push(parseStatement())
+                    skipNewlines()
+                }
+
+                expect("rbrack") // }
+
+                return {
+                    type: "BlockStatement",
+                    body
                 }
             }
 
@@ -1459,6 +1516,28 @@ class Interpreter {
                 return element.length
             }
 
+            case "MatchStatement": {
+                let valueBaseComparison = this.execute(node.baseComparison)
+                if(node.matches.length > 0){
+                    let defaultMatch = undefined
+                    let matched = false
+                    for(let match of node.matches){
+                        if(match.match === "default") {defaultMatch = match; continue}
+                        let matchValue = this.execute(match.match)
+                        if(valueBaseComparison === matchValue) {
+                            let result = this.execute(match.action); 
+                            if (result?.type === "return") return result
+                            matched = true
+                        }
+                    }
+                    if(!matched && defaultMatch) {
+                        let result = this.execute(defaultMatch.action); 
+                        if (result?.type === "return") return result
+                    }
+                }
+                return
+            }
+
             default:
                 throw new Error("Unknown AST node " + node.type)
         }
@@ -1504,6 +1583,7 @@ function debugAST(node, indent = "", isLast = true){
     if(node.type === "ArrayPushUnshift")    label += ` (${node.array} ${node.operation})`
     if(node.type === "PopOperation")        label += ` (${node.array})`
     if(node.type === "ShiftOperation")      label += ` (${node.array})`
+    if(node.type === "MatchStatement")      label += ` (${node.baseComparison.name})`
 
     console.log(indent + branch + label)
 
@@ -1531,6 +1611,7 @@ function debugAST(node, indent = "", isLast = true){
     if(node.type === "PopOperation"  && node.index) children = node.index
     if(node.type === "ShiftOperation" && node.index) children = node.index
     if(node.type === "LengthOperation")     children = [node.element]
+    if(node.type === "MatchStatement")      children = node.matches.map((i) => {return i.action})
 
     children.forEach((child, i) =>
         debugAST(child, nextIndent, i === children.length - 1)
