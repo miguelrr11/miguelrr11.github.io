@@ -756,7 +756,7 @@ const tests = [
             var arr = [1, 2, 3, 4, 5]
             var sum = 0
             for(i 0:5){
-                sum = sum + arr[i]
+                sum += arr[i]
             }
             var x = sum
         `,
@@ -864,6 +864,229 @@ const tests = [
             var x = arr[0][1]
         `,
         expect: 9
+    },
+    // --- POP (->) ---
+    {
+        desc: "Pop from end of array",
+        source: `
+            var arr = [1, 2, 3]
+            var x = arr->
+        `,
+        expect: 3
+    },
+    {
+        desc: "Pop leaves array without last element",
+        source: `
+            var arr = [1, 2, 3]
+            arr->
+            var x = arr
+        `,
+        expect: [1, 2]
+    },
+    {
+        desc: "Pop return value used in expression",
+        source: `
+            var arr = [4, 5, 6]
+            var x = arr-> + 10
+        `,
+        expect: 16
+    },
+    {
+        desc: "Multiple pops return correct values in order",
+        source: `
+            var arr = [1, 2, 3]
+            var a = arr->
+            var b = arr->
+            var x = [a, b]
+        `,
+        expect: [3, 2]
+    },
+    {
+        desc: "Pop until one element left",
+        source: `
+            var arr = [1, 2, 3]
+            arr->
+            arr->
+            var x = arr
+        `,
+        expect: [1]
+    },
+    {
+        desc: "Pop result stored and array also checked",
+        source: `
+            var arr = [10, 20, 30]
+            var popped = arr->
+            arr[0] = popped
+            var x = arr
+        `,
+        expect: [30, 20]
+    },
+    {
+        desc: "Pop from sub-array",
+        source: `
+            var arr = [[1, 2, 3], [4, 5]]
+            var x = arr[0]->
+        `,
+        expect: 3
+    },
+    {
+        desc: "Pop from sub-array mutates correctly",
+        source: `
+            var arr = [[1, 2, 3], [4, 5]]
+            arr[0]->
+            var x = arr
+        `,
+        expect: [[1, 2], [4, 5]]
+    },
+    {
+        desc: "Push then pop cancels out",
+        source: `
+            var arr = [1, 2, 3]
+            arr->(99)
+            arr->
+            var x = arr
+        `,
+        expect: [1, 2, 3]
+    },
+    {
+        desc: "Pop used in condition",
+        source: `
+            var arr = [1, 2, 0]
+            var x = false
+            if(arr->){
+                x = true
+            }
+        `,
+        expect: false
+    },
+
+    // --- SHIFT (<-) ---
+    {
+        desc: "Shift from front of array",
+        source: `
+            var arr = [1, 2, 3]
+            var x = <-arr
+        `,
+        expect: 1
+    },
+    {
+        desc: "Shift leaves array without first element",
+        source: `
+            var arr = [1, 2, 3]
+            <-arr
+            var x = arr
+        `,
+        expect: [2, 3]
+    },
+    {
+        desc: "Shift return value used in expression",
+        source: `
+            var arr = [4, 5, 6]
+            var x = <-arr + 10
+        `,
+        expect: 14
+    },
+    {
+        desc: "Multiple shifts return correct values in order",
+        source: `
+            var arr = [1, 2, 3]
+            var a = <-arr
+            var b = <-arr
+            var x = [a, b]
+        `,
+        expect: [1, 2]
+    },
+    {
+        desc: "Shift until one element left",
+        source: `
+            var arr = [1, 2, 3]
+            <-arr
+            <-arr
+            var x = arr
+        `,
+        expect: [3]
+    },
+    {
+        desc: "Shift result stored and used",
+        source: `
+            var arr = [10, 20, 30]
+            var shifted = <-arr
+            arr[0] = shifted
+            var x = arr
+        `,
+        expect: [10, 30]
+    },
+    {
+        desc: "Shift from sub-array",
+        source: `
+            var arr = [[1, 2, 3], [4, 5]]
+            var x = <-arr[0]
+        `,
+        expect: 1
+    },
+    {
+        desc: "Shift from sub-array mutates correctly",
+        source: `
+            var arr = [[1, 2, 3], [4, 5]]
+            <-arr[0]
+            var x = arr
+        `,
+        expect: [[2, 3], [4, 5]]
+    },
+    {
+        desc: "Unshift then shift cancels out",
+        source: `
+            var arr = [1, 2, 3]
+            arr<-(99)
+            <-arr
+            var x = arr
+        `,
+        expect: [1, 2, 3]
+    },
+    {
+        desc: "Shift used in condition",
+        source: `
+            var arr = [0, 1, 2]
+            var x = false
+            if(<-arr){
+                x = true
+            }
+        `,
+        expect: false
+    },
+
+    // --- POP AND SHIFT TOGETHER ---
+    {
+        desc: "Pop and shift from same array",
+        source: `
+            var arr = [1, 2, 3, 4, 5]
+            var a = arr->
+            var b = <-arr
+            var x = [a, b]
+        `,
+        expect: [5, 1]
+    },
+    {
+        desc: "Pop and shift leave correct remainder",
+        source: `
+            var arr = [1, 2, 3, 4, 5]
+            arr->
+            <-arr
+            var x = arr
+        `,
+        expect: [2, 3, 4]
+    },
+    {
+        desc: "Drain array alternating pop and shift",
+        source: `
+            var arr = [1, 2, 3, 4]
+            var a = arr->
+            var b = <-arr
+            var c = arr->
+            var d = <-arr
+            var x = [a, b, c, d]
+        `,
+        expect: [4, 1, 3, 2]
     },
     // ─── FUNCTIONS ────────────────────────────────────────────────────────────
     {
@@ -1092,7 +1315,7 @@ function runTests() {
 
     for (const test of tests) {
 
-        let result = { desc: test.desc, passed: false, error: null, got: undefined }
+        let result = { desc: test.desc, passed: false, error: null, got: undefined, source: test.source }
 
         try {
 
@@ -1142,7 +1365,10 @@ function runTests() {
         if(r.passed) continue
         const icon = r.passed ? "✅" : "❌"
         console.log(`${icon}  ${r.desc}`)
-        if (!r.passed) console.log(`     → ${r.error}`)
+        if (!r.passed) {
+            console.log(`     → ${r.error}`)
+            console.log('Source:\n' + r.source)
+        }
     }
 
     console.log("\n───────────────────────────────────────")

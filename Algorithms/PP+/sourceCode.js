@@ -80,7 +80,14 @@ let pushUnshift = `
     say(a[0])
 `
 
-let sourceCode = pushUnshift
+let testPop = `
+    var a = [1, 2, 3]
+    var b = a->
+    var c = <-a
+    a->
+`
+
+let sourceCode = testPop
 
 /*
 DONE
@@ -94,11 +101,8 @@ let y = arr.shift()     var y = <-arr
 getlast 		arr[*]
 split(sx, ex)	arr[sx | ex]
 
-.length         |arr|
+arr.length         |arr|
 
-a->(x) needs to work, but also
-a[i]->(x) needs to work, but also
-a[i][j]->(x) and so on
 
 TODO:
 

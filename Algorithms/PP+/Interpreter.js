@@ -972,10 +972,32 @@ class Interpreter {
                 }
             }
 
-            //arr->(x) or arr<-(x)
-            if(peek().type === "identifier" && tokens[current+1]?.type === "arrow"){
+            //arr->(x) or arr<-(x)  (push or unshift)
+            if(peek().type === "identifier" 
+                && tokens[current+1]?.type === "arrow" 
+                && tokens[current+2]?.type === "lparen"){
                 let id = consume() // array name
                 return parseArrayPushPopShiftUnshift(id, null)
+            }
+
+            //arr-> (pop)
+            if(peek().type === "identifier" && tokens[current+1]?.type === "arrow"){
+                let id = consume()
+                consume()
+                return {
+                    type: "PopOperation",
+                    array: id.value
+                }
+            }
+
+            //<-arr (shift)
+            if(peek().type === "arrow" && tokens[current+1]?.type === "identifier"){
+                consume()
+                let id = consume()
+                return {
+                    type: "ShiftOperation",
+                    array: id.value
+                }
             }
 
             if(token.type === "identifier"){
@@ -1356,6 +1378,20 @@ class Interpreter {
                 }
 
                 return arrayPP.length
+
+            case "PopOperation":
+                let arrPop = this.lookupVariable(node.array)
+                if(!arrPop || !Array.isArray(arrPop)){
+                    throw new Error(node.array + " is not an array")
+                }
+                return arrPop.pop()
+
+            case "ShiftOperation":
+                let arrShift = this.lookupVariable(node.array)
+                if(!arrShift || !Array.isArray(arrShift)){
+                    throw new Error(node.array + " is not an array")
+                }
+                return arrShift.shift()
 
             default:
                 throw new Error("Unknown AST node " + node.type)
