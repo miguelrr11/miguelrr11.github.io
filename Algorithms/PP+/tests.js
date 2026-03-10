@@ -1503,6 +1503,7 @@ function runTests() {
     let passed = 0
     let failed = 0
     const results = []
+    let startTime = Date.now()
 
     for (const test of tests) {
 
@@ -1547,13 +1548,16 @@ function runTests() {
         results.push(result)
     }
 
+    let endTime = Date.now()
+    let duration = endTime - startTime
+
     // ── Pretty print ──────────────────────────
     console.log("\n═══════════════════════════════════════")
-    console.log(`  Test Results: ${passed} passed, ${failed} failed`)
+    console.log(`  Test Results: ${passed} passed, ${failed} failed in ${duration}ms`)
     console.log("═══════════════════════════════════════\n")
 
     for (const r of results) {
-        if(r.passed) continue
+        //if(r.passed) continue
         const icon = r.passed ? "✅" : "❌"
         console.log(`${icon}  ${r.desc}`)
         if (!r.passed) {

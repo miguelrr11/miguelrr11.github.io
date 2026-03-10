@@ -1124,7 +1124,7 @@ class Interpreter {
 
             if(token.type === "pipe"){
                 consume()
-                let element = parseExpression()     //will work with arrays of strings
+                let element = parseExpression()
                 expect("pipe")
                 return {
                     type: "LengthOperation",
@@ -1487,54 +1487,50 @@ function debugAST(node, indent = "", isLast = true){
 
     let label = node.type
 
-    if(node.type === "Literal")
-        label += ` (${node.value})`
-
-    if(node.type === "Identifier")
-        label += ` (${node.name})`
-
-    if(node.type === "BinaryExpression")
-        label += ` (${node.operator})`
-
-    if(node.type === "VariableDeclaration")
-        label += ` (${node.identifier})`
-
-    if(node.type === "AssignmentExpression")
-        label += ` (${node.identifier})`
-
-    if(node.type === "ConditionExpression")
-        label += ` (${node.operator})`
-
-    if(node.type === "UnaryExpression")
-        label += ` (${node.operator})`
-
-    if(node.type === "IfStatement")
-        label += ` (${node.condition.operator})`
+    // labels
+    if(node.type === "Literal")             label += ` (${node.value})`
+    if(node.type === "Identifier")          label += ` (${node.name})`
+    if(node.type === "BinaryExpression")    label += ` (${node.operator})`
+    if(node.type === "ConditionExpression") label += ` (${node.operator})`
+    if(node.type === "UnaryExpression")     label += ` (${node.operator})`
+    if(node.type === "VariableDeclaration") label += ` (${node.identifier})`
+    if(node.type === "AssignmentExpression")label += ` (${node.identifier})`
+    if(node.type === "ArrayAssignmentExpression") label += ` (${node.identifier})`
+    if(node.type === "IfStatement")         label += ` (${node.condition.operator})`
+    if(node.type === "FunctionDeclaration") label += ` (${node.name})`
+    if(node.type === "FunctionCall")        label += ` (${node.name})`
+    if(node.type === "OwnFunctionCall")     label += ` (${node.name})`
+    if(node.type === "ArrayAccess")         label += ` (${node.array})`
+    if(node.type === "ArrayPushUnshift")    label += ` (${node.array} ${node.operation})`
+    if(node.type === "PopOperation")        label += ` (${node.array})`
+    if(node.type === "ShiftOperation")      label += ` (${node.array})`
 
     console.log(indent + branch + label)
 
     let children = []
 
-    if(node.type === "Program")
-        children = node.body
-
-    if(node.type === "BinaryExpression")
-        children = [node.left, node.right]
-
-    if(node.type === "AssignmentExpression")
-        children = [node.value]
-
-    if(node.type === "VariableDeclaration" && node.value)
-        children = [node.value]
-
-    if(node.type === "ConditionExpression")
-        children = [node.left, node.right]
-
-    if(node.type === "UnaryExpression")
-        children = [node.argument]
-
-    if(node.type === "IfStatement")
-        children = [node.condition, ...node.body]
+    // children
+    if(node.type === "Program")             children = node.body
+    if(node.type === "BlockStatement")      children = node.body
+    if(node.type === "BinaryExpression")    children = [node.left, node.right]
+    if(node.type === "ConditionExpression") children = [node.left, node.right]
+    if(node.type === "UnaryExpression")     children = [node.argument]
+    if(node.type === "AssignmentExpression")children = [node.value]
+    if(node.type === "VariableDeclaration" && node.value) children = [node.value]
+    if(node.type === "ReturnStatement" && node.value)     children = [node.value]
+    if(node.type === "IfStatement")         children = node.alternate ? [node.condition, node.body, node.alternate] : [node.condition, node.body]
+    if(node.type === "WhileStatement")      children = [node.condition, node.body]
+    if(node.type === "ForStatement")        children = [node.iterator, node.startLoop, node.endLoop, node.body]
+    if(node.type === "FunctionDeclaration") children = [node.body]
+    if(node.type === "FunctionCall")        children = node.arguments
+    if(node.type === "OwnFunctionCall")     children = node.arguments
+    if(node.type === "ArrayLiteral")        children = node.elements
+    if(node.type === "ArrayAccess")         children = node.index
+    if(node.type === "ArrayAssignmentExpression") children = [...node.index, node.value]
+    if(node.type === "ArrayPushUnshift")    children = node.index ? [...node.index, node.elementToBeAdded] : [node.elementToBeAdded]
+    if(node.type === "PopOperation"  && node.index) children = node.index
+    if(node.type === "ShiftOperation" && node.index) children = node.index
+    if(node.type === "LengthOperation")     children = [node.element]
 
     children.forEach((child, i) =>
         debugAST(child, nextIndent, i === children.length - 1)
