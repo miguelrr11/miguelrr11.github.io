@@ -150,7 +150,93 @@ let inlineStatements = `
     say("test " + test(3))
 `
 
-let sourceCode = inlineStatements
+let saveFuncsInArrays = `
+    var arr = []
+    func test() ret 42
+    arr->(test)
+    
+    ## this works
+    var x = arr[0]
+    say(x())
+
+    ## but this doesnt
+    ## arr[0]()
+`   
+
+let all = `
+var num = 5
+var str = "Hello World"
+var arr = []
+
+num += 10
+
+if(num > 10){
+    say("Greater than 10")
+}
+
+func double(x){
+    ret x * 2
+}
+
+arr->(double(num))
+
+match(num){
+    1 -> say(1)
+    15 -> say(15)
+    _ -> say("default")
+}
+
+func draw(x){
+    say(2)
+}
+
+draw(1)
+`
+
+let orbits = `
+
+
+var ballX =  width() / 2
+var ballY = height() / 2
+var nOrbits = 20
+
+var orbits = []
+
+func setup(){
+    for(i 0:nOrbits) orbits->([0, 0])
+    say(orbits)
+}
+
+func draw(){
+    clear(0)
+    fill(180, 180, 180)
+    rect(0, 0, width(), width())
+
+    ballX = lerp(ballX, mouseX(), 0.05)
+    ballY = lerp(ballY, mouseY(), 0.05)
+
+    noStroke()
+    fill(0, 0, 200)
+
+    for(i 0:|orbits|){
+        var orbit = orbits[i]
+        orbit[0] = ballX + cos(((i/nOrbits)*6.28 + frameCount() * 0.05)) * sin(frameCount() * 0.01) * 150
+        orbit[1] = ballY + sin(((i/nOrbits)*6.28 + frameCount() * 0.05)) * cos(frameCount() * 0.01) * 150
+
+        ellipse(orbit[0], orbit[1], 10, 10)
+    }
+
+    
+    ellipse(ballX, ballY, 30, 30)
+
+}
+
+draw()
+setup()
+
+`
+
+let sourceCode = orbits
 
 /*
 DONE
