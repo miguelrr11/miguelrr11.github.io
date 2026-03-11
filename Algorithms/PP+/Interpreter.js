@@ -500,18 +500,26 @@ class Interpreter {
                 let condition = parseExpression()
                 expect("rparen") // )
 
-                expect("lbrack") // {
-
                 let body = []
 
-                skipNewlines()
+                if(peek().type === "lbrack"){ // {
+                    consume()
 
-                while(peek().type !== "rbrack"){
-                    body.push(parseStatement())
+                    
+
                     skipNewlines()
-                }
 
-                expect("rbrack") // }
+                    while(peek().type !== "rbrack"){
+                        body.push(parseStatement())
+                        skipNewlines()
+                    }
+
+                    expect("rbrack") // }
+                }
+                else {
+                    // single statement body (no brackets)
+                    body = [parseStatement()]
+                }
                 skipNewlines()
 
 
@@ -528,20 +536,28 @@ class Interpreter {
 
                         alternate = parseStatement()
 
-                    } else {
-
-                        expect("lbrack")
-
+                    } 
+                    else {
                         let elseBody = []
 
-                        skipNewlines()
+                        if(peek().type === "lbrack"){ // {
+                            consume()
 
-                        while (peek().type !== "rbrack") {
-                            elseBody.push(parseStatement())
+                            
+
                             skipNewlines()
-                        }
 
-                        expect("rbrack")
+                            while (peek().type !== "rbrack") {
+                                elseBody.push(parseStatement())
+                                skipNewlines()
+                            }
+
+                            expect("rbrack")
+                        }
+                        else {
+                            // single statement body (no brackets)
+                            elseBody = [parseStatement()]
+                        }
 
                         alternate = {
                             type: "BlockStatement",
@@ -568,21 +584,28 @@ class Interpreter {
                 expect("lparen") // (
                 let condition = parseExpression()
                 expect("rparen") // )
-
-                expect("lbrack") // {
-
-                loopDepth++
-
                 let body = []
 
-                skipNewlines()
+                if(peek().type === "lbrack"){ // {
+                    consume()
+                    loopDepth++
 
-                while (peek().type !== "rbrack") {
-                    body.push(parseStatement())
+                    
+
                     skipNewlines()
-                }
 
-                expect("rbrack")
+                    while (peek().type !== "rbrack") {
+                        body.push(parseStatement())
+                        skipNewlines()
+                    }
+
+                    expect("rbrack")
+                }
+                else{
+                    // single statement body (no brackets)
+                    loopDepth++
+                    body = [parseStatement()]
+                }
 
                 loopDepth--
 
@@ -609,20 +632,27 @@ class Interpreter {
                     step = parseExpression()
                 }
                 expect("rparen")
-                expect("lbrack") // {
-
-                loopDepth++
-
                 let body = []
+                if(peek().type === "lbrack"){ // {
+                    consume()
+                    loopDepth++
 
-                skipNewlines()
+                    
 
-                while (peek().type !== "rbrack") {
-                    body.push(parseStatement())
                     skipNewlines()
-                }
 
-                expect("rbrack")
+                    while (peek().type !== "rbrack") {
+                        body.push(parseStatement())
+                        skipNewlines()
+                    }
+
+                    expect("rbrack")
+                }
+                else{
+                    // single statement body (no brackets)
+                    loopDepth++
+                    body = [parseStatement()]
+                }
 
                 loopDepth--
 
@@ -660,19 +690,24 @@ class Interpreter {
                 }
 
                 expect("rparen") // )
-
-                expect("lbrack") // {
-
                 let body = []
+                if(peek().type === "lbrack"){ // {
+                    consume()
+                    
 
-                skipNewlines()
-
-                while(peek().type !== "rbrack"){
-                    body.push(parseStatement())
                     skipNewlines()
-                }
 
-                expect("rbrack") // }
+                    while(peek().type !== "rbrack"){
+                        body.push(parseStatement())
+                        skipNewlines()
+                    }
+
+                    expect("rbrack") // }
+                }
+                else{
+                    // single statement body (no brackets)
+                    body = [parseStatement()]
+                }
 
                 return {
                     type: "FunctionDeclaration",

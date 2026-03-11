@@ -134,7 +134,23 @@ let matchPropagate =  `
     say(x)
 `
 
-let sourceCode = matchPropagate
+let inlineStatements = `
+    var x = 2
+    if(x == 0) say("x is zero")
+    else if(x == 1) say("x is one")
+    else say("x is not zero")
+
+    while(x < 5) {
+        while(x < 5) say(x++)
+    }
+
+    for(i 0:5) say(i)
+
+    func test(n) ret n * 2
+    say("test " + test(3))
+`
+
+let sourceCode = inlineStatements
 
 /*
 DONE
