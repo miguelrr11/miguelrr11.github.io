@@ -181,8 +181,8 @@ const ownFunctions = {
     },
 
     // Canvas / environment
-    background: (r, g, b, a = undefined) => {
-        p5Obj.background(r, g, b, a)
+    background: (r, g, b) => {
+        p5Obj.background(r, g, b)
     },
     frameRate: (fps = undefined) => {
         return fps !== undefined ? p5Obj.frameRate(fps) : p5Obj.frameRate()
