@@ -1,0 +1,39 @@
+html, body {
+  margin: 0;
+  height: 100%;
+}
+
+#app {
+  display: grid;
+  grid-template-columns: 50% 50%;
+  height: 100vh;
+}
+
+/* Left side */
+#ide {
+  display: grid;
+  grid-template-rows: 1fr 200px;
+}
+
+/* Monaco editor */
+#editor {
+  width: 100%;
+  height: 100%;
+}
+
+/* Console */
+#console {
+  background: #111;
+  color: rgb(255, 255, 255);
+  font-family: monospace;
+  padding: 10px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+}
+
+/* Right side */
+#canvas-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}

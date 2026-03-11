@@ -1,41 +1,4 @@
-const ownFunctions = {
-    say: (...args) => {
-        console.log(...args)
-    },
-    rect: (x, y, w, h) => {
-        rect(x, y, w, h)
-    },
-    fill: (r, g, b) => {
-        fill(r, g, b)
-    },
-    translate: (x, y) => {
-        translate(x, y)
-    },
-    rotate: (angle) => {
-        rotate(angle)
-    },
-    radians: (angle) => {
-        return radians(angle)
-    },
-    cos: (angle) => {
-        return Math.cos(angle)
-    },
-    sin: (angle) => {
-        return Math.sin(angle)
-    },
-    random: (min, max) => {
-        return random(min, max)
-    },
-    clear: () => {
-        background(50)
-    },
-    noise: (x, y = undefined, z = undefined) => {
-        return noise(x, y, z)
-    },
-    noStroke: () => {
-        noStroke()
-    }
-}
+
 
 /*
 Caminos de operaciones de arrays, porque son un poco lio
@@ -52,12 +15,197 @@ shift()     <-arr	        parsePrimary → <- check → ShiftOperation
 shift()     <-arr[i]	    parsePrimary → <- check → collect indices → ShiftOperation
 */
 
+
+
+const ownFunctions = {
+    say: (...args) => {
+        console.log(...args)
+    },
+    rect: (x, y, w, h) => {
+        p5Obj.rect(x, y, w, h)
+    },
+    fill: (r, g, b) => {
+        p5Obj.fill(r, g, b)
+    },
+    translate: (x, y) => {
+        p5Obj.translate(x, y)
+    },
+    rotate: (angle) => {
+        p5Obj.rotate(angle)
+    },
+    radians: (angle) => {
+        return p5Obj.radians(angle)
+    },
+    cos: (angle) => {
+        return Math.cos(angle)
+    },
+    sin: (angle) => {
+        return Math.sin(angle)
+    },
+    random: (min, max) => {
+        return p5Obj.random(min, max)
+    },
+    clear: () => {
+        p5Obj.background(50)
+    },
+    noise: (x, y = undefined, z = undefined) => {
+        return p5Obj.noise(x, y, z)
+    },
+    noStroke: () => {
+        p5Obj.noStroke()
+    },
+    ellipse: (x, y, w, h = undefined) => {
+        p5Obj.ellipse(x, y, w, h)
+    },
+    // Drawing shapes
+    line: (x1, y1, x2, y2) => {
+        p5Obj.line(x1, y1, x2, y2)
+    },
+    point: (x, y) => {
+        p5Obj.point(x, y)
+    },
+    triangle: (x1, y1, x2, y2, x3, y3) => {
+        p5Obj.triangle(x1, y1, x2, y2, x3, y3)
+    },
+    quad: (x1, y1, x2, y2, x3, y3, x4, y4) => {
+        p5Obj.quad(x1, y1, x2, y2, x3, y3, x4, y4)
+    },
+    arc: (x, y, w, h, start, stop, mode = undefined) => {
+        p5Obj.arc(x, y, w, h, start, stop, mode)
+    },
+    circle: (x, y, d) => {
+        p5Obj.circle(x, y, d)
+    },
+    square: (x, y, s, tl, tr, br, bl) => {
+        p5Obj.square(x, y, s, tl, tr, br, bl)
+    },
+
+    // Custom shapes
+    beginShape: () => {
+        p5Obj.beginShape()
+    },
+    endShape: (close = undefined) => {
+        p5Obj.endShape(close)
+    },
+    vertex: (x, y) => {
+        p5Obj.vertex(x, y)
+    },
+    curveVertex: (x, y) => {
+        p5Obj.curveVertex(x, y)
+    },
+
+    // Stroke & fill
+    stroke: (r, g, b, a = undefined) => {
+        p5Obj.stroke(r, g, b, a)
+    },
+    strokeWeight: (w) => {
+        p5Obj.strokeWeight(w)
+    },
+    noFill: () => {
+        p5Obj.noFill()
+    },
+
+    // Transform
+    push: () => {
+        p5Obj.push()
+    },
+    pop: () => {
+        p5Obj.pop()
+    },
+    scale: (x, y = undefined) => {
+        p5Obj.scale(x, y)
+    },
+    resetMatrix: () => {
+        p5Obj.resetMatrix()
+    },
+
+    // Text
+    text: (str, x, y, w = undefined, h = undefined) => {
+        p5Obj.text(str, x, y, w, h)
+    },
+    textSize: (size) => {
+        p5Obj.textSize(size)
+    },
+    textAlign: (horizAlign, vertAlign = undefined) => {
+        p5Obj.textAlign(horizAlign, vertAlign)
+    },
+    textFont: (font) => {
+        p5Obj.textFont(font)
+    },
+
+    // Math / utils
+    map: (value, start1, stop1, start2, stop2) => {
+        return p5Obj.map(value, start1, stop1, start2, stop2)
+    },
+    constrain: (n, low, high) => {
+        return p5Obj.constrain(n, low, high)
+    },
+    dist: (x1, y1, x2, y2) => {
+        return p5Obj.dist(x1, y1, x2, y2)
+    },
+    lerp: (start, stop, amt) => {
+        return p5Obj.lerp(start, stop, amt)
+    },
+    abs: (n) => Math.abs(n),
+    floor: (n) => Math.floor(n),
+    ceil: (n) => Math.ceil(n),
+    round: (n) => Math.round(n),
+    sqrt: (n) => Math.sqrt(n),
+    pow: (n, e) => Math.pow(n, e),
+    min: (...args) => Math.min(...args),
+    max: (...args) => Math.max(...args),
+
+    // Color
+    color: (r, g, b, a = undefined) => {
+        return p5Obj.color(r, g, b, a)
+    },
+    lerpColor: (c1, c2, amt) => {
+        return p5Obj.lerpColor(c1, c2, amt)
+    },
+    colorMode: (mode, max1, max2, max3, maxA) => {
+        p5Obj.colorMode(mode, max1, max2, max3, maxA)
+    },
+
+    // Image
+    image: (img, x, y, w = undefined, h = undefined) => {
+        p5Obj.image(img, x, y, w, h)
+    },
+    loadImage: (path, callback) => {
+        return p5Obj.loadImage(path, callback)
+    },
+    tint: (r, g, b, a = undefined) => {
+        p5Obj.tint(r, g, b, a)
+    },
+    noTint: () => {
+        p5Obj.noTint()
+    },
+
+    // Canvas / environment
+    background: (r, g, b, a = undefined) => {
+        p5Obj.background(r, g, b, a)
+    },
+    frameRate: (fps = undefined) => {
+        return fps !== undefined ? p5Obj.frameRate(fps) : p5Obj.frameRate()
+    },
+    width: () => p5Obj.width,
+    height: () => p5Obj.height,
+    frameCount: () => p5Obj.frameCount,
+
+    // Input
+    mouseX: () => p5Obj.mouseX,
+    mouseY: () => p5Obj.mouseY,
+    keyIsDown: (code) => {
+        return p5Obj.keyIsDown(code)
+    },
+}
+
 class Interpreter {
     constructor(){
         this.env = {}
     }
 
     set(sourceCode){
+        this.env = { }
         this.sourceCode = sourceCode
     }
 
@@ -70,8 +218,16 @@ class Interpreter {
         return this.execute(this.ast)
     }
 
-    callFunc(node){
-        if(!node) return
+    callFunc(nodeObj){
+        if(!nodeObj) return
+        let node = nodeObj
+        if(typeof node == "string"){
+            node = {
+                arguments: [],
+                type: "FunctionCall",
+                name: nodeObj
+            }
+        }
         let func
         func = this.env[node.name]
         if (!func) {
@@ -177,6 +333,7 @@ class Interpreter {
     lex(text){
         let tokens = []
         let curPos = 0
+        let lineIndex = 1
         while(curPos < text.length){
             let tokenStartPos = curPos
             let lookAhead = text.charAt(curPos)
@@ -184,7 +341,7 @@ class Interpreter {
             if(lookAhead == ' ') curPos++
             else if(lookAhead == "|" && lookTwoAhead != "|"){
                 curPos++
-                tokens.push({type: 'pipe', value: '|', pos: tokenStartPos})
+                tokens.push({type: 'pipe', value: '|', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '#' && lookTwoAhead == '#'){
                 curPos++
@@ -194,91 +351,91 @@ class Interpreter {
             }
             else if(lookAhead == '+' && lookTwoAhead != '=' && lookTwoAhead != '+'){
                 curPos++
-                tokens.push({type: 'plus', value: '+', pos: tokenStartPos})
+                tokens.push({type: 'plus', value: '+', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '-' && lookTwoAhead != '=' && lookTwoAhead != '-' && lookTwoAhead != '>'){
                 curPos++
-                tokens.push({type: 'minus', value: '-', pos: tokenStartPos})
+                tokens.push({type: 'minus', value: '-', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '*' && lookTwoAhead != '='){
                 curPos++
-                tokens.push({type: 'multiply', value: '*', pos: tokenStartPos})
+                tokens.push({type: 'multiply', value: '*', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '/' && lookTwoAhead != '='){
                 curPos++
-                tokens.push({type: 'divide', value: '/', pos: tokenStartPos})
+                tokens.push({type: 'divide', value: '/', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '%'){
                 curPos++
-                tokens.push({type: 'remainder', value: '%', pos: tokenStartPos})
+                tokens.push({type: 'remainder', value: '%', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '=' && lookTwoAhead != '='){
                 curPos++
-                tokens.push({type: 'equals', value: '=', pos: tokenStartPos})
+                tokens.push({type: 'equals', value: '=', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '+' && lookTwoAhead == '='){
                 curPos += 2
-                tokens.push({type: 'plusEquals', value: '+=', pos: tokenStartPos})
+                tokens.push({type: 'plusEquals', value: '+=', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '+' && lookTwoAhead == '+'){
                 curPos += 2
-                tokens.push({type: 'increment', value: '++', pos: tokenStartPos})
+                tokens.push({type: 'increment', value: '++', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '-' && lookTwoAhead == '='){
                 curPos += 2
-                tokens.push({type: 'minusEquals', value: '-=', pos: tokenStartPos})
+                tokens.push({type: 'minusEquals', value: '-=', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '-' && lookTwoAhead == '-'){
                 curPos += 2
-                tokens.push({type: 'decrement', value: '--', pos: tokenStartPos})
+                tokens.push({type: 'decrement', value: '--', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '*' && lookTwoAhead == '='){
                 curPos += 2
-                tokens.push({type: 'multiplyEquals', value: '*=', pos: tokenStartPos})
+                tokens.push({type: 'multiplyEquals', value: '*=', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '/' && lookTwoAhead == '='){
                 curPos += 2
-                tokens.push({type: 'divideEquals', value: '/=', pos: tokenStartPos})
+                tokens.push({type: 'divideEquals', value: '/=', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '=' && lookTwoAhead == '='){
                 curPos += 2
-                tokens.push({type: 'condition', value: '==', pos: tokenStartPos})
+                tokens.push({type: 'condition', value: '==', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '!' && lookTwoAhead == '='){
                 curPos += 2
-                tokens.push({type: 'condition', value: '!=', pos: tokenStartPos})
+                tokens.push({type: 'condition', value: '!=', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '>' && lookTwoAhead == '='){
                 curPos += 2
-                tokens.push({type: 'condition', value: '>=', pos: tokenStartPos})
+                tokens.push({type: 'condition', value: '>=', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '<' && lookTwoAhead == '='){
                 curPos += 2
-                tokens.push({type: 'condition', value: '<=', pos: tokenStartPos})
+                tokens.push({type: 'condition', value: '<=', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '<' && lookTwoAhead != '=' && lookTwoAhead != '-'){
                 curPos++
-                tokens.push({type: 'condition', value: '<', pos: tokenStartPos})
+                tokens.push({type: 'condition', value: '<', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '>'){
                 curPos++
-                tokens.push({type: 'condition', value: '>', pos: tokenStartPos})
+                tokens.push({type: 'condition', value: '>', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '-' && lookTwoAhead == '>'){
                 curPos += 2
-                tokens.push({type: 'arrow', value: '->', pos: tokenStartPos})
+                tokens.push({type: 'arrow', value: '->', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '<' && lookTwoAhead == '-'){
                 curPos += 2
-                tokens.push({type: 'arrow', value: '<-', pos: tokenStartPos})
+                tokens.push({type: 'arrow', value: '<-', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '&' && lookTwoAhead == '&'){
                 curPos += 2
-                tokens.push({type: 'condition', value: '&&', pos: tokenStartPos})
+                tokens.push({type: 'condition', value: '&&', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '|' && lookTwoAhead == '|'){
                 curPos += 2
-                tokens.push({type: 'condition', value: '||', pos: tokenStartPos})
+                tokens.push({type: 'condition', value: '||', pos: tokenStartPos, line: lineIndex})
             }
             else if(isDigit(lookAhead)){
                 let str = lookAhead
@@ -287,7 +444,7 @@ class Interpreter {
                     str += text.charAt(curPos)
                     curPos++
                 }
-                tokens.push({type: 'number', value: str, pos: tokenStartPos})
+                tokens.push({type: 'number', value: str, pos: tokenStartPos, line: lineIndex})
             }
             else if(isLetter(lookAhead)){
                 let str = lookAhead
@@ -347,7 +504,7 @@ class Interpreter {
                         }
                         else type = 'identifier'
                 }
-                tokens.push({type: type, value: str, pos: tokenStartPos})
+                tokens.push({type: type, value: str, pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '"'){
                 curPos++
@@ -361,45 +518,47 @@ class Interpreter {
                     return
                 }
                 curPos++
-                tokens.push({type: 'string', value: string, pos: tokenStartPos})
+                tokens.push({type: 'string', value: string, pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead === '!'){
                 curPos++
-                tokens.push({type:'not', value:'!', pos: tokenStartPos})
+                tokens.push({type:'not', value:'!', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead === '('){
                 curPos++
-                tokens.push({type: 'lparen', value: '(', pos: tokenStartPos})
+                tokens.push({type: 'lparen', value: '(', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead === ')'){
                 curPos++
-                tokens.push({type: 'rparen', value: ')', pos: tokenStartPos})
+                tokens.push({type: 'rparen', value: ')', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead === '{'){
                 curPos++
-                tokens.push({type: 'lbrack', value: '{', pos: tokenStartPos})
+                tokens.push({type: 'lbrack', value: '{', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead === '}'){
                 curPos++
-                tokens.push({type: 'rbrack', value: '}', pos: tokenStartPos})
+                tokens.push({type: 'rbrack', value: '}', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead === ','){
                 curPos++
-                tokens.push({type: 'comma', value: ',', pos: tokenStartPos})
+                tokens.push({type: 'comma', value: ',', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead === '_'){
                 curPos++
-                tokens.push({type: 'underscore', value: '_', pos: tokenStartPos})
+                tokens.push({type: 'underscore', value: '_', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead === '\n'){
                 curPos++
-                tokens.push({type: 'newline', value: '\n', pos: tokenStartPos})
+                tokens.push({type: 'newline', value: '\n', pos: tokenStartPos, line: lineIndex})
+                lineIndex++
             }
             else if (lookAhead === '[') {
                 tokens.push({
                     type: 'lArr',
                     value: '[',
                     pos: tokenStartPos,
+                    line: lineIndex,
                 });
 
                 curPos++;
@@ -409,17 +568,18 @@ class Interpreter {
                     type: 'rArr',
                     value: ']',
                     pos: tokenStartPos,
+                    line: lineIndex,
                 });
 
                 curPos++;
             }
             else if (lookAhead === '.'){
                 curPos++
-                tokens.push({type: 'dot', value: '.', pos: tokenStartPos})
+                tokens.push({type: 'dot', value: '.', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead === ':'){
                 curPos++
-                tokens.push({type: 'colon', value: ':', pos: tokenStartPos})
+                tokens.push({type: 'colon', value: ':', pos: tokenStartPos, line: lineIndex})
             }
             else {
                 console.log('Unknown character: ' + lookAhead + ' at col: ' + curPos)
@@ -427,7 +587,7 @@ class Interpreter {
             }
 
         }
-        tokens.push({type: 'EOF', value: '\n', pos: curPos})
+        tokens.push({type: 'EOF', value: '\n', pos: curPos, line: lineIndex})
         return tokens
     }
 
@@ -452,7 +612,7 @@ class Interpreter {
         function expect(type){
             let token = peek()
             if(token.type !== type){
-                throw new Error("Expected " + type + " but got " + token.type)
+                throw new Error("Expected " + type + " but got " + token.type + " ln " + token.line + " col " + token.pos, {cause: 'expect'})
             }
             return consume()
         }
@@ -500,18 +660,26 @@ class Interpreter {
                 let condition = parseExpression()
                 expect("rparen") // )
 
-                expect("lbrack") // {
-
                 let body = []
 
-                skipNewlines()
+                if(peek().type === "lbrack"){ // {
+                    consume()
 
-                while(peek().type !== "rbrack"){
-                    body.push(parseStatement())
+                    
+
                     skipNewlines()
-                }
 
-                expect("rbrack") // }
+                    while(peek().type !== "rbrack"){
+                        body.push(parseStatement())
+                        skipNewlines()
+                    }
+
+                    expect("rbrack") // }
+                }
+                else {
+                    // single statement body (no brackets)
+                    body = [parseStatement()]
+                }
                 skipNewlines()
 
 
@@ -528,20 +696,28 @@ class Interpreter {
 
                         alternate = parseStatement()
 
-                    } else {
-
-                        expect("lbrack")
-
+                    } 
+                    else {
                         let elseBody = []
 
-                        skipNewlines()
+                        if(peek().type === "lbrack"){ // {
+                            consume()
 
-                        while (peek().type !== "rbrack") {
-                            elseBody.push(parseStatement())
+                            
+
                             skipNewlines()
-                        }
 
-                        expect("rbrack")
+                            while (peek().type !== "rbrack") {
+                                elseBody.push(parseStatement())
+                                skipNewlines()
+                            }
+
+                            expect("rbrack")
+                        }
+                        else {
+                            // single statement body (no brackets)
+                            elseBody = [parseStatement()]
+                        }
 
                         alternate = {
                             type: "BlockStatement",
@@ -568,21 +744,28 @@ class Interpreter {
                 expect("lparen") // (
                 let condition = parseExpression()
                 expect("rparen") // )
-
-                expect("lbrack") // {
-
-                loopDepth++
-
                 let body = []
 
-                skipNewlines()
+                if(peek().type === "lbrack"){ // {
+                    consume()
+                    loopDepth++
 
-                while (peek().type !== "rbrack") {
-                    body.push(parseStatement())
+                    
+
                     skipNewlines()
-                }
 
-                expect("rbrack")
+                    while (peek().type !== "rbrack") {
+                        body.push(parseStatement())
+                        skipNewlines()
+                    }
+
+                    expect("rbrack")
+                }
+                else{
+                    // single statement body (no brackets)
+                    loopDepth++
+                    body = [parseStatement()]
+                }
 
                 loopDepth--
 
@@ -609,20 +792,27 @@ class Interpreter {
                     step = parseExpression()
                 }
                 expect("rparen")
-                expect("lbrack") // {
-
-                loopDepth++
-
                 let body = []
+                if(peek().type === "lbrack"){ // {
+                    consume()
+                    loopDepth++
 
-                skipNewlines()
+                    
 
-                while (peek().type !== "rbrack") {
-                    body.push(parseStatement())
                     skipNewlines()
-                }
 
-                expect("rbrack")
+                    while (peek().type !== "rbrack") {
+                        body.push(parseStatement())
+                        skipNewlines()
+                    }
+
+                    expect("rbrack")
+                }
+                else{
+                    // single statement body (no brackets)
+                    loopDepth++
+                    body = [parseStatement()]
+                }
 
                 loopDepth--
 
@@ -645,7 +835,12 @@ class Interpreter {
             if(peek().type === "functionDeclaration"){
 
                 consume() // func
-                let id = expect("identifier")
+                let id = consume()
+
+                if(id.type == "ownFunction"){ 
+                    console.log("Error: declaring a built-in function (" + id.value + ")")
+                    return
+                }
 
                 expect("lparen") // (
 
@@ -660,19 +855,24 @@ class Interpreter {
                 }
 
                 expect("rparen") // )
-
-                expect("lbrack") // {
-
                 let body = []
+                if(peek().type === "lbrack"){ // {
+                    consume()
+                    
 
-                skipNewlines()
-
-                while(peek().type !== "rbrack"){
-                    body.push(parseStatement())
                     skipNewlines()
-                }
 
-                expect("rbrack") // }
+                    while(peek().type !== "rbrack"){
+                        body.push(parseStatement())
+                        skipNewlines()
+                    }
+
+                    expect("rbrack") // }
+                }
+                else{
+                    // single statement body (no brackets)
+                    body = [parseStatement()]
+                }
 
                 return {
                     type: "FunctionDeclaration",
@@ -1189,7 +1389,7 @@ class Interpreter {
                 }
             }
     
-            throw new Error("Unexpected token: " + token.value)
+            throw new Error("Unexpected token: " + token.value + " ln " + token.line + " col " + token.pos)
         }
 
         return parseProgram()
@@ -1421,7 +1621,9 @@ class Interpreter {
                 throw new Error("Undefined function: " + node.name)
                 
             case "FunctionDeclaration":
-                
+                if(node.name in ownFunctions){
+                    throw new Error(node.name + " is a built-in function")
+                }
                 this.env[node.name] = {
                     params: node.params,
                     body: node.body
