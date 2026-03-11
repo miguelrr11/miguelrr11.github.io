@@ -101,7 +101,7 @@ let testLength = `
 
 let matchTest = `
     var x = 6
-    var a = []
+    var a = [1]
     match(x){
         1 -> match(x){
             1 -> say("should print if x == 1")
@@ -114,6 +114,9 @@ let matchTest = `
                     say("this, as weird as it is, should print")
                 }
                 test()
+                if(1 == |a|){
+                    say("if inside block inside match")
+                }
             }
         _ -> say("other")   ## shouldn't print ever
         _ -> say("other 2") ## should print if x didnt match
@@ -134,7 +137,7 @@ let matchPropagate =  `
     say(x)
 `
 
-let sourceCode = matchPropagate
+let sourceCode = matchTest
 
 /*
 DONE
