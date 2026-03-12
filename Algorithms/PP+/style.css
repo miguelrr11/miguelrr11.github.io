@@ -12,7 +12,7 @@ html, body {
 /* Left side */
 #ide {
   display: grid;
-  grid-template-rows: 27px 1fr 175px;
+  grid-template-rows: 27px 1fr 125px;
 }
 
 /* Button Bar */
@@ -48,7 +48,7 @@ button.active {
 
 /* Console */
 #console {
-  background: #111;
+  background:  #3b363f;
   color: rgb(255, 255, 255);
   font-family: monospace;
   padding: 15px;

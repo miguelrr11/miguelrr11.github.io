@@ -241,6 +241,77 @@ setup()
 
 `
 
+let gameoflife = `
+var grid = []
+var newGrid = []
+var w = width()
+var h = height()
+var sizeCell = 20
+var nCells = floor(min(w, h) / sizeCell)
+
+var nb = [[-1, -1], [0, -1], [1, -1],[-1, 0],[1, 0],[-1, 1], [0, 1], [1, 1]]
+
+func setup(){
+    for(i 0:nCells){
+        frameRate(60)
+        grid[i] = []
+        newGrid[i] = []
+        for(j 0:nCells){
+            grid[i][j] = floor(random(0, 2))
+            newGrid[i][j] = floor(random(0, 2))
+        }
+    }
+}
+
+func wrap(i, stop) {
+   ret ((i % stop) + stop) % stop
+}
+
+func draw(){
+    background(0, 0, 0)
+    fill(255, 255, 255)
+    noStroke()
+    if(mouseIsPressed() && (mouseX() > 0) && (mouseX() < w) && (mouseY() > 0) && (mouseY() < h)){
+        setup()
+    }
+    updateCells()
+    for(i 0:nCells){
+        for(j 0:nCells){
+            if(grid[i][j] == 1) rect(i * sizeCell, j * sizeCell, sizeCell, sizeCell) 
+        }
+    }
+    for(i 0:nCells){
+        for(j 0:nCells){
+            grid[i][j] = newGrid[i][j]
+        }
+    }
+}
+
+func updateCells(){
+    newGrid = []
+    for(i 0:nCells){
+        newGrid[i] = []
+        for(j 0:nCells){
+            var sum = 0
+            newGrid[i][j] = grid[i][j]
+            for(k 0:|nb|){
+                if(grid[wrap((i + nb[k][0]), nCells)][wrap((j + nb[k][1]), nCells)] == 1) sum++
+            }
+            if(grid[i][j] == 1){
+                if(sum == 2 || sum == 3) newGrid[i][j] = 1
+                else newGrid[i][j] = 0
+            }
+            else if(grid[i][j] == 0){
+                if(sum == 3) newGrid[i][j] = 1
+                else newGrid[i][j] = 0
+            }
+        }
+    }
+}
+
+setup()
+`
+
 let sourceCode = orbits
 
 /*

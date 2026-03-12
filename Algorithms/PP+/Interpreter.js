@@ -194,6 +194,7 @@ const ownFunctions = {
     // Input
     mouseX: () => p5Obj.mouseX,
     mouseY: () => p5Obj.mouseY,
+    mouseIsPressed: () => p5Obj.mouseIsPressed,
     keyIsDown: (code) => {
         return p5Obj.keyIsDown(code)
     },
@@ -1591,16 +1592,20 @@ class Interpreter {
                         )) ||
                         (typeof end === "boolean" && end) ||
                         (step == 0)
+                    
+                    
 
                     if (!condition) break
 
                     let result = this.execute(node.body)
 
+                    this.env[node.iterator.identifier] += step
+
+                    
+
                     if (result?.type === "return") return result
                     if (result?.type === "break") return
                     if (result?.type === "continue") continue
-
-                    this.env[node.iterator.identifier] += step
                 }
 
                 return
@@ -1655,12 +1660,12 @@ class Interpreter {
                     throw new Error(node.array + " has invalid index")
                 }
                 let subArray = array
-                let finalIndex
+                let finalIndex;
                 for(let index of node.index){
                     let idx = this.execute(index)
                     finalIndex = idx
                     if(idx < 0 || idx >= subArray.length){
-                        throw new Error("Index out of bounds")
+                        throw new Error("Index out of bounds in array " + node.array)
                     }
                     subArray = subArray[idx]
                 }
@@ -1681,7 +1686,7 @@ class Interpreter {
                     for(let index of indexPP){
                         let idx = this.execute(index)
                         if(idx < 0 || idx >= subArray.length){
-                            throw new Error("Index out of bounds")
+                            throw new Error("Index out of bounds in array " + node.array)
                         }
                         subArray = subArray[idx]
                         if(!subArray || !Array.isArray(subArray)){

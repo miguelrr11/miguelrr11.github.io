@@ -19,6 +19,7 @@ let it
 let noErrors = true
 let isPlaying = false
 let automaticCompiling = true
+let isShowingHelp = false
 
 const originalLog = console.log;
 
@@ -30,6 +31,33 @@ buttonStop.classList.toggle("active", true);
 
 const buttonAutomaticCompiling = document.getElementById("buttonAutomaticCompiling");
 buttonAutomaticCompiling.addEventListener("click", toggleAutomaticCompiling);
+
+const buttonShowHelp = document.getElementById("buttonShowHelp");
+buttonShowHelp.addEventListener("click", toggleShowHelp)
+
+let savedCode = ""
+
+function toggleShowHelp(){
+    if(!isShowingHelp){
+        savedCode = window.monacoEditor.getValue()
+        isShowingHelp = true
+        buttonShowHelp.classList.toggle("active", true)
+        showHelp()
+    }
+    else{
+        isShowingHelp = false
+        buttonShowHelp.classList.toggle("active", false)
+        showCode()
+    }
+}
+
+function showHelp(){
+    window.monacoEditor.setValue(guide)
+}
+
+function showCode(){
+    window.monacoEditor.setValue(savedCode)
+}
 
 function play(){
     isPlaying = true
@@ -78,7 +106,12 @@ let p5Obj = new p5((p) => {
     p.setup = function () {
         const container = document.getElementById("canvas-container");
 
+        p.frameRate(60)
+
         let savedCode = p.getItem('PP+SavedCode') ? p.getItem('PP+SavedCode') : sourceCode
+
+        it = new Interpreter()
+        it.set(savedCode)
 
         const canvas = p.createCanvas(
             container.clientWidth,
@@ -426,12 +459,14 @@ let p5Obj = new p5((p) => {
     };
 
     function clearConsole() {
+        return
         consoleEl.textContent = "";
     }
 
 });
 
 function updateCodeAndRun(){
+    if(isShowingHelp || !isPlaying) return
     try {
         clearConsole()
         const data = window.monacoEditor.getValue()
@@ -463,3 +498,195 @@ function runDraw(){
         }
     }
 }
+
+let guide = `
+
+## ==============================
+##  Welcome to PP+ !!
+## ==============================
+
+## --- VARIABLES ---
+## Declare with the "var" keyword, assign with =
+var x = 10
+var y = 3.14
+var name = "Alice"
+var flag = true
+
+## Reassign anytime
+x = 99
+
+## --- OPERATORS ---
+## Arithmetic: + - * / %
+## Compound:   += -= *= /=
+## Increment/Decrement: ++ --
+x += 5
+x++
+
+## Comparison (use in conditions): == != < > <= >=
+## Logical negation: !
+
+## --- FUNCTIONS ---
+func greet(name) {
+    say("Hello, " + name)
+}
+
+greet("Alice")
+
+## Return a value
+func add(a, b) {
+    ret a + b
+}
+
+var result = add(2, 3)
+
+## --- IF / ELSE ---
+if (x > 5) {
+    say("big")
+} else if (x == 5) {
+    say("five")
+} else {
+    say("small")
+}
+
+## --- WHILE ---
+while (x > 0) {
+    x--
+}
+
+## --- FOR ---
+## for(iterator start : end)  — iterator goes from start up to end
+## Optional: step N
+for(i 0 : 10) {
+    say(i)
+}
+
+for(i 0 : 100 step 5) say(i)
+
+
+## break and continue work inside loops
+
+## --- ARRAYS ---
+var nums = [1, 2, 3, 4]
+
+## Access / assign by index
+say(nums[0])
+nums[0] = 99
+
+## Push to end, pop from end
+nums->(5)          ## push 5
+var last = nums->  ## pop
+
+## Unshift to front, shift from front
+nums<-(0)          ## unshift 0
+var first = <-nums  ## shift
+
+## Length with pipes
+say(|nums|)        ## prints 4
+
+## Multidimensional
+var grid = [[1,2],[3,4]]
+say(grid[0][1])    ## 2
+
+## --- MATCH (like switch) ---
+## _ is the default case
+match (x) {
+    1 -> say("one")
+    2 -> say("two")
+    _ -> say("other")
+}
+
+## ==============================
+##  BUILT-IN FUNCTIONS
+## ==============================
+
+## --- OUTPUT ---
+say("Hello!")                  ## print to console
+
+## ==============================
+## P5js Wrapper Functions
+## ==============================
+
+## The function draw() is called internally 60 times a second, 
+## make sure to include it in your program
+
+func draw(){
+    ## ...
+}
+
+## --- CANVAS / ENVIRONMENT ---
+var w = width()
+var h = height()
+var f = frameCount()
+frameRate(60)
+
+## --- DRAWING: SHAPES --- 
+rect(x, y, w, h)                    ## rectangle
+ellipse(x, y, w, h)                 ## ellipse
+circle(x, y, diameter)              ## circle
+square(x, y, s, tl, tr, br, bl)     ## square (with optional corner radii)
+triangle(x1, y1, x2, y2, x3, y3)
+quad(x1, y1, x2, y2, x3, y3, x4, y4)
+line(x1, y1, x2, y2)
+point(x, y)
+arc(x, y, w, h, start, stop)
+
+## Custom shapes
+beginShape()
+vertex(x, y)
+curveVertex(x, y)
+endShape()
+
+## --- DRAWING: COLOR & STROKE ---
+fill(r, g, b)
+noFill()
+stroke(r, g, b, a)
+strokeWeight(w)
+noStroke()
+background(r, g, b)
+clear()                        ## resets background to default
+
+## Color helpers
+var c = color(r, g, b, a)
+var c2 = lerpColor(c1, c2, 0.5)
+colorMode(mode, max1, max2, max3, maxA)
+
+## --- DRAWING: TRANSFORM ---
+translate(x, y)
+rotate(angle)                  ## angle in radians
+scale(x, y)
+push()                         ## save transform state
+pop()                          ## restore transform state
+resetMatrix()
+
+## --- TEXT ---
+text("hello", x, y)
+textSize(24)
+textAlign(LEFT, CENTER)
+textFont("Arial")
+
+## --- INPUT ---
+var mx = mouseX()
+var my = mouseY()
+var held = keyIsDown(65)            ## 65 = key code for 'A'
+
+## --- MATH ---
+var r = random(0, 100)
+var n = noise(x, y, z)              ## Perlin noise
+var d = dist(x1, y1, x2, y2)
+var m = map(value, 0, 100, 0, 1)    ## remap a value to a new range
+var c = constrain(n, 0, 255)
+var l = lerp(start, stop, 0.5)
+radians(degrees)
+sin(angle)
+cos(angle)
+abs(n)
+floor(n)
+ceil(n)
+round(n)
+sqrt(n)
+pow(n, e)
+min(a, b)
+max(a, b)
+
+
+`
