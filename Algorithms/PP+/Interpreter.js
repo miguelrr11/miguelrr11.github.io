@@ -1103,7 +1103,9 @@ class Interpreter {
 
             while(peek().type === "plus" || peek().type === "minus"){
 
+                skipNewlines()
                 let operator = consume()
+                skipNewlines()
 
                 let rightNode = parseMultiplicative()
 
@@ -1116,7 +1118,10 @@ class Interpreter {
             }
 
             while(peek().type === "plusEquals" || peek().type === "minusEquals" || peek().type === "multiplyEquals" || peek().type === "divideEquals"){
+                skipNewlines()
                 let operator = consume()
+                skipNewlines()
+
                 let rightNode = parseMultiplicative()
 
                 let binaryOperator
@@ -1146,7 +1151,9 @@ class Interpreter {
             }
 
             while(peek().type === "increment" || peek().type === "decrement"){
+                skipNewlines()
                 let operator = consume()
+                skipNewlines()
 
                 let binaryOperator = operator.type === "increment" ? "+" : "-"
 
@@ -1174,8 +1181,9 @@ class Interpreter {
             let node = parseUnary()
 
             while(peek().type === "multiply" || peek().type === "divide" || peek().type === "remainder"){
-
+                skipNewlines()
                 let operator = consume()
+                skipNewlines()
 
                 let rightNode = parseUnary()
 
@@ -1195,7 +1203,9 @@ class Interpreter {
             let token = peek()
 
             if(token.type === "minus" || token.type === "not"){
+                skipNewlines()
                 consume()
+                skipNewlines()
 
                 return {
                     type: "UnaryExpression",
