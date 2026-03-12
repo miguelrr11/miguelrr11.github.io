@@ -2,6 +2,8 @@
 //Miguel Rodríguez
 //06-03-2026
 
+// 
+
 const consoleEl = document.getElementById("console");
 
 function writeConsole(text) {
@@ -15,8 +17,41 @@ function clearConsole() {
 
 let it
 let noErrors = true
+let isPlaying = false
+let automaticCompiling = true
 
 const originalLog = console.log;
+
+const buttonPlay = document.getElementById("buttonPlay");
+const buttonStop = document.getElementById("buttonStop");
+buttonPlay.addEventListener("click", play);
+buttonStop.addEventListener("click", stop);
+buttonStop.classList.toggle("active", true);
+
+const buttonAutomaticCompiling = document.getElementById("buttonAutomaticCompiling");
+buttonAutomaticCompiling.addEventListener("click", toggleAutomaticCompiling);
+
+function play(){
+    isPlaying = true
+    updateCodeAndRun()
+    buttonPlay.classList.toggle("active", true);
+    buttonStop.classList.toggle("active", false);
+}
+
+function stop(){
+    isPlaying = false
+    buttonPlay.classList.toggle("active", false);
+    buttonStop.classList.toggle("active", true);
+}
+
+function toggleAutomaticCompiling(){
+    automaticCompiling = !automaticCompiling
+    buttonAutomaticCompiling.textContent = automaticCompiling ? "Auto-refresh: On" : "Auto-refresh: Off"
+    if(automaticCompiling){
+        isPlaying = true
+        updateCodeAndRun()
+    }
+}
 
 
 console.log = (...args) => {
@@ -51,22 +86,6 @@ let p5Obj = new p5((p) => {
         );
 
         canvas.parent("canvas-container");
-
-        
-        it = new Interpreter()
-        try{
-            clearConsole()
-            runTests()
-            it.set(savedCode)
-            it.prepare()
-            it.run()
-            noErrors = true
-        }
-        catch(e){
-            if(!e.cause || e.cause !== "expect") console.log(e);
-            noErrors = false
-        }
-        
 
         require(['vs/editor/editor.main'], function() {
 
@@ -389,38 +408,15 @@ let p5Obj = new p5((p) => {
             });
 
             window.monacoEditor.onDidChangeModelContent(() => {
-                try {
-                    clearConsole()
-                    const data = window.monacoEditor.getValue()
-                    p.storeItem('PP+SavedCode', data)
-                    it = new Interpreter()
-                    it.set(data)
-                    it.prepare()
-                    it.run()
-                    noErrors = true
-                } 
-                catch (e) {
-                    clearConsole()
-                    if(!e.cause || e.cause !== "expect") console.log(e);
-                    noErrors = false
-                }
+                if(automaticCompiling) updateCodeAndRun()
             });
         });
+
+        updateCodeAndRun()
     };
 
     p.draw = function () {
-        if(noErrors){
-            try{
-                it.callFunc("draw")
-                noErrors = true
-            }
-            catch(e){
-                clearConsole()
-                if(!e.cause || e.cause !== "expect") console.log(e);
-                noErrors = false
-            }
-        }
-        
+        runDraw()
     };
 
     p.windowResized = function () {
@@ -434,3 +430,36 @@ let p5Obj = new p5((p) => {
     }
 
 });
+
+function updateCodeAndRun(){
+    try {
+        clearConsole()
+        const data = window.monacoEditor.getValue()
+        p5Obj.storeItem('PP+SavedCode', data)
+        it = new Interpreter()
+        it.set(data)
+        it.prepare()
+        it.run()
+        noErrors = true
+    } 
+    catch (e) {
+        clearConsole()
+        if(!e.cause || e.cause !== "expect") console.log(e);
+        noErrors = false
+    }
+}
+
+function runDraw(){
+    if(noErrors && isPlaying){
+        try{
+            clearConsole()
+            it.callFunc("draw")
+            noErrors = true
+        }
+        catch(e){
+            clearConsole()
+            if(!e.cause || e.cause !== "expect") console.log(e);
+            noErrors = false
+        }
+    }
+}

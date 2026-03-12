@@ -12,17 +12,32 @@ html, body {
 /* Left side */
 #ide {
   display: grid;
-  grid-template-rows: 20px 1fr 200px;
+  grid-template-rows: 27px 1fr 175px;
 }
 
 /* Button Bar */
 #buttonBar {
-  height: 100px;
   display: flex;
   align-items: center;
-  padding: 10px;
-  gap: 10px;
-  background: #1e1e1e;
+  background: #0f1117;
+}
+
+button {
+  background-color: #0f1117;
+  color: #c792ea;
+  border: 4px solid #c792ea;
+  font-size: 16px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', monospace;
+  cursor: pointer;
+}
+
+button:hover {
+  background-color: #432f50;
+}
+
+button.active {
+  background-color: #c792ea;
+  color: #0f1117;
 }
 
 /* Monaco editor */
@@ -37,8 +52,10 @@ html, body {
   color: rgb(255, 255, 255);
   font-family: monospace;
   padding: 15px;
-  overflow-y: auto;
   white-space: pre-wrap;
+  overflow-y: hidden;
+  overflow-x: hidden;
+  margin: 0;
 }
 
 /* Right side */
