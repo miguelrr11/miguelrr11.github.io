@@ -60,7 +60,7 @@ let horizontalOffsetsRatings = { title: 0, artist: 0, year: 0, genre: 0, funfact
 let horizontalOffsetsCover = { title: 0, artist: 0 };
 let imageSizeMultiplier = 1.0;
 let maxTextboxWidths = { title: 980, artist: 378, year: 378, genre: 378, funfact: 459 };
-const defaultMaxTextboxWidths = { title: 980, artist: 480, year: 480, genre: 480, funfact: 480 };
+const defaultMaxTextboxWidths = { title: 980, artist: 480, year: 480, genre: 550, funfact: 490 };
 let textAlignRatings = { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' };
 let textAlignCover = { title: 'center', artist: 'center' };
 
@@ -792,7 +792,7 @@ function getDefaultProfile() {
         aspectRatio: '3:4',
         imageFormat: 'jpg',
         showGradeLegend: true,
-        verticalOffsetsRatings: {funfact: -21},
+        verticalOffsetsRatings: {funfact: -21, title: 100},
         verticalOffsetsCover: {artist: -15, title: 23},
         horizontalOffsetsRatings: {artist: -40, funfact: -40, year: -40, genre: -40},
         horizontalOffsetsCover: {},
@@ -2326,11 +2326,13 @@ async function printAlbum(){
     utils.beginShadow("#000000", 20, 0, 0);
     textFont(fontHeavy)
 
+    
     let titleOffset = verticalOffsetsRatings.title || 0;
     let titleHorizOffset = (horizontalOffsetsRatings.title || 0) + 0;
     let titleMaxWidth = maxTextboxWidths.title || defaultMaxTextboxWidths.title;
     drawTextWithBox('title', fontHeavy, getMaxTextSize(albumData.title, titleMaxWidth, 100) + textSizeOffsets.title,
-                     albumData.title, leftMargin + titleHorizOffset, topMargin + y + titleOffset, titleMaxWidth, 70, textAlignRatings.title || 'left');
+                     albumData.title, leftMargin + titleHorizOffset, topMargin + y + titleOffset, titleMaxWidth, 70, textAlignRatings.title || 'left', BOTTOM);
+    
 
     let artistOffset = verticalOffsetsRatings.artist || 10;
     let artistHorizOffset = (horizontalOffsetsRatings.artist || 0) + width * .475;
@@ -2364,6 +2366,7 @@ async function printAlbum(){
     let funfactSize = 30 + textSizeOffsets.funfact;
     let funfactLeading = 40 + textLeadingOffsets.funfact;
     let funfactStartY = topMargin + y + 120 + (40 * 4) + funfactOffset;
+    textFont(fontRegularCondensed)
     textAlign(getP5Align(textAlignRatings.funfact || 'left'), BASELINE);
     textLeading(40); text("\n\n\n\n", leftMargin + funfactHorizOffset, topMargin + y + 120 + funfactOffset, funfactMaxWidth);
     textSize(funfactSize); textLeading(funfactLeading); text(albumData.funfact, leftMargin + funfactHorizOffset, funfactStartY, funfactMaxWidth);
@@ -2479,9 +2482,9 @@ async function printAlbum(){
         let extraSpacing = 0
         if (track.customTextLarge && track.customTextLarge.trim() !== '') {
             push()
-            fill(245); noStroke(); textSize(27); textFont(fontRegular); textAlign(LEFT, TOP);
+            fill(245); noStroke(); textSize(27); textFont(fontLight); textAlign(LEFT, TOP);
             text(track.customTextLarge, tracksHorizOffset + 500, trackY + 20, 900)
-            extraSpacing = fontRegular.textBounds(track.customTextLarge, tracksHorizOffset, trackY + 20, 900).h + 40
+            extraSpacing = fontLight.textBounds(track.customTextLarge, tracksHorizOffset, trackY + 20, 900).h + 40
             pop()
         }
         tracksStartY += spacing + extraSpacing;
@@ -2619,13 +2622,13 @@ function getAlignedBounds(bounds, anchorX, align) {
     return bounds //it just works, trust me
 }
 
-function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align = 'left') {
+function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align = 'left', verAlign = BASELINE) {
     size = max(10, size);
     textFont(font);
     textSize(size);
     fill(255);
     textLeading(leading);
-    textAlign(getP5Align(align), BASELINE);
+    textAlign(getP5Align(align), verAlign);
     text(textStr, x, y, maxWidth);
     let bbox = font.textBounds(textStr, x, y, maxWidth);
     addTextBox(id, getAlignedBounds(bbox, x, align), size);
