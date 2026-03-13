@@ -793,7 +793,7 @@ function getDefaultProfile() {
         imageFormat: 'jpg',
         showGradeLegend: true,
         verticalOffsetsRatings: {funfact: -21},
-        verticalOffsetsCover: {artist: -15},
+        verticalOffsetsCover: {artist: -15, title: 23},
         horizontalOffsetsRatings: {artist: -40, funfact: -40, year: -40, genre: -40},
         horizontalOffsetsCover: {},
         imageSizeMultiplier: 0.95,
@@ -2681,7 +2681,7 @@ async function printCoverScreen() {
     let titleY = coverY + coverSize * 0.5 + 60 + titleVertOffset;
     let titleAlignCover = textAlignCover.title || 'center';
     textFont(fontHeavy);
-    textAlign(getP5Align(titleAlignCover), TOP);
+    textAlign(getP5Align(titleAlignCover), CENTER);
     let titleSize = getMaxTextSize(albumData.title, width - 100, 100) + textSizeOffsets.title;
     titleSize = max(10, titleSize);
     textSize(titleSize); fill(255); text(albumData.title, width * 0.5 + titleHorizOffset, titleY);
@@ -2693,7 +2693,7 @@ async function printCoverScreen() {
     let artistY = coverY + coverSize * 0.5 + 60 + 130 + artistVertOffset;
     let artistAlignCover = textAlignCover.artist || 'center';
     textFont(fontRegularCondensed);
-    textAlign(getP5Align(artistAlignCover), TOP);
+    textAlign(getP5Align(artistAlignCover), CENTER);
     let artistSize = getMaxTextSize(albumData.artist, width - 100, 50) + textSizeOffsets.artist;
     textSize(artistSize); fill(230); text(albumData.artist, width * 0.5 + artistHorizOffset, artistY);
     let artistBounds = fontRegularCondensed.textBounds(albumData.artist, width * 0.5 + artistHorizOffset, artistY, width - 100);
@@ -2718,7 +2718,7 @@ async function printCoverScreen() {
             textFont(fontObj);
             textSize(textbox.fontSize);
             fill(textbox.color);
-            textAlign(getP5Align(tbAlign), TOP);
+            textAlign(getP5Align(tbAlign), CENTER);
 
             // Apply leading (spacing) if set
             let baseLeading = textbox.fontSize * 1.25; // Default line height
