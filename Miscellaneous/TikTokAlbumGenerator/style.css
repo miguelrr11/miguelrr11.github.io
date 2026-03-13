@@ -402,9 +402,9 @@ canvas {
 .track-row {
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 7px;
     margin-bottom: 10px;
-    padding: 10px 12px;
+    padding: 6px 9px;
     background: rgba(255, 255, 255, 0.04);
     border-radius: 10px;
     transition: background 0.2s ease, transform 0.2s ease, opacity 0.2s ease;
@@ -428,6 +428,13 @@ canvas {
     background: rgba(138, 180, 248, 0.15);
     border: 2px dashed rgba(138, 180, 248, 0.5);
     transform: translateY(-2px);
+}
+
+.track-buttons-row {
+    width: 100%;
+    display: flex;
+    flex-direction: row;
+    gap: 7px;
 }
 
 .track-drag-handle {
@@ -500,7 +507,7 @@ canvas {
     background-position: right 10px center;
     transition: all 0.2s ease;
     line-height: 32px;
-    width: 100px;
+    width: 32%;
 }
 
 .track-grade-select:focus {
@@ -513,8 +520,8 @@ canvas {
 }
 
 .track-text-btn {
-    width: 32px;
-    height: 32px;
+    width: calc(33.33% - 5px);
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -531,6 +538,27 @@ canvas {
 
 .track-text-btn:hover {
     background: rgba(138, 180, 248, 0.25);
+}
+
+.track-textLarge-btn {
+    width: calc(33.33% - 5px);
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(237, 138, 248, 0.15);
+    border: none;
+    border-radius: 6px;
+    color: #f88af8;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.track-textLarge-btn:hover {
+    background: rgba(248, 138, 243, 0.25);
 }
 
 .track-text-input-container {
@@ -561,9 +589,30 @@ canvas {
     color: rgba(255, 255, 255, 0.3);
 }
 
+.track-textLarge-input {
+    width: 100%;
+    padding: 8px 10px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(248, 138, 244, 0.4);
+    border-radius: 6px; 
+    color: #fff;
+    font-size: 12px;
+    outline: none;
+    transition: all 0.2s ease;
+}
+
+.track-textLarge-input:focus {
+    background: rgba(255, 255, 255, 0.15);
+    border-color: rgba(248, 138, 248, 0.6);
+}
+
+.track-textLarge-input::placeholder {
+    color: rgba(255, 255, 255, 0.3);
+}
+
 .track-remove-btn {
-    width: 32px;
-    height: 32px;
+    width: calc(33.33% - 5px);
+    height: 22px;
     display: flex;
     align-items: center;
     justify-content: center;
