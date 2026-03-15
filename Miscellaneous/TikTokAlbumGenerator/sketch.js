@@ -60,7 +60,7 @@ let horizontalOffsetsRatings = { title: 0, artist: 0, year: 0, genre: 0, funfact
 let horizontalOffsetsCover = { title: 0, artist: 0 };
 let imageSizeMultiplier = 1.0;
 let maxTextboxWidths = { title: 980, artist: 378, year: 378, genre: 378, funfact: 459 };
-const defaultMaxTextboxWidths = { title: 980, artist: 480, year: 480, genre: 480, funfact: 480 };
+const defaultMaxTextboxWidths = { title: 980, artist: 480, year: 480, genre: 550, funfact: 490 };
 let textAlignRatings = { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' };
 let textAlignCover = { title: 'center', artist: 'center' };
 
@@ -393,7 +393,8 @@ function syncEditorFromUI() {
         showGradeLegend: showGradeLegend,
         tracks: tracks.map(t => ({
             title: t.titleInput.value(), grade: t.gradeSelect.value(),
-            customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null
+            customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null,
+            customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null
         })),
         customTextboxes: customTextboxes.map(t => ({
             id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
@@ -791,8 +792,8 @@ function getDefaultProfile() {
         aspectRatio: '3:4',
         imageFormat: 'jpg',
         showGradeLegend: true,
-        verticalOffsetsRatings: {funfact: -21},
-        verticalOffsetsCover: {artist: -15},
+        verticalOffsetsRatings: {funfact: -21, title: 100},
+        verticalOffsetsCover: {artist: -15, title: 23},
         horizontalOffsetsRatings: {artist: -40, funfact: -40, year: -40, genre: -40},
         horizontalOffsetsCover: {},
         imageSizeMultiplier: 0.95,
@@ -1779,27 +1780,47 @@ function addTrackRowWithCapture(shouldCapture) {
     gradeSelect.selected('STRONG');
     gradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
-    let textBtn = createButton('T').parent(rowDiv).class('track-text-btn');
     let textInputContainer = createDiv('').parent(rowDiv).class('track-text-input-container');
     textInputContainer.style('display', 'none');
-    let textInput = createInput('').parent(textInputContainer).class('track-text-input');
+    let textInput = createInput('').parent(textInputContainer).class('track-text-input')
     textInput.attribute('placeholder', 'Text inside rect...');
     textInput.elt.addEventListener('input', autoGeneratePreview);
     textInput.elt.addEventListener('blur', captureState);
 
+    let textLargeInputContainer = createDiv('').parent(rowDiv).class('track-text-input-container');
+    textLargeInputContainer.style('display', 'none');
+    let textLargeInput = createInput('').parent(textLargeInputContainer).class('track-textLarge-input');
+    textLargeInput.attribute('placeholder', 'Text below track...');
+    textLargeInput.elt.addEventListener('input', autoGeneratePreview);
+    textLargeInput.elt.addEventListener('blur', captureState);
+
+    // Buttons row — always at the bottom
+    let buttonsDiv = createDiv('').parent(rowDiv).class('track-buttons-row');
+
+    let textBtn = createButton('T').parent(buttonsDiv).class('track-text-btn');
     textBtn.mousePressed(() => {
         let isHidden = textInputContainer.style('display') === 'none';
         textInputContainer.style('display', isHidden ? 'block' : 'none');
         if (isHidden) textInput.elt.focus();
     });
 
-    let removeBtn = createButton('×').parent(rowDiv).class('track-remove-btn');
+    let textLargeBtn = createButton('TT').parent(buttonsDiv).class('track-textLarge-btn');
+    textLargeBtn.mousePressed(() => {
+        let isHidden = textLargeInputContainer.style('display') === 'none';
+        textLargeInputContainer.style('display', isHidden ? 'block' : 'none');
+        if (isHidden) textLargeInput.elt.focus();
+    });
+
+    let removeBtn = createButton('×').parent(buttonsDiv).class('track-remove-btn');
     removeBtn.mousePressed(() => {
         let currentIndex = tracks.findIndex(t => t.rowDiv === rowDiv);
         if (currentIndex !== -1) removeTrackRow(currentIndex);
     });
 
-    tracks.push({ titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, textInput, textInputContainer, dragHandle });
+
+
+    tracks.push({   titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, customTextLarge: null, 
+                    textInput, textInputContainer, textLargeInput, textLargeInputContainer, dragHandle });
 
     if (shouldCapture && historyStack.length > 0) captureState();
 }
@@ -1926,7 +1947,8 @@ function collectTracksData() {
             title,
             grade: track.gradeSelect.value(),
             customNumber: track.customNumber || null,
-            customText: track.textInput ? track.textInput.value().trim() : null
+            customText: track.textInput ? track.textInput.value().trim() : null,
+            customTextLarge: track.textLargeInput ? track.textLargeInput.value().trim() : null
         } : null;
     }).filter(Boolean);
 }
@@ -2012,6 +2034,10 @@ function fillFormFromData(data) {
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
                 lastTrack.textInputContainer.style('display', 'block');
+            }
+            if (track.customTextLarge && track.customTextLarge.trim() !== '') {
+                lastTrack.textLargeInput.value(track.customTextLarge);
+                lastTrack.textLargeInputContainer.style('display', 'block');
             }
         });
     } else addTrackRow();
@@ -2132,7 +2158,8 @@ function saveToLocalStorage() {
         title: t.titleInput.value(),
         grade: t.gradeSelect.value(),
         customNumber: t.customNumber || null,
-        customText: t.textInput ? t.textInput.value() : null
+        customText: t.textInput ? t.textInput.value() : null,
+        customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null
     })));
     data.aspectRatio = currentAspectRatio;
     data.imageFormat = currentImageFormat;
@@ -2299,11 +2326,13 @@ async function printAlbum(){
     utils.beginShadow("#000000", 20, 0, 0);
     textFont(fontHeavy)
 
+    
     let titleOffset = verticalOffsetsRatings.title || 0;
     let titleHorizOffset = (horizontalOffsetsRatings.title || 0) + 0;
     let titleMaxWidth = maxTextboxWidths.title || defaultMaxTextboxWidths.title;
     drawTextWithBox('title', fontHeavy, getMaxTextSize(albumData.title, titleMaxWidth, 100) + textSizeOffsets.title,
-                     albumData.title, leftMargin + titleHorizOffset, topMargin + y + titleOffset, titleMaxWidth, 70, textAlignRatings.title || 'left');
+                     albumData.title, leftMargin + titleHorizOffset, topMargin + y + titleOffset, titleMaxWidth, 70, textAlignRatings.title || 'left', BOTTOM);
+    
 
     let artistOffset = verticalOffsetsRatings.artist || 10;
     let artistHorizOffset = (horizontalOffsetsRatings.artist || 0) + width * .475;
@@ -2337,11 +2366,73 @@ async function printAlbum(){
     let funfactSize = 30 + textSizeOffsets.funfact;
     let funfactLeading = 40 + textLeadingOffsets.funfact;
     let funfactStartY = topMargin + y + 120 + (40 * 4) + funfactOffset;
+    textFont(fontRegularCondensed)
     textAlign(getP5Align(textAlignRatings.funfact || 'left'), BASELINE);
     textLeading(40); text("\n\n\n\n", leftMargin + funfactHorizOffset, topMargin + y + 120 + funfactOffset, funfactMaxWidth);
     textSize(funfactSize); textLeading(funfactLeading); text(albumData.funfact, leftMargin + funfactHorizOffset, funfactStartY, funfactMaxWidth);
     addTextBox('funfact', getAlignedBounds(fontLight.textBounds(albumData.funfact, leftMargin + funfactHorizOffset, funfactStartY, funfactMaxWidth), leftMargin + funfactHorizOffset, textAlignRatings.funfact || 'left'), funfactSize);
     utils.endShadow();
+
+    // Draw custom textboxes
+    push();
+    let fontObj;
+    customTextboxes.forEach(textbox => {
+        if (textbox.viewType === 'ratings' || textbox.viewType === 'both') {
+            
+            switch(textbox.fontType) {
+                case 'fontHeavy': fontObj = fontHeavy; break;
+                case 'fontLight': fontObj = fontLight; break;
+                case 'fontRegular': fontObj = fontRegular; break;
+                case 'fontRegularItalic': fontObj = fontRegularItalic; break;
+                case 'fontRegularCrammed': fontObj = fontRegularCrammed; break;
+                case 'fontRegularCondensed': fontObj = fontRegularCondensed; break;
+                default: fontObj = fontHeavy;
+            }
+
+            let tbAlign = textbox.textAlign || 'left';
+            textFont(fontObj);
+            textSize(textbox.fontSize);
+            fill(textbox.color);
+            textAlign(getP5Align(tbAlign), TOP);
+
+            // Apply leading (spacing) if set
+            let baseLeading = textbox.fontSize * 1.25; // Default line height
+            textLeading(baseLeading + (textbox.leading || 0));
+
+            if (textbox.text) {
+                utils.beginShadow("#000000", 20, 0, 0);
+                text(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
+                utils.endShadow();
+
+                // Add to textBoxes for selection
+                let bounds = fontObj.textBounds(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
+                let alignedBounds = getAlignedBounds(bounds, textbox.x, tbAlign);
+                textBoxes.push({
+                    id: textbox.id,
+                    x: alignedBounds.x,
+                    y: alignedBounds.y,
+                    w: Math.max(alignedBounds.w, 50),
+                    h: Math.max(alignedBounds.h, 30),
+                    sizeOffset: 0,
+                    currentSize: textbox.fontSize,
+                    isCustom: true
+                });
+            } else {
+                // Empty textbox - show placeholder for dragging
+                textBoxes.push({
+                    id: textbox.id,
+                    x: textbox.x,
+                    y: textbox.y,
+                    w: 100,
+                    h: 40,
+                    sizeOffset: 0,
+                    currentSize: textbox.fontSize,
+                    isCustom: true
+                });
+            }
+        }
+    });
+    pop();
 
     // Draw tracks
     push()
@@ -2386,7 +2477,17 @@ async function printAlbum(){
         fill(255); textAlign(LEFT, BASELINE);
         let trackNumber = track.customNumber || ((i + 1) + '.');
         text(shortenText(trackNumber + " " + track.title + (track.playing ? " " + musicChar : ""), 700), leftMargin + x + tracksHorizOffset, trackY);
-        tracksStartY += spacing;
+
+        //custom text large
+        let extraSpacing = 0
+        if (track.customTextLarge && track.customTextLarge.trim() !== '') {
+            push()
+            fill(245); noStroke(); textSize(27); textFont(fontLight); textAlign(LEFT, TOP);
+            text(track.customTextLarge, tracksHorizOffset + 500, trackY + 20, 900)
+            extraSpacing = fontLight.textBounds(track.customTextLarge, tracksHorizOffset, trackY + 20, 900).h + 40
+            pop()
+        }
+        tracksStartY += spacing + extraSpacing;
     }
 
     tracksMaxY = tracksStartY + 50;
@@ -2484,65 +2585,7 @@ async function printAlbum(){
         pop()
     }
 
-    // Draw custom textboxes
-    push();
-    customTextboxes.forEach(textbox => {
-        if (textbox.viewType === 'ratings' || textbox.viewType === 'both') {
-            let fontObj;
-            switch(textbox.fontType) {
-                case 'fontHeavy': fontObj = fontHeavy; break;
-                case 'fontLight': fontObj = fontLight; break;
-                case 'fontRegular': fontObj = fontRegular; break;
-                case 'fontRegularItalic': fontObj = fontRegularItalic; break;
-                case 'fontRegularCrammed': fontObj = fontRegularCrammed; break;
-                case 'fontRegularCondensed': fontObj = fontRegularCondensed; break;
-                default: fontObj = fontHeavy;
-            }
-
-            let tbAlign = textbox.textAlign || 'left';
-            textFont(fontObj);
-            textSize(textbox.fontSize);
-            fill(textbox.color);
-            textAlign(getP5Align(tbAlign), TOP);
-
-            // Apply leading (spacing) if set
-            let baseLeading = textbox.fontSize * 1.25; // Default line height
-            textLeading(baseLeading + (textbox.leading || 0));
-
-            if (textbox.text) {
-                utils.beginShadow("#000000", 20, 0, 0);
-                text(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
-                utils.endShadow();
-
-                // Add to textBoxes for selection
-                let bounds = fontObj.textBounds(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
-                let alignedBounds = getAlignedBounds(bounds, textbox.x, tbAlign);
-                textBoxes.push({
-                    id: textbox.id,
-                    x: alignedBounds.x,
-                    y: alignedBounds.y,
-                    w: Math.max(alignedBounds.w, 50),
-                    h: Math.max(alignedBounds.h, 30),
-                    sizeOffset: 0,
-                    currentSize: textbox.fontSize,
-                    isCustom: true
-                });
-            } else {
-                // Empty textbox - show placeholder for dragging
-                textBoxes.push({
-                    id: textbox.id,
-                    x: textbox.x,
-                    y: textbox.y,
-                    w: 100,
-                    h: 40,
-                    sizeOffset: 0,
-                    currentSize: textbox.fontSize,
-                    isCustom: true
-                });
-            }
-        }
-    });
-    pop();
+    
 
     // Draw green rectangle to visualize export area (only when not downloading)
     if (showGreenRectangle) {
@@ -2579,13 +2622,13 @@ function getAlignedBounds(bounds, anchorX, align) {
     return bounds //it just works, trust me
 }
 
-function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align = 'left') {
+function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align = 'left', verAlign = BASELINE) {
     size = max(10, size);
     textFont(font);
     textSize(size);
     fill(255);
     textLeading(leading);
-    textAlign(getP5Align(align), BASELINE);
+    textAlign(getP5Align(align), verAlign);
     text(textStr, x, y, maxWidth);
     let bbox = font.textBounds(textStr, x, y, maxWidth);
     addTextBox(id, getAlignedBounds(bbox, x, align), size);
@@ -2641,7 +2684,7 @@ async function printCoverScreen() {
     let titleY = coverY + coverSize * 0.5 + 60 + titleVertOffset;
     let titleAlignCover = textAlignCover.title || 'center';
     textFont(fontHeavy);
-    textAlign(getP5Align(titleAlignCover), TOP);
+    textAlign(getP5Align(titleAlignCover), CENTER);
     let titleSize = getMaxTextSize(albumData.title, width - 100, 100) + textSizeOffsets.title;
     titleSize = max(10, titleSize);
     textSize(titleSize); fill(255); text(albumData.title, width * 0.5 + titleHorizOffset, titleY);
@@ -2653,7 +2696,7 @@ async function printCoverScreen() {
     let artistY = coverY + coverSize * 0.5 + 60 + 130 + artistVertOffset;
     let artistAlignCover = textAlignCover.artist || 'center';
     textFont(fontRegularCondensed);
-    textAlign(getP5Align(artistAlignCover), TOP);
+    textAlign(getP5Align(artistAlignCover), CENTER);
     let artistSize = getMaxTextSize(albumData.artist, width - 100, 50) + textSizeOffsets.artist;
     textSize(artistSize); fill(230); text(albumData.artist, width * 0.5 + artistHorizOffset, artistY);
     let artistBounds = fontRegularCondensed.textBounds(albumData.artist, width * 0.5 + artistHorizOffset, artistY, width - 100);
@@ -2678,7 +2721,7 @@ async function printCoverScreen() {
             textFont(fontObj);
             textSize(textbox.fontSize);
             fill(textbox.color);
-            textAlign(getP5Align(tbAlign), TOP);
+            textAlign(getP5Align(tbAlign), CENTER);
 
             // Apply leading (spacing) if set
             let baseLeading = textbox.fontSize * 1.25; // Default line height
@@ -3057,7 +3100,8 @@ function captureState() {
         imageFormat: currentImageFormat,
         showGradeLegend: showGradeLegend,
         tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(),
-                                    customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null })),
+                                    customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null,
+                                    customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null})),
         customTextboxes: customTextboxes.map(t => ({
             id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
             fontType: t.fontType, color: t.color, viewType: t.viewType,
@@ -3170,6 +3214,10 @@ function restoreState(state) {
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
                 lastTrack.textInputContainer.style('display', 'block');
+            }
+            if (track.customTextLarge && track.customTextLarge.trim() !== '') {
+                lastTrack.textLargeInput.value(track.customTextLarge);
+                lastTrack.textLargeInputContainer.style('display', 'block');
             }
         });
     } else addTrackRowWithoutCapture();
