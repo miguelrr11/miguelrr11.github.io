@@ -84,7 +84,8 @@ let cachedImageUrl = null, cachedOriginalImage = null, cachedFilteredImage = nul
 let lastUrlChecked = null;
 
 // Custom color map
-let colorMap = { "GOAT": "#ffffff", "PEAK": "#ffd21f", "EXCEPTIONAL": "#ff1fa9", "STRONG": "#bc3fde", "DECENT": "#38b6ff", "OKAY": "#14b60b", "FLOP": "#902020", "INTERLUDE": "#b2b2b2", "None": "#5c5c5c" };
+let colorMap = { "GOAT": "#05668d", "PEAK": "#ffd21f", "EXCEPTIONAL": "#ff1fa9", "STRONG": "#bc3fde", "DECENT": "#38b6ff", "OKAY": "#14b60b", "FLOP": "#902020", "INTERLUDE": "#b2b2b2", "None": "#5c5c5c" };
+let goatGradient = ["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"]
 const defaultColorMap = {...colorMap};
 let colorPickers = {}, canvasScale = 1;
 
@@ -2257,10 +2258,17 @@ function shortenText(text, maxLength){
     return newText + '...';
 }
 
-function getMaxTextSize(text, maxWidth, maxStartSize){
+function getMaxTextSizeByWidth(text, maxWidth, maxStartSize){
     let size = maxStartSize;
     textSize(size);
     while(textWidth(text) > maxWidth && size > 0){ size--; textSize(size); }
+    return size;
+}
+
+function getMaxTextSizeByHeight(text, maxHeight, maxStartSize){
+    let size = maxStartSize;
+    textSize(size);
+    while(textAscent() + textDescent() > maxHeight && size > 0){ size--; textSize(size); }
     return size;
 }
 
@@ -2330,7 +2338,7 @@ async function printAlbum(){
     let titleOffset = verticalOffsetsRatings.title || 0;
     let titleHorizOffset = (horizontalOffsetsRatings.title || 0) + 0;
     let titleMaxWidth = maxTextboxWidths.title || defaultMaxTextboxWidths.title;
-    drawTextWithBox('title', fontHeavy, getMaxTextSize(albumData.title, titleMaxWidth, 100) + textSizeOffsets.title,
+    drawTextWithBox('title', fontHeavy, getMaxTextSizeByWidth(albumData.title, titleMaxWidth, 100) + textSizeOffsets.title,
                      albumData.title, leftMargin + titleHorizOffset, topMargin + y + titleOffset, titleMaxWidth, 70, textAlignRatings.title || 'left', BOTTOM);
     
 
@@ -2451,14 +2459,52 @@ async function printAlbum(){
     for(let i = 0; i < albumData.tracks.length; i++){
         let track = albumData.tracks[i];
         let trackY = tracksStartY;
+        let gradeColor = colorMap[track.grade] || "#888888";
         textSize(tracksTextSize); textFont(fontRegular);
         let textHeight = textAscent() + textDescent();
         let rectCenterOffset = textAscent() - textHeight / 2;
 
-        let gradeColor = colorMap[track.grade] || "#888888";
+        push()
+        //custom text large
+        let extraSpacing = 0
+        if (track.customTextLarge && track.customTextLarge.trim() !== '') {
+            push()
+            fill(245); noStroke(); textSize(22); textFont(fontLight); textAlign(LEFT, TOP);
+            text(track.customTextLarge, tracksHorizOffset + 525, trackY + 20, 900)
+            let bottomSpacing = 35
+            extraSpacing = fontLight.textBounds(track.customTextLarge, tracksHorizOffset, trackY + 20, 900).h + bottomSpacing
+
+            
+            stroke(gradeColor)
+            strokeCap(ROUND)
+            strokeWeight(7)
+            fill(255)
+            let xLine = ((leftMargin + x) * 0.5 + tracksHorizOffset) - w / 2 + 15
+            utils.beginLinearGradient(
+                goatGradient, 
+                xLine, 
+                trackY - rectCenterOffset, 
+                xLine, 
+                trackY - rectCenterOffset + extraSpacing, 
+                [0, .2, .38, .59, 1]
+            )
+            rectMode(CORNERS)
+            let grad = track.grade == 'GOAT' ? goatGradient : [gradeColor, gradeColor, makeTransparent(gradeColor)]
+            gradientLine(xLine, trackY - rectCenterOffset, xLine, trackY - rectCenterOffset + extraSpacing,  grad)
+
+            pop()
+        }
+
+        pop()
+
+        textSize(tracksTextSize); textFont(fontRegular);
+        textHeight = textAscent() + textDescent();
+        rectCenterOffset = textAscent() - textHeight / 2;
+
+        
         fill(gradeColor);
         if(track.grade == 'GOAT'){
-            utils.beginLinearGradient(["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"],
+            utils.beginLinearGradient(goatGradient,
                 (leftMargin + x) * 0.5 + tracksHorizOffset - w * 0.5, trackY - rectCenterOffset, (leftMargin + x) * 0.5 + tracksHorizOffset + w * 0.5, trackY - rectCenterOffset, [0, .2, .38, .59, 1]);
         }
         noStroke();
@@ -2469,7 +2515,7 @@ async function printAlbum(){
 
         if (track.customText && track.customText.trim() !== '') {
             push(); blendMode(BLEND); textAlign(CENTER, CENTER); fill(0, 160); textFont(fontRegularCondensed);
-            let customTextSize = getMaxTextSize(track.customText, w - 20, 28);
+            let customTextSize = Math.min(getMaxTextSizeByWidth(track.customText, w - 20, 28), getMaxTextSizeByHeight(track.customText, h+5, 28));
             textSize(customTextSize); text(track.customText, (leftMargin + x) * 0.5 + tracksHorizOffset, trackY - rectCenterOffset+2);
             textSize(tracksTextSize); pop();
         }
@@ -2478,15 +2524,7 @@ async function printAlbum(){
         let trackNumber = track.customNumber || ((i + 1) + '.');
         text(shortenText(trackNumber + " " + track.title + (track.playing ? " " + musicChar : ""), 700), leftMargin + x + tracksHorizOffset, trackY);
 
-        //custom text large
-        let extraSpacing = 0
-        if (track.customTextLarge && track.customTextLarge.trim() !== '') {
-            push()
-            fill(245); noStroke(); textSize(27); textFont(fontLight); textAlign(LEFT, TOP);
-            text(track.customTextLarge, tracksHorizOffset + 500, trackY + 20, 900)
-            extraSpacing = fontLight.textBounds(track.customTextLarge, tracksHorizOffset, trackY + 20, 900).h + 40
-            pop()
-        }
+        
         tracksStartY += spacing + extraSpacing;
     }
 
@@ -2551,7 +2589,7 @@ async function printAlbum(){
             noStroke();
 
             if (grade == 'GOAT') {
-                utils.beginLinearGradient(["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"],
+                utils.beginLinearGradient(goatGradient,
                     x, y, x + rectWidth, y, [0, .2, .38, .59, 1]);
             }
             rect(x, y, rectWidth, legendRectHeight, 20);
@@ -2560,7 +2598,7 @@ async function printAlbum(){
             fill(0, 180);
             stroke(0, 180)
             strokeWeight(.5)
-            textSize(getMaxTextSize(label, rectWidth - 10, 26));
+            textSize(Math.min(getMaxTextSizeByWidth(label, rectWidth - 10, 26), getMaxTextSizeByHeight(label, legendRectHeight+5, 30)));
             text(label, x + rectWidth / 2, y + legendRectHeight / 2 + 2);
         }
         pop();
@@ -2572,7 +2610,7 @@ async function printAlbum(){
         fill(colorMap[albumData.albumGrade] || "#888888");
         rectMode(CORNER); noStroke();
         if(albumData.albumGrade == 'GOAT'){
-            utils.beginLinearGradient(["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"],
+            utils.beginLinearGradient(goatGradient,
                 0, gradeRectY, width, gradeRectY, [0, .2, .38, .59, 1]);
         }
         rect(0, gradeRectY, width, gradeRectHeight, 20, 20, 0, 0);
@@ -2610,6 +2648,12 @@ async function printAlbum(){
         rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
         pop();
     }
+}
+
+function makeTransparent(col, alpha = 100) {
+    // col is a hex string with or without an alpha value, e.g. "#ff0000" or "#ff000080"
+    let c = color(col);
+    return color(red(c), green(c), blue(c), alpha);
 }
 
 function getP5Align(align) {
@@ -2685,7 +2729,7 @@ async function printCoverScreen() {
     let titleAlignCover = textAlignCover.title || 'center';
     textFont(fontHeavy);
     textAlign(getP5Align(titleAlignCover), CENTER);
-    let titleSize = getMaxTextSize(albumData.title, width - 100, 100) + textSizeOffsets.title;
+    let titleSize = getMaxTextSizeByWidth(albumData.title, width - 100, 100) + textSizeOffsets.title;
     titleSize = max(10, titleSize);
     textSize(titleSize); fill(255); text(albumData.title, width * 0.5 + titleHorizOffset, titleY);
     let titleBounds = fontHeavy.textBounds(albumData.title, width * 0.5 + titleHorizOffset, titleY, width - 100);
@@ -2697,7 +2741,7 @@ async function printCoverScreen() {
     let artistAlignCover = textAlignCover.artist || 'center';
     textFont(fontRegularCondensed);
     textAlign(getP5Align(artistAlignCover), CENTER);
-    let artistSize = getMaxTextSize(albumData.artist, width - 100, 50) + textSizeOffsets.artist;
+    let artistSize = getMaxTextSizeByWidth(albumData.artist, width - 100, 50) + textSizeOffsets.artist;
     textSize(artistSize); fill(230); text(albumData.artist, width * 0.5 + artistHorizOffset, artistY);
     let artistBounds = fontRegularCondensed.textBounds(albumData.artist, width * 0.5 + artistHorizOffset, artistY, width - 100);
     addTextBox('artist', getAlignedBounds(artistBounds, width * 0.5 + artistHorizOffset, artistAlignCover), artistSize);
