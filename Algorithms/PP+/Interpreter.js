@@ -190,6 +190,9 @@ const ownFunctions = {
     width: () => p5Obj.width,
     height: () => p5Obj.height,
     frameCount: () => p5Obj.frameCount,
+    redraw: () => p5Obj.redraw(),
+    noLoop: () => p5Obj.noLoop(),
+    loop: () => p5Obj.loop(),
 
     // Input
     mouseX: () => p5Obj.mouseX,

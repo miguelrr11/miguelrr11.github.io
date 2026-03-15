@@ -252,8 +252,9 @@ var nCells = floor(min(w, h) / sizeCell)
 var nb = [[-1, -1], [0, -1], [1, -1],[-1, 0],[1, 0],[-1, 1], [0, 1], [1, 1]]
 
 func setup(){
+    loop()
+    frameRate(60)
     for(i 0:nCells){
-        frameRate(60)
         grid[i] = []
         newGrid[i] = []
         for(j 0:nCells){
@@ -298,7 +299,7 @@ func updateCells(){
                 if(grid[wrap((i + nb[k][0]), nCells)][wrap((j + nb[k][1]), nCells)] == 1) sum++
             }
             if(grid[i][j] == 1){
-                if(sum == 2 || sum == 3) newGrid[i][j] = 1
+                if((sum == 2) || (sum == 3)) newGrid[i][j] = 1
                 else newGrid[i][j] = 0
             }
             else if(grid[i][j] == 0){

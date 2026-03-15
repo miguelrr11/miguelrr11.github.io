@@ -1,8 +1,6 @@
 //PP+ Programming Language + UI
 //Miguel Rodríguez
-//06-03-2026
-
-// 
+//06-03-2026 
 
 const consoleEl = document.getElementById("console");
 
@@ -83,7 +81,7 @@ function toggleAutomaticCompiling(){
 
 
 console.log = (...args) => {
-  const formatted = args.map(arg => {
+  const formatted = typeof args == "object" ? args.map(arg => {
     if (typeof arg === "array") {
       try {
         // pretty-print objects/arrays
@@ -95,7 +93,7 @@ console.log = (...args) => {
     else {
       return String(arg);
     }
-  }).join(" ");
+  }).join(" ") : args
 
   writeConsole(formatted + "\n");
   originalLog(...args);
@@ -458,17 +456,12 @@ let p5Obj = new p5((p) => {
         window.monacoEditor.layout();
     };
 
-    function clearConsole() {
-        return
-        consoleEl.textContent = "";
-    }
 
 });
 
 function updateCodeAndRun(){
     if(isShowingHelp || !isPlaying) return
     try {
-        clearConsole()
         const data = window.monacoEditor.getValue()
         p5Obj.storeItem('PP+SavedCode', data)
         it = new Interpreter()
@@ -478,7 +471,6 @@ function updateCodeAndRun(){
         noErrors = true
     } 
     catch (e) {
-        clearConsole()
         if(!e.cause || e.cause !== "expect") console.log(e);
         noErrors = false
     }
@@ -487,12 +479,10 @@ function updateCodeAndRun(){
 function runDraw(){
     if(noErrors && isPlaying){
         try{
-            clearConsole()
             it.callFunc("draw")
             noErrors = true
         }
         catch(e){
-            clearConsole()
             if(!e.cause || e.cause !== "expect") console.log(e);
             noErrors = false
         }
