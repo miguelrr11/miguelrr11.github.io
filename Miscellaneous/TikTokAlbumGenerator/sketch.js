@@ -43,7 +43,7 @@ let viewToggleBtn, editorPanel, dragOverlay;
 
 // Undo/Redo system
 let historyStack = [], historyIndex = -1;
-const MAX_HISTORY = 50;
+const MAX_HISTORY = 150;
 let isUndoRedoAction = false;
 
 // Monaco sync flags
@@ -1753,11 +1753,12 @@ function addTrackRowWithCapture(shouldCapture) {
     let rowDiv = createDiv('').parent(trackContainer).class('track-row');
 
     // Make row draggable
-    rowDiv.attribute('draggable', 'true');
+    
     setupTrackDragAndDrop(rowDiv);
 
     // Add drag handle
     let dragHandle = createSpan('⋮⋮').parent(rowDiv).class('track-drag-handle');
+    dragHandle.attribute('draggable', 'true');
 
     let trackNumSpan = createSpan((trackIndex + 1) + '.').parent(rowDiv).class('track-number');
 
