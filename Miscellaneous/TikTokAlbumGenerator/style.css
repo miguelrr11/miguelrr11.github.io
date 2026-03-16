@@ -127,6 +127,7 @@ canvas {
     font-size: 14px;
     transition: all 0.2s ease;
     outline: none;
+    height: 42px;
 }
 
 .form-input:focus,
@@ -354,7 +355,7 @@ canvas {
 .section-divider {
     height: 1px;
     background: rgba(255, 255, 255, 0.1);
-    margin: 24px 0;
+    margin: 10px 0;
 }
 
 /* Section Title */

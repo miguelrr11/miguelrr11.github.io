@@ -247,51 +247,7 @@ function createAlbumEditor() {
     let panel2 = createDiv('').parent(editorPanel).class('panel-column panel-tracks');
     let panel3 = createDiv('').parent(editorPanel).class('panel-column panel-settings');
     
-    let buttonToggleJSONeditor = createButton('Switch to JSON Mode').parent(panel3).class('btn btn-secondary').style('margin-bottom: 20px;');
-
-    let monacoReady = false;
-
-    const toggleEditor = () => {
-        editorPanel.toggleClass('editor-open');
-        buttonToggleJSONeditor.html(editorPanel.hasClass('editor-open') ? 'Switch to UI Mode' : 'Switch to JSON Mode');
-
-        if (editorPanel.hasClass('editor-open')) {
-            if (!monacoReady) {
-                monacoReady = true;
-                require(['vs/editor/editor.main'], function() {
-                    window.monacoEditor = monaco.editor.create(document.getElementById('panel-editor'), {
-                        value: '{}',
-                        language: 'json',
-                        theme: 'vs-dark',
-                        automaticLayout: true
-                    });
-
-                    syncEditorFromUI();
-
-                    window.monacoEditor.onDidChangeModelContent(() => {
-                        if (isUpdatingMonacoFromUI) return;
-                        try {
-                            const data = JSON.parse(window.monacoEditor.getValue());
-                            isUpdatingEditorFromMonaco = true;
-                            isUndoRedoAction = true;
-                            fillFormFromData(data);
-                            isUndoRedoAction = false;
-                            generateFromForm();
-                            captureState();
-                            isUpdatingEditorFromMonaco = false;
-                        } catch (e) {
-                            // user is mid-typing, JSON not valid yet
-                        }
-                    });
-                });
-            } else {
-                syncEditorFromUI();
-            }
-        }
-    };
-
-    buttonToggleJSONeditor.mousePressed(toggleEditor);
-
+    
     // === Panel 1: Album Metadata ===
     let header = createDiv('').parent(panel1).class('panel-header');
     createElement('h2', 'Album Editor').parent(header);
@@ -678,14 +634,63 @@ function disablePositionControls() {
 }
 
 function createButtonGrid(parent = editorPanel) {
+    
     let buttonGrid = createDiv('').parent(parent).class('button-grid');
+
+    viewToggleBtn = createButton('View: Ratings').parent(buttonGrid).class('btn btn-blue')
+    viewToggleBtn.mousePressed(toggleView);
+
+    createDiv('').parent(buttonGrid).class('section-divider')
+
+    let buttonToggleJSONeditor = createButton('Switch to JSON Mode').parent(buttonGrid).class('btn btn-secondary')
+    buttonToggleJSONeditor.mousePressed(() => {
+        editorPanel.toggleClass('editor-open');
+        buttonToggleJSONeditor.html(editorPanel.hasClass('editor-open') ? 'Switch to UI Mode' : 'Switch to JSON Mode');
+        let monacoReady = false;
+
+        if (editorPanel.hasClass('editor-open')) {
+            if (!monacoReady) {
+                monacoReady = true;
+                require(['vs/editor/editor.main'], function() {
+                    window.monacoEditor = monaco.editor.create(document.getElementById('panel-editor'), {
+                        value: '{}',
+                        language: 'json',
+                        theme: 'vs-dark',
+                        automaticLayout: true
+                    });
+
+                    syncEditorFromUI();
+
+                    window.monacoEditor.onDidChangeModelContent(() => {
+                        if (isUpdatingMonacoFromUI) return;
+                        try {
+                            const data = JSON.parse(window.monacoEditor.getValue());
+                            isUpdatingEditorFromMonaco = true;
+                            isUndoRedoAction = true;
+                            fillFormFromData(data);
+                            isUndoRedoAction = false;
+                            generateFromForm();
+                            captureState();
+                            isUpdatingEditorFromMonaco = false;
+                        } catch (e) {
+                            // user is mid-typing, JSON not valid yet
+                        }
+                    });
+                });
+            } else {
+                syncEditorFromUI();
+            }
+        }
+    });
+
+    createDiv('').parent(buttonGrid).class('section-divider')
 
     // Aspect Ratio & Image Format selectors
     let aspectRatioRow = createDiv('').parent(buttonGrid).style('display: flex; gap: 12px; margin-bottom: 10px;');
 
     // Aspect Ratio selector (half width)
     let aspectRatioGroup = createDiv('').parent(aspectRatioRow).class('form-group').style('flex: 1; margin-bottom: 0; align-items: end;');
-    createElement('label', 'Aspect Ratio').parent(aspectRatioGroup);
+    createElement('label', 'Aspect Ratio').parent(aspectRatioGroup).style('white-space: nowrap;')
     aspectRatioSelect = createSelect().parent(aspectRatioGroup).class('form-select');
     Object.keys(aspectRatioOptions).forEach(opt => aspectRatioSelect.option(opt));
     aspectRatioSelect.selected('9:16');
@@ -697,7 +702,7 @@ function createButtonGrid(parent = editorPanel) {
 
     // Image Format selector (half width)
     let imageFormatGroup = createDiv('').parent(aspectRatioRow).class('form-group').style('flex: 1; margin-bottom: 0;');
-    createElement('label', 'Image Format').parent(imageFormatGroup);
+    createElement('label', 'Format').parent(imageFormatGroup);
     imageFormatSelect = createSelect().parent(imageFormatGroup).class('form-select');
     ['png', 'jpg', 'jpeg', 'webp'].forEach(format => imageFormatSelect.option(format));
     imageFormatSelect.selected('png');
@@ -706,12 +711,27 @@ function createButtonGrid(parent = editorPanel) {
         captureState();
     });
 
-    //let downloadRow = createDiv('').parent(buttonGrid).class('button-row');
-    createButton('JSON').parent(aspectRatioRow).class('btn btn-blue').mousePressed(downloadJSON);
-    createButton('Images').parent(aspectRatioRow).class('btn btn-purple').mousePressed(downloadBothImages);
+    let downloadRow = createDiv('')
+        .parent(aspectRatioRow)
+        .style('flex: 1; margin-bottom: 0; display: flex; gap: 8px; align-items: end;');
 
-    viewToggleBtn = createButton('View: Ratings').parent(buttonGrid).class('btn btn-orange');
-    viewToggleBtn.mousePressed(toggleView);
+    let downloadImgGroup = createDiv('').parent(downloadRow).class('form-group').style('flex: 1; margin-bottom: 0; align-items: end;');
+    createElement('label', 'Image').parent(downloadImgGroup).style('margin-right: 8px;');
+    createButton('<i class="fa-solid fa-download"></i>')
+        .parent(downloadImgGroup)
+        .class('btn btn-secondary')
+        .mousePressed(downloadBothImages)
+        .style('width: stretch');
+
+    let downloadJsonGroup = createDiv('').parent(downloadRow).class('form-group').style('flex: 1; margin-bottom: 0; align-items: end;');
+    createElement('label', 'JSON').parent(downloadJsonGroup).style('margin-right: 8px;');
+    createButton('<i class="fa-solid fa-download"></i>')
+        .parent(downloadJsonGroup)
+        .class('btn btn-secondary')
+        .mousePressed(downloadJSON)
+        .style('width: stretch');
+    
+    createDiv('').parent(buttonGrid).class('section-divider'); 
 
     let undoRedoRow = createDiv('').parent(buttonGrid).class('button-row');
     createButton('↶ Undo').parent(undoRedoRow).class('btn btn-secondary').elt.addEventListener('click', (e) => { e.preventDefault(); undo(); });
@@ -1417,8 +1437,8 @@ function addCustomTextbox(tbData) {
     let textbox = {
         id: tbData.id || id,
         text: tbData.text || '',
-        x: tbData.x || 100,
-        y: tbData.y || 100,
+        x: tbData.x != undefined ? tbData.x : 100,
+        y: tbData.y != undefined ? tbData.y : 100,
         fontSize: tbData.fontSize || 40,
         fontType: tbData.fontType || 'fontHeavy',
         color: tbData.color || '#ffffff',
@@ -1546,7 +1566,7 @@ function createSizeAdjustPanel() {
 
     // Font Size slider for custom textboxes
     createSpan('Size:').parent(customContainer).class('label');
-    let customFontSizeSlider = createSlider(10, 150, 40, 2).parent(customContainer).id('custom-font-size-slider').class('form-slider').style('width', '80px');
+    let customFontSizeSlider = createSlider(10, 80, 40, 2).parent(customContainer).id('custom-font-size-slider').class('form-slider').style('width', '80px');
     createSpan('40').parent(customContainer).id('custom-font-size-display').class('display');
 
     customFontSizeSlider.input(() => {
@@ -2357,7 +2377,7 @@ async function printAlbum(){
     textFont(fontLight); textLeading(60); textSize(38 + textSizeOffsets.year); fill(230);
     textAlign(getP5Align(textAlignRatings.year || 'left'), BASELINE);
     text("\n" + albumData.year + "\n", leftMargin + yearHorizOffset, topMargin + y + 85 + yearOffset, yearMaxWidth);
-    addTextBox('year', getAlignedBounds(fontLight.textBounds(albumData.year, leftMargin + yearHorizOffset, yearY, yearMaxWidth), leftMargin + yearHorizOffset, textAlignRatings.year || 'left'), 38 + textSizeOffsets.year);
+    addTextBox('year', getAlignedBounds(fontLight.textBounds(albumData.year, leftMargin + yearHorizOffset, yearY, yearMaxWidth), leftMargin + yearHorizOffset, textAlignRatings.year || 'left', yearMaxWidth, fontLight), 38 + textSizeOffsets.year);
 
     let genreOffset = verticalOffsetsRatings.genre || 0;
     let genreHorizOffset = (horizontalOffsetsRatings.genre || 0) + width * .475;
@@ -2367,7 +2387,7 @@ async function printAlbum(){
     let genreText = shortenText(albumData.genre, genreMaxWidth);
     let genreY = topMargin + y + 75 + (40 * 3) + genreOffset;
     text("\n\n\n" + genreText, leftMargin + genreHorizOffset, topMargin + y + 75 + genreOffset, genreMaxWidth);
-    addTextBox('genre', getAlignedBounds(fontLight.textBounds(genreText, leftMargin + genreHorizOffset, genreY, genreMaxWidth), leftMargin + genreHorizOffset, textAlignRatings.genre || 'left'), 30 + textSizeOffsets.genre);
+    addTextBox('genre', getAlignedBounds(fontLight.textBounds(genreText, leftMargin + genreHorizOffset, genreY, genreMaxWidth), leftMargin + genreHorizOffset, textAlignRatings.genre || 'left', genreMaxWidth, fontLight), 30 + textSizeOffsets.genre);
 
     let funfactOffset = verticalOffsetsRatings.funfact || 0;
     let funfactHorizOffset = (horizontalOffsetsRatings.funfact || 0) + width * .475;
@@ -2379,13 +2399,15 @@ async function printAlbum(){
     textAlign(getP5Align(textAlignRatings.funfact || 'left'), BASELINE);
     textLeading(40); text("\n\n\n\n", leftMargin + funfactHorizOffset, topMargin + y + 120 + funfactOffset, funfactMaxWidth);
     textSize(funfactSize); textLeading(funfactLeading); text(albumData.funfact, leftMargin + funfactHorizOffset, funfactStartY, funfactMaxWidth);
-    addTextBox('funfact', getAlignedBounds(fontLight.textBounds(albumData.funfact, leftMargin + funfactHorizOffset, funfactStartY, funfactMaxWidth), leftMargin + funfactHorizOffset, textAlignRatings.funfact || 'left'), funfactSize);
+    let bounds = fontLight.textBounds(albumData.funfact, leftMargin + funfactHorizOffset, funfactStartY, funfactMaxWidth)
+    addTextBox('funfact', getAlignedBounds(bounds, leftMargin + funfactHorizOffset, textAlignRatings.funfact || 'left', funfactMaxWidth, fontLight), funfactSize);
     utils.endShadow();
 
     // Draw custom textboxes
     push();
     let fontObj;
     customTextboxes.forEach(textbox => {
+        rectMode(CORNER);
         if (textbox.viewType === 'ratings' || textbox.viewType === 'both') {
             
             switch(textbox.fontType) {
@@ -2413,9 +2435,10 @@ async function printAlbum(){
                 text(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
                 utils.endShadow();
 
+
                 // Add to textBoxes for selection
                 let bounds = fontObj.textBounds(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
-                let alignedBounds = getAlignedBounds(bounds, textbox.x, tbAlign);
+                let alignedBounds = getAlignedBounds(bounds, textbox.x, tbAlign, textbox.maxWidth || 500, fontObj);
                 textBoxes.push({
                     id: textbox.id,
                     x: alignedBounds.x,
@@ -2426,7 +2449,8 @@ async function printAlbum(){
                     currentSize: textbox.fontSize,
                     isCustom: true
                 });
-            } else {
+            }
+            else {
                 // Empty textbox - show placeholder for dragging
                 textBoxes.push({
                     id: textbox.id,
@@ -2640,6 +2664,7 @@ async function printAlbum(){
     // Draw selection outline for any selected box
     if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
     if (selectedTextBox) {
+        console.log('Selected box:', selectedTextBox);
         push();
         noFill();
         stroke(138, 180, 248);
@@ -2663,11 +2688,25 @@ function getP5Align(align) {
     return LEFT;
 }
 
-function getAlignedBounds(bounds, anchorX, align) {
-    return bounds //it just works, trust me
+function textIsWrapping(bounds, font) {
+    // Compare text height to a single-line reference to detect line wrapping
+    return bounds.h > font.textBounds('glIM|', 0, 0).h * 1.2;
+}
+
+function getAlignedBounds(bounds, anchorX, align, maxWidth, font) {
+    // When text() is called in box mode (with maxWidth), x is always the left edge of the container,
+    // but textBounds treats x as the alignment anchor (center/right), shifting bounds.x to the left.
+    // Correct by offsetting bounds.x back to where the text actually renders within the container.
+    // Wrapping text already returns correct bounds from p5 — skip correction in that case.
+    if (!maxWidth || align === 'left') return bounds;
+    if (font && textIsWrapping(bounds, font)) return bounds;
+    if (align === 'center') return { x: bounds.x + maxWidth / 2, y: bounds.y, w: bounds.w, h: bounds.h };
+    if (align === 'right')  return { x: bounds.x + maxWidth,     y: bounds.y, w: bounds.w, h: bounds.h };
+    return bounds;
 }
 
 function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align = 'left', verAlign = BASELINE) {
+    push()
     size = max(10, size);
     textFont(font);
     textSize(size);
@@ -2676,7 +2715,8 @@ function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align
     textAlign(getP5Align(align), verAlign);
     text(textStr, x, y, maxWidth);
     let bbox = font.textBounds(textStr, x, y, maxWidth);
-    addTextBox(id, getAlignedBounds(bbox, x, align), size);
+    addTextBox(id, getAlignedBounds(bbox, x, align, maxWidth, font), size);
+    pop()
     return bbox;
 }
 
@@ -2779,7 +2819,7 @@ async function printCoverScreen() {
 
                 // Add to textBoxes for selection
                 let bounds = fontObj.textBounds(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
-                let alignedBounds = getAlignedBounds(bounds, textbox.x, tbAlign);
+                let alignedBounds = getAlignedBounds(bounds, textbox.x, tbAlign, textbox.maxWidth || 500, fontObj);
                 textBoxes.push({
                     id: textbox.id,
                     x: alignedBounds.x,
@@ -3275,8 +3315,8 @@ function restoreState(state) {
             let textbox = {
                 id: textboxData.id,
                 text: textboxData.text || '',
-                x: textboxData.x || 100,
-                y: textboxData.y || 100,
+                x: textboxData.x != undefined ? textboxData.x : 100,
+                y: textboxData.y != undefined ? textboxData.y : 100,
                 fontSize: textboxData.fontSize || 40,
                 fontType: textboxData.fontType || 'fontHeavy',
                 color: textboxData.color || '#ffffff',
