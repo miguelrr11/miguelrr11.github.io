@@ -435,11 +435,11 @@ class Interpreter {
             }
             else if(lookAhead == '&' && lookTwoAhead == '&'){
                 curPos += 2
-                tokens.push({type: 'condition', value: '&&', pos: tokenStartPos, line: lineIndex})
+                tokens.push({type: 'logical', value: '&&', pos: tokenStartPos, line: lineIndex})
             }
             else if(lookAhead == '|' && lookTwoAhead == '|'){
                 curPos += 2
-                tokens.push({type: 'condition', value: '||', pos: tokenStartPos, line: lineIndex})
+                tokens.push({type: 'logical', value: '||', pos: tokenStartPos, line: lineIndex})
             }
             else if(isDigit(lookAhead)){
                 let str = lookAhead
@@ -1079,17 +1079,29 @@ class Interpreter {
             return parseCondition()
         }
 
-        function parseCondition(){
+        function parseCondition() {
+            let node = parseComparison()
 
+            while (peek().value === "||" || peek().value === "&&") {
+                let operator = consume()
+                let right = parseComparison()
+                node = {
+                    type: "LogicalExpression",
+                    operator: operator.value,  // "||" or "&&"
+                    left: node,
+                    right: right
+                }
+            }
+
+            return node
+        }
+
+        function parseComparison() {
             let node = parseAdditive()
 
-            while(
-                peek().type === "condition"
-            ){
-
+            while (peek().type === "condition") {
                 let operator = consume()
                 let rightNode = parseAdditive()
-
                 node = {
                     type: "ConditionExpression",
                     operator: operator.value,
@@ -1521,6 +1533,18 @@ class Interpreter {
                 }
                 throw new Error("Unknown condition operator " + node.operator)
 
+            case "LogicalExpression":
+                let leftVal = this.execute(node.left)
+                if(node.operator === "&&"){
+                    if(!leftVal) return false
+                    return this.execute(node.right)
+                }
+                if(node.operator === "||"){
+                    if(leftVal) return true
+                    return this.execute(node.right)
+                }
+                throw new Error("Unknown logical operator " + node.operator)
+
             case "IfStatement":
 
                 if (this.execute(node.condition)) {
@@ -1791,6 +1815,7 @@ function debugAST(node, indent = "", isLast = true){
     if(node.type === "Identifier")          label += ` (${node.name})`
     if(node.type === "BinaryExpression")    label += ` (${node.operator})`
     if(node.type === "ConditionExpression") label += ` (${node.operator})`
+    if(node.type === "LogicalExpression")   label += ` (${node.operator})`
     if(node.type === "UnaryExpression")     label += ` (${node.operator})`
     if(node.type === "VariableDeclaration") label += ` (${node.identifier})`
     if(node.type === "AssignmentExpression")label += ` (${node.identifier})`
@@ -1814,6 +1839,7 @@ function debugAST(node, indent = "", isLast = true){
     if(node.type === "BlockStatement")      children = node.body
     if(node.type === "BinaryExpression")    children = [node.left, node.right]
     if(node.type === "ConditionExpression") children = [node.left, node.right]
+    if(node.type === "LogicalExpression")   children = [node.left, node.right]
     if(node.type === "UnaryExpression")     children = [node.argument]
     if(node.type === "AssignmentExpression")children = [node.value]
     if(node.type === "VariableDeclaration" && node.value) children = [node.value]

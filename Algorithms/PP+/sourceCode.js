@@ -299,7 +299,7 @@ func updateCells(){
                 if(grid[wrap((i + nb[k][0]), nCells)][wrap((j + nb[k][1]), nCells)] == 1) sum++
             }
             if(grid[i][j] == 1){
-                if((sum == 2) || (sum == 3)) newGrid[i][j] = 1
+                if(sum == 2 || sum == 3) newGrid[i][j] = 1
                 else newGrid[i][j] = 0
             }
             else if(grid[i][j] == 0){
