@@ -71,6 +71,7 @@ let tracksRectHeight = 40;
 let tracksTextSizeSlider, tracksSpacingSlider, tracksRectHeightSlider;
 let tracksTextSizeLabel, tracksSpacingLabel, tracksRectHeightLabel;
 let automaticAlignmentCheckbox
+let showTrackNumbersCheckbox
 
 // Export settings
 let showGreenRectangle = true; // Only show when not downloading
@@ -1407,6 +1408,13 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         }    
     });
 
+    let showTrackNumbersCheckboxRow = createDiv('').parent(advancedContent).style('margin-top: 12px;');
+    showTrackNumbersCheckbox = createCheckbox('Show Track Numbers', true).parent(showTrackNumbersCheckboxRow).class('checkbox-input');
+    showTrackNumbersCheckbox.changed(() => {
+        if (albumData && currentView === 'ratings') printAlbum();
+        captureState();
+    });
+
     // Reset button
     createButton('Reset Advanced Options').parent(advancedContent).class('btn btn-secondary').style('margin-top', '12px').mousePressed(() => {
         imageSizeMultiplier = 1.0;
@@ -2546,7 +2554,7 @@ async function printAlbum(){
         }
 
         fill(255); textAlign(LEFT, BASELINE);
-        let trackNumber = track.customNumber || ((i + 1) + '.');
+        let trackNumber = showTrackNumbersCheckbox.checked() ? track.customNumber || ((i + 1) + '.') : '';
         text(shortenText(trackNumber + " " + track.title + (track.playing ? " " + musicChar : ""), 700), leftMargin + x + tracksHorizOffset, trackY);
 
         
