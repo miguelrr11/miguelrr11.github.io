@@ -222,7 +222,25 @@ class Interpreter {
         return this.execute(this.ast)
     }
 
-    callFunc(nodeObj){
+    funcExisits(nodeObj){
+        if(!nodeObj) return false
+        let node = nodeObj
+        if(typeof node == "string"){
+            node = {
+                arguments: [],
+                type: "FunctionCall",
+                name: nodeObj
+            }
+        }
+        let func
+        func = this.env[node.name]
+        if (!func) {
+            return false
+        }
+        return true
+    }
+
+    callFunc(nodeObj, doNotThrow = false){
         if(!nodeObj) return
         let node = nodeObj
         if(typeof node == "string"){
@@ -235,6 +253,9 @@ class Interpreter {
         let func
         func = this.env[node.name]
         if (!func) {
+            if (doNotThrow) {
+                return null
+            }
             throw new Error("Undefined function: " + node.name)
         }
 

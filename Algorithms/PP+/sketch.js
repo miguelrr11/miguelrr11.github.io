@@ -33,6 +33,9 @@ buttonAutomaticCompiling.addEventListener("click", toggleAutomaticCompiling);
 const buttonShowHelp = document.getElementById("buttonShowHelp");
 buttonShowHelp.addEventListener("click", toggleShowHelp)
 
+const buttonLoadExample = document.getElementById("buttonLoadExample");
+buttonLoadExample.addEventListener("click", loadExample)
+
 let savedCode = ""
 
 function toggleShowHelp(){
@@ -47,6 +50,10 @@ function toggleShowHelp(){
         buttonShowHelp.classList.toggle("active", false)
         showCode()
     }
+}
+
+function loadExample(){
+    window.monacoEditor.setValue(gameoflife)
 }
 
 function showHelp(){
@@ -79,7 +86,8 @@ function toggleAutomaticCompiling(){
     }
 }
 
-
+let lastlLogged = ""
+let nRepetitions = 0
 console.log = (...args) => {
   const formatted = typeof args == "object" ? args.map(arg => {
     if (typeof arg === "array") {
@@ -95,7 +103,16 @@ console.log = (...args) => {
     }
   }).join(" ") : args
 
-  writeConsole(formatted + "\n");
+  if(formatted === lastlLogged){
+    nRepetitions++
+  }
+  else{
+    nRepetitions = 0
+  }
+  lastlLogged = formatted
+
+  let reps = nRepetitions > 0 ? ` (x${nRepetitions + 1})` : ""
+  writeConsole(reps + formatted + "\n");
   originalLog(...args);
 };
 
@@ -447,7 +464,10 @@ let p5Obj = new p5((p) => {
     };
 
     p.draw = function () {
+
         runDraw()
+        
+        
     };
 
     p.windowResized = function () {
@@ -478,13 +498,23 @@ function updateCodeAndRun(){
 
 function runDraw(){
     if(noErrors && isPlaying){
-        try{
-            it.callFunc("draw")
-            noErrors = true
+        if(it.funcExisits("draw")){
+            try{
+                it.callFunc("draw", true)
+                noErrors = true
+            }
+            catch(e){
+                if(!e.cause || e.cause !== "expect") console.log(e);
+                noErrors = false
+            }
         }
-        catch(e){
-            if(!e.cause || e.cause !== "expect") console.log(e);
-            noErrors = false
+        else{
+            p5Obj.push()
+            p5Obj.fill(255)
+            p5Obj.noStroke()
+            p5Obj.textSize(20)
+            p5Obj.text("Call the function draw() to see something here!", 10, 20)
+            p5Obj.pop()
         }
     }
 }
