@@ -815,7 +815,7 @@ function getDefaultProfile() {
         imageFormat: 'jpg',
         showGradeLegend: true,
         verticalOffsetsRatings: {funfact: -21, title: 100},
-        verticalOffsetsCover: {artist: -15, title: 23},
+        verticalOffsetsCover: {artist: 2, title: 31},
         horizontalOffsetsRatings: {artist: -40, funfact: -40, year: -40, genre: -40},
         horizontalOffsetsCover: {},
         imageSizeMultiplier: 0.95,
@@ -827,8 +827,8 @@ function getDefaultProfile() {
         customTextboxes: [{
             "id": "album_review",
             "text": "Album Review",
-            "x": width/2,
-            "y": 358,
+            "x": 50,
+            "y": 323,
             "fontSize": 72,
             "fontType": "fontRegularCondensed",
             "color": "#ffffff",
@@ -846,7 +846,7 @@ function getDefaultProfile() {
             "text": "comentario",
             "viewType": "cover",
             "textAlign": "center",
-            "x": width/2,
+            "x": 50,
             "y": 1574,
             "id": "comentario"
         }]
@@ -2412,68 +2412,7 @@ async function printAlbum(){
     utils.endShadow();
 
     // Draw custom textboxes
-    push();
-    let fontObj;
-    customTextboxes.forEach(textbox => {
-        rectMode(CORNER);
-        if (textbox.viewType === 'ratings' || textbox.viewType === 'both') {
-            
-            switch(textbox.fontType) {
-                case 'fontHeavy': fontObj = fontHeavy; break;
-                case 'fontLight': fontObj = fontLight; break;
-                case 'fontRegular': fontObj = fontRegular; break;
-                case 'fontRegularItalic': fontObj = fontRegularItalic; break;
-                case 'fontRegularCrammed': fontObj = fontRegularCrammed; break;
-                case 'fontRegularCondensed': fontObj = fontRegularCondensed; break;
-                default: fontObj = fontHeavy;
-            }
-
-            let tbAlign = textbox.textAlign || 'left';
-            textFont(fontObj);
-            textSize(textbox.fontSize);
-            fill(textbox.color);
-            textAlign(getP5Align(tbAlign), TOP);
-
-            // Apply leading (spacing) if set
-            let baseLeading = textbox.fontSize * 1.25; // Default line height
-            textLeading(baseLeading + (textbox.leading || 0));
-
-            if (textbox.text) {
-                utils.beginShadow("#000000", 20, 0, 0);
-                text(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
-                utils.endShadow();
-
-
-                // Add to textBoxes for selection
-                let bounds = fontObj.textBounds(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
-                let alignedBounds = getAlignedBounds(bounds, textbox.x, tbAlign, textbox.maxWidth || 500, fontObj);
-                textBoxes.push({
-                    id: textbox.id,
-                    x: alignedBounds.x,
-                    y: alignedBounds.y,
-                    w: Math.max(alignedBounds.w, 50),
-                    h: Math.max(alignedBounds.h, 30),
-                    sizeOffset: 0,
-                    currentSize: textbox.fontSize,
-                    isCustom: true
-                });
-            }
-            else {
-                // Empty textbox - show placeholder for dragging
-                textBoxes.push({
-                    id: textbox.id,
-                    x: textbox.x,
-                    y: textbox.y,
-                    w: 100,
-                    h: 40,
-                    sizeOffset: 0,
-                    currentSize: textbox.fontSize,
-                    isCustom: true
-                });
-            }
-        }
-    });
-    pop();
+    drawCustomTextboxes('ratings');
 
     // Draw tracks
     push()
@@ -2797,9 +2736,29 @@ async function printCoverScreen() {
     utils.endShadow();
 
     // Draw custom textboxes
+    drawCustomTextboxes('cover');
+
+    if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
+    if (selectedTextBox) {
+        noFill(); 
+        stroke(255); 
+        strokeWeight(3); 
+        rectMode(CORNER);
+        let padding = 5;
+        rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
+        noStroke();
+    }
+    pop()
+    pop()
+}
+
+function drawCustomTextboxes(coverType){
+    push();
+    let fontObj;
     customTextboxes.forEach(textbox => {
-        if (textbox.viewType === 'cover' || textbox.viewType === 'both') {
-            let fontObj;
+        rectMode(CORNER);
+        if (textbox.viewType === coverType) {
+            
             switch(textbox.fontType) {
                 case 'fontHeavy': fontObj = fontHeavy; break;
                 case 'fontLight': fontObj = fontLight; break;
@@ -2814,7 +2773,7 @@ async function printCoverScreen() {
             textFont(fontObj);
             textSize(textbox.fontSize);
             fill(textbox.color);
-            textAlign(getP5Align(tbAlign), CENTER);
+            textAlign(getP5Align(tbAlign), TOP);
 
             // Apply leading (spacing) if set
             let baseLeading = textbox.fontSize * 1.25; // Default line height
@@ -2824,6 +2783,7 @@ async function printCoverScreen() {
                 utils.beginShadow("#000000", 20, 0, 0);
                 text(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
                 utils.endShadow();
+
 
                 // Add to textBoxes for selection
                 let bounds = fontObj.textBounds(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
@@ -2838,7 +2798,8 @@ async function printCoverScreen() {
                     currentSize: textbox.fontSize,
                     isCustom: true
                 });
-            } else {
+            }
+            else {
                 // Empty textbox - show placeholder for dragging
                 textBoxes.push({
                     id: textbox.id,
@@ -2853,19 +2814,7 @@ async function printCoverScreen() {
             }
         }
     });
-
-    if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
-    if (selectedTextBox) {
-        noFill(); 
-        stroke(255); 
-        strokeWeight(3); 
-        rectMode(CORNER);
-        let padding = 5;
-        rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
-        noStroke();
-    }
-    pop()
-    pop()
+    pop();
 }
 
 function dimImage(img, amount){
