@@ -1411,8 +1411,8 @@ function createAdvancedOptionsSection(parent = editorPanel) {
     let showTrackNumbersCheckboxRow = createDiv('').parent(advancedContent).style('margin-top: 12px;');
     showTrackNumbersCheckbox = createCheckbox('Show Track Numbers', true).parent(showTrackNumbersCheckboxRow).class('checkbox-input');
     showTrackNumbersCheckbox.changed(() => {
-        if (albumData && currentView === 'ratings') printAlbum();
         captureState();
+        if (albumData && currentView === 'ratings') printAlbum();
     });
 
     // Reset button
