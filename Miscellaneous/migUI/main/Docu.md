@@ -153,6 +153,18 @@ Creates a visual separator between elements.
 
 - **`panel.createSeparator()`**: Draws a horizontal line to separate elements.
 
+### Toast
+Creates a toast message
+
+- **`panel.createToast(message, [options])`**: Creates a toast
+  - `options` : 
+      duration: defaults to 3000ms
+			backgroundColor: defaults to the panel's darkCol
+			textColor: defaults to the panel's lightCol
+			fontSize: defaults to the default text size
+			animShow: defaults to 500ms
+			animHide: defaults to 500ms
+
 ### Notes
 - **Checkboxes** and **buttons** will be stacked horizontally if space allows; other elements are added vertically.
 - To disable horizontal stacking between two specific elements, call `panel.separate()` between their creation.

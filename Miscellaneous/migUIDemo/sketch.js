@@ -137,6 +137,8 @@ async function setup(){
         255, 180, 120, 70 
     ])
     console.log(tabs)
+
+    panel.createButton("Toast!").setFunc(p => panel.createToast("TOAST!"))
 }
 
 

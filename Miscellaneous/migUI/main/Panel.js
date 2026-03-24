@@ -143,6 +143,7 @@ class Panel{
 	    this.numberPickers = []
 		this.optionPickers = []
 		this.plots = []
+		this.toasts = []
 	    this.activeCP = undefined
 	    this.lastElementAdded = ""
 	    this.isInteracting = undefined
@@ -180,6 +181,29 @@ class Panel{
 	    this.retractButton.text = " Retract Menu";
 	    this.buttons.push(this.retractButton);
 	}
+
+	createToast(message, options = {}) {
+		const {
+			duration = 3000,
+			backgroundColor = this.darkCol,
+			textColor = this.lightCol,
+			fontSize = text_SizeMIGUI,
+			animShow = 500,
+			animHide = 500
+		} = options;
+
+		this.toasts.push({
+			message,
+			duration,
+			backgroundColor,
+			textColor,
+			fontSize,
+			duration,
+			animShow,
+			animHide,
+		});
+	}
+
 
 	setFontSettings() {
 	    textFont(this.font);
@@ -415,6 +439,7 @@ class Panel{
 	}
 
 	createPlot(title = 'Plot', nSeries = 1){
+		console.log(this.darkCol)
 		let plot = new Plot(this.lastElementPos.x, 
 							this.lastElementPos.y, title, nSeries,
 							this.lightCol, this.darkCol)
@@ -490,16 +515,16 @@ class Panel{
 			this.lightCol = light
 		}
 		this.transCol = [...this.lightCol, 100]
-		for(let b of this.checkboxes) {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
-		for(let b of this.sliders)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
-		for(let b of this.sentences)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
-		for(let b of this.selects)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
-		for(let b of this.inputs)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
-		for(let b of this.buttons)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
-		for(let b of this.colorPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol; b.saturation = this.transCol}
-		for(let b of this.numberPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
-		for(let b of this.optionPickers)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol}
-		for(let b of this.plots)  {b.lightCol = light; b.darkCol = dark; b.transCol = this.transCol; b.transCol2 = [...this.lightCol, 30];}
+		for(let b of this.checkboxes) {b.lightCol = this.lightCol; b.darkCol = this.darkCol; b.transCol = this.transCol}
+		for(let b of this.sliders)  {b.lightCol = this.lightCol; b.darkCol = this.darkCol; b.transCol = this.transCol}
+		for(let b of this.sentences)  {b.lightCol = this.lightCol; b.darkCol = this.darkCol; b.transCol = this.transCol}
+		for(let b of this.selects)  {b.lightCol = this.lightCol; b.darkCol = this.darkCol; b.transCol = this.transCol}
+		for(let b of this.inputs)  {b.lightCol = this.lightCol; b.darkCol = this.darkCol; b.transCol = this.transCol}
+		for(let b of this.buttons)  {b.lightCol = this.lightCol; b.darkCol = this.darkCol; b.transCol = this.transCol}
+		for(let b of this.colorPickers)  {b.lightCol = this.lightCol; b.darkCol = this.darkCol; b.transCol = this.transCol; b.saturation = this.transCol}
+		for(let b of this.numberPickers)  {b.lightCol = this.lightCol; b.darkCol = this.darkCol; b.transCol = this.transCol}
+		for(let b of this.optionPickers)  {b.lightCol = this.lightCol; b.darkCol = this.darkCol; b.transCol = this.transCol}
+		for(let b of this.plots)  {b.lightCol = this.lightCol; b.darkCol = this.darkCol; b.transCol = this.transCol; b.transCol2 = [...this.lightCol, 30];}
 	}
 
 	setTheme(theme){
@@ -698,7 +723,59 @@ class Panel{
 		else cursor(ARROW) 	//esta linea puede interferir si el usuario quiere cambiar el cursor
 
 		pop()
+
+		push()
+		this.showToasts()
+		pop()
 	}
+
+	showToasts(){
+		for(let i = 0; i < this.toasts.length; i++){
+			let t = this.toasts[i]
+			push()
+			textSize(t.fontSize)
+			rectMode(CENTER)
+			let txt = getClippedTextByPixelsMIGUI(t.message, this.w * 0.9, t.fontSize)
+			console.log(txt)
+			let bounds = textFont().textBounds(txt, 0, 0, this.w * 0.9)
+			let w = Math.min(bounds.w , this.w * 0.9)
+			let h = bounds.h + 20
+			let x = this.pos.x + this.w/2
+			let y = this.pos.y + 10 + h/2
+			let trans = 255
+			if(t.animShow > 0){
+				t.animShow = lerp(t.animShow, 0, 0.1)
+				trans = map(t.animShow, 500, 0, 0, 255)
+				y = lerp(this.pos.y - 20, y, map(t.animShow, 500, 0, 0, 1))
+				if(t.animShow < 0.1) t.animShow = 0
+			}
+			else if(t.duration <= 0){
+				t.animHide = lerp(t.animHide, 0, 0.1)
+				trans = map(t.animHide, 500, 0, 255, 0)
+				y = lerp(y, this.pos.y - 20, map(t.animHide, 500, 0, 0, 1))
+			}
+			fill(t.backgroundColor.concat(trans))
+			stroke(t.textColor.concat(trans))
+			strokeWeight(2.5)
+			rect(x, y, w + 20, h, 5)
+			fill(t.textColor.concat(trans))
+			noStroke()
+			textAlign(CENTER, CENTER)
+			// let offX = textIsWrapping(bounds) ? 0 : 0
+			// console.log(textIsWrapping(bounds))
+			text(txt, x, y, this.w * 0.9)
+			pop()
+			t.duration -= deltaTime
+		}
+		for(let i = this.toasts.length - 1; i >= 0; i--){
+			let t = this.toasts[i]
+			if(t.animHide < 0.1) this.toasts.splice(i, 1)
+		}
+	}
+}
+
+function textIsWrapping(bounds) {
+    return bounds.h > textFont().textBounds('glIM|', 0, 0).h * 1.2;
 }
 
 function drawGradientAlpha(x, y, w, h, col){
