@@ -2443,7 +2443,7 @@ async function printAlbum(){
             push()
             fill(245); noStroke(); textSize(22); textFont(fontLight); textAlign(LEFT, TOP);
             text(track.customTextLarge, tracksHorizOffset + 525, trackY + 20, 900)
-            let bottomSpacing = 35
+            let bottomSpacing = 25
             extraSpacing = fontLight.textBounds(track.customTextLarge, tracksHorizOffset, trackY + 20, 900).h + bottomSpacing
 
             
