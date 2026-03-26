@@ -16,7 +16,9 @@ var utils = new p5.Utils();
 // UI Elements
 let titleInput, artistInput, yearInput, genreInput, funfactInput, imageUrlInput, albumGradeSelect;
 let trackContainer, tracks = [];
-const gradeOptions = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP', 'INTERLUDE', 'None'];
+const gradeOptions = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP', 'SHIT', 'INTERLUDE', 'None'];
+let allLegendGrades = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP', 'SHIT'];
+let allLegendLabels = ['GOAT', '10', '9', '8', '7', '<7', '<5', '<2'];
 let verticalOffsetSlider, verticalOffsetLabel;
 let horizontalOffsetSlider, horizontalOffsetLabel;
 let imageSizeMultiplierSlider, imageSizeMultiplierLabel;
@@ -85,7 +87,7 @@ let cachedImageUrl = null, cachedOriginalImage = null, cachedFilteredImage = nul
 let lastUrlChecked = null;
 
 // Custom color map
-let colorMap = { "GOAT": "#05668d", "PEAK": "#ffd21f", "EXCEPTIONAL": "#ff1fa9", "STRONG": "#bc3fde", "DECENT": "#38b6ff", "OKAY": "#14b60b", "FLOP": "#902020", "INTERLUDE": "#b2b2b2", "None": "#5c5c5c" };
+let colorMap = { "GOAT": "#05668d", "PEAK": "#ffd21f", "EXCEPTIONAL": "#ff1fa9", "STRONG": "#bc3fde", "DECENT": "#38b6ff", "OKAY": "#14b60b", "FLOP": "#CC0000", "SHIT": "#7a4900", "INTERLUDE": "#b2b2b2", "None": "#5c5c5c" };
 let goatGradient = ["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"]
 const defaultColorMap = {...colorMap};
 let colorPickers = {}, canvasScale = 1;
@@ -186,7 +188,8 @@ function createTracksFromPaste(texto){
         else if(grade >= 8) finalGrade = 'STRONG'
         else if(grade >= 7) finalGrade = 'DECENT'
         else if(grade >= 5) finalGrade = 'OKAY'
-        else finalGrade = 'FLOP'
+        else if(grade >= 2) finalGrade = 'FLOP'
+        else finalGrade = 'SHIT'
         tracks[trackIndex].gradeSelect.value(finalGrade)
         if(i < lineas.length - 1) addTrackRowWithCapture()
         trackIndex++
@@ -2524,8 +2527,7 @@ async function printAlbum(){
     // Draw grade legend above the big rectangle
     if (showGradeLegend) {
         push()
-        let allLegendGrades = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP'];
-        let allLegendLabels = ['GOAT', '10', '9', '8', '7', '<7', '<5'];
+        
         let maxIndex = 4; // Minimum: GOAT through DECENT
         for (let track of albumData.tracks) {
             let idx = allLegendGrades.indexOf(track.grade);
