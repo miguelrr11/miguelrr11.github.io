@@ -110,9 +110,12 @@ class Menu{
         let buttonShowConvexHull = new Button(xLoc, yLoc + hButton * 8, 95, 20, 'Junction Area', () => {
             this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA = !this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA
         }, undefined,  () => {return this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA})
-        let buttonShowWays = new Button(xLoc, yLoc + hButton * 9, 95, 20, 'Road', () => {
+        let buttonShowWays = new Button(xLoc, yLoc + hButton * 9, 95, 20, 'Road v1', () => {
             this.tool.showOptions.SHOW_WAYS = !this.tool.showOptions.SHOW_WAYS
         }, undefined,  () => {return this.tool.showOptions.SHOW_WAYS})
+        let buttonShowMesh = new Button(xLoc, yLoc + hButton * 10, 95, 20, 'Road v2', () => {
+            this.tool.showOptions.SHOW_ROAD_MESH = !this.tool.showOptions.SHOW_ROAD_MESH
+        }, undefined,  () => {return this.tool.showOptions.SHOW_ROAD_MESH})
 
         buttonsToCollapse = [
             buttonShowRoad,
@@ -125,6 +128,7 @@ class Menu{
             buttonShowLanes,
             buttonShowConvexHull,
             buttonShowWays,
+            buttonShowMesh
         ]
 
         let buttonCollapse = new Button(xLoc, yLoc - 40, 95, 30, this.tool.state.menuCollapsed ? 'Expand' : 'Collapse', () => {
@@ -326,6 +330,7 @@ class Menu{
         this.buttons.push(buttonShowWays)
         this.buttons.push(buttonAddCars)
         this.buttons.push(buttonRemoveCars)
+        this.buttons.push(buttonShowMesh)
 
         //this.buttons.push(buttonSetPaths)
 

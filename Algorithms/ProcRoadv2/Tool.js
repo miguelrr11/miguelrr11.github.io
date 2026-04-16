@@ -42,8 +42,10 @@ class Tool{
             SHOW_TAGS: false,
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
-            SHOW_WAYS: true,
-            SHOW_INTERSECTION_AREA_AREA: false
+            SHOW_INTERSECTION_AREA_AREA: false,
+            SHOW_WAYS: true,        //first attempt at rendering (node/edge approach, its biggest problem is that nodes can overlap)
+            SHOW_ROAD_MESH: false   //second attempt at rendering (mesh approach, not yet implemented, but should fix the problem of overlapping, 
+                                    //but just in the rendering, because the logic of intersection for cars is still the same)
         }
         this.road = new Road(this)
         this.state = this.getInitialState()

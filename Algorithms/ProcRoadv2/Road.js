@@ -117,6 +117,12 @@ class Road{
             }
             else newPath.setSegmentsIDs(segmentIDs)
         }
+        console.log(newPath)
+
+        if(newPath.segmentsIDs.size == 0){
+            this.paths.delete(nodesIDs[0] + '-' + nodesIDs[1])
+            this.paths.delete(nodesIDs[1] + '-' + nodesIDs[0])
+        }
         
         newPath.constructRealLanes()
 
@@ -153,12 +159,14 @@ class Road{
                         straightMode: straightMode,
                         instantConvex: true
                     }
-                    this.trimSegmentsAtIntersection(options)
+                    if(this.nodeConnected(this.findNode(nodeID))) {
+                        this.trimSegmentsAtIntersection(options)
+                    }
                 }
             }
             else{
                 for(let nodeID of nodesIDs){
-                    this.trimSegmentsAtIntersectionCurved({nodeID: nodeID})
+                    if(this.nodeConnected(this.findNode(nodeID))) this.trimSegmentsAtIntersectionCurved({nodeID: nodeID})
                 }
             }
         }
@@ -365,8 +373,17 @@ class Road{
         fromNode.outgoingSegments = fromNode.outgoingSegments.filter(s => s.id != segmentID)
         toNode.incomingSegments = toNode.incomingSegments.filter(s => s.id != segmentID)
 
+        this.checkAndDeletePath(fromNode.id, toNode.id)
+
         this.updateRoad([fromNode.id, toNode.id])
 
+    }
+
+    checkAndDeletePath(nodeAID, nodeBID){
+        let path = this.findPathByNodes(nodeAID, nodeBID)
+        if(path && path.segmentsIDs.size == 0){
+            this.paths.delete(nodeAID + '-' + nodeBID)
+        }
     }
 
     deleteSegmentNoUpdate(segmentID){
@@ -538,6 +555,17 @@ class Road{
         if(updateR) this.updateRoad([fromNodeID, toNodeID], undefined, true, straightMode, curvedPath)
 
         return newSegment
+    }
+
+    nodeConnected(node){
+        //returns true if the node has at least one connected NODE
+        let connectedNodes = new Set()
+        let connectedSegments = this.findConnectedSegments(node.id)
+        connectedSegments.forEach(s => {
+            if(s.fromNodeID != node.id) connectedNodes.add(s.fromNodeID)
+            if(s.toNodeID != node.id) connectedNodes.add(s.toNodeID)
+        })
+        return connectedNodes.size > 0
     }
 
     nodeOnceConnected(node){
@@ -758,7 +786,6 @@ class Road{
         let distances = this.findIntersectionsOfNodev2(nodeID, straightMode)
         if(!distances) return
         
-        
         let node = this.findNode(nodeID)
 
         let connectedSegments = this.findConnectedSegments(nodeID)
@@ -797,7 +824,6 @@ class Road{
             s.constructCorners()
             
         })
-
 
         if(connect){ 
             let once = this.nodeOnceConnected(node)
