@@ -37,6 +37,9 @@ class Segment{
         this.corners = getCornersOfLine(this.fromPos, this.toPos, LANE_WIDTH)
         this.corners16 = getCornersOfLine(this.fromPos, this.toPos, BIG_LANE_WIDTH)
 
+        this.untrimmedCorners = getCornersOfLine(this.originalFromPos, this.originalToPos, LANE_WIDTH)
+        this.untrimmedCorners16 = getCornersOfLine(this.originalFromPos, this.originalToPos, BIG_LANE_WIDTH)
+
         let dir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
         let toPosShort = {x: this.toPos.x - Math.cos(dir) * WIDTH_YIELD_MARKING * 0.5, y: this.toPos.y - Math.sin(dir) * WIDTH_YIELD_MARKING * 0.5}
         let yieldCorners = getCornersOfLine(this.fromPos, toPosShort, LANE_WIDTH)
@@ -179,10 +182,28 @@ class Segment{
             pop()
             return
         }
-        let corners = this.corners
+
+        let corners = this.untrimmedCorners
         rectMode(CORNERS)
-        stroke(255, 200)
-        strokeWeight(1)
+        noStroke()
+        fill(255, 50)
+        if(this.id == hoveredSegID) fill(255, 120)
+        // beginShape()
+        // vertex(corners[0].x, corners[0].y)
+        // vertex(corners[1].x, corners[1].y)
+        // vertex(corners[2].x, corners[2].y)
+        // vertex(corners[3].x, corners[3].y)
+        // endShape(CLOSE)
+
+        // stroke(255)
+        // strokeWeight(1)
+        // line(corners[0].x, corners[0].y, corners[3].x, corners[3].y)
+        // line(corners[1].x, corners[1].y, corners[2].x, corners[2].y)
+
+        noStroke()
+
+        corners = this.corners
+        rectMode(CORNERS)
         noStroke()
         this.visualDir == 'for' ? fill(COL_LANE_1) : fill(COL_LANE_2)
         if(this.id == hoveredSegID) fill(255, 120)
@@ -192,6 +213,9 @@ class Segment{
         vertex(corners[2].x, corners[2].y)
         vertex(corners[3].x, corners[3].y)
         endShape(CLOSE)
+
+        
+
         pop()
     }
 
@@ -342,17 +366,8 @@ class Segment{
             noStroke()
             text(str, midPos.x, midPos.y - 10)
 
-            let nodeDir = Math.atan2(this.fromNode.pos.y - this.toNode.pos.y, this.fromNode.pos.x, this.toNode.pos.x)
+            let nodeDir = Math.atan2(this.fromNode.pos.y - this.toNode.pos.y, this.fromNode.pos.x - this.toNode.pos.x)
             let realDir = Math.atan2(this.fromPos.y - this.toPos.y, this.toPos.x - this.toPos.y)
-            // let strDir = 'N: ' + round(nodeDir, 2) + ' R: ' + round(realDir, 2)
-            // let bbox2 = textBounds(strDir, midPos.x, midPos.y - 20)
-            // textSize(10)
-            // fill(0, 0, 255)
-            // noStroke()
-            // rect(bbox2.x - 2, bbox2.y - 2, bbox2.w + 4, bbox2.h + 4)
-            // fill(255)
-            // noStroke()
-            // text(strDir, midPos.x, midPos.y - 20)
             let strDir = (Math.sign(nodeDir) != Math.sign(realDir) && Math.sign(nodeDir) != 0 && Math.sign(realDir) != 0) ? 'Bugged: ' + round(nodeDir, 3) + ', ' + round(realDir, 3) : ''
             if(strDir != ''){
                 let bbox2 = textBounds(strDir, midPos.x, midPos.y - 20)

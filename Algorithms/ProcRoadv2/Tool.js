@@ -87,6 +87,9 @@ class Tool{
         this.cursor = CROSS
         cursor(this.cursor)
 
+        let showOptions = getItem('showOptions')
+        if(showOptions) this.showOptions = showOptions
+
         // Automatically load saved road data from local storage if available
         // let roadData = getItem('roadData')
         // if(roadData) this.setStateToRoad(roadData)
@@ -1180,6 +1183,10 @@ class Tool{
             this.state.firstCornerSelected = undefined
             this.state.secondCornerSelected = undefined
         }
+    }
+    
+    viewSettingsChanged(){
+        storeItem('showOptions', this.showOptions)
     }
 
     update(){

@@ -85,36 +85,47 @@ class Menu{
         
         let buttonShowRoad = new Button(xLoc, yLoc, 95, 20, 'Main Graph', () => {
             this.tool.showOptions.SHOW_ROAD = !this.tool.showOptions.SHOW_ROAD
+            this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_ROAD})
         let buttonShowPaths = new Button(xLoc, yLoc + hButton, 95, 20, 'Segments', () => {
             this.tool.showOptions.SHOW_PATHS = !this.tool.showOptions.SHOW_PATHS
+            this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_PATHS})
         let buttonShowIntersecSegs = new Button(xLoc, yLoc + hButton * 2, 95, 20, 'Intersections', () => {
             this.tool.showOptions.SHOW_INTERSECSEGS = !this.tool.showOptions.SHOW_INTERSECSEGS
+            this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_INTERSECSEGS})
         let buttonShowConnectors = new Button(xLoc, yLoc + hButton * 3, 95, 20, 'Connections', () => {
             this.tool.showOptions.SHOW_CONNECTORS = !this.tool.showOptions.SHOW_CONNECTORS
+            this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_CONNECTORS})
         let buttonShowNodes = new Button(xLoc, yLoc + hButton * 4, 95, 20, 'Nodes', () => {
             this.tool.showOptions.SHOW_NODES = !this.tool.showOptions.SHOW_NODES
+            this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_NODES})
         let buttonShowTags = new Button(xLoc, yLoc + hButton * 5, 95, 20, 'Tags', () => {
             this.tool.showOptions.SHOW_TAGS = !this.tool.showOptions.SHOW_TAGS
+            this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_TAGS})
         let buttonShowSegDetails = new Button(xLoc, yLoc + hButton * 6, 95, 20, 'Endings', () => {
             this.tool.showOptions.SHOW_SEGS_DETAILS = !this.tool.showOptions.SHOW_SEGS_DETAILS
+            this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_SEGS_DETAILS})
         let buttonShowLanes = new Button(xLoc, yLoc + hButton * 7, 95, 20, 'Lanes', () => {
             this.tool.showOptions.SHOW_LANES = !this.tool.showOptions.SHOW_LANES
+            this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_LANES})
         let buttonShowConvexHull = new Button(xLoc, yLoc + hButton * 8, 95, 20, 'Junction Area', () => {
             this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA = !this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA
+            this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA})
         let buttonShowWays = new Button(xLoc, yLoc + hButton * 9, 95, 20, 'Road v1', () => {
             this.tool.showOptions.SHOW_WAYS = !this.tool.showOptions.SHOW_WAYS
+            this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_WAYS})
         let buttonShowMesh = new Button(xLoc, yLoc + hButton * 10, 95, 20, 'Road v2', () => {
             this.tool.showOptions.SHOW_ROAD_MESH = !this.tool.showOptions.SHOW_ROAD_MESH
+            this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_ROAD_MESH})
 
         buttonsToCollapse = [
@@ -278,10 +289,13 @@ class Menu{
 
         let buttonSave = new Button(width - 70 - 10, HEIGHT - 60, 70, 20, 'Save', () => {
             storeItem('roadData', this.tool.getCurrentRoad())
+            storeItem('showOptions', this.tool.showOptions)
         })
         let buttonLoad = new Button(width - 70 - 10, HEIGHT - 30, 70, 20, 'Load', () => {
             let roadData = getItem('roadData')
             if(roadData) this.tool.setStateToRoad(roadData)
+            let showOptions = getItem('showOptions')
+            if(showOptions) this.tool.showOptions = showOptions
         })
 
         let buttonZoomMinus = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 30, 30, 20, '-', () => {

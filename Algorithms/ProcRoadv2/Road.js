@@ -704,125 +704,72 @@ class Road{
         return finalIntersections
     }
 
-    trimSegmentsAtIntersectionCurved(nodeID){
-        let node = this.findNode(nodeID)
-        let incoming = node.incomingSegmentIDs.map(id => this.findSegment(id))
-        let outgoing = node.outgoingSegmentIDs.map(id => this.findSegment(id)) 
-        incoming.forEach(inSeg => {
-            outgoing.forEach(outSeg => {
-                //avoid creating a connector between two segments that are already connected
-                if(inSeg.fromNodeID == outSeg.toNodeID) return
-
-                let pathInSeg = this.findPathByNodes(inSeg.fromNodeID, inSeg.toNodeID)
-                let pathOutSeg = this.findPathByNodes(outSeg.fromNodeID, outSeg.toNodeID)
-                let indexInPathofInSeg = [...pathInSeg.segmentsIDs].indexOf(inSeg.id)
-                let indexInPathofOutSeg = [...pathOutSeg.segmentsIDs].indexOf(outSeg.id)
-
-                if(pathInSeg == pathOutSeg) return
-                if(indexInPathofInSeg != indexInPathofOutSeg) return
-
-                let inSegFromPos = inSeg.originalFromPos
-                let inSegToPos = inSeg.originalToPos
-                let outSegFromPos = outSeg.originalFromPos
-                let outSegToPos = outSeg.originalToPos
-
-                let corners1 = getCornersOfLine(inSegFromPos, inSegToPos, LANE_WIDTH)
-                let corners2 = getCornersOfLine(outSegFromPos, outSegToPos, LANE_WIDTH)
-
-                let corners1_16 = getCornersOfLine(inSegFromPos, inSegToPos, BIG_LANE_WIDTH)
-                let corners2_16 = getCornersOfLine(outSegFromPos, outSegToPos, BIG_LANE_WIDTH)
-
-                let inter1 = lineIntersection(corners1[1], corners1[2], corners2[1], corners2[2], true)
-                let inter2 = lineIntersection(corners1[0], corners1[3], corners2[0], corners2[3], true)
-                let inter1_16 = lineIntersection(corners1_16[1], corners1_16[2], corners2_16[1], corners2_16[2], true)
-                let inter2_16 = lineIntersection(corners1_16[0], corners1_16[3], corners2_16[0], corners2_16[3], true)
-                let interMain = lineIntersection(inSegFromPos, inSegToPos,
-                                                 outSegFromPos, outSegToPos, true)
-
-                if(interMain){
-                    inSeg.toPos = interMain
-                    outSeg.fromPos = interMain
-                }
-
-                if(inter1){
-                    inSeg.corners[2] = {...inter1}
-                    outSeg.corners[1] = {...inter1}
-                }
-                if(inter2){
-                    inSeg.corners[3] = {...inter2}
-                    outSeg.corners[0] = {...inter2}
-                }
-                if(inter1_16){
-                    inSeg.corners16[2] = {...inter1_16}
-                    outSeg.corners16[1] = {...inter1_16}
-                }
-                if(inter2_16){
-                    inSeg.corners16[3] = {...inter2_16}
-                    outSeg.corners16[0] = {...inter2_16}
-                }
-
-            })  
-        })
-
-        let connectedSegments = this.findConnectedSegments(nodeID)
-        for(let seg of connectedSegments){
-            let corners = getCornersOfLine(seg.fromPos, seg.toPos, LANE_WIDTH)
-            let corners16 = getCornersOfLine(seg.fromPos, seg.toPos, BIG_LANE_WIDTH)
-            for(let i = 0; i < 4; i++){
-                if(seg.corners[i] == undefined) seg.corners[i] = {...corners[i]}
-                if(seg.corners16[i] == undefined) seg.corners16[i] = {...corners16[i]}
-            }
-        }
-
-        //this.trimSegmentsAtIntersection(nodeID)
-        //this.connectIntersection(nodeID, false, true, true)
-    }
-
-
-    //trims all end of segments connected to the node to the farthest intersection found
+    // trims all end of segments connected to the node to the farthest intersection found
+    // the visual bug where the road is engulfed in both intersections is fixed.
+    // what we do now is check if the other side of the road has enough space to also trim, 
+    // if not we trim proportionally so both sides fit, and if there is no space at all we dont trim
     trimSegmentsAtIntersection(options){
         let {nodeID, connect = true, instantConvex = true, straightMode = false, activenessMap = new Map()} = options
 
         let distances = this.findIntersectionsOfNodev2(nodeID, straightMode)
         if(!distances) return
-        
-        let node = this.findNode(nodeID)
 
+        let node = this.findNode(nodeID)
         let connectedSegments = this.findConnectedSegments(nodeID)
+
+        const adjust = d => {
+            if(straightMode) return d
+            return Math.max(d + OFFSET_RAD_INTERSEC, MIN_DIST_INTERSEC)
+        }
+        const MIN_GAP = 15
+
         connectedSegments.forEach(s => {
-            
             if(s.originalFromPos && s.originalToPos){
                 let pathOfSeg = this.findPathByNodes(s.fromNodeID, s.toNodeID)
                 if(!pathOfSeg) return
-                let distInter = distances.get(pathOfSeg.id)
-                if(distInter == undefined) return
-                if(!straightMode){
-                    distInter += OFFSET_RAD_INTERSEC
-                    distInter = Math.max(distInter, MIN_DIST_INTERSEC)
-                    // if(distInter > s.len - MIN_DIST_INTERSEC - 15){
-                    //     distInter = s.len - MIN_DIST_INTERSEC - 15
-                    // }
+
+                let dHere = distances.get(pathOfSeg.id)
+                if(dHere == undefined) return
+
+                // desired trim at the OTHER end of this segment
+                let otherNodeID = (s.fromNodeID === nodeID) ? s.toNodeID : s.fromNodeID
+                let otherDistances = this.findIntersectionsOfNodev2(otherNodeID, straightMode)
+                let dOther = otherDistances ? (otherDistances.get(pathOfSeg.id) ?? 0) : 0
+
+                dHere  = adjust(dHere)
+                dOther = adjust(dOther)
+
+                // use ORIGINAL length so repeated trims don't drift
+                let origLen = dist(
+                    s.originalFromPos.x, s.originalFromPos.y,
+                    s.originalToPos.x,   s.originalToPos.y
+                )
+                let available = origLen - MIN_GAP
+
+                if(available <= 0){
+                    // segment too short to trim at all
+                    dHere = 0
+                } else if(dHere + dOther > available){
+                    // proportional scale so both ends fit
+                    let k = available / (dHere + dOther)
+                    dHere  *= k
+                    dOther *= k
                 }
-                
-                
-                // First reset both ends to original positions to get correct direction
+
+                let distInter = dHere
+
                 let origFrom = {...s.originalFromPos}
-                let origTo = {...s.originalToPos}
-                let from = {...s.fromPos}
-                let to = {...s.toPos}
-                
+                let origTo   = {...s.originalToPos}
+
                 if(s.fromNodeID == nodeID){
-                    // Calculate shortening from original positions 
                     s.fromPos = shortenSegment(origTo, origFrom, distInter)
                 }
                 else if(s.toNodeID == nodeID){
-                    // Calculate shortening from original positions
                     s.toPos = shortenSegment(origFrom, origTo, distInter)
                 }
             }
             s.createArrows()
             s.constructCorners()
-            
         })
 
         if(connect){ 
