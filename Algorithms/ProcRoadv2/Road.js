@@ -104,7 +104,7 @@ class Road{
     //connect a node to another node
     //the current way to modify the road in the fly when wanting to connect two nodes
     //nodesIDs is an array of two node IDs
-    updateRoad(nodesIDs, usePath = undefined, trim = true, straightMode = false, curvedPath = false){
+    updateRoad(nodesIDs, usePath = undefined, trim = true, straightMode = false){
         let segmentIDs = new Set(this.getAllSegmentsBetweenNodes(nodesIDs[0], nodesIDs[1]).map(s => s.id))
         let newPath 
         if(usePath) newPath = usePath
@@ -117,7 +117,6 @@ class Road{
             }
             else newPath.setSegmentsIDs(segmentIDs)
         }
-        console.log(newPath)
 
         if(newPath.segmentsIDs.size == 0){
             this.paths.delete(nodesIDs[0] + '-' + nodesIDs[1])
@@ -150,34 +149,24 @@ class Road{
         }
 
         if(trim) {
-            if(!curvedPath){
-                for(let nodeID of nodesIDs){
-                    let options = {
-                        nodeID: nodeID,
-                        activenessMap: activenessMap,
-                        connect: true,
-                        straightMode: straightMode,
-                        instantConvex: true
-                    }
-                    if(this.nodeConnected(this.findNode(nodeID))) {
-                        this.trimSegmentsAtIntersection(options)
-                    }
+            for(let nodeID of nodesIDs){
+                let options = {
+                    nodeID: nodeID,
+                    activenessMap: activenessMap,
+                    connect: true,
+                    straightMode: straightMode,
+                    instantConvex: true
                 }
-            }
-            else{
-                for(let nodeID of nodesIDs){
-                    if(this.nodeConnected(this.findNode(nodeID))) this.trimSegmentsAtIntersectionCurved({nodeID: nodeID})
+                if(this.nodeConnected(this.findNode(nodeID))) {
+                    this.trimSegmentsAtIntersection(options)
                 }
             }
         }
-
-
     }
 
     //updates paths connected to a node that has been moved
     updateNode(nodeID){
         // update all paths connected to this node
-        let curvedPath = this.findNode(nodeID)?.curvePath
         let connectedPaths = this.getAllPathsConnectedToNode(nodeID)
         let connectedNodes = new Set()
         connectedPaths.forEach(path => {
@@ -188,7 +177,7 @@ class Road{
         let arr = [...connectedNodes]
         for(let n of arr){
             let path = this.findPathByNodes(n, nodeID)
-            this.updateRoad([nodeID, n], path, true, false, curvedPath)
+            this.updateRoad([nodeID, n], path, true, false)
         }
     }
 
@@ -534,14 +523,14 @@ class Road{
         return this.connectors.find(c => c.hover(x, y))
     }
 
-    addSegment(fromNodeID, toNodeID, visualDir, updateR = true, straightMode = false, curvedPath = false){
+    addSegment(fromNodeID, toNodeID, visualDir, updateR = true, straightMode = false){
         const fromNode = this.findNode(fromNodeID)
         const toNode = this.findNode(toNodeID)
         if(fromNode == undefined || toNode == undefined){
             console.log('Error adding segment, node not found:\nfromNodeID = ' + fromNodeID + ' | toNodeID = ' + toNodeID)
             return
         }
-        let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir, curvedPath)
+        let newSegment = new Segment(this.segmentIDcounter, fromNodeID, toNodeID, visualDir)
         newSegment.road = this
         newSegment.fromNode = fromNode  // Set direct object reference
         newSegment.toNode = toNode      // Set direct object reference
@@ -552,7 +541,7 @@ class Road{
         toNode.incomingSegments.push(newSegment)    // Add direct object reference
         this.segmentIDcounter = getNextID(this.segmentIDcounter)
 
-        if(updateR) this.updateRoad([fromNodeID, toNodeID], undefined, true, straightMode, curvedPath)
+        if(updateR) this.updateRoad([fromNodeID, toNodeID], undefined, true, straightMode)
 
         return newSegment
     }
@@ -742,6 +731,8 @@ class Road{
 
         let distances = this.findIntersectionsOfNodev2(nodeID, straightMode)
         if(!distances) return
+
+        console.log('trimming')
 
         let node = this.findNode(nodeID)
         let connectedSegments = this.findConnectedSegments(nodeID)

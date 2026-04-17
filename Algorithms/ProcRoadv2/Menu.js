@@ -310,7 +310,7 @@ class Menu{
         })
 
         this.buttons.push(buttonShowZoomLevel)
-        //this.buttons.push(buttonCSmode)
+        this.buttons.push(buttonCSmode)
         this.buttons.push(buttonShowConvexHull)
         this.buttons.push(buttonLoadOpenStreetMap)
 

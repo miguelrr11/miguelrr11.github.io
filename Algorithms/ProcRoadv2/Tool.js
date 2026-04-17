@@ -854,16 +854,16 @@ class Tool{
         return
     }
 
-    createSegmentBetweenTwoNodes(nodeAID, nodeBID, straight = false){
+    createSegmentBetweenTwoNodes(nodeAID, nodeBID, straight = false, updateRoad = true){
         for(let i = 0; i < this.state.nForLanes; i++){
-            this.road.addSegment(nodeAID, nodeBID, 'for', true, straight, straight)
+            this.road.addSegment(nodeAID, nodeBID, 'for', i == this.state.nForLanes - 1, updateRoad, straight)
         }
         for(let i = 0; i < this.state.nBackLanes; i++){
-            this.road.addSegment(nodeBID, nodeAID, 'back', true, straight, straight)
+            this.road.addSegment(nodeBID, nodeAID, 'back', i == this.state.nBackLanes - 1, updateRoad, straight)
         }
     }
 
-    createCurvedSegmentsBetweenTwoNodes(nodeAID, nodeBID, numIntermediateNodes = 15, curvature = 0.5){
+    getIntermediateNodes(nodeAID, nodeBID, numIntermediateNodes = 25, curvature = 0.5){
         let nodeA = this.road.findNode(nodeAID)
         let nodeB = this.road.findNode(nodeBID)
 
@@ -886,12 +886,19 @@ class Tool{
 
         let res = LENGTH_SEG_BEZIER * 10
 
-        let bezierPointsAux = bezierPoints(a, b, c, d, res, .5)
+        return bezierPoints(a, b, c, d, res, .5)
+    }
+
+    createCurvedSegmentsBetweenTwoNodes(nodeAID, nodeBID, numIntermediateNodes = 15, curvature = 0.5){
+        let bezierPointsAux = this.getIntermediateNodes(nodeAID, nodeBID, numIntermediateNodes, curvature)
         let len = 0
+        let res = LENGTH_SEG_BEZIER * 10
         for(let i = 1; i < bezierPointsAux.length; i++){
             len += dist(bezierPointsAux[i].x, bezierPointsAux[i].y, bezierPointsAux[i - 1].x, bezierPointsAux[i - 1].y)
         }
         numIntermediateNodes = Math.floor(len / res)
+
+        let intermediateNodes = []
 
         for(let i = 1; i < numIntermediateNodes; i++){
             let t = i / (numIntermediateNodes + 1)
@@ -903,11 +910,18 @@ class Tool{
             intermediateNodes.push(newNode)
         }
 
-        this.createSegmentBetweenTwoNodes(nodeAID, intermediateNodes[0].id)
+
+        this.createSegmentBetweenTwoNodes(nodeAID, intermediateNodes[0].id, true, false)
         for(let i = 0; i < intermediateNodes.length - 1; i++){
-            this.createSegmentBetweenTwoNodes(intermediateNodes[i].id, intermediateNodes[i + 1].id, i > 0)
+            this.createSegmentBetweenTwoNodes(intermediateNodes[i].id, intermediateNodes[i + 1].id, i > 0, true, false)
         }
-        this.createSegmentBetweenTwoNodes(intermediateNodes[intermediateNodes.length - 1].id, nodeBID)
+        this.createSegmentBetweenTwoNodes(intermediateNodes[intermediateNodes.length - 1].id, nodeBID, true, false)
+
+        this.road.updateRoad([nodeAID, intermediateNodes[0].id])
+        for(let i = 0; i < intermediateNodes.length - 1; i++){
+            this.road.updateRoad([intermediateNodes[i].id, intermediateNodes[i + 1].id])
+        }
+        this.road.updateRoad([intermediateNodes[intermediateNodes.length - 1].id, nodeBID])
     }
 
     showClosestSegmentAndPos(pos){
@@ -969,6 +983,7 @@ class Tool{
     }
 
     showCurSegs(segs) {
+        if(this.state.CSmode) return
         push()
         for(let seg of segs) {
             let fromPos = seg.fromPos
@@ -1292,10 +1307,34 @@ class Tool{
 
         this.showSelectedIntersection()
 
+        this.showCS()
+
 
         pop()
 
         this.menu.show()
+    }
+
+    showCS(){
+        if(this.state.mode == 'creating' && this.state.prevNodeID != -1){
+            push()
+            stroke(255, 0, 255)
+            fill(255, 0, 255, 100)
+            let node = this.road.findNode(this.state.prevNodeID)
+            ellipse(node.pos.x, node.pos.y, NODE_RAD * 2)
+            if(this.state.controlPointCS){
+                ellipse(this.state.controlPointCS.x, this.state.controlPointCS.y, NODE_RAD * 2)
+                line(node.pos.x, node.pos.y, this.state.controlPointCS.x, this.state.controlPointCS.y)
+                let mousePos = this.getRelativePos(mouseX, mouseY)
+                //draw bezier
+                // let [intermediateNodes, bezierPointsAux] = this.getIntermediateNodes({pos: this.road.findNode(this.state.prevNodeID).pos}, {pos: mousePos}, 25, 0.5)
+            }
+            else{
+                let mousePos = this.getRelativePos(mouseX, mouseY)
+                line(node.pos.x, node.pos.y, mousePos.x, mousePos.y)
+            }
+            pop()
+        }
     }
 
     showSelectedIntersection(){

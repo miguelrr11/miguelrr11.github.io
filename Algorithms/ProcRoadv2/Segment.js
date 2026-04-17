@@ -1,7 +1,7 @@
 const WIDTH_YIELD_MARKING = 7
 
 class Segment{
-    constructor(id, fromNodeID, toNodeID, visualDir, curvedPath){
+    constructor(id, fromNodeID, toNodeID, visualDir){
         this.id = id
         this.fromNodeID = fromNodeID
         this.toNodeID = toNodeID
@@ -13,8 +13,6 @@ class Segment{
         this.toConnector = undefined   
         this.visualDir = visualDir
         this.road = undefined
-        this.curvedPath = curvedPath == undefined ? false : (!curvedPath[0] || !curvedPath[1] ? true : false)
-        this.curvedPath = false
 
 
         //info updated by Path.js (constructRealLanes())
@@ -246,7 +244,6 @@ class Segment{
 
     //not mantained, only for debug
     showOutlineCorners(){
-        //if(this.curvedPath) return
         push()
         noFill()
         stroke(255, 100)
