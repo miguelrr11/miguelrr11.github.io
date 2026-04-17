@@ -1566,6 +1566,9 @@ class Tool{
         }
 
         if(frameCount % 15 == 0) this.center()
+
+        let percentage = 100 - Math.floor((nodesToProcess.size / this.state.OSMqueue.totalNodes) * 100)
+        this.menu.setButtonLabel('loadOSM', `${percentage}%`)
     }
 
     constructRoadFromOSMAsync(data, button){
@@ -1632,6 +1635,7 @@ class Tool{
         let currentNodeID = nodesToProcess.values().next().value
 
         this.state.OSMqueue = {
+            totalNodes: nodesToProcess.size,
             nodesToProcess,
             segsToProcess,
             nodeSegmentMap,

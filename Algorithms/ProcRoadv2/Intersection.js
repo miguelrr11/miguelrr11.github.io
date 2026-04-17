@@ -256,10 +256,12 @@ class Intersection {
     }
 
     calculateOutlinesIntersection(){
-        this.outline16 = this.getOutline(true)
-        this.outline = this.getOutline()
-        this.edges = this.getOutline(false, true)
-        //this.convexHullCalculated = true
+        this.outline16 = this.getOutline(true).curves
+        let obj = this.getOutline()
+        this.outline = obj.curves
+        this.corners = obj.corners.corners
+        this.grid = obj.corners.grid
+        this.edges = this.getOutline(false, true).curves
         return
     }
 
@@ -324,6 +326,23 @@ class Intersection {
         beginShape()
         for(let v of this.outline) vertex(v.x, v.y)
         endShape()
+
+        //debug: intersection markings 
+        if(this.corners.length != 4) return
+        push()
+        stroke(200, 200, 0)
+        strokeWeight(2)
+        noFill()
+        strokeCap(ROUND)
+        beginShape()
+        strokeWeight(2.5)
+        for(let v of this.corners) vertex(v.x, v.y)
+        endShape(CLOSE)
+        strokeWeight(2)
+        for(let gridLine of this.grid){
+            line(gridLine[0].x, gridLine[0].y, gridLine[1].x, gridLine[1].y)
+        }
+        pop()
     }
 
     showEdges(){
@@ -419,17 +438,40 @@ class Intersection {
         }
 
         let curves = []
-        for(let i = 0; i < allPoss.length; i += 2){
+        let corners = []
+        let nodePos = this.road.findNode(this.nodeID).pos
+
+        for (let i = 0; i < allPoss.length; i += 2) {
             let a = allPoss[i].newPos
             let b = allPoss[i].pos
-            let c = allPoss[(i+1) % allPoss.length].pos
-            let d = allPoss[(i+1) % allPoss.length].newPos
+            let c = allPoss[(i + 1) % allPoss.length].pos
+            let d = allPoss[(i + 1) % allPoss.length].newPos
             let tension = TENSION_BEZIER_MAX
             let bz = bezierPoints(a, b, c, d, LENGTH_SEG_BEZIER_INTER, tension)
-            separatedCurves ?  curves.push(bz) : curves.push(...bz)
+            separatedCurves ? curves.push(bz) : curves.push(...bz)
+
+            let minDistToNode = Infinity
+            for (let v of bz) {
+                let d = dist(v.x, v.y, nodePos.x, nodePos.y)
+                if (d < minDistToNode) minDistToNode = d
+            }
+            let distToUse = minDistToNode * 0.9
+
+            let cx = (b.x + c.x) * 0.5
+            let cy = (b.y + c.y) * 0.5
+            let midToNode = dist(cx, cy, nodePos.x, nodePos.y)
+
+            let shift = midToNode - Math.min(distToUse, midToNode)
+            let dir = Math.atan2(cy - nodePos.y, cx - nodePos.x)
+            let cornerPoint = {
+                x: cx - Math.cos(dir) * shift,
+                y: cy - Math.sin(dir) * shift
+            }
+            corners.push(cornerPoint)
         }
 
-        return curves
+
+        return {curves, corners: {corners, grid: corners.length == 4 ? gridLines(corners, {spacing: 25, angle: 65, origin: nodePos}) : null}}
     }
 
 }

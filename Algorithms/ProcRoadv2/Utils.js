@@ -219,7 +219,7 @@ function drawArrowTip(x, y, angle, arrowSize = 7, close = true) {
     endShape(close ? CLOSE : undefined);
 }
 
-function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {
+function drawDashedLine(x1, y1, x2, y2, dashLength = 15) {
     let d = dist(x1, y1, x2, y2);
     let numDashes = Math.floor(d / dashLength);
     let dx = (x2 - x1) / numDashes;
@@ -481,3 +481,94 @@ function getRelativePos(x, y){
     return createVector(worldX, worldY);
 }
 */
+/* ============================================================
+   gridLines(quad, options)
+   ------------------------------------------------------------
+   The grid is defined in world space:
+     - `spacing` : distance between lines (world units)
+     - `angle`   : orientation of the grid (radians, 0 = axis-aligned)
+     - `origin`  : where the grid is anchored; lines pass through
+                   origin + k*spacing along each axis for integer k
+ 
+   The quad is used purely as a clipping mask. Move the quad
+   anywhere and the grid stays fixed; only what falls inside
+   the quad is returned.
+ 
+   Returns an array of [p1, p2] segment endpoints.
+   ============================================================ */
+ 
+function gridLines(quad, { spacing = 40, angle = 0, origin = { x: 0, y: 0 } } = {}) {
+  // Two orthogonal world-space directions
+  const u = { x: Math.cos(angle),  y: Math.sin(angle)  };
+  const v = { x: -Math.sin(angle), y: Math.cos(angle)  };
+ 
+  const pairs = [];
+ 
+  // For each of the two line directions, figure out which
+  // grid offsets (along the perpendicular axis) fall inside
+  // the quad's bounding extent, then clip each line.
+  for (const [dir, perp] of [[u, v], [v, u]]) {
+    // Project each quad vertex onto `perp` (relative to origin).
+    // This gives the signed offset along perp for each corner.
+    const projs = quad.map(p =>
+      (p.x - origin.x) * perp.x + (p.y - origin.y) * perp.y
+    );
+    const lo = Math.min(...projs);
+    const hi = Math.max(...projs);
+ 
+    const kStart = Math.ceil(lo / spacing);
+    const kEnd   = Math.floor(hi / spacing);
+ 
+    for (let k = kStart; k <= kEnd; k++) {
+      const off = k * spacing;
+      // A point that sits on this grid line
+      const anchor = {
+        x: origin.x + off * perp.x,
+        y: origin.y + off * perp.y,
+      };
+      const seg = clipLineToPolygon(anchor, dir, quad);
+      if (seg) pairs.push(seg);
+    }
+  }
+ 
+  return pairs;
+}
+ 
+// Infinite line (anchor, dir) × segment (a, b) → point or null
+function lineSegIntersect(anchor, dir, a, b) {
+  const x1 = anchor.x,         y1 = anchor.y;
+  const x2 = anchor.x + dir.x, y2 = anchor.y + dir.y;
+  const x3 = a.x,              y3 = a.y;
+  const x4 = b.x,              y4 = b.y;
+ 
+  const denom = (x1 - x2) * (y3 - y4) - (y1 - y2) * (x3 - x4);
+  if (Math.abs(denom) < 1e-10) return null;
+ 
+  const s = -((x1 - x2) * (y1 - y3) - (y1 - y2) * (x1 - x3)) / denom;
+  if (s < -1e-9 || s > 1 + 1e-9) return null;
+ 
+  return { x: x3 + s * (x4 - x3), y: y3 + s * (y4 - y3) };
+}
+ 
+function clipLineToPolygon(anchor, dir, polygon) {
+  const hits = [];
+  for (let i = 0; i < polygon.length; i++) {
+    const a = polygon[i];
+    const b = polygon[(i + 1) % polygon.length];
+    const p = lineSegIntersect(anchor, dir, a, b);
+    if (p && !hits.some(q => Math.hypot(q.x - p.x, q.y - p.y) < 1e-6)) {
+      hits.push(p);
+    }
+  }
+  if (hits.length < 2) return null;
+ 
+  // Pick farthest pair (in case the line grazes a vertex)
+  let best = [hits[0], hits[1]], bestD = -1;
+  for (let i = 0; i < hits.length; i++) {
+    for (let j = i + 1; j < hits.length; j++) {
+      const d = Math.hypot(hits[i].x - hits[j].x, hits[i].y - hits[j].y);
+      if (d > bestD) { bestD = d; best = [hits[i], hits[j]]; }
+    }
+  }
+  return best;
+}

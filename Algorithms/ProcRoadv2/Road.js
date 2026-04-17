@@ -640,6 +640,24 @@ class Road{
         if(!paths) return null
         let finalIntersections = new Map()
 
+        // tune these to your geometry
+        const MIN_ANGLE_DEG = 20         // pairs closer to parallel than this are skipped
+        const MAX_REASONABLE_TRIM = 200  // intersections farther than this from the node are garbage
+
+        const segmentAngleDeg = (seg) => {
+            return Math.atan2(
+                seg.originalToPos.y - seg.originalFromPos.y,
+                seg.originalToPos.x - seg.originalFromPos.x
+            ) * 180 / Math.PI
+        }
+
+        const angleBetween = (a1, a2) => {
+            // smallest angle between two undirected lines, in [0, 90]
+            let diff = Math.abs(((a1 - a2) + 540) % 360 - 180)
+            if (diff > 90) diff = 180 - diff
+            return diff
+        }
+
         for(let path of paths){
             finalIntersections.set(path.id, [])
             for(let otherPath of paths){
@@ -647,13 +665,11 @@ class Road{
                 let segments1 = [...path.segmentsIDs].map(id => this.findSegment(id))
                 let segments2 = [...otherPath.segmentsIDs].map(id => this.findSegment(id))
 
-                
                 for(let s1 of segments1){
                     for(let s2 of segments2){
                         if(s1.id == s2.id) continue
 
                         if(straightMode){
-                            console.log('straightMode')
                             let pathInSeg = this.findPathByNodes(s1.fromNodeID, s1.toNodeID)
                             let pathOutSeg = this.findPathByNodes(s2.fromNodeID, s2.toNodeID)
                             let indexInPathofInSeg = [...pathInSeg.segmentsIDs].indexOf(s1.id)
@@ -662,6 +678,10 @@ class Road{
                             if(indexInPathofInSeg != indexInPathofOutSeg) continue
                         }
 
+                        // reject near-parallel pairs — they produce garbage intersection points
+                        let a1 = segmentAngleDeg(s1)
+                        let a2 = segmentAngleDeg(s2)
+                        if(angleBetween(a1, a2) < MIN_ANGLE_DEG) continue
 
                         let intersection = lineIntersection(
                             s1.originalFromPos, s1.originalToPos,
@@ -669,22 +689,31 @@ class Road{
                         );
 
                         if(intersection != undefined){
-                            finalIntersections.get(path.id).push(intersection)
+                            let node = this.findNode(nodeID)
+                            let dMain = dist(node.pos.x, node.pos.y, intersection.x, intersection.y)
+                            if(dMain <= MAX_REASONABLE_TRIM){
+                                finalIntersections.get(path.id).push(intersection)
+                            }
+
+                            // outer (corner) intersections get the same sanity check
                             let outerIntersections = this.getOuterIntersections(s1, s2)
-                            finalIntersections.get(path.id).push(...outerIntersections)
+                            for(let outer of outerIntersections){
+                                let dOuter = dist(node.pos.x, node.pos.y, outer.x, outer.y)
+                                if(dOuter <= MAX_REASONABLE_TRIM){
+                                    finalIntersections.get(path.id).push(outer)
+                                }
+                            }
                         }
                     }
                 }
             }
         }
 
-        //auxShow.push(...[...finalIntersections.values()].flat())
-
-        //now for each path we keep the farthest to the node
+        // for each path, keep the farthest intersection from the node
         for(let [pathID, inters] of finalIntersections){
             let distInter = 0
             let farthestIntersection = null
-            let node = this.findNode(nodeID) 
+            let node = this.findNode(nodeID)
             if(inters.length == 0) continue
             else if(inters.length == 1){
                 farthestIntersection = inters[0]
@@ -721,7 +750,7 @@ class Road{
             if(straightMode) return d
             return Math.max(d + OFFSET_RAD_INTERSEC, MIN_DIST_INTERSEC)
         }
-        const MIN_GAP = 15
+        const MIN_GAP = 1
 
         connectedSegments.forEach(s => {
             if(s.originalFromPos && s.originalToPos){
@@ -1007,30 +1036,38 @@ class Road{
     showWays(toolObj){
         let zoom = toolObj.zoom
         let hoveredID = toolObj.state.hoverSeg
+
         push()
         rectMode(CORNERS)
-        noStroke()
         fill(SIDE_WALK_COL)
+        stroke(SIDE_WALK_COL)
+        strokeWeight(1)
         if(zoom > 0.1) this.paths.forEach(p => p.showWayBase())
         pop()
+
         push()
         fill(SIDE_WALK_COL)
-        noStroke()
+        stroke(SIDE_WALK_COL)
+        strokeWeight(1)
         if(zoom > 0.1) this.intersections.forEach(p => p.showWayBase())
         pop()
+
         push()
         fill(ROAD_COL)
-        noStroke()
+        stroke(ROAD_COL)
+        strokeWeight(1)
         if(zoom > 0.05) this.intersections.forEach(p => p.showWayTop())
         stroke(MARKINGS_COL)
         strokeWeight(1.5)
         noFill()
         if(zoom > 0.18) this.intersections.forEach(p => p.showEdges())
         pop()
+    
         push()
         rectMode(CORNERS)
-        noStroke()
         fill(ROAD_COL)
+        stroke(ROAD_COL)
+        strokeWeight(1)
         if(zoom > 0.05) this.paths.forEach(p => p.showWayTop(hoveredID))
         stroke(MARKINGS_COL)
         strokeWeight(WIDTH_YIELD_MARKING)

@@ -119,14 +119,10 @@ class Menu{
             this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA = !this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA})
-        let buttonShowWays = new Button(xLoc, yLoc + hButton * 9, 95, 20, 'Road v1', () => {
+        let buttonShowWays = new Button(xLoc, yLoc + hButton * 9, 95, 20, 'Road', () => {
             this.tool.showOptions.SHOW_WAYS = !this.tool.showOptions.SHOW_WAYS
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_WAYS})
-        let buttonShowMesh = new Button(xLoc, yLoc + hButton * 10, 95, 20, 'Road v2', () => {
-            this.tool.showOptions.SHOW_ROAD_MESH = !this.tool.showOptions.SHOW_ROAD_MESH
-            this.tool.viewSettingsChanged()
-        }, undefined,  () => {return this.tool.showOptions.SHOW_ROAD_MESH})
 
         buttonsToCollapse = [
             buttonShowRoad,
@@ -138,8 +134,7 @@ class Menu{
             buttonShowSegDetails,
             buttonShowLanes,
             buttonShowConvexHull,
-            buttonShowWays,
-            buttonShowMesh
+            buttonShowWays
         ]
 
         let buttonCollapse = new Button(xLoc, yLoc - 40, 95, 30, this.tool.state.menuCollapsed ? 'Expand' : 'Collapse', () => {
@@ -245,7 +240,7 @@ class Menu{
                     })
                     .then(data => {
                         buttonLoadOpenStreetMap.enabled = () => {return true}
-                        buttonLoadOpenStreetMap.label = 'Building...'
+                        //buttonLoadOpenStreetMap.label = 'Building...'
                         console.log(data);
                         this.tool.constructRoadFromOSMAsync(data, buttonLoadOpenStreetMap)
                     })
@@ -280,6 +275,7 @@ class Menu{
             }
         })
         buttonLoadOpenStreetMap.txSize = 13
+        buttonLoadOpenStreetMap.labelID = 'loadOSM'
 
         let sliderAround = new Slider(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 70, 70, 'OSM Radius', 50, 2000, AROUND_RADIUS, (value) => {
             AROUND_RADIUS = value
@@ -344,7 +340,6 @@ class Menu{
         this.buttons.push(buttonShowWays)
         this.buttons.push(buttonAddCars)
         this.buttons.push(buttonRemoveCars)
-        this.buttons.push(buttonShowMesh)
 
         //this.buttons.push(buttonSetPaths)
 
@@ -411,6 +406,11 @@ class Menu{
         this.interacted = false
         this.coolDownClick = 0
 
+    }
+
+    setButtonLabel(labelID, text){
+        let button = this.buttons.find(b => b.labelID == labelID)
+        if(button) button.label = text
     }
 
     inBounds(){
