@@ -11,7 +11,7 @@ const MIN_ZOOM = 0.001
 const MAX_ZOOM = 8
 
 const SCALE_FACTOR_OSM = 1000000
-let AROUND_RADIUS = 500  //meters
+let AROUND_RADIUS = 1000  //meters
 
 const OSM_QUEUE_UPDATE_ITERS_PER_FRAME = 2
 
@@ -1110,7 +1110,7 @@ class Tool{
     }
 
     getMinMaxPos() {
-        let allNodes = this.road.nodes
+        let allNodes = Array.from(this.road.nodes.values())
         if(allNodes.length == 0) return
         let minX = allNodes[0].pos.x
         let maxX = allNodes[0].pos.x
@@ -1407,8 +1407,8 @@ class Tool{
 
     getCurrentRoad(){
         let res = {}
-        res.nodes = this.road.nodes.map(n => n.export())
-        res.segments = this.road.segments.map(s => s.export())
+        res.nodes = Array.from(this.road.nodes.values()).map((n, key) => n.export())
+        res.segments = Array.from(this.road.segments.values()).map(s => s.export())
         res.nodeIDcounter = this.road.nodeIDcounter
         res.segmentIDcounter = this.road.segmentIDcounter
         return res
@@ -1423,7 +1423,7 @@ class Tool{
             newNode.road = this.road
             newNode.incomingSegmentIDs = n.incomingSegmentIDs
             newNode.outgoingSegmentIDs = n.outgoingSegmentIDs
-            this.road.nodes.push(newNode)
+            this.road.nodes.set(newNode.id, newNode)
         }
         for(let s of roadData.segments){
             let newSegment = new Segment(s.id, s.fromNodeID, s.toNodeID, s.visualDir)
@@ -1431,10 +1431,10 @@ class Tool{
             // Populate direct object references immediately
             newSegment.fromNode = this.road.findNode(s.fromNodeID)
             newSegment.toNode = this.road.findNode(s.toNodeID)
-            this.road.segments.push(newSegment)
+            this.road.segments.set(newSegment.id, newSegment)
         }
         // Populate node->segment references after all segments are created
-        for(let node of this.road.nodes){
+        for(let node of Array.from(this.road.nodes.values())){
             node.incomingSegments = node.incomingSegmentIDs.map(id => this.road.findSegment(id)).filter(s => s)
             node.outgoingSegments = node.outgoingSegmentIDs.map(id => this.road.findSegment(id)).filter(s => s)
         }
@@ -1494,7 +1494,7 @@ class Tool{
 
             let newNode = new Node(nodeID, nodeData.x, nodeData.y)
             newNode.road = this.road
-            this.road.nodes.push(newNode)
+            this.road.nodes.set(newNode.id, newNode)
 
             // Remove from nodesToProcess
             nodesToProcess.delete(nodeID)
@@ -1524,7 +1524,7 @@ class Tool{
                     // Populate direct object references immediately
                     newSegment.fromNode = nodeA
                     newSegment.toNode = nodeB
-                    this.road.segments.push(newSegment)
+                    this.road.segments.set(newSegment.id, newSegment)
                     nodeA.outgoingSegmentIDs.push(newSegment.id)
                     nodeB.incomingSegmentIDs.push(newSegment.id)
                     nodeA.outgoingSegments.push(newSegment)  // Add direct reference
@@ -1715,14 +1715,14 @@ class Tool{
                 let y = -Math.round(node.lat * scaleFactor) + firstY
                 let newNode = new Node(node.id, x, y)
                 newNode.road = this.road
-                this.road.nodes.push(newNode)
+                this.road.nodes.set(newNode.id, newNode)
             }
         }
 
         //map of nodes with segment connections
         let nodeSegmentMap = new Map();
 
-        for(let n of this.road.nodes){
+        for(let n of Array.from(this.road.nodes.values())){
             nodeSegmentMap.set(n.id, []);
         }
         for(let seg of data.elements){
@@ -1754,7 +1754,7 @@ class Tool{
                         let newSegment = new Segment(seg.id + '_' + j + '_' + i, nodeIDA, nodeIDB, 'for', false)
                         newSegment.road = this.road
                         newSegment.name = name
-                        this.road.segments.push(newSegment)
+                        this.road.segments.set(newSegment.id, newSegment)
                         nodeA.outgoingSegmentIDs.push(newSegment.id)
                         nodeB.incomingSegmentIDs.push(newSegment.id)
                     }

@@ -1,0 +1,3490 @@
+{
+    "nodes": [
+        {
+            "id": "A",
+            "pos": {
+                "x": 652.57,
+                "y": 366.57
+            },
+            "incomingSegmentIDs": [
+                "B",
+                "J",
+                "M",
+                "Bn"
+            ],
+            "outgoingSegmentIDs": [
+                "A",
+                "K",
+                "Bp"
+            ]
+        },
+        {
+            "id": "B",
+            "pos": {
+                "x": 873.3,
+                "y": 582.44
+            },
+            "incomingSegmentIDs": [
+                "A",
+                "D",
+                "F",
+                "Z"
+            ],
+            "outgoingSegmentIDs": [
+                "B",
+                "C",
+                "E",
+                "CA"
+            ]
+        },
+        {
+            "id": "C",
+            "pos": {
+                "x": 1138.87,
+                "y": 354.03
+            },
+            "incomingSegmentIDs": [
+                "C",
+                "O"
+            ],
+            "outgoingSegmentIDs": [
+                "D",
+                "I",
+                "Bo"
+            ]
+        },
+        {
+            "id": "D",
+            "pos": {
+                "x": 859.85,
+                "y": 875.31
+            },
+            "incomingSegmentIDs": [
+                "E",
+                "X",
+                "d",
+                "Bk"
+            ],
+            "outgoingSegmentIDs": [
+                "F",
+                "e"
+            ]
+        },
+        {
+            "id": "E",
+            "pos": {
+                "x": 1164,
+                "y": 691.2
+            },
+            "incomingSegmentIDs": [
+                "f",
+                "3",
+                "5",
+                "CA"
+            ],
+            "outgoingSegmentIDs": [
+                "N",
+                "y",
+                "0",
+                "Bj",
+                "B`"
+            ]
+        },
+        {
+            "id": "F",
+            "pos": {
+                "x": 897.22,
+                "y": 260.41
+            },
+            "incomingSegmentIDs": [
+                "I"
+            ],
+            "outgoingSegmentIDs": [
+                "J"
+            ]
+        },
+        {
+            "id": "G",
+            "pos": {
+                "x": 564.43,
+                "y": 676.68
+            },
+            "incomingSegmentIDs": [
+                "K"
+            ],
+            "outgoingSegmentIDs": [
+                "W"
+            ]
+        },
+        {
+            "id": "I",
+            "pos": {
+                "x": 398.82,
+                "y": 256.58
+            },
+            "incomingSegmentIDs": [
+                "T",
+                "Bp"
+            ],
+            "outgoingSegmentIDs": [
+                "M",
+                "Bq",
+                "B!"
+            ]
+        },
+        {
+            "id": "J",
+            "pos": {
+                "x": 1154.64,
+                "y": 565.67
+            },
+            "incomingSegmentIDs": [
+                "N",
+                "B`"
+            ],
+            "outgoingSegmentIDs": [
+                "O",
+                "s"
+            ]
+        },
+        {
+            "id": "K",
+            "pos": {
+                "x": 1327.31,
+                "y": 360.88
+            },
+            "incomingSegmentIDs": [
+                "r",
+                "t",
+                "B~"
+            ],
+            "outgoingSegmentIDs": [
+                "Q"
+            ]
+        },
+        {
+            "id": "L",
+            "pos": {
+                "x": 1254.94,
+                "y": 176.46
+            },
+            "incomingSegmentIDs": [
+                "Q",
+                "Bo"
+            ],
+            "outgoingSegmentIDs": [
+                "R",
+                "Bl",
+                "B7",
+                "B9"
+            ]
+        },
+        {
+            "id": "M",
+            "pos": {
+                "x": 912.55,
+                "y": 72.13
+            },
+            "incomingSegmentIDs": [
+                "R",
+                "Bl"
+            ],
+            "outgoingSegmentIDs": [
+                "S",
+                "Bm"
+            ]
+        },
+        {
+            "id": "N",
+            "pos": {
+                "x": 620.76,
+                "y": 86.83
+            },
+            "incomingSegmentIDs": [
+                "S",
+                "Bm",
+                "Bz"
+            ],
+            "outgoingSegmentIDs": [
+                "T",
+                "Bn"
+            ]
+        },
+        {
+            "id": "O",
+            "pos": {
+                "x": 401.93,
+                "y": 657.9
+            },
+            "incomingSegmentIDs": [
+                "B%",
+                "B,"
+            ],
+            "outgoingSegmentIDs": [
+                "V"
+            ]
+        },
+        {
+            "id": "P",
+            "pos": {
+                "x": 472.03,
+                "y": 834.58
+            },
+            "incomingSegmentIDs": [
+                "V"
+            ],
+            "outgoingSegmentIDs": [
+                "Y",
+                "a"
+            ]
+        },
+        {
+            "id": "Q",
+            "pos": {
+                "x": 684.88,
+                "y": 748.88
+            },
+            "incomingSegmentIDs": [
+                "W",
+                "Y"
+            ],
+            "outgoingSegmentIDs": [
+                "X",
+                "Z"
+            ]
+        },
+        {
+            "id": "R",
+            "pos": {
+                "x": 507.95,
+                "y": 1075.58
+            },
+            "incomingSegmentIDs": [
+                "a",
+                "B;"
+            ],
+            "outgoingSegmentIDs": [
+                "b"
+            ]
+        },
+        {
+            "id": "S",
+            "pos": {
+                "x": 647.93,
+                "y": 1102.59
+            },
+            "incomingSegmentIDs": [
+                "b",
+                "DN"
+            ],
+            "outgoingSegmentIDs": [
+                "c"
+            ]
+        },
+        {
+            "id": "T",
+            "pos": {
+                "x": 866.31,
+                "y": 1058.97
+            },
+            "incomingSegmentIDs": [
+                "c",
+                "h"
+            ],
+            "outgoingSegmentIDs": [
+                "d"
+            ]
+        },
+        {
+            "id": "U",
+            "pos": {
+                "x": 1030.19,
+                "y": 786.07
+            },
+            "incomingSegmentIDs": [
+                "e",
+                "Bj"
+            ],
+            "outgoingSegmentIDs": [
+                "f",
+                "g",
+                "Bk"
+            ]
+        },
+        {
+            "id": "V",
+            "pos": {
+                "x": 1246.53,
+                "y": 887.68
+            },
+            "incomingSegmentIDs": [
+                "g",
+                "o"
+            ],
+            "outgoingSegmentIDs": [
+                "h"
+            ]
+        },
+        {
+            "id": "W",
+            "pos": {
+                "x": 1583.52,
+                "y": 725.66
+            },
+            "incomingSegmentIDs": [
+                "z",
+                "1"
+            ],
+            "outgoingSegmentIDs": [
+                "m",
+                "p",
+                "2",
+                "4"
+            ]
+        },
+        {
+            "id": "X",
+            "pos": {
+                "x": 1676.81,
+                "y": 907.79
+            },
+            "incomingSegmentIDs": [
+                "m",
+                "B[",
+                "B\\"
+            ],
+            "outgoingSegmentIDs": [
+                "n"
+            ]
+        },
+        {
+            "id": "Y",
+            "pos": {
+                "x": 1424.87,
+                "y": 1051.45
+            },
+            "incomingSegmentIDs": [
+                "n",
+                "DT"
+            ],
+            "outgoingSegmentIDs": [
+                "o"
+            ]
+        },
+        {
+            "id": "Z",
+            "pos": {
+                "x": 1672.08,
+                "y": 626.48
+            },
+            "incomingSegmentIDs": [
+                "p"
+            ],
+            "outgoingSegmentIDs": [
+                "q"
+            ]
+        },
+        {
+            "id": "a",
+            "pos": {
+                "x": 1540.9,
+                "y": 400.87
+            },
+            "incomingSegmentIDs": [
+                "q"
+            ],
+            "outgoingSegmentIDs": [
+                "r",
+                "B^"
+            ]
+        },
+        {
+            "id": "b",
+            "pos": {
+                "x": 1252.17,
+                "y": 450
+            },
+            "incomingSegmentIDs": [
+                "s"
+            ],
+            "outgoingSegmentIDs": [
+                "t",
+                "u"
+            ]
+        },
+        {
+            "id": "c",
+            "pos": {
+                "x": 1394.85,
+                "y": 464.17
+            },
+            "incomingSegmentIDs": [
+                "u"
+            ],
+            "outgoingSegmentIDs": [
+                "v"
+            ]
+        },
+        {
+            "id": "d",
+            "pos": {
+                "x": 1504.16,
+                "y": 506.82
+            },
+            "incomingSegmentIDs": [
+                "v"
+            ],
+            "outgoingSegmentIDs": [
+                "w"
+            ]
+        },
+        {
+            "id": "e",
+            "pos": {
+                "x": 1495.24,
+                "y": 583.89
+            },
+            "incomingSegmentIDs": [
+                "w"
+            ],
+            "outgoingSegmentIDs": [
+                "6"
+            ]
+        },
+        {
+            "id": "g",
+            "pos": {
+                "x": 1345.13,
+                "y": 706.08
+            },
+            "incomingSegmentIDs": [
+                "y",
+                "0",
+                "2",
+                "4",
+                "6"
+            ],
+            "outgoingSegmentIDs": [
+                "z",
+                "1",
+                "3",
+                "5"
+            ]
+        },
+        {
+            "id": "BI",
+            "pos": {
+                "x": 426.54,
+                "y": 27.19
+            },
+            "incomingSegmentIDs": [
+                "Bq",
+                "C8"
+            ],
+            "outgoingSegmentIDs": [
+                "Bw"
+            ]
+        },
+        {
+            "id": "BJ",
+            "pos": {
+                "x": 626.95,
+                "y": -74.97
+            },
+            "incomingSegmentIDs": [
+                "Bx"
+            ],
+            "outgoingSegmentIDs": [
+                "Bs"
+            ]
+        },
+        {
+            "id": "BK",
+            "pos": {
+                "x": 801.76,
+                "y": -215.74
+            },
+            "incomingSegmentIDs": [
+                "Bs",
+                "Da"
+            ],
+            "outgoingSegmentIDs": [
+                "B0",
+                "B5"
+            ]
+        },
+        {
+            "id": "BL",
+            "pos": {
+                "x": 786.66,
+                "y": -559.52
+            },
+            "incomingSegmentIDs": [
+                "B1",
+                "B6"
+            ],
+            "outgoingSegmentIDs": [
+                "Bu",
+                "B<",
+                "CZ",
+                "Ca"
+            ]
+        },
+        {
+            "id": "BM",
+            "pos": {
+                "x": 635.93,
+                "y": -673.88
+            },
+            "incomingSegmentIDs": [
+                "Bu",
+                "Ce"
+            ],
+            "outgoingSegmentIDs": [
+                "Bv"
+            ]
+        },
+        {
+            "id": "BN",
+            "pos": {
+                "x": 519.69,
+                "y": -626.24
+            },
+            "incomingSegmentIDs": [
+                "Bv",
+                "Cj"
+            ],
+            "outgoingSegmentIDs": [
+                "B2",
+                "C@",
+                "C["
+            ]
+        },
+        {
+            "id": "BO",
+            "pos": {
+                "x": 534.05,
+                "y": -26.2
+            },
+            "incomingSegmentIDs": [
+                "Bw",
+                "B3"
+            ],
+            "outgoingSegmentIDs": [
+                "Bx",
+                "Bz"
+            ]
+        },
+        {
+            "id": "BP",
+            "pos": {
+                "x": 801.8,
+                "y": -367.33
+            },
+            "incomingSegmentIDs": [
+                "B0",
+                "B5"
+            ],
+            "outgoingSegmentIDs": [
+                "B1",
+                "B4",
+                "B6",
+                "Dl"
+            ]
+        },
+        {
+            "id": "BQ",
+            "pos": {
+                "x": 525.92,
+                "y": -366.26
+            },
+            "incomingSegmentIDs": [
+                "B2",
+                "B4",
+                "B<",
+                "Dl"
+            ],
+            "outgoingSegmentIDs": [
+                "B3"
+            ]
+        },
+        {
+            "id": "BR",
+            "pos": {
+                "x": 1197.68,
+                "y": -106.75
+            },
+            "incomingSegmentIDs": [
+                "B7"
+            ],
+            "outgoingSegmentIDs": [
+                "Cw"
+            ]
+        },
+        {
+            "id": "BS",
+            "pos": {
+                "x": 1311.88,
+                "y": -2.44
+            },
+            "incomingSegmentIDs": [
+                "B9"
+            ],
+            "outgoingSegmentIDs": [
+                "B{"
+            ]
+        },
+        {
+            "id": "BT",
+            "pos": {
+                "x": 1436.01,
+                "y": -5.99
+            },
+            "incomingSegmentIDs": [
+                "B{"
+            ],
+            "outgoingSegmentIDs": [
+                "B|"
+            ]
+        },
+        {
+            "id": "BU",
+            "pos": {
+                "x": 1509.65,
+                "y": 79.81
+            },
+            "incomingSegmentIDs": [
+                "B|"
+            ],
+            "outgoingSegmentIDs": [
+                "B}"
+            ]
+        },
+        {
+            "id": "BV",
+            "pos": {
+                "x": 1512.24,
+                "y": 180.86
+            },
+            "incomingSegmentIDs": [
+                "B}"
+            ],
+            "outgoingSegmentIDs": [
+                "B~",
+                "B]"
+            ]
+        },
+        {
+            "id": "BW",
+            "pos": {
+                "x": 396.73,
+                "y": 351.54
+            },
+            "incomingSegmentIDs": [
+                "B!"
+            ],
+            "outgoingSegmentIDs": [
+                "B#",
+                "B&"
+            ]
+        },
+        {
+            "id": "BX",
+            "pos": {
+                "x": 289.88,
+                "y": 352.93
+            },
+            "incomingSegmentIDs": [
+                "B#"
+            ],
+            "outgoingSegmentIDs": [
+                "B(",
+                "C7"
+            ]
+        },
+        {
+            "id": "BY",
+            "pos": {
+                "x": 291.57,
+                "y": 660.41
+            },
+            "incomingSegmentIDs": [
+                "B."
+            ],
+            "outgoingSegmentIDs": [
+                "B%",
+                "B:"
+            ]
+        },
+        {
+            "id": "BZ",
+            "pos": {
+                "x": 398.33,
+                "y": 453.43
+            },
+            "incomingSegmentIDs": [
+                "B&"
+            ],
+            "outgoingSegmentIDs": [
+                "B*",
+                "B+"
+            ]
+        },
+        {
+            "id": "Ba",
+            "pos": {
+                "x": 290.06,
+                "y": 456.21
+            },
+            "incomingSegmentIDs": [
+                "B(",
+                "B*"
+            ],
+            "outgoingSegmentIDs": [
+                "B-"
+            ]
+        },
+        {
+            "id": "Bb",
+            "pos": {
+                "x": 400.2,
+                "y": 555.8
+            },
+            "incomingSegmentIDs": [
+                "B+"
+            ],
+            "outgoingSegmentIDs": [
+                "B,",
+                "B/"
+            ]
+        },
+        {
+            "id": "Bc",
+            "pos": {
+                "x": 294.44,
+                "y": 556.98
+            },
+            "incomingSegmentIDs": [
+                "B-",
+                "B/"
+            ],
+            "outgoingSegmentIDs": [
+                "B."
+            ]
+        },
+        {
+            "id": "Bd",
+            "pos": {
+                "x": 350.51,
+                "y": 1030.21
+            },
+            "incomingSegmentIDs": [
+                "B:"
+            ],
+            "outgoingSegmentIDs": [
+                "B;",
+                "DH"
+            ]
+        },
+        {
+            "id": "Be",
+            "pos": {
+                "x": 1612.46,
+                "y": 275.81
+            },
+            "incomingSegmentIDs": [
+                "B]",
+                "B_"
+            ],
+            "outgoingSegmentIDs": [
+                "CN",
+                "CP"
+            ]
+        },
+        {
+            "id": "Bf",
+            "pos": {
+                "x": 1832.35,
+                "y": 357.45
+            },
+            "incomingSegmentIDs": [
+                "CO",
+                "CQ"
+            ],
+            "outgoingSegmentIDs": [
+                "CU",
+                "CW"
+            ]
+        },
+        {
+            "id": "Bg",
+            "pos": {
+                "x": 1962.71,
+                "y": 639.2
+            },
+            "incomingSegmentIDs": [
+                "CV",
+                "CX"
+            ],
+            "outgoingSegmentIDs": [
+                "B[",
+                "B\\"
+            ]
+        },
+        {
+            "id": "Bh",
+            "pos": {
+                "x": 1547.4,
+                "y": 328.19
+            },
+            "incomingSegmentIDs": [
+                "B^"
+            ],
+            "outgoingSegmentIDs": [
+                "B_"
+            ]
+        },
+        {
+            "id": "Bi",
+            "pos": {
+                "x": 987.91,
+                "y": -708.46
+            },
+            "incomingSegmentIDs": [
+                "CD",
+                "CE",
+                "CZ",
+                "Ca"
+            ],
+            "outgoingSegmentIDs": [
+                "CB",
+                "CC",
+                "Cb"
+            ]
+        },
+        {
+            "id": "Bj",
+            "pos": {
+                "x": 1079.44,
+                "y": -394.25
+            },
+            "incomingSegmentIDs": [
+                "CB",
+                "CC",
+                "Cq",
+                "Cs"
+            ],
+            "outgoingSegmentIDs": [
+                "CD",
+                "CE",
+                "Cl",
+                "Cn"
+            ]
+        },
+        {
+            "id": "Bk",
+            "pos": {
+                "x": 1556.2,
+                "y": -184.31
+            },
+            "incomingSegmentIDs": [
+                "CL",
+                "CM",
+                "Cm",
+                "Co"
+            ],
+            "outgoingSegmentIDs": [
+                "CJ",
+                "CK",
+                "Cp",
+                "Cr"
+            ]
+        },
+        {
+            "id": "Bl",
+            "pos": {
+                "x": 1783.27,
+                "y": 40.44
+            },
+            "incomingSegmentIDs": [
+                "CJ",
+                "CK",
+                "CS"
+            ],
+            "outgoingSegmentIDs": [
+                "CL",
+                "CM",
+                "CT"
+            ]
+        },
+        {
+            "id": "Bm",
+            "pos": {
+                "x": 1709.46,
+                "y": 305.05
+            },
+            "incomingSegmentIDs": [
+                "CN",
+                "CP"
+            ],
+            "outgoingSegmentIDs": [
+                "CO",
+                "CQ",
+                "CR"
+            ]
+        },
+        {
+            "id": "Bn",
+            "pos": {
+                "x": 1755.2,
+                "y": 209.39
+            },
+            "incomingSegmentIDs": [
+                "CR"
+            ],
+            "outgoingSegmentIDs": [
+                "CS"
+            ]
+        },
+        {
+            "id": "Bo",
+            "pos": {
+                "x": 1954.38,
+                "y": 239.41
+            },
+            "incomingSegmentIDs": [
+                "CT"
+            ],
+            "outgoingSegmentIDs": [
+                "CY"
+            ]
+        },
+        {
+            "id": "Bp",
+            "pos": {
+                "x": 1907.1,
+                "y": 513.49
+            },
+            "incomingSegmentIDs": [
+                "CU",
+                "CW",
+                "CY"
+            ],
+            "outgoingSegmentIDs": [
+                "CV",
+                "CX"
+            ]
+        },
+        {
+            "id": "Bq",
+            "pos": {
+                "x": 959.38,
+                "y": -823.94
+            },
+            "incomingSegmentIDs": [
+                "Cb"
+            ],
+            "outgoingSegmentIDs": [
+                "Cc"
+            ]
+        },
+        {
+            "id": "Br",
+            "pos": {
+                "x": 802.3,
+                "y": -801.26
+            },
+            "incomingSegmentIDs": [
+                "Cc"
+            ],
+            "outgoingSegmentIDs": [
+                "Cd"
+            ]
+        },
+        {
+            "id": "Bs",
+            "pos": {
+                "x": 673.31,
+                "y": -766.1
+            },
+            "incomingSegmentIDs": [
+                "Cd"
+            ],
+            "outgoingSegmentIDs": [
+                "Ce"
+            ]
+        },
+        {
+            "id": "Bt",
+            "pos": {
+                "x": 1103.08,
+                "y": -777.08
+            },
+            "incomingSegmentIDs": [
+                "Cv"
+            ],
+            "outgoingSegmentIDs": [
+                "Cg"
+            ]
+        },
+        {
+            "id": "Bu",
+            "pos": {
+                "x": 993.69,
+                "y": -890.49
+            },
+            "incomingSegmentIDs": [
+                "Cg"
+            ],
+            "outgoingSegmentIDs": [
+                "Ch"
+            ]
+        },
+        {
+            "id": "Bv",
+            "pos": {
+                "x": 788,
+                "y": -866.01
+            },
+            "incomingSegmentIDs": [
+                "Ch"
+            ],
+            "outgoingSegmentIDs": [
+                "Ci"
+            ]
+        },
+        {
+            "id": "Bw",
+            "pos": {
+                "x": 625.71,
+                "y": -825.03
+            },
+            "incomingSegmentIDs": [
+                "Ci"
+            ],
+            "outgoingSegmentIDs": [
+                "Cj"
+            ]
+        },
+        {
+            "id": "Bz",
+            "pos": {
+                "x": 1353.54,
+                "y": -263.13
+            },
+            "incomingSegmentIDs": [
+                "Cl",
+                "Cn",
+                "Cp",
+                "Cr"
+            ],
+            "outgoingSegmentIDs": [
+                "Cm",
+                "Co",
+                "Cq",
+                "Cs",
+                "Ct",
+                "Cy"
+            ]
+        },
+        {
+            "id": "B0",
+            "pos": {
+                "x": 1305.76,
+                "y": -444.42
+            },
+            "incomingSegmentIDs": [
+                "Ct"
+            ],
+            "outgoingSegmentIDs": [
+                "Cu"
+            ]
+        },
+        {
+            "id": "B1",
+            "pos": {
+                "x": 1206.17,
+                "y": -485.25
+            },
+            "incomingSegmentIDs": [
+                "Cu"
+            ],
+            "outgoingSegmentIDs": [
+                "Cv"
+            ]
+        },
+        {
+            "id": "B2",
+            "pos": {
+                "x": 1030.2,
+                "y": -153.34
+            },
+            "incomingSegmentIDs": [
+                "Cw",
+                "Cy"
+            ],
+            "outgoingSegmentIDs": [
+                "DZ"
+            ]
+        },
+        {
+            "id": "B3",
+            "pos": {
+                "x": 272.84,
+                "y": 228.79
+            },
+            "incomingSegmentIDs": [
+                "C0",
+                "C7",
+                "DW"
+            ],
+            "outgoingSegmentIDs": [
+                "Cz",
+                "C8"
+            ]
+        },
+        {
+            "id": "B4",
+            "pos": {
+                "x": 97.83,
+                "y": 46.87
+            },
+            "incomingSegmentIDs": [
+                "Cz",
+                "C2"
+            ],
+            "outgoingSegmentIDs": [
+                "C0",
+                "C1"
+            ]
+        },
+        {
+            "id": "B5",
+            "pos": {
+                "x": -155.32,
+                "y": 30.99
+            },
+            "incomingSegmentIDs": [
+                "C1",
+                "C}",
+                "DD"
+            ],
+            "outgoingSegmentIDs": [
+                "C2",
+                "C9",
+                "DB",
+                "DC"
+            ]
+        },
+        {
+            "id": "B6",
+            "pos": {
+                "x": -321.57,
+                "y": -476.87
+            },
+            "incomingSegmentIDs": [
+                "C6",
+                "C{"
+            ],
+            "outgoingSegmentIDs": [
+                "C5",
+                "C|",
+                "Do"
+            ]
+        },
+        {
+            "id": "B7",
+            "pos": {
+                "x": -26.68,
+                "y": -831.56
+            },
+            "incomingSegmentIDs": [
+                "C5",
+                "C\\",
+                "C]"
+            ],
+            "outgoingSegmentIDs": [
+                "C6",
+                "C="
+            ]
+        },
+        {
+            "id": "B8",
+            "pos": {
+                "x": -187.18,
+                "y": -50.33
+            },
+            "incomingSegmentIDs": [
+                "C9",
+                "C|",
+                "Dk"
+            ],
+            "outgoingSegmentIDs": [
+                "C{",
+                "C}",
+                "C-"
+            ]
+        },
+        {
+            "id": "B9",
+            "pos": {
+                "x": 13.02,
+                "y": -270.27
+            },
+            "incomingSegmentIDs": [
+                "C.",
+                "Dm"
+            ],
+            "outgoingSegmentIDs": [
+                "C!",
+                "C*"
+            ]
+        },
+        {
+            "id": "B{",
+            "pos": {
+                "x": 23.48,
+                "y": -474.33
+            },
+            "incomingSegmentIDs": [
+                "C!"
+            ],
+            "outgoingSegmentIDs": [
+                "C\""
+            ]
+        },
+        {
+            "id": "B|",
+            "pos": {
+                "x": 285.18,
+                "y": -570.19
+            },
+            "incomingSegmentIDs": [
+                "C\"",
+                "DA"
+            ],
+            "outgoingSegmentIDs": [
+                "C#"
+            ]
+        },
+        {
+            "id": "B}",
+            "pos": {
+                "x": 394.73,
+                "y": -434.85
+            },
+            "incomingSegmentIDs": [
+                "C#"
+            ],
+            "outgoingSegmentIDs": [
+                "C$"
+            ]
+        },
+        {
+            "id": "B~",
+            "pos": {
+                "x": 406.96,
+                "y": -329.6
+            },
+            "incomingSegmentIDs": [
+                "C$"
+            ],
+            "outgoingSegmentIDs": [
+                "C%"
+            ]
+        },
+        {
+            "id": "B!",
+            "pos": {
+                "x": 364.4,
+                "y": -272.91
+            },
+            "incomingSegmentIDs": [
+                "C%"
+            ],
+            "outgoingSegmentIDs": [
+                "C&"
+            ]
+        },
+        {
+            "id": "B\"",
+            "pos": {
+                "x": 279.36,
+                "y": -237.56
+            },
+            "incomingSegmentIDs": [
+                "C&"
+            ],
+            "outgoingSegmentIDs": [
+                "C'"
+            ]
+        },
+        {
+            "id": "B#",
+            "pos": {
+                "x": 200.03,
+                "y": -316.77
+            },
+            "incomingSegmentIDs": [
+                "C'"
+            ],
+            "outgoingSegmentIDs": [
+                "C(",
+                "DY"
+            ]
+        },
+        {
+            "id": "B$",
+            "pos": {
+                "x": 207.49,
+                "y": -420.1
+            },
+            "incomingSegmentIDs": [
+                "C("
+            ],
+            "outgoingSegmentIDs": [
+                "C)"
+            ]
+        },
+        {
+            "id": "B%",
+            "pos": {
+                "x": 265.35,
+                "y": -450.61
+            },
+            "incomingSegmentIDs": [
+                "C)"
+            ],
+            "outgoingSegmentIDs": []
+        },
+        {
+            "id": "B&",
+            "pos": {
+                "x": 98.97,
+                "y": -176.23
+            },
+            "incomingSegmentIDs": [
+                "C*"
+            ],
+            "outgoingSegmentIDs": [
+                "C+"
+            ]
+        },
+        {
+            "id": "B'",
+            "pos": {
+                "x": 248.94,
+                "y": -128.28
+            },
+            "incomingSegmentIDs": [
+                "C+"
+            ],
+            "outgoingSegmentIDs": [
+                "C,",
+                "DX"
+            ]
+        },
+        {
+            "id": "B(",
+            "pos": {
+                "x": 347.35,
+                "y": -156.04
+            },
+            "incomingSegmentIDs": [
+                "C,"
+            ],
+            "outgoingSegmentIDs": []
+        },
+        {
+            "id": "B)",
+            "pos": {
+                "x": -79.83,
+                "y": -155.51
+            },
+            "incomingSegmentIDs": [
+                "C-",
+                "C?",
+                "Dn"
+            ],
+            "outgoingSegmentIDs": [
+                "C.",
+                "C/",
+                "Dk",
+                "Dm"
+            ]
+        },
+        {
+            "id": "B*",
+            "pos": {
+                "x": 40.99,
+                "y": -82.78
+            },
+            "incomingSegmentIDs": [
+                "C/"
+            ],
+            "outgoingSegmentIDs": [
+                "C:"
+            ]
+        },
+        {
+            "id": "B+",
+            "pos": {
+                "x": 145.83,
+                "y": -57.84
+            },
+            "incomingSegmentIDs": [
+                "C:"
+            ],
+            "outgoingSegmentIDs": []
+        },
+        {
+            "id": "B-",
+            "pos": {
+                "x": 207.55,
+                "y": -34.51
+            },
+            "incomingSegmentIDs": [],
+            "outgoingSegmentIDs": []
+        },
+        {
+            "id": "B.",
+            "pos": {
+                "x": 13.2,
+                "y": -625.95
+            },
+            "incomingSegmentIDs": [
+                "C=",
+                "C`"
+            ],
+            "outgoingSegmentIDs": [
+                "C>"
+            ]
+        },
+        {
+            "id": "B/",
+            "pos": {
+                "x": -124.75,
+                "y": -441.5
+            },
+            "incomingSegmentIDs": [
+                "C>",
+                "Do"
+            ],
+            "outgoingSegmentIDs": [
+                "C?",
+                "Dn"
+            ]
+        },
+        {
+            "id": "B:",
+            "pos": {
+                "x": 269,
+                "y": -852.25
+            },
+            "incomingSegmentIDs": [
+                "C@",
+                "C["
+            ],
+            "outgoingSegmentIDs": [
+                "C\\",
+                "C]",
+                "C^",
+                "C_"
+            ]
+        },
+        {
+            "id": "B;",
+            "pos": {
+                "x": 244.66,
+                "y": -669.08
+            },
+            "incomingSegmentIDs": [
+                "C^",
+                "C_"
+            ],
+            "outgoingSegmentIDs": [
+                "C`",
+                "DA"
+            ]
+        },
+        {
+            "id": "B<",
+            "pos": {
+                "x": -132.02,
+                "y": 698.1
+            },
+            "incomingSegmentIDs": [
+                "DB",
+                "DC",
+                "Di"
+            ],
+            "outgoingSegmentIDs": [
+                "DD",
+                "Dd",
+                "Df"
+            ]
+        },
+        {
+            "id": "B=",
+            "pos": {
+                "x": 91.78,
+                "y": 958.16
+            },
+            "incomingSegmentIDs": [
+                "DJ",
+                "De",
+                "Dg"
+            ],
+            "outgoingSegmentIDs": [
+                "DK",
+                "DO",
+                "Dh"
+            ]
+        },
+        {
+            "id": "B>",
+            "pos": {
+                "x": 287.87,
+                "y": 1091.23
+            },
+            "incomingSegmentIDs": [
+                "DH"
+            ],
+            "outgoingSegmentIDs": [
+                "DI"
+            ]
+        },
+        {
+            "id": "B?",
+            "pos": {
+                "x": 181.87,
+                "y": 1072.12
+            },
+            "incomingSegmentIDs": [
+                "DI"
+            ],
+            "outgoingSegmentIDs": [
+                "DJ"
+            ]
+        },
+        {
+            "id": "B@",
+            "pos": {
+                "x": 62.77,
+                "y": 1189.76
+            },
+            "incomingSegmentIDs": [
+                "DK",
+                "DO"
+            ],
+            "outgoingSegmentIDs": [
+                "DL",
+                "DP"
+            ]
+        },
+        {
+            "id": "B[",
+            "pos": {
+                "x": 226.46,
+                "y": 1218.88
+            },
+            "incomingSegmentIDs": [
+                "DL",
+                "DP"
+            ],
+            "outgoingSegmentIDs": [
+                "DM",
+                "DQ"
+            ]
+        },
+        {
+            "id": "B\\",
+            "pos": {
+                "x": 519.32,
+                "y": 1204.18
+            },
+            "incomingSegmentIDs": [
+                "DM",
+                "DQ"
+            ],
+            "outgoingSegmentIDs": [
+                "DN",
+                "DR"
+            ]
+        },
+        {
+            "id": "B]",
+            "pos": {
+                "x": 816.82,
+                "y": 1269.9
+            },
+            "incomingSegmentIDs": [
+                "DR"
+            ],
+            "outgoingSegmentIDs": [
+                "DS"
+            ]
+        },
+        {
+            "id": "B^",
+            "pos": {
+                "x": 1366.98,
+                "y": 1157.81
+            },
+            "incomingSegmentIDs": [
+                "DS"
+            ],
+            "outgoingSegmentIDs": [
+                "DT"
+            ]
+        },
+        {
+            "id": "B_",
+            "pos": {
+                "x": 74.02,
+                "y": 768.02
+            },
+            "incomingSegmentIDs": [],
+            "outgoingSegmentIDs": [
+                "DU",
+                "Dj"
+            ]
+        },
+        {
+            "id": "B`",
+            "pos": {
+                "x": 146.53,
+                "y": 635.47
+            },
+            "incomingSegmentIDs": [
+                "DU"
+            ],
+            "outgoingSegmentIDs": [
+                "DV"
+            ]
+        },
+        {
+            "id": "CA",
+            "pos": {
+                "x": 100.92,
+                "y": 290.77
+            },
+            "incomingSegmentIDs": [
+                "DV"
+            ],
+            "outgoingSegmentIDs": [
+                "DW"
+            ]
+        },
+        {
+            "id": "CB",
+            "pos": {
+                "x": 250.96,
+                "y": -32.74
+            },
+            "incomingSegmentIDs": [
+                "DX"
+            ],
+            "outgoingSegmentIDs": []
+        },
+        {
+            "id": "CC",
+            "pos": {
+                "x": 111.56,
+                "y": -318.85
+            },
+            "incomingSegmentIDs": [
+                "DY"
+            ],
+            "outgoingSegmentIDs": []
+        },
+        {
+            "id": "CD",
+            "pos": {
+                "x": 965.29,
+                "y": -169.77
+            },
+            "incomingSegmentIDs": [
+                "DZ"
+            ],
+            "outgoingSegmentIDs": [
+                "Da",
+                "Db"
+            ]
+        },
+        {
+            "id": "CE",
+            "pos": {
+                "x": 906.78,
+                "y": -330.64
+            },
+            "incomingSegmentIDs": [
+                "Db"
+            ],
+            "outgoingSegmentIDs": [
+                "Dc"
+            ]
+        },
+        {
+            "id": "CF",
+            "pos": {
+                "x": 901.39,
+                "y": -506.25
+            },
+            "incomingSegmentIDs": [
+                "Dc"
+            ],
+            "outgoingSegmentIDs": []
+        },
+        {
+            "id": "CG",
+            "pos": {
+                "x": 16.27,
+                "y": 870.42
+            },
+            "incomingSegmentIDs": [
+                "Dd",
+                "Df",
+                "Dh",
+                "Dj"
+            ],
+            "outgoingSegmentIDs": [
+                "De",
+                "Dg",
+                "Di"
+            ]
+        }
+    ],
+    "segments": [
+        {
+            "id": "A",
+            "fromNodeID": "A",
+            "toNodeID": "B",
+            "fromConnectorID": "E",
+            "toConnectorID": "H",
+            "visualDir": "for"
+        },
+        {
+            "id": "B",
+            "fromNodeID": "B",
+            "toNodeID": "A",
+            "fromConnectorID": "M",
+            "toConnectorID": 0,
+            "visualDir": "back"
+        },
+        {
+            "id": "C",
+            "fromNodeID": "B",
+            "toNodeID": "C",
+            "fromConnectorID": "I",
+            "toConnectorID": "P",
+            "visualDir": "for"
+        },
+        {
+            "id": "D",
+            "fromNodeID": "C",
+            "toNodeID": "B",
+            "fromConnectorID": "T",
+            "toConnectorID": "L",
+            "visualDir": "back"
+        },
+        {
+            "id": "E",
+            "fromNodeID": "B",
+            "toNodeID": "D",
+            "fromConnectorID": "J",
+            "toConnectorID": "U",
+            "visualDir": "for"
+        },
+        {
+            "id": "F",
+            "fromNodeID": "D",
+            "toNodeID": "B",
+            "fromConnectorID": "X",
+            "toConnectorID": "N",
+            "visualDir": "back"
+        },
+        {
+            "id": "I",
+            "fromNodeID": "C",
+            "toNodeID": "F",
+            "fromConnectorID": "Q",
+            "toConnectorID": "j",
+            "visualDir": "for"
+        },
+        {
+            "id": "J",
+            "fromNodeID": "F",
+            "toNodeID": "A",
+            "fromConnectorID": "k",
+            "toConnectorID": "D",
+            "visualDir": "for"
+        },
+        {
+            "id": "K",
+            "fromNodeID": "A",
+            "toNodeID": "G",
+            "fromConnectorID": "B",
+            "toConnectorID": "l",
+            "visualDir": "for"
+        },
+        {
+            "id": "M",
+            "fromNodeID": "I",
+            "toNodeID": "A",
+            "fromConnectorID": "o",
+            "toConnectorID": "F",
+            "visualDir": "for"
+        },
+        {
+            "id": "N",
+            "fromNodeID": "E",
+            "toNodeID": "J",
+            "fromConnectorID": "b",
+            "toConnectorID": "s",
+            "visualDir": "for"
+        },
+        {
+            "id": "O",
+            "fromNodeID": "J",
+            "toNodeID": "C",
+            "fromConnectorID": "t",
+            "toConnectorID": "S",
+            "visualDir": "for"
+        },
+        {
+            "id": "Q",
+            "fromNodeID": "K",
+            "toNodeID": "L",
+            "fromConnectorID": "x",
+            "toConnectorID": "0",
+            "visualDir": "for"
+        },
+        {
+            "id": "R",
+            "fromNodeID": "L",
+            "toNodeID": "M",
+            "fromConnectorID": "1",
+            "toConnectorID": "6",
+            "visualDir": "for"
+        },
+        {
+            "id": "S",
+            "fromNodeID": "M",
+            "toNodeID": "N",
+            "fromConnectorID": "7",
+            "toConnectorID": "{",
+            "visualDir": "for"
+        },
+        {
+            "id": "T",
+            "fromNodeID": "N",
+            "toNodeID": "I",
+            "fromConnectorID": "|",
+            "toConnectorID": "n",
+            "visualDir": "for"
+        },
+        {
+            "id": "V",
+            "fromNodeID": "O",
+            "toNodeID": "P",
+            "fromConnectorID": "#",
+            "toConnectorID": "%",
+            "visualDir": "for"
+        },
+        {
+            "id": "W",
+            "fromNodeID": "G",
+            "toNodeID": "Q",
+            "fromConnectorID": "m",
+            "toConnectorID": "(",
+            "visualDir": "for"
+        },
+        {
+            "id": "X",
+            "fromNodeID": "Q",
+            "toNodeID": "D",
+            "fromConnectorID": ")",
+            "toConnectorID": "W",
+            "visualDir": "for"
+        },
+        {
+            "id": "Y",
+            "fromNodeID": "P",
+            "toNodeID": "Q",
+            "fromConnectorID": "&",
+            "toConnectorID": "+",
+            "visualDir": "for"
+        },
+        {
+            "id": "Z",
+            "fromNodeID": "Q",
+            "toNodeID": "B",
+            "fromConnectorID": "*",
+            "toConnectorID": "O",
+            "visualDir": "for"
+        },
+        {
+            "id": "a",
+            "fromNodeID": "P",
+            "toNodeID": "R",
+            "fromConnectorID": "'",
+            "toConnectorID": ",",
+            "visualDir": "for"
+        },
+        {
+            "id": "b",
+            "fromNodeID": "R",
+            "toNodeID": "S",
+            "fromConnectorID": "-",
+            "toConnectorID": "/",
+            "visualDir": "for"
+        },
+        {
+            "id": "c",
+            "fromNodeID": "S",
+            "toNodeID": "T",
+            "fromConnectorID": ":",
+            "toConnectorID": "<",
+            "visualDir": "for"
+        },
+        {
+            "id": "d",
+            "fromNodeID": "T",
+            "toNodeID": "D",
+            "fromConnectorID": "=",
+            "toConnectorID": "Y",
+            "visualDir": "for"
+        },
+        {
+            "id": "e",
+            "fromNodeID": "D",
+            "toNodeID": "U",
+            "fromConnectorID": "V",
+            "toConnectorID": "?",
+            "visualDir": "for"
+        },
+        {
+            "id": "f",
+            "fromNodeID": "U",
+            "toNodeID": "E",
+            "fromConnectorID": "@",
+            "toConnectorID": "a",
+            "visualDir": "for"
+        },
+        {
+            "id": "g",
+            "fromNodeID": "U",
+            "toNodeID": "V",
+            "fromConnectorID": "[",
+            "toConnectorID": "^",
+            "visualDir": "for"
+        },
+        {
+            "id": "h",
+            "fromNodeID": "V",
+            "toNodeID": "T",
+            "fromConnectorID": "_",
+            "toConnectorID": ">",
+            "visualDir": "for"
+        },
+        {
+            "id": "m",
+            "fromNodeID": "W",
+            "toNodeID": "X",
+            "fromConnectorID": "BB",
+            "toConnectorID": "BG",
+            "visualDir": "for"
+        },
+        {
+            "id": "n",
+            "fromNodeID": "X",
+            "toNodeID": "Y",
+            "fromConnectorID": "BH",
+            "toConnectorID": "BK",
+            "visualDir": "for"
+        },
+        {
+            "id": "o",
+            "fromNodeID": "Y",
+            "toNodeID": "V",
+            "fromConnectorID": "BL",
+            "toConnectorID": "`",
+            "visualDir": "for"
+        },
+        {
+            "id": "p",
+            "fromNodeID": "W",
+            "toNodeID": "Z",
+            "fromConnectorID": "BC",
+            "toConnectorID": "BN",
+            "visualDir": "for"
+        },
+        {
+            "id": "q",
+            "fromNodeID": "Z",
+            "toNodeID": "a",
+            "fromConnectorID": "BO",
+            "toConnectorID": "BP",
+            "visualDir": "for"
+        },
+        {
+            "id": "r",
+            "fromNodeID": "a",
+            "toNodeID": "K",
+            "fromConnectorID": "BQ",
+            "toConnectorID": "w",
+            "visualDir": "for"
+        },
+        {
+            "id": "s",
+            "fromNodeID": "J",
+            "toNodeID": "b",
+            "fromConnectorID": "u",
+            "toConnectorID": "BS",
+            "visualDir": "for"
+        },
+        {
+            "id": "t",
+            "fromNodeID": "b",
+            "toNodeID": "K",
+            "fromConnectorID": "BT",
+            "toConnectorID": "y",
+            "visualDir": "for"
+        },
+        {
+            "id": "u",
+            "fromNodeID": "b",
+            "toNodeID": "c",
+            "fromConnectorID": "BU",
+            "toConnectorID": "BV",
+            "visualDir": "for"
+        },
+        {
+            "id": "v",
+            "fromNodeID": "c",
+            "toNodeID": "d",
+            "fromConnectorID": "BW",
+            "toConnectorID": "BX",
+            "visualDir": "for"
+        },
+        {
+            "id": "w",
+            "fromNodeID": "d",
+            "toNodeID": "e",
+            "fromConnectorID": "BY",
+            "toConnectorID": "BZ",
+            "visualDir": "for"
+        },
+        {
+            "id": "y",
+            "fromNodeID": "E",
+            "toNodeID": "g",
+            "fromConnectorID": "c",
+            "toConnectorID": "Bb",
+            "visualDir": "for"
+        },
+        {
+            "id": "z",
+            "fromNodeID": "g",
+            "toNodeID": "W",
+            "fromConnectorID": "Bc",
+            "toConnectorID": "BA",
+            "visualDir": "for"
+        },
+        {
+            "id": "0",
+            "fromNodeID": "E",
+            "toNodeID": "g",
+            "fromConnectorID": "d",
+            "toConnectorID": "Be",
+            "visualDir": "for"
+        },
+        {
+            "id": "1",
+            "fromNodeID": "g",
+            "toNodeID": "W",
+            "fromConnectorID": "Bd",
+            "toConnectorID": "BD",
+            "visualDir": "for"
+        },
+        {
+            "id": "2",
+            "fromNodeID": "W",
+            "toNodeID": "g",
+            "fromConnectorID": "BE",
+            "toConnectorID": "Bf",
+            "visualDir": "back"
+        },
+        {
+            "id": "3",
+            "fromNodeID": "g",
+            "toNodeID": "E",
+            "fromConnectorID": "Bg",
+            "toConnectorID": "f",
+            "visualDir": "back"
+        },
+        {
+            "id": "4",
+            "fromNodeID": "W",
+            "toNodeID": "g",
+            "fromConnectorID": "BF",
+            "toConnectorID": "Bi",
+            "visualDir": "back"
+        },
+        {
+            "id": "5",
+            "fromNodeID": "g",
+            "toNodeID": "E",
+            "fromConnectorID": "Bh",
+            "toConnectorID": "h",
+            "visualDir": "back"
+        },
+        {
+            "id": "6",
+            "fromNodeID": "e",
+            "toNodeID": "g",
+            "fromConnectorID": "Ba",
+            "toConnectorID": "Bj",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bj",
+            "fromNodeID": "E",
+            "toNodeID": "U",
+            "fromConnectorID": "g",
+            "toConnectorID": "\\",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bk",
+            "fromNodeID": "U",
+            "toNodeID": "D",
+            "fromConnectorID": "]",
+            "toConnectorID": "Z",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bl",
+            "fromNodeID": "L",
+            "toNodeID": "M",
+            "fromConnectorID": "2",
+            "toConnectorID": "9",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bm",
+            "fromNodeID": "M",
+            "toNodeID": "N",
+            "fromConnectorID": "8",
+            "toConnectorID": "~",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bn",
+            "fromNodeID": "N",
+            "toNodeID": "A",
+            "fromConnectorID": "}",
+            "toConnectorID": "G",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bo",
+            "fromNodeID": "C",
+            "toNodeID": "L",
+            "fromConnectorID": "R",
+            "toConnectorID": "5",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bp",
+            "fromNodeID": "A",
+            "toNodeID": "I",
+            "fromConnectorID": "C",
+            "toConnectorID": "r",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bq",
+            "fromNodeID": "I",
+            "toNodeID": "BI",
+            "fromConnectorID": "p",
+            "toConnectorID": "Bk",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bs",
+            "fromNodeID": "BJ",
+            "toNodeID": "BK",
+            "fromConnectorID": "Bo",
+            "toConnectorID": "Bp",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bu",
+            "fromNodeID": "BL",
+            "toNodeID": "BM",
+            "fromConnectorID": "Bu",
+            "toConnectorID": "Bz",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bv",
+            "fromNodeID": "BM",
+            "toNodeID": "BN",
+            "fromConnectorID": "B0",
+            "toConnectorID": "B2",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bw",
+            "fromNodeID": "BI",
+            "toNodeID": "BO",
+            "fromConnectorID": "Bl",
+            "toConnectorID": "B7",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bx",
+            "fromNodeID": "BO",
+            "toNodeID": "BJ",
+            "fromConnectorID": "B8",
+            "toConnectorID": "Bn",
+            "visualDir": "for"
+        },
+        {
+            "id": "Bz",
+            "fromNodeID": "BO",
+            "toNodeID": "N",
+            "fromConnectorID": "B9",
+            "toConnectorID": "!",
+            "visualDir": "for"
+        },
+        {
+            "id": "B0",
+            "fromNodeID": "BK",
+            "toNodeID": "BP",
+            "fromConnectorID": "Bq",
+            "toConnectorID": "B|",
+            "visualDir": "for"
+        },
+        {
+            "id": "B1",
+            "fromNodeID": "BP",
+            "toNodeID": "BL",
+            "fromConnectorID": "B}",
+            "toConnectorID": "Bt",
+            "visualDir": "for"
+        },
+        {
+            "id": "B2",
+            "fromNodeID": "BN",
+            "toNodeID": "BQ",
+            "fromConnectorID": "B3",
+            "toConnectorID": "B$",
+            "visualDir": "for"
+        },
+        {
+            "id": "B3",
+            "fromNodeID": "BQ",
+            "toNodeID": "BO",
+            "fromConnectorID": "B%",
+            "toConnectorID": "B{",
+            "visualDir": "for"
+        },
+        {
+            "id": "B4",
+            "fromNodeID": "BP",
+            "toNodeID": "BQ",
+            "fromConnectorID": "B~",
+            "toConnectorID": "B&",
+            "visualDir": "for"
+        },
+        {
+            "id": "B5",
+            "fromNodeID": "BK",
+            "toNodeID": "BP",
+            "fromConnectorID": "Br",
+            "toConnectorID": "B#",
+            "visualDir": "for"
+        },
+        {
+            "id": "B6",
+            "fromNodeID": "BP",
+            "toNodeID": "BL",
+            "fromConnectorID": "B!",
+            "toConnectorID": "By",
+            "visualDir": "for"
+        },
+        {
+            "id": "B7",
+            "fromNodeID": "L",
+            "toNodeID": "BR",
+            "fromConnectorID": "3",
+            "toConnectorID": "B)",
+            "visualDir": "for"
+        },
+        {
+            "id": "B9",
+            "fromNodeID": "L",
+            "toNodeID": "BS",
+            "fromConnectorID": "4",
+            "toConnectorID": "B+",
+            "visualDir": "for"
+        },
+        {
+            "id": "B{",
+            "fromNodeID": "BS",
+            "toNodeID": "BT",
+            "fromConnectorID": "B,",
+            "toConnectorID": "B-",
+            "visualDir": "for"
+        },
+        {
+            "id": "B|",
+            "fromNodeID": "BT",
+            "toNodeID": "BU",
+            "fromConnectorID": "B.",
+            "toConnectorID": "B/",
+            "visualDir": "for"
+        },
+        {
+            "id": "B}",
+            "fromNodeID": "BU",
+            "toNodeID": "BV",
+            "fromConnectorID": "B:",
+            "toConnectorID": "B;",
+            "visualDir": "for"
+        },
+        {
+            "id": "B~",
+            "fromNodeID": "BV",
+            "toNodeID": "K",
+            "fromConnectorID": "B<",
+            "toConnectorID": "z",
+            "visualDir": "for"
+        },
+        {
+            "id": "B!",
+            "fromNodeID": "I",
+            "toNodeID": "BW",
+            "fromConnectorID": "q",
+            "toConnectorID": "B>",
+            "visualDir": "for"
+        },
+        {
+            "id": "B#",
+            "fromNodeID": "BW",
+            "toNodeID": "BX",
+            "fromConnectorID": "B?",
+            "toConnectorID": "B[",
+            "visualDir": "for"
+        },
+        {
+            "id": "B%",
+            "fromNodeID": "BY",
+            "toNodeID": "O",
+            "fromConnectorID": "B_",
+            "toConnectorID": "\"",
+            "visualDir": "for"
+        },
+        {
+            "id": "B&",
+            "fromNodeID": "BW",
+            "toNodeID": "BZ",
+            "fromConnectorID": "B@",
+            "toConnectorID": "CA",
+            "visualDir": "for"
+        },
+        {
+            "id": "B(",
+            "fromNodeID": "BX",
+            "toNodeID": "Ba",
+            "fromConnectorID": "B\\",
+            "toConnectorID": "CD",
+            "visualDir": "for"
+        },
+        {
+            "id": "B*",
+            "fromNodeID": "BZ",
+            "toNodeID": "Ba",
+            "fromConnectorID": "CB",
+            "toConnectorID": "CF",
+            "visualDir": "for"
+        },
+        {
+            "id": "B+",
+            "fromNodeID": "BZ",
+            "toNodeID": "Bb",
+            "fromConnectorID": "CC",
+            "toConnectorID": "CG",
+            "visualDir": "for"
+        },
+        {
+            "id": "B,",
+            "fromNodeID": "Bb",
+            "toNodeID": "O",
+            "fromConnectorID": "CH",
+            "toConnectorID": "$",
+            "visualDir": "for"
+        },
+        {
+            "id": "B-",
+            "fromNodeID": "Ba",
+            "toNodeID": "Bc",
+            "fromConnectorID": "CE",
+            "toConnectorID": "CJ",
+            "visualDir": "for"
+        },
+        {
+            "id": "B.",
+            "fromNodeID": "Bc",
+            "toNodeID": "BY",
+            "fromConnectorID": "CK",
+            "toConnectorID": "B^",
+            "visualDir": "for"
+        },
+        {
+            "id": "B/",
+            "fromNodeID": "Bb",
+            "toNodeID": "Bc",
+            "fromConnectorID": "CI",
+            "toConnectorID": "CL",
+            "visualDir": "for"
+        },
+        {
+            "id": "B:",
+            "fromNodeID": "BY",
+            "toNodeID": "Bd",
+            "fromConnectorID": "B`",
+            "toConnectorID": "CM",
+            "visualDir": "for"
+        },
+        {
+            "id": "B;",
+            "fromNodeID": "Bd",
+            "toNodeID": "R",
+            "fromConnectorID": "CN",
+            "toConnectorID": ".",
+            "visualDir": "for"
+        },
+        {
+            "id": "B<",
+            "fromNodeID": "BL",
+            "toNodeID": "BQ",
+            "fromConnectorID": "Bv",
+            "toConnectorID": "B'",
+            "visualDir": "for"
+        },
+        {
+            "id": "B[",
+            "fromNodeID": "Bg",
+            "toNodeID": "X",
+            "fromConnectorID": "CY",
+            "toConnectorID": "BI",
+            "visualDir": "for"
+        },
+        {
+            "id": "B\\",
+            "fromNodeID": "Bg",
+            "toNodeID": "X",
+            "fromConnectorID": "CZ",
+            "toConnectorID": "BJ",
+            "visualDir": "for"
+        },
+        {
+            "id": "B]",
+            "fromNodeID": "BV",
+            "toNodeID": "Be",
+            "fromConnectorID": "B=",
+            "toConnectorID": "CP",
+            "visualDir": "for"
+        },
+        {
+            "id": "B^",
+            "fromNodeID": "a",
+            "toNodeID": "Bh",
+            "fromConnectorID": "BR",
+            "toConnectorID": "Cb",
+            "visualDir": "for"
+        },
+        {
+            "id": "B_",
+            "fromNodeID": "Bh",
+            "toNodeID": "Be",
+            "fromConnectorID": "Cc",
+            "toConnectorID": "CS",
+            "visualDir": "for"
+        },
+        {
+            "id": "B`",
+            "fromNodeID": "E",
+            "toNodeID": "J",
+            "fromConnectorID": "e",
+            "toConnectorID": "v",
+            "visualDir": "for"
+        },
+        {
+            "id": "CA",
+            "fromNodeID": "B",
+            "toNodeID": "E",
+            "fromConnectorID": "K",
+            "toConnectorID": "i",
+            "visualDir": "for"
+        },
+        {
+            "id": "CB",
+            "fromNodeID": "Bi",
+            "toNodeID": "Bj",
+            "fromConnectorID": "Ch",
+            "toConnectorID": "Ck",
+            "visualDir": "for"
+        },
+        {
+            "id": "CC",
+            "fromNodeID": "Bi",
+            "toNodeID": "Bj",
+            "fromConnectorID": "Ci",
+            "toConnectorID": "Cn",
+            "visualDir": "for"
+        },
+        {
+            "id": "CD",
+            "fromNodeID": "Bj",
+            "toNodeID": "Bi",
+            "fromConnectorID": "Cp",
+            "toConnectorID": "Cd",
+            "visualDir": "back"
+        },
+        {
+            "id": "CE",
+            "fromNodeID": "Bj",
+            "toNodeID": "Bi",
+            "fromConnectorID": "Cq",
+            "toConnectorID": "Cf",
+            "visualDir": "back"
+        },
+        {
+            "id": "CJ",
+            "fromNodeID": "Bk",
+            "toNodeID": "Bl",
+            "fromConnectorID": "Cx",
+            "toConnectorID": "C0",
+            "visualDir": "for"
+        },
+        {
+            "id": "CK",
+            "fromNodeID": "Bk",
+            "toNodeID": "Bl",
+            "fromConnectorID": "Cy",
+            "toConnectorID": "C2",
+            "visualDir": "for"
+        },
+        {
+            "id": "CL",
+            "fromNodeID": "Bl",
+            "toNodeID": "Bk",
+            "fromConnectorID": "C4",
+            "toConnectorID": "Cs",
+            "visualDir": "back"
+        },
+        {
+            "id": "CM",
+            "fromNodeID": "Bl",
+            "toNodeID": "Bk",
+            "fromConnectorID": "C5",
+            "toConnectorID": "Cv",
+            "visualDir": "back"
+        },
+        {
+            "id": "CN",
+            "fromNodeID": "Be",
+            "toNodeID": "Bm",
+            "fromConnectorID": "CQ",
+            "toConnectorID": "C6",
+            "visualDir": "for"
+        },
+        {
+            "id": "CO",
+            "fromNodeID": "Bm",
+            "toNodeID": "Bf",
+            "fromConnectorID": "C7",
+            "toConnectorID": "CT",
+            "visualDir": "for"
+        },
+        {
+            "id": "CP",
+            "fromNodeID": "Be",
+            "toNodeID": "Bm",
+            "fromConnectorID": "CR",
+            "toConnectorID": "C{",
+            "visualDir": "for"
+        },
+        {
+            "id": "CQ",
+            "fromNodeID": "Bm",
+            "toNodeID": "Bf",
+            "fromConnectorID": "C8",
+            "toConnectorID": "CW",
+            "visualDir": "for"
+        },
+        {
+            "id": "CR",
+            "fromNodeID": "Bm",
+            "toNodeID": "Bn",
+            "fromConnectorID": "C9",
+            "toConnectorID": "C|",
+            "visualDir": "for"
+        },
+        {
+            "id": "CS",
+            "fromNodeID": "Bn",
+            "toNodeID": "Bl",
+            "fromConnectorID": "C}",
+            "toConnectorID": "C3",
+            "visualDir": "for"
+        },
+        {
+            "id": "CT",
+            "fromNodeID": "Bl",
+            "toNodeID": "Bo",
+            "fromConnectorID": "C1",
+            "toConnectorID": "C~",
+            "visualDir": "for"
+        },
+        {
+            "id": "CU",
+            "fromNodeID": "Bf",
+            "toNodeID": "Bp",
+            "fromConnectorID": "CU",
+            "toConnectorID": "C\"",
+            "visualDir": "for"
+        },
+        {
+            "id": "CV",
+            "fromNodeID": "Bp",
+            "toNodeID": "Bg",
+            "fromConnectorID": "C#",
+            "toConnectorID": "CX",
+            "visualDir": "for"
+        },
+        {
+            "id": "CW",
+            "fromNodeID": "Bf",
+            "toNodeID": "Bp",
+            "fromConnectorID": "CV",
+            "toConnectorID": "C%",
+            "visualDir": "for"
+        },
+        {
+            "id": "CX",
+            "fromNodeID": "Bp",
+            "toNodeID": "Bg",
+            "fromConnectorID": "C$",
+            "toConnectorID": "Ca",
+            "visualDir": "for"
+        },
+        {
+            "id": "CY",
+            "fromNodeID": "Bo",
+            "toNodeID": "Bp",
+            "fromConnectorID": "C!",
+            "toConnectorID": "C&",
+            "visualDir": "for"
+        },
+        {
+            "id": "CZ",
+            "fromNodeID": "BL",
+            "toNodeID": "Bi",
+            "fromConnectorID": "Bw",
+            "toConnectorID": "Cg",
+            "visualDir": "for"
+        },
+        {
+            "id": "Ca",
+            "fromNodeID": "BL",
+            "toNodeID": "Bi",
+            "fromConnectorID": "Bx",
+            "toConnectorID": "Cj",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cb",
+            "fromNodeID": "Bi",
+            "toNodeID": "Bq",
+            "fromConnectorID": "Ce",
+            "toConnectorID": "C'",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cc",
+            "fromNodeID": "Bq",
+            "toNodeID": "Br",
+            "fromConnectorID": "C(",
+            "toConnectorID": "C)",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cd",
+            "fromNodeID": "Br",
+            "toNodeID": "Bs",
+            "fromConnectorID": "C*",
+            "toConnectorID": "C+",
+            "visualDir": "for"
+        },
+        {
+            "id": "Ce",
+            "fromNodeID": "Bs",
+            "toNodeID": "BM",
+            "fromConnectorID": "C,",
+            "toConnectorID": "B1",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cg",
+            "fromNodeID": "Bt",
+            "toNodeID": "Bu",
+            "fromConnectorID": "C.",
+            "toConnectorID": "C/",
+            "visualDir": "for"
+        },
+        {
+            "id": "Ch",
+            "fromNodeID": "Bu",
+            "toNodeID": "Bv",
+            "fromConnectorID": "C:",
+            "toConnectorID": "C;",
+            "visualDir": "for"
+        },
+        {
+            "id": "Ci",
+            "fromNodeID": "Bv",
+            "toNodeID": "Bw",
+            "fromConnectorID": "C<",
+            "toConnectorID": "C=",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cj",
+            "fromNodeID": "Bw",
+            "toNodeID": "BN",
+            "fromConnectorID": "C>",
+            "toConnectorID": "B6",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cl",
+            "fromNodeID": "Bj",
+            "toNodeID": "Bz",
+            "fromConnectorID": "Cl",
+            "toConnectorID": "C?",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cm",
+            "fromNodeID": "Bz",
+            "toNodeID": "Bk",
+            "fromConnectorID": "C@",
+            "toConnectorID": "Cw",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cn",
+            "fromNodeID": "Bj",
+            "toNodeID": "Bz",
+            "fromConnectorID": "Cm",
+            "toConnectorID": "C^",
+            "visualDir": "for"
+        },
+        {
+            "id": "Co",
+            "fromNodeID": "Bz",
+            "toNodeID": "Bk",
+            "fromConnectorID": "C[",
+            "toConnectorID": "Cz",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cp",
+            "fromNodeID": "Bk",
+            "toNodeID": "Bz",
+            "fromConnectorID": "Ct",
+            "toConnectorID": "C_",
+            "visualDir": "back"
+        },
+        {
+            "id": "Cq",
+            "fromNodeID": "Bz",
+            "toNodeID": "Bj",
+            "fromConnectorID": "C`",
+            "toConnectorID": "Co",
+            "visualDir": "back"
+        },
+        {
+            "id": "Cr",
+            "fromNodeID": "Bk",
+            "toNodeID": "Bz",
+            "fromConnectorID": "Cu",
+            "toConnectorID": "DB",
+            "visualDir": "back"
+        },
+        {
+            "id": "Cs",
+            "fromNodeID": "Bz",
+            "toNodeID": "Bj",
+            "fromConnectorID": "DA",
+            "toConnectorID": "Cr",
+            "visualDir": "back"
+        },
+        {
+            "id": "Ct",
+            "fromNodeID": "Bz",
+            "toNodeID": "B0",
+            "fromConnectorID": "C\\",
+            "toConnectorID": "DC",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cu",
+            "fromNodeID": "B0",
+            "toNodeID": "B1",
+            "fromConnectorID": "DD",
+            "toConnectorID": "DE",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cv",
+            "fromNodeID": "B1",
+            "toNodeID": "Bt",
+            "fromConnectorID": "DF",
+            "toConnectorID": "C-",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cw",
+            "fromNodeID": "BR",
+            "toNodeID": "B2",
+            "fromConnectorID": "B*",
+            "toConnectorID": "DG",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cy",
+            "fromNodeID": "Bz",
+            "toNodeID": "B2",
+            "fromConnectorID": "C]",
+            "toConnectorID": "DI",
+            "visualDir": "for"
+        },
+        {
+            "id": "Cz",
+            "fromNodeID": "B3",
+            "toNodeID": "B4",
+            "fromConnectorID": "DM",
+            "toConnectorID": "DO",
+            "visualDir": "for"
+        },
+        {
+            "id": "C0",
+            "fromNodeID": "B4",
+            "toNodeID": "B3",
+            "fromConnectorID": "DR",
+            "toConnectorID": "DJ",
+            "visualDir": "back"
+        },
+        {
+            "id": "C1",
+            "fromNodeID": "B4",
+            "toNodeID": "B5",
+            "fromConnectorID": "DP",
+            "toConnectorID": "DS",
+            "visualDir": "for"
+        },
+        {
+            "id": "C2",
+            "fromNodeID": "B5",
+            "toNodeID": "B4",
+            "fromConnectorID": "DX",
+            "toConnectorID": "DQ",
+            "visualDir": "back"
+        },
+        {
+            "id": "C5",
+            "fromNodeID": "B6",
+            "toNodeID": "B7",
+            "fromConnectorID": "Dd",
+            "toConnectorID": "De",
+            "visualDir": "for"
+        },
+        {
+            "id": "C6",
+            "fromNodeID": "B7",
+            "toNodeID": "B6",
+            "fromConnectorID": "Dh",
+            "toConnectorID": "DZ",
+            "visualDir": "back"
+        },
+        {
+            "id": "C7",
+            "fromNodeID": "BX",
+            "toNodeID": "B3",
+            "fromConnectorID": "B]",
+            "toConnectorID": "DL",
+            "visualDir": "for"
+        },
+        {
+            "id": "C8",
+            "fromNodeID": "B3",
+            "toNodeID": "BI",
+            "fromConnectorID": "DK",
+            "toConnectorID": "Bm",
+            "visualDir": "for"
+        },
+        {
+            "id": "C9",
+            "fromNodeID": "B5",
+            "toNodeID": "B8",
+            "fromConnectorID": "DT",
+            "toConnectorID": "Dj",
+            "visualDir": "for"
+        },
+        {
+            "id": "C{",
+            "fromNodeID": "B8",
+            "toNodeID": "B6",
+            "fromConnectorID": "Dk",
+            "toConnectorID": "Dc",
+            "visualDir": "for"
+        },
+        {
+            "id": "C|",
+            "fromNodeID": "B6",
+            "toNodeID": "B8",
+            "fromConnectorID": "Da",
+            "toConnectorID": "Dm",
+            "visualDir": "back"
+        },
+        {
+            "id": "C}",
+            "fromNodeID": "B8",
+            "toNodeID": "B5",
+            "fromConnectorID": "Dn",
+            "toConnectorID": "DW",
+            "visualDir": "back"
+        },
+        {
+            "id": "C!",
+            "fromNodeID": "B9",
+            "toNodeID": "B{",
+            "fromConnectorID": "Dq",
+            "toConnectorID": "Dt",
+            "visualDir": "for"
+        },
+        {
+            "id": "C\"",
+            "fromNodeID": "B{",
+            "toNodeID": "B|",
+            "fromConnectorID": "Du",
+            "toConnectorID": "Dv",
+            "visualDir": "for"
+        },
+        {
+            "id": "C#",
+            "fromNodeID": "B|",
+            "toNodeID": "B}",
+            "fromConnectorID": "Dw",
+            "toConnectorID": "Dy",
+            "visualDir": "for"
+        },
+        {
+            "id": "C$",
+            "fromNodeID": "B}",
+            "toNodeID": "B~",
+            "fromConnectorID": "Dz",
+            "toConnectorID": "D0",
+            "visualDir": "for"
+        },
+        {
+            "id": "C%",
+            "fromNodeID": "B~",
+            "toNodeID": "B!",
+            "fromConnectorID": "D1",
+            "toConnectorID": "D2",
+            "visualDir": "for"
+        },
+        {
+            "id": "C&",
+            "fromNodeID": "B!",
+            "toNodeID": "B\"",
+            "fromConnectorID": "D3",
+            "toConnectorID": "D4",
+            "visualDir": "for"
+        },
+        {
+            "id": "C'",
+            "fromNodeID": "B\"",
+            "toNodeID": "B#",
+            "fromConnectorID": "D5",
+            "toConnectorID": "D6",
+            "visualDir": "for"
+        },
+        {
+            "id": "C(",
+            "fromNodeID": "B#",
+            "toNodeID": "B$",
+            "fromConnectorID": "D7",
+            "toConnectorID": "D9",
+            "visualDir": "for"
+        },
+        {
+            "id": "C)",
+            "fromNodeID": "B$",
+            "toNodeID": "B%",
+            "fromConnectorID": "D{",
+            "toConnectorID": "D|",
+            "visualDir": "for"
+        },
+        {
+            "id": "C*",
+            "fromNodeID": "B9",
+            "toNodeID": "B&",
+            "fromConnectorID": "Dr",
+            "toConnectorID": "D}",
+            "visualDir": "for"
+        },
+        {
+            "id": "C+",
+            "fromNodeID": "B&",
+            "toNodeID": "B'",
+            "fromConnectorID": "D~",
+            "toConnectorID": "D!",
+            "visualDir": "for"
+        },
+        {
+            "id": "C,",
+            "fromNodeID": "B'",
+            "toNodeID": "B(",
+            "fromConnectorID": "D\"",
+            "toConnectorID": "D$",
+            "visualDir": "for"
+        },
+        {
+            "id": "C-",
+            "fromNodeID": "B8",
+            "toNodeID": "B)",
+            "fromConnectorID": "Dl",
+            "toConnectorID": "D%",
+            "visualDir": "for"
+        },
+        {
+            "id": "C.",
+            "fromNodeID": "B)",
+            "toNodeID": "B9",
+            "fromConnectorID": "D&",
+            "toConnectorID": "Dp",
+            "visualDir": "for"
+        },
+        {
+            "id": "C/",
+            "fromNodeID": "B)",
+            "toNodeID": "B*",
+            "fromConnectorID": "D'",
+            "toConnectorID": "D,",
+            "visualDir": "for"
+        },
+        {
+            "id": "C:",
+            "fromNodeID": "B*",
+            "toNodeID": "B+",
+            "fromConnectorID": "D-",
+            "toConnectorID": "D.",
+            "visualDir": "for"
+        },
+        {
+            "id": "C=",
+            "fromNodeID": "B7",
+            "toNodeID": "B.",
+            "fromConnectorID": "Df",
+            "toConnectorID": "D/",
+            "visualDir": "for"
+        },
+        {
+            "id": "C>",
+            "fromNodeID": "B.",
+            "toNodeID": "B/",
+            "fromConnectorID": "D:",
+            "toConnectorID": "D<",
+            "visualDir": "for"
+        },
+        {
+            "id": "C?",
+            "fromNodeID": "B/",
+            "toNodeID": "B)",
+            "fromConnectorID": "D=",
+            "toConnectorID": "D)",
+            "visualDir": "for"
+        },
+        {
+            "id": "C@",
+            "fromNodeID": "BN",
+            "toNodeID": "B:",
+            "fromConnectorID": "B4",
+            "toConnectorID": "D@",
+            "visualDir": "for"
+        },
+        {
+            "id": "C[",
+            "fromNodeID": "BN",
+            "toNodeID": "B:",
+            "fromConnectorID": "B5",
+            "toConnectorID": "D_",
+            "visualDir": "for"
+        },
+        {
+            "id": "C\\",
+            "fromNodeID": "B:",
+            "toNodeID": "B7",
+            "fromConnectorID": "D[",
+            "toConnectorID": "Dg",
+            "visualDir": "for"
+        },
+        {
+            "id": "C]",
+            "fromNodeID": "B:",
+            "toNodeID": "B7",
+            "fromConnectorID": "D\\",
+            "toConnectorID": "Di",
+            "visualDir": "for"
+        },
+        {
+            "id": "C^",
+            "fromNodeID": "B:",
+            "toNodeID": "B;",
+            "fromConnectorID": "D]",
+            "toConnectorID": "D`",
+            "visualDir": "for"
+        },
+        {
+            "id": "C_",
+            "fromNodeID": "B:",
+            "toNodeID": "B;",
+            "fromConnectorID": "D^",
+            "toConnectorID": "EC",
+            "visualDir": "for"
+        },
+        {
+            "id": "C`",
+            "fromNodeID": "B;",
+            "toNodeID": "B.",
+            "fromConnectorID": "EA",
+            "toConnectorID": "D;",
+            "visualDir": "for"
+        },
+        {
+            "id": "DA",
+            "fromNodeID": "B;",
+            "toNodeID": "B|",
+            "fromConnectorID": "EB",
+            "toConnectorID": "Dx",
+            "visualDir": "for"
+        },
+        {
+            "id": "DB",
+            "fromNodeID": "B5",
+            "toNodeID": "B<",
+            "fromConnectorID": "DU",
+            "toConnectorID": "ED",
+            "visualDir": "for"
+        },
+        {
+            "id": "DC",
+            "fromNodeID": "B5",
+            "toNodeID": "B<",
+            "fromConnectorID": "DV",
+            "toConnectorID": "EG",
+            "visualDir": "for"
+        },
+        {
+            "id": "DD",
+            "fromNodeID": "B<",
+            "toNodeID": "B5",
+            "fromConnectorID": "EI",
+            "toConnectorID": "DY",
+            "visualDir": "back"
+        },
+        {
+            "id": "DH",
+            "fromNodeID": "Bd",
+            "toNodeID": "B>",
+            "fromConnectorID": "CO",
+            "toConnectorID": "EP",
+            "visualDir": "for"
+        },
+        {
+            "id": "DI",
+            "fromNodeID": "B>",
+            "toNodeID": "B?",
+            "fromConnectorID": "EQ",
+            "toConnectorID": "ER",
+            "visualDir": "for"
+        },
+        {
+            "id": "DJ",
+            "fromNodeID": "B?",
+            "toNodeID": "B=",
+            "fromConnectorID": "ES",
+            "toConnectorID": "EJ",
+            "visualDir": "for"
+        },
+        {
+            "id": "DK",
+            "fromNodeID": "B=",
+            "toNodeID": "B@",
+            "fromConnectorID": "EK",
+            "toConnectorID": "ET",
+            "visualDir": "for"
+        },
+        {
+            "id": "DL",
+            "fromNodeID": "B@",
+            "toNodeID": "B[",
+            "fromConnectorID": "EU",
+            "toConnectorID": "EX",
+            "visualDir": "for"
+        },
+        {
+            "id": "DM",
+            "fromNodeID": "B[",
+            "toNodeID": "B\\",
+            "fromConnectorID": "EY",
+            "toConnectorID": "Eb",
+            "visualDir": "for"
+        },
+        {
+            "id": "DN",
+            "fromNodeID": "B\\",
+            "toNodeID": "S",
+            "fromConnectorID": "Ec",
+            "toConnectorID": ";",
+            "visualDir": "for"
+        },
+        {
+            "id": "DO",
+            "fromNodeID": "B=",
+            "toNodeID": "B@",
+            "fromConnectorID": "EL",
+            "toConnectorID": "EW",
+            "visualDir": "for"
+        },
+        {
+            "id": "DP",
+            "fromNodeID": "B@",
+            "toNodeID": "B[",
+            "fromConnectorID": "EV",
+            "toConnectorID": "Ea",
+            "visualDir": "for"
+        },
+        {
+            "id": "DQ",
+            "fromNodeID": "B[",
+            "toNodeID": "B\\",
+            "fromConnectorID": "EZ",
+            "toConnectorID": "Ee",
+            "visualDir": "for"
+        },
+        {
+            "id": "DR",
+            "fromNodeID": "B\\",
+            "toNodeID": "B]",
+            "fromConnectorID": "Ed",
+            "toConnectorID": "Ef",
+            "visualDir": "for"
+        },
+        {
+            "id": "DS",
+            "fromNodeID": "B]",
+            "toNodeID": "B^",
+            "fromConnectorID": "Eg",
+            "toConnectorID": "Eh",
+            "visualDir": "for"
+        },
+        {
+            "id": "DT",
+            "fromNodeID": "B^",
+            "toNodeID": "Y",
+            "fromConnectorID": "Ei",
+            "toConnectorID": "BM",
+            "visualDir": "for"
+        },
+        {
+            "id": "DU",
+            "fromNodeID": "B_",
+            "toNodeID": "B`",
+            "fromConnectorID": "Ej",
+            "toConnectorID": "El",
+            "visualDir": "for"
+        },
+        {
+            "id": "DV",
+            "fromNodeID": "B`",
+            "toNodeID": "CA",
+            "fromConnectorID": "Em",
+            "toConnectorID": "En",
+            "visualDir": "for"
+        },
+        {
+            "id": "DW",
+            "fromNodeID": "CA",
+            "toNodeID": "B3",
+            "fromConnectorID": "Eo",
+            "toConnectorID": "DN",
+            "visualDir": "for"
+        },
+        {
+            "id": "DX",
+            "fromNodeID": "B'",
+            "toNodeID": "CB",
+            "fromConnectorID": "D#",
+            "toConnectorID": "Ep",
+            "visualDir": "for"
+        },
+        {
+            "id": "DY",
+            "fromNodeID": "B#",
+            "toNodeID": "CC",
+            "fromConnectorID": "D8",
+            "toConnectorID": "Eq",
+            "visualDir": "for"
+        },
+        {
+            "id": "DZ",
+            "fromNodeID": "B2",
+            "toNodeID": "CD",
+            "fromConnectorID": "DH",
+            "toConnectorID": "Er",
+            "visualDir": "for"
+        },
+        {
+            "id": "Da",
+            "fromNodeID": "CD",
+            "toNodeID": "BK",
+            "fromConnectorID": "Es",
+            "toConnectorID": "Bs",
+            "visualDir": "for"
+        },
+        {
+            "id": "Db",
+            "fromNodeID": "CD",
+            "toNodeID": "CE",
+            "fromConnectorID": "Et",
+            "toConnectorID": "Eu",
+            "visualDir": "for"
+        },
+        {
+            "id": "Dc",
+            "fromNodeID": "CE",
+            "toNodeID": "CF",
+            "fromConnectorID": "Ev",
+            "toConnectorID": "Ew",
+            "visualDir": "for"
+        },
+        {
+            "id": "Dd",
+            "fromNodeID": "B<",
+            "toNodeID": "CG",
+            "fromConnectorID": "EE",
+            "toConnectorID": "Ex",
+            "visualDir": "for"
+        },
+        {
+            "id": "De",
+            "fromNodeID": "CG",
+            "toNodeID": "B=",
+            "fromConnectorID": "Ey",
+            "toConnectorID": "EN",
+            "visualDir": "for"
+        },
+        {
+            "id": "Df",
+            "fromNodeID": "B<",
+            "toNodeID": "CG",
+            "fromConnectorID": "EF",
+            "toConnectorID": "E0",
+            "visualDir": "for"
+        },
+        {
+            "id": "Dg",
+            "fromNodeID": "CG",
+            "toNodeID": "B=",
+            "fromConnectorID": "Ez",
+            "toConnectorID": "EO",
+            "visualDir": "for"
+        },
+        {
+            "id": "Dh",
+            "fromNodeID": "B=",
+            "toNodeID": "CG",
+            "fromConnectorID": "EM",
+            "toConnectorID": "E1",
+            "visualDir": "back"
+        },
+        {
+            "id": "Di",
+            "fromNodeID": "CG",
+            "toNodeID": "B<",
+            "fromConnectorID": "E2",
+            "toConnectorID": "EH",
+            "visualDir": "back"
+        },
+        {
+            "id": "Dj",
+            "fromNodeID": "B_",
+            "toNodeID": "CG",
+            "fromConnectorID": "Ek",
+            "toConnectorID": "E3",
+            "visualDir": "for"
+        },
+        {
+            "id": "Dk",
+            "fromNodeID": "B)",
+            "toNodeID": "B8",
+            "fromConnectorID": "D*",
+            "toConnectorID": "Do",
+            "visualDir": "for"
+        },
+        {
+            "id": "Dl",
+            "fromNodeID": "BP",
+            "toNodeID": "BQ",
+            "fromConnectorID": "B\"",
+            "toConnectorID": "B(",
+            "visualDir": "for"
+        },
+        {
+            "id": "Dm",
+            "fromNodeID": "B)",
+            "toNodeID": "B9",
+            "fromConnectorID": "D(",
+            "toConnectorID": "Ds",
+            "visualDir": "for"
+        },
+        {
+            "id": "Dn",
+            "fromNodeID": "B/",
+            "toNodeID": "B)",
+            "fromConnectorID": "D>",
+            "toConnectorID": "D+",
+            "visualDir": "for"
+        },
+        {
+            "id": "Do",
+            "fromNodeID": "B6",
+            "toNodeID": "B/",
+            "fromConnectorID": "Db",
+            "toConnectorID": "D?",
+            "visualDir": "for"
+        }
+    ],
+    "nodeIDcounter": "CH",
+    "segmentIDcounter": "Dp"
+}

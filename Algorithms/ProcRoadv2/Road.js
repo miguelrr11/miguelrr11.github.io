@@ -30,11 +30,11 @@ class Road{
     constructor(tool){
         this.tool = tool
 
-        this.segments = []
-        this.nodes = []
+        this.segments = new Map()
+        this.nodes = new Map()
 
         this.connectors = [] 
-        this.intersecSegs = []
+        this.intersecSegs = new Map()
         this.intersections = []
         this.paths = new Map()
 
@@ -59,17 +59,17 @@ class Road{
 
         this.paths = new Map()
         this.connectors = []
-        this.intersecSegs = []
+        this.intersecSegs = new Map()
         this.intersections = []
         //this.convexHullQueue = new Set()
         this.connectorIDcounter = 0
         this.intersecSegIDcounter = 0
         
-        for(let i = 0; i < this.nodes.length; i++){
-            for(let j = 0; j < this.nodes.length; j++){
+        for(let i = 0; i < this.nodes.size; i++){
+            for(let j = 0; j < this.nodes.size; j++){
                 if(i == j) continue
-                let nodeA = this.nodes[i]
-                let nodeB = this.nodes[j]
+                let nodeA = Array.from(this.nodes.values())[i]
+                let nodeB = Array.from(this.nodes.values())[j]
                 let segmentIDs = this.getAllSegmentsBetweenNodes(nodeA.id, nodeB.id).map(s => s.id)
                 if(this.paths.has(nodeA.id + '-' + nodeB.id) || this.paths.has(nodeB.id + '-' + nodeA.id)){
                     this.paths.get(nodeA.id + '-' + nodeB.id)?.segmentsIDs.add(...segmentIDs)
@@ -92,7 +92,7 @@ class Road{
         //     }
         // }
 
-        this.nodes.forEach(n => this.trimSegmentsAtIntersection({
+        this.nodes.forEach((n, key) => this.trimSegmentsAtIntersection({
             nodeID: n.id,
             activenessMap: activenessMap.get(n.id),
             connect: true,
@@ -105,7 +105,6 @@ class Road{
     //the current way to modify the road in the fly when wanting to connect two nodes
     //nodesIDs is an array of two node IDs
     updateRoad(nodesIDs, usePath = undefined, trim = true, straightMode = false){
-        console.log('updating road between nodes: ' + nodesIDs[0] + ' and ' + nodesIDs[1])
         let segmentIDs = new Set(this.getAllSegmentsBetweenNodes(nodesIDs[0], nodesIDs[1]).map(s => s.id))
         let newPath 
         if(usePath) newPath = usePath
@@ -138,7 +137,10 @@ class Road{
                 const connectorIDsSet = new Set(intersection.connectorsIDs)
                 const intersecSegsIDsSet = new Set(intersection.intersecSegsIDs)
                 this.connectors = this.connectors.filter(c => !connectorIDsSet.has(c.id))
-                this.intersecSegs = this.intersecSegs.filter(is => !intersecSegsIDsSet.has(is.id))
+                this.intersecSegs = new Map(
+                    Array.from(this.intersecSegs.entries())
+                        .filter(([key, is]) => !intersecSegsIDsSet.has(is.id))
+                );
                 this.intersections = this.intersections.filter(i => i.nodeID != nodeID)
             }
         }
@@ -190,7 +192,7 @@ class Road{
         let closestPointMain = undefined
         let minDist = Infinity
 
-        this.segments.forEach(s => {
+        this.segments.forEach((s, key) => {
             let fromPos = s.fromPos
             let toPos = s.toPos
             if(!fromPos || !toPos) return
@@ -229,7 +231,7 @@ class Road{
         let closestPoint = undefined
         let minDist = Infinity
 
-        this.segments.forEach(s => {
+        this.segments.forEach((s, key) => {
             let fromPos = s.fromNode ? s.fromNode.pos : (s.fromNodeID != undefined ? this.findNode(s.fromNodeID).pos : null)
             let toPos = s.toNode ? s.toNode.pos : (s.toNodeID != undefined ? this.findNode(s.toNodeID).pos : null)
             if(!fromPos || !toPos) return
@@ -253,7 +255,7 @@ class Road{
         let c1 = corner1.y < corner2.y ? corner1 : corner2
         let c2 = corner1.y < corner2.y ? corner2 : corner1
         let nodesInArea = []
-        this.nodes.forEach(node => {
+        this.nodes.forEach((node, key) => {
             if(inBoundsCorners(node.pos.x, node.pos.y, GLOBAL_EDGES, NODE_RAD) && 
             node.pos.x > c1.x && node.pos.x < c2.x && 
             node.pos.y > c1.y && node.pos.y < c2.y){
@@ -270,7 +272,8 @@ class Road{
     }
 
     getAllSegmentsBetweenNodesExclusively(nodeID1, nodeID2){
-        return this.segments.filter(s => (s.fromNodeID == nodeID1 && s.toNodeID == nodeID2))
+        return Array.from(this.segments.values())
+            .filter(s => s.fromNodeID == nodeID1 && s.toNodeID == nodeID2);
     }
 
     getAllPathsConnectedToNode(nodeID){
@@ -309,13 +312,13 @@ class Road{
             let intersection = this.findIntersection(nodeID)
             if(intersection){
                 this.connectors = this.connectors.filter(c => !intersection.connectorsIDs.includes(c.id))
-                this.intersecSegs = this.intersecSegs.filter(is => !intersection.intersecSegsIDs.includes(is.id))
+                this.intersecSegs = Array.from(this.intersecSegs.values()).filter(is => !intersection.intersecSegsIDs.includes(is.id))
                 this.intersections = this.intersections.filter(i => i.nodeID != nodeID)
             }
         }
         this.deletePath(nodeID)
 
-        this.nodes = this.nodes.filter(n => n.id != nodeID)
+        this.nodes.delete(nodeID)
 
         for(let nodeID of affectedNodeIDs){
             let node = this.findNode(nodeID)
@@ -357,7 +360,7 @@ class Road{
         }
 
         //remove the segment
-        this.segments = this.segments.filter(s => s.id != segmentID)
+        this.segments.delete(segmentID)
         fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
         fromNode.outgoingSegments = fromNode.outgoingSegments.filter(s => s.id != segmentID)
@@ -384,7 +387,7 @@ class Road{
         }
         let fromNode = this.findNode(segment.fromNodeID)
         let toNode = this.findNode(segment.toNodeID)
-        this.segments = this.segments.filter(s => s.id != segmentID)
+        this.segments.delete(segmentID)
         if(fromNode == undefined || toNode == undefined){
             console.log('Error deleting segment, node not found:\nfromNodeID = ' + segment.fromNodeID + ' | toNodeID = ' + segment.toNodeID)
             return
@@ -443,11 +446,11 @@ class Road{
     }
 
     findNode(id){
-        return this.nodes.find(n => n.id == id)
+        return this.nodes.get(id)
     }
 
     findSegment(id){
-        return this.segments.find(s => s.id == id)
+        return this.segments.get(id)
     }
 
     findConnector(id){
@@ -455,7 +458,7 @@ class Road{
     }
 
     findIntersecSeg(id){
-        return this.intersecSegs.find(c => c.id == id)
+        return this.intersecSegs.get(id)
     }
 
     findIntersection(id){
@@ -463,11 +466,11 @@ class Road{
     }
 
     findIntersecSegByFromToConnectorIDs(fromConnectorID, toConnectorID){
-        return this.intersecSegs.find(c => c.fromConnectorID == fromConnectorID && c.toConnectorID == toConnectorID)
+        return Array.from(this.intersecSegs.values()).find(c => c.fromConnectorID == fromConnectorID && c.toConnectorID == toConnectorID)
     }
 
     findSegByFromToConnectorsIDs(fromConnectorID, toConnectorID){
-        return this.segments.find(c => c.fromConnectorID == fromConnectorID && c.toConnectorID == toConnectorID)
+        return Array.from(this.segments.values()).find(s => s.fromConnectorID == fromConnectorID && s.toConnectorID == toConnectorID)
     }
 
     findSegOrIntersegBetween2Conns(fromConnectorID, toConnectorID){
@@ -502,7 +505,7 @@ class Road{
 
     addNode(x, y){
         const newNode = new Node(this.nodeIDcounter, x, y)
-        this.nodes.push(newNode)
+        this.nodes.set(newNode.id, newNode)
         newNode.road = this
         this.nodeIDcounter = getNextID(this.nodeIDcounter)
         return newNode
@@ -510,14 +513,14 @@ class Road{
 
     addNodeNoUpdate(x, y){
         const newNode = new Node(this.nodeIDcounter, x, y)
-        this.nodes.push(newNode)
+        this.nodes.set(newNode.id, newNode)
         newNode.road = this
         this.nodeIDcounter = getNextID(this.nodeIDcounter)
         return newNode
     }
 
     findHoverNode(x, y){
-        return this.nodes.find(n => n.hover(x, y))
+        return Array.from(this.nodes.values()).find(n => n.hover(x, y))
     }
 
     findHoverConnector(x, y){
@@ -535,7 +538,7 @@ class Road{
         newSegment.road = this
         newSegment.fromNode = fromNode  // Set direct object reference
         newSegment.toNode = toNode      // Set direct object reference
-        this.segments.push(newSegment)
+        this.segments.set(newSegment.id, newSegment)
         fromNode.outgoingSegmentIDs.push(newSegment.id)
         toNode.incomingSegmentIDs.push(newSegment.id)
         fromNode.outgoingSegments.push(newSegment)  // Add direct object reference
@@ -570,7 +573,7 @@ class Road{
     }
 
     findConnectedSegments(nodeID){
-        return this.segments.filter(s => s.fromNodeID == nodeID || s.toNodeID == nodeID)
+        return Array.from(this.segments.values()).filter(s => s.fromNodeID == nodeID || s.toNodeID == nodeID)
     }
 
     getPathsOfSegments(segments){
@@ -732,8 +735,6 @@ class Road{
 
         let distances = this.findIntersectionsOfNodev2(nodeID, straightMode)
         if(!distances) return
-
-        console.log('trimming node: ' + nodeID)
 
         let node = this.findNode(nodeID)
         let connectedSegments = this.findConnectedSegments(nodeID)
@@ -898,7 +899,8 @@ class Road{
                 seg.len = totalLen
                 seg.fromConnector = connector1  // Set direct object reference
                 seg.toConnector = connector2    // Set direct object reference
-                this.intersecSegs.push(seg)
+                seg.fromtoKey = connector1.id + '_' + connector2.id
+                this.intersecSegs.set(seg.id, seg)
                 this.intersecSegIDcounter = getNextID(this.intersecSegIDcounter)
 
                 let activenessKey = inSeg.id + '_' + outSeg.id
@@ -1038,7 +1040,7 @@ class Road{
     }
 
     showIntersecSegs(SHOW_TAGS){
-        this.intersecSegs.forEach(s => s.showBezier(SHOW_TAGS))
+        this.intersecSegs.forEach((s, key) => s.showBezier(SHOW_TAGS))
     }
 
     showIntersectionArea(){
@@ -1047,15 +1049,15 @@ class Road{
 
     showLanes(hoveredSegID = undefined){
         this.paths.forEach(p => p.showLanes(hoveredSegID))
-        this.intersecSegs.forEach(s => s.showLane())
+        this.intersecSegs.forEach((s, key) => s.showLane())
     }
 
     showNodes(zoom){
-        if(zoom > 0.18) this.nodes.forEach(n => n.show(false, zoom))
+        if(zoom > 0.18) this.nodes.forEach((n, key) => n.show(false, zoom))
     }
 
     showNodesTags(){
-        this.nodes.forEach(n => n.showTags())
+        this.nodes.forEach((n, key) => n.showTags())
     }
 
     // every function with  "type: showWays" as a comment must only be called from here, as this function sets the correct drawing modes for optimization purposes

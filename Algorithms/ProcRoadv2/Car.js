@@ -4,8 +4,9 @@ class Car{
         this.segTrav = 0        //the travelled length of the current segment
         this.speed = random(1, 3)
         this.road = road
-        if(road.segments.length > 0){
-            this.segmentID = random(road.segments).id
+        if(road.segments.size > 0){
+            let segs = Array.from(road.segments.values())
+            this.segmentID = random(segs).id
         }
         this.isOnIntersection = false
 

@@ -124,7 +124,6 @@ function AstarConnectors(startConnID, goalConnID, road){
     
         let currentConn = road.findConnector(current)
         const outGoingSegs = currentConn.getOutgoingActiveIntersegs()
-        console.log(outGoingSegs)
         let neighboursSet = new Set()
         for(let outseg of outGoingSegs){
             let seg = currentConn.type == 'exit' ? road.findSegment(outseg) : road.findIntersecSeg(outseg) 
