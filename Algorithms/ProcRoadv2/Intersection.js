@@ -171,6 +171,16 @@ class Intersection {
         pop()
     }
 
+    drawIntersectionAreaMarkings(){
+        if(this.corners.length != 4) return
+        beginShape()
+        for(let v of this.corners) vertex(v.x, v.y)
+        endShape(CLOSE)
+        for(let gridLine of this.grid){
+            line(gridLine[0].x, gridLine[0].y, gridLine[1].x, gridLine[1].y)
+        }
+    }
+
     showSelected(){
         if(!this.outlineExists()) return
         push()
@@ -326,23 +336,6 @@ class Intersection {
         beginShape()
         for(let v of this.outline) vertex(v.x, v.y)
         endShape()
-
-        //debug: intersection markings 
-        if(this.corners.length != 4) return
-        push()
-        stroke(200, 200, 0)
-        strokeWeight(2)
-        noFill()
-        strokeCap(ROUND)
-        beginShape()
-        strokeWeight(2.5)
-        for(let v of this.corners) vertex(v.x, v.y)
-        endShape(CLOSE)
-        strokeWeight(2)
-        for(let gridLine of this.grid){
-            line(gridLine[0].x, gridLine[0].y, gridLine[1].x, gridLine[1].y)
-        }
-        pop()
     }
 
     showEdges(){
@@ -455,7 +448,7 @@ class Intersection {
                 let d = dist(v.x, v.y, nodePos.x, nodePos.y)
                 if (d < minDistToNode) minDistToNode = d
             }
-            let distToUse = minDistToNode * 0.9
+            let distToUse = minDistToNode * 0.8
 
             let cx = (b.x + c.x) * 0.5
             let cy = (b.y + c.y) * 0.5
@@ -471,7 +464,7 @@ class Intersection {
         }
 
 
-        return {curves, corners: {corners, grid: corners.length == 4 ? gridLines(corners, {spacing: 25, angle: 65, origin: nodePos}) : null}}
+        return {curves, corners: {corners, grid: corners.length == 4 ? gridLines(corners, {spacing: 18, angle: 65, origin: nodePos}) : null}}
     }
 
 }

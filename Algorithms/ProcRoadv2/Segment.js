@@ -415,6 +415,7 @@ class Segment{
     }
 
     drawDirectionsIntersection(){
+        if(this.len < 180) return
         let toConnector = this.toConnector || this.road.findConnector(this.toConnectorID)
         if(toConnector){
             let dirs = toConnector.dirs

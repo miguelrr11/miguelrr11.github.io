@@ -18,6 +18,9 @@ const OSM_QUEUE_UPDATE_ITERS_PER_FRAME = 2
 let startTime = 0
 let endTime = 0
 
+const DEF_NUM_INTERMEDIATE_NODES_BEZIER = 2
+const DEF_CURVATURE_BEZIER = 0.5
+
 
 /*
 state.modes:
@@ -532,6 +535,7 @@ class Tool{
     }
 
     executePathfinding(){
+        console.log('Executing pathfinding... startConnID:', this.state.startConnID, 'endConnID:', this.state.endConnID)
         this.state.foundPath = AstarConnectors(this.state.startConnID, this.state.endConnID, this.road) ?? []
         this.state.foundPathPoints = this.constructFoundPointsPath()
     }
@@ -856,16 +860,17 @@ class Tool{
 
     createSegmentBetweenTwoNodes(nodeAID, nodeBID, straight = false, updateRoad = true){
         for(let i = 0; i < this.state.nForLanes; i++){
-            this.road.addSegment(nodeAID, nodeBID, 'for', i == this.state.nForLanes - 1, updateRoad, straight)
+            this.road.addSegment(nodeAID, nodeBID, 'for', i == this.state.nForLanes - 1, updateRoad)
         }
         for(let i = 0; i < this.state.nBackLanes; i++){
-            this.road.addSegment(nodeBID, nodeAID, 'back', i == this.state.nBackLanes - 1, updateRoad, straight)
+            this.road.addSegment(nodeBID, nodeAID, 'back', i == this.state.nBackLanes - 1, updateRoad)
         }
+        this.road.updateRoad([nodeAID, nodeBID])
     }
 
-    getIntermediateNodes(nodeAID, nodeBID, numIntermediateNodes = 25, curvature = 0.5){
-        let nodeA = this.road.findNode(nodeAID)
-        let nodeB = this.road.findNode(nodeBID)
+    getIntermediateNodes(nodeAID, nodeBID, numIntermediateNodes = DEF_NUM_INTERMEDIATE_NODES_BEZIER, curvature = DEF_CURVATURE_BEZIER){
+        let nodeA = this.road.findNode(nodeAID) || {pos: this.state.firstPointCS}
+        let nodeB = this.road.findNode(nodeBID) || {pos: this.getRelativePos(mouseX, mouseY)}
 
         let intermediateNodes = []
 
@@ -884,19 +889,19 @@ class Tool{
         let b = nodeA.pos  // start point
         let c = nodeB.pos  // end point
 
-        let res = LENGTH_SEG_BEZIER * 10
+        let res = LENGTH_SEG_BEZIER * numIntermediateNodes
 
-        return bezierPoints(a, b, c, d, res, .5)
+        return bezierPoints(a, b, c, d, res, curvature)
     }
 
-    createCurvedSegmentsBetweenTwoNodes(nodeAID, nodeBID, numIntermediateNodes = 15, curvature = 0.5){
-        let bezierPointsAux = this.getIntermediateNodes(nodeAID, nodeBID, numIntermediateNodes, curvature)
+    createCurvedSegmentsBetweenTwoNodes(nodeAID, nodeBID){
+        let bezierPointsAux = this.getIntermediateNodes(nodeAID, nodeBID)
         let len = 0
-        let res = LENGTH_SEG_BEZIER * 10
+        let res = LENGTH_SEG_BEZIER * DEF_NUM_INTERMEDIATE_NODES_BEZIER
         for(let i = 1; i < bezierPointsAux.length; i++){
             len += dist(bezierPointsAux[i].x, bezierPointsAux[i].y, bezierPointsAux[i - 1].x, bezierPointsAux[i - 1].y)
         }
-        numIntermediateNodes = Math.floor(len / res)
+        let numIntermediateNodes = Math.floor(len / res)
 
         let intermediateNodes = []
 
@@ -1316,7 +1321,7 @@ class Tool{
     }
 
     showCS(){
-        if(this.state.mode == 'creating' && this.state.prevNodeID != -1){
+        if(this.state.mode == 'creating' && this.state.prevNodeID != -1 && this.state.CSmode){
             push()
             stroke(255, 0, 255)
             fill(255, 0, 255, 100)
@@ -1327,7 +1332,13 @@ class Tool{
                 line(node.pos.x, node.pos.y, this.state.controlPointCS.x, this.state.controlPointCS.y)
                 let mousePos = this.getRelativePos(mouseX, mouseY)
                 //draw bezier
-                // let [intermediateNodes, bezierPointsAux] = this.getIntermediateNodes({pos: this.road.findNode(this.state.prevNodeID).pos}, {pos: mousePos}, 25, 0.5)
+                let points = this.getIntermediateNodes()
+                noFill()
+                beginShape()
+                for(let p of points){
+                    vertex(p.x, p.y)
+                }
+                endShape()
             }
             else{
                 let mousePos = this.getRelativePos(mouseX, mouseY)

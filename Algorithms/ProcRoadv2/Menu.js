@@ -199,81 +199,53 @@ class Menu{
         buttonFullscreen.txSize = 12
 
         let buttonLoadOpenStreetMap = new Button(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 30, 70, 20, 'OSM Beta', () => {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (position) => {
-                    let lat = position.coords.latitude;
-                    let lon = position.coords.longitude;
+    if (!navigator.geolocation) {
+        showFailAndReset(buttonLoadOpenStreetMap);
+        console.error("Geolocalización no soportada en este navegador");
+        return;
+    }
 
-                    console.log(`Latitud: ${lat}`);
-                    console.log(`Longitud: ${lon}`);
-                    console.log(`Precisión: ${position.coords.accuracy} metros`);
-
-                    const overpassUrl = "https://overpass-api.de/api/interpreter";
-
-                    const overpassQuery = `
-                    [out:json][timeout:25];
-                    (
-                    way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link|living_street|service)$"](around:${AROUND_RADIUS}, ${lat}, ${lon});
-                    node(w);
-                    );
-                    out body;
-                    `;
-
-                    const url = `${overpassUrl}?data=${encodeURIComponent(overpassQuery)}`;
-                    buttonLoadOpenStreetMap.enabled = () => {return false}
-                    buttonLoadOpenStreetMap.label = 'Loading...'
-
-                    fetch(url)
-                    .then(response => {
-                        buttonLoadOpenStreetMap.enabled = () => {return true}
-                        buttonLoadOpenStreetMap.label = 'OSM Beta'
-                        if (!response.ok) {
-                            buttonLoadOpenStreetMap.label = 'Failed'
-                            setTimeout(() => {
-                                buttonLoadOpenStreetMap.enabled = () => {return true}
-                                buttonLoadOpenStreetMap.label = 'OSM Beta'
-                            }, 2000);
-                            throw new Error(`HTTP error! status: ${response.status}`);
-                        }
-                        return response.json();
-                    })
-                    .then(data => {
-                        buttonLoadOpenStreetMap.enabled = () => {return true}
-                        //buttonLoadOpenStreetMap.label = 'Building...'
-                        console.log(data);
-                        this.tool.constructRoadFromOSMAsync(data, buttonLoadOpenStreetMap)
-                    })
-                    .catch(error => {
-                        buttonLoadOpenStreetMap.label = 'Failed'
-                        setTimeout(() => {
-                            buttonLoadOpenStreetMap.enabled = () => {return true}
-                            buttonLoadOpenStreetMap.label = 'OSM Beta'
-                        }, 2000);
-                        buttonLoadOpenStreetMap.enabled = () => {return true}
-                        console.error("Error fetching data:", error);
-                    });
-                    
-                    },
-                    (error) => {
-                        buttonLoadOpenStreetMap.label = 'Failed'
-                        setTimeout(() => {
-                            buttonLoadOpenStreetMap.enabled = () => {return true}
-                            buttonLoadOpenStreetMap.label = 'OSM Beta'
-                        }, 2000);
-                        console.error("Error obteniendo ubicación:", error.message);
-                    }
+    navigator.geolocation.getCurrentPosition(
+        async (position) => {
+            const { latitude: lat, longitude: lon } = position.coords;
+            const overpassQuery = `
+                [out:json][timeout:25];
+                (
+                way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link|living_street|service)$"](around:${AROUND_RADIUS}, ${lat}, ${lon});
+                node(w);
                 );
+                out body;
+            `;
+
+            buttonLoadOpenStreetMap.enabled = () => false;
+            buttonLoadOpenStreetMap.label = 'Loading...';
+
+            try {
+                const data = await fetchOverpassWithRetry(overpassQuery);
+                console.log(data);
+                this.tool.constructRoadFromOSMAsync(data, buttonLoadOpenStreetMap);
+            } catch (err) {
+                console.error("Error fetching data:", err);
+                showFailAndReset(buttonLoadOpenStreetMap);
+            } finally {
+                buttonLoadOpenStreetMap.enabled = () => true;
             }
-            else {
-                buttonLoadOpenStreetMap.label = 'Failed'
-                setTimeout(() => {
-                    buttonLoadOpenStreetMap.enabled = () => {return true}
-                    buttonLoadOpenStreetMap.label = 'OSM Beta'
-                }, 2000);
-                console.error("Geolocalización no soportada en este navegador");
-            }
-        })
+        },
+        (error) => {
+            console.error("Error obteniendo ubicación:", error.message);
+            showFailAndReset(buttonLoadOpenStreetMap);
+        }
+    );
+});
+
+function showFailAndReset(button) {
+    button.label = 'Failed';
+    button.enabled = () => false;
+    setTimeout(() => {
+        button.label = 'OSM Beta';
+        button.enabled = () => true;
+    }, 2000);
+}
         buttonLoadOpenStreetMap.txSize = 13
         buttonLoadOpenStreetMap.labelID = 'loadOSM'
 
@@ -354,7 +326,7 @@ class Menu{
         this.buttons.push(buttonHand)
         this.buttons.push(buttonSelect)
 
-        let sliderLaneWidth = new Slider(15, 230, 80, 'Lane Width', 5, 500, LANE_WIDTH, (value) => {
+        let sliderLaneWidth = new Slider(15, 230, 80, 'Lane Width', 5, 50, LANE_WIDTH, (value) => {
             LANE_WIDTH = value
             BIG_LANE_WIDTH = LANE_WIDTH * 1.6
             this.tool.road.setPaths()
@@ -673,4 +645,32 @@ class Slider{
 
         pop()
     }
+}
+
+const OVERPASS_ENDPOINTS = [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.kumi.systems/api/interpreter",
+    "https://overpass.openstreetmap.ru/api/interpreter",
+];
+
+async function fetchOverpassWithRetry(query, maxAttempts = OVERPASS_ENDPOINTS.length) {
+    let lastError;
+    for (let i = 0; i < maxAttempts; i++) {
+        const url = `${OVERPASS_ENDPOINTS[i % OVERPASS_ENDPOINTS.length]}?data=${encodeURIComponent(query)}`;
+        try {
+            const response = await fetch(url);
+            if (response.status === 504 || response.status === 429) {
+                // Server overloaded — try next mirror after a short wait
+                await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+                lastError = new Error(`HTTP ${response.status} from endpoint ${i}`);
+                continue;
+            }
+            if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
+            return await response.json();
+        } catch (err) {
+            lastError = err;
+            await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+        }
+    }
+    throw lastError;
 }

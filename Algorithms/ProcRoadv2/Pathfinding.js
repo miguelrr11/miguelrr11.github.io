@@ -103,46 +103,47 @@ function AstarConnectors(startConnID, goalConnID, road){
         return best;
     }
 
-  const openSet = new Set([startConnID]);
+    const openSet = new Set([startConnID]);
 
-  const cameFrom = new Map();
+    const cameFrom = new Map();
 
-  const gScore = new Map();
-  gScore.set(startConnID, 0);
+    const gScore = new Map();
+    gScore.set(startConnID, 0);
 
-  const fScore = new Map();
-  fScore.set(startConnID, h(startConnID, goalConnID, road));
+    const fScore = new Map();
+    fScore.set(startConnID, h(startConnID, goalConnID, road));
 
-  while (openSet.size > 0) {
-    const current = getLowest(openSet, fScore);
+    while (openSet.size > 0) {
+        const current = getLowest(openSet, fScore);
 
-    if (current === goalConnID) {
-      return reconstructPath(cameFrom, current);
-    }
-
-    openSet.delete(current);
-  
-    let currentConn = road.findConnector(current)
-    const outGoingSegs = currentConn.getOutgoingActiveIntersegs()
-    let neighboursSet = new Set()
-    for(let outseg of outGoingSegs){
-      let seg = currentConn.type == 'exit' ? road.findSegment(outseg) : road.findIntersecSeg(outseg) 
-      neighboursSet.add(seg.toConnectorID)
-    }
-    let neighbours = [...neighboursSet]
-    for (const neighbor of neighbours) {
-      const tentativeG = (gScore.get(current) ?? Infinity) + h(current, neighbor, road);
-
-      if (tentativeG < (gScore.get(neighbor) ?? Infinity)) {
-        cameFrom.set(neighbor, current);
-        gScore.set(neighbor, tentativeG);
-        fScore.set(neighbor, tentativeG + h(neighbor, goalConnID, road));
-
-        if (!openSet.has(neighbor)) {
-          openSet.add(neighbor);
+        if (current === goalConnID) {
+        return reconstructPath(cameFrom, current);
         }
-      }
+
+        openSet.delete(current);
+    
+        let currentConn = road.findConnector(current)
+        const outGoingSegs = currentConn.getOutgoingActiveIntersegs()
+        console.log(outGoingSegs)
+        let neighboursSet = new Set()
+        for(let outseg of outGoingSegs){
+            let seg = currentConn.type == 'exit' ? road.findSegment(outseg) : road.findIntersecSeg(outseg) 
+            neighboursSet.add(seg.toConnectorID)
+        }
+        let neighbours = [...neighboursSet]
+        for (const neighbor of neighbours) {
+            const tentativeG = (gScore.get(current) ?? Infinity) + h(current, neighbor, road);
+
+            if (tentativeG < (gScore.get(neighbor) ?? Infinity)) {
+                cameFrom.set(neighbor, current);
+                gScore.set(neighbor, tentativeG);
+                fScore.set(neighbor, tentativeG + h(neighbor, goalConnID, road));
+
+                if (!openSet.has(neighbor)) {
+                openSet.add(neighbor);
+                }
+            }
+        }
     }
-  }
-  return undefined; // no hay camino
+    return undefined; // no hay camino
 }

@@ -105,6 +105,7 @@ class Road{
     //the current way to modify the road in the fly when wanting to connect two nodes
     //nodesIDs is an array of two node IDs
     updateRoad(nodesIDs, usePath = undefined, trim = true, straightMode = false){
+        console.log('updating road between nodes: ' + nodesIDs[0] + ' and ' + nodesIDs[1])
         let segmentIDs = new Set(this.getAllSegmentsBetweenNodes(nodesIDs[0], nodesIDs[1]).map(s => s.id))
         let newPath 
         if(usePath) newPath = usePath
@@ -732,7 +733,7 @@ class Road{
         let distances = this.findIntersectionsOfNodev2(nodeID, straightMode)
         if(!distances) return
 
-        console.log('trimming')
+        console.log('trimming node: ' + nodeID)
 
         let node = this.findNode(nodeID)
         let connectedSegments = this.findConnectedSegments(nodeID)
@@ -924,6 +925,40 @@ class Road{
                 //seg.constructOutline()
             })
         })
+
+        // Create connectors for any incoming segment that was never paired (like cul-de-sac)
+        for(const inSeg of incoming){
+            if(!connectorMap.has(inSeg.id)){
+                let connector = new Connector(inSeg.id, undefined, inSeg.toPos, this.connectorIDcounter)
+                connector.road = this
+                connector.type = 'enter'
+                connector.incomingSegments = [inSeg]
+                this.connectors.push(connector)
+                this.connectorIDcounter = getNextID(this.connectorIDcounter)
+                connectorMap.set(inSeg.id, connector)
+
+                inSeg.toConnectorID = connector.id
+                inSeg.toConnector = connector
+            }
+        }
+
+        // Create connectors for any outgoing segment that was never paired (like cul-de-sac in the other direction)
+        for(const outSeg of outgoing){
+            if(!connectorMap.has(outSeg.id)){
+                let connector = new Connector(undefined, outSeg.id, outSeg.fromPos, this.connectorIDcounter)
+                connector.road = this
+                connector.type = 'exit'
+                connector.outgoingSegments = [outSeg]
+                this.connectors.push(connector)
+                this.connectorIDcounter = getNextID(this.connectorIDcounter)
+                connectorMap.set(outSeg.id, connector)
+
+                outSeg.fromConnectorID = connector.id
+                outSeg.fromConnector = connector
+            }
+        }
+
+
         for(let c of connectorMap.values()) c.constructDirections()
         let connectorsArray = Array.from(connectorMap.values())
         intersection.connectorsIDs = connectorsArray.map(c => c.id)
@@ -1086,6 +1121,17 @@ class Road{
             stroke(230)
             strokeWeight(5)
             this.paths.forEach(s => s.showSimple())
+            pop()
+        }
+
+        if(zoom > 0.18) {
+            push()
+            stroke(SIDE_WALK_COL)
+            strokeWeight(2)
+            noFill()
+            strokeCap(ROUND)
+            strokeWeight(2.5)
+            this.intersections.forEach(i => i.drawIntersectionAreaMarkings())
             pop()
         }
         pop()

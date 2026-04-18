@@ -12,12 +12,22 @@ class Path{
         this.nodeAObj = undefined  // Direct object reference
         this.nodeBObj = undefined  // Direct object reference
 
+        this.length = 0
+
         this.id = nodeA + '_' + nodeB
 
         this.name = undefined
 
         this.corners = []  
         this.corners16 = []  
+    }
+
+    getLength(){
+        if(this.segmentsIDs.size == 0) return 0
+        //just the length of one segment
+        let seg = Array.from(this.segmentsIDs)[0]
+        let length = this.road.findSegment(seg).getLen()
+        return length || 0
     }
 
     outOfBounds(){
@@ -190,6 +200,7 @@ class Path{
             i++
         })
         this.setSegmentDrawOuterLinesLogic()
+        this.length = this.getLength()
         this.width = totalWidth
     }
 
