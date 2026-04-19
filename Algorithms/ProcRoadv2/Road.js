@@ -26,6 +26,10 @@ let LANE_WIDTH = 30
 let BIG_LANE_WIDTH = LANE_WIDTH * 1.6
 
 
+const MIN_ANGLE_DEG = 20         // pairs closer to parallel than this are skipped
+const MAX_REASONABLE_TRIM = 200  // intersections farther than this from the node are garbage
+
+
 class Road{
     constructor(tool){
         this.tool = tool
@@ -312,7 +316,9 @@ class Road{
             let intersection = this.findIntersection(nodeID)
             if(intersection){
                 this.connectors = this.connectors.filter(c => !intersection.connectorsIDs.includes(c.id))
-                this.intersecSegs = Array.from(this.intersecSegs.values()).filter(is => !intersection.intersecSegsIDs.includes(is.id))
+                for (const id of intersection.intersecSegsIDs) {
+                    this.intersecSegs.delete(id);
+                }
                 this.intersections = this.intersections.filter(i => i.nodeID != nodeID)
             }
         }
@@ -633,9 +639,7 @@ class Road{
         if(!paths) return null
         let finalIntersections = new Map()
 
-        // tune these to your geometry
-        const MIN_ANGLE_DEG = 20         // pairs closer to parallel than this are skipped
-        const MAX_REASONABLE_TRIM = 200  // intersections farther than this from the node are garbage
+        
 
         const segmentAngleDeg = (seg) => {
             return Math.atan2(
@@ -678,7 +682,7 @@ class Road{
 
                         let intersection = lineIntersection(
                             s1.originalFromPos, s1.originalToPos,
-                            s2.originalFromPos, s2.originalToPos, false
+                            s2.originalFromPos, s2.originalToPos, true
                         );
 
                         if(intersection != undefined){
@@ -974,6 +978,7 @@ class Road{
         intersection.paths = anyPath || []  // Set direct object references
         //intersection.debugOrder() not working
         intersection.calculateOutlinesIntersection();
+        intersection.calculateInnerEdges();
         //if(instantConvex) intersection.calculateOutlinesIntersection();
         //else this.pushToConvexQueue(intersection)
         //this.pushToConvexQueue(intersection)
@@ -1088,7 +1093,8 @@ class Road{
         stroke(MARKINGS_COL)
         strokeWeight(1.5)
         noFill()
-        if(zoom > 0.18) this.intersections.forEach(p => p.showEdges())
+        if(zoom > 0.18) this.intersections.forEach(p => p.showOuterEdges())
+        if(zoom > 0.18) this.intersections.forEach(p => p.showInnerEdges())
         pop()
     
         push()
@@ -1133,7 +1139,7 @@ class Road{
             noFill()
             strokeCap(ROUND)
             strokeWeight(2.5)
-            this.intersections.forEach(i => i.drawIntersectionAreaMarkings())
+            //this.intersections.forEach(i => i.drawIntersectionAreaMarkings())
             pop()
         }
         pop()

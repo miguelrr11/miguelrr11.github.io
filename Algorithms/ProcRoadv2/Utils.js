@@ -240,6 +240,12 @@ function getCentroid(points) {
     return centroid;
 }
 
+function closestTo(a, b, to){
+    let distA = dist(a.x, a.y, to.x, to.y)
+    let distB = dist(b.x, b.y, to.x, to.y)
+    return distA < distB ? a : b
+}
+
 // Devuelve curva (arr de puntos) de b a c, a y d son las manecillas
 // La resolucion es la distacia de los segmentos
 function bezierPoints(a, b, c, d, resolution, tension = 0.3) {

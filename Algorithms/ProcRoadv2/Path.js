@@ -22,6 +22,15 @@ class Path{
         this.corners16 = []  
     }
 
+    monoDirectional(){
+        if(this.segments.length == 1) return true
+        let from = this.segments[0].fromNodeID
+        for(let s of this.segments){
+            if(s.fromNodeID != from) return false
+        }
+        return true
+    }
+
     getLength(){
         if(this.segmentsIDs.size == 0) return 0
         //just the length of one segment
@@ -311,7 +320,7 @@ class Path{
         // })
     }
 
-    // type: showWays
+    // type: showWays (lineas continuas/discontinuas de los carriles)
     showEdges(){
         for(let i = 0; i < this.segments.length; i++){
             let segment = this.segments[i]
@@ -320,7 +329,7 @@ class Path{
         }
     }
 
-    // type: showWays
+    // type: showWays (flechas de los carriles)
     showArrows(){
         this.segments.forEach(segment => {
             segment.drawArrows()

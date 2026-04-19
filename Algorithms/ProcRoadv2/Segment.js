@@ -254,13 +254,13 @@ class Segment{
             vertex(this.corners[i].x, this.corners[i].y)
         }
         endShape(CLOSE)
-        stroke(255, 0, 0, 100)
-        beginShape()
-        for(let i = 0; i < this.corners16.length; i++){
-            if(this.corners16[i] == undefined) continue
-            vertex(this.corners16[i].x, this.corners16[i].y)
-        }
-        endShape(CLOSE)
+        // stroke(255, 0, 0, 100)
+        // beginShape()
+        // for(let i = 0; i < this.corners16.length; i++){
+        //     if(this.corners16[i] == undefined) continue
+        //     vertex(this.corners16[i].x, this.corners16[i].y)
+        // }
+        // endShape(CLOSE)
         pop()
     }
 
@@ -328,12 +328,12 @@ class Segment{
                 if(this.corners[i] == undefined) continue
                 text('c' + i, this.corners[i].x, this.corners[i].y)
             }
-            stroke(0)
-            fill(255)
-            for(let i = 0; i < this.corners16.length; i++){
-                if(this.corners16[i] == undefined) continue
-                text('c' + i, this.corners16[i].x, this.corners16[i].y)
-            }
+            // stroke(0)
+            // fill(255)
+            // for(let i = 0; i < this.corners16.length; i++){
+            //     if(this.corners16[i] == undefined) continue
+            //     text('c' + i, this.corners16[i].x, this.corners16[i].y)
+            // }
         }
 
         if(SHOW_SEGS_DETAILS){

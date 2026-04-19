@@ -13,6 +13,7 @@ class Intersection {
         this.outline = [] //filled by calculateOutlinesIntersection()
         this.outline16 = [] //filled by calculateOutlinesIntersection()
         this.edges = []         //filled by calculateOutlinesIntersection()
+        this.innerEdges = []    //filled by calculateInnerEdges()
 
         //this.convexHullCalculated = false
 
@@ -338,13 +339,82 @@ class Intersection {
         endShape()
     }
 
-    showEdges(){
+    // type: showWays (son las lineas blancas pegadas a la acera)
+    showOuterEdges(){
         if(this.outOfBounds()) return
         for(let edge of this.edges){
             beginShape()
             for(let v of edge) vertex(v.x, v.y)
             endShape()
         }
+    }
+
+    calculateInnerEdges(){
+        this.innerEdges = []
+        if(this.paths.length < 2) return
+        let segs = []
+        for(let p of this.paths){
+            if(p.segments.length == 1) continue
+            if(p.monoDirectional()) continue
+
+            let refNode = p.segments[0].fromNodeID
+            let changingSeg = undefined
+            for(let seg of p.segments){
+                if(seg.fromNodeID != refNode){
+                    changingSeg = seg
+                    break
+                }
+            }
+            segs.push(changingSeg)
+        }
+    
+
+        let nodePos = this.road.findNode(this.nodeID).pos
+        let bpMap = new Map()
+        for(let firstSeg of segs){
+            for(let secSeg of segs){
+                let s1, s2
+                if(firstSeg == secSeg) {continue}
+                if(firstSeg.fromNodeID == this.nodeID) {s1 = secSeg; s2 = firstSeg}
+                else {s1 = firstSeg; s2 = secSeg}
+                if(bpMap.has(firstSeg.id + '_' + secSeg.id) || bpMap.has(secSeg.id + '_' + firstSeg.id)) {continue}
+                let inSegFromPos = closestTo(s1.corners[1], s1.corners[2], nodePos)
+                let outSegToPos = closestTo(s2.corners[1], s2.corners[2], nodePos)
+                let tension = map(dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y), 10, 250, TENSION_BEZIER_MIN, TENSION_BEZIER_MAX, true)
+                let LENGTH_CONTROL_POINT = 120
+
+                //we have to do this because paths can have reversed ordered segments
+                let off = inSegFromPos.x != s1.corners[1].x && outSegToPos.x != s2.corners[1].x ? PI : 0
+
+                let controlPointBez1
+                let dir1 = s1.dir 
+                controlPointBez1 = {x: inSegFromPos.x + Math.cos(dir1) * LENGTH_CONTROL_POINT, 
+                                    y: inSegFromPos.y + Math.sin(dir1) * LENGTH_CONTROL_POINT}
+
+                let controlPointBez2
+                let dir2 = s2.dir + PI + off
+                controlPointBez2 = {x: outSegToPos.x + Math.cos(dir2) * LENGTH_CONTROL_POINT, 
+                                    y: outSegToPos.y + Math.sin(dir2) * LENGTH_CONTROL_POINT}
+
+                let bp = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER, tension)
+                bpMap.set(firstSeg.id + '_' + secSeg.id, bp)
+                this.innerEdges.push(bp)
+            }
+        }
+    }
+
+    // type: showWays (lineas continuas de los carriles en la interseccion, separando los sentidos)
+    showInnerEdges(){
+        if(this.outOfBounds() || this.innerEdges.length === 0) return
+        
+        for(let p of this.innerEdges) {
+            for(let i = 0; i < p.length; i+=3){
+                let p1 = p[i]
+                let p2 = p[Math.min(i+1, p.length-1)]
+                line(p1.x, p1.y, p2.x, p2.y)
+            }
+        }
+        
     }
 
     // type: showWays
@@ -383,6 +453,8 @@ class Intersection {
             }
         }
     }
+
+
 
     // supposes that the corners of segments DO NOT overlap with other paths, if they do, the outline will be wrong because
     // the sorting of points will be affected. The fix for this was to set the width of Road.js (lines 914-915) to BIG_LANE_WIDTH instead of LANE_WIDTH

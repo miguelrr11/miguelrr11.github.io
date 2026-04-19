@@ -331,7 +331,7 @@ function showFailAndReset(button) {
             BIG_LANE_WIDTH = LANE_WIDTH * 1.6
             this.tool.road.setPaths()
         })
-        let sliderLengthSegBezier = new Slider(15, 270, 80, 'Bezier Res', 50, 2, LENGTH_SEG_BEZIER, (value) => {
+        let sliderLengthSegBezier = new Slider(15, 270, 80, 'Bezier Length', 50, 2, LENGTH_SEG_BEZIER, (value) => {
             LENGTH_SEG_BEZIER = value
             this.tool.road.setPaths()
         })
@@ -361,14 +361,17 @@ function showFailAndReset(button) {
         this.sliders.push(sliderAround)
 
         let buttonDebugRoad = new Button(10, 430, 95, 210, 'Debug Road', undefined, () => {
-            return 'Nodes: ' + '\n' + this.tool.road.nodes.length + '\n' +
-                   'Segments: ' + '\n' + this.tool.road.segments.length + '\n' +
+            let mousePos = this.tool.getRelativePos(mouseX, mouseY)
+            return 'Nodes: ' + '\n' + this.tool.road.nodes.size + '\n' +
+                   'Segments: ' + '\n' + this.tool.road.segments.size + '\n' +
                    'Connectors: ' + '\n' + this.tool.road.connectors.length + '\n' +
-                   'Intersections: ' + '\n' + this.tool.road.intersecSegs.length + '\n' +
+                   'Intersections: ' + '\n' + this.tool.road.intersecSegs.size + '\n' +
                    'Paths: ' + '\n' + this.tool.road.paths.size + '\n' +
                    'Cars: ' + '\n' + cars.length + '\n' +
                    'OSM Queue: ' + '\n' + this.tool.state.OSMqueue.nodesToProcess.size + '\n' +
-                   'Selected Nodes: ' + '\n' + this.tool.state.selectedNodes.length
+                   'Selected Nodes: ' + '\n' + this.tool.state.selectedNodes.length + '\n' +
+                   'x: ' + round(mousePos.x) + '\n' +
+                   'y: ' + round(mousePos.y)
         }, () => {return false})
         buttonDebugRoad.txSize = 10
         buttonDebugRoad.setTextAlign('left-top')
