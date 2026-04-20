@@ -1478,6 +1478,8 @@ class Tool{
     }
 
     setStateToRoad(roadData){
+        let initialTime = performance.now()
+        
         this.road = new Road(this)
         this.road.nodeIDcounter = roadData.nodeIDcounter
         this.road.segmentIDcounter = roadData.segmentIDcounter
@@ -1506,6 +1508,9 @@ class Tool{
         this.handState()
         this.center()
         cars = []
+
+        let endTime = performance.now()
+        console.log(`Time to load road: ${endTime - initialTime} ms`)
     }
 
     updateOSMqueue(){

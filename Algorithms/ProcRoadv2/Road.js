@@ -53,11 +53,11 @@ class Road{
     }
 
 
-    //recomputes all paths, connectors, intersections and intersection-segments, not currently used, but works
-    //slow if there are many nodes and segments
-    setPaths(){
+    //recomputes all paths, connectors, intersections and intersection-segments, used for loading a road stored in local storage
+    setPaths() {
         let activenessMap = new Map()
-        for(let intersection of this.intersections){
+
+        for (let intersection of this.intersections) {
             activenessMap.set(intersection.id, intersection.getActivenessMap())
         }
 
@@ -65,44 +65,74 @@ class Road{
         this.connectors = []
         this.intersecSegs = new Map()
         this.intersections = []
-        //this.convexHullQueue = new Set()
         this.connectorIDcounter = 0
         this.intersecSegIDcounter = 0
-        
-        for(let i = 0; i < this.nodes.size; i++){
-            for(let j = 0; j < this.nodes.size; j++){
-                if(i == j) continue
-                let nodeA = Array.from(this.nodes.values())[i]
-                let nodeB = Array.from(this.nodes.values())[j]
-                let segmentIDs = this.getAllSegmentsBetweenNodes(nodeA.id, nodeB.id).map(s => s.id)
-                if(this.paths.has(nodeA.id + '-' + nodeB.id) || this.paths.has(nodeB.id + '-' + nodeA.id)){
-                    this.paths.get(nodeA.id + '-' + nodeB.id)?.segmentsIDs.add(...segmentIDs)
-                    this.paths.get(nodeB.id + '-' + nodeA.id)?.segmentsIDs.add(...segmentIDs)
-                } 
-                else if(segmentIDs.length > 0) {
-                    let segmentSet = new Set(segmentIDs)
-                    let path = new Path(nodeA.id, nodeB.id, segmentSet)
+
+        let tempPathMap = new Map()
+
+        for (let s of this.segments.values()) {
+            const a = s.fromNodeID
+            const b = s.toNodeID
+
+            if (!tempPathMap.has(a)) tempPathMap.set(a, new Map())
+            if (!tempPathMap.has(b)) tempPathMap.set(b, new Map())
+
+            if (!tempPathMap.get(a).has(b)) tempPathMap.get(a).set(b, [])
+            if (!tempPathMap.get(b).has(a)) tempPathMap.get(b).set(a, [])
+
+            tempPathMap.get(a).get(b).push(s)
+            tempPathMap.get(b).get(a).push(s)
+        }
+
+        const paths = this.paths
+        const tempMap = tempPathMap
+        const nodeArray = Array.from(this.nodes.values())
+
+        for (let i = 0; i < nodeArray.length; i++) {
+            const nodeA = nodeArray[i]
+            const mapA = tempMap.get(nodeA.id)
+            if (!mapA) continue
+
+            for (let j = i + 1; j < nodeArray.length; j++) {
+                const nodeB = nodeArray[j]
+
+                const mapAB = mapA.get(nodeB.id)
+                if (!mapAB) continue
+
+                const segmentIDs = mapAB.map(s => s.id)
+                if (segmentIDs.length === 0) continue
+
+                const keyAB = nodeA.id + '-' + nodeB.id
+                const keyBA = nodeB.id + '-' + nodeA.id
+
+                let path = paths.get(keyAB) || paths.get(keyBA)
+
+                if (path) {
+                    const set = path.segmentsIDs
+                    for (let k = 0; k < segmentIDs.length; k++) {
+                        set.add(segmentIDs[k])
+                    }
+                } else {
+                    const segmentSet = new Set(segmentIDs)
+
+                    path = new Path(nodeA.id, nodeB.id, segmentSet)
                     path.road = this
                     path.constructRealLanes()
                     path.setSegmentsIDs(segmentSet)
-                    this.paths.set(nodeA.id + '-' + nodeB.id, path)
+
+                    paths.set(keyAB, path)
                 }
             }
         }
 
-        // for(let seg of this.segments){
-        //     if(!seg.fromPos || !seg.toPos){
-        //         this.deleteSegmentNoUpdate(seg.id)
-        //     }
-        // }
-
-        this.nodes.forEach((n, key) => this.trimSegmentsAtIntersection({
-            nodeID: n.id,
-            activenessMap: activenessMap.get(n.id),
-            connect: true,
-            //instantConvex: this.segments.length < N_SEG_TO_SWITCH_TO_INCREMENTAL
-            instantConvex: true
-        }))
+        this.nodes.forEach((n) =>
+            this.trimSegmentsAtIntersection({
+                nodeID: n.id,
+                activenessMap: activenessMap.get(n.id),
+                connect: true,
+                instantConvex: true
+            })
+        )
     }
 
     //connect a node to another node
@@ -270,12 +300,16 @@ class Road{
     }
 
     getAllSegmentsBetweenNodes(nodeID1, nodeID2){
+        // let path = this.findPathByNodes(nodeID1, nodeID2)
+        // if(path) return [...path.segments]
         let fromTo = this.getAllSegmentsBetweenNodesExclusively(nodeID1, nodeID2)
         let toFrom = this.getAllSegmentsBetweenNodesExclusively(nodeID2, nodeID1)
         return [...fromTo, ...toFrom]
     }
 
     getAllSegmentsBetweenNodesExclusively(nodeID1, nodeID2){
+        // let path = this.findPathByNodes(nodeID1, nodeID2)
+        // if(path) return [...path.segments].filter(s => s.fromNodeID == nodeID1)
         return Array.from(this.segments.values())
             .filter(s => s.fromNodeID == nodeID1 && s.toNodeID == nodeID2);
     }
@@ -498,11 +532,18 @@ class Road{
     }
 
     findAnyPath(nodeID){
-        let paths = []
-        for(let path of this.paths.values()){
-            if(path.nodeA == nodeID || path.nodeB == nodeID) paths.push(path)
-        }
-        return paths.length > 0 ? paths : undefined
+        let paths = new Set()
+        let pathsVisited = new Set()
+        let node = this.findNode(nodeID)
+        let segsOfNode = [...node.incomingSegments, ...node.outgoingSegments]
+        segsOfNode.forEach(s => {
+            if(pathsVisited.has(s.fromNodeID + '-' + s.toNodeID) || pathsVisited.has(s.toNodeID + '-' + s.fromNodeID)) return
+            let path = this.findPathByNodes(s.fromNodeID, s.toNodeID)
+            pathsVisited.add(s.fromNodeID + '-' + s.toNodeID)
+            pathsVisited.add(s.toNodeID + '-' + s.fromNodeID)
+            if(path) paths.add(path)
+        })
+        return paths.size > 0 ? Array.from(paths) : undefined
     }
 
     findPath(pathID){
@@ -583,8 +624,10 @@ class Road{
         return connectedNodes.size <= 1
     }
 
+
     findConnectedSegments(nodeID){
-        return Array.from(this.segments.values()).filter(s => s.fromNodeID == nodeID || s.toNodeID == nodeID)
+        let node = this.findNode(nodeID)
+        return node ? [...node.incomingSegments, ...node.outgoingSegments] : []
     }
 
     getPathsOfSegments(segments){
@@ -1156,7 +1199,7 @@ class Road{
 
 
 // the ids of any object are strings made of 94 characters
-const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789{|}~!"#$%&\'()*+,-./:;<=>?@[\\]^_`';
+const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789{|}~!"#$%&\'()*+,./:;<=>?@[\\]^`';
 const base = chars.length; // 94
 function getNextID(id){
     if (id === undefined) return chars[0];

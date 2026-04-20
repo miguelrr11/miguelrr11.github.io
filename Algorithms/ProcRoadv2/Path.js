@@ -176,6 +176,7 @@ class Path{
         let nodeB = this.nodeBObj || this.road.findNode(this.nodeB)
         if(!nodeA || !nodeB) {
             console.warn('Invalid nodes in path while constructing real lanes:\nnodeA = ' + nodeA + ' | nodeB = ' + nodeB)
+            throw new Error('Invalid nodes in path while constructing real lanes:\nnodeA = ' + nodeA + ' | nodeB = ' + nodeB)
             return
         }
 
