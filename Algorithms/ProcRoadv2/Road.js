@@ -28,6 +28,7 @@ let BIG_LANE_WIDTH = LANE_WIDTH * 1.6
 
 const MIN_ANGLE_DEG = 20         // pairs closer to parallel than this are skipped
 const MAX_REASONABLE_TRIM = 200  // intersections farther than this from the node are garbage
+const MAX_REASONABLE_TRIM_SQ = MAX_REASONABLE_TRIM * MAX_REASONABLE_TRIM
 
 
 class Road{
@@ -242,7 +243,7 @@ class Road{
                 let ap_ab = ap.x * ab.x + ap.y * ab.y
                 let t = constrainn(ap_ab / ab2, 0, 1)
                 let point = {x: fromPos.x + ab.x * t, y: fromPos.y + ab.y * t}
-                let d = dist(pos.x, pos.y, point.x, point.y)
+                let d = squaredDistance(pos.x, pos.y, point.x, point.y)
                 if(d < minDist){
                     minDist = d
                     closestSegment = s
@@ -254,7 +255,7 @@ class Road{
                 }
             }
         })
-
+        minDist = Math.sqrt(minDist)
         return {closestSegment, closestPoint, minDist, closestPointMain}
     }
 
@@ -275,13 +276,14 @@ class Road{
             let ap_ab = ap.x * ab.x + ap.y * ab.y
             let t = constrainn(ap_ab / ab2, 0, 1)
             let point = {x: fromPos.x + ab.x * t, y: fromPos.y + ab.y * t}
-            let d = dist(pos.x, pos.y, point.x, point.y)
+            let d = squaredDistance(pos.x, pos.y, point.x, point.y)
             if(d < minDist){
                 minDist = d
                 closestSegment = s
                 closestPoint = point
             }
         })
+        minDist = Math.sqrt(minDist)
         return {closestSegment, closestPoint, minDist}
     }
 
@@ -735,16 +737,16 @@ class Road{
 
                         if(intersection != undefined){
                             let node = this.findNode(nodeID)
-                            let dMain = dist(node.pos.x, node.pos.y, intersection.x, intersection.y)
-                            if(dMain <= MAX_REASONABLE_TRIM){
+                            let dMain = squaredDistance(node.pos.x, node.pos.y, intersection.x, intersection.y)
+                            if(dMain <= MAX_REASONABLE_TRIM_SQ){
                                 finalIntersections.get(path.id).push(intersection)
                             }
 
                             // outer (corner) intersections get the same sanity check
                             let outerIntersections = this.getOuterIntersections(s1, s2)
                             for(let outer of outerIntersections){
-                                let dOuter = dist(node.pos.x, node.pos.y, outer.x, outer.y)
-                                if(dOuter <= MAX_REASONABLE_TRIM){
+                                let dOuter = squaredDistance(node.pos.x, node.pos.y, outer.x, outer.y)
+                                if(dOuter <= MAX_REASONABLE_TRIM_SQ){
                                     finalIntersections.get(path.id).push(outer)
                                 }
                             }
@@ -762,17 +764,18 @@ class Road{
             if(inters.length == 0) continue
             else if(inters.length == 1){
                 farthestIntersection = inters[0]
-                distInter = dist(node.pos.x, node.pos.y, farthestIntersection.x, farthestIntersection.y)
+                distInter = squaredDistance(node.pos.x, node.pos.y, farthestIntersection.x, farthestIntersection.y)
             }
             else {
                 for(let inter of inters){
-                    let d = dist(node.pos.x, node.pos.y, inter.x, inter.y)
+                    let d = squaredDistance(node.pos.x, node.pos.y, inter.x, inter.y)
                     if(d > distInter){
                         distInter = d
                         farthestIntersection = inter
                     }
                 }
             }
+            distInter = Math.sqrt(distInter)
             finalIntersections.set(pathID, distInter)
         }
         return finalIntersections

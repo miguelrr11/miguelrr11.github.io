@@ -194,86 +194,118 @@ class Tool{
         this.state.copiedNodes = [...this.state.selectedNodes]
     }
 
-    pasteNodes(){
-        if(this.state.copiedNodes.length == 0) return
-        let mousePos = this.getRelativePos(mouseX, mouseY)
+    pasteNodes() {
+        const copied = this.state.copiedNodes
+        if (copied.length === 0) return
 
-        // Calculate the center of the copied nodes
+        const mousePos = this.getRelativePos(mouseX, mouseY)
+
         let centerX = 0, centerY = 0
-        for(let node of this.state.copiedNodes){
-            centerX += node.pos.x
-            centerY += node.pos.y
+        for (let i = 0; i < copied.length; i++) {
+            centerX += copied[i].pos.x
+            centerY += copied[i].pos.y
         }
-        centerX /= this.state.copiedNodes.length
-        centerY /= this.state.copiedNodes.length
+        centerX /= copied.length
+        centerY /= copied.length
 
-        // Create a map from old node IDs to new nodes
-        let oldToNewNodeMap = new Map()
-
-        // Create all new nodes with positions relative to mousePos
-        for(let oldNode of this.state.copiedNodes){
-            let offsetX = oldNode.pos.x - centerX
-            let offsetY = oldNode.pos.y - centerY
-            let newNode = this.road.addNodeNoUpdate(mousePos.x + offsetX, mousePos.y + offsetY)
-            oldToNewNodeMap.set(oldNode.id, newNode)
+        const copiedSet = new Set()
+        for (let i = 0; i < copied.length; i++) {
+            copiedSet.add(copied[i].id)
         }
 
-        // Gather all segments that connect the copied nodes
-        let segmentsToCopy = []
-        for(let oldNode of this.state.copiedNodes){
-            // Check all segments connected to this node
-            let connectedSegments = this.road.findConnectedSegments(oldNode.id)
-            for(let seg of connectedSegments){
-                // Only include segments where both endpoints are in the copied nodes
-                let fromNodeInCopy = this.state.copiedNodes.find(n => n.id == seg.fromNodeID)
-                let toNodeInCopy = this.state.copiedNodes.find(n => n.id == seg.toNodeID)
-                if(fromNodeInCopy && toNodeInCopy){
-                    // Check if we haven't already added this segment
-                    if(!segmentsToCopy.find(s => s.id == seg.id)){
-                        segmentsToCopy.push(seg)
-                    }
-                }
+        const oldToNew = new Map()
+
+        for (let i = 0; i < copied.length; i++) {
+            const oldNode = copied[i]
+
+            const dx = oldNode.pos.x - centerX
+            const dy = oldNode.pos.y - centerY
+
+            const newNode = this.road.addNodeNoUpdate(
+                mousePos.x + dx,
+                mousePos.y + dy
+            )
+
+            oldToNew.set(oldNode.id, newNode)
+        }
+
+        const segmentMap = new Map() 
+
+        for (let i = 0; i < copied.length; i++) {
+            const oldNode = copied[i]
+            const segments = this.road.findConnectedSegments(oldNode.id)
+
+            for (let j = 0; j < segments.length; j++) {
+                const seg = segments[j]
+                if (!copiedSet.has(seg.fromNodeID) || !copiedSet.has(seg.toNodeID)) continue
+                const id = seg.id
+                if (segmentMap.has(id)) continue
+                segmentMap.set(id, seg)
             }
         }
 
-        // Create all new segments with new node IDs
-        for(let oldSeg of segmentsToCopy){
-            let newFromNode = oldToNewNodeMap.get(oldSeg.fromNodeID)
-            let newToNode = oldToNewNodeMap.get(oldSeg.toNodeID)
-            if(newFromNode && newToNode){
-                this.road.addSegment(newFromNode.id, newToNode.id, oldSeg.visualDir, false)
+        const segmentsToCopy = Array.from(segmentMap.values())
+        for (let i = 0; i < segmentsToCopy.length; i++) {
+            const oldSeg = segmentsToCopy[i]
+
+            const from = oldToNew.get(oldSeg.fromNodeID)
+            const to = oldToNew.get(oldSeg.toNodeID)
+
+            if (from && to) {
+                this.road.addSegment(
+                    from.id,
+                    to.id,
+                    oldSeg.visualDir,
+                    false
+                )
             }
         }
 
-        // Set up paths for all pairs of connected nodes (like in updateRoad)
-        let nodePairs = new Set()
-        for(let oldSeg of segmentsToCopy){
-            let newFromNode = oldToNewNodeMap.get(oldSeg.fromNodeID)
-            let newToNode = oldToNewNodeMap.get(oldSeg.toNodeID)
-            if(newFromNode && newToNode){
-                // Store both directions to check
-                nodePairs.add(JSON.stringify([newFromNode.id, newToNode.id]))
+        const pairMap = new Map()
+        for (let i = 0; i < segmentsToCopy.length; i++) {
+            const s = segmentsToCopy[i]
+            const a = oldToNew.get(s.fromNodeID)
+            const b = oldToNew.get(s.toNodeID)
+
+            if (!a || !b) continue
+
+            const idA = a.id
+            const idB = b.id
+            const min = idA < idB ? idA : idB
+            const max = idA < idB ? idB : idA
+
+            const key = min + '|' + max
+
+            if (!pairMap.has(key)) {
+                pairMap.set(key, [min, max])
             }
         }
 
-        // For each pair, set up the path like in updateRoad
-        for(let pairStr of nodePairs){
-            let [nodeAID, nodeBID] = JSON.parse(pairStr)
-            let segmentIDs = new Set(this.road.getAllSegmentsBetweenNodes(nodeAID, nodeBID).map(s => s.id))
+        for (const [_, pair] of pairMap) {
+            const nodeAID = pair[0]
+            const nodeBID = pair[1]
 
-            let newPath = this.road.findPathByNodes(nodeAID, nodeBID)
-            if(!newPath) {
-                newPath = new Path(nodeAID, nodeBID, segmentIDs)
-                newPath.road = this.road
-                this.road.paths.set(nodeAID + '-' + nodeBID, newPath)
+            const segs = this.road.getAllSegmentsBetweenNodes(nodeAID, nodeBID)
+            const segmentIDs = new Set()
+
+            for (let i = 0; i < segs.length; i++) {
+                segmentIDs.add(segs[i].id)
             }
-            else newPath.setSegmentsIDs(segmentIDs)
 
-            newPath.constructRealLanes()
+            let path = this.road.findPathByNodes(nodeAID, nodeBID)
+
+            if (!path) {
+                path = new Path(nodeAID, nodeBID, segmentIDs)
+                path.road = this.road
+                this.road.paths.set(nodeAID + '-' + nodeBID, path)
+            } else {
+                path.setSegmentsIDs(segmentIDs)
+            }
+
+            path.constructRealLanes()
         }
 
-        // Now trim intersections for all new nodes
-        for(let [oldNodeID, newNode] of oldToNewNodeMap){
+        for (const newNode of oldToNew.values()) {
             this.road.trimSegmentsAtIntersection({
                 nodeID: newNode.id,
                 connect: true,
@@ -281,12 +313,22 @@ class Tool{
             })
         }
 
-        // Update selection to show the newly pasted nodes
-        this.state.selectedNodes = Array.from(oldToNewNodeMap.values())
-        let margin = NODE_RAD * 2
-        let corners = getBoundingBoxCorners(this.state.selectedNodes.map(n => n.pos))
-        this.state.firstCornerSelected = {x: corners[0].x - margin, y: corners[0].y - margin}
-        this.state.secondCornerSelected = {x: corners[2].x + margin, y: corners[2].y + margin}
+        this.state.selectedNodes = Array.from(oldToNew.values())
+
+        const margin = NODE_RAD * 2
+        const corners = getBoundingBoxCorners(
+            this.state.selectedNodes.map(n => n.pos)
+        )
+
+        this.state.firstCornerSelected = {
+            x: corners[0].x - margin,
+            y: corners[0].y - margin
+        }
+
+        this.state.secondCornerSelected = {
+            x: corners[2].x + margin,
+            y: corners[2].y + margin
+        }
     }
 
     doubleClick(event){
@@ -1479,7 +1521,7 @@ class Tool{
 
     setStateToRoad(roadData){
         let initialTime = performance.now()
-        
+
         this.road = new Road(this)
         this.road.nodeIDcounter = roadData.nodeIDcounter
         this.road.segmentIDcounter = roadData.segmentIDcounter
