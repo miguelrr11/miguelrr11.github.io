@@ -865,7 +865,8 @@ class Tool{
         for(let i = 0; i < this.state.nBackLanes; i++){
             this.road.addSegment(nodeBID, nodeAID, 'back', i == this.state.nBackLanes - 1, updateRoad)
         }
-        this.road.updateRoad([nodeAID, nodeBID])
+        this.road.updateNode(nodeAID)
+        this.road.updateNode(nodeBID)
     }
 
     getIntermediateNodes(nodeAID, nodeBID, numIntermediateNodes = DEF_NUM_INTERMEDIATE_NODES_BEZIER, curvature = DEF_CURVATURE_BEZIER){

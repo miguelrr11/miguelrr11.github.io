@@ -14,6 +14,7 @@ class Intersection {
         this.outline16 = [] //filled by calculateOutlinesIntersection()
         this.edges = []         //filled by calculateOutlinesIntersection()
         this.innerEdges = []    //filled by calculateInnerEdges()
+        this.innerLaneEdges = []    //filled by calculateInnerLaneEdges()
 
         //this.convexHullCalculated = false
 
@@ -384,39 +385,126 @@ class Intersection {
                 let inSegFromPos = s1.corners[2]
                 let outSegToPos = s2.corners[2]
 
-                let tension = map(dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y), 10, 250, TENSION_BEZIER_MIN, TENSION_BEZIER_MAX, true)
-                let LENGTH_CONTROL_POINT = 120
-
+                let d = dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y)
+                let length = d * LANE_WIDTH * 0.02
+                let tension = TENSION_BEZIER_MAX
 
                 let controlPointBez1
                 let dir1 = s1.dir 
-                controlPointBez1 = {x: inSegFromPos.x + Math.cos(dir1) * LENGTH_CONTROL_POINT, 
-                                    y: inSegFromPos.y + Math.sin(dir1) * LENGTH_CONTROL_POINT}
+                controlPointBez1 = {x: inSegFromPos.x + Math.cos(dir1) * length, 
+                                    y: inSegFromPos.y + Math.sin(dir1) * length}
 
                 let controlPointBez2
                 let dir2 = s2.dir
-                controlPointBez2 = {x: outSegToPos.x + Math.cos(dir2) * LENGTH_CONTROL_POINT, 
-                                    y: outSegToPos.y + Math.sin(dir2) * LENGTH_CONTROL_POINT}
+                controlPointBez2 = {x: outSegToPos.x + Math.cos(dir2) * length, 
+                                    y: outSegToPos.y + Math.sin(dir2) * length}
 
                 let bp = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER, tension)
                 bpMap.set(firstSeg.id + '_' + secSeg.id, bp)
                 this.innerEdges.push(bp)
             }
         }
+
+        this.calculateInnerLaneEdges()
     }
 
-    // type: showWays (lineas continuas de los carriles en la interseccion, separando los sentidos)
+    // type: showWays
     showInnerEdges(){
-        if(this.outOfBounds() || this.innerEdges.length === 0) return
+        if(this.outOfBounds()) return
         
-        for(let p of this.innerEdges) {
-            for(let i = 0; i < p.length; i+=3){
-                let p1 = p[i]
-                let p2 = p[Math.min(i+1, p.length-1)]
-                line(p1.x, p1.y, p2.x, p2.y)
+        if(this.innerEdges.length > 0){
+            for(let p of this.innerEdges) {
+                for(let i = 0; i < p.length; i+= this.paths.length > 2 ? 2 : 1){
+                    let p1 = p[i]
+                    let p2 = p[Math.min(i+1, p.length-1)]
+                    line(p1.x, p1.y, p2.x, p2.y)
+                }
             }
         }
         
+        if(this.innerLaneEdges.length > 0){
+            for(let p of this.innerLaneEdges) {
+                for(let i = 0; i < p.length; i += 2){
+                    let p1 = p[i]
+                    let p2 = p[Math.min(i+1, p.length-1)]
+                    line(p1.x, p1.y, p2.x, p2.y)
+                }
+            }
+        }
+        
+    }
+
+    // son las lineas discontinuas que pasan por las intersecciones para separar carriles de MISMO sentido,
+    // solo funciona en intersecciones con 2 paths
+    calculateInnerLaneEdges(){
+        this.innerLaneEdges = []
+        if(this.paths.length != 2) return
+        let pairs = []
+        
+        for(let p of this.paths){
+            if(p.segments.length == 1) continue
+            let segments = p.segments[0].toNodeID == this.nodeID ? p.segments : p.segments.toReversed()
+            
+            for(let other of this.paths){
+                if(p == other) continue
+                if(p.segments.length == 1) continue
+                let otherSegments = other.segments[0].toNodeID == this.nodeID ? other.segments : other.segments.toReversed()
+
+                let nLanesToHereP = 0
+                let nLanesFromHereOther = 0
+
+                for(let s of segments) if(s.toNodeID == this.nodeID) nLanesToHereP++
+                for(let s of otherSegments) if(s.fromNodeID == this.nodeID) nLanesFromHereOther++
+
+                if(nLanesToHereP != nLanesFromHereOther){
+                    let minLanes = Math.min(nLanesToHereP, nLanesFromHereOther)
+                    for(let i = 0; i < minLanes-1; i++){
+                        pairs.push({from: segments[i], to: otherSegments[otherSegments.length-i-1]})
+                    }
+                }
+                if(nLanesToHereP == nLanesFromHereOther){
+                    
+                    for(let i = 0; i < nLanesToHereP-1; i++){
+                        pairs.push({from: segments[i], to: otherSegments[otherSegments.length-i-1]})
+                    }
+                    console.log('pairs', pairs)
+                    console.log('segs', segments)
+                    console.log('otherSegs', otherSegments)
+                }
+                
+            }
+
+        } //A-B, D-C
+
+        let nodePos = this.road.findNode(this.nodeID).pos
+        let bpMap = new Map()
+        for(let pair of pairs){
+            let s1 = pair.from
+            let s2 = pair.to
+            if(bpMap.has(s1.id + '_' + s2.id) || bpMap.has(s2.id + '_' + s1.id)) continue
+
+            let inSegFromPos = s1.corners[2]
+            let outSegToPos = s2.corners[1]
+
+            let tension = TENSION_BEZIER_MAX
+            let d = dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y)
+            let length = d * LANE_WIDTH * 0.02
+
+
+            let controlPointBez1
+            let dir1 = s1.dir 
+            controlPointBez1 = {x: inSegFromPos.x + Math.cos(dir1) * length, 
+                                y: inSegFromPos.y + Math.sin(dir1) * length}
+
+            let controlPointBez2
+            let dir2 = s2.dir + PI
+            controlPointBez2 = {x: outSegToPos.x + Math.cos(dir2) * length, 
+                                y: outSegToPos.y + Math.sin(dir2) * length}
+
+            let bp = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER*.6, tension)
+            bpMap.set(s1.id + '_' + s2.id, bp)
+            this.innerLaneEdges.push(bp)
+        }
     }
 
     // type: showWays
