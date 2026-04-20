@@ -39,6 +39,9 @@ const aspectRatioOptions = {
 };
 let currentAspectRatio = '9:16';
 
+let aspectRatioCoverSelect
+let currentAspectRatioCover = '3:4';
+
 // View toggle: 'ratings' or 'cover'
 let currentView = 'ratings';
 let viewToggleBtn, editorPanel, dragOverlay;
@@ -350,6 +353,7 @@ function syncEditorFromUI() {
         genre: genreInput.value(), funfact: funfactInput.value(), imageUrl: imageUrlInput.value(),
         albumGrade: albumGradeSelect.value(),
         aspectRatio: currentAspectRatio,
+        aspectRatioCover: currentAspectRatioCover,
         imageFormat: currentImageFormat,
         showGradeLegend: showGradeLegend,
         tracks: tracks.map(t => ({
@@ -690,12 +694,25 @@ function createButtonGrid(parent = editorPanel) {
     createDiv('').parent(buttonGrid).class('section-divider')
 
     // Aspect Ratio & Image Format selectors
-    let aspectRatioRow = createDiv('').parent(buttonGrid).style('display: flex; gap: 12px; margin-bottom: 10px;');
+    let aspectRatioRow = createDiv('')
+        .parent(buttonGrid)
+        .style('display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-end;');
 
     // Aspect Ratio selector (half width)
-    let aspectRatioGroup = createDiv('').parent(aspectRatioRow).class('form-group').style('flex: 1; margin-bottom: 0; align-items: end;');
-    createElement('label', 'Aspect Ratio').parent(aspectRatioGroup).style('white-space: nowrap;')
-    aspectRatioSelect = createSelect().parent(aspectRatioGroup).class('form-select');
+    let aspectRatioGroup = createDiv('')
+        .parent(aspectRatioRow)
+        .class('form-group')
+        .style('flex: 1; margin-bottom: 0; display: flex; gap: 8px; align-items: flex-end;');
+    
+
+    
+
+    let ap1Wrapper = createDiv('')
+        .parent(aspectRatioGroup)
+        .style('display: flex; flex-direction: column; flex: 1;');
+
+    createElement('label', 'AP1').parent(ap1Wrapper);
+    aspectRatioSelect = createSelect().parent(ap1Wrapper).class('form-select');
     Object.keys(aspectRatioOptions).forEach(opt => aspectRatioSelect.option(opt));
     aspectRatioSelect.selected('9:16');
     aspectRatioSelect.changed(() => {
@@ -704,8 +721,25 @@ function createButtonGrid(parent = editorPanel) {
         captureState();
     });
 
+    let ap2Wrapper = createDiv('')
+        .parent(aspectRatioGroup)
+        .style('display: flex; flex-direction: column; flex: 1;');
+
+    createElement('label', 'AP2').parent(ap2Wrapper);
+    aspectRatioCoverSelect = createSelect().parent(ap2Wrapper).class('form-select');
+    Object.keys(aspectRatioOptions).forEach(opt => aspectRatioCoverSelect.option(opt));
+    aspectRatioCoverSelect.selected('3:4');
+    aspectRatioCoverSelect.changed(() => {
+        currentAspectRatioCover = aspectRatioCoverSelect.value();
+        if(currentView === 'cover') autoGeneratePreview();
+        captureState();
+    });
+
     // Image Format selector (half width)
-    let imageFormatGroup = createDiv('').parent(aspectRatioRow).class('form-group').style('flex: 1; margin-bottom: 0;');
+    let imageFormatGroup = createDiv('')
+        .parent(aspectRatioRow)
+        .class('form-group')
+        .style('flex: 0.5; margin-bottom: 0;');
     createElement('label', 'Format').parent(imageFormatGroup);
     imageFormatSelect = createSelect().parent(imageFormatGroup).class('form-select');
     ['png', 'jpg', 'jpeg', 'webp'].forEach(format => imageFormatSelect.option(format));
@@ -715,9 +749,10 @@ function createButtonGrid(parent = editorPanel) {
         captureState();
     });
 
+    
     let downloadRow = createDiv('')
         .parent(aspectRatioRow)
-        .style('flex: 1; margin-bottom: 0; display: flex; gap: 8px; align-items: end;');
+        .style('flex: 1; display: flex; gap: 8px; align-items: end;')
 
     let downloadImgGroup = createDiv('').parent(downloadRow).class('form-group').style('flex: 1; margin-bottom: 0; align-items: end;');
     createElement('label', 'Image').parent(downloadImgGroup).style('margin-right: 8px;');
@@ -725,7 +760,7 @@ function createButtonGrid(parent = editorPanel) {
         .parent(downloadImgGroup)
         .class('btn btn-secondary')
         .mousePressed(downloadBothImages)
-        .style('width: stretch');
+        .style('flex: 0.6;')
 
     let downloadJsonGroup = createDiv('').parent(downloadRow).class('form-group').style('flex: 1; margin-bottom: 0; align-items: end;');
     createElement('label', 'JSON').parent(downloadJsonGroup).style('margin-right: 8px;');
@@ -733,7 +768,7 @@ function createButtonGrid(parent = editorPanel) {
         .parent(downloadJsonGroup)
         .class('btn btn-secondary')
         .mousePressed(downloadJSON)
-        .style('width: stretch');
+        .style('flex: 0.6;')
     
     createDiv('').parent(buttonGrid).class('section-divider'); 
 
@@ -815,6 +850,7 @@ function getDefaultProfile() {
         tracksVerticalOffset: 0,
         colorMap: {...defaultColorMap},
         aspectRatio: '3:4',
+        aspectRatioCover: '3:4',
         imageFormat: 'jpg',
         showGradeLegend: true,
         verticalOffsetsRatings: {funfact: -21, title: 100},
@@ -828,17 +864,17 @@ function getDefaultProfile() {
         textAlignRatings: { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' },
         textAlignCover: { title: 'center', artist: 'center' },
         customTextboxes: [{
-            "id": "album_review",
-            "text": "Album Review",
-            "x": 50,
-            "y": 323,
+            "color": "#ffffff",
             "fontSize": 72,
             "fontType": "fontRegularCondensed",
-            "color": "#ffffff",
-            "viewType": "cover",
             "leading": 0,
             "maxWidth": 980,
-            "textAlign": "center"
+            "text": "Album Review",
+            "viewType": "cover",
+            "textAlign": "center",
+            "x": 47.683885894149626,
+            "y": 265.0988790146261,
+            "id": "album_review"
         },
         {
             "color": "#ffffff",
@@ -850,7 +886,7 @@ function getDefaultProfile() {
             "viewType": "cover",
             "textAlign": "center",
             "x": 50,
-            "y": 1574,
+            "y": 1328,
             "id": "comentario"
         }]
     };
@@ -864,6 +900,7 @@ function getCurrentProfileData() {
         tracksVerticalOffset: verticalOffsetsRatings.tracks || 0,
         colorMap: {...colorMap},
         aspectRatio: currentAspectRatio,
+        aspectRatioCover: currentAspectRatioCover,
         imageFormat: currentImageFormat,
         showGradeLegend: showGradeLegend,
         verticalOffsetsRatings: {...verticalOffsetsRatings},
@@ -938,6 +975,12 @@ function applyProfile(profileData) {
     if (profileData.aspectRatio && aspectRatioOptions[profileData.aspectRatio]) {
         currentAspectRatio = profileData.aspectRatio;
         aspectRatioSelect.selected(profileData.aspectRatio);
+    }
+
+    // Apply aspect ratio for cover
+    if (profileData.aspectRatioCover && aspectRatioOptions[profileData.aspectRatioCover]) {
+        currentAspectRatioCover = profileData.aspectRatioCover;
+        aspectRatioCoverSelect.selected(profileData.aspectRatioCover);
     }
 
     // Apply image format
@@ -1728,14 +1771,24 @@ async function downloadBothImages() {
     link.href = dataURL;
     link.click();
 
+    // Download cover screen (full size)
+    await printCoverScreen();
+    let exportHeightCover = aspectRatioOptions[currentAspectRatioCover].height;
+
+    // Create a temporary canvas for the cropped version
+    tempCanvas = createGraphics(WIDTH, exportHeightCover);
+    tempCanvas.image(get(0, 0, WIDTH, exportHeightCover), 0, 0);
+
+    // Get the data URL and download it manually with the correct extension
+    dataURL = tempCanvas.canvas.toDataURL('image/' + (currentImageFormat === 'jpg' ? 'jpeg' : currentImageFormat));
+    link = document.createElement('a');
+    link.download = baseFileName + ' - Cover.' + currentImageFormat;
+    link.href = dataURL;
+    link.click();
+
     tempCanvas.remove(); // Clean up
     showGreenRectangle = true; // Show it again
 
-    await new Promise(resolve => setTimeout(resolve, 100));
-
-    // Download cover screen (full size)
-    await printCoverScreen();
-    saveCanvas(baseFileName + ' - Cover', currentImageFormat);
 
     // Restore the view
     await printAlbum();
@@ -2047,6 +2100,11 @@ function fillFormFromData(data) {
         aspectRatioSelect.selected(data.aspectRatio);
     }
 
+    if(data.aspectRatioCover && aspectRatioOptions[data.aspectRatioCover]) {
+        currentAspectRatioCover = data.aspectRatioCover;
+        aspectRatioCoverSelect.selected(data.aspectRatioCover);
+    }
+
     if (data.imageFormat) {
         currentImageFormat = data.imageFormat;
         imageFormatSelect.selected(data.imageFormat);
@@ -2195,6 +2253,7 @@ function saveToLocalStorage() {
         customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null
     })));
     data.aspectRatio = currentAspectRatio;
+    data.aspectRatioCover = currentAspectRatioCover;
     data.imageFormat = currentImageFormat;
     data.showGradeLegend = showGradeLegend;
     data.customTextboxes = customTextboxes.map(t => ({
@@ -2679,7 +2738,9 @@ async function printCoverScreen() {
     let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
 
-    let coverSize = width * 0.8, coverY = height * 0.46, hasImage = false, imgBW, img;
+    let exportHeight = aspectRatioOptions[currentAspectRatioCover].height;
+
+    let coverSize = width * 0.65, coverY = exportHeight * 0.5, hasImage = false, imgBW, img;
 
     if (albumData.imageUrl && albumData.imageUrl.trim() !== '') {
         try {
@@ -2752,6 +2813,16 @@ async function printCoverScreen() {
     }
     pop()
     pop()
+
+    if (showGreenRectangle) {
+        push();
+        noFill();
+        stroke(0, 255, 0);
+        strokeWeight(4);
+        rectMode(CORNER);
+        rect(0, 0, WIDTH, aspectRatioOptions[currentAspectRatioCover].height);
+        pop();
+    }
 }
 
 function drawCustomTextboxes(coverType){
@@ -3141,6 +3212,7 @@ function captureState() {
         genre: genreInput.value(), funfact: funfactInput.value(), imageUrl: imageUrlInput.value(),
         albumGrade: albumGradeSelect.value(),
         aspectRatio: currentAspectRatio,
+        aspectRatioCover: currentAspectRatioCover,
         imageFormat: currentImageFormat,
         showGradeLegend: showGradeLegend,
         tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(),
@@ -3200,6 +3272,11 @@ function restoreState(state) {
     if (state.aspectRatio) {
         currentAspectRatio = state.aspectRatio;
         aspectRatioSelect.selected(state.aspectRatio);
+    }
+
+    if(state.aspectRatioCover) {
+        currentAspectRatioCover = state.aspectRatioCover;
+        aspectRatioCoverSelect.selected(state.aspectRatioCover);
     }
 
     if (state.imageFormat) {
