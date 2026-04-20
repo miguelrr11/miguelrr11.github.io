@@ -279,6 +279,8 @@ class Segment{
 
         
 
+        
+
         if(SHOW_TAGS){
             noStroke()
             fill(0, 255, 0)
@@ -328,6 +330,25 @@ class Segment{
                 if(this.corners[i] == undefined) continue
                 text('c' + i, this.corners[i].x, this.corners[i].y)
             }
+
+            push()
+            let fromPos = this.fromNode ? this.fromNode.pos : this.road.findNode(this.fromNodeID).pos
+            let toPos = this.toNode ? this.toNode.pos : this.road.findNode(this.toNodeID).pos
+            fill(255)
+            stroke(0)
+            strokeWeight(1)
+            let midPos = {x: (fromPos.x + toPos.x) / 2, y: (fromPos.y + toPos.y) / 2}
+            let str = 'from: ' + this.fromNodeID + ', to: ' + this.toNodeID + '\n' +
+            'visualDir: ' + this.visualDir + '\n'
+            textAlign(CENTER)
+            textSize(12)
+            let bbox = textBounds(str, midPos.x, midPos.y)
+            fill(0)
+            rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
+            fill(255)
+            text(str, midPos.x, midPos.y)
+            pop()
+
             // stroke(0)
             // fill(255)
             // for(let i = 0; i < this.corners16.length; i++){

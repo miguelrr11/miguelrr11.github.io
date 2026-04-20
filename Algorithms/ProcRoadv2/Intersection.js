@@ -357,11 +357,12 @@ class Intersection {
             if(p.segments.length == 1) continue
             if(p.monoDirectional()) continue
 
-            let refNode = p.segments[0].fromNodeID
             let changingSeg = undefined
-            for(let seg of p.segments){
-                if(seg.fromNodeID != refNode){
-                    changingSeg = seg
+            let segments = p.segments[0].toNodeID == this.nodeID ? p.segments : p.segments.toReversed()
+            for(let i = 0; i < segments.length; i++){
+                let seg = segments[i]
+                if(seg.toNodeID != this.nodeID){
+                    changingSeg = segments[i-1]
                     break
                 }
             }
@@ -373,18 +374,19 @@ class Intersection {
         let bpMap = new Map()
         for(let firstSeg of segs){
             for(let secSeg of segs){
+                if(firstSeg == secSeg) continue
+                if(bpMap.has(firstSeg.id + '_' + secSeg.id) || bpMap.has(secSeg.id + '_' + firstSeg.id)) continue
+
                 let s1, s2
-                if(firstSeg == secSeg) {continue}
-                if(firstSeg.fromNodeID == this.nodeID) {s1 = secSeg; s2 = firstSeg}
-                else {s1 = firstSeg; s2 = secSeg}
-                if(bpMap.has(firstSeg.id + '_' + secSeg.id) || bpMap.has(secSeg.id + '_' + firstSeg.id)) {continue}
-                let inSegFromPos = closestTo(s1.corners[1], s1.corners[2], nodePos)
-                let outSegToPos = closestTo(s2.corners[1], s2.corners[2], nodePos)
+                s1 = firstSeg
+                s2 = secSeg
+                
+                let inSegFromPos = s1.corners[2]
+                let outSegToPos = s2.corners[2]
+
                 let tension = map(dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y), 10, 250, TENSION_BEZIER_MIN, TENSION_BEZIER_MAX, true)
                 let LENGTH_CONTROL_POINT = 120
 
-                //we have to do this because paths can have reversed ordered segments
-                let off = inSegFromPos.x != s1.corners[1].x && outSegToPos.x != s2.corners[1].x ? PI : 0
 
                 let controlPointBez1
                 let dir1 = s1.dir 
@@ -392,7 +394,7 @@ class Intersection {
                                     y: inSegFromPos.y + Math.sin(dir1) * LENGTH_CONTROL_POINT}
 
                 let controlPointBez2
-                let dir2 = s2.dir + PI + off
+                let dir2 = s2.dir
                 controlPointBez2 = {x: outSegToPos.x + Math.cos(dir2) * LENGTH_CONTROL_POINT, 
                                     y: outSegToPos.y + Math.sin(dir2) * LENGTH_CONTROL_POINT}
 

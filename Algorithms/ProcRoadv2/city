@@ -1,4 +1,4 @@
-{
+storeItem('roadData', {
     "nodes": [
         {
             "id": "A",
@@ -3487,4 +3487,4 @@
     ],
     "nodeIDcounter": "CH",
     "segmentIDcounter": "Dp"
-}
+})
