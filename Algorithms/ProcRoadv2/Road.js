@@ -877,21 +877,22 @@ class Road{
                 }
                 
 
-                let tension = map(dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y), 10, 250, TENSION_BEZIER_MIN, TENSION_BEZIER_MAX, true)
-                let LENGTH_CONTROL_POINT = 120
+                let tension = TENSION_BEZIER_MAX
+                let d = dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y)
+                let length = d * LANE_WIDTH * 0.02
 
                 // let LENGTH_CONTROL_POINT = dist(inSegToPos.x, inSegToPos.y, outSegFromPos.x, outSegFromPos.y) * .1
                 // let tension = LENGTH_CONTROL_POINT / 300
 
                 let controlPointBez1
                 let dir1 = inSeg.dir
-                controlPointBez1 = {x: inSegFromPos.x + Math.cos(dir1) * LENGTH_CONTROL_POINT, 
-                                    y: inSegFromPos.y + Math.sin(dir1) * LENGTH_CONTROL_POINT}
+                controlPointBez1 = {x: inSegFromPos.x + Math.cos(dir1) * length, 
+                                    y: inSegFromPos.y + Math.sin(dir1) * length}
 
                 let controlPointBez2
                 let dir2 = outSeg.dir + PI
-                controlPointBez2 = {x: outSegToPos.x + Math.cos(dir2) * LENGTH_CONTROL_POINT, 
-                                    y: outSegToPos.y + Math.sin(dir2) * LENGTH_CONTROL_POINT}
+                controlPointBez2 = {x: outSegToPos.x + Math.cos(dir2) * length, 
+                                    y: outSegToPos.y + Math.sin(dir2) * length}
 
                 let pointsBezier = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER, tension)
 
