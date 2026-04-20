@@ -467,9 +467,6 @@ class Intersection {
                     for(let i = 0; i < nLanesToHereP-1; i++){
                         pairs.push({from: segments[i], to: otherSegments[otherSegments.length-i-1]})
                     }
-                    console.log('pairs', pairs)
-                    console.log('segs', segments)
-                    console.log('otherSegs', otherSegments)
                 }
                 
             }

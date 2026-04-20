@@ -47,8 +47,6 @@ class Tool{
             SHOW_LANES: false,
             SHOW_INTERSECTION_AREA_AREA: false,
             SHOW_WAYS: true,        //first attempt at rendering (node/edge approach, its biggest problem is that nodes can overlap)
-            SHOW_ROAD_MESH: false   //second attempt at rendering (mesh approach, not yet implemented, but should fix the problem of overlapping, 
-                                    //but just in the rendering, because the logic of intersection for cars is still the same)
         }
         this.road = new Road(this)
         this.state = this.getInitialState()
@@ -454,7 +452,6 @@ class Tool{
             //let newSegment = this.road.addSegment(this.state.prevNodeID, newNode.id)
             this.state.CSmode ? this.createCurvedSegmentsBetweenTwoNodes(this.state.prevNodeID, newNode.id) : 
                                 this.createSegmentBetweenTwoNodes(this.state.prevNodeID, newNode.id)
-            //checkSegmentCollisionsAndSplit(newSegment)
             this.state.prevNodeID = newNode.id
         }
 
@@ -626,7 +623,6 @@ class Tool{
         if(this.state.mode == 'movingNode'){
             this.state.draggingNodeID = -1
             this.state.offsetDraggingNode = {x: 0, y: 0}
-            this.checkForAllSegmentCollisions()
             //return
         }
         if(this.state.firstCorner != undefined){
@@ -829,7 +825,6 @@ class Tool{
                 ellipse(mousePosGridX, mousePosGridY, NODE_RAD * 2)
             }
 
-            this.checkCurrentSegmentCollisions()
             
             pop()
         }
@@ -846,16 +841,7 @@ class Tool{
             if(closestPosToSegment.closestSegment && this.state.mode == 'creating' && closestPosToSegment.minDist < NODE_RAD * 1.25){
                 this.showClosestSegmentAndPos(closestPosToSegment.closestPoint)
             }
-            this.checkCurrentSegmentCollisions()
         }
-    }
-
-    checkCurrentSegmentCollisions(){
-        return
-    }
-
-    checkForAllSegmentCollisions(){
-        return
     }
 
     createSegmentBetweenTwoNodes(nodeAID, nodeBID, straight = false, updateRoad = true){
@@ -867,6 +853,50 @@ class Tool{
         }
         this.road.updateNode(nodeAID)
         this.road.updateNode(nodeBID)
+        this.checkPathCollisionsForNodes(nodeAID, nodeBID)
+    }
+
+    //this function will slice 2 intersecting paths into 4, with a node in the intersection point, and update the segments and paths accordingly.
+    checkPathCollisionsForNodes(nodeAID, nodeBID, dryRun = false) {
+        const mainPath = this.road.findPathByNodes(nodeAID, nodeBID);
+        if (!mainPath) return dryRun ? [] : undefined;
+
+        const nodeAPos = this.road.findNode(nodeAID).pos;
+        const nodeBPos = this.road.findNode(nodeBID).pos;
+        const intersections = [];
+
+        for (const path of this.road.paths.values()) {
+            if (path.nodeA.id === nodeAID && path.nodeB.id === nodeBID) continue;
+            if (path.nodeA.id === nodeBID && path.nodeB.id === nodeAID) continue;
+
+            const oA = path.nodeAObj.pos, oB = path.nodeBObj.pos;
+            const ip = lineIntersection(nodeAPos, nodeBPos, oA, oB);
+            if (!ip) continue;
+
+            const minDist = 100;
+            if (dist(nodeAPos.x, nodeAPos.y, ip.x, ip.y) < minDist ||
+                dist(nodeBPos.x, nodeBPos.y, ip.x, ip.y) < minDist ||
+                dist(oA.x, oA.y, ip.x, ip.y) < minDist ||
+                dist(oB.x, oB.y, ip.x, ip.y) < minDist) continue;
+
+            if (dryRun) {
+                intersections.push({ x: ip.x, y: ip.y, path });
+                continue;
+            }
+
+            const newNode = this.road.addNode(ip.x, ip.y);
+            for (const seg of path.segments)     this.road.splitSegmentAtPos(seg.id, ip.x, ip.y, newNode);
+            for (const seg of mainPath.segments) this.road.splitSegmentAtPos(seg.id, ip.x, ip.y, newNode);
+            this.road.updateNode(newNode.id);
+            this.road.updateRoad([nodeAID, nodeBID]);
+            this.state.prevNodeID = this.road.prevNodeIDcounter;
+
+            this.checkPathCollisionsForNodes(nodeAID,  newNode.id);
+            this.checkPathCollisionsForNodes(newNode.id, nodeBID);
+            return;
+        }
+
+        if (dryRun) return intersections;
     }
 
     getIntermediateNodes(nodeAID, nodeBID, numIntermediateNodes = DEF_NUM_INTERMEDIATE_NODES_BEZIER, curvature = DEF_CURVATURE_BEZIER){
@@ -948,6 +978,10 @@ class Tool{
         if(this.state.prevNodeID == -1) return
 
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
+        if(this.state.hoverNode){
+            mousePosGridX = this.state.hoverNode.pos.x
+            mousePosGridY = this.state.hoverNode.pos.y
+        }
 
         let segments = []
         let newNode = new Node(-1, mousePosGridX, mousePosGridY)
@@ -1274,12 +1308,9 @@ class Tool{
         scale(this.zoom)
 
         if(this.zoom > 0.3 && this.state.snapToGrid) this.showGridPoints()
-
         
         // only showWays is optimized
         if(this.showOptions.SHOW_WAYS) this.road.showWays(this)
-
-
 
         if(this.showOptions.SHOW_LANES){ 
             this.road.showLanes(this.state.hoverSegID)
@@ -1307,18 +1338,49 @@ class Tool{
         this.showStartEndPathfinding()
         this.showHover()
         this.showMousePosition()
-
         this.showSelectionBox()
         this.showSelectionBoxSelected()
-
         this.showSelectedIntersection()
-
         this.showCS()
+        this.showIntersectingPaths()
 
 
         pop()
 
         this.menu.show()
+    }
+
+    showIntersectingPaths(){
+        if(this.state.mode != 'creating' || this.state.prevNodeID == -1) return
+
+        let points = []
+
+        for(let p of this.road.paths.values()){
+            let nodeAPos = p.nodeAObj.pos
+            let nodeBPos = p.nodeBObj.pos
+            let mousePos = this.getRelativePos(mouseX, mouseY)
+            let ip = lineIntersection(nodeAPos, nodeBPos, this.road.findNode(this.state.prevNodeID).pos, mousePos)
+            if(!ip) continue;
+
+            const minDist = 100;
+            if (dist(nodeAPos.x, nodeAPos.y, ip.x, ip.y) < minDist ||
+                dist(nodeBPos.x, nodeBPos.y, ip.x, ip.y) < minDist ||
+                dist(mousePos.x, mousePos.y, ip.x, ip.y) < minDist ||
+                dist(mousePos.x, mousePos.y, ip.x, ip.y) < minDist) continue;
+
+            points.push(ip)
+
+        }
+
+        if(points.length > 0){
+            push()
+            stroke(0, 0, 255)
+            fill(0, 0, 255, 100)
+            for(let p of points){
+                ellipse(p.x, p.y, NODE_RAD * 2)
+            }
+            pop()
+        }
     }
 
     showCS(){

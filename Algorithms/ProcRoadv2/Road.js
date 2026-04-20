@@ -513,7 +513,7 @@ class Road{
         const newNode = new Node(this.nodeIDcounter, x, y)
         this.nodes.set(newNode.id, newNode)
         newNode.road = this
-        this.nodeIDcounter = getNextID(this.nodeIDcounter)
+        this.updateNodeIDcounter()
         return newNode
     }
 
@@ -521,8 +521,13 @@ class Road{
         const newNode = new Node(this.nodeIDcounter, x, y)
         this.nodes.set(newNode.id, newNode)
         newNode.road = this
-        this.nodeIDcounter = getNextID(this.nodeIDcounter)
+        this.updateNodeIDcounter()
         return newNode
+    }
+
+    updateNodeIDcounter(){
+        this.prevNodeIDcounter = this.nodeIDcounter
+        this.nodeIDcounter = getNextID(this.nodeIDcounter)
     }
 
     findHoverNode(x, y){
