@@ -364,12 +364,12 @@ function showFailAndReset(button) {
             let mousePos = this.tool.getRelativePos(mouseX, mouseY)
             return 'Nodes: ' + '\n' + this.tool.road.nodes.size + '\n' +
                    'Segments: ' + '\n' + this.tool.road.segments.size + '\n' +
-                   'Connectors: ' + '\n' + this.tool.road.connectors.length + '\n' +
+                   'Connectors: ' + '\n' + this.tool.road.connectors.size + '\n' +
                    'Intersections: ' + '\n' + this.tool.road.intersecSegs.size + '\n' +
                    'Paths: ' + '\n' + this.tool.road.paths.size + '\n' +
                    'Cars: ' + '\n' + cars.length + '\n' +
                    'OSM Queue: ' + '\n' + this.tool.state.OSMqueue.nodesToProcess.size + '\n' +
-                   'Selected Nodes: ' + '\n' + this.tool.state.selectedNodes.length + '\n' +
+                   'Selected Nodes: ' + '\n' + this.tool.state.selectedNodes.size + '\n' +
                    'x: ' + round(mousePos.x) + '\n' +
                    'y: ' + round(mousePos.y)
         }, () => {return false})

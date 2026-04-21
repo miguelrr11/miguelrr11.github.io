@@ -138,8 +138,8 @@ class Tool{
             secondCorner: undefined,
             firstCornerSelected: undefined,
             secondCornerSelected: undefined,
-            selectedNodes: [],
-            selectedNodesOffsets: [],
+            selectedNodes: new Set(),
+            selectedNodesOffsets: new Map(),  //nodeID -> {x: offsetX, y: offsetY}
             boxOffsetFirstCorner: {x: 0, y: 0},
             boxOffsetSecondCorner: {x: 0, y: 0},
             copiedNodes: [],
@@ -187,7 +187,7 @@ class Tool{
     }
 
     getAvaiableToCopy(){
-        return this.state.selectedNodes.length > 0
+        return this.state.selectedNodes.size > 0
     }
 
     copySelectedNodes(){
@@ -313,11 +313,11 @@ class Tool{
             })
         }
 
-        this.state.selectedNodes = Array.from(oldToNew.values())
+        this.state.selectedNodes = new Set(oldToNew.values())
 
         const margin = NODE_RAD * 2
         const corners = getBoundingBoxCorners(
-            this.state.selectedNodes.map(n => n.pos)
+            Array.from(this.state.selectedNodes).map(n => n.pos)
         )
 
         this.state.firstCornerSelected = {
@@ -588,7 +588,7 @@ class Tool{
 
         if((this.state.mode == 'movingNode' || (keyIsPressed && keyCode == 32) || (mouseIsPressed && mouseButton.center)) && 
             this.state.draggingNodeID == -1 && 
-            this.state.selectedNodes.length == 0){
+            this.state.selectedNodes.size == 0){
             if(!this.prevMouseX) this.prevMouseX = mouseX
             if(!this.prevMouseY) this.prevMouseY = mouseY
             let dx = mouseX - this.prevMouseX; // Change in mouse X
@@ -602,23 +602,25 @@ class Tool{
         //dragging nodes
         if(this.state.mode == 'movingNode'){
             //finds a selection box to start dragging
-            if(this.state.selectedNodes.length > 0 && this.state.selectedNodesOffsets.length == 0){
+            if(this.state.selectedNodes.size > 0 && this.state.selectedNodesOffsets.size == 0){
                 if(inBoundsTwoCorners(mousePos.x, mousePos.y, this.state.firstCornerSelected, this.state.secondCornerSelected)){
-                    this.state.selectedNodesOffsets = this.state.selectedNodes.map(n => {
-                        return {x: n.pos.x - mousePosGridX, y: n.pos.y - mousePosGridY}
+                    this.state.selectedNodesOffsets = new Map()
+                    Array.from(this.state.selectedNodes).forEach(n => {
+                        this.state.selectedNodesOffsets.set(n.id, {x: n.pos.x - mousePosGridX, y: n.pos.y - mousePosGridY})
                     })
                     this.state.boxOffsetFirstCorner = {x: this.state.firstCornerSelected.x - mousePosGridX, y: this.state.firstCornerSelected.y - mousePosGridY}
                     this.state.boxOffsetSecondCorner = {x: this.state.secondCornerSelected.x - mousePosGridX, y: this.state.secondCornerSelected.y - mousePosGridY}
                 }
             }
             //keeps on dragging the selection box
-            if(this.state.selectedNodes.length > 0 && this.state.selectedNodesOffsets.length > 0){
+            if(this.state.selectedNodes.size > 0 && this.state.selectedNodesOffsets.size > 0){
                 if(inBoundsTwoCorners(mousePos.x, mousePos.y, this.state.firstCornerSelected, this.state.secondCornerSelected)){
-                    if(this.state.selectedNodes.length < 10){
-                        for(let i = 0; i < this.state.selectedNodes.length; i++){
-                            let n = this.state.selectedNodes[i]
-                            let offset = this.state.selectedNodesOffsets[i]
+                    if(this.state.selectedNodes.size < 15){
+                        for(let n of this.state.selectedNodes){
+                            let offset = this.state.selectedNodesOffsets.get(n.id)
                             n.moveTo(mousePosGridX + offset.x, mousePosGridY + offset.y)
+                        }
+                        for(let n of this.state.selectedNodes){
                             this.road.updateNode(n.id)
                         }
                     }
@@ -671,14 +673,21 @@ class Tool{
             this.state.secondCorner = this.getRelativePos(mouseX, mouseY)
             this.selectObjectsInSelectionBox()
         }
-        if(this.state.selectedNodes.length > 0 && this.state.selectedNodesOffsets.length > 0){
+        if(this.state.selectedNodes.size > 0 && this.state.selectedNodesOffsets.size > 0){
             if(inBoundsTwoCorners(mousePos.x, mousePos.y, this.state.firstCornerSelected, this.state.secondCornerSelected)){
-                for(let i = 0; i < this.state.selectedNodes.length; i++){
-                    let n = this.state.selectedNodes[i]
-                    let offset = this.state.selectedNodesOffsets[i]
+                let startTime = performance.now()
+                this.state.selectedNodes.forEach(n => {
+                    let offset = this.state.selectedNodesOffsets.get(n.id)
                     n.moveTo(mousePosGridX + offset.x, mousePosGridY + offset.y)
-                    this.road.updateNode(n.id)
+                    //this.road.updateNode(n.id)
+                })
+                for(let path of this.road.paths.values()){
+                    if(this.state.selectedNodes.has(path.nodeAObj) || this.state.selectedNodes.has(path.nodeBObj)) {
+                        this.road.updateRoad([path.nodeA, path.nodeB], path)
+                    }
                 }
+                let endTime = performance.now()
+                console.log('Moved ' + this.state.selectedNodes.size + ' nodes in ' + (endTime - startTime).toFixed(2) + ' ms')
             }
         }
         this.removeSelectedBox()
@@ -687,7 +696,7 @@ class Tool{
     removeSelectedBox(){
         this.state.firstCorner = undefined
         this.state.secondCorner = undefined
-        this.state.selectedNodesOffsets = []
+        this.state.selectedNodesOffsets = new Map()
         this.state.boxOffsetFirstCorner = {x: 0, y: 0}
         this.state.boxOffsetSecondCorner = {x: 0, y: 0}
     }
@@ -722,11 +731,11 @@ class Tool{
             if(this.getAvaiableToPaste()) this.pasteNodes()
         }
         if(kC == 8){
-            if(this.state.mode == 'selecting' && this.state.selectedNodes.length > 0){
-                for(let node of this.state.selectedNodes){
+            if(this.state.mode == 'selecting' && this.state.selectedNodes.size > 0){
+                this.state.selectedNodes.forEach(node => {
                     this.road.deleteNode(node.id)
-                }
-                this.state.selectedNodes = []
+                })
+                this.state.selectedNodes = new Set()
                 this.state.firstCorner = undefined
                 this.state.secondCorner = undefined
                 this.state.firstCornerSelected = undefined
@@ -1270,13 +1279,13 @@ class Tool{
         let margin = NODE_RAD * 2
         let inBoundsNodes = this.road.findAllNodesInArea(this.state.firstCorner, this.state.secondCorner)
         if(inBoundsNodes.length > 0){ 
-            this.state.selectedNodes = inBoundsNodes
+            this.state.selectedNodes = new Set(inBoundsNodes)
             let corners = getBoundingBoxCorners(inBoundsNodes.map(n => n.pos))
             this.state.firstCornerSelected = {x: corners[0].x - margin, y: corners[0].y - margin}
             this.state.secondCornerSelected = {x: corners[2].x + margin, y: corners[2].y + margin}
         }
         else{
-            this.state.selectedNodes = []
+            this.state.selectedNodes = new Set()
             this.state.firstCornerSelected = undefined
             this.state.secondCornerSelected = undefined
         }
@@ -1309,7 +1318,7 @@ class Tool{
         let mousePos = this.getRelativePos(mouseX, mouseY)
         
         this.state.hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
-        this.state.hoverConn = this.road.findHoverConnector(mousePos.x, mousePos.y)
+        //this.state.hoverConn = this.road.findHoverConnector(mousePos.x, mousePos.y)
         let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
         if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
             let point = closestPosToSegment.closestPoint
@@ -1497,9 +1506,11 @@ class Tool{
             }
         }
         if(this.showOptions.SHOW_CONNECTORS){
-            let hoverConn = this.road.findHoverConnector(mousePos.x, mousePos.y)
-            if(hoverConn){
-                hoverConn.showHover()
+            if(this.state.selectedIntersection != undefined){
+                let hoverConn = this.road.findIntersection(this.state.selectedIntersection).findHoverConnector(mousePos.x, mousePos.y)
+                if(hoverConn){
+                    hoverConn.showHover()
+                }
             }
         }
     }
@@ -1535,7 +1546,6 @@ class Tool{
         for(let s of roadData.segments){
             let newSegment = new Segment(s.id, s.fromNodeID, s.toNodeID, s.visualDir)
             newSegment.road = this.road
-            // Populate direct object references immediately
             newSegment.fromNode = this.road.findNode(s.fromNodeID)
             newSegment.toNode = this.road.findNode(s.toNodeID)
             this.road.segments.set(newSegment.id, newSegment)

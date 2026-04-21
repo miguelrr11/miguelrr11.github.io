@@ -604,16 +604,17 @@ class Intersection {
 
             let minDistToNode = Infinity
             for (let v of bz) {
-                let d = dist(v.x, v.y, nodePos.x, nodePos.y)
+                let d = squaredDistance(v.x, v.y, nodePos.x, nodePos.y)
                 if (d < minDistToNode) minDistToNode = d
             }
             let distToUse = minDistToNode * 0.8
 
             let cx = (b.x + c.x) * 0.5
             let cy = (b.y + c.y) * 0.5
-            let midToNode = dist(cx, cy, nodePos.x, nodePos.y)
+            let midToNode = squaredDistance(cx, cy, nodePos.x, nodePos.y)
 
             let shift = midToNode - Math.min(distToUse, midToNode)
+            shift = Math.sqrt(shift)
             let dir = Math.atan2(cy - nodePos.y, cx - nodePos.x)
             let cornerPoint = {
                 x: cx - Math.cos(dir) * shift,

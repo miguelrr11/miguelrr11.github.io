@@ -38,9 +38,9 @@ class Road{
         this.segments = new Map()
         this.nodes = new Map()
 
-        this.connectors = [] 
+        this.connectors = new Map()
         this.intersecSegs = new Map()
-        this.intersections = []
+        this.intersections = new Map()
         this.paths = new Map()
 
         //not used anymore
@@ -58,14 +58,14 @@ class Road{
     setPaths() {
         let activenessMap = new Map()
 
-        for (let intersection of this.intersections) {
+        for (let intersection of this.intersections.values()) {
             activenessMap.set(intersection.id, intersection.getActivenessMap())
         }
 
         this.paths = new Map()
-        this.connectors = []
+        this.connectors = new Map()
         this.intersecSegs = new Map()
-        this.intersections = []
+        this.intersections = new Map()
         this.connectorIDcounter = 0
         this.intersecSegIDcounter = 0
 
@@ -126,21 +126,28 @@ class Road{
             }
         }
 
-        this.nodes.forEach((n) =>
-            this.trimSegmentsAtIntersection({
-                nodeID: n.id,
-                activenessMap: activenessMap.get(n.id),
-                connect: true,
-                instantConvex: true
-            })
-        )
+        // this.nodes.forEach((n) =>
+        //     this.trimSegmentsAtIntersection({
+        //         nodeID: n.id,
+        //         activenessMap: activenessMap.get(n.id),
+        //         connect: true,
+        //         instantConvex: true
+        //     })
+        // )
+        // this.nodes.forEach((n) => {
+        //     this.updateNode(n.id)
+        // })
+        for(let path of this.paths.values()){
+            this.updateRoad([path.nodeA, path.nodeB], path)
+        }
+
     }
 
     //connect a node to another node
     //the current way to modify the road in the fly when wanting to connect two nodes
     //nodesIDs is an array of two node IDs
     updateRoad(nodesIDs, usePath = undefined, trim = true, straightMode = false){
-        let segmentIDs = new Set(this.getAllSegmentsBetweenNodes(nodesIDs[0], nodesIDs[1]).map(s => s.id))
+        let segmentIDs = usePath ? new Set(usePath.segmentsIDs) : new Set(this.getAllSegmentsBetweenNodes(nodesIDs[0], nodesIDs[1]).map(s => s.id))
         let newPath 
         if(usePath) newPath = usePath
         else{
@@ -169,14 +176,15 @@ class Road{
             let intersection = this.findIntersection(nodeID)
             if(intersection){
                 activenessMaps.push(intersection.getActivenessMap())
-                const connectorIDsSet = new Set(intersection.connectorsIDs)
+                const connectorIDsSet = intersection.connectorsIDs
                 const intersecSegsIDsSet = new Set(intersection.intersecSegsIDs)
-                this.connectors = this.connectors.filter(c => !connectorIDsSet.has(c.id))
-                this.intersecSegs = new Map(
-                    Array.from(this.intersecSegs.entries())
-                        .filter(([key, is]) => !intersecSegsIDsSet.has(is.id))
-                );
-                this.intersections = this.intersections.filter(i => i.nodeID != nodeID)
+                for (const id of connectorIDsSet) {
+                    this.connectors.delete(id);
+                }
+                for(const id of intersecSegsIDsSet) {
+                    this.intersecSegs.delete(id);
+                }
+                this.intersections.delete(nodeID)
             }
         }
 
@@ -233,10 +241,10 @@ class Road{
             if(!fromPos || !toPos) return
             let posFromNode = s.fromNode ? s.fromNode.pos : this.findNode(s.fromNodeID).pos
             //let posToNode = s.toNode ? s.toNode.pos : this.findNode(s.toNodeID).pos
-            if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
-                //continue
-            }
-            else{
+            // if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
+            //     //continue
+            // }
+            //else{
                 let ap = {x: pos.x - fromPos.x, y: pos.y - fromPos.y}
                 let ab = {x: toPos.x - fromPos.x, y: toPos.y - fromPos.y}
                 let ab2 = ab.x * ab.x + ab.y * ab.y
@@ -253,7 +261,7 @@ class Road{
                         y: posFromNode.y + (point.y - fromPos.y)
                     }
                 }
-            }
+            //}
         })
         minDist = Math.sqrt(minDist)
         return {closestSegment, closestPoint, minDist, closestPointMain}
@@ -302,16 +310,16 @@ class Road{
     }
 
     getAllSegmentsBetweenNodes(nodeID1, nodeID2){
-        // let path = this.findPathByNodes(nodeID1, nodeID2)
-        // if(path) return [...path.segments]
-        let fromTo = this.getAllSegmentsBetweenNodesExclusively(nodeID1, nodeID2)
-        let toFrom = this.getAllSegmentsBetweenNodesExclusively(nodeID2, nodeID1)
-        return [...fromTo, ...toFrom]
+        // let fromTo = this.getAllSegmentsBetweenNodesExclusively(nodeID1, nodeID2)
+        // let toFrom = this.getAllSegmentsBetweenNodesExclusively(nodeID2, nodeID1)
+        // return [...fromTo, ...toFrom]
+        let node1 = this.findNode(nodeID1)
+        let node2 = this.findNode(nodeID2)
+        let allSegs = [...node1.outgoingSegments, ...node1.incomingSegments, ...node2.outgoingSegments, ...node2.incomingSegments]
+        return allSegs.filter(s => (s.fromNodeID == nodeID1 && s.toNodeID == nodeID2) || (s.fromNodeID == nodeID2 && s.toNodeID == nodeID1))
     }
 
     getAllSegmentsBetweenNodesExclusively(nodeID1, nodeID2){
-        // let path = this.findPathByNodes(nodeID1, nodeID2)
-        // if(path) return [...path.segments].filter(s => s.fromNodeID == nodeID1)
         return Array.from(this.segments.values())
             .filter(s => s.fromNodeID == nodeID1 && s.toNodeID == nodeID2);
     }
@@ -319,7 +327,7 @@ class Road{
     getAllPathsConnectedToNode(nodeID){
         // this.paths is a map
         let connectedPaths = []
-        this.paths.forEach(path => {
+        this.paths.forEach((path, key) => {
             if(path.nodeA == nodeID || path.nodeB == nodeID){
                 connectedPaths.push(path)
             }
@@ -351,11 +359,13 @@ class Road{
             if(!node) continue
             let intersection = this.findIntersection(nodeID)
             if(intersection){
-                this.connectors = this.connectors.filter(c => !intersection.connectorsIDs.includes(c.id))
+                for (const id of intersection.connectorsIDs) {
+                    this.connectors.delete(id);
+                }
                 for (const id of intersection.intersecSegsIDs) {
                     this.intersecSegs.delete(id);
                 }
-                this.intersections = this.intersections.filter(i => i.nodeID != nodeID)
+                this.intersections.delete(nodeID)
             }
         }
         this.deletePath(nodeID)
@@ -496,7 +506,7 @@ class Road{
     }
 
     findConnector(id){
-        return this.connectors.find(c => c.id == id)
+        return this.connectors.get(id)
     }
 
     findIntersecSeg(id){
@@ -504,7 +514,7 @@ class Road{
     }
 
     findIntersection(id){
-        return this.intersections.find(i => i.nodeID == id)
+        return this.intersections.get(id)
     }
 
     findIntersecSegByFromToConnectorIDs(fromConnectorID, toConnectorID){
@@ -520,12 +530,13 @@ class Road{
                this.findSegByFromToConnectorsIDs(fromConnectorID, toConnectorID)
     }
 
-    findConnectorBySegmentID(segmentID, type){
-        if(type == 'incoming'){
-            return this.connectors.find(c => c.incomingSegmentIDs.includes(segmentID))
-        } 
-        else if(type == 'outgoing'){
-            return this.connectors.find(c => c.outgoingSegmentIDs.includes(segmentID))
+    findConnectorBySegmentID(segmentID, type) {
+        for (const c of this.connectors.values()) {
+            if (type === 'incoming') {
+                if (c.incomingSegmentIDs.includes(segmentID)) return c;
+            } else {
+                if (c.outgoingSegmentIDs.includes(segmentID)) return c;
+            }
         }
     }
 
@@ -578,7 +589,9 @@ class Road{
     }
 
     findHoverConnector(x, y){
-        return this.connectors.find(c => c.hover(x, y))
+        for(let connector of this.connectors.values()){
+            if(connector.hover(x, y)) return connector
+        }
     }
 
     addSegment(fromNodeID, toNodeID, visualDir, updateR = true, straightMode = false){
@@ -599,7 +612,15 @@ class Road{
         toNode.incomingSegments.push(newSegment)    // Add direct object reference
         this.segmentIDcounter = getNextID(this.segmentIDcounter)
 
-        if(updateR) this.updateRoad([fromNodeID, toNodeID], undefined, true, straightMode)
+        let path = this.findPathByNodes(fromNodeID, toNodeID)
+        if(!path){
+            path = new Path(fromNodeID, toNodeID, new Set([newSegment.id]))
+            path.road = this
+            this.paths.set(fromNodeID + '-' + toNodeID, path)
+        }
+        else path.segmentsIDs.add(newSegment.id)
+
+        if(updateR) this.updateRoad([fromNodeID, toNodeID], path, true, straightMode)
 
         return newSegment
     }
@@ -635,7 +656,7 @@ class Road{
     getPathsOfSegments(segments){
         let paths = new Set()
         segments.forEach(s => {
-            this.paths.forEach(p => {
+            this.paths.forEach((p, key) => {
                 if(p.segmentsIDs.has(s.id)) paths.add(p)
             })
         })
@@ -897,7 +918,7 @@ class Road{
                     connector1.road = this
                     connector1.type = 'enter'
                     connector1.incomingSegments = [inSeg]  // Populate direct reference immediately
-                    this.connectors.push(connector1)
+                    this.connectors.set(connector1.id, connector1)
                     this.connectorIDcounter = getNextID(this.connectorIDcounter)
                     connectorMap.set(inSeg.id, connector1)
                 }
@@ -913,7 +934,7 @@ class Road{
                     connector2.road = this
                     connector2.type = 'exit'
                     connector2.outgoingSegments = [outSeg]  // Populate direct reference immediately (this will be an intersegment later)
-                    this.connectors.push(connector2)
+                    this.connectors.set(connector2.id, connector2)
                     this.connectorIDcounter = getNextID(this.connectorIDcounter)
                     connectorMap.set(outSeg.id, connector2)
                 }
@@ -991,7 +1012,7 @@ class Road{
                 connector.road = this
                 connector.type = 'enter'
                 connector.incomingSegments = [inSeg]
-                this.connectors.push(connector)
+                this.connectors.set(connector.id, connector)
                 this.connectorIDcounter = getNextID(this.connectorIDcounter)
                 connectorMap.set(inSeg.id, connector)
 
@@ -1007,7 +1028,7 @@ class Road{
                 connector.road = this
                 connector.type = 'exit'
                 connector.outgoingSegments = [outSeg]
-                this.connectors.push(connector)
+                this.connectors.set(connector.id, connector)
                 this.connectorIDcounter = getNextID(this.connectorIDcounter)
                 connectorMap.set(outSeg.id, connector)
 
@@ -1034,7 +1055,7 @@ class Road{
         //if(instantConvex) intersection.calculateOutlinesIntersection();
         //else this.pushToConvexQueue(intersection)
         //this.pushToConvexQueue(intersection)
-        this.intersections.push(intersection)
+        this.intersections.set(nodeID, intersection)
     }
 
     // pushToConvexQueue(intersection){
@@ -1084,16 +1105,16 @@ class Road{
         push()
         stroke(230)
         strokeWeight(5)
-        this.paths.forEach(s => s.showSimple())
+        this.paths.forEach((s, key) => s.showSimple())
         pop()
     }
 
     showPaths(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined){
-        this.paths.forEach(p => p.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID))
+        this.paths.forEach((p, key) => p.showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID))
     }
 
     showConnectors(SHOW_TAGS){
-        this.connectors.forEach(c => c.show(SHOW_TAGS))
+        this.connectors.forEach((c, key) => c.show(SHOW_TAGS))
     }
 
     showIntersecSegs(SHOW_TAGS){
@@ -1101,11 +1122,11 @@ class Road{
     }
 
     showIntersectionArea(){
-        this.intersections.forEach(i => {i.drawOutlineDebug()})
+        this.intersections.forEach((i, key) => {i.drawOutlineDebug()})
     }
 
     showLanes(hoveredSegID = undefined){
-        this.paths.forEach(p => p.showLanes(hoveredSegID))
+        this.paths.forEach((p, key) => p.showLanes(hoveredSegID))
         this.intersecSegs.forEach((s, key) => s.showLane())
     }
 
@@ -1127,26 +1148,26 @@ class Road{
         fill(SIDE_WALK_COL)
         stroke(SIDE_WALK_COL)
         strokeWeight(1)
-        if(zoom > 0.1) this.paths.forEach(p => p.showWayBase())
+        if(zoom > 0.1) this.paths.forEach((p, key) => p.showWayBase())
         pop()
 
         push()
         fill(SIDE_WALK_COL)
         stroke(SIDE_WALK_COL)
         strokeWeight(1)
-        if(zoom > 0.1) this.intersections.forEach(p => p.showWayBase())
+        if(zoom > 0.1) this.intersections.forEach((p, key) => p.showWayBase())
         pop()
 
         push()
         fill(ROAD_COL)
         stroke(ROAD_COL)
         strokeWeight(1)
-        if(zoom > 0.05) this.intersections.forEach(p => p.showWayTop())
+        if(zoom > 0.05) this.intersections.forEach((p, key) => p.showWayTop())
         stroke(MARKINGS_COL)
         strokeWeight(1.5)
         noFill()
-        if(zoom > 0.18) this.intersections.forEach(p => p.showOuterEdges())
-        if(zoom > 0.18) this.intersections.forEach(p => p.showInnerEdges())
+        if(zoom > 0.18) this.intersections.forEach((p, key) => p.showOuterEdges())
+        if(zoom > 0.18) this.intersections.forEach((p, key) => p.showInnerEdges())
         pop()
     
         push()
@@ -1154,33 +1175,33 @@ class Road{
         fill(ROAD_COL)
         stroke(ROAD_COL)
         strokeWeight(1)
-        if(zoom > 0.05) this.paths.forEach(p => p.showWayTop(hoveredID))
+        if(zoom > 0.05) this.paths.forEach((p, key) => p.showWayTop(hoveredID))
         stroke(MARKINGS_COL)
         strokeWeight(WIDTH_YIELD_MARKING)
         strokeCap(SQUARE)
-        if(zoom > 0.18) this.intersections.forEach(p => p.showYieldMarkings())
+        if(zoom > 0.18) this.intersections.forEach((p, key) => p.showYieldMarkings())
         strokeWeight(1.5)
         stroke(MARKINGS_COL)
         strokeCap(SQUARE)
-        if(zoom > 0.18) this.paths.forEach(p => p.showEdges())
+        if(zoom > 0.18) this.paths.forEach((p, key) => p.showEdges())
         stroke(ARROWS_COL)
         strokeWeight(1.5)
         fill(ARROWS_COL)
         if(zoom > 0.35){ 
-            this.paths.forEach(p => p.showArrows())
-            this.intersections.forEach(i => i.showDirectionsIntersection())
+            this.paths.forEach((p, key) => p.showArrows())
+            this.intersections.forEach((i, key) => i.showDirectionsIntersection())
             strokeWeight(1.5)
             stroke(ROAD_COL)
             fill(SIDE_WALK_COL)
             textAlign(CENTER, CENTER)
             textSize(14)
-            this.paths.forEach(p => p.showName())
+            this.paths.forEach((p, key) => p.showName())
         }
         if(zoom <= 0.05){
             push()
             stroke(230)
             strokeWeight(5)
-            this.paths.forEach(s => s.showSimple())
+            this.paths.forEach((p, key) => p.showSimple())
             pop()
         }
 
@@ -1202,7 +1223,9 @@ class Road{
 
 
 // the ids of any object are strings made of 94 characters
-const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789{|}~!"#$%&\'()*+,./:;<=>?@[\\]^`';
+// the characters - and _ are reserved for special purposes (like path IDs are nodeAID-nodeBID), 
+// so they are not included in the possible characters for the IDs of the objects
+const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789{|}~!#$%&()*+./:;<=>?@[]^';
 const base = chars.length; // 94
 function getNextID(id){
     if (id === undefined) return chars[0];
