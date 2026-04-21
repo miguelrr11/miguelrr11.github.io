@@ -256,14 +256,10 @@ function showFailAndReset(button) {
 
 
         let buttonSave = new Button(width - 70 - 10, HEIGHT - 60, 70, 20, 'Save', () => {
-            storeItem('roadData', this.tool.getCurrentRoad())
-            storeItem('showOptions', this.tool.showOptions)
+            this.tool.saveToLocalStorage()
         })
         let buttonLoad = new Button(width - 70 - 10, HEIGHT - 30, 70, 20, 'Load', () => {
-            let roadData = getItem('roadData')
-            if(roadData) this.tool.setStateToRoad(roadData)
-            let showOptions = getItem('showOptions')
-            if(showOptions) this.tool.showOptions = showOptions
+            this.tool.loadFromLocalStorage()
         })
 
         let buttonZoomMinus = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 30, 30, 20, '-', () => {

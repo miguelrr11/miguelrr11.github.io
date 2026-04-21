@@ -90,13 +90,6 @@ class Tool{
 
         let showOptions = getItem('showOptions')
         if(showOptions) this.showOptions = showOptions
-
-        // Automatically load saved road data from local storage if available
-        // let roadData = getItem('roadData')
-        // if(roadData) this.setStateToRoad(roadData)
-        // else {storeItem('roadData', savedCity); this.setStateToRoad(savedCity)} //initial state
-
-        //this.setStateToRoad(savedCity)
     }
 
     getInitialState(){
@@ -691,6 +684,18 @@ class Tool{
             }
         }
         this.removeSelectedBox()
+    }
+
+    saveToLocalStorage(){
+        storeItem('roadData', this.getCurrentRoad())
+        storeItem('showOptions', this.showOptions)
+    }
+
+    loadFromLocalStorage(){
+        let roadData = getItem('roadData')
+        if(roadData) this.setStateToRoad(roadData)
+        let showOptions = getItem('showOptions')
+        if(showOptions) this.showOptions = showOptions
     }
 
     removeSelectedBox(){
@@ -1530,30 +1535,48 @@ class Tool{
         return res
     }
 
+    /*
+    node export:
+    export(){
+        return {
+            [this.id]: {x: round(this.pos.x, 2), y: round(this.pos.y, 2)}
+            // so the way to access the node data is: roadData.nodes[nodeID].x or .y
+        }
+    }
+    */
+
     setStateToRoad(roadData){
         let initialTime = performance.now()
 
         this.road = new Road(this)
         this.road.nodeIDcounter = roadData.nodeIDcounter
         this.road.segmentIDcounter = roadData.segmentIDcounter
-        for(let n of roadData.nodes){
-            let newNode = new Node(n.id, n.pos.x, n.pos.y)
+        for (let obj of roadData.nodes) {
+            let [key, pos] = Object.entries(obj)[0]
+
+            let newNode = new Node(key, pos.x, pos.y)
+
             newNode.road = this.road
-            newNode.incomingSegmentIDs = n.incomingSegmentIDs
-            newNode.outgoingSegmentIDs = n.outgoingSegmentIDs
+            newNode.incomingSegmentIDs = new Set()
+            newNode.outgoingSegmentIDs = new Set()
+
             this.road.nodes.set(newNode.id, newNode)
         }
         for(let s of roadData.segments){
-            let newSegment = new Segment(s.id, s.fromNodeID, s.toNodeID, s.visualDir)
+            let newSegment = new Segment(s.id, s.fromNid, s.toNid)
             newSegment.road = this.road
-            newSegment.fromNode = this.road.findNode(s.fromNodeID)
-            newSegment.toNode = this.road.findNode(s.toNodeID)
+            newSegment.fromNode = this.road.findNode(s.fromNid)
+            newSegment.toNode = this.road.findNode(s.toNid)
+            newSegment.fromNode.outgoingSegmentIDs.add(newSegment.id)
+            newSegment.toNode.incomingSegmentIDs.add(newSegment.id)
             this.road.segments.set(newSegment.id, newSegment)
         }
-        // Populate node->segment references after all segments are created
-        for(let node of Array.from(this.road.nodes.values())){
-            node.incomingSegments = node.incomingSegmentIDs.map(id => this.road.findSegment(id)).filter(s => s)
-            node.outgoingSegments = node.outgoingSegmentIDs.map(id => this.road.findSegment(id)).filter(s => s)
+        let nodesArray = Array.from(this.road.nodes.values())
+        for(let node of nodesArray){
+            node.incomingSegmentIDs = Array.from(node.incomingSegmentIDs)
+            node.outgoingSegmentIDs = Array.from(node.outgoingSegmentIDs)
+            node.incomingSegments = node.incomingSegmentIDs.map(id => this.road.findSegment(id))
+            node.outgoingSegments = node.outgoingSegmentIDs.map(id => this.road.findSegment(id))
         }
         this.road.setPaths()
         this.state = this.getInitialState()

@@ -1,7 +1,7 @@
 const WIDTH_YIELD_MARKING = 7
 
 class Segment{
-    constructor(id, fromNodeID, toNodeID, visualDir){
+    constructor(id, fromNodeID, toNodeID, visualDir = undefined){
         this.id = id
         this.fromNodeID = fromNodeID
         this.toNodeID = toNodeID
@@ -11,7 +11,7 @@ class Segment{
         this.toConnectorID = undefined
         this.fromConnector = undefined  
         this.toConnector = undefined   
-        this.visualDir = visualDir
+        this.visualDir = visualDir ? visualDir : 'for'
         this.road = undefined
 
 
@@ -91,11 +91,9 @@ class Segment{
     export(){
         return {
             id: this.id,
-            fromNodeID: this.fromNodeID,
-            toNodeID: this.toNodeID,
-            fromConnectorID: this.fromConnectorID,
-            toConnectorID: this.toConnectorID,
-            visualDir: this.visualDir
+            fromNid: this.fromNodeID,
+            toNid: this.toNodeID
+            //vdir: this.visualDir  //visualDir is not used and not useful in this codebase, I shoudl just delete it entirely
         }
     }
 

@@ -32,10 +32,7 @@ class Node{
 
     export(){
         return {
-            id: this.id,
-            pos: {x: round(this.pos.x, 2), y: round(this.pos.y, 2)},
-            incomingSegmentIDs: [...this.incomingSegmentIDs],
-            outgoingSegmentIDs: [...this.outgoingSegmentIDs]
+            [this.id]: {x: round(this.pos.x, 2), y: round(this.pos.y, 2)}
         }
     }
 
