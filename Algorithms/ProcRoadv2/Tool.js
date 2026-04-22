@@ -1302,12 +1302,9 @@ class Tool{
 
     update(){
         keyIsPressed = false   // hotfix for keyIsPressed being stuck sometimes (p5js bug?)
-        if(this.constantSetPaths) this.road.setPaths()
         this.state.edges = this.getEdges()
         GLOBAL_EDGES = this.state.edges
-        //this.road.updateConvexHullsIncremental()
-        // Note: setPaths() is no longer called here - updates are done incrementally
-        // when nodes/segments are added/removed/modified
+
         if(this.state.changed) {
             if(this.state.startConnID != -1 && this.state.endConnID != -1){
                 this.state.startConnID = this.road.findSegment(this.state.startSegID).fromConnectorID
@@ -1316,24 +1313,27 @@ class Tool{
             }
         }
         this.state.changed = false
+
         this.menuInteracting = this.menu.update()
         let inB = this.menu.inBounds()
         if(this.menuInteracting != 'slider' && !inB) this.setCursor()
 
         let mousePos = this.getRelativePos(mouseX, mouseY)
         
-        this.state.hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
-        let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
-        if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
-            let point = closestPosToSegment.closestPoint
-            let fromPos = closestPosToSegment.closestSegment.fromPos
-            let toPos = closestPosToSegment.closestSegment.toPos
-            let withinX = (point.x >= Math.min(fromPos.x, toPos.x) ) && (point.x <= Math.max(fromPos.x, toPos.x) )
-            let withinY = (point.y >= Math.min(fromPos.y, toPos.y) ) && (point.y <= Math.max(fromPos.y, toPos.y) )
-            if(withinX && withinY) this.state.hoverSegID = closestPosToSegment.closestSegment.id
+        if(this.finishedOSM()){
+            this.state.hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
+            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
+                let point = closestPosToSegment.closestPoint
+                let fromPos = closestPosToSegment.closestSegment.fromPos
+                let toPos = closestPosToSegment.closestSegment.toPos
+                let withinX = (point.x >= Math.min(fromPos.x, toPos.x) ) && (point.x <= Math.max(fromPos.x, toPos.x) )
+                let withinY = (point.y >= Math.min(fromPos.y, toPos.y) ) && (point.y <= Math.max(fromPos.y, toPos.y) )
+                if(withinX && withinY) this.state.hoverSegID = closestPosToSegment.closestSegment.id
+                else this.state.hoverSegID = undefined
+            }
             else this.state.hoverSegID = undefined
         }
-        else this.state.hoverSegID = undefined
 
         //update goals
         if(this.lerpingTranslation){
@@ -1370,7 +1370,7 @@ class Tool{
         if(this.showOptions.SHOW_LANES){ 
             this.road.showLanes(this.state.hoverSegID)
         }
-        if(this.showOptions.SHOW_ROAD) this.road.showMain(this.showOptions.SHOW_TAGS)
+        if(this.showOptions.SHOW_ROAD) this.road.showMain(this.zoom)
         if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, 
                                                             this.showOptions.SHOW_SEGS_DETAILS,
                                                             this.state.hoverSegID)
@@ -1527,29 +1527,36 @@ class Tool{
 
     getCurrentRoad(){
         let res = {}
-        res.nodes = Array.from(this.road.nodes.values()).map((n, key) => n.export())
-        res.segments = Array.from(this.road.segments.values()).map(s => s.export())
-        res.nodeIDcounter = this.road.nodeIDcounter
+        // nodes array: [posNode1_x, posNode1_y, posNode2_x, posNode2_y, ...]
+        // segments array: [fromNodeIndex1, toNodeIndex1, fromNodeIndex2, toNodeIndex2, ...] (index of the nodes array, not the ID of the node)
+
+        // the node positions are multplied by 10 to avoid the dot of the decimal place
+        let tempMap = new Map()
+        res.nodes = []
+        this.road.nodes.forEach((node, id) => {
+            tempMap.set(id, tempMap.size)
+            res.nodes.push(round(node.pos.x,1)*10, round(node.pos.y,1)*10)
+        })
+        res.segments = []
+        this.road.segments.forEach((seg, id) => {
+            let fromIndex = tempMap.get(seg.fromNodeID)
+            let toIndex = tempMap.get(seg.toNodeID)
+            res.segments.push(fromIndex, toIndex)
+        })
+        console.log(res)
         return res
     }
 
-    /*
-    node export:
-    export(){
-        return {
-            [this.id]: {x: round(this.pos.x, 2), y: round(this.pos.y, 2)}
-            // so the way to access the node data is: roadData.nodes[nodeID].x or .y
-        }
-    }
-    */
-
+    // roadData.nodes is as array of pairs node_pos_x, node_pos_y (the pair is not an array)
+    // roadData.segments is an array of pairs fromNodeIndex, toNodeIndex, where fromNodeIndex and toNodeIndex are the INDEX of the node in the nodes array
     setStateToRoad(roadData){
         let initialTime = performance.now()
 
         this.road = new Road(this)
         this.road.nodeIDcounter = roadData.nodeIDcounter
-        for (let obj of roadData.nodes) {
-            let [key, pos] = Object.entries(obj)[0]
+        for (let i = 0; i < roadData.nodes.length; i+=2) {
+            let pos = [roadData.nodes[i]*.1, roadData.nodes[i+1]*.1] 
+            let key = i / 2
 
             let newNode = new Node(key, pos[0], pos[1])
 
@@ -1559,10 +1566,10 @@ class Tool{
 
             this.road.nodes.set(newNode.id, newNode)
         }
-        for(let s of roadData.segments){
+        for(let i = 0; i < roadData.segments.length; i+=2){
             let id = this.road.segmentIDcounter
             this.road.segmentIDcounter = getNextID(this.road.segmentIDcounter)
-            let [from, to] = s
+            let [from, to] = [roadData.segments[i], roadData.segments[i+1]]
             let newSegment = new Segment(id, from, to)
             newSegment.road = this.road
             newSegment.fromNode = this.road.findNode(from)
@@ -1586,6 +1593,10 @@ class Tool{
 
         let endTime = performance.now()
         console.log(`Time to load road: ${endTime - initialTime} ms`)
+    }
+
+    finishedOSM(){
+        return !this.state.OSMqueue.nodesToProcess || this.state.OSMqueue.nodesToProcess.size == 0
     }
 
     updateOSMqueue(){
@@ -1774,6 +1785,8 @@ class Tool{
         let waysData = new Map()                // Map: wayID -> {id, nodes: [nodeIDs], tags}
         let nodeSegmentMap = new Map()          // Map: nodeID -> Set of {to: nodeID, wayID: wayID}
 
+        let osmIDtoInternalIDMap = new Map()          // Map: OSM node ID -> internal node ID (for quick lookup when creating segments)
+
         let scaleFactor = SCALE_FACTOR_OSM
         let firstX = undefined
         let firstY = undefined
@@ -1788,9 +1801,13 @@ class Tool{
                 let x = Math.round(node.lon * scaleFactor) - firstX
                 let y = -Math.round(node.lat * scaleFactor) + firstY
 
-                nodesToProcess.add(node.id)
-                nodesData.set(node.id, {id: node.id, x, y})
-                nodeSegmentMap.set(node.id, new Set())
+                let id = this.road.nodeIDcounter
+                this.road.nodeIDcounter = getNextID(this.road.nodeIDcounter)
+                osmIDtoInternalIDMap.set(node.id, id)
+
+                nodesToProcess.add(id)
+                nodesData.set(id, {id, x, y})
+                nodeSegmentMap.set(id, new Set())
             }
         }
 
@@ -1798,27 +1815,29 @@ class Tool{
         for(let way of data.elements){
             if(way.type == 'way'){
                 // Store the complete way data
-                waysData.set(way.id, {
-                    id: way.id,
-                    nodes: way.nodes,
+                let id = this.road.segmentIDcounter
+                this.road.segmentIDcounter = getNextID(this.road.segmentIDcounter)
+                waysData.set(id, {
+                    id: id,
+                    nodes: way.nodes.map(nodeID => osmIDtoInternalIDMap.get(nodeID)),
                     tags: way.tags
                 })
-                segsToProcess.add(way.id)
+                segsToProcess.add(id)
 
                 // Build the connection map for each node
                 for(let i = 0; i < way.nodes.length - 1; i++){
-                    let nodeIDA = way.nodes[i]
-                    let nodeIDB = way.nodes[i + 1]
+                    let nodeIDA = osmIDtoInternalIDMap.get(way.nodes[i])
+                    let nodeIDB = osmIDtoInternalIDMap.get(way.nodes[i + 1])
 
                     // Add bidirectional connections
                     let connectionsA = nodeSegmentMap.get(nodeIDA)
                     if(connectionsA){
-                        connectionsA.add({to: nodeIDB, wayID: way.id})
+                        connectionsA.add({to: nodeIDB, wayID: id})
                     }
 
                     let connectionsB = nodeSegmentMap.get(nodeIDB)
                     if(connectionsB){
-                        connectionsB.add({to: nodeIDA, wayID: way.id})
+                        connectionsB.add({to: nodeIDA, wayID: id})
                     }
                 }
             }
@@ -1841,75 +1860,7 @@ class Tool{
         console.log('OSM queue initialized:', this.state.OSMqueue)
     }
 
-    constructRoadFromOSM(data){
-        this.road = new Road(this)
-        this.state = this.getInitialState()
-        let scaleFactor = SCALE_FACTOR_OSM
-        let firstX = undefined
-        let firstY = undefined
-
-        for(let node of data.elements){
-            if(node.type == 'node'){
-                if(!firstX){
-                    firstX = Math.round(node.lon * scaleFactor)
-                    firstY = Math.round(node.lat * scaleFactor)
-                }
-                let x = Math.round(node.lon * scaleFactor) - firstX
-                let y = -Math.round(node.lat * scaleFactor) + firstY
-                let newNode = new Node(node.id, x, y)
-                newNode.road = this.road
-                this.road.nodes.set(newNode.id, newNode)
-            }
-        }
-
-        //map of nodes with segment connections
-        let nodeSegmentMap = new Map();
-
-        for(let n of Array.from(this.road.nodes.values())){
-            nodeSegmentMap.set(n.id, []);
-        }
-        for(let seg of data.elements){
-            if(seg.type == 'way'){
-                for(let i = 0; i < seg.nodes.length-1; i++){
-                    let nodeIDA = seg.nodes[i]
-                    let nodeIDB = seg.nodes[i+1]
-                    let connectionsA = nodeSegmentMap.get(nodeIDA)
-                    connectionsA.push({to: nodeIDB, wayID: seg.id})
-                    nodeSegmentMap.set(nodeIDA, connectionsA)
-                    let connectionsB = nodeSegmentMap.get(nodeIDB)
-                    connectionsB.push({to: nodeIDA, wayID: seg.id})
-                    nodeSegmentMap.set(nodeIDB, connectionsB)
-                }
-            }
-        }
-
-        for(let seg of data.elements){
-            if(seg.type == 'way'){
-                let lanes = seg.tags && seg.tags.lanes ? parseInt(seg.tags.lanes) : 1
-                let name = seg.tags && seg.tags.name ? seg.tags.name : undefined
-                for(let j = 0; j < lanes; j++){
-                    for(let i = 0; i < seg.nodes.length-1; i++){
-                        let nodeIDA = seg.nodes[i]
-                        let nodeIDB = seg.nodes[i+1]
-                        let nodeA = this.road.findNode(nodeIDA)
-                        let nodeB = this.road.findNode(nodeIDB)
-                        if(!nodeA || !nodeB) console.log("Missing node for segment:", nodeIDA, nodeIDB)
-                        let newSegment = new Segment(seg.id + '_' + j + '_' + i, nodeIDA, nodeIDB, 'for', false)
-                        newSegment.road = this.road
-                        newSegment.name = name
-                        this.road.segments.set(newSegment.id, newSegment)
-                        nodeA.outgoingSegmentIDs.push(newSegment.id)
-                        nodeB.incomingSegmentIDs.push(newSegment.id)
-                    }
-                }
-            }
-        }
-
-        this.road.nodeIDcounter = '999999999999'
-        this.road.segmentIDcounter = '999999999999'
-
-        this.road.setPaths()
-    }
+    
 
 }
 

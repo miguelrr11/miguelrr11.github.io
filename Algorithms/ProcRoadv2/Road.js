@@ -14,6 +14,7 @@
 // because they have different ID pools
 
 const NODE_RAD = 25
+const NODE_RAD_SQ = NODE_RAD * NODE_RAD
 const GRID_CELL_SIZE = 40   //15
 
 let OFFSET_RAD_INTERSEC = 25      //25 (intersec_rad)
@@ -900,6 +901,7 @@ class Road{
     connectIntersection(nodeID, connectSelf = false, instantConvex = true, straightMode = false, activenessMap = new Map()){
         let node = this.findNode(nodeID)
         let intersection = new Intersection(nodeID, [], [])
+        intersection.nodeObj = node
         intersection.road = this
         if(!node) return
         // if a segment ends in this node, we have to connect it to every other segment that starts in this node
@@ -1119,12 +1121,20 @@ class Road{
     //     return this.convexHullQueue.size === 0
     // }
 
-    showMain(SHOW_TAGS){
-        //this.segments.forEach(s => s.showMain(SHOW_TAGS))
+    showMain(zoom){
         push()
-        stroke(230)
-        strokeWeight(5)
-        this.paths.forEach((s, key) => s.showSimple())
+        let ctx = drawingContext
+        let scaledStrokeW = 1 / zoom
+        ctx.strokeStyle = 'white'
+        ctx.lineWidth = scaledStrokeW
+        ctx.beginPath()
+        this.paths.forEach((p) => {
+            let fromPos = p.nodeAObj.pos
+            let toPos = p.nodeBObj.pos
+            ctx.moveTo(fromPos.x, fromPos.y)
+            ctx.lineTo(toPos.x, toPos.y)
+        })
+        ctx.stroke()
         pop()
     }
 
@@ -1161,6 +1171,9 @@ class Road{
     showWays(toolObj){
         let zoom = toolObj.zoom
         let hoveredID = toolObj.state.hoverSeg
+
+        this.paths.forEach((p, key) => p.setOOB())
+        this.nodes.forEach((n, key) => n.setOOB())
 
         push()
         rectMode(CORNERS)
@@ -1217,26 +1230,7 @@ class Road{
             this.paths.forEach((p, key) => p.showName())
         }
         if (zoom <= 0.05) {
-            push()
-            let ctx = drawingContext
-            let scaledStrokeW = 2 / zoom
-
-            ctx.strokeStyle = 'white'
-            ctx.lineWidth = scaledStrokeW
-
-            ctx.beginPath()
-
-            this.paths.forEach((p) => {
-                let fromPos = p.nodeAObj.pos
-                let toPos = p.nodeBObj.pos
-
-                ctx.moveTo(fromPos.x, fromPos.y)
-                ctx.lineTo(toPos.x, toPos.y)
-            })
-
-            ctx.stroke()
-
-            pop()
+            this.showMain(zoom)
         }
 
         if(zoom > 0.18) {

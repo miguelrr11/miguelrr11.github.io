@@ -20,6 +20,12 @@ class Path{
 
         this.corners = []  
         this.corners16 = []  
+
+        this.OOB = false
+    }
+
+    setOOB(value){
+        this.OOB = value == undefined ? this.outOfBounds() : value
     }
 
     monoDirectional(){
@@ -238,6 +244,7 @@ class Path{
     }
 
     showLanes(hoveredSegID = undefined){
+        if(this.OOB) return
         this.segmentsIDs.forEach(segmentID => {
             let segment = this.road.findSegment(segmentID)
             segment.showLanes(hoveredSegID)
@@ -257,6 +264,7 @@ class Path{
     }
 
     showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined){
+        if(this.OOB) return
         this.segmentsIDs.forEach(segmentID => {
             let indexOfSeg = Array.from(this.segmentsIDs).indexOf(segmentID)
             let segment = this.road.findSegment(segmentID)
@@ -273,13 +281,14 @@ class Path{
     }
 
     showSimple(){
+        if(this.OOB) return
         let fromPos = this.nodeAObj.pos
         let toPos = this.nodeBObj.pos
         line(fromPos.x, fromPos.y, toPos.x, toPos.y)
     }
 
     _drawWayShape(cornersType){
-        if(this.outOfBounds()) return
+        if(this.OOB) return
         if(this.segments.size == 0) return
         beginShape()
         let first = this.segments[0]
@@ -323,6 +332,7 @@ class Path{
 
     // type: showWays (lineas continuas/discontinuas de los carriles)
     showEdges(){
+        if(this.OOB) return
         for(let i = 0; i < this.segments.length; i++){
             let segment = this.segments[i]
             segment.drawLineAbove(segment.drawOuterLinesAboveDashed)
@@ -332,12 +342,14 @@ class Path{
 
     // type: showWays (flechas de los carriles)
     showArrows(){
+        if(this.OOB) return
         this.segments.forEach(segment => {
             segment.drawArrows()
         })
     }
 
     showName(){
+        if(this.OOB) return
         if(this.name == undefined) return
         let nodeA = this.nodeAObj || this.road.findNode(this.nodeA)
         let nodeB = this.nodeBObj || this.road.findNode(this.nodeB)

@@ -1,6 +1,7 @@
 class Intersection {
     constructor(nodeID, connectorsIDs, intersecSegsIDs){
         this.nodeID = nodeID
+        this.nodeObj = undefined
         this.id = nodeID
         this.connectorsIDs = connectorsIDs
         this.intersecSegsIDs = intersecSegsIDs
@@ -30,14 +31,7 @@ class Intersection {
 
         //needs improving
     outOfBounds(){
-        // let pos = this.road.findNode(this.nodeID).pos
-        // return !inBoundsCorners(pos.x, pos.y, GLOBAL_EDGES)
-
-        for(let v of this.outline16){
-            if(inBoundsCorners(v.x, v.y, GLOBAL_EDGES)) return false
-        }
-        return true
-
+        return this.nodeObj.OOB
     }
 
     // returns a map with keys as "fromSegmentID_toSegmentID" and values as true/false depending on whether the intersegment that connects them is active or not
@@ -326,7 +320,7 @@ class Intersection {
 
     // type: showWays
     showWayBase(){
-        if(this.outOfBounds()) return
+        if(this.nodeObj.OOB) return
         beginShape()
         for(let v of this.outline16) vertex(v.x, v.y)
         endShape()
@@ -334,7 +328,7 @@ class Intersection {
 
     // type: showWays
     showWayTop(){
-        if(this.outOfBounds()) return
+        if(this.nodeObj.OOB) return
         beginShape()
         for(let v of this.outline) vertex(v.x, v.y)
         endShape()
@@ -342,7 +336,7 @@ class Intersection {
 
     // type: showWays (son las lineas blancas pegadas a la acera)
     showOuterEdges(){
-        if(this.outOfBounds()) return
+        if(this.nodeObj.OOB) return
         for(let edge of this.edges){
             beginShape()
             for(let v of edge) vertex(v.x, v.y)
@@ -410,7 +404,7 @@ class Intersection {
 
     // type: showWays
     showInnerEdges(){
-        if(this.outOfBounds()) return
+        if(this.nodeObj.OOB) return
         
         if(this.innerEdges.length > 0){
             for(let p of this.innerEdges) {
@@ -506,7 +500,7 @@ class Intersection {
 
     // type: showWays
     showYieldMarkings(){
-        if(this.outOfBounds()) return
+        if(this.nodeObj.OOB) return
         // find all segments that feed into this intersection
         let paths = this.paths.length > 0 ? this.paths : this.road.findAnyPath(this.nodeID)
         if(paths.length > 2){
@@ -526,7 +520,7 @@ class Intersection {
     }
 
     showDirectionsIntersection(){
-        if(this.outOfBounds()) return
+        if(this.nodeObj.OOB) return
         let paths = this.paths.length > 0 ? this.paths : this.road.findAnyPath(this.nodeID)
         if(paths.length > 2){
             for(let i = 0; i < paths.length; i++){

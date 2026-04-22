@@ -11,29 +11,20 @@ class Node{
         this.road = undefined
 
         this.curvePath = false
+
+        this.OOB = false
     }
 
-    //not used
-    canMoveTo(x, y){
-        let connectedPaths = this.road.findAnyPath(this.id)
-        let connectedNodes = new Set()
-        for(let path of connectedPaths){
-            if(path.nodeA != this.id) connectedNodes.add(path.nodeAObj)
-            if(path.nodeB != this.id) connectedNodes.add(path.nodeBObj)
-        }
-        let MIN_DIST = 110
-        for(let node of [...connectedNodes]){
-            if(dist(node.pos.x, node.pos.y, x, y) < MIN_DIST){
-                return false
-            }
-        }
-        return true
+    setOOB(value){
+        this.OOB = value == undefined ? this.outOfBounds() : value
+    }
+
+    outOfBounds(){
+        return !inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, 100)
     }
 
     export(){
-        return {
-            [this.id + '']: [round(this.pos.x, 2), round(this.pos.y, 2)]
-        }
+        return [round(this.pos.x, 2), round(this.pos.y, 2)]
     }
 
     moveTo(x, y){
@@ -43,8 +34,8 @@ class Node{
 
     hover(x, y){
         //if(this.curvePath) return false
-        if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, NODE_RAD)) return false
-        return dist(x, y, this.pos.x, this.pos.y) <= NODE_RAD
+        if(this.OOB) return false
+        return squaredDistance(x, y, this.pos.x, this.pos.y) <= NODE_RAD_SQ
     }
 
     showTags(){
