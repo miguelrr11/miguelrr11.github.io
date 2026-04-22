@@ -123,6 +123,10 @@ class Menu{
             this.tool.showOptions.SHOW_WAYS = !this.tool.showOptions.SHOW_WAYS
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_WAYS})
+        let buttonShowGraph = new Button(xLoc, yLoc + hButton * 10, 95, 20, 'Graph', () => {
+            this.tool.showOptions.SHOW_GRAPH = !this.tool.showOptions.SHOW_GRAPH
+            this.tool.viewSettingsChanged()
+        }, undefined,  () => {return this.tool.showOptions.SHOW_GRAPH})
 
         buttonsToCollapse = [
             buttonShowRoad,
@@ -134,7 +138,9 @@ class Menu{
             buttonShowSegDetails,
             buttonShowLanes,
             buttonShowConvexHull,
-            buttonShowWays
+            buttonShowWays,
+            buttonShowGraph
+
         ]
 
         let buttonCollapse = new Button(xLoc, yLoc - 40, 95, 30, this.tool.state.menuCollapsed ? 'Expand' : 'Collapse', () => {
@@ -249,7 +255,7 @@ function showFailAndReset(button) {
         buttonLoadOpenStreetMap.txSize = 13
         buttonLoadOpenStreetMap.labelID = 'loadOSM'
 
-        let sliderAround = new Slider(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 70, 70, 'OSM Radius', 50, 10000, AROUND_RADIUS, (value) => {
+        let sliderAround = new Slider(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 70, 70, 'OSM Radius', 50, MAX_AROUND_RADIUS, AROUND_RADIUS, (value) => {
             AROUND_RADIUS = value
         })
         sliderAround.floorPreview = true
@@ -306,6 +312,7 @@ function showFailAndReset(button) {
         this.buttons.push(buttonShowSegDetails)
         this.buttons.push(buttonShowLanes)
         this.buttons.push(buttonShowWays)
+        this.buttons.push(buttonShowGraph)
         this.buttons.push(buttonAddCars)
         this.buttons.push(buttonRemoveCars)
 
@@ -358,21 +365,39 @@ function showFailAndReset(button) {
 
         let buttonDebugRoad = new Button(10, 430, 95, 210, 'Debug Road', undefined, () => {
             let mousePos = this.tool.getRelativePos(mouseX, mouseY)
-            return 'Nodes: ' + '\n' + this.tool.road.nodes.size + '\n' +
-                   'Segments: ' + '\n' + this.tool.road.segments.size + '\n' +
-                   'Connectors: ' + '\n' + this.tool.road.connectors.size + '\n' +
-                   'Intersections: ' + '\n' + this.tool.road.intersecSegs.size + '\n' +
-                   'Paths: ' + '\n' + this.tool.road.paths.size + '\n' +
-                   'Cars: ' + '\n' + cars.length + '\n' +
-                   'OSM Queue: ' + '\n' + this.tool.state.OSMqueue.nodesToProcess.size + '\n' +
-                   'Selected Nodes: ' + '\n' + this.tool.state.selectedNodes.size + '\n' +
-                   'x: ' + round(mousePos.x) + '\n' +
-                   'y: ' + round(mousePos.y)
+            return 'NODES: ' + '\n' +
+                   'SEGS: '   + '\n' +
+                   'CONNS: ' + '\n' +
+                   'INTER: ' + '\n' +
+                   'PATHS: ' + '\n' +
+                   'CARS: ' +  '\n' +
+                   'QUEUE: ' +  '\n' +
+                   'SELECTED: '  +  '\n' +
+                   'GRAPH_N: ' +  '\n' +
+                   '(X, Y): ' + '\n'
         }, () => {return false})
-        buttonDebugRoad.txSize = 10
+        buttonDebugRoad.txSize = 9
         buttonDebugRoad.setTextAlign('left-top')
         buttonDebugRoad.enableHoverEffect = false
         this.buttons.push(buttonDebugRoad)
+
+        let buttonDebugValues = new Button(90, 430, 95, 210, 'Debug Road', undefined, () => {
+            let mousePos = this.tool.getRelativePos(mouseX, mouseY)
+            return this.tool.road.nodes.size + '\n' +
+                   this.tool.road.segments.size + '\n' +
+                   this.tool.road.connectors.size + '\n' +
+                   this.tool.road.intersecSegs.size + '\n' +
+                   this.tool.road.paths.size + '\n' +
+                   cars.length + '\n' +
+                   this.tool.state.OSMqueue.nodesToProcess.size + '\n' +
+                   this.tool.state.selectedNodes.size + '\n' +
+                   this.tool.road.graphIndex.nodes._size + '\n' +
+                   '(' + round(mousePos.x) + ', ' + round(mousePos.y) + ')'
+        }, () => {return false})
+        buttonDebugValues.txSize = 9
+        buttonDebugValues.setTextAlign('right-top')
+        buttonDebugValues.enableHoverEffect = false
+        this.buttons.push(buttonDebugValues)
 
         this.interacted = false
         this.coolDownClick = 0
@@ -535,8 +560,12 @@ class Button{
             textAlign(CENTER, CENTER)
             text(this.label, this.pos.x + this.size.w / 2, this.pos.y + this.size.h / 2)
         }
-        else {
+        else if(this.textAlign == 'left-top'){
             textAlign(LEFT, TOP)
+            text(this.label, this.pos.x + 5, this.pos.y + 5)
+        }
+        else{
+            textAlign(RIGHT, TOP)
             text(this.label, this.pos.x + 5, this.pos.y + 5)
         }
 

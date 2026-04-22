@@ -12,6 +12,7 @@ const MAX_ZOOM = 8
 
 const SCALE_FACTOR_OSM = 1000000
 let AROUND_RADIUS = 5000  //meters
+const MAX_AROUND_RADIUS = 20000
 
 const OSM_QUEUE_UPDATE_ITERS_PER_FRAME = 20
 
@@ -47,6 +48,8 @@ class Tool{
             SHOW_LANES: false,
             SHOW_INTERSECTION_AREA_AREA: false,
             SHOW_WAYS: true,        //first attempt at rendering (node/edge approach, its biggest problem is that nodes can overlap)
+            SHOW_GRAPH: false,       //debug
+            GRAPH_LAYER: 0
         }
         this.road = new Road(this)
         this.state = this.getInitialState()
@@ -214,7 +217,7 @@ class Tool{
             const dx = oldNode.pos.x - centerX
             const dy = oldNode.pos.y - centerY
 
-            const newNode = this.road.addNodeNoUpdate(
+            const newNode = this.road.addNode(
                 mousePos.x + dx,
                 mousePos.y + dy
             )
@@ -611,7 +614,7 @@ class Tool{
                     if(this.state.selectedNodes.size < 15){
                         for(let n of this.state.selectedNodes){
                             let offset = this.state.selectedNodesOffsets.get(n.id)
-                            n.moveTo(mousePosGridX + offset.x, mousePosGridY + offset.y)
+                            this.road.moveNodeTo(n, mousePosGridX + offset.x, mousePosGridY + offset.y)
                         }
                         for(let n of this.state.selectedNodes){
                             this.road.updateNode(n.id)
@@ -626,7 +629,7 @@ class Tool{
             //keeps on dragging the node
             if(this.state.draggingNodeID != -1){
                 let node = this.road.findNode(this.state.draggingNodeID)
-                node.moveTo(mousePosGridX + this.state.offsetDraggingNode.x, mousePosGridY + this.state.offsetDraggingNode.y)
+                this.road.moveNodeTo(node, mousePosGridX + this.state.offsetDraggingNode.x, mousePosGridY + this.state.offsetDraggingNode.y)
                 this.road.updateNode(this.state.draggingNodeID)    
                 return
             }
@@ -671,7 +674,7 @@ class Tool{
                 let startTime = performance.now()
                 this.state.selectedNodes.forEach(n => {
                     let offset = this.state.selectedNodesOffsets.get(n.id)
-                    n.moveTo(mousePosGridX + offset.x, mousePosGridY + offset.y)
+                    this.road.moveNodeTo(n, mousePosGridX + offset.x, mousePosGridY + offset.y)
                     //this.road.updateNode(n.id)
                 })
                 for(let path of this.road.paths.values()){
@@ -1399,6 +1402,8 @@ class Tool{
         this.showCS()
         this.showIntersectingPaths()
 
+        if(this.showOptions.SHOW_GRAPH) this.road.showGraph(this.zoom)
+
 
         pop()
 
@@ -1564,7 +1569,7 @@ class Tool{
             newNode.incomingSegmentIDs = new Set()
             newNode.outgoingSegmentIDs = new Set()
 
-            this.road.nodes.set(newNode.id, newNode)
+            this.road.setNode(newNode.id, newNode)
         }
         for(let i = 0; i < roadData.segments.length; i+=2){
             let id = this.road.segmentIDcounter
@@ -1648,7 +1653,7 @@ class Tool{
 
             let newNode = new Node(nodeID, nodeData.x, nodeData.y)
             newNode.road = this.road
-            this.road.nodes.set(newNode.id, newNode)
+            this.road.setNode(newNode.id, newNode)
 
             // Remove from nodesToProcess
             nodesToProcess.delete(nodeID)

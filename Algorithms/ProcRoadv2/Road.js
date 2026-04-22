@@ -44,8 +44,7 @@ class Road{
         this.intersections = new Map()
         this.paths = new Map()
 
-        //not used anymore
-        this.convexHullQueue = new Set()
+        this.graphIndex = new GraphIndex()   //two rtrees to store nodes and segments for spatial queries
 
         this.nodeIDcounter = getNextID()
         this.segmentIDcounter = getNextID()
@@ -393,7 +392,7 @@ class Road{
         }
         this.deletePathByNodeID(nodeID)
 
-        this.nodes.delete(nodeID)
+        this._deleteNode(nodeID)
 
         for(let nodeID of affectedNodeIDs){
             let node = this.findNode(nodeID)
@@ -401,6 +400,18 @@ class Road{
             this.trimSegmentsAtIntersection({nodeID: nodeID, connect: true, instantConvex: true})
         }
 
+    }
+
+    moveNodeTo(node, x, y){
+        node.moveTo(x, y)
+        this.graphIndex.deleteNode(node.id)
+        this.graphIndex.insertNode({id: node.id, x, y, radius: NODE_RAD})
+    }
+
+
+    _deleteNode(nodeID){
+        this.nodes.delete(nodeID)
+        this.graphIndex.deleteNode(nodeID)
     }
 
     deletePathByNodeID(nodeID){
@@ -485,7 +496,7 @@ class Road{
             console.log('Error splitting segment, node not found:\nfromNodeID = ' + segment.fromNodeID + ' | toNodeID = ' + segment.toNodeID)
             return
         }
-        let newNode = nodeAtSplit ? nodeAtSplit : this.addNodeNoUpdate(x, y)
+        let newNode = nodeAtSplit ? nodeAtSplit : this.addNode(x, y)
 
         this.deleteSegmentNoUpdate(segmentID)
         this.deletePathExact(fromNode.id, toNode.id)
@@ -585,18 +596,15 @@ class Road{
 
     addNode(x, y){
         const newNode = new Node(this.nodeIDcounter, x, y)
-        this.nodes.set(newNode.id, newNode)
         newNode.road = this
+        this.setNode(newNode.id, newNode)
         this.updateNodeIDcounter()
         return newNode
     }
 
-    addNodeNoUpdate(x, y){
-        const newNode = new Node(this.nodeIDcounter, x, y)
-        this.nodes.set(newNode.id, newNode)
-        newNode.road = this
-        this.updateNodeIDcounter()
-        return newNode
+    setNode(id, node){
+        this.nodes.set(id, node)
+        this.graphIndex.insertNode({id: node.id, x: node.pos.x, y: node.pos.y, radius: NODE_RAD})
     }
 
     updateNodeIDcounter(){
@@ -605,7 +613,13 @@ class Road{
     }
 
     findHoverNode(x, y){
-        return Array.from(this.nodes.values()).find(n => n.hover(x, y))
+        let candidates = this.graphIndex.searchPoint(x, y)
+        if(!candidates || candidates.nodes.length == 0) return undefined
+        let graphNode = candidates.nodes.find(c => {
+            const node = this.findNode(c.id)
+            return node && node.hover(x, y)
+        })
+        if(graphNode) return this.findNode(graphNode.id)
     }
 
     findHoverConnector(x, y){
@@ -1167,6 +1181,17 @@ class Road{
         this.nodes.forEach((n, key) => n.showTags())
     }
 
+    showGraph(zoom){
+        push()
+        strokeWeight(1/zoom);
+        noFill();
+        stroke(0, 255, 0, 75)
+        for(let i = 0; i < 10; i++) {
+            drawRTreeLayer(this.graphIndex.nodes, i);
+        }
+        pop()
+    }
+
     // every function with  "type: showWays" as a comment must only be called from here, as this function sets the correct drawing modes for optimization purposes
     showWays(toolObj){
         let zoom = toolObj.zoom
@@ -1244,6 +1269,8 @@ class Road{
             pop()
         }
         pop()
+
+        
     }
 }
 
