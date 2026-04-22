@@ -273,8 +273,8 @@ class Path{
     }
 
     showSimple(){
-        let fromPos = this.nodeAObj ? this.nodeAObj.pos : this.road.findNode(this.nodeA).pos
-        let toPos = this.nodeBObj ? this.nodeBObj.pos : this.road.findNode(this.nodeB).pos
+        let fromPos = this.nodeAObj.pos
+        let toPos = this.nodeBObj.pos
         line(fromPos.x, fromPos.y, toPos.x, toPos.y)
     }
 

@@ -228,56 +228,80 @@ class Road{
     }
 
     // the edges of segments are the positions of the nodes
-    findClosestSegmentAndPos(x, y){
+    // we are going to optimize this by looking for Paths instead of segments, and if a path is affected, then
+    // look for the specific segment of the path
+    findClosestSegmentAndPos(x, y, useNodePositions = false){
+        let closestPath = this.findClosestPath(x, y)
+        if(!closestPath) return {
+            closestSegment: undefined,
+            closestPoint: undefined,
+            minDist: Infinity,
+            closestPointMain: undefined
+        }
+
         let pos = {x, y}
         let closestSegment = undefined
         let closestPoint = undefined
         let closestPointMain = undefined
         let minDist = Infinity
 
-        this.segments.forEach((s, key) => {
-            let fromPos = s.fromPos
-            let toPos = s.toPos
+        closestPath.segments.forEach((s, key) => {
+            let fromPos, toPos
+            if(useNodePositions){
+                fromPos = s.fromNode ? s.fromNode.pos 
+                    : (s.fromNodeID != undefined ? this.findNode(s.fromNodeID).pos : null)
+                toPos = s.toNode ? s.toNode.pos 
+                    : (s.toNodeID != undefined ? this.findNode(s.toNodeID).pos : null)
+            } 
+            else {
+                fromPos = s.fromPos
+                toPos = s.toPos
+            }
             if(!fromPos || !toPos) return
-            let posFromNode = s.fromNode ? s.fromNode.pos : this.findNode(s.fromNodeID).pos
-            //let posToNode = s.toNode ? s.toNode.pos : this.findNode(s.toNodeID).pos
-            // if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES, NODE_RAD) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES, NODE_RAD)){
-            //     //continue
-            // }
-            //else{
-                let ap = {x: pos.x - fromPos.x, y: pos.y - fromPos.y}
-                let ab = {x: toPos.x - fromPos.x, y: toPos.y - fromPos.y}
-                let ab2 = ab.x * ab.x + ab.y * ab.y
-                let ap_ab = ap.x * ab.x + ap.y * ab.y
-                let t = constrainn(ap_ab / ab2, 0, 1)
-                let point = {x: fromPos.x + ab.x * t, y: fromPos.y + ab.y * t}
-                let d = squaredDistance(pos.x, pos.y, point.x, point.y)
-                if(d < minDist){
-                    minDist = d
-                    closestSegment = s
-                    closestPoint = point
-                    closestPointMain = {
-                        x: posFromNode.x + (point.x - fromPos.x),
-                        y: posFromNode.y + (point.y - fromPos.y)
-                    }
+
+            let posFromNode = s.fromNode ? s.fromNode.pos 
+                : this.findNode(s.fromNodeID).pos
+
+            let apx = pos.x - fromPos.x
+            let apy = pos.y - fromPos.y
+            let abx = toPos.x - fromPos.x
+            let aby = toPos.y - fromPos.y
+            let ab2 = abx * abx + aby * aby
+            let ap_ab = apx * abx + apy * aby
+            let t = constrainn(ap_ab / ab2, 0, 1)
+
+            let point = {
+                x: fromPos.x + abx * t,
+                y: fromPos.y + aby * t
+            }
+            let d = squaredDistance(pos.x, pos.y, point.x, point.y)
+
+            if(d < minDist){
+                minDist = d
+                closestSegment = s
+                closestPoint = point
+                closestPointMain = {
+                    x: posFromNode.x + (point.x - fromPos.x),
+                    y: posFromNode.y + (point.y - fromPos.y)
                 }
-            //}
+            }
         })
+
         minDist = Math.sqrt(minDist)
         return {closestSegment, closestPoint, minDist, closestPointMain}
     }
 
-
-    findClosestPosToSegmentBetweenNodes(x, y){
+    findClosestPath(x, y){
         let pos = {x, y}
-        let closestSegment = undefined
-        let closestPoint = undefined
+        let closestPath = undefined
         let minDist = Infinity
 
-        this.segments.forEach((s, key) => {
-            let fromPos = s.fromNode ? s.fromNode.pos : (s.fromNodeID != undefined ? this.findNode(s.fromNodeID).pos : null)
-            let toPos = s.toNode ? s.toNode.pos : (s.toNodeID != undefined ? this.findNode(s.toNodeID).pos : null)
-            if(!fromPos || !toPos) return
+        this.paths.forEach((path, key) => {
+            let fromNode = path.nodeAObj
+            let toNode = path.nodeBObj
+            if(!fromNode || !toNode) return
+            let fromPos = fromNode.pos
+            let toPos = toNode.pos
             let ap = {x: pos.x - fromPos.x, y: pos.y - fromPos.y}
             let ab = {x: toPos.x - fromPos.x, y: toPos.y - fromPos.y}
             let ab2 = ab.x * ab.x + ab.y * ab.y
@@ -287,12 +311,10 @@ class Road{
             let d = squaredDistance(pos.x, pos.y, point.x, point.y)
             if(d < minDist){
                 minDist = d
-                closestSegment = s
-                closestPoint = point
+                closestPath = path
             }
         })
-        minDist = Math.sqrt(minDist)
-        return {closestSegment, closestPoint, minDist}
+        return closestPath
     }
 
     findAllNodesInArea(corner1, corner2){
@@ -368,7 +390,7 @@ class Road{
                 this.intersections.delete(nodeID)
             }
         }
-        this.deletePath(nodeID)
+        this.deletePathByNodeID(nodeID)
 
         this.nodes.delete(nodeID)
 
@@ -380,7 +402,7 @@ class Road{
 
     }
 
-    deletePath(nodeID){
+    deletePathByNodeID(nodeID){
         let pathsToDelete = []
         this.paths.forEach((path, key) => {
             if(path.nodeA == nodeID || path.nodeB == nodeID){
@@ -391,11 +413,8 @@ class Road{
     }
 
     deletePathExact(nodeAID, nodeBID){
-        this.paths.forEach((path, key) => {
-            if((path.nodeA == nodeAID && path.nodeB == nodeBID) || (path.nodeA == nodeBID && path.nodeB == nodeAID)){
-                this.paths.delete(key)
-            }
-        })
+        this.paths.delete(nodeAID + '-' + nodeBID)
+        this.paths.delete(nodeBID + '-' + nodeAID)
     }
 
     deleteSegment(segmentID){
@@ -1197,11 +1216,26 @@ class Road{
             textSize(14)
             this.paths.forEach((p, key) => p.showName())
         }
-        if(zoom <= 0.05){
+        if (zoom <= 0.05) {
             push()
-            stroke(230)
-            strokeWeight(5)
-            this.paths.forEach((p, key) => p.showSimple())
+            let ctx = drawingContext
+            let scaledStrokeW = 2 / zoom
+
+            ctx.strokeStyle = 'white'
+            ctx.lineWidth = scaledStrokeW
+
+            ctx.beginPath()
+
+            this.paths.forEach((p) => {
+                let fromPos = p.nodeAObj.pos
+                let toPos = p.nodeBObj.pos
+
+                ctx.moveTo(fromPos.x, fromPos.y)
+                ctx.lineTo(toPos.x, toPos.y)
+            })
+
+            ctx.stroke()
+
             pop()
         }
 

@@ -32,7 +32,7 @@ class Node{
 
     export(){
         return {
-            [this.id]: {x: round(this.pos.x, 2), y: round(this.pos.y, 2)}
+            [this.id + '']: [round(this.pos.x, 2), round(this.pos.y, 2)]
         }
     }
 

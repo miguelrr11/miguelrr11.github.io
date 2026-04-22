@@ -11,9 +11,9 @@ const MIN_ZOOM = 0.001
 const MAX_ZOOM = 8
 
 const SCALE_FACTOR_OSM = 1000000
-let AROUND_RADIUS = 1000  //meters
+let AROUND_RADIUS = 5000  //meters
 
-const OSM_QUEUE_UPDATE_ITERS_PER_FRAME = 2
+const OSM_QUEUE_UPDATE_ITERS_PER_FRAME = 20
 
 let startTime = 0
 let endTime = 0
@@ -444,7 +444,7 @@ class Tool{
                 return
             }
             //creates a new node on top of a segment, it splits it and creates a new node which becomes the previous node (anchor)
-            let closestPosToSegment = this.road.findClosestPosToSegmentBetweenNodes(mousePosGridX, mousePosGridY)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY, true)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
                 let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
@@ -470,7 +470,7 @@ class Tool{
             }
             if(hoverNode != undefined && hoverNode.id == this.state.prevNodeID) return
             //creates a new node on top of a segment, it splits it and creates a new node
-            let closestPosToSegment = this.road.findClosestPosToSegmentBetweenNodes(mousePosGridX, mousePosGridY)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY, true)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
                 let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
@@ -1323,7 +1323,6 @@ class Tool{
         let mousePos = this.getRelativePos(mouseX, mouseY)
         
         this.state.hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
-        //this.state.hoverConn = this.road.findHoverConnector(mousePos.x, mousePos.y)
         let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
         if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
             let point = closestPosToSegment.closestPoint
@@ -1531,7 +1530,6 @@ class Tool{
         res.nodes = Array.from(this.road.nodes.values()).map((n, key) => n.export())
         res.segments = Array.from(this.road.segments.values()).map(s => s.export())
         res.nodeIDcounter = this.road.nodeIDcounter
-        res.segmentIDcounter = this.road.segmentIDcounter
         return res
     }
 
@@ -1550,11 +1548,10 @@ class Tool{
 
         this.road = new Road(this)
         this.road.nodeIDcounter = roadData.nodeIDcounter
-        this.road.segmentIDcounter = roadData.segmentIDcounter
         for (let obj of roadData.nodes) {
             let [key, pos] = Object.entries(obj)[0]
 
-            let newNode = new Node(key, pos.x, pos.y)
+            let newNode = new Node(key, pos[0], pos[1])
 
             newNode.road = this.road
             newNode.incomingSegmentIDs = new Set()
@@ -1563,10 +1560,13 @@ class Tool{
             this.road.nodes.set(newNode.id, newNode)
         }
         for(let s of roadData.segments){
-            let newSegment = new Segment(s.id, s.fromNid, s.toNid)
+            let id = this.road.segmentIDcounter
+            this.road.segmentIDcounter = getNextID(this.road.segmentIDcounter)
+            let [from, to] = s
+            let newSegment = new Segment(id, from, to)
             newSegment.road = this.road
-            newSegment.fromNode = this.road.findNode(s.fromNid)
-            newSegment.toNode = this.road.findNode(s.toNid)
+            newSegment.fromNode = this.road.findNode(from)
+            newSegment.toNode = this.road.findNode(to)
             newSegment.fromNode.outgoingSegmentIDs.add(newSegment.id)
             newSegment.toNode.incomingSegmentIDs.add(newSegment.id)
             this.road.segments.set(newSegment.id, newSegment)

@@ -1,4 +1,5 @@
 const WIDTH_YIELD_MARKING = 7
+const MIN_SEG_LENGTH_TO_SHOW_ARROWS = 30
 
 class Segment{
     constructor(id, fromNodeID, toNodeID, visualDir = undefined){
@@ -56,7 +57,7 @@ class Segment{
         toPos.y -= Math.sin(this.dir) * margin
         let totalLen = dist(fromPos.x, fromPos.y, toPos.x, toPos.y) - 50
 
-        if(totalLen < 30) return
+        if(totalLen < MIN_SEG_LENGTH_TO_SHOW_ARROWS) return
 
         if(totalLen < spacing){
             totalLen = dist(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
@@ -89,12 +90,10 @@ class Segment{
     }
 
     export(){
-        return {
-            id: this.id,
-            fromNid: this.fromNodeID,
-            toNid: this.toNodeID
-            //vdir: this.visualDir  //visualDir is not used and not useful in this codebase, I shoudl just delete it entirely
-        }
+        return [
+            this.fromNodeID + '',
+            this.toNodeID + ''
+        ]
     }
 
     getPos(travelled){

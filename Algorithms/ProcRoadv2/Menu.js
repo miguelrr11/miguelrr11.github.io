@@ -249,7 +249,7 @@ function showFailAndReset(button) {
         buttonLoadOpenStreetMap.txSize = 13
         buttonLoadOpenStreetMap.labelID = 'loadOSM'
 
-        let sliderAround = new Slider(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 70, 70, 'OSM Radius', 50, 2000, AROUND_RADIUS, (value) => {
+        let sliderAround = new Slider(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 70, 70, 'OSM Radius', 50, 10000, AROUND_RADIUS, (value) => {
             AROUND_RADIUS = value
         })
         sliderAround.floorPreview = true
