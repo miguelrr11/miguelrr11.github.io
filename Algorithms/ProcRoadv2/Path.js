@@ -45,6 +45,7 @@ class Path{
         return length || 0
     }
 
+    //unoptimized because its not using graphIndex
     outOfBounds(){
         let fromPos = this.nodeAObj ? this.nodeAObj.pos : this.road.findNode(this.nodeA).pos
         let toPos = this.nodeBObj ? this.nodeBObj.pos : this.road.findNode(this.nodeB).pos

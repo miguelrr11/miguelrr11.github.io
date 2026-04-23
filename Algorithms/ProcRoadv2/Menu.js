@@ -374,6 +374,7 @@ function showFailAndReset(button) {
                    'QUEUE: ' +  '\n' +
                    'SELECTED: '  +  '\n' +
                    'GRAPH_N: ' +  '\n' +
+                   'GRAPH_S: ' +  '\n' +
                    '(X, Y): ' + '\n'
         }, () => {return false})
         buttonDebugRoad.txSize = 9
@@ -383,15 +384,16 @@ function showFailAndReset(button) {
 
         let buttonDebugValues = new Button(90, 430, 95, 210, 'Debug Road', undefined, () => {
             let mousePos = this.tool.getRelativePos(mouseX, mouseY)
-            return this.tool.road.nodes.size + '\n' +
-                   this.tool.road.segments.size + '\n' +
-                   this.tool.road.connectors.size + '\n' +
-                   this.tool.road.intersecSegs.size + '\n' +
-                   this.tool.road.paths.size + '\n' +
-                   cars.length + '\n' +
-                   this.tool.state.OSMqueue.nodesToProcess.size + '\n' +
-                   this.tool.state.selectedNodes.size + '\n' +
-                   this.tool.road.graphIndex.nodes._size + '\n' +
+            return  this.tool.road.nodes.size + '\n' +
+                    this.tool.road.segments.size + '\n' +
+                    this.tool.road.connectors.size + '\n' +
+                    this.tool.road.intersecSegs.size + '\n' +
+                    this.tool.road.paths.size + '\n' +
+                    cars.length + '\n' +
+                    this.tool.state.OSMqueue.nodesToProcess.size + '\n' +
+                    this.tool.state.selectedNodes.size + '\n' +
+                    this.tool.road.graphIndex.nodes._size + '\n' +
+                    this.tool.road.graphIndex.edges._size + '\n' +
                    '(' + round(mousePos.x) + ', ' + round(mousePos.y) + ')'
         }, () => {return false})
         buttonDebugValues.txSize = 9

@@ -58,8 +58,8 @@ class Tool{
         this.dragging = false
         //document.addEventListener("click", () => this.onClick())
         document.addEventListener("mouseup", () => { this.dragging = false; this.onMouseRelease()})
-        document.addEventListener("mousedown", (e) => {this.dragging = true; this.onClick()})
-        document.addEventListener("mousemove", (e) => {if(this.dragging) this.onMouseDragged(e)})
+        document.addEventListener("mousedown", (e) => {this.dragging = true; this.onClick(); this.updateElementsInView()})
+        document.addEventListener("mousemove", (e) => {if(this.dragging) {this.onMouseDragged(e);}})
         document.addEventListener("keydown", (e) => this.onKeyPressed(e));
         document.addEventListener("wheel", (e) => {e.preventDefault(); this.onMouseWheel(e)}, {passive: false});
         document.addEventListener('contextmenu', (event) => {
@@ -93,6 +93,33 @@ class Tool{
 
         let showOptions = getItem('showOptions')
         if(showOptions) this.showOptions = showOptions
+
+        this.pathsInView = []
+        this.intersectionsIDsInView = []
+    }
+
+    updateElementsInView(){
+        let margin = 500
+        let [minX, maxX, minY, maxY] = this.getEdges()
+        minX -= margin
+        minY -= margin
+        maxX += margin
+        maxY += margin
+        let pathsInView = new Set()
+        let nodesAndSegmentsInView = this.road.graphIndex.search({
+            minX, minY, maxX, maxY
+        })
+        for(let item of nodesAndSegmentsInView.edges){
+            let segID = item.id
+            let seg = this.road.findSegment(segID)
+            let path = seg ? this.road.findPathByNodes(seg.fromNodeID, seg.toNodeID) : undefined
+            if(path) {
+                pathsInView.add(path)
+            }
+        }
+        pathsInView = Array.from(pathsInView)
+        this.pathsInView = pathsInView
+        this.intersectionsIDsInView = nodesAndSegmentsInView.nodes.map(n => n.id)
     }
 
     getInitialState(){
@@ -298,7 +325,7 @@ class Tool{
                 path.setSegmentsIDs(segmentIDs)
             }
 
-            path.constructRealLanes()
+            this.road.constructLanesOfPath(path)
         }
 
         for (const newNode of oldToNew.values()) {
@@ -620,6 +647,7 @@ class Tool{
                             this.road.updateNode(n.id)
                         }
                     }
+                    //this.updateElementsInView()
                     
                     this.state.firstCornerSelected = {x: mousePosGridX + this.state.boxOffsetFirstCorner.x, y: mousePosGridY + this.state.boxOffsetFirstCorner.y}
                     this.state.secondCornerSelected = {x: mousePosGridX + this.state.boxOffsetSecondCorner.x, y: mousePosGridY + this.state.boxOffsetSecondCorner.y}
@@ -631,6 +659,7 @@ class Tool{
                 let node = this.road.findNode(this.state.draggingNodeID)
                 this.road.moveNodeTo(node, mousePosGridX + this.state.offsetDraggingNode.x, mousePosGridY + this.state.offsetDraggingNode.y)
                 this.road.updateNode(this.state.draggingNodeID)    
+                //this.updateElementsInView()
                 return
             }
             //finds a node to start dragging
@@ -1360,6 +1389,8 @@ class Tool{
     }
 
     show(){
+        if(frameCount % 10 === 0) this.updateElementsInView()
+
         push()
 
         translate(this.xOff, this.yOff)
@@ -1368,7 +1399,7 @@ class Tool{
         if(this.zoom > 0.3 && this.state.snapToGrid) this.showGridPoints()
         
         // only showWays is optimized
-        if(this.showOptions.SHOW_WAYS) this.road.showWays(this)
+        if(this.showOptions.SHOW_WAYS) this.road.showWays(this, this.pathsInView, this.intersectionsIDsInView)
 
         if(this.showOptions.SHOW_LANES){ 
             this.road.showLanes(this.state.hoverSegID)
@@ -1381,9 +1412,9 @@ class Tool{
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_INTERSECTION_AREA_AREA) this.road.showIntersectionArea()
         
-        blendMode(DIFFERENCE)
-        if(this.showOptions.SHOW_NODES) this.road.showNodes(this.zoom)
-        blendMode(BLEND)
+        // blendMode(DIFFERENCE)
+        //if(this.showOptions.SHOW_NODES) this.road.showNodes(this.zoom)
+        // blendMode(BLEND)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_TAGS && this.showOptions.SHOW_NODES) this.road.showNodesTags()
 
@@ -1718,7 +1749,7 @@ class Tool{
                     }
 
                     if(path){
-                        path.constructRealLanes()
+                        this.road.constructLanesOfPath(path)
                         pathsToUpdate.push([nodeIDA, nodeIDB, path])
                     }
                 }

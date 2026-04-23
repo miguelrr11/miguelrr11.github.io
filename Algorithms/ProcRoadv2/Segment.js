@@ -112,6 +112,7 @@ class Segment{
         return this.len
     }
 
+    //unoptimized because its not using graphIndex
     outOfBounds(){
         if(!inBoundsCorners(this.fromPos.x, this.fromPos.y, GLOBAL_EDGES) && 
         !inBoundsCorners(this.toPos.x, this.toPos.y, GLOBAL_EDGES) &&
@@ -128,7 +129,6 @@ class Segment{
     }
 
     drawLineBelow(disc = false){
-        if(this.outOfBounds()) return
         push()
         let fromPos = this.fromPos
         let toPos = this.toPos
@@ -139,7 +139,6 @@ class Segment{
     }
 
     drawLineAbove(disc = false){
-        if(this.outOfBounds()) return
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
@@ -149,7 +148,6 @@ class Segment{
 
     // rectMode must be CORNERS and noStroke must be set before calling this
     showCustomLanes(col, w, hoveredID = undefined){
-        if(this.outOfBounds()) return
         let corners = w == LANE_WIDTH ? this.corners : this.corners16
         fill(col)
         beginShape()
@@ -173,10 +171,6 @@ class Segment{
         push()
         let fromPos = this.fromPos
         let toPos = this.toPos
-        if(this.outOfBounds()){
-            pop()
-            return
-        }
 
         let corners = this.untrimmedCorners
         rectMode(CORNERS)
@@ -268,15 +262,7 @@ class Segment{
         stroke(255, 40)
         let fromPos = this.fromNode ? this.fromNode.pos : this.road.findNode(this.fromNodeID).pos
         let toPos = this.toNode ? this.toNode.pos : this.road.findNode(this.toNodeID).pos
-        if(this.outOfBounds()){
-            pop()
-            return
-        }
         line(fromPos.x, fromPos.y, toPos.x, toPos.y)
-
-        
-
-        
 
         if(SHOW_TAGS){
             noStroke()
@@ -298,18 +284,12 @@ class Segment{
     }
 
     showSimple(){
-        if(this.outOfBounds()){
-            return
-        }
         line(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
     }
 
 
     // just shows a white line with arrows, and tags if needed, from fromPos to toPos
     showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined, indexOfSeg = 0){
-        if(this.outOfBounds()){
-            return
-        }
         push()
 
         
@@ -422,7 +402,6 @@ class Segment{
 
     // type: showWays
     drawArrows(){
-        if(this.outOfBounds()) return
         this.arrowsPos.forEach(pos => {
             line(pos.startLine.x, pos.startLine.y, pos.tip.x, pos.tip.y)
             drawArrowTip(pos.tip.x, pos.tip.y, this.dir, 5)

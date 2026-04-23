@@ -1,4 +1,4 @@
-// RTREE implementation by Claude Sonnet 4.6 
+// RTREE implementation by Claude Sonnet 4.6 and fixed with ChatGPT (2026)
 // ─── MBR helpers ──────────────────────────────────────────────────────────────
 
 function mbrArea({ minX, minY, maxX, maxY }) {
@@ -115,7 +115,7 @@ class MinHeap {
  *   tree.delete({ minX: 0, minY: 0, maxX: 10, maxY: 10 }, e => e.data === myObject);
  */
 class RTree {
-  constructor({ maxEntries = 9, minEntries } = {}) {
+  constructor({ maxEntries = 200, minEntries } = {}) {
     this.M     = maxEntries;
     this.m     = minEntries ?? Math.ceil(maxEntries / 2);
     this._root = new TreeNode(true);

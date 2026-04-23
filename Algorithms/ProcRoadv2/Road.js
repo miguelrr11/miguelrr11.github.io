@@ -44,7 +44,7 @@ class Road{
         this.intersections = new Map()
         this.paths = new Map()
 
-        this.graphIndex = new GraphIndex()   //two rtrees to store nodes and segments for spatial queries
+        this.graphIndex = new GraphIndex()   //it stores two rtrees to store nodes and segments for spatial queries
 
         this.nodeIDcounter = getNextID()
         this.segmentIDcounter = getNextID()
@@ -118,7 +118,7 @@ class Road{
 
                     path = new Path(nodeA.id, nodeB.id, segmentSet)
                     path.road = this
-                    path.constructRealLanes()
+                    this.constructLanesOfPath(path)
                     path.setSegmentsIDs(segmentSet)
 
                     paths.set(keyAB, path)
@@ -165,7 +165,7 @@ class Road{
             this.paths.delete(nodesIDs[1] + '-' + nodesIDs[0])
         }
         
-        newPath.constructRealLanes()
+        this.constructLanesOfPath(newPath)
 
         let activenessMap = new Map()
         let activenessMaps = []
@@ -210,6 +210,22 @@ class Road{
         }
     }
 
+    constructLanesOfPath(path){
+        path.constructRealLanes()
+        for(let segmentID of path.segmentsIDs){
+            let segment = this.findSegment(segmentID)
+            this.graphIndex.deleteEdge(segmentID)
+            this.graphIndex.insertEdge({
+                id: segmentID,
+                x1: segment.fromPos.x,
+                y1: segment.fromPos.y,
+                x2: segment.toPos.x,
+                y2: segment.toPos.y,
+                width: LANE_WIDTH
+            })
+        }
+    }
+
     //updates paths connected to a node that has been moved
     updateNode(nodeID){
         // update all paths connected to this node
@@ -227,12 +243,13 @@ class Road{
         }
     }
 
-    // the edges of segments are the positions of the nodes
-    // we are going to optimize this by looking for Paths instead of segments, and if a path is affected, then
-    // look for the specific segment of the path
+
     findClosestSegmentAndPos(x, y, useNodePositions = false){
-        let closestPath = this.findClosestPath(x, y)
-        if(!closestPath) return {
+        let closestSegmentsGI = this.graphIndex.nearestEdges(x, y, 20)
+        let closestSegments = closestSegmentsGI.map(e => this.findSegment(e.data.id)).filter(s => s != undefined)
+
+
+        if(closestSegments.length === 0) return {
             closestSegment: undefined,
             closestPoint: undefined,
             minDist: Infinity,
@@ -245,7 +262,7 @@ class Road{
         let closestPointMain = undefined
         let minDist = Infinity
 
-        closestPath.segments.forEach((s, key) => {
+        closestSegments.forEach((s) => {
             let fromPos, toPos
             if(useNodePositions){
                 fromPos = s.fromNode ? s.fromNode.pos 
@@ -443,7 +460,7 @@ class Road{
         }
 
         //remove the segment
-        this.segments.delete(segmentID)
+        this._deleteSegment(segmentID)
         fromNode.outgoingSegmentIDs = fromNode.outgoingSegmentIDs.filter(id => id != segmentID)
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
         fromNode.outgoingSegments = fromNode.outgoingSegments.filter(s => s.id != segmentID)
@@ -470,7 +487,7 @@ class Road{
         }
         let fromNode = this.findNode(segment.fromNodeID)
         let toNode = this.findNode(segment.toNodeID)
-        this.segments.delete(segmentID)
+        this._deleteSegment(segmentID)
         if(fromNode == undefined || toNode == undefined){
             console.log('Error deleting segment, node not found:\nfromNodeID = ' + segment.fromNodeID + ' | toNodeID = ' + segment.toNodeID)
             return
@@ -481,6 +498,11 @@ class Road{
         toNode.incomingSegmentIDs = toNode.incomingSegmentIDs.filter(id => id != segmentID)
         fromNode.outgoingSegments = fromNode.outgoingSegments.filter(s => s.id != segmentID)
         toNode.incomingSegments = toNode.incomingSegments.filter(s => s.id != segmentID)
+    }
+
+    _deleteSegment(segmentID){
+        this.segments.delete(segmentID)
+        this.graphIndex.deleteEdge(segmentID)
     }
 
     splitSegmentAtPos(segmentID, x, y, nodeAtSplit = undefined){
@@ -518,8 +540,8 @@ class Road{
             this.paths.set(newNode.id + '-' + toNode.id, path2)
         }
         else path2.segmentsIDs.add(segment2.id)
-        path1.constructRealLanes()
-        path2.constructRealLanes()
+        this.constructLanesOfPath(path1)
+        this.constructLanesOfPath(path2)
 
         this.updateRoad([fromNode.id, newNode.id])
         this.updateRoad([newNode.id, toNode.id])
@@ -606,6 +628,7 @@ class Road{
         this.nodes.set(id, node)
         this.graphIndex.insertNode({id: node.id, x: node.pos.x, y: node.pos.y, radius: NODE_RAD})
     }
+
 
     updateNodeIDcounter(){
         this.prevNodeIDcounter = this.nodeIDcounter
@@ -1135,14 +1158,15 @@ class Road{
     //     return this.convexHullQueue.size === 0
     // }
 
-    showMain(zoom){
+    // optimized
+    showMain(zoom, pathsInView){
         push()
         let ctx = drawingContext
         let scaledStrokeW = 1 / zoom
         ctx.strokeStyle = 'white'
         ctx.lineWidth = scaledStrokeW
         ctx.beginPath()
-        this.paths.forEach((p) => {
+        pathsInView.forEach((p) => {
             let fromPos = p.nodeAObj.pos
             let toPos = p.nodeBObj.pos
             ctx.moveTo(fromPos.x, fromPos.y)
@@ -1189,42 +1213,48 @@ class Road{
         for(let i = 0; i < 10; i++) {
             drawRTreeLayer(this.graphIndex.nodes, i);
         }
+        stroke(255, 0, 0, 75)
+        for(let i = 0; i < 10; i++) {
+            drawRTreeLayer(this.graphIndex.edges, i);
+        }
         pop()
     }
 
     // every function with  "type: showWays" as a comment must only be called from here, as this function sets the correct drawing modes for optimization purposes
-    showWays(toolObj){
+    showWays(toolObj, pathsInView, intersectionsInViewIDs){
         let zoom = toolObj.zoom
         let hoveredID = toolObj.state.hoverSeg
 
-        this.paths.forEach((p, key) => p.setOOB())
-        this.nodes.forEach((n, key) => n.setOOB())
+        // this.paths.forEach((p, key) => p.setOOB())
+        // this.nodes.forEach((n, key) => n.setOOB())
+
+        let intersectionsInView = intersectionsInViewIDs.map(id => this.findIntersection(id)).filter(i => i != undefined)
 
         push()
         rectMode(CORNERS)
         fill(SIDE_WALK_COL)
         stroke(SIDE_WALK_COL)
         strokeWeight(1)
-        if(zoom > 0.1) this.paths.forEach((p, key) => p.showWayBase())
+        if(zoom > 0.1) pathsInView.forEach((p, key) => p.showWayBase())
         pop()
 
         push()
         fill(SIDE_WALK_COL)
         stroke(SIDE_WALK_COL)
         strokeWeight(1)
-        if(zoom > 0.1) this.intersections.forEach((p, key) => p.showWayBase())
+        if(zoom > 0.1) intersectionsInView.forEach((p, key) => p.showWayBase())
         pop()
 
         push()
         fill(ROAD_COL)
         stroke(ROAD_COL)
         strokeWeight(1)
-        if(zoom > 0.05) this.intersections.forEach((p, key) => p.showWayTop())
+        if(zoom > 0.05) intersectionsInView.forEach((p, key) => p.showWayTop())
         stroke(MARKINGS_COL)
         strokeWeight(1.5)
         noFill()
-        if(zoom > 0.18) this.intersections.forEach((p, key) => p.showOuterEdges())
-        if(zoom > 0.18) this.intersections.forEach((p, key) => p.showInnerEdges())
+        if(zoom > 0.18) intersectionsInView.forEach((p, key) => p.showOuterEdges())
+        if(zoom > 0.18) intersectionsInView.forEach((p, key) => p.showInnerEdges())
         pop()
     
         push()
@@ -1232,30 +1262,43 @@ class Road{
         fill(ROAD_COL)
         stroke(ROAD_COL)
         strokeWeight(1)
-        if(zoom > 0.05) this.paths.forEach((p, key) => p.showWayTop(hoveredID))
+        if(zoom > 0.05) pathsInView.forEach((p, key) => p.showWayTop(hoveredID))
         stroke(MARKINGS_COL)
         strokeWeight(WIDTH_YIELD_MARKING)
         strokeCap(SQUARE)
-        if(zoom > 0.18) this.intersections.forEach((p, key) => p.showYieldMarkings())
+        if(zoom > 0.18) intersectionsInView.forEach((p, key) => p.showYieldMarkings())
         strokeWeight(1.5)
         stroke(MARKINGS_COL)
         strokeCap(SQUARE)
-        if(zoom > 0.18) this.paths.forEach((p, key) => p.showEdges())
+        if(zoom > 0.18) pathsInView.forEach((p, key) => p.showEdges())
         stroke(ARROWS_COL)
         strokeWeight(1.5)
         fill(ARROWS_COL)
         if(zoom > 0.35){ 
-            this.paths.forEach((p, key) => p.showArrows())
-            this.intersections.forEach((i, key) => i.showDirectionsIntersection())
+            pathsInView.forEach((p, key) => p.showArrows())
+            intersectionsInView.forEach((i, key) => i.showDirectionsIntersection())
             strokeWeight(1.5)
             stroke(ROAD_COL)
             fill(SIDE_WALK_COL)
             textAlign(CENTER, CENTER)
             textSize(14)
-            this.paths.forEach((p, key) => p.showName())
+            pathsInView.forEach((p, key) => p.showName())
         }
         if (zoom <= 0.05) {
-            this.showMain(zoom)
+            this.showMain(zoom, pathsInView)
+        }
+
+        if(zoom > 0.18 && toolObj.showOptions.SHOW_NODES){
+            push()
+            noFill()
+            strokeWeight(1.5 / zoom)
+            stroke(255, 200)
+            blendMode(DIFFERENCE)
+            intersectionsInView.forEach((n, key) => {
+                this.findNode(n.id).show(true, zoom)
+            })
+            blendMode(BLEND)
+            pop()
         }
 
         if(zoom > 0.18) {
@@ -1265,7 +1308,7 @@ class Road{
             noFill()
             strokeCap(ROUND)
             strokeWeight(2.5)
-            //this.intersections.forEach(i => i.drawIntersectionAreaMarkings())
+            //intersectionsInView.forEach(i => i.drawIntersectionAreaMarkings())
             pop()
         }
         pop()

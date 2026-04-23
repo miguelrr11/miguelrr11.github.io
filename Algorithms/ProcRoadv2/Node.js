@@ -19,6 +19,7 @@ class Node{
         this.OOB = value == undefined ? this.outOfBounds() : value
     }
 
+    //unoptimized because its not using graphIndex
     outOfBounds(){
         return !inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, 100)
     }
@@ -33,13 +34,10 @@ class Node{
     }
 
     hover(x, y){
-        //if(this.curvePath) return false
-        if(this.OOB) return false
         return squaredDistance(x, y, this.pos.x, this.pos.y) <= NODE_RAD_SQ
     }
 
     showTags(){
-        if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, NODE_RAD)) return
         push()
         noStroke()
         textAlign(CENTER)
@@ -55,15 +53,9 @@ class Node{
         pop()
     }
 
-    show(selected = false, zoom = 1){
-        //if(this.curvePath) return
-        if(!inBoundsCorners(this.pos.x, this.pos.y, GLOBAL_EDGES, NODE_RAD)) return
-        push()
-        selected ? fill(255, 100) : noFill()
-        strokeWeight(1.5 / zoom)
-        stroke(255, 200)
+    // type: showWays
+    show(selected = false){
         let mult = selected ? 1.8 : 2
         ellipse(this.pos.x, this.pos.y, NODE_RAD * mult)
-        pop()
     }
 }
