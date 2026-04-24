@@ -13,6 +13,14 @@
 // It is extremely important to separate segments (array segments) from the intersection segments (array intersecSegs)
 // because they have different ID pools
 
+//next optimizations: MEMORY
+// first we'll replace large arrays of pairs (like the corners arrays) to a FLAT array of numbers
+
+/**
+ * Before flattening corners arrays in segments with AROUN_RADIUS of 7500: 605 MB
+ * After flattening corners arrays in segments with AROUN_RADIUS of 7500: 580 MB
+ */
+
 const NODE_RAD = 25
 const NODE_RAD_SQ = NODE_RAD * NODE_RAD
 const GRID_CELL_SIZE = 40   //15

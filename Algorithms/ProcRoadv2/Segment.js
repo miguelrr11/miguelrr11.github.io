@@ -25,19 +25,24 @@ class Segment{
         this.originalFromPos = undefined // used when trimming segments at intersections
         this.originalToPos = undefined
         this.arrowsPos = []
-        this.corners = []
-        this.corners16 = []
+        this.corners = []       // now is a FLAT array (8 entries of the 4 corners of the segment)
+        this.corners16 = []     // same
         this.yieldPos = []
         this.drawOuterLinesAboveDashed = undefined
         this.drawOuterLinesBelowDashed = undefined
     }
 
     constructCorners(){
-        this.corners = getCornersOfLine(this.fromPos, this.toPos, LANE_WIDTH)
-        this.corners16 = getCornersOfLine(this.fromPos, this.toPos, BIG_LANE_WIDTH)
-
-        this.untrimmedCorners = getCornersOfLine(this.originalFromPos, this.originalToPos, LANE_WIDTH)
-        this.untrimmedCorners16 = getCornersOfLine(this.originalFromPos, this.originalToPos, BIG_LANE_WIDTH)
+        let corners = getCornersOfLine(this.fromPos, this.toPos, LANE_WIDTH)
+        let corners16 = getCornersOfLine(this.fromPos, this.toPos, BIG_LANE_WIDTH)
+        this.corners = []
+        this.corners16 = []
+        for(let c of corners){
+            this.corners.push(c.x, c.y)
+        }
+        for(let c of corners16){
+            this.corners16.push(c.x, c.y)
+        }
 
         let dir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
         let toPosShort = {x: this.toPos.x - Math.cos(dir) * WIDTH_YIELD_MARKING * 0.5, y: this.toPos.y - Math.sin(dir) * WIDTH_YIELD_MARKING * 0.5}
@@ -133,17 +138,17 @@ class Segment{
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = this.corners
-        if(!disc) line(corners[0].x, corners[0].y, corners[3].x, corners[3].y)
-        else drawDashedLine(corners[0].x, corners[0].y, corners[3].x, corners[3].y)
+        if(!disc) line(corners[0], corners[1], corners[6], corners[7])
+        else drawDashedLine(corners[0], corners[1], corners[6], corners[7])
         pop()
     }
 
     drawLineAbove(disc = false){
         let fromPos = this.fromPos
         let toPos = this.toPos
-        let corners = getCornersOfLine(fromPos, toPos, LANE_WIDTH)
-        if(!disc) line(corners[1].x, corners[1].y, corners[2].x, corners[2].y)
-        else drawDashedLine(corners[1].x, corners[1].y, corners[2].x, corners[2].y)
+        let corners = this.corners
+        if(!disc) line(corners[2], corners[3], corners[4], corners[5])
+        else drawDashedLine(corners[2], corners[3], corners[4], corners[5])
     }
 
     // rectMode must be CORNERS and noStroke must be set before calling this
@@ -151,18 +156,18 @@ class Segment{
         let corners = w == LANE_WIDTH ? this.corners : this.corners16
         fill(col)
         beginShape()
-        vertex(corners[0].x, corners[0].y)
-        vertex(corners[1].x, corners[1].y)
-        vertex(corners[2].x, corners[2].y)
-        vertex(corners[3].x, corners[3].y)
+        vertex(corners[0], corners[1])
+        vertex(corners[2], corners[3])
+        vertex(corners[4], corners[5])
+        vertex(corners[6], corners[7])
         endShape(CLOSE)
         if(this.id == hoveredID){
             fill(255, 100)
             beginShape()
-            vertex(corners[0].x, corners[0].y)
-            vertex(corners[1].x, corners[1].y)
-            vertex(corners[2].x, corners[2].y)
-            vertex(corners[3].x, corners[3].y)
+            vertex(corners[0], corners[1])
+            vertex(corners[2], corners[3])
+            vertex(corners[4], corners[5])
+            vertex(corners[6], corners[7])
             endShape(CLOSE)
         }
     }
@@ -171,40 +176,18 @@ class Segment{
         push()
         let fromPos = this.fromPos
         let toPos = this.toPos
-
-        let corners = this.untrimmedCorners
         rectMode(CORNERS)
         noStroke()
         fill(255, 50)
-        if(this.id == hoveredSegID) fill(255, 120)
-        // beginShape()
-        // vertex(corners[0].x, corners[0].y)
-        // vertex(corners[1].x, corners[1].y)
-        // vertex(corners[2].x, corners[2].y)
-        // vertex(corners[3].x, corners[3].y)
-        // endShape(CLOSE)
-
-        // stroke(255)
-        // strokeWeight(1)
-        // line(corners[0].x, corners[0].y, corners[3].x, corners[3].y)
-        // line(corners[1].x, corners[1].y, corners[2].x, corners[2].y)
-
-        noStroke()
-
-        corners = this.corners
-        rectMode(CORNERS)
-        noStroke()
+        let corners = this.corners
         this.visualDir == 'for' ? fill(COL_LANE_1) : fill(COL_LANE_2)
         if(this.id == hoveredSegID) fill(255, 120)
         beginShape()
-        vertex(corners[0].x, corners[0].y)
-        vertex(corners[1].x, corners[1].y)
-        vertex(corners[2].x, corners[2].y)
-        vertex(corners[3].x, corners[3].y)
+        vertex(corners[0], corners[1])
+        vertex(corners[2], corners[3])
+        vertex(corners[4], corners[5])
+        vertex(corners[6], corners[7])
         endShape(CLOSE)
-
-        
-
         pop()
     }
 
@@ -240,18 +223,11 @@ class Segment{
         stroke(255, 100)
         strokeWeight(1.5)
         beginShape()
-        for(let i = 0; i < this.corners.length; i++){
+        for(let i = 0; i < this.corners.length; i+=2){
             if(this.corners[i] == undefined) continue
-            vertex(this.corners[i].x, this.corners[i].y)
+            vertex(this.corners[i], this.corners[i+1])
         }
         endShape(CLOSE)
-        // stroke(255, 0, 0, 100)
-        // beginShape()
-        // for(let i = 0; i < this.corners16.length; i++){
-        //     if(this.corners16[i] == undefined) continue
-        //     vertex(this.corners16[i].x, this.corners16[i].y)
-        // }
-        // endShape(CLOSE)
         pop()
     }
 
@@ -291,8 +267,6 @@ class Segment{
     // just shows a white line with arrows, and tags if needed, from fromPos to toPos
     showPath(SHOW_TAGS, SHOW_SEGS_DETAILS, hoveredSegID = undefined, indexOfSeg = 0){
         push()
-
-        
         stroke(COL_PATHS)
         hoveredSegID == this.id ? strokeWeight(3) : strokeWeight(2)
         line(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
@@ -303,9 +277,9 @@ class Segment{
         if(hoveredSegID == this.id){
             stroke(255)
             fill(0)
-            for(let i = 0; i < this.corners.length; i++){
+            for(let i = 0; i < this.corners.length; i+=2){
                 if(this.corners[i] == undefined) continue
-                text('c' + i, this.corners[i].x, this.corners[i].y)
+                text('c' + i, this.corners[i], this.corners[i+1])
             }
 
             push()
@@ -325,9 +299,9 @@ class Segment{
 
             // stroke(0)
             // fill(255)
-            // for(let i = 0; i < this.corners16.length; i++){
+            // for(let i = 0; i < this.corners16.length; i+=2){
             //     if(this.corners16[i] == undefined) continue
-            //     text('c' + i, this.corners16[i].x, this.corners16[i].y)
+            //     text('c' + i, this.corners16[i], this.corners16[i+1])
             // }
         }
 

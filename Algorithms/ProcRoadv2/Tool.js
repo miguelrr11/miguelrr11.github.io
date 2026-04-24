@@ -1404,7 +1404,7 @@ class Tool{
         if(this.showOptions.SHOW_LANES){ 
             this.road.showLanes(this.state.hoverSegID)
         }
-        if(this.showOptions.SHOW_ROAD) this.road.showMain(this.zoom)
+        if(this.showOptions.SHOW_ROAD) this.road.showMain(this.zoom, this.pathsInView)
         if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, 
                                                             this.showOptions.SHOW_SEGS_DETAILS,
                                                             this.state.hoverSegID)

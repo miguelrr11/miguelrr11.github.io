@@ -13,14 +13,7 @@ class Path{
         this.nodeBObj = undefined  // Direct object reference
 
         this.length = 0
-
         this.id = nodeA + '_' + nodeB
-
-        this.name = undefined
-
-        this.corners = []  
-        this.corners16 = []  
-
         this.OOB = false
     }
 
@@ -99,31 +92,31 @@ class Path{
 
     // gets the outline of all the lanes
     //not used
-    constructCorners(){
-        if(this.segmentsIDs.size == 0) return
-        let corners = []
-        let corners16 = []
-        let first = this.segments[0]
-        let last = this.segments[this.segments.length - 1]
-        if(first.fromNodeID == this.nodeA){
-            corners.push(first.corners[0], first.corners[3])
-            corners16.push(first.corners16[0], first.corners16[3])
-        }
-        else{
-            corners.push(first.corners[2], first.corners[1])
-            corners16.push(first.corners16[2], first.corners16[1])
-        }
-        if(last.fromNodeID != this.nodeA){
-            corners.push(last.corners[0], last.corners[3])
-            corners16.push(last.corners16[0], last.corners16[3])
-        }
-        else{
-            corners.push(last.corners[2], last.corners[1])
-            corners16.push(last.corners16[2], last.corners16[1])
-        }
-        this.corners = corners
-        this.corners16 = corners16
-    }
+    // constructCorners(){
+    //     if(this.segmentsIDs.size == 0) return
+    //     let corners = []
+    //     let corners16 = []
+    //     let first = this.segments[0]
+    //     let last = this.segments[this.segments.length - 1]
+    //     if(first.fromNodeID == this.nodeA){
+    //         corners.push(first.corners[0], first.corners[3])
+    //         corners16.push(first.corners16[0], first.corners16[3])
+    //     }
+    //     else{
+    //         corners.push(first.corners[2], first.corners[1])
+    //         corners16.push(first.corners16[2], first.corners16[1])
+    //     }
+    //     if(last.fromNodeID != this.nodeA){
+    //         corners.push(last.corners[0], last.corners[3])
+    //         corners16.push(last.corners16[0], last.corners16[3])
+    //     }
+    //     else{
+    //         corners.push(last.corners[2], last.corners[1])
+    //         corners16.push(last.corners16[2], last.corners16[1])
+    //     }
+    //     this.corners = corners
+    //     this.corners16 = corners16
+    // }
 
     //not used
     getRealPos(segID){
@@ -297,20 +290,20 @@ class Path{
         let corners = cornersType === 'base' ? 'corners16' : 'corners'
 
         if(first.fromNodeID == this.nodeA){
-            vertex(first[corners][0].x, first[corners][0].y)
-            vertex(first[corners][3].x, first[corners][3].y)
+            vertex(first[corners][0], first[corners][1])
+            vertex(first[corners][6], first[corners][7])
         }
         else{
-            vertex(first[corners][2].x, first[corners][2].y)
-            vertex(first[corners][1].x, first[corners][1].y)
+            vertex(first[corners][4], first[corners][5])
+            vertex(first[corners][2], first[corners][3])
         }
         if(last.fromNodeID != this.nodeA){
-            vertex(last[corners][0].x, last[corners][0].y)
-            vertex(last[corners][3].x, last[corners][3].y)
+            vertex(last[corners][0], last[corners][1])
+            vertex(last[corners][6], last[corners][7])
         }
         else{
-            vertex(last[corners][2].x, last[corners][2].y)
-            vertex(last[corners][1].x, last[corners][1].y)
+            vertex(last[corners][4], last[corners][5])
+            vertex(last[corners][2], last[corners][3])
         }
         endShape(CLOSE)
     }

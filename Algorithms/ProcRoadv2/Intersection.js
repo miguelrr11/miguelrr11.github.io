@@ -81,29 +81,29 @@ class Intersection {
         for(let p of paths){
             if(p.segments.length == 1){
                 if(p.segments[0].fromNodeID == this.nodeID){
-                    points.push({p: p.segments[0].corners[0], m: getManecilla(p.segments[0].corners[0], p.segments[0].corners[3])})
-                    points.push({p: p.segments[0].corners[1], m: getManecilla(p.segments[0].corners[1], p.segments[0].corners[2])})
+                    points.push({p: {x: p.segments[0].corners[0], y: p.segments[0].corners[1]}, m: getManecilla(p.segments[0].corners[0], p.segments[0].corners[3])})
+                    points.push({p: {x: p.segments[0].corners[2], y: p.segments[0].corners[3]}, m: getManecilla(p.segments[0].corners[2], p.segments[0].corners[1])})
                 }
                 else{
-                    points.push({p: p.segments[0].corners[2], m: getManecilla(p.segments[0].corners[0], p.segments[0].corners[1])})
-                    points.push({p: p.segments[0].corners[3], m: getManecilla(p.segments[0].corners[3], p.segments[0].corners[0])})
+                    points.push({p: {x: p.segments[0].corners[4], y: p.segments[0].corners[5]}, m: getManecilla(p.segments[0].corners[4], p.segments[0].corners[7])})
+                    points.push({p: {x: p.segments[0].corners[6], y: p.segments[0].corners[7]}, m: getManecilla(p.segments[0].corners[6], p.segments[0].corners[5])})
                 }
             }
             else if(p.segments.length == 2){
                 for(let i = 0; i < p.segments.length; i++){
                     let s = p.segments[i]
-                    if(s.toNodeID == this.nodeID && i == 1) points.push({p: s.corners[2], m: getManecilla(s.corners[2], s.corners[1])})
-                    else if(s.fromNodeID == this.nodeID && i == 0) points.push({p: s.corners[1], m: getManecilla(s.corners[1], s.corners[2])})
-                    else if(s.fromNodeID == this.nodeID) points.push({p: s.corners[0], m: getManecilla(s.corners[0], s.corners[3])})
-                    else points.push({p: s.corners[3], m: getManecilla(s.corners[3], s.corners[0])})
+                    if(s.toNodeID == this.nodeID && i == 1) points.push({p: {x: s.corners[2], y: s.corners[3]}, m: getManecilla(s.corners[2], s.corners[1])})
+                    else if(s.fromNodeID == this.nodeID && i == 0) points.push({p: {x: s.corners[1], y: s.corners[2]}, m: getManecilla(s.corners[1], s.corners[2])})
+                    else if(s.fromNodeID == this.nodeID) points.push({p: {x: s.corners[0], y: s.corners[1]}, m: getManecilla(s.corners[0], s.corners[3])})
+                    else points.push({p: {x: s.corners[3], y: s.corners[0]}, m: getManecilla(s.corners[3], s.corners[0])})
                 }
             }
             else if(p.segments.length > 2){
                 for(let i = 0; i < p.segments.length; i++){
                     if(i != 0 && i != p.segments.length - 1) continue
                     let s = p.segments[i]
-                    if(s.fromNodeID == this.nodeID) points.push({p: s.corners[0], m: getManecilla(s.corners[0], s.corners[3])})
-                    else points.push({p: s.corners[3], m: getManecilla(s.corners[3], s.corners[0])})
+                    if(s.fromNodeID == this.nodeID) points.push({p: {x: s.corners[0], y: s.corners[1]}, m: getManecilla(s.corners[0], s.corners[3])})
+                    else points.push({p: {x: s.corners[3], y: s.corners[0]}, m: getManecilla(s.corners[3], s.corners[0])})
                 }
             }
             
@@ -376,8 +376,8 @@ class Intersection {
                 s1 = firstSeg
                 s2 = secSeg
                 
-                let inSegFromPos = s1.corners[2]
-                let outSegToPos = s2.corners[2]
+                let inSegFromPos = {x: s1.corners[4], y: s1.corners[5]}
+                let outSegToPos = {x: s2.corners[4], y: s2.corners[5]}
 
                 let d = dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y)
                 let length = d * LANE_WIDTH * 0.02
@@ -474,8 +474,8 @@ class Intersection {
             let s2 = pair.to
             if(bpMap.has(s1.id + '_' + s2.id) || bpMap.has(s2.id + '_' + s1.id)) continue
 
-            let inSegFromPos = s1.corners[2]
-            let outSegToPos = s2.corners[1]
+            let inSegFromPos = {x: s1.corners[4], y: s1.corners[5]}
+            let outSegToPos = {x: s2.corners[2], y: s2.corners[3]}
 
             let tension = TENSION_BEZIER_MAX
             let d = dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y)
@@ -558,8 +558,16 @@ class Intersection {
         for(let p of paths){
             let firstSeg = p.nodeA == this.nodeID ? p.segments[0] : p.segments[p.segments.length - 1]
             let lastSeg = p.nodeA != this.nodeID ? p.segments[0] : p.segments[p.segments.length - 1]
-            if(firstSeg) firstSegmentPoss.push({pos: getCorners(firstSeg)[firstSeg.toNodeID == this.nodeID ? 2 : 0], seg: firstSeg, path: p})
-            if(lastSeg) lastSegmentPoss.push({pos: getCorners(lastSeg)[lastSeg.toNodeID == this.nodeID ? 3 : 1], seg: lastSeg, path: p})
+            if(firstSeg) {
+                let index = firstSeg.toNodeID == this.nodeID ? 4 : 0
+                let pos = {x: getCorners(firstSeg)[index], y: getCorners(firstSeg)[index+1]}
+                firstSegmentPoss.push({pos: pos, seg: firstSeg, path: p})
+            }
+            if(lastSeg) {
+                let index = lastSeg.toNodeID == this.nodeID ? 6 : 2
+                let pos = {x: getCorners(lastSeg)[index], y: getCorners(lastSeg)[index+1]}
+                lastSegmentPoss.push({pos: pos, seg: lastSeg, path: p})
+            }
         }
 
         let all = [...firstSegmentPoss, ...lastSegmentPoss]
