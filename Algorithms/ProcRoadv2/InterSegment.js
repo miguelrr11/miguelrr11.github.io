@@ -6,7 +6,8 @@ class InterSegment{
         this.fromConnector = undefined  // Direct object reference
         this.toConnector = undefined    // Direct object reference
         this.visualDir = visualDir
-        this.bezierPoints = bezierPoints
+        this.bezierPoints = []
+        for(let p of bezierPoints) this.bezierPoints.push(p.x, p.y) // Flattened
         this.road = undefined
         this.len = undefined
         this.fromPos = undefined
@@ -15,11 +16,6 @@ class InterSegment{
 
         //all intersections set its intersegments to active = true, but then the user can disable some of them
         this.active = true
-
-        //calculated by Intersection.constructOutline()
-        this.outline = []       //not used anymore
-        this.outline16 = []     //not used anymore
-        this.corners = []
     }
 
 
@@ -27,22 +23,30 @@ class InterSegment{
     getPos(travelled){
         if(this.len == undefined) this.getLen()
         let bp = this.bezierPoints
-        let travelledIndex = mapp(travelled, 0, this.getLen(), 0, bp.length - 1)
+
+        let pointCount = bp.length / 2
+
+        let travelledIndex = mapp(travelled, 0, this.getLen(), 0, pointCount - 1)
         let remaining = getDecimalPart(travelledIndex)
+
         let indexA = Math.floor(travelledIndex)
-        let indexB = Math.min(indexA + 1, bp.length - 1)
-        return lerppos(bp[indexA], bp[indexB], remaining)
+        let indexB = Math.min(indexA + 1, pointCount - 1)
+
+        let ax = bp[indexA * 2]
+        let ay = bp[indexA * 2 + 1]
+        let bx = bp[indexB * 2]
+        let by = bp[indexB * 2 + 1]
+
+        return lerrposFlat(ax, ay, bx, by, remaining)
     }
 
     getLen(){
-        //if(this.len == undefined){
-            let len = 0
-            for(let i = 0; i < this.bezierPoints.length-1; i++){
-                len += dist(this.bezierPoints[i].x, this.bezierPoints[i].y, this.bezierPoints[i+1].x, this.bezierPoints[i+1].y)
-            }
-            this.len = len
-        //}
-        return this.len
+        let len = 0
+        for(let i = 0; i < this.bezierPoints.length-2; i+=4){
+            len += dist(this.bezierPoints[i], this.bezierPoints[i+1], this.bezierPoints[i+2], this.bezierPoints[i+3])
+        }
+        this.len = len
+        return this.len * 2
     }
 
 
@@ -56,73 +60,11 @@ class InterSegment{
 
      */
 
-    //no longer constructs outlines, just corners, because outlines are not longer needed
-    constructOutline(){
-        // let points = []
-        // let points16 = []
-
-        // let fromSeg = this.road.findSegment(this.road.findConnector(this.fromConnectorID).incomingSegmentIDs[0])
-        // let cornersFromSeg = getCornersOfLine(fromSeg.fromPos, fromSeg.toPos, LANE_WIDTH)
-        // let toSeg = this.road.findSegment(this.road.findConnector(this.toConnectorID).outgoingSegmentIDs[0])
-        // let cornersToSeg = getCornersOfLine(toSeg.fromPos, toSeg.toPos, LANE_WIDTH)
-        // let c0 = cornersFromSeg[2]
-        // let c1 = cornersToSeg[1]
-        // let c3 = cornersToSeg[0]
-        // let c2 = cornersFromSeg[3]
-
-        // let cornersFromSeg16 = getCornersOfLine(fromSeg.fromPos, fromSeg.toPos, BIG_LANE_WIDTH)
-        // let cornersToSeg16 = getCornersOfLine(toSeg.fromPos, toSeg.toPos, BIG_LANE_WIDTH)
-        // let c0_16 = cornersFromSeg16[2]
-        // let c1_16 = cornersToSeg16[1]
-        // let c3_16 = cornersToSeg16[0]
-        // let c2_16 = cornersFromSeg16[3]
-
-
-        let cornersArr = []
-        let corners16Arr = []
-        for(let i = 0; i < this.bezierPoints.length - 1; i++){
-            let p = this.bezierPoints[i]
-            let pNext = this.bezierPoints[i+1]
-            let corners = getCornersOfLine(p, pNext, LANE_WIDTH)
-            let corners16 = getCornersOfLine(p, pNext, BIG_LANE_WIDTH)
-            cornersArr.push(corners)
-            corners16Arr.push(corners16)
-        }
-
-        let bp = this.bezierPoints
-        let corners
-        let corners16
-        // points.push(c2)
-        // points16.push(c2_16)
-        for(let i = 0; i < bp.length - 1; i++){
-            corners = cornersArr[i]
-            corners16 = corners16Arr[i]
-            // points.push(corners[0])
-            // points16.push(corners16[0])
-        }
-        // points.push(c3)
-        // points.push(c1)
-        // points16.push(c3_16)
-        // points16.push(c1_16)
-        for(let i = bp.length - 1; i > 0; i--){
-            corners = cornersArr[i-1]
-            corners16 = corners16Arr[i-1]
-            // points.push(corners[1])
-            // points16.push(corners16[1])
-        }
-        // points.push(c0)
-        // points16.push(c0_16)
-
-        // this.outline = points
-        // this.outline16 = points16
-
-        this.corners = [c0, c1, c2, c3]
-    }
-
     showLane(col, useOutline16 = false){
+        return
         push()
-        let fromPos = this.bezierPoints[0]
-        let toPos = this.bezierPoints[this.bezierPoints.length-1]
+        let fromPos = {x: this.bezierPoints[0], y: this.bezierPoints[1]}
+        let toPos = {x: this.bezierPoints[this.bezierPoints.length-2], y: this.bezierPoints[this.bezierPoints.length-1]}
 
         if(!inBoundsCorners(fromPos.x, fromPos.y, GLOBAL_EDGES) && !inBoundsCorners(toPos.x, toPos.y, GLOBAL_EDGES)){
             pop()
@@ -146,8 +88,8 @@ class InterSegment{
     }
 
     showBezier(SHOW_TAGS){
-        let first = this.bezierPoints[0]
-        let last = this.bezierPoints[this.bezierPoints.length-1]
+        let first = {x: this.bezierPoints[0], y: this.bezierPoints[1] }
+        let last = {x: this.bezierPoints[this.bezierPoints.length-2], y: this.bezierPoints[this.bezierPoints.length-1] }
         if(!inBoundsCorners(first.x, first.y, GLOBAL_EDGES) && !inBoundsCorners(last.x, last.y, GLOBAL_EDGES)){
             return
         }
@@ -156,13 +98,13 @@ class InterSegment{
         this.active ? stroke(COL_PATHS) : stroke(120)
         noFill()
         beginShape()
-        for(let i = 0; i < this.bezierPoints.length; i+=1){
-            vertex(this.bezierPoints[i].x, this.bezierPoints[i].y)
+        for(let i = 0; i < this.bezierPoints.length; i+=2){
+            vertex(this.bezierPoints[i], this.bezierPoints[i+1])
         }
         endShape()
         if(SHOW_TAGS){
-            let first = this.bezierPoints[0]
-            let last = this.bezierPoints[this.bezierPoints.length-1]
+            let first = {x: this.bezierPoints[0], y: this.bezierPoints[1] }
+            let last = {x: this.bezierPoints[this.bezierPoints.length-2], y: this.bezierPoints[this.bezierPoints.length-1] }
             let midPos = {x: (first.x + last.x) / 2, y: (first.y + last.y) / 2}
             noStroke()
             fill(0, 255, 0)

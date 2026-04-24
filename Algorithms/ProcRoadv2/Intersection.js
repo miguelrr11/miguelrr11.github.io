@@ -1,18 +1,20 @@
 class Intersection {
-    constructor(nodeID, connectorsIDs, intersecSegsIDs){
+    constructor(nodeID){
         this.nodeID = nodeID
         this.nodeObj = undefined
         this.id = nodeID
-        this.connectorsIDs = connectorsIDs
-        this.intersecSegsIDs = intersecSegsIDs
+
+        //this.connectorsIDs = connectorsIDs            //removed because I dont use it, so memory optimization
+        //this.intersecSegsIDs = intersecSegsIDs        //removed because I dont use it, so memory optimization
+
         this.connectors = []      // Direct object references
         this.intersecSegs = []    // Direct object references
         this.road = undefined     //filled by road.js
-        this.pathsIDs = []        //filled by road.js
+        //this.pathsIDs = []      //filled by road.js (removed because I dont use it, so memory optimization)
         this.paths = []           // Direct object references
 
-        this.outline = [] //filled by calculateOutlinesIntersection()
-        this.outline16 = [] //filled by calculateOutlinesIntersection()
+        this.outline = [] //filled by calculateOutlinesIntersection()  IT IS FLAT (x1, y1, x2, y2, ...)
+        this.outline16 = [] //filled by calculateOutlinesIntersection() IT IS FLAT (x1, y1, x2, y2, ...)
         this.edges = []         //filled by calculateOutlinesIntersection()
         this.innerEdges = []    //filled by calculateInnerEdges()
         this.innerLaneEdges = []    //filled by calculateInnerLaneEdges()
@@ -37,7 +39,7 @@ class Intersection {
     // returns a map with keys as "fromSegmentID_toSegmentID" and values as true/false depending on whether the intersegment that connects them is active or not
     getActivenessMap(){
         let map = new Map()
-        let segs = this.intersecSegs.length > 0 ? this.intersecSegs : this.intersecSegsIDs.map(id => this.road.findIntersecSeg(id))
+        let segs = this.intersecSegs
         for(let seg of segs){
             if(seg){
                 let fromConn = seg.fromConnector || this.road.findConnector(seg.fromConnectorID)
@@ -50,95 +52,6 @@ class Intersection {
         return map
     }
 
-    //calling p.orderSegmentsByDirection(true) will work 1/2 of the time (just call it once)
-    // not working properly yet
-    debugOrder(){
-        let paths = this.road.findAnyPath(this.id)
-        for(let p of paths){
-            if(p.nodeB != this.id){ 
-                console.log(p.id)
-                p.orderSegmentsByDirection(true)
-            }
-        }
-        
-        
-
-        function getManecilla(point, farPoint){
-            let dir = Math.atan2(farPoint.y - point.y, farPoint.x - point.x)
-            const LENGTH = 20
-            return {x: point.x + Math.cos(dir) * LENGTH, y: point.y + Math.sin(dir) * LENGTH}
-        }
-
-        function orderClockwiseOfP(center, points) {
-            return points.slice().sort((a, b) => {
-                const angleA = Math.atan2(a.p.y - center.y, a.p.x - center.x);
-                const angleB = Math.atan2(b.p.y - center.y, b.p.x - center.x);
-                return angleA - angleB;
-            });
-        }
-
-        let points = []
-        for(let p of paths){
-            if(p.segments.length == 1){
-                if(p.segments[0].fromNodeID == this.nodeID){
-                    points.push({p: {x: p.segments[0].corners[0], y: p.segments[0].corners[1]}, m: getManecilla(p.segments[0].corners[0], p.segments[0].corners[3])})
-                    points.push({p: {x: p.segments[0].corners[2], y: p.segments[0].corners[3]}, m: getManecilla(p.segments[0].corners[2], p.segments[0].corners[1])})
-                }
-                else{
-                    points.push({p: {x: p.segments[0].corners[4], y: p.segments[0].corners[5]}, m: getManecilla(p.segments[0].corners[4], p.segments[0].corners[7])})
-                    points.push({p: {x: p.segments[0].corners[6], y: p.segments[0].corners[7]}, m: getManecilla(p.segments[0].corners[6], p.segments[0].corners[5])})
-                }
-            }
-            else if(p.segments.length == 2){
-                for(let i = 0; i < p.segments.length; i++){
-                    let s = p.segments[i]
-                    if(s.toNodeID == this.nodeID && i == 1) points.push({p: {x: s.corners[2], y: s.corners[3]}, m: getManecilla(s.corners[2], s.corners[1])})
-                    else if(s.fromNodeID == this.nodeID && i == 0) points.push({p: {x: s.corners[1], y: s.corners[2]}, m: getManecilla(s.corners[1], s.corners[2])})
-                    else if(s.fromNodeID == this.nodeID) points.push({p: {x: s.corners[0], y: s.corners[1]}, m: getManecilla(s.corners[0], s.corners[3])})
-                    else points.push({p: {x: s.corners[3], y: s.corners[0]}, m: getManecilla(s.corners[3], s.corners[0])})
-                }
-            }
-            else if(p.segments.length > 2){
-                for(let i = 0; i < p.segments.length; i++){
-                    if(i != 0 && i != p.segments.length - 1) continue
-                    let s = p.segments[i]
-                    if(s.fromNodeID == this.nodeID) points.push({p: {x: s.corners[0], y: s.corners[1]}, m: getManecilla(s.corners[0], s.corners[3])})
-                    else points.push({p: {x: s.corners[3], y: s.corners[0]}, m: getManecilla(s.corners[3], s.corners[0])})
-                }
-            }
-            
-        }
-
-        points = orderClockwiseOfP(this.road.findNode(this.nodeID).pos, points)
-
-        let op = []
-
-        let i = 0
-        while(i < points.length){
-            let bezPoint = points[i]
-            let p = bezPoint.p
-            let m = bezPoint.m
-            op.push(p)
-            let bezPoint2 = points[(i+1) % points.length]
-            let p2 = bezPoint2.p
-            let m2 = bezPoint2.m
-            //op.push(p2)
-
-            let bezPoint3 = points[(i+2) % points.length]
-            let p3 = bezPoint3.p
-            let m3 = bezPoint3.m
-
-            let tension = map(dist(p.x, p.y, p2.x, p2.y), 10, 250, TENSION_BEZIER_MIN, TENSION_BEZIER_MAX, true)
-            let curvePoints = bezierPoints(m, p, p2, m2, LENGTH_SEG_BEZIER, tension)
-            op.push(...curvePoints)
-
-            i += 2
-        }
-        //op.push([points[0].p])
-        this.outline = op
-        this.debugpoints = points
-    }
-
     drawOutlineDebug(){
         if(!this.outline) return
         push()
@@ -146,8 +59,8 @@ class Intersection {
         stroke(0, 255, 0, 200)
         strokeWeight(1.5)
         beginShape()
-        for(let i = 0; i < this.outline.length; i++){
-            vertex(this.outline[i].x, this.outline[i].y)
+        for(let i = 0; i < this.outline.length; i+=2){
+            vertex(this.outline[i], this.outline[i+1])
         }
         endShape(CLOSE)
         pop()
@@ -184,8 +97,8 @@ class Intersection {
         stroke(255)
         strokeWeight(2.5)
         beginShape()
-        for(let i = 0; i < this.outline.length; i++){
-            vertex(this.outline[i].x, this.outline[i].y)
+        for(let i = 0; i < this.outline.length; i+=2){
+            vertex(this.outline[i], this.outline[i+1])
         }
         endShape(CLOSE)
         pop()
@@ -196,7 +109,7 @@ class Intersection {
     showSelectedConnectorAndSegments(connID){
         let conn = this.connectors.find(c => c.id == connID) || this.road.findConnector(connID)
         if(conn) conn.showSelected()
-        let segs = this.intersecSegs.length > 0 ? this.intersecSegs : this.intersecSegsIDs.map(id => this.road.findIntersecSeg(id))
+        let segs = this.intersecSegs
         for(let seg of segs){
             if(seg.fromConnectorID == connID && !seg.active){
                 seg.showBezier(false)
@@ -218,18 +131,18 @@ class Intersection {
     }
 
     showConnectorsAndSegments(){
-        let conns = this.connectors.length > 0 ? this.connectors : this.connectorsIDs.map(id => this.road.findConnector(id))
+        let conns = this.connectors.length
         for(let conn of conns){
             if(conn) conn.show(false, true)
         }
-        let segs = this.intersecSegs.length > 0 ? this.intersecSegs : this.intersecSegsIDs.map(id => this.road.findIntersecSeg(id))
+        let segs = this.intersecSegs
         for(let seg of segs){
             if(seg) seg.showBezier(false)
         }
     }
 
     findHoverConnector(x, y){
-        let conns = this.connectors.length > 0 ? this.connectors : this.connectorsIDs.map(id => this.road.findConnector(id))
+        let conns = this.connectors.length > 0
         for(let conn of conns){
             if(conn && conn.hover(x, y)) return conn
         }
@@ -237,7 +150,7 @@ class Intersection {
     }
 
     toggleActivenessOfSeg(fromConnID, toConnID){
-        let segs = this.intersecSegs.length > 0 ? this.intersecSegs : this.intersecSegsIDs.map(id => this.road.findIntersecSeg(id))
+        let segs = this.intersecSegs
         for(let seg of segs){
             if(seg.toConnectorID == toConnID && seg.fromConnectorID == fromConnID){
                 seg.active = !seg.active
@@ -248,7 +161,7 @@ class Intersection {
 
     findHoveredConnectorsOfSelectedConnector(selectedConnID, x, y){
         let possibleConnectors = []
-        let segs = this.intersecSegs.length > 0 ? this.intersecSegs : this.intersecSegsIDs.map(id => this.road.findIntersecSeg(id))
+        let segs = this.intersecSegs
         for(let seg of segs){
             if(seg.fromConnectorID == selectedConnID){
                 let outConn = seg.toConnector || this.road.findConnector(seg.toConnectorID)
@@ -262,11 +175,19 @@ class Intersection {
     }
 
     calculateOutlinesIntersection(){
-        this.outline16 = this.getOutline(true).curves
+        let outline16 = this.getOutline(true).curves
         let obj = this.getOutline()
-        this.outline = obj.curves
+        let outline = obj.curves
+
+        this.outline = []
+        this.outline16 = []
+
+        // flattening the arrays of points
+        for(let p of outline16) this.outline16.push(p.x, p.y)
+        for(let p of outline) this.outline.push(p.x, p.y)
+
         this.corners = obj.corners.corners
-        this.grid = obj.corners.grid
+        //this.grid = obj.corners.grid
         this.edges = this.getOutline(false, true).curves
         return
     }
@@ -303,14 +224,14 @@ class Intersection {
         stroke(0, 255, 0, 200)
         strokeWeight(2)
         beginShape()
-        for(let i = 0; i < this.outline.length; i++){
-            vertex(this.outline[i].x, this.outline[i].y)
+        for(let i = 0; i < this.outline.length; i+=2){
+            vertex(this.outline[i], this.outline[i+1])
         }
         endShape(CLOSE)
         stroke(255, 0, 0, 200)
         beginShape()
-        for(let i = 0; i < this.outline16.length; i++){
-            vertex(this.outline16[i].x, this.outline16[i].y)
+        for(let i = 0; i < this.outline16.length; i+=2){
+            vertex(this.outline16[i], this.outline16[i+1])
         }
         endShape(CLOSE)
         pop()
@@ -322,7 +243,9 @@ class Intersection {
     showWayBase(){
         if(this.nodeObj.OOB) return
         beginShape()
-        for(let v of this.outline16) vertex(v.x, v.y)
+        for(let i = 0; i < this.outline16.length; i+=2){
+            vertex(this.outline16[i], this.outline16[i+1])
+        }
         endShape()
     }
 
@@ -330,7 +253,9 @@ class Intersection {
     showWayTop(){
         if(this.nodeObj.OOB) return
         beginShape()
-        for(let v of this.outline) vertex(v.x, v.y)
+        for(let i = 0; i < this.outline.length; i+=2){
+            vertex(this.outline[i], this.outline[i+1])
+        }
         endShape()
     }
 
@@ -399,6 +324,8 @@ class Intersection {
             }
         }
 
+        if(this.innerEdges.length == 0) this.innerEdges = null
+
         this.calculateInnerLaneEdges()
     }
 
@@ -406,7 +333,7 @@ class Intersection {
     showInnerEdges(){
         if(this.nodeObj.OOB) return
         
-        if(this.innerEdges.length > 0){
+        if(this.innerEdges && this.innerEdges.length > 0){
             for(let p of this.innerEdges) {
                 for(let i = 0; i < p.length; i+= this.paths.length > 2 ? 2 : 1){
                     let p1 = p[i]
@@ -416,7 +343,7 @@ class Intersection {
             }
         }
         
-        if(this.innerLaneEdges.length > 0){
+        if(this.innerLaneEdges && this.innerLaneEdges.length > 0){
             for(let p of this.innerLaneEdges) {
                 for(let i = 0; i < p.length; i += 2){
                     let p1 = p[i]
@@ -496,6 +423,8 @@ class Intersection {
             bpMap.set(s1.id + '_' + s2.id, bp)
             this.innerLaneEdges.push(bp)
         }
+
+        if(this.innerLaneEdges.length == 0) this.innerLaneEdges = null
     }
 
     // type: showWays

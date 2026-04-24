@@ -89,6 +89,10 @@ function lerppos(pos1, pos2, t){
     return {x: pos1.x + (pos2.x - pos1.x) * t, y: pos1.y + (pos2.y - pos1.y) * t}
 }
 
+function lerrposFlat(x1, y1, x2, y2, t){
+    return {x: x1 + (x2 - x1) * t, y: y1 + (y2 - y1) * t}
+}
+
 function getCornersOfLine(pos1, pos2, width){
     let angle = Math.atan2(pos2.y - pos1.y, pos2.x - pos1.x) + PI / 2
     let halfW = width / 2

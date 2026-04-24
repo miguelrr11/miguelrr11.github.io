@@ -1589,10 +1589,14 @@ class Tool{
         let initialTime = performance.now()
 
         this.road = new Road(this)
-        this.road.nodeIDcounter = roadData.nodeIDcounter
+        this.road.nodeIDcounter = getNextID()
+        this.road.segmentIDcounter = getNextID()
+        let idNodeMap = new Map()   //map from index in roadData.nodes to node ID in this.road
         for (let i = 0; i < roadData.nodes.length; i+=2) {
             let pos = [roadData.nodes[i]*.1, roadData.nodes[i+1]*.1] 
-            let key = i / 2
+            let key = this.road.nodeIDcounter
+            this.road.nodeIDcounter = getNextID(this.road.nodeIDcounter)
+            idNodeMap.set(i / 2, key)
 
             let newNode = new Node(key, pos[0], pos[1])
 
@@ -1605,7 +1609,8 @@ class Tool{
         for(let i = 0; i < roadData.segments.length; i+=2){
             let id = this.road.segmentIDcounter
             this.road.segmentIDcounter = getNextID(this.road.segmentIDcounter)
-            let [from, to] = [roadData.segments[i], roadData.segments[i+1]]
+            let from = idNodeMap.get(roadData.segments[i])
+            let to = idNodeMap.get(roadData.segments[i+1])
             let newSegment = new Segment(id, from, to)
             newSegment.road = this.road
             newSegment.fromNode = this.road.findNode(from)

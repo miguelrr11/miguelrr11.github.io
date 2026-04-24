@@ -13,12 +13,16 @@
 // It is extremely important to separate segments (array segments) from the intersection segments (array intersecSegs)
 // because they have different ID pools
 
-//next optimizations: MEMORY
-// first we'll replace large arrays of pairs (like the corners arrays) to a FLAT array of numbers
-
 /**
- * Before flattening corners arrays in segments with AROUN_RADIUS of 7500: 605 MB
- * After flattening corners arrays in segments with AROUN_RADIUS of 7500: 580 MB
+    MEMORY OPTIMIZATIONS
+ * Tests with AROUND_RADIUS of 7500 and from my home:
+ * Before:                                                                      605 MB
+ * After flattening corners and corners16 arrays in segments:                   580 MB
+ * After flattening outline and outline16 arrays in intersections:              462 MB
+ * After flattening bezierPoints array in intersection-segments:                447 MB
+ * After removing object references array in connectors:                        424 MB
+ * After removing IDs of paths arrays in intersections:                         421 MB
+ * After removing IDs of connectors and intersecSegs arrays in intersections:   414 MB
  */
 
 const NODE_RAD = 25
@@ -184,13 +188,13 @@ class Road{
             let intersection = this.findIntersection(nodeID)
             if(intersection){
                 activenessMaps.push(intersection.getActivenessMap())
-                const connectorIDsSet = intersection.connectorsIDs
-                const intersecSegsIDsSet = new Set(intersection.intersecSegsIDs)
-                for (const id of connectorIDsSet) {
-                    this.connectors.delete(id);
+                const connectors = intersection.connectors
+                const intersecSegs = new Set(intersection.intersecSegs)
+                for (const conn of connectors) {
+                    this.connectors.delete(conn.id);
                 }
-                for(const id of intersecSegsIDsSet) {
-                    this.intersecSegs.delete(id);
+                for(const inter of intersecSegs) {
+                    this.intersecSegs.delete(inter.id);
                 }
                 this.intersections.delete(nodeID)
             }
@@ -406,11 +410,11 @@ class Road{
             if(!node) continue
             let intersection = this.findIntersection(nodeID)
             if(intersection){
-                for (const id of intersection.connectorsIDs) {
-                    this.connectors.delete(id);
+                for (const conn of intersection.connectors) {
+                    this.connectors.delete(conn.id);
                 }
-                for (const id of intersection.intersecSegsIDs) {
-                    this.intersecSegs.delete(id);
+                for (const inter of intersection.intersecSegs) {
+                    this.intersecSegs.delete(inter.id);
                 }
                 this.intersections.delete(nodeID)
             }
@@ -945,7 +949,7 @@ class Road{
     // connectSelf: if true, allows connecting segments that go from and to the same node (U-turns)
     connectIntersection(nodeID, connectSelf = false, instantConvex = true, straightMode = false, activenessMap = new Map()){
         let node = this.findNode(nodeID)
-        let intersection = new Intersection(nodeID, [], [])
+        let intersection = new Intersection(nodeID)
         intersection.nodeObj = node
         intersection.road = this
         if(!node) return
@@ -983,7 +987,6 @@ class Road{
                     connector1 = new Connector(inSeg.id, undefined, inSegFromPos, this.connectorIDcounter)
                     connector1.road = this
                     connector1.type = 'enter'
-                    connector1.incomingSegments = [inSeg]  // Populate direct reference immediately
                     this.connectors.set(connector1.id, connector1)
                     this.connectorIDcounter = getNextID(this.connectorIDcounter)
                     connectorMap.set(inSeg.id, connector1)
@@ -999,7 +1002,6 @@ class Road{
                     connector2 = new Connector(undefined, outSeg.id, outSegToPos, this.connectorIDcounter)
                     connector2.road = this
                     connector2.type = 'exit'
-                    connector2.outgoingSegments = [outSeg]  // Populate direct reference immediately (this will be an intersegment later)
                     this.connectors.set(connector2.id, connector2)
                     this.connectorIDcounter = getNextID(this.connectorIDcounter)
                     connectorMap.set(outSeg.id, connector2)
@@ -1056,8 +1058,6 @@ class Road{
 
                 connector1.outgoingSegmentIDs.push(seg.id)
                 connector2.incomingSegmentIDs.push(seg.id)
-                connector1.outgoingSegments.push(seg)  // Add direct object reference
-                connector2.incomingSegments.push(seg)  // Add direct object reference
 
                 inSeg.toConnectorID = connector1.id
                 outSeg.fromConnectorID = connector2.id
@@ -1065,9 +1065,6 @@ class Road{
                 outSeg.fromConnector = connector2  // Set direct object reference
 
                 intersecSegs.push(seg.id)
-
-                //intersection.calculateOutlinesIntersection() calls seg.constructOutline()
-                //seg.constructOutline()
             })
         })
 
@@ -1077,7 +1074,6 @@ class Road{
                 let connector = new Connector(inSeg.id, undefined, inSeg.toPos, this.connectorIDcounter)
                 connector.road = this
                 connector.type = 'enter'
-                connector.incomingSegments = [inSeg]
                 this.connectors.set(connector.id, connector)
                 this.connectorIDcounter = getNextID(this.connectorIDcounter)
                 connectorMap.set(inSeg.id, connector)
@@ -1093,7 +1089,6 @@ class Road{
                 let connector = new Connector(undefined, outSeg.id, outSeg.fromPos, this.connectorIDcounter)
                 connector.road = this
                 connector.type = 'exit'
-                connector.outgoingSegments = [outSeg]
                 this.connectors.set(connector.id, connector)
                 this.connectorIDcounter = getNextID(this.connectorIDcounter)
                 connectorMap.set(outSeg.id, connector)
@@ -1106,16 +1101,15 @@ class Road{
 
         for(let c of connectorMap.values()) c.constructDirections()
         let connectorsArray = Array.from(connectorMap.values())
-        intersection.connectorsIDs = connectorsArray.map(c => c.id)
+        //intersection.connectorsIDs = connectorsArray.map(c => c.id)
         intersection.connectors = connectorsArray  // Set direct object references
-        intersection.intersecSegsIDs = intersecSegs
+        //intersection.intersecSegsIDs = intersecSegs
         intersection.intersecSegs = intersecSegs.map(id => this.findIntersecSeg(id))  // Set direct object references
 
         // Optimized: directly get paths connected to this node instead of nested loop
         let anyPath = this.findAnyPath(nodeID)
-        intersection.pathsIDs = anyPath?.map(p => p.id) || []
+        //intersection.pathsIDs = anyPath?.map(p => p.id) || []
         intersection.paths = anyPath || []  // Set direct object references
-        //intersection.debugOrder() not working
         intersection.calculateOutlinesIntersection();
         intersection.calculateInnerEdges();
         //if(instantConvex) intersection.calculateOutlinesIntersection();

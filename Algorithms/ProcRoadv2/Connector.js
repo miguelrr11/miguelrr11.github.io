@@ -5,8 +5,6 @@ class Connector{
         this.pos = pos
         this.incomingSegmentIDs = incomingSegmentID != undefined ? [incomingSegmentID] : []  //not really important
         this.outgoingSegmentIDs = outgoingSegmentID != undefined ? [outgoingSegmentID] : []  //very important
-        this.incomingSegments = []  // Direct object references
-        this.outgoingSegments = []  // Direct object references (intersegments)
         this.road = undefined
         this.id = id
         this.type = undefined // 'enter' or 'exit' depending on whether the connector is entering or exiting an intersection
@@ -16,18 +14,18 @@ class Connector{
     // gets all the outgoing segments of this outgoingSegmentIDs and returns their angles respective of the path of this connector
     getAnglesOutgoing(applyActiveness = false){
         if(this.type == 'exit') return []
-        let inSeg = this.incomingSegments.length > 0 ? this.incomingSegments[0] : this.road.findSegment(this.incomingSegmentIDs[0])
+        let inSeg = this.road.findSegment(this.incomingSegmentIDs[0])
         if(!inSeg) return []
         let inDir = Math.atan2(this.pos.y - inSeg.fromPos.y, this.pos.x - inSeg.fromPos.x)
         let angles = []
-        let outgoingSegs = this.outgoingSegments.length > 0 ? this.outgoingSegments : this.outgoingSegmentIDs.map(id => this.road.findIntersecSeg(id))
+        let outgoingSegs = this.outgoingSegmentIDs.map(id => this.road.findIntersecSeg(id))
         for(let intersecSeg of outgoingSegs){
             // continue if the intersecSeg is inactive and we want to ignore inactive segments
             if(applyActiveness && (!intersecSeg || !intersecSeg.active)) continue
             if(intersecSeg){
                 let toConn = intersecSeg.toConnector || this.road.findConnector(intersecSeg.toConnectorID)
                 if(toConn){
-                    let toSeg = toConn.outgoingSegments.length > 0 ? toConn.outgoingSegments[0] : this.road.findSegment(toConn.outgoingSegmentIDs[0])
+                    let toSeg = this.road.findSegment(toConn.outgoingSegmentIDs[0])
                     if(toSeg){
                         let outDir = Math.atan2(toSeg.toPos.y - toSeg.fromPos.y, toSeg.toPos.x - toSeg.fromPos.x)
                         let angle = outDir - inDir
@@ -87,7 +85,7 @@ class Connector{
     getOutgoingActiveIntersegs(){
         if(this.type == 'exit') return [this.outgoingSegmentIDs[0]]
         let outgoingSegs = []
-        let segs = this.outgoingSegments.length > 0 ? this.outgoingSegments : this.outgoingSegmentIDs.map(id => this.road.findIntersecSeg(id))
+        let segs = this.outgoingSegmentIDs.map(id => this.road.findIntersecSeg(id))
         for(let seg of segs){
             if(seg != undefined && seg.active) outgoingSegs.push(seg.id)
         }
