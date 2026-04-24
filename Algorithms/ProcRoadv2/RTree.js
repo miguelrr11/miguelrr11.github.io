@@ -115,7 +115,7 @@ class MinHeap {
  *   tree.delete({ minX: 0, minY: 0, maxX: 10, maxY: 10 }, e => e.data === myObject);
  */
 class RTree {
-  constructor({ maxEntries = 200, minEntries } = {}) {
+  constructor({ maxEntries = MAX_ENTRIES_TREE, minEntries } = {}) {
     this.M     = maxEntries;
     this.m     = minEntries ?? Math.ceil(maxEntries / 2);
     this._root = new TreeNode(true);
@@ -600,6 +600,23 @@ function drawRTreeLayer(tree, targetLayer) {
   }
 
   traverse(tree._root, 0);
+}
+
+function getMaxDepthTree(tree) {
+  let maxDepth = 0;
+
+  function traverse(node, depth) {
+    if (!node.mbr) return;
+    maxDepth = Math.max(maxDepth, depth);
+    if (!node.isLeaf) {
+      for (const child of node.children) {
+        traverse(child, depth + 1);
+      }
+    }
+  }
+
+  traverse(tree._root, 0);
+  return maxDepth;
 }
 
 function drawMBR(mbr, isLeaf) {

@@ -43,6 +43,8 @@ const MIN_ANGLE_DEG = 20         // pairs closer to parallel than this are skipp
 const MAX_REASONABLE_TRIM = 200  // intersections farther than this from the node are garbage
 const MAX_REASONABLE_TRIM_SQ = MAX_REASONABLE_TRIM * MAX_REASONABLE_TRIM
 
+const MAX_ENTRIES_TREE = 200
+
 
 class Road{
     constructor(tool){

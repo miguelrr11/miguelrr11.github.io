@@ -131,7 +131,7 @@ class Intersection {
     }
 
     showConnectorsAndSegments(){
-        let conns = this.connectors.length
+        let conns = this.connectors
         for(let conn of conns){
             if(conn) conn.show(false, true)
         }
@@ -142,7 +142,7 @@ class Intersection {
     }
 
     findHoverConnector(x, y){
-        let conns = this.connectors.length > 0
+        let conns = this.connectors
         for(let conn of conns){
             if(conn && conn.hover(x, y)) return conn
         }
@@ -359,7 +359,7 @@ class Intersection {
     // solo funciona en intersecciones con 2 paths
     calculateInnerLaneEdges(){
         this.innerLaneEdges = []
-        if(this.paths.length != 2) return
+        if(this.paths.length != 2) {this.innerLaneEdges = null; return}
         let pairs = []
         
         for(let p of this.paths){
