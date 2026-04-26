@@ -1336,7 +1336,7 @@ class Tool{
     }
 
     update(){
-        keyIsPressed = false   // hotfix for keyIsPressed being stuck sometimes (p5js bug?)
+        //keyIsPressed = false   // hotfix for keyIsPressed being stuck sometimes (p5js bug?)
         this.state.edges = this.getEdges()
         GLOBAL_EDGES = this.state.edges
 
