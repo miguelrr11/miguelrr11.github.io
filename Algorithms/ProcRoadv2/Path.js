@@ -90,34 +90,6 @@ class Path{
         this.name = name
     }
 
-    // gets the outline of all the lanes
-    //not used
-    // constructCorners(){
-    //     if(this.segmentsIDs.size == 0) return
-    //     let corners = []
-    //     let corners16 = []
-    //     let first = this.segments[0]
-    //     let last = this.segments[this.segments.length - 1]
-    //     if(first.fromNodeID == this.nodeA){
-    //         corners.push(first.corners[0], first.corners[3])
-    //         corners16.push(first.corners16[0], first.corners16[3])
-    //     }
-    //     else{
-    //         corners.push(first.corners[2], first.corners[1])
-    //         corners16.push(first.corners16[2], first.corners16[1])
-    //     }
-    //     if(last.fromNodeID != this.nodeA){
-    //         corners.push(last.corners[0], last.corners[3])
-    //         corners16.push(last.corners16[0], last.corners16[3])
-    //     }
-    //     else{
-    //         corners.push(last.corners[2], last.corners[1])
-    //         corners16.push(last.corners16[2], last.corners16[1])
-    //     }
-    //     this.corners = corners
-    //     this.corners16 = corners16
-    // }
-
     //not used
     getRealPos(segID){
         let segment = this.road.findSegment(segID)
@@ -146,7 +118,7 @@ class Path{
         segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
         segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
         segment.dir = dir
-        segment.len = dist(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
+        segment.len = distt(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
 
         return {fromPos: segment.fromPos, toPos: segment.toPos}
     }
@@ -180,30 +152,36 @@ class Path{
             return
         }
 
+
         this.orderSegmentsByDirection()
 
         let fromPos = nodeA.pos
         let toPos = nodeB.pos
         let angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x) - PI / 2
+        let cosAngle = Math.cos(angle)
+        let sinAngle = Math.sin(angle)
         let numLanes = this.segmentsIDs.size
         let totalWidth = numLanes * LANE_WIDTH
         let startOffset = -totalWidth / 2 + LANE_WIDTH / 2
+        let dirToNodeB = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x)
+        let dirToNodeA = dirToNodeB + PI
+        let len = distt(fromPos.x, fromPos.y, toPos.x, toPos.y)
 
         let i = 0
         this.segmentsIDs.forEach(segmentID => {
             let offset = startOffset + i * LANE_WIDTH
-            let laneFromPos = {x: fromPos.x + Math.cos(angle) * offset, y: fromPos.y + Math.sin(angle) * offset}
-            let laneToPos = {x: toPos.x + Math.cos(angle) * offset, y: toPos.y + Math.sin(angle) * offset}
+            let laneFromPos = {x: fromPos.x + cosAngle * offset, y: fromPos.y + sinAngle * offset}
+            let laneToPos = {x: toPos.x + cosAngle * offset, y: toPos.y + sinAngle * offset}
             let segment = this.road.findSegment(segmentID)
-            let nodeFrom = segment.fromNode || this.road.findNode(segment.fromNodeID)
-            let nodeTo = segment.toNode || this.road.findNode(segment.toNodeID)
-            let dir = Math.atan2(nodeTo.pos.y - nodeFrom.pos.y, nodeTo.pos.x - nodeFrom.pos.x) - PI
+            let nodeFrom = segment.fromNodeID == nodeA.id ? nodeA : nodeB
+            let nodeTo = segment.toNodeID == nodeB.id ? nodeB : nodeA
+            let dir = nodeFrom.id != this.nodeA ? dirToNodeB : dirToNodeA
 
             //also we modify the segment to have the new calculated positions
             segment.fromPos = segment.fromNodeID == nodeA.id ? laneFromPos : laneToPos
             segment.toPos = segment.toNodeID == nodeB.id ? laneToPos : laneFromPos
             segment.dir = dir
-            segment.len = dist(segment.fromPos.x, segment.fromPos.y, segment.toPos.x, segment.toPos.y)
+            segment.len = len
             segment.originalFromPos = {x: segment.fromPos.x, y: segment.fromPos.y}
             segment.originalToPos = {x: segment.toPos.x, y: segment.toPos.y}
 

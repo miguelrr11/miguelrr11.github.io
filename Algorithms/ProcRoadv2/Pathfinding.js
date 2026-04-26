@@ -4,14 +4,14 @@ function Astar(startNodeID, goalNodeID, road) {
     function h(startNodeID, goalNodeID, road) {
         const start = road.findNode(startNodeID);
         const goal = road.findNode(goalNodeID);
-        return dist(start.pos.x, start.pos.y, goal.pos.x, goal.pos.y);
+        return distt(start.pos.x, start.pos.y, goal.pos.x, goal.pos.y);
     }
 
     function reconstructPath(cameFrom, current) {
         const totalPath = [current];
         while (cameFrom.has(current)) {
-        current = cameFrom.get(current);
-        totalPath.unshift(current);
+            current = cameFrom.get(current);
+            totalPath.unshift(current);
         }
         return totalPath;
     }
@@ -78,7 +78,7 @@ function AstarConnectors(startConnID, goalConnID, road){
     function h(startConnID, goalConnID, road) {
         const start = road.findConnector(startConnID);
         const goal = road.findConnector(goalConnID);
-        return dist(start.pos.x, start.pos.y, goal.pos.x, goal.pos.y);
+        return distt(start.pos.x, start.pos.y, goal.pos.x, goal.pos.y);
     }
 
     function reconstructPath(cameFrom, current) {

@@ -14,6 +14,7 @@ class Segment{
         this.toConnector = undefined   
         this.visualDir = visualDir ? visualDir : 'for'
         this.road = undefined
+        this.path = undefined  // set when creating the segment (and path)
 
 
         //info updated by Path.js (constructRealLanes())
@@ -60,12 +61,12 @@ class Segment{
         fromPos.y += Math.sin(this.dir) * margin
         toPos.x -= Math.cos(this.dir) * margin
         toPos.y -= Math.sin(this.dir) * margin
-        let totalLen = dist(fromPos.x, fromPos.y, toPos.x, toPos.y) - 50
+        let totalLen = distt(fromPos.x, fromPos.y, toPos.x, toPos.y) - 50
 
         if(totalLen < MIN_SEG_LENGTH_TO_SHOW_ARROWS) return
 
         if(totalLen < spacing){
-            totalLen = dist(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
+            totalLen = distt(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
             let tippos = lerppos(this.fromPos, this.toPos, 0.5)
             let startLinePos = lerppos(this.fromPos, this.toPos, (totalLen/2 - 15) / totalLen)
             this.arrowsPos.push({tip: tippos, startLine: startLinePos})
@@ -111,7 +112,7 @@ class Segment{
     getLen(){
         //if(this.len == undefined){
             if(this.fromPos && this.toPos){
-                this.len = dist(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
+                this.len = distt(this.fromPos.x, this.fromPos.y, this.toPos.x, this.toPos.y)
             }
         //}
         return this.len

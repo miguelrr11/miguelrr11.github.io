@@ -516,6 +516,14 @@ class GraphIndex {
     };
   }
 
+  searchNodes(rect) {
+    return this.nodes.search(rect);
+  }
+
+  searchEdges(rect) {
+    return this.edges.search(rect);
+  }
+
   /**
    * Items whose MBR contains the exact point (x, y).
    * @returns {{ nodes: Array<*>, edges: Array<*> }}

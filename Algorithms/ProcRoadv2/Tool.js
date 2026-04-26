@@ -177,7 +177,8 @@ class Tool{
             firstPointCS: undefined,
             secondPointCS: undefined,
 
-            OSMqueue: {nodesToProcess: new Set()}
+            OSMqueue: {nodesToProcess: new Set()},
+            isProcessingOSM: false
         }
     }
 
@@ -597,7 +598,6 @@ class Tool{
     }
 
     executePathfinding(){
-        console.log('Executing pathfinding... startConnID:', this.state.startConnID, 'endConnID:', this.state.endConnID)
         this.state.foundPath = AstarConnectors(this.state.startConnID, this.state.endConnID, this.road) ?? []
         this.state.foundPathPoints = this.constructFoundPointsPath()
     }
@@ -934,10 +934,10 @@ class Tool{
 
     createSegmentBetweenTwoNodes(nodeAID, nodeBID, straight = false, updateRoad = true){
         for(let i = 0; i < this.state.nForLanes; i++){
-            this.road.addSegment(nodeAID, nodeBID, 'for', i == this.state.nForLanes - 1, updateRoad)
+            this.road.addSegment(nodeAID, nodeBID, 'for', i == this.state.nForLanes - 1, false)
         }
         for(let i = 0; i < this.state.nBackLanes; i++){
-            this.road.addSegment(nodeBID, nodeAID, 'back', i == this.state.nBackLanes - 1, updateRoad)
+            this.road.addSegment(nodeBID, nodeAID, 'back', i == this.state.nBackLanes - 1, false)
         }
         this.road.updateNode(nodeAID)
         this.road.updateNode(nodeBID)
@@ -962,10 +962,10 @@ class Tool{
             if (!ip) continue;
 
             const minDist = 100;
-            if (dist(nodeAPos.x, nodeAPos.y, ip.x, ip.y) < minDist ||
-                dist(nodeBPos.x, nodeBPos.y, ip.x, ip.y) < minDist ||
-                dist(oA.x, oA.y, ip.x, ip.y) < minDist ||
-                dist(oB.x, oB.y, ip.x, ip.y) < minDist) continue;
+            if (distt(nodeAPos.x, nodeAPos.y, ip.x, ip.y) < minDist ||
+               distt(nodeBPos.x, nodeBPos.y, ip.x, ip.y) < minDist ||
+               distt(oA.x, oA.y, ip.x, ip.y) < minDist ||
+               distt(oB.x, oB.y, ip.x, ip.y) < minDist) continue;
 
             if (dryRun) {
                 intersections.push({ x: ip.x, y: ip.y, path });
@@ -1018,7 +1018,7 @@ class Tool{
         let len = 0
         let res = LENGTH_SEG_BEZIER * DEF_NUM_INTERMEDIATE_NODES_BEZIER
         for(let i = 1; i < bezierPointsAux.length; i++){
-            len += dist(bezierPointsAux[i].x, bezierPointsAux[i].y, bezierPointsAux[i - 1].x, bezierPointsAux[i - 1].y)
+            len += distt(bezierPointsAux[i].x, bezierPointsAux[i].y, bezierPointsAux[i - 1].x, bezierPointsAux[i - 1].y)
         }
         let numIntermediateNodes = Math.floor(len / res)
 
@@ -1183,7 +1183,9 @@ class Tool{
             else{
                 let interseg = this.road.findIntersecSegByFromToConnectorIDs(conn1id, conn2id)
                 if(interseg){
-                    points.push(...interseg.bezierPoints)
+                    for(let i = 0; i < interseg.bezierPoints.length; i+=2){
+                        points.push({x: interseg.bezierPoints[i], y: interseg.bezierPoints[i+1]})
+                    }
                 }
             }
         }
@@ -1233,19 +1235,15 @@ class Tool{
     }
 
     getMinMaxPos() {
-        let allNodes = Array.from(this.road.nodes.values())
-        if(allNodes.length == 0) return
-        let minX = allNodes[0].pos.x
-        let maxX = allNodes[0].pos.x
-        let minY = allNodes[0].pos.y
-        let maxY = allNodes[0].pos.y
-        for(let i = 1; i < allNodes.length; i++){
-            let n = allNodes[i]
-            minX = Math.min(minX, n.pos.x)
-            maxX = Math.max(maxX, n.pos.x)
-            minY = Math.min(minY, n.pos.y)
-            maxY = Math.max(maxY, n.pos.y)
-        }
+        let nereastNodeUpperLeft = this.road.graphIndex.nearestNodes(-100000000, -100000000, 1)[0]
+        let nereastNodeBottomRight = this.road.graphIndex.nearestNodes(100000000, 100000000, 1)[0]
+        let nereastNodeUpperRight = this.road.graphIndex.nearestNodes(100000000, -100000000, 1)[0]
+        let nereastNodeBottomLeft = this.road.graphIndex.nearestNodes(-100000000, 100000000, 1)[0]
+        if(!nereastNodeUpperLeft || !nereastNodeBottomRight) return [0, 0, 0, 0]
+        let minX = Math.min(nereastNodeUpperLeft.data.x, nereastNodeBottomLeft.data.x)
+        let maxX = Math.max(nereastNodeBottomRight.data.x, nereastNodeUpperRight.data.x)
+        let minY = Math.min(nereastNodeUpperLeft.data.y, nereastNodeUpperRight.data.y)
+        let maxY = Math.max(nereastNodeBottomRight.data.y, nereastNodeBottomLeft.data.y)
         return [minX, maxX, minY, maxY]
     }
     
@@ -1314,7 +1312,12 @@ class Tool{
 
     selectObjectsInSelectionBox(){
         let margin = NODE_RAD * 2
-        let inBoundsNodes = this.road.findAllNodesInArea(this.state.firstCorner, this.state.secondCorner)
+        let inBoundsNodes = this.road.graphIndex.searchNodes({
+            minX: Math.min(this.state.firstCorner.x, this.state.secondCorner.x),
+            minY: Math.min(this.state.firstCorner.y, this.state.secondCorner.y),
+            maxX: Math.max(this.state.firstCorner.x, this.state.secondCorner.x),
+            maxY: Math.max(this.state.firstCorner.y, this.state.secondCorner.y)
+        }).map(n => this.road.findNode(n.id))
         if(inBoundsNodes.length > 0){ 
             this.state.selectedNodes = new Set(inBoundsNodes)
             let corners = getBoundingBoxCorners(inBoundsNodes.map(n => n.pos))
@@ -1385,7 +1388,7 @@ class Tool{
             if(allGood) this.lerpingTranslation = false
         }
 
-        for(let i = 0; i < OSM_QUEUE_UPDATE_ITERS_PER_FRAME; i++) this.updateOSMqueue()
+        if(this.state.isProcessingOSM) for(let i = 0; i < OSM_QUEUE_UPDATE_ITERS_PER_FRAME; i++) this.updateOSMqueue()
     }
 
     show(){
@@ -1454,10 +1457,10 @@ class Tool{
             if(!ip) continue;
 
             const minDist = 100;
-            if (dist(nodeAPos.x, nodeAPos.y, ip.x, ip.y) < minDist ||
-                dist(nodeBPos.x, nodeBPos.y, ip.x, ip.y) < minDist ||
-                dist(mousePos.x, mousePos.y, ip.x, ip.y) < minDist ||
-                dist(mousePos.x, mousePos.y, ip.x, ip.y) < minDist) continue;
+            if (distt(nodeAPos.x, nodeAPos.y, ip.x, ip.y) < minDist ||
+               distt(nodeBPos.x, nodeBPos.y, ip.x, ip.y) < minDist ||
+               distt(mousePos.x, mousePos.y, ip.x, ip.y) < minDist ||
+               distt(mousePos.x, mousePos.y, ip.x, ip.y) < minDist) continue;
 
             points.push(ip)
 
@@ -1643,6 +1646,8 @@ class Tool{
     updateOSMqueue(){
         if(!this.state.OSMqueue.nodesToProcess || this.state.OSMqueue.nodesToProcess.size == 0){
             if(this.state.OSMqueue.button) this.state.OSMqueue.button.label = 'OSM Beta'
+            this.center()
+            this.state.isProcessingOSM = false
             return
         }
 
@@ -1810,7 +1815,7 @@ class Tool{
             this.state.OSMqueue.nodesToProcess.clear()
         }
 
-        if(frameCount % 15 == 0) this.center()
+        if(frameCount % 20 == 0) this.center()
 
         let percentage = 100 - Math.floor((nodesToProcess.size / this.state.OSMqueue.totalNodes) * 100)
         this.menu.setButtonLabel('loadOSM', `${percentage}%`)
@@ -1897,7 +1902,7 @@ class Tool{
             currentNodeID,
             button
         }
-
+        this.state.isProcessingOSM = true
         console.log('OSM queue initialized:', this.state.OSMqueue)
     }
 
@@ -1949,4 +1954,24 @@ function drawBezierPath(points, curveSize = radCurveConn, resolution = 10) {
     vertex(p.x, p.y);
   }
   endShape();
+}
+
+function debugFindAnyPath(){
+    let startTime = performance.now()
+    let nodes = tool.road.nodes
+    let nodeIDs = Array.from(nodes.keys())
+    {for(let n of nodeIDs) tool.road.findAnyPath(n)}
+    let endTime = performance.now()
+    console.log('Time to find any path from each node to another:', (endTime - startTime)/1000, 'seconds')
+}
+
+function debug(){
+    let times = []
+    for(let i = 0; i < 10; i++){
+        let startTime = performance.now()
+        debugFindAnyPath()
+        let endTime = performance.now()
+        times.push(endTime - startTime)
+    }
+    console.log('Average time:', times.reduce((a, b) => a + b, 0) / times.length, 'ms')
 }

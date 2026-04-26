@@ -43,7 +43,7 @@ class InterSegment{
     getLen(){
         let len = 0
         for(let i = 0; i < this.bezierPoints.length-2; i+=4){
-            len += dist(this.bezierPoints[i], this.bezierPoints[i+1], this.bezierPoints[i+2], this.bezierPoints[i+3])
+            len += distt(this.bezierPoints[i], this.bezierPoints[i+1], this.bezierPoints[i+2], this.bezierPoints[i+3])
         }
         this.len = len
         return this.len * 2

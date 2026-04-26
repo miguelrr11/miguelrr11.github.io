@@ -205,53 +205,54 @@ class Menu{
         buttonFullscreen.txSize = 12
 
         let buttonLoadOpenStreetMap = new Button(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 30, 70, 20, 'OSM Beta', () => {
-    if (!navigator.geolocation) {
-        showFailAndReset(buttonLoadOpenStreetMap);
-        console.error("Geolocalización no soportada en este navegador");
-        return;
-    }
-
-    navigator.geolocation.getCurrentPosition(
-        async (position) => {
-            const { latitude: lat, longitude: lon } = position.coords;
-            const overpassQuery = `
-                [out:json][timeout:25];
-                (
-                way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link|living_street|service)$"](around:${AROUND_RADIUS}, ${lat}, ${lon});
-                node(w);
-                );
-                out body;
-            `;
-
-            buttonLoadOpenStreetMap.enabled = () => false;
-            buttonLoadOpenStreetMap.label = 'Loading...';
-
-            try {
-                const data = await fetchOverpassWithRetry(overpassQuery);
-                console.log(data);
-                this.tool.constructRoadFromOSMAsync(data, buttonLoadOpenStreetMap);
-            } catch (err) {
-                console.error("Error fetching data:", err);
+            if (!navigator.geolocation) {
                 showFailAndReset(buttonLoadOpenStreetMap);
-            } finally {
-                buttonLoadOpenStreetMap.enabled = () => true;
+                console.error("Geolocalización no soportada en este navegador");
+                return;
             }
-        },
-        (error) => {
-            console.error("Error obteniendo ubicación:", error.message);
-            showFailAndReset(buttonLoadOpenStreetMap);
-        }
-    );
-});
 
-function showFailAndReset(button) {
-    button.label = 'Failed';
-    button.enabled = () => false;
-    setTimeout(() => {
-        button.label = 'OSM Beta';
-        button.enabled = () => true;
-    }, 2000);
-}
+            navigator.geolocation.getCurrentPosition(
+                async (position) => {
+                    const { latitude: lat, longitude: lon } = position.coords;
+                    const overpassQuery = `
+                        [out:json][timeout:25];
+                        (
+                        way["highway"~"^(motorway|trunk|primary|secondary|tertiary|unclassified|residential|motorway_link|trunk_link|primary_link|secondary_link|tertiary_link|living_street|service)$"](around:${AROUND_RADIUS}, ${lat}, ${lon});
+                        node(w);
+                        );
+                        out body;
+                    `;
+
+                    buttonLoadOpenStreetMap.enabled = () => false;
+                    buttonLoadOpenStreetMap.label = 'Loading...';
+
+                    try {
+                        const data = await fetchOverpassWithRetry(overpassQuery);
+                        console.log(data);
+                        this.tool.constructRoadFromOSMAsync(data, buttonLoadOpenStreetMap);
+                    } catch (err) {
+                        console.error("Error fetching data:", err);
+                        showFailAndReset(buttonLoadOpenStreetMap);
+                    } finally {
+                        buttonLoadOpenStreetMap.enabled = () => true;
+                    }
+                },
+                (error) => {
+                    console.error("Error obteniendo ubicación:", error.message);
+                    showFailAndReset(buttonLoadOpenStreetMap);
+                }
+            );
+        });
+
+        function showFailAndReset(button) {
+            button.label = 'Failed';
+            button.enabled = () => false;
+            setTimeout(() => {
+                button.label = 'OSM Beta';
+                button.enabled = () => true;
+            }, 2000);
+        }
+        
         buttonLoadOpenStreetMap.txSize = 13
         buttonLoadOpenStreetMap.labelID = 'loadOSM'
 
@@ -289,7 +290,6 @@ function showFailAndReset(button) {
         this.buttons.push(buttonLoadOpenStreetMap)
 
         this.buttons.push(buttonFullscreen)
-        //this.buttons.push(buttonConstantSetPaths)
 
         this.buttons.push(buttonZoomMinus)
         this.buttons.push(buttonZoomPlus)
@@ -315,8 +315,6 @@ function showFailAndReset(button) {
         this.buttons.push(buttonShowGraph)
         this.buttons.push(buttonAddCars)
         this.buttons.push(buttonRemoveCars)
-
-        //this.buttons.push(buttonSetPaths)
 
         this.buttons.push(buttonShowLaneState)
         this.buttons.push(buttonMinusFor)
@@ -399,6 +397,8 @@ function showFailAndReset(button) {
         buttonDebugValues.txSize = 9
         buttonDebugValues.setTextAlign('right-top')
         buttonDebugValues.enableHoverEffect = false
+        buttonDebugValues.showBackground = false
+        buttonDebugValues.disableHover = true
         this.buttons.push(buttonDebugValues)
 
         this.interacted = false
@@ -413,7 +413,7 @@ function showFailAndReset(button) {
 
     inBounds(){
         for(let b of this.buttons){
-            if(inBounds(mouseX, mouseY, b.pos.x, b.pos.y, b.size.w, b.size.h)){
+            if(b.hover()){
                 cursor(HAND)
                 return true
             }
@@ -431,11 +431,10 @@ function showFailAndReset(button) {
         let whatInteracting = false
         if(this.coolDownClick > 0) this.coolDownClick--
         this.buttons.forEach(b => {
-            if(inBounds(mouseX, mouseY, b.pos.x, b.pos.y, b.size.w, b.size.h) && mouseIsPressed && this.coolDownClick <= 0 && !b.collapsing && !b.uncollapsing){
+            if(b.hover() && mouseIsPressed && this.coolDownClick <= 0 && !b.collapsing && !b.uncollapsing){
                 anyClicked = true
                 whatInteracting = 'button'
                 if(b.onClick) b.onClick()
-
             }
         })
 
@@ -471,6 +470,8 @@ class Button{
         this.updateLabel = updateLabel
         this.enabled = enabled
         this.txSize = 14
+        this.showBackground = true
+        this.disableHover = false
 
         this.originalPos = {x, y}
 
@@ -502,7 +503,7 @@ class Button{
     }
 
     hover(){
-        return inBounds(mouseX, mouseY, this.pos.x, this.pos.y, this.size.w, this.size.h)
+        return !this.disableHover && inBounds(mouseX, mouseY, this.pos.x, this.pos.y, this.size.w, this.size.h)
     }
 
     show(){
@@ -544,7 +545,7 @@ class Button{
         }
         if(collapsed) noFill()
         noStroke()
-        rect(this.pos.x, this.pos.y, this.size.w, this.size.h, 4)
+        if(this.showBackground) rect(this.pos.x, this.pos.y, this.size.w, this.size.h, 4)
 
         let textCol = enabled ? 255 : 170
         enabled ? fill(255) : fill(170)

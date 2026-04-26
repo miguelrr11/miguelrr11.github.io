@@ -4,6 +4,10 @@
 // Math Utilities
 // ===================
 
+function distt(x1, y1, x2, y2) {
+    return Math.hypot(x2 - x1, y2 - y1);
+}
+
 function mapp(value, start1, stop1, start2, stop2, clamped = false) {
     let res = start2 + ((value - start1) / (stop1 - start1)) * (stop2 - start2);
     if (clamped) {

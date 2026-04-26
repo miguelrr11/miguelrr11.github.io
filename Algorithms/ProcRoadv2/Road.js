@@ -127,11 +127,20 @@ class Road{
                     for (let k = 0; k < segmentIDs.length; k++) {
                         set.add(segmentIDs[k])
                     }
-                } else {
+                } 
+                else {
                     const segmentSet = new Set(segmentIDs)
 
                     path = new Path(nodeA.id, nodeB.id, segmentSet)
                     path.road = this
+
+                    segmentSet.forEach(segmentID => {
+                        const segment = this.segments.get(segmentID)
+                        if (segment) {
+                            segment.path = path
+                        }
+                    })
+
                     this.constructLanesOfPath(path)
                     path.setSegmentsIDs(segmentSet)
 
@@ -168,10 +177,20 @@ class Road{
             newPath = this.findPathByNodes(nodesIDs[0], nodesIDs[1])
             if(!newPath) {
                 newPath = new Path(nodesIDs[0], nodesIDs[1], segmentIDs)
+                for(let segmentID of segmentIDs){
+                    let segment = this.findSegment(segmentID)
+                    if(segment) segment.path = newPath
+                }
                 newPath.road = this
                 this.paths.set(nodesIDs[0] + '-' + nodesIDs[1], newPath)
             }
-            else newPath.setSegmentsIDs(segmentIDs)
+            else {
+                newPath.setSegmentsIDs(segmentIDs)
+                for(let segmentID of segmentIDs){
+                    let segment = this.findSegment(segmentID)
+                    if(segment) segment.path = newPath
+                }
+            }
         }
 
         if(newPath.segmentsIDs.size == 0){
@@ -320,46 +339,6 @@ class Road{
 
         minDist = Math.sqrt(minDist)
         return {closestSegment, closestPoint, minDist, closestPointMain}
-    }
-
-    findClosestPath(x, y){
-        let pos = {x, y}
-        let closestPath = undefined
-        let minDist = Infinity
-
-        this.paths.forEach((path, key) => {
-            let fromNode = path.nodeAObj
-            let toNode = path.nodeBObj
-            if(!fromNode || !toNode) return
-            let fromPos = fromNode.pos
-            let toPos = toNode.pos
-            let ap = {x: pos.x - fromPos.x, y: pos.y - fromPos.y}
-            let ab = {x: toPos.x - fromPos.x, y: toPos.y - fromPos.y}
-            let ab2 = ab.x * ab.x + ab.y * ab.y
-            let ap_ab = ap.x * ab.x + ap.y * ab.y
-            let t = constrainn(ap_ab / ab2, 0, 1)
-            let point = {x: fromPos.x + ab.x * t, y: fromPos.y + ab.y * t}
-            let d = squaredDistance(pos.x, pos.y, point.x, point.y)
-            if(d < minDist){
-                minDist = d
-                closestPath = path
-            }
-        })
-        return closestPath
-    }
-
-    findAllNodesInArea(corner1, corner2){
-        let c1 = corner1.y < corner2.y ? corner1 : corner2
-        let c2 = corner1.y < corner2.y ? corner2 : corner1
-        let nodesInArea = []
-        this.nodes.forEach((node, key) => {
-            if(inBoundsCorners(node.pos.x, node.pos.y, GLOBAL_EDGES, NODE_RAD) && 
-            node.pos.x > c1.x && node.pos.x < c2.x && 
-            node.pos.y > c1.y && node.pos.y < c2.y){
-                nodesInArea.push(node)
-            }
-        })
-        return nodesInArea
     }
 
     getAllSegmentsBetweenNodes(nodeID1, nodeID2){
@@ -554,6 +533,8 @@ class Road{
             this.paths.set(newNode.id + '-' + toNode.id, path2)
         }
         else path2.segmentsIDs.add(segment2.id)
+        segment1.path = path1
+        segment2.path = path2
         this.constructLanesOfPath(path1)
         this.constructLanesOfPath(path2)
 
@@ -611,7 +592,8 @@ class Road{
         return this.paths.get(nodeAID + '-' + nodeBID) || this.paths.get(nodeBID + '-' + nodeAID)
     }
 
-    findAnyPath(nodeID){
+    //slow (it does not use the path reference in segments, but looks for segments between the nodes and then for paths of those segments), used for when we dont trust the path references in segments, like when loading a road from local storage
+    findAnyPathSlow(nodeID){
         let paths = new Set()
         let pathsVisited = new Set()
         let node = this.findNode(nodeID)
@@ -624,6 +606,13 @@ class Road{
             if(path) paths.add(path)
         })
         return paths.size > 0 ? Array.from(paths) : undefined
+    }
+
+    findAnyPath(nodeID) {
+        const node = this.findNode(nodeID)
+        const segs = [...node.incomingSegments, ...node.outgoingSegments]
+        const paths = new Set(segs.map(s => s.path).filter(Boolean))
+        return paths.size > 0 ? Array.from(paths) : this.findAnyPathSlow(nodeID)
     }
 
     findPath(pathID){
@@ -659,12 +648,6 @@ class Road{
         if(graphNode) return this.findNode(graphNode.id)
     }
 
-    findHoverConnector(x, y){
-        for(let connector of this.connectors.values()){
-            if(connector.hover(x, y)) return connector
-        }
-    }
-
     addSegment(fromNodeID, toNodeID, visualDir, updateR = true, straightMode = false){
         const fromNode = this.findNode(fromNodeID)
         const toNode = this.findNode(toNodeID)
@@ -690,6 +673,8 @@ class Road{
             this.paths.set(fromNodeID + '-' + toNodeID, path)
         }
         else path.segmentsIDs.add(newSegment.id)
+
+        newSegment.path = path  // Set direct object reference
 
         if(updateR) this.updateRoad([fromNodeID, toNodeID], path, true, straightMode)
 
@@ -739,107 +724,92 @@ class Road{
         return this.getPathsOfSegments(connectedSegments)
     }
 
-    // not in use
-    findIntersectionsOfNode(nodeID){
-        const connectedSegments = this.findConnectedSegments(nodeID);
-        const intersections = [];
-        const seen = new Set(); 
-
-        connectedSegments.forEach(s1 => {
-            connectedSegments.forEach(s2 => {
-                if (s1.id == s2.id) return;
-
-                let intersection = lineIntersection(
-                    s1.originalFromPos, s1.originalToPos,
-                    s2.originalFromPos, s2.originalToPos, false
-                );
-
-                if (intersection == undefined){
-                    if (s1.originalFromPos.x == s2.originalFromPos.x && s1.originalFromPos.y == s2.originalFromPos.y) intersection = s1.originalFromPos;
-                    else if (s1.originalFromPos.x == s2.originalToPos.x && s1.originalFromPos.y == s2.originalToPos.y) intersection = s1.originalFromPos;
-                    else if (s1.originalToPos.x == s2.originalFromPos.x && s1.originalToPos.y == s2.originalFromPos.y) intersection = s1.originalToPos;
-                    else if (s1.originalToPos.x == s2.originalToPos.x && s1.originalToPos.y == s2.originalToPos.y) intersection = s1.originalToPos;
-                    else intersection = this.findNode(nodeID).pos;
-                }
-
-                if (intersection != undefined){
-                    const key = `${intersection.x},${intersection.y}`;
-                    if (!seen.has(key)) {
-                        seen.add(key);
-                        intersections.push(intersection);
-                    }
-                }
-            });
-        });
-        
-        return intersections;
-    }
+    // 7500
+    // unopt: 11.6
+    // opt: 10.8
+    // 10000
+    // opt: 16.5
 
     // for each path connected to the node, finds the farthest intersection from the node, taking into account also the edges of the sidewalks (corners)
-    findIntersectionsOfNodev2(nodeID, straightMode = false){
+   findIntersectionsOfNodev2(nodeID, straightMode = false) {
         let paths = this.findAnyPath(nodeID)
-        if(!paths) return null
-        let finalIntersections = new Map()
+        if (!paths) return null
 
-        
+        // ── hoist node lookup completely out of all loops ──────────────────────
+        const node = this.findNode(nodeID)
+        const finalIntersections = new Map()
 
-        const segmentAngleDeg = (seg) => {
-            return Math.atan2(
-                seg.originalToPos.y - seg.originalFromPos.y,
-                seg.originalToPos.x - seg.originalFromPos.x
-            ) * 180 / Math.PI
+        // ── pre-compute segments + angles per path, once ────────────────────────
+        const pathData = paths.map(path => {
+            const segments = [...path.segmentsIDs]
+                .map(id => this.findSegment(id))
+                .filter(Boolean)
+
+            const angles = new Map(segments.map(s => [
+                s.id,
+                Math.atan2(
+                    s.originalToPos.y - s.originalFromPos.y,
+                    s.originalToPos.x - s.originalFromPos.x
+                ) * 180 / Math.PI
+            ]))
+
+            return { path, segments, angles }
+        })
+
+        // ── straightMode: build a seg→{path, index} lookup table once ───────────
+        // Replaces findPathByNodes + indexOf inside the O(n⁴) loop
+        let segMeta = null
+        if (straightMode) {
+            segMeta = new Map()
+            for (const { path, segments } of pathData) {
+                segments.forEach((s, idx) => segMeta.set(s.id, { path, index: idx }))
+            }
         }
 
         const angleBetween = (a1, a2) => {
-            // smallest angle between two undirected lines, in [0, 90]
             let diff = Math.abs(((a1 - a2) + 540) % 360 - 180)
-            if (diff > 90) diff = 180 - diff
-            return diff
+            return diff > 90 ? 180 - diff : diff
         }
 
-        for(let path of paths){
+        const nx = node.pos.x, ny = node.pos.y  // avoid repeated property lookups
+
+        for (let i = 0; i < pathData.length; i++) {
+            const { path, segments: segs1, angles: ang1 } = pathData[i]
             finalIntersections.set(path.id, [])
-            for(let otherPath of paths){
-                if(path == otherPath) continue
-                let segments1 = [...path.segmentsIDs].map(id => this.findSegment(id))
-                let segments2 = [...otherPath.segmentsIDs].map(id => this.findSegment(id))
+            const bucket = finalIntersections.get(path.id)
 
-                for(let s1 of segments1){
-                    for(let s2 of segments2){
-                        if(s1.id == s2.id) continue
+            for (let j = 0; j < pathData.length; j++) {
+                if (i === j) continue
+                const { segments: segs2, angles: ang2 } = pathData[j]
 
-                        if(straightMode){
-                            let pathInSeg = this.findPathByNodes(s1.fromNodeID, s1.toNodeID)
-                            let pathOutSeg = this.findPathByNodes(s2.fromNodeID, s2.toNodeID)
-                            let indexInPathofInSeg = [...pathInSeg.segmentsIDs].indexOf(s1.id)
-                            let indexInPathofOutSeg = [...pathOutSeg.segmentsIDs].indexOf(s2.id)
-                            if(pathInSeg == pathOutSeg) continue
-                            if(indexInPathofInSeg != indexInPathofOutSeg) continue
+                for (const s1 of segs1) {
+                    const a1 = ang1.get(s1.id)
+
+                    for (const s2 of segs2) {
+                        if (s1.id === s2.id) continue
+
+                        // straightMode: O(1) lookup instead of findPathByNodes + indexOf
+                        if (straightMode) {
+                            const m1 = segMeta.get(s1.id)
+                            const m2 = segMeta.get(s2.id)
+                            if (m1.path === m2.path || m1.index !== m2.index) continue
                         }
 
-                        // reject near-parallel pairs — they produce garbage intersection points
-                        let a1 = segmentAngleDeg(s1)
-                        let a2 = segmentAngleDeg(s2)
-                        if(angleBetween(a1, a2) < MIN_ANGLE_DEG) continue
+                        if (angleBetween(a1, ang2.get(s2.id)) < MIN_ANGLE_DEG) continue
 
-                        let intersection = lineIntersection(
+                        const intersection = lineIntersection(
                             s1.originalFromPos, s1.originalToPos,
                             s2.originalFromPos, s2.originalToPos, true
-                        );
+                        )
 
-                        if(intersection != undefined){
-                            let node = this.findNode(nodeID)
-                            let dMain = squaredDistance(node.pos.x, node.pos.y, intersection.x, intersection.y)
-                            if(dMain <= MAX_REASONABLE_TRIM_SQ){
-                                finalIntersections.get(path.id).push(intersection)
+                        if (intersection !== undefined) {
+                            if (squaredDistance(nx, ny, intersection.x, intersection.y) <= MAX_REASONABLE_TRIM_SQ) {
+                                bucket.push(intersection)
                             }
 
-                            // outer (corner) intersections get the same sanity check
-                            let outerIntersections = this.getOuterIntersections(s1, s2)
-                            for(let outer of outerIntersections){
-                                let dOuter = squaredDistance(node.pos.x, node.pos.y, outer.x, outer.y)
-                                if(dOuter <= MAX_REASONABLE_TRIM_SQ){
-                                    finalIntersections.get(path.id).push(outer)
+                            for (const outer of this.getOuterIntersections(s1, s2)) {
+                                if (squaredDistance(nx, ny, outer.x, outer.y) <= MAX_REASONABLE_TRIM_SQ) {
+                                    bucket.push(outer)
                                 }
                             }
                         }
@@ -848,28 +818,18 @@ class Road{
             }
         }
 
-        // for each path, keep the farthest intersection from the node
-        for(let [pathID, inters] of finalIntersections){
-            let distInter = 0
-            let farthestIntersection = null
-            let node = this.findNode(nodeID)
-            if(inters.length == 0) continue
-            else if(inters.length == 1){
-                farthestIntersection = inters[0]
-                distInter = squaredDistance(node.pos.x, node.pos.y, farthestIntersection.x, farthestIntersection.y)
+        // ── keep farthest intersection per path ──────────────────────────────────
+        for (const [pathID, inters] of finalIntersections) {
+            if (inters.length === 0) continue
+
+            let maxDSq = -1, farthest = null
+            for (const inter of inters) {
+                const d = squaredDistance(nx, ny, inter.x, inter.y)
+                if (d > maxDSq) { maxDSq = d; farthest = inter }
             }
-            else {
-                for(let inter of inters){
-                    let d = squaredDistance(node.pos.x, node.pos.y, inter.x, inter.y)
-                    if(d > distInter){
-                        distInter = d
-                        farthestIntersection = inter
-                    }
-                }
-            }
-            distInter = Math.sqrt(distInter)
-            finalIntersections.set(pathID, distInter)
+            finalIntersections.set(pathID, Math.sqrt(maxDSq))
         }
+
         return finalIntersections
     }
 
@@ -877,246 +837,231 @@ class Road{
     // the visual bug where the road is engulfed in both intersections is fixed.
     // what we do now is check if the other side of the road has enough space to also trim, 
     // if not we trim proportionally so both sides fit, and if there is no space at all we dont trim
-    trimSegmentsAtIntersection(options){
-        let {nodeID, connect = true, instantConvex = true, straightMode = false, activenessMap = new Map()} = options
+    trimSegmentsAtIntersection(options) {
+        let { nodeID, connect = true, instantConvex = true, straightMode = false, activenessMap = new Map() } = options
 
+        // ── compute THIS node's distances once ──────────────────────────────────
         let distances = this.findIntersectionsOfNodev2(nodeID, straightMode)
-        if(!distances) return
+        if (!distances) return
 
-        let node = this.findNode(nodeID)
-        let connectedSegments = this.findConnectedSegments(nodeID)
+        const node = this.findNode(nodeID)
+        const connectedSegments = this.findConnectedSegments(nodeID)
 
-        const adjust = d => {
-            if(straightMode) return d
-            return Math.max(d + OFFSET_RAD_INTERSEC, MIN_DIST_INTERSEC)
-        }
+        const adjust = d => straightMode ? d : Math.max(d + OFFSET_RAD_INTERSEC, MIN_DIST_INTERSEC)
         const MIN_GAP = 1
 
+        // ── batch: collect unique other-node IDs before the loop ────────────────
+        // Avoids calling findIntersectionsOfNodev2 (expensive!) once per segment;
+        // instead we call it once per unique neighbour node.
+        const otherNodeIDs = new Set(
+            connectedSegments.map(s => s.fromNodeID === nodeID ? s.toNodeID : s.fromNodeID)
+        )
+        const otherDistancesCache = new Map()
+        for (const otherID of otherNodeIDs) {
+            otherDistancesCache.set(otherID, this.findIntersectionsOfNodev2(otherID, straightMode))
+        }
+
+        // ── cache findPathByNodes per segment ────────────────────────────────────
+        // Avoids an O(n) path search per iteration
+        const pathCache = new Map()
+        for (const s of connectedSegments) {
+            const key = `${s.fromNodeID}:${s.toNodeID}`
+            if (!pathCache.has(key)) {
+                pathCache.set(key, this.findPathByNodes(s.fromNodeID, s.toNodeID))
+            }
+        }
+
+        // ── main loop ────────────────────────────────────────────────────────────
         connectedSegments.forEach(s => {
-            if(s.originalFromPos && s.originalToPos){
-                let pathOfSeg = this.findPathByNodes(s.fromNodeID, s.toNodeID)
-                if(!pathOfSeg) return
+            if (s.originalFromPos && s.originalToPos) {
+                const pathOfSeg = pathCache.get(`${s.fromNodeID}:${s.toNodeID}`)
+                if (!pathOfSeg) return
 
                 let dHere = distances.get(pathOfSeg.id)
-                if(dHere == undefined) return
+                if (dHere === undefined) return
 
-                // desired trim at the OTHER end of this segment
-                let otherNodeID = (s.fromNodeID === nodeID) ? s.toNodeID : s.fromNodeID
-                let otherDistances = this.findIntersectionsOfNodev2(otherNodeID, straightMode)
+                const otherNodeID = s.fromNodeID === nodeID ? s.toNodeID : s.fromNodeID
+                const otherDistances = otherDistancesCache.get(otherNodeID)
                 let dOther = otherDistances ? (otherDistances.get(pathOfSeg.id) ?? 0) : 0
 
                 dHere  = adjust(dHere)
                 dOther = adjust(dOther)
 
-                // use ORIGINAL length so repeated trims don't drift
-                let origLen = dist(
+                const origLen = distt(
                     s.originalFromPos.x, s.originalFromPos.y,
                     s.originalToPos.x,   s.originalToPos.y
                 )
-                let available = origLen - MIN_GAP
+                const available = origLen - MIN_GAP
 
-                if(available <= 0){
-                    // segment too short to trim at all
+                if (available <= 0) {
                     dHere = 0
-                } else if(dHere + dOther > available){
-                    // proportional scale so both ends fit
-                    let k = available / (dHere + dOther)
+                } else if (dHere + dOther > available) {
+                    const k = available / (dHere + dOther)
                     dHere  *= k
                     dOther *= k
                 }
 
-                let distInter = dHere
-
-                let origFrom = {...s.originalFromPos}
-                let origTo   = {...s.originalToPos}
-
-                if(s.fromNodeID == nodeID){
-                    s.fromPos = shortenSegment(origTo, origFrom, distInter)
-                }
-                else if(s.toNodeID == nodeID){
-                    s.toPos = shortenSegment(origFrom, origTo, distInter)
+                if (s.fromNodeID === nodeID) {
+                    s.fromPos = shortenSegment({...s.originalToPos}, {...s.originalFromPos}, dHere)
+                } else if (s.toNodeID === nodeID) {
+                    s.toPos = shortenSegment({...s.originalFromPos}, {...s.originalToPos}, dHere)
                 }
             }
+
             s.createArrows()
             s.constructCorners()
         })
 
-        if(connect){ 
-            let once = this.nodeOnceConnected(node)
+        if (connect) {
+            const once = this.nodeOnceConnected(node)
             this.connectIntersection(nodeID, once, instantConvex, straightMode, activenessMap)
         }
     }
 
     // straightMode: only connect segments that go straight through the intersection
     // connectSelf: if true, allows connecting segments that go from and to the same node (U-turns)
-    connectIntersection(nodeID, connectSelf = false, instantConvex = true, straightMode = false, activenessMap = new Map()){
-        let node = this.findNode(nodeID)
-        let intersection = new Intersection(nodeID)
+    connectIntersection(nodeID, connectSelf = false, instantConvex = true, straightMode = false, activenessMap = new Map()) {
+        const node = this.findNode(nodeID)
+        if (!node) return
+
+        const intersection = new Intersection(nodeID)
         intersection.nodeObj = node
         intersection.road = this
-        if(!node) return
-        // if a segment ends in this node, we have to connect it to every other segment that starts in this node
-        // also, if a segment starts in this node, we have to connect it to every other segment that ends in this node
-        let incoming = node.incomingSegments.length > 0 ? node.incomingSegments : node.incomingSegmentIDs.map(id => this.findSegment(id))
-        let outgoing = node.outgoingSegments.length > 0 ? node.outgoingSegments : node.outgoingSegmentIDs.map(id => this.findSegment(id)) 
 
-        let connectorMap = new Map()
-        let intersecSegs = []
+        const incoming = node.incomingSegments.length > 0
+            ? node.incomingSegments
+            : node.incomingSegmentIDs.map(id => this.findSegment(id))
 
-        incoming.forEach(inSeg => {
-            outgoing.forEach(outSeg => {
-                //avoid creating a connector between two segments that are already connected
-                if(inSeg.fromNodeID == outSeg.toNodeID && !connectSelf){ 
-                    return
+        const outgoing = node.outgoingSegments.length > 0
+            ? node.outgoingSegments
+            : node.outgoingSegmentIDs.map(id => this.findSegment(id))
+
+        // ── straightMode: pre-compute path + index per segment, once ────────────
+        // Replaces findPathByNodes + spread+indexOf inside O(in × out) loop
+        let segPathMeta = null
+        if (straightMode) {
+            segPathMeta = new Map()
+            const allSegs = [...incoming, ...outgoing]
+            for (const s of allSegs) {
+                if (segPathMeta.has(s.id)) continue
+                const path = this.findPathByNodes(s.fromNodeID, s.toNodeID)
+                if (!path) continue
+                const index = [...path.segmentsIDs].indexOf(s.id)
+                segPathMeta.set(s.id, { path, index })
+            }
+        }
+
+        const connectorMap = new Map()
+        const intersecSegObjects = []   // store objects directly — avoid findIntersecSeg lookup later
+
+        for (const inSeg of incoming) {
+            const inMeta = segPathMeta?.get(inSeg.id)
+
+            for (const outSeg of outgoing) {
+                if (inSeg.fromNodeID === outSeg.toNodeID && !connectSelf) continue
+
+                if (straightMode) {
+                    const outMeta = segPathMeta?.get(outSeg.id)
+                    if (!inMeta || !outMeta) continue
+                    if (inMeta.path === outMeta.path) continue
+                    if (inMeta.index !== outMeta.index) continue
                 }
-                if(straightMode){
-                    let pathInSeg = this.findPathByNodes(inSeg.fromNodeID, inSeg.toNodeID)
-                    let pathOutSeg = this.findPathByNodes(outSeg.fromNodeID, outSeg.toNodeID)
-                    let indexInPathofInSeg = [...pathInSeg.segmentsIDs].indexOf(inSeg.id)
-                    let indexInPathofOutSeg = [...pathOutSeg.segmentsIDs].indexOf(outSeg.id)
-                    if(pathInSeg == pathOutSeg) return
-                    if(indexInPathofInSeg != indexInPathofOutSeg) return
-                }
-                //create connectors
-                let inSegFromPos = inSeg.toPos
-                let inSegToPos = inSeg.fromPos
-                let outSegFromPos = outSeg.toPos
-                let outSegToPos = outSeg.fromPos
 
-                let conn1aux = connectorMap.get(inSeg.id)
-                let connector1
-                if(!conn1aux){
-                    connector1 = new Connector(inSeg.id, undefined, inSegFromPos, this.connectorIDcounter)
+                // ── connectors: reuse or create ──────────────────────────────────
+                let connector1 = connectorMap.get(inSeg.id)
+                if (!connector1) {
+                    connector1 = new Connector(inSeg.id, undefined, inSeg.toPos, this.connectorIDcounter)
                     connector1.road = this
                     connector1.type = 'enter'
                     this.connectors.set(connector1.id, connector1)
                     this.connectorIDcounter = getNextID(this.connectorIDcounter)
                     connectorMap.set(inSeg.id, connector1)
                 }
-                else {
-                    connector1 = conn1aux
-                    //connector1.outgoingSegmentIDs.push(outSeg.id)
-                }
 
-                let conn2aux = connectorMap.get(outSeg.id)
-                let connector2
-                if(!conn2aux){
-                    connector2 = new Connector(undefined, outSeg.id, outSegToPos, this.connectorIDcounter)
+                let connector2 = connectorMap.get(outSeg.id)
+                if (!connector2) {
+                    connector2 = new Connector(undefined, outSeg.id, outSeg.fromPos, this.connectorIDcounter)
                     connector2.road = this
                     connector2.type = 'exit'
                     this.connectors.set(connector2.id, connector2)
                     this.connectorIDcounter = getNextID(this.connectorIDcounter)
                     connectorMap.set(outSeg.id, connector2)
                 }
-                else{
-                    connector2 = conn2aux
-                    //connector2.incomingSegmentIDs.push(inSeg.id)
-                }
-                
 
-                let tension = TENSION_BEZIER_MAX
-                let d = dist(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y)
-                let length = d * LANE_WIDTH * 0.02
+                // ── bezier curve ─────────────────────────────────────────────────
+                const inSegFromPos  = inSeg.toPos
+                const outSegToPos   = outSeg.fromPos
+                const d      = distt(inSegFromPos.x, inSegFromPos.y, outSegToPos.x, outSegToPos.y)
+                const length = d * LANE_WIDTH * 0.02
 
-                // let LENGTH_CONTROL_POINT = dist(inSegToPos.x, inSegToPos.y, outSegFromPos.x, outSegFromPos.y) * .1
-                // let tension = LENGTH_CONTROL_POINT / 300
+                const dir1 = inSeg.dir
+                const dir2 = outSeg.dir + PI
+                const cp1 = { x: inSegFromPos.x  + Math.cos(dir1) * length, y: inSegFromPos.y  + Math.sin(dir1) * length }
+                const cp2 = { x: outSegToPos.x + Math.cos(dir2) * length, y: outSegToPos.y + Math.sin(dir2) * length }
 
-                let controlPointBez1
-                let dir1 = inSeg.dir
-                controlPointBez1 = {x: inSegFromPos.x + Math.cos(dir1) * length, 
-                                    y: inSegFromPos.y + Math.sin(dir1) * length}
+                const pointsBezier = bezierPoints(cp1, inSegFromPos, outSegToPos, cp2, LENGTH_SEG_BEZIER, TENSION_BEZIER_MAX)
 
-                let controlPointBez2
-                let dir2 = outSeg.dir + PI
-                controlPointBez2 = {x: outSegToPos.x + Math.cos(dir2) * length, 
-                                    y: outSegToPos.y + Math.sin(dir2) * length}
-
-                let pointsBezier = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER, tension)
-
-                let totalLen = pointsBezier.length * LENGTH_SEG_BEZIER
-                // let totalLen = 0
-                // for(let i = 1; i < pointsBezier.length; i++){
-                //     totalLen += dist(pointsBezier[i].x, pointsBezier[i].y, pointsBezier[i-1].x, pointsBezier[i-1].y)
-                // }
-
-                let seg = new InterSegment(this.intersecSegIDcounter, connector1.id, connector2.id, inSeg.visualDir, pointsBezier)
-                seg.road = this
-                seg.fromPos = inSegFromPos
-                seg.toPos = outSegToPos
-                seg.len = totalLen
-                seg.fromConnector = connector1  // Set direct object reference
-                seg.toConnector = connector2    // Set direct object reference
-                seg.fromtoKey = connector1.id + '_' + connector2.id
+                // ── inter-segment ────────────────────────────────────────────────
+                const seg = new InterSegment(this.intersecSegIDcounter, connector1.id, connector2.id, inSeg.visualDir, pointsBezier)
+                seg.road          = this
+                seg.fromPos       = inSegFromPos
+                seg.toPos         = outSegToPos
+                seg.len           = pointsBezier.length * LENGTH_SEG_BEZIER
+                seg.fromConnector = connector1
+                seg.toConnector   = connector2
+                seg.fromtoKey     = `${connector1.id}_${connector2.id}`
                 this.intersecSegs.set(seg.id, seg)
                 this.intersecSegIDcounter = getNextID(this.intersecSegIDcounter)
 
-                let activenessKey = inSeg.id + '_' + outSeg.id
-                if(activenessMap.has(activenessKey)){
-                    seg.active = activenessMap.get(activenessKey)
-                }
-
-                // connector1.outgoingSegmentID = seg.id
-                // connector2.incomingSegmentID = seg.id
+                const activenessKey = `${inSeg.id}_${outSeg.id}`
+                if (activenessMap.has(activenessKey)) seg.active = activenessMap.get(activenessKey)
 
                 connector1.outgoingSegmentIDs.push(seg.id)
                 connector2.incomingSegmentIDs.push(seg.id)
 
-                inSeg.toConnectorID = connector1.id
+                inSeg.toConnectorID   = connector1.id
                 outSeg.fromConnectorID = connector2.id
-                inSeg.toConnector = connector1  // Set direct object reference
-                outSeg.fromConnector = connector2  // Set direct object reference
+                inSeg.toConnector     = connector1
+                outSeg.fromConnector  = connector2
 
-                intersecSegs.push(seg.id)
-            })
-        })
-
-        // Create connectors for any incoming segment that was never paired (like cul-de-sac)
-        for(const inSeg of incoming){
-            if(!connectorMap.has(inSeg.id)){
-                let connector = new Connector(inSeg.id, undefined, inSeg.toPos, this.connectorIDcounter)
-                connector.road = this
-                connector.type = 'enter'
-                this.connectors.set(connector.id, connector)
-                this.connectorIDcounter = getNextID(this.connectorIDcounter)
-                connectorMap.set(inSeg.id, connector)
-
-                inSeg.toConnectorID = connector.id
-                inSeg.toConnector = connector
+                intersecSegObjects.push(seg)   // ← object, not ID
             }
         }
 
-        // Create connectors for any outgoing segment that was never paired (like cul-de-sac in the other direction)
-        for(const outSeg of outgoing){
-            if(!connectorMap.has(outSeg.id)){
-                let connector = new Connector(undefined, outSeg.id, outSeg.fromPos, this.connectorIDcounter)
-                connector.road = this
-                connector.type = 'exit'
-                this.connectors.set(connector.id, connector)
-                this.connectorIDcounter = getNextID(this.connectorIDcounter)
-                connectorMap.set(outSeg.id, connector)
-
-                outSeg.fromConnectorID = connector.id
-                outSeg.fromConnector = connector
-            }
+        // ── unpaired incoming (cul-de-sac) ───────────────────────────────────────
+        for (const inSeg of incoming) {
+            if (connectorMap.has(inSeg.id)) continue
+            const connector = new Connector(inSeg.id, undefined, inSeg.toPos, this.connectorIDcounter)
+            connector.road = this
+            connector.type = 'enter'
+            this.connectors.set(connector.id, connector)
+            this.connectorIDcounter = getNextID(this.connectorIDcounter)
+            connectorMap.set(inSeg.id, connector)
+            inSeg.toConnectorID = connector.id
+            inSeg.toConnector   = connector
         }
 
+        // ── unpaired outgoing (cul-de-sac) ───────────────────────────────────────
+        for (const outSeg of outgoing) {
+            if (connectorMap.has(outSeg.id)) continue
+            const connector = new Connector(undefined, outSeg.id, outSeg.fromPos, this.connectorIDcounter)
+            connector.road = this
+            connector.type = 'exit'
+            this.connectors.set(connector.id, connector)
+            this.connectorIDcounter = getNextID(this.connectorIDcounter)
+            connectorMap.set(outSeg.id, connector)
+            outSeg.fromConnectorID = connector.id
+            outSeg.fromConnector   = connector
+        }
 
-        for(let c of connectorMap.values()) c.constructDirections()
-        let connectorsArray = Array.from(connectorMap.values())
-        //intersection.connectorsIDs = connectorsArray.map(c => c.id)
-        intersection.connectors = connectorsArray  // Set direct object references
-        //intersection.intersecSegsIDs = intersecSegs
-        intersection.intersecSegs = intersecSegs.map(id => this.findIntersecSeg(id))  // Set direct object references
+        // ── finalise intersection ────────────────────────────────────────────────
+        for (const c of connectorMap.values()) c.constructDirections()
 
-        // Optimized: directly get paths connected to this node instead of nested loop
-        let anyPath = this.findAnyPath(nodeID)
-        //intersection.pathsIDs = anyPath?.map(p => p.id) || []
-        intersection.paths = anyPath || []  // Set direct object references
-        intersection.calculateOutlinesIntersection();
-        intersection.calculateInnerEdges();
-        //if(instantConvex) intersection.calculateOutlinesIntersection();
-        //else this.pushToConvexQueue(intersection)
-        //this.pushToConvexQueue(intersection)
+        intersection.connectors  = Array.from(connectorMap.values())
+        intersection.intersecSegs = intersecSegObjects          // no findIntersecSeg scan needed
+        intersection.paths        = this.findAnyPath(nodeID) || []
+        intersection.calculateOutlinesIntersection()
+        intersection.calculateInnerEdges()
         this.intersections.set(nodeID, intersection)
     }
 
