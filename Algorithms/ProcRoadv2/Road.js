@@ -1182,6 +1182,16 @@ class Road{
         }
     }
 
+    showCarDebug(toolObj, pathsInView, intersectionsInViewIDs){
+        let zoom = toolObj.zoom
+        let intersectionsInView = intersectionsInViewIDs.map(id => this.findIntersection(id)).filter(i => i != undefined)
+
+        push()
+        pathsInView.forEach((p, key) => p.showCarDebug())
+        intersectionsInView.forEach((p, key) => p.showCarDebug())
+        pop()
+    }
+
     // every function with  "type: showWays" as a comment must only be called from here, as this function sets the correct drawing modes for optimization purposes
     showWays(toolObj, pathsInView, intersectionsInViewIDs){
         let zoom = toolObj.zoom

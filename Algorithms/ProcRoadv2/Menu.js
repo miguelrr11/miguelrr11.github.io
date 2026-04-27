@@ -127,6 +127,10 @@ class Menu{
             this.tool.showOptions.SHOW_GRAPH = !this.tool.showOptions.SHOW_GRAPH
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_GRAPH})
+        let buttonShowCarDebug = new Button(xLoc, yLoc + hButton * 11, 95, 20, 'Car Debug', () => {
+            this.tool.showOptions.SHOW_CAR_DEBUG = !this.tool.showOptions.SHOW_CAR_DEBUG
+            this.tool.viewSettingsChanged()
+        }, undefined,  () => {return this.tool.showOptions.SHOW_CAR_DEBUG})
 
         buttonsToCollapse = [
             buttonShowRoad,
@@ -139,7 +143,8 @@ class Menu{
             buttonShowLanes,
             buttonShowConvexHull,
             buttonShowWays,
-            buttonShowGraph
+            buttonShowGraph,
+            buttonShowCarDebug
 
         ]
 
@@ -163,10 +168,13 @@ class Menu{
 
 
         let buttonAddCars = new Button(10, HEIGHT - 30, 95, 20, 'Add Cars', () => {
-            addCars(25)
+            tool.carManager.addCars(20)
         })
         let buttonRemoveCars = new Button(10, HEIGHT - 60, 95, 20, 'Remove Cars', () => {
-            cars = []
+            tool.carManager.removeCars()
+        })
+        let sliderDT = new Slider(10, HEIGHT - 100, 95, 'Delta Time', 0, 5, 1, (value) => {
+            this.tool.deltaTimeMult = value
         })
         let buttonConstantSetPaths = new Button(10, HEIGHT - 90, 95, 20, 'Set Paths ON', () => {
             tool.constantSetPaths = !tool.constantSetPaths
@@ -261,6 +269,8 @@ class Menu{
         })
         sliderAround.floorPreview = true
 
+        
+
 
         let buttonSave = new Button(width - 70 - 10, HEIGHT - 60, 70, 20, 'Save', () => {
             this.tool.saveToLocalStorage()
@@ -315,6 +325,7 @@ class Menu{
         this.buttons.push(buttonShowGraph)
         this.buttons.push(buttonAddCars)
         this.buttons.push(buttonRemoveCars)
+        this.buttons.push(buttonShowCarDebug)
 
         this.buttons.push(buttonShowLaneState)
         this.buttons.push(buttonMinusFor)
@@ -358,6 +369,7 @@ class Menu{
         this.sliders.push(sliderLaneWidth)
         this.sliders.push(sliderLengthSegBezier)
         this.sliders.push(sliderOffsetRadIntersec)
+        this.sliders.push(sliderDT)
 
         this.sliders.push(sliderAround)
 
@@ -387,7 +399,7 @@ class Menu{
                     this.tool.road.connectors.size + '\n' +
                     this.tool.road.intersecSegs.size + '\n' +
                     this.tool.road.paths.size + '\n' +
-                    cars.length + '\n' +
+                    this.tool.carManager.cars.length + '\n' +
                     this.tool.state.OSMqueue.nodesToProcess.size + '\n' +
                     this.tool.state.selectedNodes.size + '\n' +
                     this.tool.road.graphIndex.nodes._size + '\n' +

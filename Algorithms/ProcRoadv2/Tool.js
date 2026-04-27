@@ -49,10 +49,11 @@ class Tool{
             SHOW_INTERSECTION_AREA_AREA: false,
             SHOW_WAYS: true,        //first attempt at rendering (node/edge approach, its biggest problem is that nodes can overlap)
             SHOW_GRAPH: false,       //debug
-            GRAPH_LAYER: 0
+            SHOW_CAR_DEBUG: false
         }
         this.road = new Road(this)
         this.state = this.getInitialState()
+        this.carManager = new CarManager(this.road)
         this.buttons = []
         this.menu = new Menu(this)
         this.dragging = false
@@ -96,6 +97,8 @@ class Tool{
 
         this.pathsInView = []
         this.intersectionsIDsInView = []
+
+        this.deltaTimeMult = 1 //for cars update
     }
 
     updateElementsInView(){
@@ -1392,6 +1395,8 @@ class Tool{
         }
 
         if(this.state.isProcessingOSM) for(let i = 0; i < OSM_QUEUE_UPDATE_ITERS_PER_FRAME; i++) this.updateOSMqueue()
+
+        this.carManager.update(this.deltaTimeMult)
     }
 
     show(){
@@ -1421,6 +1426,7 @@ class Tool{
         if(this.showOptions.SHOW_NODES) this.road.showNodes(this, this.intersectionsIDsInView)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_TAGS && this.showOptions.SHOW_NODES) this.road.showNodesTags()
+        if(this.showOptions.SHOW_CAR_DEBUG) this.road.showCarDebug(this, this.pathsInView, this.intersectionsIDsInView)
 
         let curSegs = this.createCurrentLanes()
         if(curSegs) this.showCurSegs(curSegs)
@@ -1438,6 +1444,8 @@ class Tool{
         this.showIntersectingPaths()
 
         if(this.showOptions.SHOW_GRAPH) this.road.showGraph(this.zoom)
+
+        this.carManager.show()
 
 
         pop()
@@ -1634,7 +1642,7 @@ class Tool{
         this.state = this.getInitialState()
         this.handState()
         this.center()
-        cars = []
+        this.carManager = new CarManager(this.road)
 
         let endTime = performance.now()
         console.log(`Time to load road: ${endTime - initialTime} ms`)

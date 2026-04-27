@@ -31,6 +31,23 @@ class Segment{
         this.yieldPos = []
         this.drawOuterLinesAboveDashed = undefined
         this.drawOuterLinesBelowDashed = undefined
+
+        // car stuff
+        this.cars = [] // ordered array of cars that are currently on the segment, updated by car manager
+    }
+
+    carAheadInSafeDistance(safeDistance, segTrav){
+        let closestCar = null
+        let closestDistance = Infinity
+        for(let car of this.cars){
+            if(car.segTrav > segTrav && car.segTrav - segTrav < safeDistance){
+                if(car.segTrav - segTrav < closestDistance){
+                    closestDistance = car.segTrav - segTrav
+                    closestCar = car
+                }
+            }
+        }
+        return closestCar ? {car: closestCar, distance: closestDistance} : false
     }
 
     getDir(){
@@ -420,6 +437,21 @@ class Segment{
             }
             line(basePos.x, basePos.y, endPos.x, endPos.y)
         }
+    }
+
+    showCarDebug(){
+        push()
+        let midPos = {x: (this.fromPos.x + this.toPos.x) / 2, y: (this.fromPos.y + this.toPos.y) / 2}
+        let str = 'C: ' + this.cars.length
+        textAlign(CENTER)
+        textSize(12)
+        let bbox = textBounds(str, midPos.x, midPos.y)
+        fill(255, 0, 0, 150)
+        noStroke()
+        rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
+        fill(255)
+        text(str, midPos.x, midPos.y)
+        pop()
     }
 
 }
