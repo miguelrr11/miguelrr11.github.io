@@ -18,6 +18,26 @@ class InterSegment{
         this.active = true
     }
 
+    getDir(travelled){
+        if(this.len == undefined) this.getLen()
+        let bp = this.bezierPoints
+
+        let pointCount = bp.length / 2
+
+        let travelledIndex = mapp(travelled, 0, this.getLen(), 0, pointCount - 1)
+        let remaining = getDecimalPart(travelledIndex)
+
+        let indexA = Math.floor(travelledIndex)
+        let indexB = Math.min(indexA + 1, pointCount - 1)
+
+        let ax = bp[indexA * 2]
+        let ay = bp[indexA * 2 + 1]
+        let bx = bp[indexB * 2]
+        let by = bp[indexB * 2 + 1]
+
+        return Math.atan2(by - ay, bx - ax)
+    }
+
 
 
     getPos(travelled){

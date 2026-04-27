@@ -475,12 +475,14 @@ class Tool{
                 return
             }
             //creates a new node on top of a segment, it splits it and creates a new node which becomes the previous node (anchor)
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY, true)
-            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y, false)
+            console.log(closestPosToSegment)
+            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
-                let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
+                let closestPosToPath = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y, true)
+                let newNode = this.road.addNode(closestPosToPath.closestPoint.x, closestPosToPath.closestPoint.y)
                 for(let s of allSegmentsBetween){
-                    this.road.splitSegmentAtPos(s.id, mousePosGridX, closestPosToSegment.closestPoint.y, newNode)
+                    this.road.splitSegmentAtPos(s.id,  closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y, newNode)
                 }
                 this.state.prevNodeID = newNode.id
                 return
@@ -501,10 +503,11 @@ class Tool{
             }
             if(hoverNode != undefined && hoverNode.id == this.state.prevNodeID) return
             //creates a new node on top of a segment, it splits it and creates a new node
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY, true)
-            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
-                let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y, false)
+            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
+                let closestPosToPath = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y, true)
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
+                let newNode = this.road.addNode(closestPosToPath.closestPoint.x, closestPosToPath.closestPoint.y)
                 for(let s of allSegmentsBetween){
                     this.road.splitSegmentAtPos(s.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y, newNode)
                 }
@@ -528,7 +531,7 @@ class Tool{
                 this.road.deleteNode(hoverNode.id)
                 return
             }
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
                 this.road.deleteSegment(closestPosToSegment.closestSegment.id)
                 return
@@ -1415,9 +1418,7 @@ class Tool{
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_INTERSECTION_AREA_AREA) this.road.showIntersectionArea()
         
-        // blendMode(DIFFERENCE)
-        //if(this.showOptions.SHOW_NODES) this.road.showNodes(this.zoom)
-        // blendMode(BLEND)
+        if(this.showOptions.SHOW_NODES) this.road.showNodes(this, this.intersectionsIDsInView)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_TAGS && this.showOptions.SHOW_NODES) this.road.showNodesTags()
 

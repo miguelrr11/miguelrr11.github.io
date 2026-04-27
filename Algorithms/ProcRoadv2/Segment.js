@@ -33,6 +33,13 @@ class Segment{
         this.drawOuterLinesBelowDashed = undefined
     }
 
+    getDir(){
+        if(this.dir == undefined){
+            this.dir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
+        }
+        return this.dir
+    }
+
     constructCorners(){
         let corners = getCornersOfLine(this.fromPos, this.toPos, LANE_WIDTH)
         let corners16 = getCornersOfLine(this.fromPos, this.toPos, BIG_LANE_WIDTH)

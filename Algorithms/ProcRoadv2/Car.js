@@ -60,11 +60,17 @@ class Car{
     }
 
     show(){
+        push()
+        fill(255, 0, 0)
         if(this.segmentID != undefined){
             let pos = this.getCurPos()
+            translate(pos.x, pos.y)
+            rotate(this.getCurSeg().getDir(this.segTrav))
             if(pos){
-                ellipse(pos.x, pos.y, 8, 8) 
+                rectMode(CENTER)
+                rect(0, 0, 22, 10)
             }
         }
+        pop()
     }
 }
