@@ -129,7 +129,7 @@ class Car{
         let showDebug = this.road.tool.showCarDebug
         if(this.segmentID != undefined){
             let pos = this.getCurPos()
-            if(pos == undefined) return
+            if(pos == undefined) {pop(); return}
             translate(pos.x, pos.y)
             let ang = this.getCurSeg().getDir(this.segTrav)
             rotate(ang)

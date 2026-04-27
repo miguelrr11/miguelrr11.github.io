@@ -359,6 +359,7 @@ class Tool{
     }
 
     doubleClick(event){
+        if(this.menu.doubleClick()) return
         if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || mouseButton.center || this.menuInteracting) return
         if(this.state.mode != 'movingNode') return
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
@@ -1446,7 +1447,6 @@ class Tool{
         if(this.showOptions.SHOW_GRAPH) this.road.showGraph(this.zoom)
 
         this.carManager.show()
-
 
         pop()
 
