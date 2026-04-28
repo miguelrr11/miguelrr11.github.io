@@ -68,7 +68,9 @@ function saveJson(){
   strNew = strNew.slice(0, -2)
   strNew += '};\n'
 
-  strNew += `obstacles.push_back(crear_box({ ${midX}.0f,  ${midY}.0f, -0.1f}, {${deltaX.toFixed(0)}.0f, ${deltaY.toFixed(0)}.0f, 0.2f}, {0,0,0}, {1,1,1}));\n`
+  strNew += '//SUELO\nint tiling = 8;\n'
+
+  strNew += `obstacles.push_back(crear_box({ ${midX}.0f,  ${midY}.0f, -0.1f}, {${deltaX.toFixed(0)}.0f, ${deltaY.toFixed(0)}.0f, 0.2f}, {0,0,0}, {1,1,1}, false, tiling));\n`
   strNew += 'obstacles.back().texID = texCesped;\n'
 
   for(let p of auxPoints){
