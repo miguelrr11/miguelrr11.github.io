@@ -21,6 +21,16 @@ class InterSegment{
         this.cars = [] // ordered array of cars that are currently on the segment, updated by car manager
     }
 
+    removeCar(carID){
+        for(let i = 0; i < this.cars.length; i++){
+            if(this.cars[i].id == carID){
+                this.cars.splice(i, 1)
+                return i
+            }
+        }
+        return -1
+    }
+
     carAheadInSafeDistance(safeDistance, segTrav){
         let closestCar = null
         let closestDistance = Infinity
@@ -165,7 +175,7 @@ class InterSegment{
         translate(midPos.x, midPos.y)
         textAlign(CENTER)
         rectMode(CENTER)
-        textSize(12)
+        textSize(8)
         let str = 'C: ' + this.cars.length
         let bbox = textBounds(str, 0, 0)
         fill(255, 0, 0, 150)

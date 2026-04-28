@@ -9,12 +9,14 @@ const IDM_B  = 0.25      // max comfortable deceleration (must be > IDM_A to bra
 const CAR_LEN = 22       // visual car length used to convert centre-to-centre dist to gap
 
 class Car{
-    constructor(road){
+    constructor(road, id){
+        this.id = id
         this.segmentID = undefined
         this.segTrav = 0        //the travelled length of the current segment
         this.speed = 0
-        this.maxSpeed = random(2, 4)
+        this.maxSpeed = random(1.6, 2.4)
         this.road = road
+
         if(road.segments.size > 0){
             let segs = Array.from(road.segments.values())
             let seg = random(segs)
@@ -31,9 +33,13 @@ class Car{
             }
             if(!inserted) seg.cars.push(this)
         }
+
         this.isOnIntersection = false
         this.accelerating = true
         this.col = color(random(255), random(255), random(255))
+
+        this.route = [] // array of segments/intersecSegments IDs to follow
+        this.routeIndex = 0 // index of the next connector in the route to head towards
     }
 
     whatIndexOfSegmentIsCarOn(){
@@ -43,11 +49,13 @@ class Car{
     }
 
     changeSegment(oldSegment, newSegment){
-        //remove from old segment
-        let index = oldSegment.cars.indexOf(this)
-        if(index > -1) oldSegment.cars.splice(index, 1)
-        //add to new segment
+        let success = oldSegment.removeCar(this.id)
+        if(success == -1) console.log('Error: car not found in old segment when changing segments')
         newSegment.cars.push(this)
+
+        this.segmentID = newSegment.id
+        this.segTrav = 0
+        this.isOnIntersection = !this.isOnIntersection
     }
 
     carAhead(){
@@ -94,22 +102,21 @@ class Car{
                     this.segTrav += this.speed * dt
 
                     if(this.segTrav > segment.getLen()){
-                        let connector = this.road.findConnector(segment.toConnectorID)
-                        let intersecSegChosenID = connector.chooseOutRandom()
-
-                        if(intersecSegChosenID == undefined){
-                            return
-                        }
                         let oldSegment = segment
-                        this.segmentID = intersecSegChosenID
-                        this.segTrav = 0
-                        this.isOnIntersection = !this.isOnIntersection
-                        let intersecSegChosen = this.getCurSeg()
-                        this.changeSegment(oldSegment, intersecSegChosen)
+                        let newSegment = this.findSegmentOrIntersecSegment(this.route[this.routeIndex])
+                        this.routeIndex++
+                        this.changeSegment(oldSegment, newSegment)
                     }
                 }
             }
         }
+    }
+
+    findSegmentOrIntersecSegment(id, intersection){
+        let bool = intersection == undefined ? this.isOnIntersection : intersection
+        return bool ? 
+                this.road.findSegment(id) : 
+                this.road.findIntersecSeg(id)
     }
 
     getCurSeg(){
@@ -124,9 +131,48 @@ class Car{
         fill(this.col)
     }
 
+    showRoute(){
+        if(this.route.length == 0) return
+        push()
+        stroke(0, 0, 255)
+        strokeWeight(2)
+        noFill()
+        let curSeg = this.getCurSeg()
+        beginShape()
+        if(this.isOnIntersection){
+            for(let i = 0; i < curSeg.bezierPoints.length; i+=2){
+                let bp = curSeg.bezierPoints
+                vertex(bp[i], bp[i+1])
+            }
+        }
+        else{
+            vertex(curSeg.fromPos.x, curSeg.fromPos.y)
+            vertex(curSeg.toPos.x, curSeg.toPos.y)
+        }
+        let inter = this.isOnIntersection
+        for(let i = this.routeIndex; i < this.route.length; i++){
+            let seg = this.findSegmentOrIntersecSegment(this.route[i], inter)
+            if(seg == undefined) continue  
+            curSeg = seg 
+            inter = !inter
+            if(inter){
+                for(let i = 0; i < curSeg.bezierPoints.length; i+=2){
+                    let bp = curSeg.bezierPoints
+                    vertex(bp[i], bp[i+1])
+                }
+            }
+            else{
+                vertex(curSeg.fromPos.x, curSeg.fromPos.y)
+                vertex(curSeg.toPos.x, curSeg.toPos.y)
+            }
+        }
+        endShape()
+        pop()
+    }
+
     show(){
         push()
-        let showDebug = this.road.tool.showCarDebug
+        let showDebug = this.road.tool.showOptions.SHOW_CAR_DEBUG
         if(this.segmentID != undefined){
             let pos = this.getCurPos()
             if(pos == undefined) {pop(); return}
@@ -138,7 +184,7 @@ class Car{
                 if(!this.accelerating && showDebug) stroke(this.carTooClose ? this.carTooClose.col : 0)
                 else noStroke()
                 rectMode(CENTER)
-                rect(0, 0, 22, 10)
+                rect(0, 0, 22, 10, 2)
                 noStroke()
 
                 if(showDebug){
@@ -149,15 +195,17 @@ class Car{
                     if(!this.accelerating) str += '\ng: ' + round(this.debugGap, 1)
                     text(str, 0, 0)
 
-                    
-
                     noFill()
                     stroke(0, 255, 0, 100)
                     strokeWeight(.5)
                     ellipse(0, 0, SAFE_DISTANCE * 2)
+
+                    
                 }
             }
         }
         pop()
+
+        if(showDebug) this.showRoute()
     }
 }
