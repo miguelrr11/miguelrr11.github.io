@@ -22,17 +22,8 @@ function setup() {
   //loadButton.mousePressed(loadJson)
   selector = createSelect()
   selector.option('walls')
-  selector.option('inside walls')
   selector.option('start')
   selector.option('end')
-  selector.option('water')
-  selector.option('sand')
-  selector.option('portal')
-  selector.option('charge')
-  selector.option('wind north')
-  selector.option('wind east')
-  selector.option('wind south')
-  selector.option('wind west')
   selector.selected('walls')
 }
 
@@ -47,34 +38,23 @@ ball.pos    = { 0.5f, 0.0f, ball.radius };
 function saveJson(){
   console.log(pointsR)
   let scaleFactor = 0.15
-  let str = ''
+  let strNew = 'std::vector<glm::vec2> corners = {'
   let minX = Infinity
   let minY = Infinity
   let maxX = -Infinity
   let maxY = -Infinity
   let level = pointsR
   if(level.length == 0) return
-  for(let i = 0; i < level.length-1; i+=2){
+  for(let i = 0; i < level.length-1; i++){
     let p1 = level[i]
-    let p2 = level[i+1]
-    let p1x = (p1.x * scaleFactor)
-    let p1y = (p1.y * scaleFactor)
-    let p2x = (p2.x * scaleFactor)
-    let p2y = (p2.y * scaleFactor)
-    let midX = (p1x + p2x)/2
-    let midY = (p1y + p2y)/2
-    let w = floor(dist(p1x, p1y, p2x, p2y))
-    midX = Math.floor(midX)
-    midY = Math.floor(midY)
-    if(midX < minX) minX = midX
-    if(midY < minY) minY = midY
-    if(midX > maxX) maxX = midX
-    if(midY > maxY) maxY = midY
-    let angle = atan2(p2.y - p1.y, p2.x - p1.x)
-    let eulerAngle = (angle * 180 / PI).toFixed(1)
-    //paredes
-    str += `obstacles.push_back(crear_box({ ${midX}.0f,  ${midY}.0f, 0.3f}, {${w}.0f, 0.5f, 0.6f}, {0,0,${eulerAngle}f}, {1,1,1}));\n`
-    str += 'obstacles.back().texID = texMadera;\n'
+    let p1x = floor(p1.x * scaleFactor)
+    let p1y = floor(p1.y * scaleFactor)
+    strNew += `{${p1x}.0f, ${p1y}.0f}, `
+
+    if(p1x < minX) minX = p1x
+    if(p1y < minY) minY = p1y
+    if(p1x > maxX) maxX = p1x
+    if(p1y > maxY) maxY = p1y
   }
   //suelo
   let midX = (minX + maxX)/2
@@ -83,26 +63,32 @@ function saveJson(){
   midY = Math.floor(midY)
   let deltaX = maxX - minX
   let deltaY = maxY - minY
-  str += `obstacles.push_back(crear_box({ ${midX}.0f,  ${midY}.0f, -0.1f}, {${deltaX.toFixed(0)}.0f, ${deltaY.toFixed(0)}.0f, 0.2f}, {0,0,0}, {1,1,1}));\n`
-  str += 'obstacles.back().texID = texCesped;\n'
+  
+  //remove the last comma and add closing bracket
+  strNew = strNew.slice(0, -2)
+  strNew += '};\n'
+
+  strNew += `obstacles.push_back(crear_box({ ${midX}.0f,  ${midY}.0f, -0.1f}, {${deltaX.toFixed(0)}.0f, ${deltaY.toFixed(0)}.0f, 0.2f}, {0,0,0}, {1,1,1}));\n`
+  strNew += 'obstacles.back().texID = texCesped;\n'
 
   for(let p of auxPoints){
     let pX = (p.x * scaleFactor).toFixed(1)
     let pY = (p.y * scaleFactor).toFixed(1)
     if(p.type == 'start'){
-      str += `ball.pos = { ${pX}f, ${pY}f, ball.radius };\n`
+      strNew += `ball.pos = { ${pX}f, ${pY}f, ball.radius };\n`
     }
     if(p.type == 'end'){
-      str += `holePos = { ${pX}f, ${pY}f, FLOOR_Z+0.1f };\n`
+      strNew += `holePos = { ${pX}f, ${pY}f, FLOOR_Z+0.1f };\n`
     }
   }
   // save to clipboard
-  navigator.clipboard.writeText(str).then(function() {
+  navigator.clipboard.writeText(strNew).then(function() {
     console.log('Nivel copiado al portapapeles');
   }, function(err) {
     console.error('Error al copiar al portapapeles: ', err);
   });
-  console.log(str)
+  console.log(strNew)
+
   //saveJSON(json, 'lines.json');
 }
 
@@ -182,11 +168,7 @@ function mouseClicked(){
     auxPoints.push({"type": 'wind', "x": x, "y": y, "z": 4})
   }
   else if(selector.selected() == 'walls'){
-    if(first){
-      pointsR.push(createVector(x, y, -1))
-      first = false
-    }
-    else pointsR.push(createVector(x, y, -1), createVector(x, y, -1))
+    pointsR.push({x, y})
   }
   else if(selector.selected() == 'inside walls'){
     if(first){
@@ -246,7 +228,7 @@ function draw() {
   stroke(255, 0, 0)
   strokeWeight(3)
   noFill()
-  beginShape(LINES)
+  beginShape()
   for(let p of pointsR){
     vertex(p.x, p.y) 
   }
@@ -290,7 +272,6 @@ function draw() {
   fill(100)
   text("R - deshacer", 20, WIDTH-60)
   text("Poner walls, start, end y darle al botón", 20, WIDTH-45)
-  text("El resto de opciones no sirven ", 20, WIDTH-30)
 }
 
 // function drawLevel(n){
