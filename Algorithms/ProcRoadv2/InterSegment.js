@@ -16,6 +16,53 @@ class InterSegment{
 
         //all intersections set its intersegments to active = true, but then the user can disable some of them
         this.active = true
+
+        // car stuff
+        this.cars = [] // ordered array of cars that are currently on the segment, updated by car manager
+    }
+
+    removeCar(carID){
+        for(let i = 0; i < this.cars.length; i++){
+            if(this.cars[i].id == carID){
+                this.cars.splice(i, 1)
+                return i
+            }
+        }
+        return -1
+    }
+
+    carAheadInSafeDistance(safeDistance, segTrav){
+        let closestCar = null
+        let closestDistance = Infinity
+        for(let car of this.cars){
+            if(car.segTrav > segTrav && car.segTrav - segTrav < safeDistance){
+                if(car.segTrav - segTrav < closestDistance){
+                    closestDistance = car.segTrav - segTrav
+                    closestCar = car
+                }
+            }
+        }
+        return {car: closestCar, distance: closestDistance}
+    }
+
+    getDir(travelled){
+        if(this.len == undefined) this.getLen()
+        let bp = this.bezierPoints
+
+        let pointCount = bp.length / 2
+
+        let travelledIndex = mapp(travelled, 0, this.getLen(), 0, pointCount - 1)
+        let remaining = getDecimalPart(travelledIndex)
+
+        let indexA = Math.floor(travelledIndex)
+        let indexB = Math.min(indexA + 1, pointCount - 1)
+
+        let ax = bp[indexA * 2]
+        let ay = bp[indexA * 2 + 1]
+        let bx = bp[indexB * 2]
+        let by = bp[indexB * 2 + 1]
+
+        return Math.atan2(by - ay, bx - ax)
     }
 
 
@@ -118,6 +165,25 @@ class InterSegment{
             fill(255)
             text(str, midPos.x, midPos.y)
         }
+        pop()
+    }
+
+    showCarDebug(){
+        push()
+        let midIndex = Math.floor(this.bezierPoints.length / 4) * 2
+        let midPos = {x: this.bezierPoints[midIndex], y: this.bezierPoints[midIndex + 1]}
+        translate(midPos.x, midPos.y)
+        textAlign(CENTER)
+        rectMode(CENTER)
+        textSize(8)
+        let str = 'C: ' + this.cars.length
+        let bbox = textBounds(str, 0, 0)
+        fill(255, 0, 0, 150)
+        noStroke()
+        rectMode(CORNER)
+        rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
+        fill(255)
+        text(str, 0, 0)
         pop()
     }
 }

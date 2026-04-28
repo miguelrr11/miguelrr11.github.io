@@ -338,5 +338,9 @@ class Path{
         text(this.name, 0, 0)
         pop()
     }
+
+    showCarDebug(){
+        for(let s of this.segments) s.showCarDebug()
+    }
 }
 

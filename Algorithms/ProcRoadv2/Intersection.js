@@ -558,4 +558,8 @@ class Intersection {
         return {curves, corners: {corners, grid: corners.length == 4 ? gridLines(corners, {spacing: 18, angle: 65, origin: nodePos}) : null}}
     }
 
+    showCarDebug(){
+        for(let i of this.intersecSegs) i.showCarDebug()
+    }
+
 }

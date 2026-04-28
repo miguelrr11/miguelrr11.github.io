@@ -49,10 +49,11 @@ class Tool{
             SHOW_INTERSECTION_AREA_AREA: false,
             SHOW_WAYS: true,        //first attempt at rendering (node/edge approach, its biggest problem is that nodes can overlap)
             SHOW_GRAPH: false,       //debug
-            GRAPH_LAYER: 0
+            SHOW_CAR_DEBUG: false
         }
         this.road = new Road(this)
         this.state = this.getInitialState()
+        this.carManager = new CarManager(this.road)
         this.buttons = []
         this.menu = new Menu(this)
         this.dragging = false
@@ -96,6 +97,8 @@ class Tool{
 
         this.pathsInView = []
         this.intersectionsIDsInView = []
+
+        this.deltaTimeMult = 1 //for cars update
     }
 
     updateElementsInView(){
@@ -356,6 +359,7 @@ class Tool{
     }
 
     doubleClick(event){
+        if(this.menu.doubleClick()) return
         if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || mouseButton.center || this.menuInteracting) return
         if(this.state.mode != 'movingNode') return
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
@@ -475,12 +479,14 @@ class Tool{
                 return
             }
             //creates a new node on top of a segment, it splits it and creates a new node which becomes the previous node (anchor)
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY, true)
-            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y, false)
+            console.log(closestPosToSegment)
+            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
-                let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
+                let closestPosToPath = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y, true)
+                let newNode = this.road.addNode(closestPosToPath.closestPoint.x, closestPosToPath.closestPoint.y)
                 for(let s of allSegmentsBetween){
-                    this.road.splitSegmentAtPos(s.id, mousePosGridX, closestPosToSegment.closestPoint.y, newNode)
+                    this.road.splitSegmentAtPos(s.id,  closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y, newNode)
                 }
                 this.state.prevNodeID = newNode.id
                 return
@@ -501,10 +507,11 @@ class Tool{
             }
             if(hoverNode != undefined && hoverNode.id == this.state.prevNodeID) return
             //creates a new node on top of a segment, it splits it and creates a new node
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY, true)
-            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < NODE_RAD * 1.25){
-                let newNode = this.road.addNode(closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y, false)
+            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
+                let closestPosToPath = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y, true)
                 let allSegmentsBetween = this.road.getAllSegmentsBetweenNodes(closestPosToSegment.closestSegment.fromNodeID, closestPosToSegment.closestSegment.toNodeID)
+                let newNode = this.road.addNode(closestPosToPath.closestPoint.x, closestPosToPath.closestPoint.y)
                 for(let s of allSegmentsBetween){
                     this.road.splitSegmentAtPos(s.id, closestPosToSegment.closestPoint.x, closestPosToSegment.closestPoint.y, newNode)
                 }
@@ -528,7 +535,7 @@ class Tool{
                 this.road.deleteNode(hoverNode.id)
                 return
             }
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePosGridX, mousePosGridY)
+            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
                 this.road.deleteSegment(closestPosToSegment.closestSegment.id)
                 return
@@ -1389,6 +1396,8 @@ class Tool{
         }
 
         if(this.state.isProcessingOSM) for(let i = 0; i < OSM_QUEUE_UPDATE_ITERS_PER_FRAME; i++) this.updateOSMqueue()
+
+        this.carManager.update(this.deltaTimeMult)
     }
 
     show(){
@@ -1415,11 +1424,10 @@ class Tool{
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_INTERSECTION_AREA_AREA) this.road.showIntersectionArea()
         
-        // blendMode(DIFFERENCE)
-        //if(this.showOptions.SHOW_NODES) this.road.showNodes(this.zoom)
-        // blendMode(BLEND)
+        if(this.showOptions.SHOW_NODES) this.road.showNodes(this, this.intersectionsIDsInView)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_TAGS && this.showOptions.SHOW_NODES) this.road.showNodesTags()
+        if(this.showOptions.SHOW_CAR_DEBUG) this.road.showCarDebug(this, this.pathsInView, this.intersectionsIDsInView)
 
         let curSegs = this.createCurrentLanes()
         if(curSegs) this.showCurSegs(curSegs)
@@ -1438,6 +1446,7 @@ class Tool{
 
         if(this.showOptions.SHOW_GRAPH) this.road.showGraph(this.zoom)
 
+        this.carManager.show()
 
         pop()
 
@@ -1633,7 +1642,7 @@ class Tool{
         this.state = this.getInitialState()
         this.handState()
         this.center()
-        cars = []
+        this.carManager = new CarManager(this.road)
 
         let endTime = performance.now()
         console.log(`Time to load road: ${endTime - initialTime} ms`)

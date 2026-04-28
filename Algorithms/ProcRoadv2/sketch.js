@@ -23,19 +23,7 @@ p5.disableFriendlyErrors = true
 let WIDTH = 1400
 let HEIGHT = 700
 
-let SHOW_ROAD = false
-let SHOW_PATHS = true
-let SHOW_NODES = true
-let SHOW_CONNECTORS = false
-let SHOW_INTERSECSEGS = true
-
-let SHOW_TAGS = false
-let SHOW_SEGS_DETAILS = false
-
 let tool
-let cars = []
-
-let auxShow = []
 
 
 async function setup(){
@@ -47,53 +35,12 @@ async function setup(){
     textFont(font)
 }
 
-function addCars(num){
-    for(let i = 0; i < num; i++){
-        let car = new Car(tool.road)
-        cars.push(car)
-    }
-}
 
 function draw(){
-    //background('#F1DBB7')
     background(50)
-    //auxShow = []
-    if(auxShow.length > 1000) auxShow.splice(0, auxShow.length - 100)
 
-    //background(60)
     tool.update()
     tool.show()
-    
 
-    if(cars.length > 0){
-        push()
-        translate(tool.xOff, tool.yOff)
-        scale(tool.zoom)
-        cars[0].setStyle()
-        for(let car of cars) {
-            car.update()
-            car.show()
-        }
-        pop()
-    }
-
-    push()
-    translate(tool.xOff, tool.yOff)
-    scale(tool.zoom)
-    noFill()
-    stroke(0, 255, 0, 150)
-    strokeWeight(4)
-    for(let i = 0; i < auxShow.length; i++){
-        fill(0, 255, 0)
-        point(auxShow[i].x, auxShow[i].y)    
-    }
-    stroke(255, 0, 0)
-    noFill()
-    // beginShape()
-    // for(let i = 0; i < auxShow.length; i++){
-    //     vertex(auxShow[i].x, auxShow[i].y)    
-    // }
-    // endShape()
-    pop()
 }
 

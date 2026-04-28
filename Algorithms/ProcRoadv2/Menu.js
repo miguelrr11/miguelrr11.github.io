@@ -1,3 +1,5 @@
+let nAddCars = 1
+
 class Menu{
     constructor(tool){
         this.buttons = []
@@ -127,6 +129,10 @@ class Menu{
             this.tool.showOptions.SHOW_GRAPH = !this.tool.showOptions.SHOW_GRAPH
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_GRAPH})
+        let buttonShowCarDebug = new Button(xLoc, yLoc + hButton * 11, 95, 20, 'Car Debug', () => {
+            this.tool.showOptions.SHOW_CAR_DEBUG = !this.tool.showOptions.SHOW_CAR_DEBUG
+            this.tool.viewSettingsChanged()
+        }, undefined,  () => {return this.tool.showOptions.SHOW_CAR_DEBUG})
 
         buttonsToCollapse = [
             buttonShowRoad,
@@ -139,7 +145,8 @@ class Menu{
             buttonShowLanes,
             buttonShowConvexHull,
             buttonShowWays,
-            buttonShowGraph
+            buttonShowGraph,
+            buttonShowCarDebug
 
         ]
 
@@ -162,11 +169,22 @@ class Menu{
         
 
 
-        let buttonAddCars = new Button(10, HEIGHT - 30, 95, 20, 'Add Cars', () => {
-            addCars(25)
+        let buttonAddCars = new Button(10, HEIGHT - 30, 70, 20, 'Add Cars', () => {
+            tool.carManager.addCars(nAddCars)
         })
-        let buttonRemoveCars = new Button(10, HEIGHT - 60, 95, 20, 'Remove Cars', () => {
-            cars = []
+        let buttonChangeNaddCars = new Button(90, HEIGHT - 30, 30, 20, nAddCars, () => {
+            if(nAddCars == 1) nAddCars = 2
+            else if(nAddCars == 2) nAddCars = 5
+            else if(nAddCars == 5) nAddCars = 20
+            else if(nAddCars == 20) nAddCars = 50
+            else nAddCars = 1
+            buttonChangeNaddCars.label = nAddCars
+        })
+        let buttonRemoveCars = new Button(10, HEIGHT - 60, 110, 20, 'Remove Cars', () => {
+            tool.carManager.removeCars()
+        })
+        let sliderDT = new Slider(10, HEIGHT - 100, 110, 'Delta Time', 0, 5, 1, (value) => {
+            this.tool.deltaTimeMult = value
         })
         let buttonConstantSetPaths = new Button(10, HEIGHT - 90, 95, 20, 'Set Paths ON', () => {
             tool.constantSetPaths = !tool.constantSetPaths
@@ -261,6 +279,8 @@ class Menu{
         })
         sliderAround.floorPreview = true
 
+        
+
 
         let buttonSave = new Button(width - 70 - 10, HEIGHT - 60, 70, 20, 'Save', () => {
             this.tool.saveToLocalStorage()
@@ -315,12 +335,14 @@ class Menu{
         this.buttons.push(buttonShowGraph)
         this.buttons.push(buttonAddCars)
         this.buttons.push(buttonRemoveCars)
+        this.buttons.push(buttonShowCarDebug)
 
         this.buttons.push(buttonShowLaneState)
         this.buttons.push(buttonMinusFor)
         this.buttons.push(buttonPlusFor)
         this.buttons.push(buttonMinusBack)
         this.buttons.push(buttonPlusBack)
+        this.buttons.push(buttonChangeNaddCars)
 
         this.buttons.push(buttonCreate)
         this.buttons.push(buttonDelete)
@@ -358,6 +380,7 @@ class Menu{
         this.sliders.push(sliderLaneWidth)
         this.sliders.push(sliderLengthSegBezier)
         this.sliders.push(sliderOffsetRadIntersec)
+        this.sliders.push(sliderDT)
 
         this.sliders.push(sliderAround)
 
@@ -387,7 +410,7 @@ class Menu{
                     this.tool.road.connectors.size + '\n' +
                     this.tool.road.intersecSegs.size + '\n' +
                     this.tool.road.paths.size + '\n' +
-                    cars.length + '\n' +
+                    this.tool.carManager.cars.length + '\n' +
                     this.tool.state.OSMqueue.nodesToProcess.size + '\n' +
                     this.tool.state.selectedNodes.size + '\n' +
                     this.tool.road.graphIndex.nodes._size + '\n' +
@@ -422,6 +445,13 @@ class Menu{
             if(s.isMouseOver()){
                 return true
             }
+        }
+        return false
+    }
+
+    doubleClick(){
+        for(let s of this.sliders){
+            if(s.doubleClick()) return true
         }
         return false
     }
@@ -586,6 +616,7 @@ class Slider{
         this.maxValue = maxValue
         this.value = initialValue
         this.onChange = onChange
+        this.initialValue = initialValue
 
         this.isDragging = false
         this.titleHeight = 20
@@ -594,6 +625,17 @@ class Slider{
         this.totalHeight = this.titleHeight + this.height + 5
 
         this.floorPreview = false
+    }
+
+    doubleClick(){
+        if(this.isMouseOver()){
+            this.value = this.initialValue
+            if(this.onChange){
+                this.onChange(this.value)
+            }
+            return true
+        }
+        return false
     }
 
     isMouseOver(){

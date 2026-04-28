@@ -1146,10 +1146,6 @@ class Road{
         this.intersecSegs.forEach((s, key) => s.showLane())
     }
 
-    showNodes(zoom){
-        if(zoom > 0.18) this.nodes.forEach((n, key) => n.show(false, zoom))
-    }
-
     showNodesTags(){
         this.nodes.forEach((n, key) => n.showTags())
     }
@@ -1166,6 +1162,33 @@ class Road{
         for(let i = 0; i < 10; i++) {
             drawRTreeLayer(this.graphIndex.edges, i);
         }
+        pop()
+    }
+
+    showNodes(toolObj, intersectionsInViewIDs){
+        let zoom = toolObj.zoom
+        if(zoom > 0.18 && toolObj.showOptions.SHOW_NODES){
+            push()
+            noFill()
+            strokeWeight(1.5 / zoom)
+            stroke(255, 200)
+            blendMode(DIFFERENCE)
+            let nodesInView = intersectionsInViewIDs.map(id => this.findNode(id)).filter(n => n != undefined)
+            nodesInView.forEach((n, key) => {
+                this.findNode(n.id).show(true, zoom)
+            })
+            blendMode(BLEND)
+            pop()
+        }
+    }
+
+    showCarDebug(toolObj, pathsInView, intersectionsInViewIDs){
+        let zoom = toolObj.zoom
+        let intersectionsInView = intersectionsInViewIDs.map(id => this.findIntersection(id)).filter(i => i != undefined)
+
+        push()
+        pathsInView.forEach((p, key) => p.showCarDebug())
+        intersectionsInView.forEach((p, key) => p.showCarDebug())
         pop()
     }
 
@@ -1235,19 +1258,6 @@ class Road{
         }
         if (zoom <= 0.05) {
             this.showMain(zoom, pathsInView)
-        }
-
-        if(zoom > 0.18 && toolObj.showOptions.SHOW_NODES){
-            push()
-            noFill()
-            strokeWeight(1.5 / zoom)
-            stroke(255, 200)
-            blendMode(DIFFERENCE)
-            intersectionsInView.forEach((n, key) => {
-                this.findNode(n.id).show(true, zoom)
-            })
-            blendMode(BLEND)
-            pop()
         }
 
         if(zoom > 0.18) {
