@@ -1,4 +1,3 @@
-const SAFE_DISTANCE = 50
 const DETECT_DISTANCE = 130  // how far ahead to scan for a lead car (IDM needs look-ahead > braking distance)
 
 // Intelligent Driver Model parameters  (units: pixels / normalized-frame)
@@ -59,9 +58,29 @@ class Car{
     }
 
     carAhead(){
-        let segment = this.getCurSeg()
-        if(segment == undefined) return false
-        return segment.carAheadInSafeDistance(DETECT_DISTANCE, this.segTrav)
+        let remainingDist = DETECT_DISTANCE
+        let seg = this.getCurSeg()
+        let inter = this.isOnIntersection
+        let routeIndex = this.routeIndex
+        let segTrav = this.segTrav
+        let acumTrav = 0
+        while(seg){
+            let carObj = seg.carAheadInSafeDistance(remainingDist, segTrav)
+            if(carObj.car) {
+                carObj.distance = acumTrav + carObj.distance
+                this.acumTrav = acumTrav //debug
+                return carObj
+            }
+            remainingDist -= seg.getLen() - segTrav
+            acumTrav += seg.getLen() - segTrav
+            segTrav = 0
+            if(remainingDist <= 0) break
+            let nextSegID = this.route[routeIndex]
+            seg = this.findSegmentOrIntersecSegment(nextSegID, inter)
+            inter = !inter
+            routeIndex++
+        }
+        return null
     }
 
 
@@ -135,18 +154,21 @@ class Car{
         if(this.route.length == 0) return
         push()
         stroke(0, 0, 255)
-        strokeWeight(2)
+        strokeWeight(3)
         noFill()
         let curSeg = this.getCurSeg()
         beginShape()
         if(this.isOnIntersection){
-            for(let i = 0; i < curSeg.bezierPoints.length; i+=2){
+            let index = curSeg.getIndexOfBP(this.segTrav)
+            for(let i = index; i < curSeg.bezierPoints.length; i+=2){
                 let bp = curSeg.bezierPoints
                 vertex(bp[i], bp[i+1])
             }
         }
         else{
-            vertex(curSeg.fromPos.x, curSeg.fromPos.y)
+            let pos = this.getCurPos()
+            if(pos == undefined) {pop(); return}
+            vertex(pos.x, pos.y)
             vertex(curSeg.toPos.x, curSeg.toPos.y)
         }
         let inter = this.isOnIntersection
@@ -170,9 +192,10 @@ class Car{
         pop()
     }
 
-    show(){
-        push()
+    show(showRoute = false){
         let showDebug = this.road.tool.showOptions.SHOW_CAR_DEBUG
+        if(showDebug && showRoute) this.showRoute()
+        push()
         if(this.segmentID != undefined){
             let pos = this.getCurPos()
             if(pos == undefined) {pop(); return}
@@ -188,17 +211,20 @@ class Car{
                 noStroke()
 
                 if(showDebug){
+                    rotate(-ang)
                     fill(255)
-                    textSize(8)
+                    stroke(0)
+                    textSize(9)
                     textAlign(CENTER, CENTER)
                     let str = 'I: ' + this.whatIndexOfSegmentIsCarOn() + '\nS: ' + round(this.speed, 2)
                     if(!this.accelerating) str += '\ng: ' + round(this.debugGap, 1)
+                    if(this.acumTrav != undefined) str += '\nAT: ' + round(this.acumTrav, 1)
                     text(str, 0, 0)
 
                     noFill()
                     stroke(0, 255, 0, 100)
                     strokeWeight(.5)
-                    ellipse(0, 0, SAFE_DISTANCE * 2)
+                    ellipse(0, 0, DETECT_DISTANCE * 2)
 
                     
                 }
@@ -206,6 +232,6 @@ class Car{
         }
         pop()
 
-        if(showDebug) this.showRoute()
+        
     }
 }

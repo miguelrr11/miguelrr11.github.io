@@ -57,7 +57,7 @@ class Segment{
                 }
             }
         }
-        return closestCar ? {car: closestCar, distance: closestDistance} : false
+        return closestCar ? {car: closestCar, distance: closestDistance} : {car: null, distance: null}
     }
 
     getDir(){

@@ -28,7 +28,6 @@ class CarManager{
             route.push(nextSeg.id)
             curSeg = nextSeg
         }
-        console.log(route)
         return route
     }
 
@@ -59,8 +58,9 @@ class CarManager{
         push()
         fill(255, 0, 0)
         noStroke()
-        for(let car of this.cars) {
-            car.show()
+        for(let i = 0; i < this.cars.length; i++){
+            let car = this.cars[i]
+            car.show(i == 0)
         }
         pop()
     }
