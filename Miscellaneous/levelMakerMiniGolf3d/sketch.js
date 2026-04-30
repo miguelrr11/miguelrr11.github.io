@@ -13,6 +13,7 @@ let levelWithAux = false
 let selector
 let waterR = 50
 let sandR = 50
+let capa = 0;
 
 function setup() {
   createCanvas(WIDTH, WIDTH);
@@ -28,68 +29,88 @@ function setup() {
 }
 
 /*
-obstacles.push_back(crear_box({ 4.0f,  0.0f, -0.1f}, {10.0f, 4.0f, 0.2f}, {0,0,0}, {0.3f, 0.65f, 0.3f}));  // suelo
-
-obstacles.push_back(crear_box({ 4.0f,  2.1f,  0.3f}, {10.0f, 0.2f, 0.6f}, {0,0,0}, {0.55f,0.35f, 0.2f}));  // pared norte
-
-ball.pos    = { 0.5f, 0.0f, ball.radius };
+std::vector<std::vector<glm::vec2>> trackPerimeters = {
+        { {0,0}, {3,0}, {3,2}, {5,2}, {5,-1}, {7,-1}, {7,1}, {10,1}, {10,0}, {13,0}, {13,3}, {15,3} },
+        { {0,0}, {4,0}, {4,-2}, {6,-2}, {6,1}, {8,1}, {8,-1}, {11,-1}, {11,1}, {14,1}, {14,-2}, {16,-2} },
+        { {0,0}, {5,0}, {5,3}, {7,3}, {7,-1}, {9,-1}, {9,2},  {12,2},  {12,-2},  {15,-2},  {15,4},  {17,4} }
+    };
 */
 
 function saveJson(){
-  console.log(pointsR)
+  console.log(levels)
   let scaleFactor = 0.15
-  let strNew = 'std::vector<glm::vec2> corners = {'
-  let minX = Infinity
-  let minY = Infinity
-  let maxX = -Infinity
-  let maxY = -Infinity
-  let level = pointsR
-  if(level.length == 0) return
-  for(let i = 0; i < level.length-1; i++){
-    let p1 = level[i]
-    let p1x = floor(p1.x * scaleFactor)
-    let p1y = floor(p1.y * scaleFactor)
-    strNew += `{${p1x}.0f, ${p1y}.0f}, `
+  let strTotal = 'std::vector<std::vector<glm::vec2>> trackPerimeters = {\n'
+  for(let points of levels){
+    if(points.length == 0) continue
+    
+    let strNew = '{'
+    let minX = Infinity
+    let minY = Infinity
+    let maxX = -Infinity
+    let maxY = -Infinity
+    let level = points
+    for(let i = 0; i < level.length-1; i++){
+      let p1 = level[i]
+      let p1x = floor(p1.x * scaleFactor)
+      let p1y = floor(p1.y * scaleFactor)
+      strNew += `{${p1x}.0f, ${p1y}.0f}, `
 
-    if(p1x < minX) minX = p1x
-    if(p1y < minY) minY = p1y
-    if(p1x > maxX) maxX = p1x
-    if(p1y > maxY) maxY = p1y
-  }
-  //suelo
-  let midX = (minX + maxX)/2
-  let midY = (minY + maxY)/2
-  midX = Math.floor(midX)
-  midY = Math.floor(midY)
-  let deltaX = maxX - minX
-  let deltaY = maxY - minY
-  
-  //remove the last comma and add closing bracket
-  strNew = strNew.slice(0, -2)
-  strNew += '};\n'
-
-  strNew += '//SUELO\nint tiling = 8;\n'
-
-  strNew += `obstacles.push_back(crear_box({ ${midX}.0f,  ${midY}.0f, -0.1f}, {${deltaX.toFixed(0)}.0f, ${deltaY.toFixed(0)}.0f, 0.2f}, {0,0,0}, {1,1,1}, true, tiling));\n`
-  strNew += 'obstacles.back().texID = texCesped;\n'
-
-  for(let p of auxPoints){
-    let pX = (p.x * scaleFactor).toFixed(1)
-    let pY = (p.y * scaleFactor).toFixed(1)
-    if(p.type == 'start'){
-      strNew += `ball.pos = { ${pX}f, ${pY}f, ball.radius };\n`
+      if(p1x < minX) minX = p1x
+      if(p1y < minY) minY = p1y
+      if(p1x > maxX) maxX = p1x
+      if(p1y > maxY) maxY = p1y
     }
-    if(p.type == 'end'){
-      strNew += `holePos = { ${pX}f, ${pY}f, FLOOR_Z+0.1f };\n`
-    }
+    //suelo
+    let midX = (minX + maxX)/2
+    let midY = (minY + maxY)/2
+    midX = Math.floor(midX)
+    midY = Math.floor(midY)
+    let deltaX = maxX - minX
+    let deltaY = maxY - minY
+    
+    //remove the last comma and add closing bracket
+    strNew = strNew.slice(0, -2)
+    strNew += '},\n'
+
+    strTotal += strNew
+
+    // for(let p of auxPoints){
+    //   let pX = (p.x * scaleFactor).toFixed(1)
+    //   let pY = (p.y * scaleFactor).toFixed(1)
+    //   if(p.type == 'start'){
+    //     strNew += `ball.pos = { ${pX}f, ${pY}f, ball.radius };\n`
+    //   }
+    //   if(p.type == 'end'){
+    //     strNew += `holePos = { ${pX}f, ${pY}f, FLOOR_Z+0.1f };\n`
+    //   }
+    // }
+    // save to clipboard
+    
   }
-  // save to clipboard
-  navigator.clipboard.writeText(strNew).then(function() {
+  strTotal = strTotal.slice(0, -2) + '\n'
+  strTotal += '};\n'
+  let startL = levels.find(p => p.find(q => q.type == 'start'))
+  let endL = levels.find(p => p.find(q => q.type == 'end'))
+  let start = startL && startL.length > 0 ? startL[0] : null
+  let end = endL && endL.length > 0 ? endL[0] : null
+  if(start){
+    let pX = (start.x * scaleFactor).toFixed(1)
+    let pY = (start.y * scaleFactor).toFixed(1)
+    strTotal += `ball.pos = { ${pX}f, ${pY}f, ${(start.capa)}*heightChange };\n`
+  }
+  if(end){
+    let pX = (end.x * scaleFactor).toFixed(1)
+    let pY = (end.y * scaleFactor).toFixed(1)
+    strTotal += `holePos = { ${pX}f, ${pY}f, (FLOOR_Z+0.1f)+${(end.capa)}*heightChange };\n`
+  }
+  console.log(strTotal)
+
+  navigator.clipboard.writeText(strTotal).then(function() {
     console.log('Nivel copiado al portapapeles');
   }, function(err) {
     console.error('Error al copiar al portapapeles: ', err);
   });
-  console.log(strNew)
+  
 
   //saveJSON(json, 'lines.json');
 }
@@ -107,6 +128,7 @@ function keyPressed(){
     pointsR = []
     first = true
     selector.selected('walls')
+    capa++
   }
   if(keyCode == 82){
     pointsR.pop()
@@ -132,7 +154,7 @@ function keyPressed(){
   //ir mostrandolos
   //if(keyCode == UP_ARROW && loaded != undefined) loaded++
   
-}
+} 
 
 
 
@@ -140,34 +162,34 @@ function keyPressed(){
 function mouseClicked(){
   if(mouseY > WIDTH || mouseX > WIDTH) return
   if(selector.selected() == 'water'){
-    auxPoints.push({"type": 'water', "x": x, "y": y, "z": waterR})
+    auxPoints.push({type: 'water', "x": x, "y": y, "z": waterR})
   }
   if(selector.selected() == 'sand'){
-    auxPoints.push({"type": 'sand', "x": x, "y": y, "z": sandR})
+    auxPoints.push({type: 'sand', "x": x, "y": y, "z": sandR})
   }
   if(selector.selected() == 'start'){
-    auxPoints.push({"type": 'start', "x": x, "y": y, "z": -1})
+    auxPoints.push({type: 'start', "x": x, "y": y, "z": -1, capa: capa})
   }
   if(selector.selected() == 'end'){
-    auxPoints.push({"type": 'end', "x": x, "y": y, "z": -1})
+    auxPoints.push({type: 'end', "x": x, "y": y, "z": -1, capa: capa})
   }
   if(selector.selected() == 'portal'){
-    auxPoints.push({"type": 'portal', "x": x, "y": y, "z": -1})
+    auxPoints.push({type: 'portal', "x": x, "y": y, "z": -1})
   }
   if(selector.selected() == 'charge'){
-    auxPoints.push({"type": 'charge', "x": x, "y": y, "z": -1})
+    auxPoints.push({type: 'charge', "x": x, "y": y, "z": -1})
   }
   if(selector.selected() == 'wind north'){
-    auxPoints.push({"type": 'wind', "x": x, "y": y, "z": 1})
+    auxPoints.push({type: 'wind', "x": x, "y": y, "z": 1})
   }
   if(selector.selected() == 'wind east'){
-    auxPoints.push({"type": 'wind', "x": x, "y": y, "z": 2})
+    auxPoints.push({type: 'wind', "x": x, "y": y, "z": 2})
   }
   if(selector.selected() == 'wind south'){
-    auxPoints.push({"type": 'wind', "x": x, "y": y, "z": 3})
+    auxPoints.push({type: 'wind', "x": x, "y": y, "z": 3})
   }
   if(selector.selected() == 'wind west'){
-    auxPoints.push({"type": 'wind', "x": x, "y": y, "z": 4})
+    auxPoints.push({type: 'wind', "x": x, "y": y, "z": 4})
   }
   else if(selector.selected() == 'walls'){
     pointsR.push({x, y})
@@ -225,15 +247,30 @@ function draw() {
   else y = mouseY - restY
   
   drawGrid()
+
+  push()
+  for(level of levels){
+    beginShape()
+    stroke(0, 255, 0)
+    strokeWeight(3)
+    noFill()
+    for(let p of level){
+      if(p.type == 'start' || p.type == 'end') continue
+      vertex(p.x, p.y)
+    }
+    endShape()
+  }
+  pop()
   
   push()
   stroke(255, 0, 0)
   strokeWeight(3)
-  noFill()
+  fill(255, 0, 0, 70)
   beginShape()
   for(let p of pointsR){
     vertex(p.x, p.y) 
   }
+  vertex(mouseX, mouseY)
   endShape()
   pop()
 
