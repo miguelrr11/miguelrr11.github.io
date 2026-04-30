@@ -311,6 +311,8 @@ function draw() {
   fill(100)
   text("R - deshacer", 20, WIDTH-60)
   text("Poner walls, start, end y darle al botón", 20, WIDTH-45)
+  text("Pulsar espacio para subir de capa", 20, WIDTH-30)
+  text("Capa: " + capa, 20, WIDTH-15)
 }
 
 // function drawLevel(n){
