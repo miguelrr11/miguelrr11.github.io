@@ -24,7 +24,7 @@ class CarManager{
             let toConn = curSeg.toConnector
             if(toConn == undefined) {console.log('Error fetching toConn'); return []}
             let nextSegID = toConn.chooseOutRandom()
-            if(!nextSegID) return route
+            if(nextSegID == undefined) return route
             let nextSeg = isIntersection ? this.road.findIntersecSeg(nextSegID) : this.road.findSegment(nextSegID)
             if(nextSeg == undefined) {console.log('Error fetching nextSeg'); return []}
             route.push(nextSeg.id)

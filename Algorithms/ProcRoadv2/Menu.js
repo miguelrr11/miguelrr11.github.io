@@ -174,6 +174,11 @@ class Menu{
             tool.handState()
             buttonCreate.disabled = true
             buttonDelete.disabled = true
+            sliderLaneWidth.disabled = true
+            sliderLengthSegBezier.disabled = true
+            sliderOffsetRadIntersec.disabled = true
+            sliderTensionMax.disabled = true
+            sliderTensionMin.disabled = true
         })
         let buttonChangeNaddCars = new Button(90, HEIGHT - 30, 30, 20, nAddCars, () => {
             if(nAddCars == 1) nAddCars = 2
@@ -187,6 +192,11 @@ class Menu{
             tool.carManager.removeCars()
             buttonCreate.disabled = false
             buttonDelete.disabled = false
+            sliderLaneWidth.disabled = false
+            sliderLengthSegBezier.disabled = false
+            sliderOffsetRadIntersec.disabled = false
+            sliderTensionMax.disabled = false
+            sliderTensionMin.disabled = false
         })
         let sliderDT = new Slider(10, HEIGHT - 100, 110, 'Delta Time', 0, 5, 1, (value) => {
             this.tool.deltaTimeMult = value
@@ -626,6 +636,8 @@ class Slider{
         this.onChange = onChange
         this.initialValue = initialValue
 
+        this.disabled = false
+
         this.isDragging = false
         this.titleHeight = 20
 
@@ -636,7 +648,7 @@ class Slider{
     }
 
     doubleClick(){
-        if(this.isMouseOver()){
+        if(this.isMouseOver() && !this.disabled){
             this.value = this.initialValue
             if(this.onChange){
                 this.onChange(this.value)
@@ -647,6 +659,7 @@ class Slider{
     }
 
     isMouseOver(){
+        if(this.disabled) return false
         // Check if mouse is over the slider track or handle
         let sliderY = this.pos.y + this.titleHeight
         return mouseX >= this.pos.x &&
@@ -656,6 +669,7 @@ class Slider{
     }
 
     update(){
+        if(this.disabled) return false
         let sliderY = this.pos.y + this.titleHeight
         let interacted = false
 
@@ -696,7 +710,7 @@ class Slider{
         push()
 
         // Draw title
-        fill(255)
+        this.disabled ? fill(100) : fill(255)
         noStroke()
         textAlign(CENTER, TOP)
         textSize(10)
@@ -713,7 +727,7 @@ class Slider{
         let handleX = this.pos.x + normalizedValue * this.width
 
         // Draw filled track
-        fill(175)
+        this.disabled ? fill(70) : fill(175)
         rect(this.pos.x, sliderY, normalizedValue * this.width, this.height, 4)
 
         // Draw handle
@@ -721,6 +735,7 @@ class Slider{
         fill(this.isDragging ? 120 : 80)
         stroke(255)
         strokeWeight(2)
+        if(this.disabled) noStroke()
         rectMode(CENTER)
         rect(handleX, sliderY + this.height / 2, handleSize*0.9, handleSize*0.7, 4)
 
