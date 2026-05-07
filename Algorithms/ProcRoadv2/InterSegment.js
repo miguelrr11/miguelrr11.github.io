@@ -97,6 +97,23 @@ class InterSegment{
         return lerrposFlat(ax, ay, bx, by, remaining)
     }
 
+    getWorldPos(travelled){
+        if(this.len == undefined) this.getLen()
+        let relPos = travelled / this.getLen()
+        //get the closest bezier point to that relative position, and then lerp between that point and the next one
+        let bp = this.bezierPoints
+        let pointCount = bp.length / 2
+        let travelledIndex = relPos * (pointCount - 1)
+        let remaining = getDecimalPart(travelledIndex)
+        let indexA = Math.floor(travelledIndex)
+        let indexB = Math.min(indexA + 1, pointCount - 1)
+        let ax = bp[indexA * 2]
+        let ay = bp[indexA * 2 + 1]
+        let bx = bp[indexB * 2]
+        let by = bp[indexB * 2 + 1]
+        return lerrposFlat(ax, ay, bx, by, remaining)
+    }
+
     getLen(){
         let len = 0
         for(let i = 0; i < this.bezierPoints.length-2; i+=4){

@@ -36,6 +36,13 @@ class Segment{
         this.cars = [] // ordered array of cars that are currently on the segment, updated by car manager
     }
 
+    getWorldPos(travelled){
+        if(this.len == undefined) this.getLen()
+        let relPos = travelled / this.getLen()
+        relPos = constrainn(relPos, 0, 1)
+        return lerppos(this.fromPos, this.toPos, relPos)
+    }
+
     removeCar(carID){
         for(let i = 0; i < this.cars.length; i++){
             if(this.cars[i].id == carID){

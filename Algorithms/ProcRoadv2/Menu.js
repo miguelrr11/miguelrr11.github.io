@@ -171,6 +171,9 @@ class Menu{
 
         let buttonAddCars = new Button(10, HEIGHT - 30, 70, 20, 'Add Cars', () => {
             tool.carManager.addCars(nAddCars)
+            tool.handState()
+            buttonCreate.disabled = true
+            buttonDelete.disabled = true
         })
         let buttonChangeNaddCars = new Button(90, HEIGHT - 30, 30, 20, nAddCars, () => {
             if(nAddCars == 1) nAddCars = 2
@@ -182,6 +185,8 @@ class Menu{
         })
         let buttonRemoveCars = new Button(10, HEIGHT - 60, 110, 20, 'Remove Cars', () => {
             tool.carManager.removeCars()
+            buttonCreate.disabled = false
+            buttonDelete.disabled = false
         })
         let sliderDT = new Slider(10, HEIGHT - 100, 110, 'Delta Time', 0, 5, 1, (value) => {
             this.tool.deltaTimeMult = value
@@ -512,6 +517,8 @@ class Button{
 
         this.textAlign = 'center'
         this.enableHoverEffect = true
+
+        this.disabled = false
     }
 
     setTextAlign(mode){
@@ -533,7 +540,7 @@ class Button{
     }
 
     hover(){
-        return !this.disableHover && inBounds(mouseX, mouseY, this.pos.x, this.pos.y, this.size.w, this.size.h)
+        return !this.disableHover && inBounds(mouseX, mouseY, this.pos.x, this.pos.y, this.size.w, this.size.h) && !this.disabled
     }
 
     show(){
@@ -579,6 +586,7 @@ class Button{
 
         let textCol = enabled ? 255 : 170
         enabled ? fill(255) : fill(170)
+        if(this.disabled) fill(100)
         if(this.collapsing){
             fill(textCol, 255*(1-this.collapseProgress))
         }

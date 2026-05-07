@@ -15,6 +15,7 @@ class Car{
         this.speed = 0
         this.maxSpeed = random(1.6, 2.4)
         this.road = road
+        this.worldPos = undefined
 
         if(road.segments.size > 0){
             let segs = Array.from(road.segments.values())
@@ -27,6 +28,7 @@ class Car{
                     let index = seg.cars.indexOf(car)
                     seg.cars.splice(index, 0, this)
                     inserted = true
+                    this.worldPos = this.getCurPos()
                     break
                 }
             }
@@ -48,8 +50,15 @@ class Car{
     }
 
     changeSegment(oldSegment, newSegment){
+        if(newSegment == undefined) {
+            console.log('Error: new segment is undefined when changing segments')
+            return
+        }
+
         let success = oldSegment.removeCar(this.id)
         if(success == -1) console.log('Error: car not found in old segment when changing segments')
+
+        
         newSegment.cars.push(this)
 
         this.segmentID = newSegment.id
@@ -58,29 +67,78 @@ class Car{
     }
 
     carAhead(){
-        let remainingDist = DETECT_DISTANCE
-        let seg = this.getCurSeg()
-        let inter = this.isOnIntersection
-        let routeIndex = this.routeIndex
-        let segTrav = this.segTrav
-        let acumTrav = 0
-        while(seg){
-            let carObj = seg.carAheadInSafeDistance(remainingDist, segTrav)
-            if(carObj.car) {
-                carObj.distance = acumTrav + carObj.distance
-                this.acumTrav = acumTrav //debug
-                return carObj
-            }
-            remainingDist -= seg.getLen() - segTrav
-            acumTrav += seg.getLen() - segTrav
-            segTrav = 0
-            if(remainingDist <= 0) break
-            let nextSegID = this.route[routeIndex]
-            seg = this.findSegmentOrIntersecSegment(nextSegID, inter)
-            inter = !inter
-            routeIndex++
+        let result = this._scanAhead(this.getCurSeg(), this.isOnIntersection, this.segTrav, 0)
+        if(result) this.acumTrav = result.acumDist // debug
+        return result ? {car: result.car, distance: result.distance} : null
+    }
+
+    _scanAhead(seg, isInter, segTrav, acumDist){
+        if(!seg || acumDist >= DETECT_DISTANCE) return null
+
+        let carObj = seg.carAheadInSafeDistance(DETECT_DISTANCE - acumDist, segTrav)
+        if(carObj.car){
+            return {car: carObj.car, distance: acumDist + carObj.distance, acumDist: acumDist}
         }
-        return null
+
+        let newAccumDist = acumDist + seg.getLen() - segTrav
+        if(newAccumDist >= DETECT_DISTANCE) return null
+
+        let toConnector = seg.toConnector || this.road.findConnector(seg.toConnectorID)
+        if(!toConnector) return null
+
+        if(isInter){
+            // intersegment -> exit connector -> one regular segment
+            let nextSegID = toConnector.outgoingSegmentIDs[0]
+            if(nextSegID == undefined) return null
+            return this._scanAhead(this.road.findSegment(nextSegID), false, 0, newAccumDist)
+        } else {
+            // regular segment -> enter connector -> all active outgoing intersegments
+            let outgoingIDs = toConnector.getOutgoingActiveIntersegs()
+            let closest = null
+            for(let isegID of outgoingIDs){
+                let result = this._scanAhead(this.road.findIntersecSeg(isegID), true, 0, newAccumDist)
+                if(result && (!closest || result.distance < closest.distance)) closest = result
+            }
+            return closest
+        }
+    }
+
+
+    showCarAheadDebug(){
+        let carObj = this.carAhead()
+        if(carObj && carObj.car){
+            push()
+            stroke(255, 0, 0)
+            noFill()
+            ellipse(this.worldPos.x, this.worldPos.y, carObj.distance * 2)
+            pop()
+        }
+    }
+
+    // checks if there's a car ahead in a segment that finishes in the same segment as this one.
+    carIntersecting(){
+        // we need all segments that finish in the same toConn as this one
+        let mySeg = this.getCurSeg()
+        let conn = mySeg.toConnector
+        let segsIDs = conn.incomingSegmentIDs || []
+        // now filter our own, and get the object no id
+        let segs = segsIDs.filter(id => id != mySeg.id).map(id => this.road.findIntersecSeg(id)).filter(seg => seg != undefined)
+        // now we save the car whose distance to the connector is the closest but still smaller than the distance from this car to the connector
+        let closestCar = null
+        let myDistToConn = mySeg.getLen() - this.segTrav
+        for(let seg of segs){
+            if(seg.cars.length > 0){
+                for(let car of seg.cars){
+                    let distToConn = seg.getLen() - car.segTrav
+                    if(distToConn < myDistToConn){
+                        let distanceFromMyCarToThatCar = dist(this.worldPos.x, this.worldPos.y, car.worldPos.x, car.worldPos.y)
+                        closestCar = {car: car, distance: distanceFromMyCarToThatCar}
+                        myDistToConn = distToConn
+                    }
+                }
+            }
+        }
+        return closestCar
     }
 
 
@@ -95,18 +153,31 @@ class Car{
                     let aFree = IDM_A * (1 - Math.pow(this.speed / this.maxSpeed, 4))
 
                     let distToCarObj = this.carAhead()
+                    let distToCarObjIntersecting = this.carIntersecting()
+
+                    let finalDistToCarObj = null
+                    // save the closest one
+                    if(distToCarObj && distToCarObjIntersecting){
+                        finalDistToCarObj = distToCarObj.distance < distToCarObjIntersecting.distance ? distToCarObj : distToCarObjIntersecting
+                    }
+                    else if(distToCarObj){
+                        finalDistToCarObj = distToCarObj
+                    }
+                    else if(distToCarObjIntersecting){
+                        finalDistToCarObj = distToCarObjIntersecting
+                    }
                     let acc
 
-                    if(distToCarObj && distToCarObj.car){
+                    if(finalDistToCarObj && finalDistToCarObj.car){
                         // bumper-to-bumper gap (centre-to-centre minus one car length)
-                        let s = Math.max(distToCarObj.distance - CAR_LEN, 0.1)
-                        let dv = this.speed - distToCarObj.car.speed   // positive = closing in
+                        let s = Math.max(finalDistToCarObj.distance - CAR_LEN, 0.1)
+                        let dv = this.speed - finalDistToCarObj.car.speed   // positive = closing in
                         // desired gap: standing gap + speed * headway + brake term
                         let sStar = IDM_S0 + Math.max(0, this.speed * IDM_T + this.speed * dv / (2 * Math.sqrt(IDM_A * IDM_B)))
                         // full IDM formula
                         acc = IDM_A * (1 - Math.pow(this.speed / this.maxSpeed, 4) - Math.pow(sStar / s, 2))
                         this.accelerating = false
-                        this.carTooClose = distToCarObj.car
+                        this.carTooClose = finalDistToCarObj.car
                         this.debugGap = s
                         this.debugSStar = sStar
                     } else {
@@ -122,7 +193,7 @@ class Car{
 
                     if(this.segTrav > segment.getLen()){
                         let oldSegment = segment
-                        let newSegment = this.findSegmentOrIntersecSegment(this.route[this.routeIndex])
+                        let newSegment = this.findSegmentOrIntersecSegment(this.route[this.routeIndex], this.isOnIntersection)
                         this.routeIndex++
                         this.changeSegment(oldSegment, newSegment)
                     }
@@ -144,6 +215,10 @@ class Car{
 
     getCurPos(){
         return this.getCurSeg()?.getPos(this.segTrav)
+    }
+
+    setWorldPos(){
+        this.worldPos = this.getCurSeg()?.getWorldPos(this.segTrav)
     }
 
     setStyle(){
@@ -194,7 +269,7 @@ class Car{
 
     show(showRoute = false){
         let showDebug = this.road.tool.showOptions.SHOW_CAR_DEBUG
-        if(showDebug && showRoute) this.showRoute()
+        if(showDebug && showRoute) {this.showRoute(); this.showCarAheadDebug()}
         push()
         if(this.segmentID != undefined){
             let pos = this.getCurPos()
@@ -219,10 +294,11 @@ class Car{
                     let str = 'I: ' + this.whatIndexOfSegmentIsCarOn() + '\nS: ' + round(this.speed, 2)
                     if(!this.accelerating) str += '\ng: ' + round(this.debugGap, 1)
                     if(this.acumTrav != undefined) str += '\nAT: ' + round(this.acumTrav, 1)
-                    text(str, 0, 0)
+                    str += '\nID: ' + this.id
+                    //text(str, 0, 0)
 
                     noFill()
-                    stroke(0, 255, 0, 100)
+                    stroke(0, 255, 0, 50)
                     strokeWeight(.5)
                     ellipse(0, 0, DETECT_DISTANCE * 2)
 
