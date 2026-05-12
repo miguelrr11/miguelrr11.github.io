@@ -198,9 +198,13 @@ class Menu{
             sliderTensionMax.disabled = false
             sliderTensionMin.disabled = false
         })
-        let sliderDT = new Slider(10, HEIGHT - 100, 110, 'Delta Time', 0, 5, 1, (value) => {
+        let buttonGenerateTLS = new Button(130, HEIGHT - 60, 110, 50, 'Generate\nTraffic Lights', () => {
+            tool.generateTLS()
+        })
+        let sliderDT = new Slider(10, HEIGHT - 100, 110, 'Delta Time', 0, 10, 1, (value) => {
             this.tool.deltaTimeMult = value
         })
+        sliderDT.snap = 1
         let buttonConstantSetPaths = new Button(10, HEIGHT - 90, 95, 20, 'Set Paths ON', () => {
             tool.constantSetPaths = !tool.constantSetPaths
         }, () => {return 'Set Paths ' + (tool.constantSetPaths ? 'ON' : 'OFF')},  () => {return tool.constantSetPaths})
@@ -325,6 +329,8 @@ class Menu{
         this.buttons.push(buttonLoadOpenStreetMap)
 
         this.buttons.push(buttonFullscreen)
+
+        this.buttons.push(buttonGenerateTLS)
 
         this.buttons.push(buttonZoomMinus)
         this.buttons.push(buttonZoomPlus)
@@ -645,6 +651,8 @@ class Slider{
         this.totalHeight = this.titleHeight + this.height + 5
 
         this.floorPreview = false
+
+        this.snap = undefined
     }
 
     doubleClick(){
@@ -686,6 +694,14 @@ class Slider{
 
             // Round to 2 decimal places
             newValue = round(newValue * 100) / 100
+
+            if(this.snap !== undefined){
+                // if the value is close to a +-5% of the range from the min or max, snap to it
+                let range = this.maxValue - this.minValue
+                if(abs(newValue - this.snap) < range * 0.05){
+                    newValue = this.snap
+                }
+            }
 
             if(newValue !== this.value){
                 this.value = newValue

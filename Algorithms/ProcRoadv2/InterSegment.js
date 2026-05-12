@@ -183,9 +183,9 @@ class InterSegment{
             noStroke()
             fill(0, 255, 0)
             textAlign(CENTER)
-            textSize(4)
+            textSize(5)
             let str = '[' + this.id + ']' + ' ' + 
-                      (this.fromConnectorID != undefined ? this.fromConnectorID : '_') + '-' + (this.toConnectorID != undefined ? this.toConnectorID : '_')
+                      (this.fromConnectorID != undefined ? this.fromConnectorID : '_') + ' - ' + (this.toConnectorID != undefined ? this.toConnectorID : '_')
             let bbox = textBounds(str, midPos.x, midPos.y)
             fill(0)
             rect(bbox.x - 2, bbox.y - 2, bbox.w + 4, bbox.h + 4)
@@ -196,6 +196,7 @@ class InterSegment{
     }
 
     showCarDebug(){
+        return
         push()
         let midIndex = Math.floor(this.bezierPoints.length / 4) * 2
         let midPos = {x: this.bezierPoints[midIndex], y: this.bezierPoints[midIndex + 1]}

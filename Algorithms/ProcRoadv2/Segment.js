@@ -456,7 +456,9 @@ class Segment{
         }
     }
 
+
     showCarDebug(){
+        return
         push()
         let midPos = {x: (this.fromPos.x + this.toPos.x) / 2, y: (this.fromPos.y + this.toPos.y) / 2}
         let str = 'C: ' + this.cars.length

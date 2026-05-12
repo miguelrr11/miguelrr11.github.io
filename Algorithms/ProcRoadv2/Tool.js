@@ -358,6 +358,11 @@ class Tool{
         }
     }
 
+    generateTLS(){
+        this.road.generateTLS()
+        this.showOptions.SHOW_CAR_DEBUG = true
+    }
+
     doubleClick(event){
         if(this.menu.doubleClick()) return
         if(mouseX < 0 || mouseX > width || mouseY < 0 || mouseY > height || this.menu.inBounds() || mouseButton.center || this.menuInteracting) return
@@ -1398,6 +1403,7 @@ class Tool{
         if(this.state.isProcessingOSM) for(let i = 0; i < OSM_QUEUE_UPDATE_ITERS_PER_FRAME; i++) this.updateOSMqueue()
 
         this.carManager.update(this.deltaTimeMult)
+        this.road.updateTLSs(this.deltaTimeMult)
     }
 
     show(){
@@ -1533,7 +1539,7 @@ class Tool{
             intersection.showSelectedConnectorAndSegments(conn)
         }
 
-        
+        intersection.showCollisions()
     }
 
     showHover(){

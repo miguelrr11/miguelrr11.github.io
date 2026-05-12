@@ -23,6 +23,13 @@ class Intersection {
 
     }
 
+    findInterSeg(interSegID){
+        for(let seg of this.intersecSegs){
+            if(seg.id == interSegID) return seg
+        }
+        return undefined
+    }
+
         /*
         c0 -------- c1
         |           |
@@ -50,6 +57,143 @@ class Intersection {
             }
         }
         return map
+    }
+
+    getGeometryCollisions(){
+        // returns an array of pairs of intersegments that collide
+        // edges can repeat
+        let collisions = []
+        for(let i = 0; i < this.intersecSegs.length; i++){
+            for(let j = 0; j < this.intersecSegs.length; j++){
+                let segA = this.intersecSegs[i]
+                let segB = this.intersecSegs[j]
+                if(!segA.active || !segB.active) continue
+                let inter = this.checkSegmentCollision(segA, segB)
+                if(inter){
+                    collisions.push({point: inter, edge: [segA, segB]})
+                }
+            }
+        }
+        return collisions
+    }
+
+    checkSegmentCollision(segA, segB){
+        // check if the bezier curves of segA and segB intersect, if they do, add them to the collisions array
+        // important: if segA and segB share a FROM connector, that is NOT a collision
+        let fromConnA = segA.fromConnector || this.road.findConnector(segA.fromConnectorID)
+        let fromConnB = segB.fromConnector || this.road.findConnector(segB.fromConnectorID)
+        if(fromConnA.id == fromConnB.id) return false
+        let bezierA = segA.bezierPoints
+        let bezierB = segB.bezierPoints
+        for(let i = 0; i < bezierA.length-1; i+=2){
+            let ax1 = bezierA[i]
+            let ay1 = bezierA[i+1]
+            let ax2 = bezierA[Math.min(i+2, bezierA.length-2)]
+            let ay2 = bezierA[Math.min(i+3, bezierA.length-1)]
+            for(let j = 0; j < bezierB.length-1; j+=2){
+                let bx1 = bezierB[j]
+                let by1 = bezierB[j+1]
+                let bx2 = bezierB[Math.min(j+2, bezierB.length-2)]
+                let by2 = bezierB[Math.min(j+3, bezierB.length-1)]
+                let inter = lineIntersection({x: ax1, y: ay1}, {x: ax2, y: ay2}, {x: bx1, y: by1}, {x: bx2, y: by2}, false, 5)
+                if(inter){
+                    return inter
+                }
+            }
+        }
+        return false
+    }
+
+    constructTLphases(){
+        let collisions = this.getGeometryCollisions()
+        // create a map with keys as segment IDs and values as arrays of segment IDs that collide with it
+        let collisionMap = new Map()
+        for(let coll of collisions){
+            let segA = coll.edge[0]
+            let segB = coll.edge[1]
+            if(!collisionMap.has(segA.id)) collisionMap.set(segA.id, [])
+            collisionMap.get(segA.id).push(segB.id)
+        }
+        const movements = [...collisionMap.keys()];
+        movements.sort(
+            (a, b) =>
+                collisionMap.get(b).length -
+                collisionMap.get(a).length
+        );
+        const phases = [];
+        let conflicts = new Set(collisions.map(c => c.edge.map(s => s.id)).flat());
+
+        for (const movement of movements){
+            let placed = false;
+            for (const phase of phases){
+                let compatible = true;
+                for (const existing of phase){
+
+                    const existingConflicts =
+                        collisionMap.get(movement) || [];
+
+                    if (existingConflicts.includes(existing)){
+                        compatible = false;
+                        break;
+                    }
+                }
+
+                if (compatible){
+                    phase.push(movement);
+                    placed = true;
+                    break;
+                }
+            }
+            if (!placed) phases.push([movement]);
+        }
+
+        for (const movement of movements){
+            for (const phase of phases){
+                if (phase.includes(movement))
+                    continue;
+
+                let compatible = true;
+
+                for (const existing of phase){
+                    const conflicts = collisionMap.get(movement) || [];
+                    if (conflicts.includes(existing)){
+                        compatible = false;
+                        break;
+                    }
+                }
+
+                if (compatible){
+                    phase.push(movement);
+                }
+            }
+        }
+
+        //check if there are interSecSegs that are not present in the pases,
+        //if there are, they should be added in all phases because they dont collide with any other segment
+        let interSecSegIDs = this.intersecSegs.map(s => s.id)
+        for(let segID of interSecSegIDs){
+            if(!conflicts.has(segID) && this.road.findIntersecSeg(segID).active){
+                for(let phase of phases){
+                    phase.push(segID)
+                }
+            }
+        }
+
+        if(phases.length > 0) this.TLS = new TrafficLightSystem(this, phases)
+
+        return this.TLS;
+    }
+
+    showCollisions(){
+        let collisions = this.getGeometryCollisions()
+        if(collisions.length == 0) return
+        push()
+        stroke(255, 0, 0, 100)
+        strokeWeight(6)
+        for(let coll of collisions){
+            point(coll.point.x, coll.point.y)
+        }
+        pop()
     }
 
     drawOutlineDebug(){
@@ -257,6 +401,13 @@ class Intersection {
             vertex(this.outline[i], this.outline[i+1])
         }
         endShape()
+
+    }
+
+    showTLS(){
+        if(this.TLS){
+            this.TLS.show()
+        }
     }
 
     // type: showWays (son las lineas blancas pegadas a la acera)

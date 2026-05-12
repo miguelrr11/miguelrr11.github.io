@@ -9,6 +9,7 @@ class Connector{
         this.id = id
         this.type = undefined // 'enter' or 'exit' depending on whether the connector is entering or exiting an intersection
         this.dirs = undefined //calculated directions (left, right, straight) based on outgoing segments (used by segments)
+        this.nodeID = undefined // the nodeID of the intersection this connector belongs to, if any
     }
 
     // gets all the outgoing segments of this outgoingSegmentIDs and returns their angles respective of the path of this connector

@@ -65,6 +65,8 @@ class Road{
 
         this.connectorIDcounter = getNextID()
         this.intersecSegIDcounter = getNextID()
+
+        this.TLSs = new Map()   //map of traffic light systems, key is the intersection ID
     }
 
 
@@ -971,6 +973,7 @@ class Road{
                 let connector1 = connectorMap.get(inSeg.id)
                 if (!connector1) {
                     connector1 = new Connector(inSeg.id, undefined, inSeg.toPos, this.connectorIDcounter)
+                    connector1.nodeID = nodeID
                     connector1.road = this
                     connector1.type = 'enter'
                     this.connectors.set(connector1.id, connector1)
@@ -981,6 +984,7 @@ class Road{
                 let connector2 = connectorMap.get(outSeg.id)
                 if (!connector2) {
                     connector2 = new Connector(undefined, outSeg.id, outSeg.fromPos, this.connectorIDcounter)
+                    connector2.nodeID = nodeID
                     connector2.road = this
                     connector2.type = 'exit'
                     this.connectors.set(connector2.id, connector2)
@@ -1032,6 +1036,7 @@ class Road{
         for (const inSeg of incoming) {
             if (connectorMap.has(inSeg.id)) continue
             const connector = new Connector(inSeg.id, undefined, inSeg.toPos, this.connectorIDcounter)
+            connector.nodeID = nodeID
             connector.road = this
             connector.type = 'enter'
             this.connectors.set(connector.id, connector)
@@ -1045,6 +1050,7 @@ class Road{
         for (const outSeg of outgoing) {
             if (connectorMap.has(outSeg.id)) continue
             const connector = new Connector(undefined, outSeg.id, outSeg.fromPos, this.connectorIDcounter)
+            connector.nodeID = nodeID
             connector.road = this
             connector.type = 'exit'
             this.connectors.set(connector.id, connector)
@@ -1084,6 +1090,23 @@ class Road{
             }
         }
         return intersections
+    }
+
+    generateTLS(){
+        // construct TLS on every intersection
+        this.TLSs = new Map()
+        for(let inter of this.intersections.values()){
+            if(inter.intersecSegs.length > 1) {
+                let tls = inter.constructTLphases()
+                if(tls) this.TLSs.set(inter.id, tls)
+            }
+        }
+    }
+
+    updateTLSs(deltaMult){
+        for(let tls of this.TLSs.values()){
+            tls.update(deltaMult)
+        }
     }
 
     //not used
@@ -1189,6 +1212,11 @@ class Road{
         push()
         pathsInView.forEach((p, key) => p.showCarDebug())
         intersectionsInView.forEach((p, key) => p.showCarDebug())
+
+        for(let value of this.TLSs.values()){
+            let inter = value.intersection
+            inter.showTLS()
+        }
         pop()
     }
 

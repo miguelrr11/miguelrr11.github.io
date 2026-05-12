@@ -141,6 +141,22 @@ class Car{
         return closestCar
     }
 
+    checkRedLight(){
+        if(this.isOnIntersection) return null
+        let seg = this.getCurSeg()
+        let conn = seg.toConnector
+        let interSeg = this.route[this.routeIndex]
+        let intersection = this.road.findIntersection(conn.nodeID)
+        if(intersection.TLS){
+            let activeSegs = intersection.TLS.phases[intersection.TLS.currentPhaseIndex]
+            if(activeSegs.includes(interSeg)) return null
+            else {
+                let distToConn = seg.getLen() - this.segTrav
+                return {car: {speed: 0, col: [255, 0, 0]}, distance: distToConn}
+            }
+        }
+    }
+
 
     update(dt = deltaTime/16){
         if(this.segmentID != undefined){
@@ -154,18 +170,18 @@ class Car{
 
                     let distToCarObj = this.carAhead()
                     let distToCarObjIntersecting = this.carIntersecting()
+                    let distToRedLightObj = this.checkRedLight()
 
-                    let finalDistToCarObj = null
-                    // save the closest one
-                    if(distToCarObj && distToCarObjIntersecting){
-                        finalDistToCarObj = distToCarObj.distance < distToCarObjIntersecting.distance ? distToCarObj : distToCarObjIntersecting
-                    }
-                    else if(distToCarObj){
-                        finalDistToCarObj = distToCarObj
-                    }
-                    else if(distToCarObjIntersecting){
-                        finalDistToCarObj = distToCarObjIntersecting
-                    }
+                    let candidates = [
+                        distToCarObj,
+                        distToCarObjIntersecting,
+                        distToRedLightObj
+                    ].filter(obj => obj && obj.distance != null)
+
+                    // nos quedamos con el objeto que representa el obstáculo más cercano (si hay alguno)
+                    let finalDistToCarObj = candidates.length > 0
+                        ? candidates.reduce((min, obj) => obj.distance < min.distance ? obj : min)
+                        : null
                     let acc
 
                     if(finalDistToCarObj && finalDistToCarObj.car){
@@ -279,7 +295,7 @@ class Car{
             rotate(ang)
             if(pos){
                 this.setStyle()
-                if(!this.accelerating && showDebug) stroke(this.carTooClose ? this.carTooClose.col : 0)
+                if(!this.accelerating && showDebug) stroke(this.carTooClose ? this.carTooClose.col ? this.carTooClose.col : 0 : 0)
                 else noStroke()
                 rectMode(CENTER)
                 rect(0, 0, 22, 10, 2)
