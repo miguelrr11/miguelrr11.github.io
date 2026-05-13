@@ -167,18 +167,20 @@ class Menu{
         })
         this.buttons.push(buttonCollapse)
         
-
+        function setCarStateButtons(bool){
+            buttonCreate.disabled = bool
+            buttonDelete.disabled = bool
+            sliderLaneWidth.disabled = bool
+            sliderLengthSegBezier.disabled = bool
+            sliderOffsetRadIntersec.disabled = bool
+            sliderTensionMax.disabled = bool
+            sliderTensionMin.disabled = bool
+        }
 
         let buttonAddCars = new Button(10, HEIGHT - 30, 70, 20, 'Add Cars', () => {
             tool.carManager.addCars(nAddCars)
-            tool.handState()
-            buttonCreate.disabled = true
-            buttonDelete.disabled = true
-            sliderLaneWidth.disabled = true
-            sliderLengthSegBezier.disabled = true
-            sliderOffsetRadIntersec.disabled = true
-            sliderTensionMax.disabled = true
-            sliderTensionMin.disabled = true
+            tool.setCarState()
+            setCarStateButtons(false)
         })
         let buttonChangeNaddCars = new Button(90, HEIGHT - 30, 30, 20, nAddCars, () => {
             if(nAddCars == 1) nAddCars = 2
@@ -188,18 +190,17 @@ class Menu{
             else nAddCars = 1
             buttonChangeNaddCars.label = nAddCars
         })
-        let buttonRemoveCars = new Button(10, HEIGHT - 60, 110, 20, 'Remove Cars', () => {
+        // the text should imply remove cars and traffic lights and setting carState to false
+        let txt = 'Reset Car State'
+        let buttonRemoveCars = new Button(10, HEIGHT - 60, 110, 20, txt, () => {
             tool.carManager.removeCars()
-            buttonCreate.disabled = false
-            buttonDelete.disabled = false
-            sliderLaneWidth.disabled = false
-            sliderLengthSegBezier.disabled = false
-            sliderOffsetRadIntersec.disabled = false
-            sliderTensionMax.disabled = false
-            sliderTensionMin.disabled = false
+            tool.resetCarState()
+            setCarStateButtons(false)
         })
         let buttonGenerateTLS = new Button(130, HEIGHT - 60, 110, 50, 'Generate\nTraffic Lights', () => {
             tool.generateTLS()
+            tool.setCarState()
+            setCarStateButtons(false)
         })
         let sliderDT = new Slider(10, HEIGHT - 100, 110, 'Delta Time', 0, 10, 1, (value) => {
             this.tool.deltaTimeMult = value

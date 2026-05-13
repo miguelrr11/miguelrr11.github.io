@@ -181,7 +181,9 @@ class Tool{
             secondPointCS: undefined,
 
             OSMqueue: {nodesToProcess: new Set()},
-            isProcessingOSM: false
+            isProcessingOSM: false,
+
+            carState: false //true if there are cars running, if true, some actions will be disabled
         }
     }
 
@@ -358,9 +360,20 @@ class Tool{
         }
     }
 
+    setCarState(){
+        this.state.carState = true
+        this.handState()
+    }
+
     generateTLS(){
         this.road.generateTLS()
         this.showOptions.SHOW_CAR_DEBUG = true
+        this.setCarState()
+    }
+
+    resetCarState(){
+        this.road.deleteTLS()
+        this.state.carState = false
     }
 
     doubleClick(event){
@@ -582,7 +595,7 @@ class Tool{
         }
 
         //selects a connector to finetune its intersecSegs
-        else if(mode == 'movingNode' && this.state.selectedIntersection != undefined){
+        else if(mode == 'movingNode' && this.state.selectedIntersection != undefined && !this.state.carState){
             let intersection = this.road.findIntersection(this.state.selectedIntersection)
             let hoveredConn = intersection.findHoverConnector(mousePos.x, mousePos.y)
             if(hoveredConn != undefined && this.state.selectedConnector == undefined && hoveredConn.type == 'enter'){
@@ -635,7 +648,7 @@ class Tool{
         }
 
         //dragging nodes
-        if(this.state.mode == 'movingNode'){
+        if(this.state.mode == 'movingNode' && !this.state.carState){
             //finds a selection box to start dragging
             if(this.state.selectedNodes.size > 0 && this.state.selectedNodesOffsets.size == 0){
                 if(inBoundsTwoCorners(mousePos.x, mousePos.y, this.state.firstCornerSelected, this.state.secondCornerSelected)){
@@ -1539,10 +1552,11 @@ class Tool{
             intersection.showSelectedConnectorAndSegments(conn)
         }
 
-        intersection.showCollisions()
+        //intersection.showCollisions()
     }
 
     showHover(){
+        if(this.state.carState) return // in car state we don't show hover because the hover interactions are disabled anyway
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
         let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
         let _hoverSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)

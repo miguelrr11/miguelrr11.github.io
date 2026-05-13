@@ -91,7 +91,8 @@ class Car{
             let nextSegID = toConnector.outgoingSegmentIDs[0]
             if(nextSegID == undefined) return null
             return this._scanAhead(this.road.findSegment(nextSegID), false, 0, newAccumDist)
-        } else {
+        } 
+        else {
             // regular segment -> enter connector -> all active outgoing intersegments
             let outgoingIDs = toConnector.getOutgoingActiveIntersegs()
             let closest = null
@@ -111,6 +112,17 @@ class Car{
             stroke(255, 0, 0)
             noFill()
             ellipse(this.worldPos.x, this.worldPos.y, carObj.distance * 2)
+            pop()
+        }
+    }
+
+    showTrafficLightAheadDebug(){
+        let redLightObj = this.checkRedLightFurther()
+        if(redLightObj && redLightObj.car){
+            push()
+            stroke(255, 0, 0)
+            noFill()
+            ellipse(this.worldPos.x, this.worldPos.y, redLightObj.distance * 2)
             pop()
         }
     }
@@ -141,20 +153,46 @@ class Car{
         return closestCar
     }
 
+    // not used because it only checks the current intersection, and we want to check further ahead just in case the following
+    // segments are short and we need to brake in advance
     checkRedLight(){
         if(this.isOnIntersection) return null
         let seg = this.getCurSeg()
         let conn = seg.toConnector
-        let interSeg = this.route[this.routeIndex]
         let intersection = this.road.findIntersection(conn.nodeID)
+        let interSegID = this.route[this.routeIndex]
         if(intersection.TLS){
-            let activeSegs = intersection.TLS.phases[intersection.TLS.currentPhaseIndex]
-            if(activeSegs.includes(interSeg)) return null
-            else {
+            if(intersection.TLS.isRed(interSegID)) {
                 let distToConn = seg.getLen() - this.segTrav
                 return {car: {speed: 0, col: [255, 0, 0]}, distance: distToConn}
             }
         }
+    }
+
+    checkRedLightFurther(){
+        // iterates through the route until it finds a non-green light, and returns the distance to it. If no red light is found within DETECT_DISTANCE, returns null
+        let curSeg = this.findSegmentOrIntersecSegment(this.segmentID, !this.isOnIntersection)
+        let acumDist = curSeg.getLen() - this.segTrav
+        let routeIndex = this.routeIndex
+        let isInter = this.isOnIntersection
+        for(let i = routeIndex; i < this.route.length; i++){
+            if(acumDist > DETECT_DISTANCE) return null
+            let segID = this.route[i]
+            let seg = this.findSegmentOrIntersecSegment(segID, isInter)
+            if(!isInter){
+                let inter = this.road.findIntersection(seg.fromConnector.nodeID)
+                if(inter && inter.TLS && inter.TLS.isRed(segID)){
+                    return {car: {speed: 0, col: [255, 0, 0]}, distance: acumDist}    
+                }
+                acumDist += seg.getLen()
+            }
+            else{
+                acumDist += seg.getLen()
+                if(acumDist > DETECT_DISTANCE) return null
+            }
+            isInter = !isInter
+        }
+        return null
     }
 
 
@@ -170,7 +208,7 @@ class Car{
 
                     let distToCarObj = this.carAhead()
                     let distToCarObjIntersecting = this.carIntersecting()
-                    let distToRedLightObj = this.checkRedLight()
+                    let distToRedLightObj = this.checkRedLightFurther()
 
                     let candidates = [
                         distToCarObj,
@@ -244,8 +282,8 @@ class Car{
     showRoute(){
         if(this.route.length == 0) return
         push()
-        stroke(0, 0, 255)
-        strokeWeight(3)
+        stroke(0, 0, 255, 180)
+        strokeWeight(1.5)
         noFill()
         let curSeg = this.getCurSeg()
         beginShape()
@@ -280,12 +318,18 @@ class Car{
             }
         }
         endShape()
+
+        noFill()
+        stroke(0, 255, 0, 150)
+        strokeWeight(1)
+        let pos = this.getCurPos()
+        ellipse(pos.x, pos.y, DETECT_DISTANCE * 2)
         pop()
     }
 
     show(showRoute = false){
         let showDebug = this.road.tool.showOptions.SHOW_CAR_DEBUG
-        if(showDebug && showRoute) {this.showRoute(); this.showCarAheadDebug()}
+        if(showDebug && showRoute) {this.showRoute(); this.showCarAheadDebug(); this.showTrafficLightAheadDebug()}
         push()
         if(this.segmentID != undefined){
             let pos = this.getCurPos()
@@ -311,14 +355,7 @@ class Car{
                     if(!this.accelerating) str += '\ng: ' + round(this.debugGap, 1)
                     if(this.acumTrav != undefined) str += '\nAT: ' + round(this.acumTrav, 1)
                     str += '\nID: ' + this.id
-                    //text(str, 0, 0)
-
-                    noFill()
-                    stroke(0, 255, 0, 50)
-                    strokeWeight(.5)
-                    ellipse(0, 0, DETECT_DISTANCE * 2)
-
-                    
+                    //text(str, 0, 0)                    
                 }
             }
         }

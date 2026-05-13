@@ -2,10 +2,11 @@ class TrafficLightSystem{
     constructor(intersection, phases){
         this.phases = phases
         this.intersection = intersection
-        this.currentPhaseIndex = 0
-        this.timeInCurrentPhase = 0
+        this.currentPhaseIndex = floor(random(this.phases.length))
+        this.phaseDuration = 5*60
+        this.timeInCurrentPhase = random(this.phaseDuration)
 
-        this.phaseDuration = 3*60
+        
     }
 
     update(deltaMult){
@@ -16,10 +17,14 @@ class TrafficLightSystem{
         }
     }
 
+    isRed(intersecSegID){
+        return !this.phases[this.currentPhaseIndex].includes(intersecSegID)
+    }
+
     show(){
         push()
         strokeWeight(2)
-        stroke(255, 50, 70)
+        stroke(135, 50, 70)
         for(let i = 0; i < this.phases.length; i++){
             let phase = this.phases[i]
             if(i == this.currentPhaseIndex) continue
@@ -31,6 +36,7 @@ class TrafficLightSystem{
                 }
             }
         }
+        strokeWeight(3)
         stroke(70, 255, 50)
         let activePhase = this.phases[this.currentPhaseIndex]
         for(let j = 0; j < activePhase.length; j++){

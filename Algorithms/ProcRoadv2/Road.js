@@ -1096,7 +1096,9 @@ class Road{
         // construct TLS on every intersection
         this.TLSs = new Map()
         for(let inter of this.intersections.values()){
-            if(inter.intersecSegs.length > 1) {
+            // no TLS for intersections that are not really intersections 
+            // (just nodes conencting 2 paths, or invalid intersections with 2 or less intersecSegs or paths)
+            if(inter.intersecSegs.length > 1 && inter.paths.length > 2) {
                 let tls = inter.constructTLphases()
                 if(tls) this.TLSs.set(inter.id, tls)
             }
@@ -1107,6 +1109,10 @@ class Road{
         for(let tls of this.TLSs.values()){
             tls.update(deltaMult)
         }
+    }
+
+    deleteTLS(){
+        this.TLSs = new Map()
     }
 
     //not used

@@ -177,9 +177,8 @@ class InterSegment{
         }
         endShape()
         if(SHOW_TAGS){
-            let first = {x: this.bezierPoints[0], y: this.bezierPoints[1] }
-            let last = {x: this.bezierPoints[this.bezierPoints.length-2], y: this.bezierPoints[this.bezierPoints.length-1] }
-            let midPos = {x: (first.x + last.x) / 2, y: (first.y + last.y) / 2}
+            let midIndex = Math.floor(this.bezierPoints.length / 4) * 2
+            let midPos = {x: this.bezierPoints[midIndex], y: this.bezierPoints[midIndex + 1]}
             noStroke()
             fill(0, 255, 0)
             textAlign(CENTER)
