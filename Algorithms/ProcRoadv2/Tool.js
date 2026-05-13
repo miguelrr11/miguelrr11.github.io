@@ -54,7 +54,6 @@ class Tool{
         this.road = new Road(this)
         this.state = this.getInitialState()
         this.carManager = new CarManager(this.road)
-        this.buttons = []
         this.menu = new Menu(this)
         this.dragging = false
         //document.addEventListener("click", () => this.onClick())

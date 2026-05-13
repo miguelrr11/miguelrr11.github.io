@@ -1112,6 +1112,9 @@ class Road{
     }
 
     deleteTLS(){
+        for(let tls of this.TLSs.values()){
+            delete tls.intersection.TLS
+        }
         this.TLSs = new Map()
     }
 

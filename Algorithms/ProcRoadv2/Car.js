@@ -40,7 +40,7 @@ class Car{
         this.col = color(random(255), random(255), random(255))
 
         this.route = [] // array of segments/intersecSegments IDs to follow
-        this.routeIndex = 0 // index of the next connector in the route to head towards
+        this.routeIndex = 0 // index of the NEXT segment in the route to head towards
     }
 
     whatIndexOfSegmentIsCarOn(){

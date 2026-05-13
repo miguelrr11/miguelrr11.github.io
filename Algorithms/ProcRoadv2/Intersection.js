@@ -578,9 +578,56 @@ class Intersection {
         if(this.innerLaneEdges.length == 0) this.innerLaneEdges = null
     }
 
+    showYieldMarkingsTLS(){
+        push()
+        let paths = this.paths.length > 0 ? this.paths : this.road.findAnyPath(this.nodeID)
+        if(paths.length > 2){
+            for(let i = 0; i < paths.length; i++){
+                let path = paths[i]
+                if(path){
+                    let segmentsEndingHere = path.getSegmentsEndingAtNode(this.nodeID)
+                    segmentsEndingHere.forEach(segment => {
+                        let yieldPos = segment.yieldPos
+                        if(yieldPos && yieldPos[0] != undefined){
+                            
+                            line(yieldPos[0].x, yieldPos[0].y, yieldPos[1].x, yieldPos[1].y)
+                            // we have to divide the line in the number of intersegments that go from the toConnector of this segment,
+                            // and each line (which is actually a rectangle) should be colored depending on its state in the TLS associated
+                            // each line should also be drawn in the correct order
+                            // lets star just by drawing the correct number of lines with a greyscale
+
+                            // let outConn = segment.toConnector || this.road.findConnector(segment.toConnectorID)
+                            // let segsFromHere = outConn.outgoingSegmentIDs.map(id => this.road.findIntersecSeg(id))
+                            // // now lets draw the lines
+                            // let n = segsFromHere.length
+                            // for(let i = 0; i < n; i++){
+                            //     let interSecSeg = segsFromHere[i]
+                            //     let color = (i/n) * 255
+                            //     let pos = {
+                            //         x1: yieldPos[0].x + (yieldPos[1].x - yieldPos[0].x) * (i/n),
+                            //         y1: yieldPos[0].y + (yieldPos[1].y - yieldPos[0].y) * (i/n),
+                            //         x2: yieldPos[0].x + (yieldPos[1].x - yieldPos[0].x) * ((i+1)/n),
+                            //         y2: yieldPos[0].y + (yieldPos[1].y - yieldPos[0].y) * ((i+1)/n),
+                            //     }
+                            //     stroke(color)
+                            //     strokeWeight(5)
+                            //     point((pos.x1 + pos.x2)/2, (pos.y1 + pos.y2)/2)
+                            // }
+                        }
+                    });
+                } 
+            }
+        }
+        pop()
+    }
+
     // type: showWays
     showYieldMarkings(){
         if(this.nodeObj.OOB) return
+        if(this.TLS){
+            this.showYieldMarkingsTLS()
+            return
+        }
         // find all segments that feed into this intersection
         let paths = this.paths.length > 0 ? this.paths : this.road.findAnyPath(this.nodeID)
         if(paths.length > 2){

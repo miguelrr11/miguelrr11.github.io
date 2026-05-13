@@ -167,20 +167,20 @@ class Menu{
         })
         this.buttons.push(buttonCollapse)
         
-        function setCarStateButtons(bool){
-            buttonCreate.disabled = bool
-            buttonDelete.disabled = bool
-            sliderLaneWidth.disabled = bool
-            sliderLengthSegBezier.disabled = bool
-            sliderOffsetRadIntersec.disabled = bool
-            sliderTensionMax.disabled = bool
-            sliderTensionMin.disabled = bool
+        function setCarStateButtons(disabled){
+            buttonCreate.disabled = disabled
+            buttonDelete.disabled = disabled
+            sliderLaneWidth.disabled = disabled
+            sliderLengthSegBezier.disabled = disabled
+            sliderOffsetRadIntersec.disabled = disabled
+            sliderTensionMax.disabled = disabled
+            sliderTensionMin.disabled = disabled
         }
 
         let buttonAddCars = new Button(10, HEIGHT - 30, 70, 20, 'Add Cars', () => {
             tool.carManager.addCars(nAddCars)
             tool.setCarState()
-            setCarStateButtons(false)
+            setCarStateButtons(true)
         })
         let buttonChangeNaddCars = new Button(90, HEIGHT - 30, 30, 20, nAddCars, () => {
             if(nAddCars == 1) nAddCars = 2
@@ -196,13 +196,13 @@ class Menu{
             tool.carManager.removeCars()
             tool.resetCarState()
             setCarStateButtons(false)
-        })
+        }, undefined, () => {return this.tool.state.carState})
         let buttonGenerateTLS = new Button(130, HEIGHT - 60, 110, 50, 'Generate\nTraffic Lights', () => {
             tool.generateTLS()
             tool.setCarState()
-            setCarStateButtons(false)
+            setCarStateButtons(true)
         })
-        let sliderDT = new Slider(10, HEIGHT - 100, 110, 'Delta Time', 0, 10, 1, (value) => {
+        let sliderDT = new Slider(10, HEIGHT - 95, 110, 'Delta Time', 0, 10, 1, (value) => {
             this.tool.deltaTimeMult = value
         })
         sliderDT.snap = 1
@@ -646,7 +646,7 @@ class Slider{
         this.disabled = false
 
         this.isDragging = false
-        this.titleHeight = 20
+        this.titleHeight = 17
 
         // Total height includes title + slider
         this.totalHeight = this.titleHeight + this.height + 5
@@ -746,6 +746,14 @@ class Slider{
         // Draw filled track
         this.disabled ? fill(70) : fill(175)
         rect(this.pos.x, sliderY, normalizedValue * this.width, this.height, 4)
+
+        if(this.snap !== undefined){
+            //draw small point in the snap position
+            let snapNormalizedValue = (this.snap - this.minValue) / (this.maxValue - this.minValue)
+            let snapX = this.pos.x + snapNormalizedValue * this.width
+            fill(250)
+            ellipse(snapX, sliderY + this.height/2, 4, 4)
+        }
 
         // Draw handle
         let handleSize = this.isDragging || this.isMouseOver() ? 18 : 16
