@@ -406,7 +406,7 @@ class Menu{
 
         this.sliders.push(sliderAround)
 
-        let buttonDebugRoad = new Button(10, 430, 95, 210, 'Debug Road', undefined, () => {
+        let buttonDebugRoad = new Button(10, 430, 95, 135, 'Debug Road', undefined, () => {
             let mousePos = this.tool.getRelativePos(mouseX, mouseY)
             return 'NODES: ' + '\n' +
                    'SEGS: '   + '\n' +

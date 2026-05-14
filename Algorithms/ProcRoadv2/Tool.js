@@ -1259,16 +1259,13 @@ class Tool{
     }
 
     getMinMaxPos() {
-        let nereastNodeUpperLeft = this.road.graphIndex.nearestNodes(-100000000, -100000000, 1)[0]
-        let nereastNodeBottomRight = this.road.graphIndex.nearestNodes(100000000, 100000000, 1)[0]
-        let nereastNodeUpperRight = this.road.graphIndex.nearestNodes(100000000, -100000000, 1)[0]
-        let nereastNodeBottomLeft = this.road.graphIndex.nearestNodes(-100000000, 100000000, 1)[0]
-        if(!nereastNodeUpperLeft || !nereastNodeBottomRight) return [0, 0, 0, 0]
-        let minX = Math.min(nereastNodeUpperLeft.data.x, nereastNodeBottomLeft.data.x)
-        let maxX = Math.max(nereastNodeBottomRight.data.x, nereastNodeUpperRight.data.x)
-        let minY = Math.min(nereastNodeUpperLeft.data.y, nereastNodeUpperRight.data.y)
-        let maxY = Math.max(nereastNodeBottomRight.data.y, nereastNodeBottomLeft.data.y)
-        return [minX, maxX, minY, maxY]
+        let mbr = this.road.graphIndex.nodes._root.mbr
+        if(!mbr){
+            // return the current edges of the screen
+            let edges = this.getEdges()
+            return [edges[0], edges[1], edges[2], edges[3]]
+        }
+        return [mbr.minX, mbr.maxX, mbr.minY, mbr.maxY]
     }
     
     getTargetZoom() {
