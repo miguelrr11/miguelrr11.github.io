@@ -383,10 +383,15 @@ class Tool{
         let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
         if(hoverNode != undefined){
             this.state.selectedIntersection = hoverNode.id
+            this.state.selectedConnector = undefined
+            this.menu.toggleElement('createButton', true)
+            this.menu.toggleElement('deleteButton', true)
         }
         else {
             this.state.selectedIntersection = undefined
-            this.state.selectedConnector = undefined      
+            this.state.selectedConnector = undefined    
+            this.menu.toggleElement('createButton', false)
+            this.menu.toggleElement('deleteButton', false)  
         }
     }
 
@@ -1370,7 +1375,7 @@ class Tool{
         }
         this.state.changed = false
 
-        this.menuInteracting = this.menu.update()
+        this.menuInteracting = this.menu.update(deltaTime)
         let inB = this.menu.inBounds()
         if(this.menuInteracting != 'slider' && !inB) this.setCursor()
 

@@ -9,18 +9,23 @@ class Menu{
         let buttonCreate = new Button(10, 10, 80, 30, 'Create [K]', () => {tool.createState()}, () => {
             return this.tool.state.mode === 'creating' ? 'Creating...' : 'Create [K]'
         }, () => {return this.tool.state.mode == 'creating'})
+        buttonCreate.labelID = 'createButton'
         let buttonDelete = new Button(100, 10, 80, 30, 'Delete [D]', () => {tool.deleteState()}, () => {
             return this.tool.state.mode === 'deleting' ? 'Deleting...' : 'Delete [D]'
         }, () => {return this.tool.state.mode == 'deleting'})
+        buttonDelete.labelID = 'deleteButton'
         let buttonHand = new Button(190, 10, 80, 30, 'Move [H]', () => {tool.handState()}, () => {
             return this.tool.state.mode === 'movingNode' ? 'Moving...' : 'Move [H]'
         }, () => {return this.tool.state.mode == 'movingNode'})
+        buttonHand.labelID = 'handButton'
         let buttonSelect = new Button(280, 10, 110, 30, 'Area Select [A]', () => {tool.selectState()}, () => {
             return this.tool.state.mode === 'selecting' ? 'Selecting...' : 'Area Select [A]'
         }, () => {return this.tool.state.mode == 'selecting'})
+        buttonSelect.labelID = 'selectButton'
         let buttonCSmode = new Button(400, 10, 150, 30, 'Curved Segments [B]', () => {
             this.tool.state.CSmode = !this.tool.state.CSmode
         }, undefined, () => {return this.tool.state.CSmode})
+        buttonCSmode.labelID = 'CSmodeButton'
 
         let buttonCopy = new Button(280, 50, 50, 20, 'Copy [C]', () => {
             this.tool.copySelectedNodes()
@@ -28,6 +33,8 @@ class Menu{
         let buttonPaste = new Button(340, 50, 50, 20, 'Paste [P]', () => {
             this.tool.pasteNodes()
         }, undefined, () => {return this.tool.getAvaiableToPaste()})
+        buttonCopy.labelID = 'copyButton'
+        buttonPaste.labelID = 'pasteButton'
         buttonCopy.txSize = 10
         buttonPaste.txSize = 10
 
@@ -67,6 +74,7 @@ class Menu{
         undefined,
         () => `${this.tool.state.nForLanes} - ${this.tool.state.nBackLanes}`
         );
+        buttonShowLaneState.labelID = 'numberOfLanesButton'
 
         let buttonPlusBack = new Button(
         RIGHT_X, TOP_Y, SIDE_W, SIDE_H,
@@ -89,50 +97,62 @@ class Menu{
             this.tool.showOptions.SHOW_ROAD = !this.tool.showOptions.SHOW_ROAD
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_ROAD})
+        buttonShowRoad.labelID = 'mainGraphButton'
         let buttonShowPaths = new Button(xLoc, yLoc + hButton, 95, 20, 'Segments', () => {
             this.tool.showOptions.SHOW_PATHS = !this.tool.showOptions.SHOW_PATHS
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_PATHS})
+        buttonShowPaths.labelID = 'segmentsButton'
         let buttonShowIntersecSegs = new Button(xLoc, yLoc + hButton * 2, 95, 20, 'Intersections', () => {
             this.tool.showOptions.SHOW_INTERSECSEGS = !this.tool.showOptions.SHOW_INTERSECSEGS
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_INTERSECSEGS})
+        buttonShowIntersecSegs.labelID = 'intersectionsButton'
         let buttonShowConnectors = new Button(xLoc, yLoc + hButton * 3, 95, 20, 'Connections', () => {
             this.tool.showOptions.SHOW_CONNECTORS = !this.tool.showOptions.SHOW_CONNECTORS
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_CONNECTORS})
+        buttonShowConnectors.labelID = 'connectionsButton'
         let buttonShowNodes = new Button(xLoc, yLoc + hButton * 4, 95, 20, 'Nodes', () => {
             this.tool.showOptions.SHOW_NODES = !this.tool.showOptions.SHOW_NODES
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_NODES})
+        buttonShowNodes.labelID = 'nodesButton'
         let buttonShowTags = new Button(xLoc, yLoc + hButton * 5, 95, 20, 'Tags', () => {
             this.tool.showOptions.SHOW_TAGS = !this.tool.showOptions.SHOW_TAGS
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_TAGS})
+        buttonShowTags.labelID = 'tagsButton'
         let buttonShowSegDetails = new Button(xLoc, yLoc + hButton * 6, 95, 20, 'Endings', () => {
             this.tool.showOptions.SHOW_SEGS_DETAILS = !this.tool.showOptions.SHOW_SEGS_DETAILS
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_SEGS_DETAILS})
+        buttonShowSegDetails.labelID = 'endingsButton'
         let buttonShowLanes = new Button(xLoc, yLoc + hButton * 7, 95, 20, 'Lanes', () => {
             this.tool.showOptions.SHOW_LANES = !this.tool.showOptions.SHOW_LANES
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_LANES})
+        buttonShowLanes.labelID = 'lanesButton'
         let buttonShowConvexHull = new Button(xLoc, yLoc + hButton * 8, 95, 20, 'Junction Area', () => {
             this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA = !this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_INTERSECTION_AREA_AREA})
+        buttonShowConvexHull.labelID = 'junctionAreaButton'
         let buttonShowWays = new Button(xLoc, yLoc + hButton * 9, 95, 20, 'Road', () => {
             this.tool.showOptions.SHOW_WAYS = !this.tool.showOptions.SHOW_WAYS
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_WAYS})
+        buttonShowWays.labelID = 'roadButton'
         let buttonShowGraph = new Button(xLoc, yLoc + hButton * 10, 95, 20, 'Graph', () => {
             this.tool.showOptions.SHOW_GRAPH = !this.tool.showOptions.SHOW_GRAPH
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_GRAPH})
+        buttonShowGraph.labelID = 'graphButton'
         let buttonShowCarDebug = new Button(xLoc, yLoc + hButton * 11, 95, 20, 'Car Debug', () => {
             this.tool.showOptions.SHOW_CAR_DEBUG = !this.tool.showOptions.SHOW_CAR_DEBUG
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_CAR_DEBUG})
+        buttonShowCarDebug.labelID = 'carDebugButton'
 
         buttonsToCollapse = [
             buttonShowRoad,
@@ -182,6 +202,7 @@ class Menu{
             tool.setCarState()
             setCarStateButtons(true)
         })
+        buttonAddCars.labelID = 'addCarsButton'
         let buttonChangeNaddCars = new Button(90, HEIGHT - 30, 30, 20, nAddCars, () => {
             if(nAddCars == 1) nAddCars = 2
             else if(nAddCars == 2) nAddCars = 5
@@ -197,15 +218,20 @@ class Menu{
             tool.resetCarState()
             setCarStateButtons(false)
         }, undefined, () => {return this.tool.state.carState})
+        buttonRemoveCars.labelID = 'resetCarStateButton'
         let buttonGenerateTLS = new Button(130, HEIGHT - 60, 110, 50, 'Generate\nTraffic Lights', () => {
             tool.generateTLS()
             tool.setCarState()
             setCarStateButtons(true)
         })
+        buttonGenerateTLS.labelID = 'generateTrafficLightsButton'
         let sliderDT = new Slider(10, HEIGHT - 95, 110, 'Delta Time', 0, 10, 1, (value) => {
             this.tool.deltaTimeMult = value
         })
+        sliderDT.labelID = 'deltaTimeSlider'
         sliderDT.snap = 1
+
+        // not used
         let buttonConstantSetPaths = new Button(10, HEIGHT - 90, 95, 20, 'Set Paths ON', () => {
             tool.constantSetPaths = !tool.constantSetPaths
         }, () => {return 'Set Paths ' + (tool.constantSetPaths ? 'ON' : 'OFF')},  () => {return tool.constantSetPaths})
@@ -213,17 +239,21 @@ class Menu{
         let buttonSnapToGrid = new Button(10, 90, 80, 20, 'Snap Grid', () => {
             this.tool.state.snapToGrid = !this.tool.state.snapToGrid
         }, undefined,  () => {return this.tool.state.snapToGrid})
+        buttonSnapToGrid.labelID = 'snapButton'
 
         let buttonSetStartSearch = new Button(10, 130, 80, 20, 'Set Start', () => {
             this.tool.state.mode = 'settingStart'
         }, undefined,  () => {return this.tool.state.mode == 'settingStart'})
+        buttonSetStartSearch.labelID = 'setStartButton'
         let buttonSetEndSearch = new Button(10, 160, 80, 20, 'Set End', () => {
             this.tool.state.mode = 'settingEnd'
         }, undefined,  () => {return this.tool.state.mode == 'settingEnd'})
+        buttonSetEndSearch.labelID = 'setEndButton'
         let buttonRemovePathfinding = new Button(10, 190, 80, 20, 'Clear Path', () => {
             this.tool.clearPathFinding()
             cursor(HAND)
         }, undefined,  () => {return this.tool.state.foundPath.length > 0})
+        buttonRemovePathfinding.labelID = 'clearPathButton'
 
         let buttonShowFps = new Button(width - 140, 15, 30, 20, '60', undefined, () => {
             this.tool.state.fpsAcum.push(frameRate())
@@ -281,6 +311,7 @@ class Menu{
                 }
             );
         });
+        buttonLoadOpenStreetMap.labelID = 'OSMBetaButton'
 
         function showFailAndReset(button) {
             button.label = 'Failed';
@@ -298,6 +329,7 @@ class Menu{
             AROUND_RADIUS = value
         })
         sliderAround.floorPreview = true
+        sliderAround.labelID = 'OSMRadiusSlider'
 
         
 
@@ -305,9 +337,11 @@ class Menu{
         let buttonSave = new Button(width - 70 - 10, HEIGHT - 60, 70, 20, 'Save', () => {
             this.tool.saveToLocalStorage()
         })
+        buttonSave.labelID = 'saveButton'
         let buttonLoad = new Button(width - 70 - 10, HEIGHT - 30, 70, 20, 'Load', () => {
             this.tool.loadFromLocalStorage()
         })
+        buttonLoad.labelID = 'loadButton'
 
         let buttonZoomMinus = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 30, 30, 20, '-', () => {
             this.tool.changeZoom('dec')
@@ -319,6 +353,7 @@ class Menu{
         let buttonShowZoomLevel = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 60, 70, 20, '', undefined, () => {
             return round(this.tool.zoom, 3)
         })
+        buttonShowZoomLevel.labelID = 'zoomButton'
 
         let buttonCenter = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 90, 70, 20, 'Center', () => {
             this.tool.center()
@@ -376,14 +411,17 @@ class Menu{
             BIG_LANE_WIDTH = LANE_WIDTH * 1.6
             this.tool.road.setPaths()
         })
+        sliderLaneWidth.labelID = 'laneWidthSlider'
         let sliderLengthSegBezier = new Slider(15, 270, 80, 'Bezier Length', 50, 2, LENGTH_SEG_BEZIER, (value) => {
             LENGTH_SEG_BEZIER = value
             this.tool.road.setPaths()
         })
+        sliderLengthSegBezier.labelID = 'bezierLengthSlider'
         let sliderOffsetRadIntersec = new Slider(15, 310, 80, 'Intersec Rad', 0, 75, OFFSET_RAD_INTERSEC, (value) => {
             OFFSET_RAD_INTERSEC = value
             this.tool.road.setPaths()
         })
+        sliderOffsetRadIntersec.labelID = 'intersecRadiusSlider'
         let sliderTensionMin = new Slider(15, 350, 80, 'Tension Min', 0, 2, TENSION_BEZIER_MIN, (value) => {
             TENSION_BEZIER_MIN = value
             this.tool.road.setPaths()
@@ -449,6 +487,17 @@ class Menu{
         this.interacted = false
         this.coolDownClick = 0
 
+        this.hoverTime = 0
+        this.minHoverTime = 1200
+        this.maxHoverTime = 1500
+
+    }
+
+    toggleElement(label, bool){
+        let button = this.buttons.find(b => b.labelID == label)
+        if(button) button.disabled = bool
+        let slider = this.sliders.find(s => s.labelID == label)
+        if(slider) slider.disabled = bool
     }
 
     setButtonLabel(labelID, text){
@@ -478,11 +527,13 @@ class Menu{
         return false
     }
 
-    update(){
+    update(dt){
         let anyClicked = false
         let whatInteracting = false
+        let hovering = false
         if(this.coolDownClick > 0) this.coolDownClick--
         this.buttons.forEach(b => {
+            if(b.hover()) hovering = b
             if(b.hover() && mouseIsPressed && this.coolDownClick <= 0 && !b.collapsing && !b.uncollapsing){
                 anyClicked = true
                 whatInteracting = 'button'
@@ -492,6 +543,7 @@ class Menu{
 
         // Update sliders
         this.sliders.forEach(s => {
+            if(s.isMouseOver()) hovering = s
             if(s.update()){
                 anyClicked = true
                 whatInteracting = 'slider'
@@ -502,12 +554,24 @@ class Menu{
         this.interacted = anyClicked
         if(anyClicked) this.coolDownClick = 10
 
+        if(hovering) this.hoverTime = min(this.hoverTime + dt, this.maxHoverTime)
+        else this.hoverTime = max(this.hoverTime - dt, 0)
+
+        if(this.hoverTime > this.minHoverTime && hovering) {
+            this.elementToShowDescription = hovering
+        }
+        else this.elementToShowDescription = null
+
         return whatInteracting
     }
 
     show(){
         this.buttons.forEach(b => b.show())
         this.sliders.forEach(s => s.show())
+
+        if(this.elementToShowDescription){
+            this.elementToShowDescription.showDescription()
+        }
     }
 }
 
@@ -517,7 +581,8 @@ class Button{
     constructor(x, y, w, h, label, onClick, updateLabel, enabled){
         this.pos = {x, y}
         this.size = {w, h}
-        this.label = label
+        this.label = label   //can change
+        this.labelID = undefined // should not change, used to identify the button
         this.onClick = onClick
         this.updateLabel = updateLabel
         this.enabled = enabled
@@ -536,6 +601,27 @@ class Button{
         this.enableHoverEffect = true
 
         this.disabled = false
+    }
+
+    showDescription(){
+        if(this.labelID && descriptions[this.labelID]){
+            let desc = descriptions[this.labelID]
+            push()
+            textAlign(LEFT, TOP)
+            textSize(12)
+            let bbox = textFont().textBounds(desc, 0, 0, 200)
+            fill(50)
+            noStroke()
+            // set the position so that the box is always fully visible on the screen
+            let x = mouseX + 20
+            let y = mouseY + 20
+            if(x + bbox.w + 10 > width) x = width - bbox.w - 15
+            if(y + bbox.h + 10 > height) y = height - bbox.h - 15
+            rect(x, y, bbox.w + 10, bbox.h + 10, 5)
+            fill(255)
+            text(desc, x + 5, y + 5, 200)
+            pop()
+        }
     }
 
     setTextAlign(mode){
@@ -656,6 +742,27 @@ class Slider{
         this.snap = undefined
     }
 
+    showDescription(){
+        if(this.labelID && descriptions[this.labelID]){
+            let desc = descriptions[this.labelID]
+            push()
+            textAlign(LEFT, TOP)
+            textSize(12)
+            let bbox = textFont().textBounds(desc, 0, 0, 200)
+            fill(50)
+            noStroke()
+            // set the position so that the box is always fully visible on the screen
+            let x = mouseX + 20
+            let y = mouseY + 20
+            if(x + bbox.w + 10 > width) x = width - bbox.w - 15
+            if(y + bbox.h + 10 > height) y = height - bbox.h - 15
+            rect(x, y, bbox.w + 10, bbox.h + 10, 5)
+            fill(255)
+            text(desc, x + 5, y + 5, 200)
+            pop()
+        }
+    }
+    
     doubleClick(){
         if(this.isMouseOver() && !this.disabled){
             this.value = this.initialValue

@@ -1,0 +1,43 @@
+let descriptions = {
+    'createButton': 'Click in blank spaceto create a new node\nClick on to a segment to divide it and create a new node\nKeep clicking to create segments between nodes\nRight click to cancel',
+    'deleteButton': 'Click on a node or segment to delete it',
+    'handButton': 'Click and drag to move nodes\nClick and drag on blank space to pan the view\nDouble click on a node to toggle individual paths of the intersection',
+    'selectButton': 'Click and drag to create a selection box',
+    'copyButton': 'Copies the area inside the selection box',
+    'pasteButton': 'Pastes the copied nodes, centered on the mouse position',
+    'CSmodeButton': 'Activate to create curved segments',
+
+    'numberOfLanesButton': 'Sets the number of lanes when creating new segments',
+    'snapButton': 'Nodes snap to grid',
+    'setStartButton': 'Sets the start point for pathfinding',
+    'setEndButton': 'Sets the end point for pathfinding and executes it',
+    'clearPathButton': 'Clears the pathfinding result',
+
+    'laneWidthSlider': 'Sets the width of lanes',
+    'bezierLengthSlider': 'Sets the length of bezier segments\nLower values create more precise curves',
+    'intersecRadiusSlider': 'Sets the radius of intersections\nHigher values create rounder intersections',
+    'deltaTimeSlider': 'Sets the time step of the traffic simulation',
+
+    'resetCarStateButton': 'Deletes cars and traffic lights\nAllows you to get back modifying the road network',
+    'addCarsButton': 'Adds N cars to the simulation\nCars are added at random positions with random destinations',
+    'generateTrafficLightsButton': 'Automatically generates traffic lights at valid intersections\nValid intersections are those with more than 2 segments and at least one segment with more than 1 lane',
+
+    'mainGraphButton': 'Shows the main graph\nJust nodes connected by paths',
+    'segmentsButton': 'Shows the trimmed segments and their directions',
+    'intersectionsButton': 'Shows the inner paths of intersections',
+    'connectionsButton': 'Shows connections\nColored red if its at the start of a segment, white if its at its ending',
+    'nodesButton': 'Shows nodes',
+    'tagsButton': 'Shows ID related information of visible elements',
+    'endingsButton': 'Basically the same as connections',
+    'lanesButton': 'Shows the outline of the untrimmed segments, and it fills the trimmed segments based on visual directon, which it\'s not significant',
+    'junctionAreaButton': 'Shows the outline of the whole intersection',
+    'roadButton': 'Shows the main render of the network\nIt is the only rendering mode that is fully optimized',
+    'graphButton': 'Shows the area of both R-Trees: nodes and edges',
+    'carDebugButton': 'Shows debug information for cars and traffic lights',
+    
+    'zoomButton': 'Current zoom value',
+    'OSMRadiusSlider': 'Sets the radius for the OSM System',
+    'OSMBetaButton': 'Executes the OSM (Open Street Map) System\nIt fetches the road network around your position in a specified radius\nIt may fail, so try again if it does',
+    'saveButton': 'Saves the current road network in local storage so you can load it later',
+    'loadButton': 'Loads the road network saved in local storage\nIt will overwrite the current road network',
+}
