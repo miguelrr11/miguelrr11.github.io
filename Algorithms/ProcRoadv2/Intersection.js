@@ -385,23 +385,24 @@ class Intersection {
 
     // type: showWays
     showWayBase(){
-        if(this.nodeObj.OOB) return
-        beginShape()
-        for(let i = 0; i < this.outline16.length; i+=2){
-            vertex(this.outline16[i], this.outline16[i+1])
-        }
-        endShape()
+        this._drawWayShape(this.outline16)
     }
 
     // type: showWays
     showWayTop(){
-        if(this.nodeObj.OOB) return
-        beginShape()
-        for(let i = 0; i < this.outline.length; i+=2){
-            vertex(this.outline[i], this.outline[i+1])
-        }
-        endShape()
+        this._drawWayShape(this.outline)
+    }
 
+    _drawWayShape(points){
+        if(this.nodeObj.OOB) return
+        let ctx = drawingContext
+        ctx.beginPath()
+        ctx.moveTo(points[0], points[1])
+        for(let i = 0; i < points.length; i+=2){
+            ctx.lineTo(points[i], points[i+1])
+        }
+        ctx.closePath()
+        ctx.fill()
     }
 
     showTLS(){

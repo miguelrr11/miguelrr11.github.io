@@ -262,44 +262,40 @@ class Path{
     _drawWayShape(cornersType){
         if(this.OOB) return
         if(this.segments.size == 0) return
-        beginShape()
+        let ctx = drawingContext
+        ctx.beginPath()
         let first = this.segments[0]
         let last = this.segments[this.segments.length - 1]
         let corners = cornersType === 'base' ? 'corners16' : 'corners'
 
         if(first.fromNodeID == this.nodeA){
-            vertex(first[corners][0], first[corners][1])
-            vertex(first[corners][6], first[corners][7])
+            ctx.moveTo(first[corners][0], first[corners][1])
+            ctx.lineTo(first[corners][6], first[corners][7])
         }
         else{
-            vertex(first[corners][4], first[corners][5])
-            vertex(first[corners][2], first[corners][3])
+            ctx.moveTo(first[corners][4], first[corners][5])
+            ctx.lineTo(first[corners][2], first[corners][3])
         }
         if(last.fromNodeID != this.nodeA){
-            vertex(last[corners][0], last[corners][1])
-            vertex(last[corners][6], last[corners][7])
+            ctx.lineTo(last[corners][0], last[corners][1])
+            ctx.lineTo(last[corners][6], last[corners][7])
         }
         else{
-            vertex(last[corners][4], last[corners][5])
-            vertex(last[corners][2], last[corners][3])
+            ctx.lineTo(last[corners][4], last[corners][5])
+            ctx.lineTo(last[corners][2], last[corners][3])
         }
-        endShape(CLOSE)
+        ctx.closePath()
+        ctx.fill()
     }
 
     // type: showWays
     showWayBase(){
         this._drawWayShape('base')
-        // this.segments.forEach(segment => {
-        //     segment.showCustomLanes(SIDE_WALK_COL, BIG_LANE_WIDTH)
-        // })
     }
 
     // type: showWays
     showWayTop(hoveredID = undefined){
         this._drawWayShape('top')
-        // this.segments.forEach(segment => {
-        //     segment.showCustomLanes(ROAD_COL, LANE_WIDTH, hoveredID)
-        // })
     }
 
     // type: showWays (lineas continuas/discontinuas de los carriles)

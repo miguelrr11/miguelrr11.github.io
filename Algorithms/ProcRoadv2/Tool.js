@@ -23,6 +23,8 @@ const DEF_NUM_INTERMEDIATE_NODES_BEZIER = 2
 const DEF_CURVATURE_BEZIER = 0.5
 
 
+
+
 /*
 state.modes:
     creating
@@ -98,6 +100,9 @@ class Tool{
         this.intersectionsIDsInView = []
 
         this.deltaTimeMult = 1 //for cars update
+
+        this.textToRoad("Welcome to\nPROCROAD V2")
+        this.center()
     }
 
     updateElementsInView(){
@@ -823,8 +828,8 @@ class Tool{
     }
 
     changeZoom(how){
-        let worldX = ((width/2) - this.xOff) / this.zoom;
-        let worldY = ((height/2) - this.yOff) / this.zoom;
+        let worldX = (mouseX - this.xOff) / this.zoom;
+        let worldY = (mouseY - this.yOff) / this.zoom;
         this.zoom = how == 'dec' ? this.zoom /= 1.1 : this.zoom *= 1.1 
         this.zoom = Math.max(MIN_ZOOM, Math.min(this.zoom, MAX_ZOOM));
         this.xOff = mouseX - worldX * this.zoom;
@@ -1274,7 +1279,7 @@ class Tool{
     }
     
     getTargetZoom() {
-        const margin = 100
+        const margin = 250
         let [minXp, maxXp, minYp, maxYp] = this.getMinMaxPos()
         let [minXe, maxXe, minYe, maxYe] = this.getEdges()
         let widthP = (maxXp - minXp) + margin
@@ -1472,8 +1477,8 @@ class Tool{
 
         this.menu.show()
     }
-
     showIntersectingPaths(){
+
         if(this.state.mode != 'creating' || this.state.prevNodeID == -1) return
 
         let points = []
@@ -1936,8 +1941,47 @@ class Tool{
         console.log('OSM queue initialized:', this.state.OSMqueue)
     }
 
-    
+    textToRoad(str = "--PROC ROAD v2--"){
+        push()
+        textAlign(CENTER, BOTTOM)
+        let contours = textFont().textToContours(str, 0, 0, {sampleFactor: 0.9})
+        let bbox = textFont().textBounds(str, 0, 0)
+        let scl = 90
+        let nodes = new Set()
+        for(let contour of contours){
+            let prevN
+            let firstNID
+            for(let i = 0; i < contour.length; i++){
+                let pt = contour[i]
+                if(i == 0){
+                    prevN = this.road.addNode(pt.x*scl, pt.y*scl)
+                    firstNID = prevN.id
+                }
+                else if(i < contour.length-1){
+                    let nextN = this.road.addNode(pt.x*scl, pt.y*scl)
+                    this.road.addSegment(prevN.id, nextN.id, 'for')
+                    //this.road.addSegment(nextN.id, prevN.id, 'back')
+                    prevN = nextN
+                }
+                else{
+                    this.road.addSegment(prevN.id, firstNID, 'for')
+                    //this.road.addSegment(firstNID, prevN.id, 'back')
+                }
+                nodes.add(prevN.id)
+            }
+        }
+        let nA = this.road.addNode(-bbox.w*scl*0.5, 0)
+        let nB = this.road.addNode((bbox.w*scl)*0.5, 0)
+        this.road.addSegment(nA.id, nB.id, 'for')
+        this.road.addSegment(nB.id, nA.id, 'back')
+        // this.road.addSegment(nA.id, nB.id, 'for')
+        // this.road.addSegment(nB.id, nA.id, 'back')
+        
+        nodes.forEach(id => {this.road.updateNode(id)})
+        //this.carManager.addCars(nodes.size * 0.8)
 
+        pop()
+    }
 }
 
 
@@ -2005,3 +2049,4 @@ function debug(){
     }
     console.log('Average time:', times.reduce((a, b) => a + b, 0) / times.length, 'ms')
 }
+

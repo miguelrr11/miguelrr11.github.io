@@ -272,6 +272,10 @@ class Menu{
         })
         buttonFullscreen.txSize = 12
 
+        let buttonWiki = new Button(width - 70 - 10, HEIGHT - 90 - 30, 70, 20, 'Wiki')
+        buttonWiki.labelID = 'wikiButton'
+        buttonWiki.widthDescription = 750
+
         let buttonLoadOpenStreetMap = new Button(width - 70 - 10 - 70 - 70 - 30, HEIGHT - 30, 70, 20, 'OSM Beta', () => {
             if (!navigator.geolocation) {
                 showFailAndReset(buttonLoadOpenStreetMap);
@@ -311,7 +315,6 @@ class Menu{
                 }
             );
         });
-        buttonLoadOpenStreetMap.labelID = 'OSMBetaButton'
 
         function showFailAndReset(button) {
             button.label = 'Failed';
@@ -379,6 +382,7 @@ class Menu{
         this.buttons.push(buttonShowFps)
         this.buttons.push(buttonSave)
         this.buttons.push(buttonLoad)
+        this.buttons.push(buttonWiki)
 
         this.buttons.push(buttonShowNodes)
         this.buttons.push(buttonShowRoad)
@@ -601,15 +605,18 @@ class Button{
         this.enableHoverEffect = true
 
         this.disabled = false
+
+        this.widthDescription = 200
     }
 
     showDescription(){
         if(this.labelID && descriptions[this.labelID]){
             let desc = descriptions[this.labelID]
+            if(this.disabled && descriptions[this.labelID + '_disabled']) desc = descriptions[this.labelID + '_disabled']
             push()
             textAlign(LEFT, TOP)
             textSize(12)
-            let bbox = textFont().textBounds(desc, 0, 0, 200)
+            let bbox = textFont().textBounds(desc, 0, 0, this.widthDescription)
             fill(50)
             noStroke()
             // set the position so that the box is always fully visible on the screen
@@ -619,7 +626,7 @@ class Button{
             if(y + bbox.h + 10 > height) y = height - bbox.h - 15
             rect(x, y, bbox.w + 10, bbox.h + 10, 5)
             fill(255)
-            text(desc, x + 5, y + 5, 200)
+            text(desc, x + 5, y + 5, this.widthDescription)
             pop()
         }
     }
@@ -643,7 +650,7 @@ class Button{
     }
 
     hover(){
-        return !this.disableHover && inBounds(mouseX, mouseY, this.pos.x, this.pos.y, this.size.w, this.size.h) && !this.disabled
+        return !this.disableHover && inBounds(mouseX, mouseY, this.pos.x, this.pos.y, this.size.w, this.size.h)
     }
 
     show(){

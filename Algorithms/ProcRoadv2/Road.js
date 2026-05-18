@@ -1199,7 +1199,7 @@ class Road{
 
     showNodes(toolObj, intersectionsInViewIDs){
         let zoom = toolObj.zoom
-        if(zoom > 0.18 && toolObj.showOptions.SHOW_NODES){
+        if(zoom > 0.3 && toolObj.showOptions.SHOW_NODES){
             push()
             noFill()
             strokeWeight(1.5 / zoom)
@@ -1230,9 +1230,11 @@ class Road{
     }
 
     // every function with  "type: showWays" as a comment must only be called from here, as this function sets the correct drawing modes for optimization purposes
+    // the filling of paths and intersections is done with the drawingContext and not with p5 functions for optimization purposes
     showWays(toolObj, pathsInView, intersectionsInViewIDs){
         let zoom = toolObj.zoom
         let hoveredID = toolObj.state.hoverSeg
+        let ctx = drawingContext
 
         // this.paths.forEach((p, key) => p.setOOB())
         // this.nodes.forEach((n, key) => n.setOOB())
@@ -1258,12 +1260,13 @@ class Road{
         fill(ROAD_COL)
         stroke(ROAD_COL)
         strokeWeight(1)
+        
         if(zoom > 0.05) intersectionsInView.forEach((p, key) => p.showWayTop())
         stroke(MARKINGS_COL)
         strokeWeight(1.5)
         noFill()
-        if(zoom > 0.18) intersectionsInView.forEach((p, key) => p.showOuterEdges())
-        if(zoom > 0.18) intersectionsInView.forEach((p, key) => p.showInnerEdges())
+        if(zoom > 0.22) intersectionsInView.forEach((p, key) => p.showOuterEdges())
+        if(zoom > 0.22) intersectionsInView.forEach((p, key) => p.showInnerEdges())
         pop()
     
         push()

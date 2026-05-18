@@ -30,9 +30,9 @@ async function setup(){
     WIDTH = windowWidth
     HEIGHT = windowHeight
     createCanvas(WIDTH, HEIGHT)
-    tool = new Tool()
     let font = await loadFont('font.ttf')
     textFont(font)
+    tool = new Tool()
 }
 
 
