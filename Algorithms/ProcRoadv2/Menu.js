@@ -448,7 +448,7 @@ class Menu{
 
         this.sliders.push(sliderAround)
 
-        let buttonDebugRoad = new Button(10, 430, 95, 135, 'Debug Road', undefined, () => {
+        let buttonDebugRoad = new Button(10, 430, 95, 155, 'Debug Road', undefined, () => {
             let mousePos = this.tool.getRelativePos(mouseX, mouseY)
             return 'NODES: ' + '\n' +
                    'SEGS: '   + '\n' +
@@ -460,14 +460,15 @@ class Menu{
                    'SELECTED: '  +  '\n' +
                    'GRAPH_N: ' +  '\n' +
                    'GRAPH_S: ' +  '\n' +
-                   '(X, Y): ' + '\n'
+                   '(X, Y): ' + '\n' + 
+                   'VAO%: ' + '\n'
         }, () => {return false})
         buttonDebugRoad.txSize = 9
         buttonDebugRoad.setTextAlign('left-top')
         buttonDebugRoad.enableHoverEffect = false
         this.buttons.push(buttonDebugRoad)
 
-        let buttonDebugValues = new Button(90, 430, 95, 210, 'Debug Road', undefined, () => {
+        let buttonDebugValues = new Button(90, 430, 95, 250, 'Debug Road', undefined, () => {
             let mousePos = this.tool.getRelativePos(mouseX, mouseY)
             return  this.tool.road.nodes.size + '\n' +
                     this.tool.road.segments.size + '\n' +
@@ -479,7 +480,8 @@ class Menu{
                     this.tool.state.selectedNodes.size + '\n' +
                     this.tool.road.graphIndex.nodes._size + '\n' +
                     this.tool.road.graphIndex.edges._size + '\n' +
-                   '(' + round(mousePos.x) + ', ' + round(mousePos.y) + ')'
+                   '(' + round(mousePos.x) + ', ' + round(mousePos.y) + ')' + '\n' +
+                   round(this.tool.renderer.getVAOPercentage() * 100) + '%'
         }, () => {return false})
         buttonDebugValues.txSize = 9
         buttonDebugValues.setTextAlign('right-top')

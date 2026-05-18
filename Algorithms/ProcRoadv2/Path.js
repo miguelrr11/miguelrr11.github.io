@@ -15,6 +15,66 @@ class Path{
         this.length = 0
         this.id = nodeA + '_' + nodeB
         this.OOB = false
+
+        this.polygon = null
+    }
+
+    getCorners(cornersType){
+        let first = this.segments[0]
+        let last = this.segments[this.segments.length - 1]
+        let corners = cornersType === 'base' ? 'corners16' : 'corners'
+
+        let cornersArr = []
+
+        if(first.fromNodeID == this.nodeA){
+            cornersArr.push(first[corners][0], first[corners][1])
+            cornersArr.push(first[corners][6], first[corners][7])
+        }
+        else{
+            cornersArr.push(first[corners][4], first[corners][5])
+            cornersArr.push(first[corners][2], first[corners][3])
+        }
+        if(last.fromNodeID != this.nodeA){
+            cornersArr.push(last[corners][0], last[corners][1])
+            cornersArr.push(last[corners][6], last[corners][7])
+        }
+        else{
+            cornersArr.push(last[corners][4], last[corners][5])
+            cornersArr.push(last[corners][2], last[corners][3])
+        }
+        this.outline = cornersArr
+        return cornersArr
+    }
+
+    triangulate(){
+        return window.earcut(this.getCorners('top'));
+    }
+
+    constructPolygon(){
+        if(this.polygon) this.road.tool.renderer.removePolygon(this.polygon)
+        let tris = this.triangulate()
+        let arr = new Float32Array(this.outline)
+        this.polygon = this.road.tool.renderer.addPolygon(arr, tris)
+    }
+
+    // debug para ver que triangulate funciona
+    renderTris(){
+        if(this.tris.length == 0) this.triangulate()
+        push()
+        stroke(0, 255, 0, 150)
+        strokeWeight(1)
+        noFill()
+        beginShape(TRIANGLES)
+        for(let i = 0; i < this.tris.length; i+=3){
+            let p1 = {x: this.outline[this.tris[i]*2], y: this.outline[this.tris[i]*2 + 1]}
+            let p2 = {x: this.outline[this.tris[i+1]*2], y: this.outline[this.tris[i+1]*2 + 1]}
+            let p3 = {x: this.outline[this.tris[i+2]*2], y: this.outline[this.tris[i+2]*2 + 1]}
+            vertex(p1.x, p1.y)
+            vertex(p2.x, p2.y)
+            vertex(p3.x, p3.y)
+        }
+        endShape()
+        pop()
     }
 
     setOOB(value){
@@ -190,6 +250,7 @@ class Path{
         this.setSegmentDrawOuterLinesLogic()
         this.length = this.getLength()
         this.width = totalWidth
+        this.road.dirtyPolygons.add(this)
     }
 
 

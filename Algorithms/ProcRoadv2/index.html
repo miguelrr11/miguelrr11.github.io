@@ -1,7 +1,13 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
+    <div id="container" style="position: relative; width: 100vw; height: 100vh;">
+      <canvas id="webgl-canvas" style="position: absolute; top: 0; left: 0; z-index: 1;"></canvas>
+      <!-- aquí p5 añadirá su canvas -->
+    </div>
+
     <script src="https://cdn.jsdelivr.net/npm/p5@2.2.2/lib/p5.min.js"></script>
+    <script src="https://unpkg.com/earcut@2.2.4/dist/earcut.min.js"></script>
     <meta charset="utf-8" />
     <style>
       body {
@@ -31,6 +37,8 @@
     <script src="Tool.js"></script>
     <script src="Pathfinding.js"></script>
     <script src="TrafficLightSystem.js"></script>
+    <script src="shaders.js"></script>
+    <script src="Renderer.js"></script>
     <script src="sketch.js"></script>
   </body>
 </html>

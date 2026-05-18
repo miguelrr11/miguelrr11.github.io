@@ -29,7 +29,12 @@ let tool
 async function setup(){
     WIDTH = windowWidth
     HEIGHT = windowHeight
-    createCanvas(WIDTH, HEIGHT)
+    const c = createCanvas(windowWidth, windowHeight);
+    c.parent('container');
+    c.style('position', 'absolute');
+    c.style('top', '0');
+    c.style('left', '0');
+    c.style('z-index', '2');
     let font = await loadFont('font.ttf')
     textFont(font)
     tool = new Tool()
@@ -37,8 +42,7 @@ async function setup(){
 
 
 function draw(){
-    background(50)
-
+    clear()
     tool.update()
     tool.show()
 

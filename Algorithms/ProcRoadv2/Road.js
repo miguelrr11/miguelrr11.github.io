@@ -66,7 +66,8 @@ class Road{
         this.connectorIDcounter = getNextID()
         this.intersecSegIDcounter = getNextID()
 
-        this.TLSs = new Map()   //map of traffic light systems, key is the intersection ID
+        this.TLSs = new Map()           //map of traffic light systems, key is the intersection ID
+        this.dirtyPolygons = new Set()  //recopila los poligonos que deben ser mandados a gpu
     }
 
 
@@ -204,6 +205,7 @@ class Road{
 
         let activenessMap = new Map()
         let activenessMaps = []
+        let vertexPointsMap = new Map()
 
         for(let nodeID of nodesIDs){
             let node = this.findNode(nodeID)
@@ -219,6 +221,8 @@ class Road{
                 for(const inter of intersecSegs) {
                     this.intersecSegs.delete(inter.id);
                 }
+                if(intersection.polygon) this.tool.renderer.removePolygon(intersection.polygon)
+                this.dirtyPolygons.delete(intersection)
                 this.intersections.delete(nodeID)
             }
         }
@@ -1068,6 +1072,7 @@ class Road{
         intersection.paths        = this.findAnyPath(nodeID) || []
         intersection.calculateOutlinesIntersection()
         intersection.calculateInnerEdges()
+        this.dirtyPolygons.add(intersection)
         this.intersections.set(nodeID, intersection)
     }
 

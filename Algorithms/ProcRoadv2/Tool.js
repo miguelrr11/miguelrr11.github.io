@@ -76,6 +76,15 @@ class Tool{
             resizeCanvas(windowWidth, windowHeight);
             this.menu = new Menu(this);
         });
+        // si no paramos, la gpu va acumulando drawcalls y se laggea al volver, esto lo arregla
+        document.addEventListener('visibilitychange', () => {
+            if(document.hidden) {
+                noLoop()
+            } else {
+                this.renderer.gl.finish()
+                loop()
+            }
+        });
 
         this.xOff = 0
         this.yOff = 0
@@ -101,8 +110,10 @@ class Tool{
 
         this.deltaTimeMult = 1 //for cars update
 
-        this.textToRoad("Welcome to\nPROCROAD V2")
-        this.center()
+        this.renderer = new Renderer(this.road)
+
+        // this.textToRoad("Welcome to\nPROCROAD V2")
+        // this.center()
     }
 
     updateElementsInView(){
@@ -1427,6 +1438,18 @@ class Tool{
 
     show(){
         if(frameCount % 10 === 0) this.updateElementsInView()
+
+        // FLUJO DE RENDERIZADO (hay que moverlo a otro lado)
+        // El lag ya resuelto era porque la GPU al ser asincrona, al mover un nodo estabamos constantemente metiendo
+        // datos a la GPU mientras drawMesh intentaba leer, lo cual bloqueaba la CPU. Ahora se hace constructPolygon antes de cualquier 
+        // drawMesh, asi que se asegura que la GPU procese las escrituras antes de las lecturas, evitando el bloqueo.
+        for(const obj of this.road.dirtyPolygons) obj.constructPolygon()
+        this.road.dirtyPolygons.clear()
+        let visiblePolygonsOfIntersections = this.intersectionsIDsInView.map(id => this.road.findIntersection(id)).filter(inter => inter && inter.polygon).map(inter => inter.polygon)
+        let visiblePolygonsOfPaths = this.pathsInView.map(p => p.polygon).filter(p => p)
+        this.renderer.beginFrame(this.zoom, this.xOff, this.yOff)
+        this.renderer.drawMeshes(visiblePolygonsOfIntersections, [ROAD_COL[0]/255, ROAD_COL[0]/255, ROAD_COL[0]/255, 1.0])
+        this.renderer.drawMeshes(visiblePolygonsOfPaths, [ROAD_COL[0]/255, ROAD_COL[0]/255, ROAD_COL[0]/255, 1.0])
 
         push()
 

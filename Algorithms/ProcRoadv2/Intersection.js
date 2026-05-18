@@ -19,8 +19,38 @@ class Intersection {
         this.innerEdges = []    //filled by calculateInnerEdges()
         this.innerLaneEdges = []    //filled by calculateInnerLaneEdges()
 
-        //this.convexHullCalculated = false
+        this.polygon = null
+    }
 
+    triangulate(){
+        return window.earcut(this.outline);
+    }
+
+    constructPolygon(){
+        if(this.polygon) this.road.tool.renderer.removePolygon(this.polygon)
+        let tris = this.triangulate()
+        let arr = new Float32Array(this.outline)
+        this.polygon = this.road.tool.renderer.addPolygon(arr, tris)
+    }
+
+    // debug para ver que triangulate funciona
+    renderTris(){
+        if(!this.tris || this.tris.length == 0) this.tris = this.triangulate()
+        push()
+        stroke(0, 255, 0, 150)
+        strokeWeight(1)
+        noFill()
+        beginShape(TRIANGLES)
+        for(let i = 0; i < this.tris.length; i+=3){
+            let p1 = {x: this.outline[this.tris[i]*2], y: this.outline[this.tris[i]*2 + 1]}
+            let p2 = {x: this.outline[this.tris[i+1]*2], y: this.outline[this.tris[i+1]*2 + 1]}
+            let p3 = {x: this.outline[this.tris[i+2]*2], y: this.outline[this.tris[i+2]*2 + 1]}
+            vertex(p1.x, p1.y)
+            vertex(p2.x, p2.y)
+            vertex(p3.x, p3.y)
+        }
+        endShape()
+        pop()
     }
 
     findInterSeg(interSegID){
@@ -391,6 +421,8 @@ class Intersection {
     // type: showWays
     showWayTop(){
         this._drawWayShape(this.outline)
+
+        this.renderTris()
     }
 
     _drawWayShape(points){
