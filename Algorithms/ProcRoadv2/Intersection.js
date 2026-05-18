@@ -421,8 +421,7 @@ class Intersection {
     // type: showWays
     showWayTop(){
         this._drawWayShape(this.outline)
-
-        this.renderTris()
+        //this.renderTris()
     }
 
     _drawWayShape(points){

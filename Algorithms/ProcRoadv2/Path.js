@@ -22,6 +22,7 @@ class Path{
     getCorners(cornersType){
         let first = this.segments[0]
         let last = this.segments[this.segments.length - 1]
+        if(!first || !last) return []
         let corners = cornersType === 'base' ? 'corners16' : 'corners'
 
         let cornersArr = []

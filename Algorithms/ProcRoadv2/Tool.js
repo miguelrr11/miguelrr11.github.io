@@ -1443,13 +1443,16 @@ class Tool{
         // El lag ya resuelto era porque la GPU al ser asincrona, al mover un nodo estabamos constantemente metiendo
         // datos a la GPU mientras drawMesh intentaba leer, lo cual bloqueaba la CPU. Ahora se hace constructPolygon antes de cualquier 
         // drawMesh, asi que se asegura que la GPU procese las escrituras antes de las lecturas, evitando el bloqueo.
+        for(const handle of this.road.pendingRemoveHandles) this.renderer.removePolygon(handle)
+        this.road.pendingRemoveHandles.length = 0
         for(const obj of this.road.dirtyPolygons) obj.constructPolygon()
         this.road.dirtyPolygons.clear()
         let visiblePolygonsOfIntersections = this.intersectionsIDsInView.map(id => this.road.findIntersection(id)).filter(inter => inter && inter.polygon).map(inter => inter.polygon)
         let visiblePolygonsOfPaths = this.pathsInView.map(p => p.polygon).filter(p => p)
         this.renderer.beginFrame(this.zoom, this.xOff, this.yOff)
-        this.renderer.drawMeshes(visiblePolygonsOfIntersections, [ROAD_COL[0]/255, ROAD_COL[0]/255, ROAD_COL[0]/255, 1.0])
-        this.renderer.drawMeshes(visiblePolygonsOfPaths, [ROAD_COL[0]/255, ROAD_COL[0]/255, ROAD_COL[0]/255, 1.0])
+        // it still fucking lags sometimes
+        // this.renderer.drawMeshes(visiblePolygonsOfIntersections, [ROAD_COL[0]/255, ROAD_COL[0]/255, ROAD_COL[0]/255, 1.0])
+        // this.renderer.drawMeshes(visiblePolygonsOfPaths, [ROAD_COL[0]/255, ROAD_COL[0]/255, ROAD_COL[0]/255, 1.0])
 
         push()
 

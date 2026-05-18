@@ -67,7 +67,8 @@ class Road{
         this.intersecSegIDcounter = getNextID()
 
         this.TLSs = new Map()           //map of traffic light systems, key is the intersection ID
-        this.dirtyPolygons = new Set()  //recopila los poligonos que deben ser mandados a gpu
+        this.dirtyPolygons = new Set()      //objects (path/intersection) que necesitan constructPolygon
+        this.pendingRemoveHandles = []      //handles GPU huerfanos que necesitan removePolygon
     }
 
 
@@ -221,7 +222,7 @@ class Road{
                 for(const inter of intersecSegs) {
                     this.intersecSegs.delete(inter.id);
                 }
-                if(intersection.polygon) this.tool.renderer.removePolygon(intersection.polygon)
+                if(intersection.polygon) this.pendingRemoveHandles.push(intersection.polygon)
                 this.dirtyPolygons.delete(intersection)
                 this.intersections.delete(nodeID)
             }
