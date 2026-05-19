@@ -153,6 +153,11 @@ class Menu{
             this.tool.viewSettingsChanged()
         }, undefined,  () => {return this.tool.showOptions.SHOW_CAR_DEBUG})
         buttonShowCarDebug.labelID = 'carDebugButton'
+        let buttonShowTris = new Button(xLoc, yLoc + hButton * 12, 95, 20, 'Mesh', () => {
+            this.tool.showOptions.SHOW_TRIS = !this.tool.showOptions.SHOW_TRIS
+            this.tool.viewSettingsChanged()
+        }, undefined,  () => {return this.tool.showOptions.SHOW_TRIS})
+        buttonShowTris.labelID = 'trisButton'
 
         buttonsToCollapse = [
             buttonShowRoad,
@@ -166,7 +171,8 @@ class Menu{
             buttonShowConvexHull,
             buttonShowWays,
             buttonShowGraph,
-            buttonShowCarDebug
+            buttonShowCarDebug,
+            buttonShowTris
 
         ]
 
@@ -397,6 +403,7 @@ class Menu{
         this.buttons.push(buttonAddCars)
         this.buttons.push(buttonRemoveCars)
         this.buttons.push(buttonShowCarDebug)
+        this.buttons.push(buttonShowTris)
 
         this.buttons.push(buttonShowLaneState)
         this.buttons.push(buttonMinusFor)
@@ -461,7 +468,8 @@ class Menu{
                    'GRAPH_N: ' +  '\n' +
                    'GRAPH_S: ' +  '\n' +
                    '(X, Y): ' + '\n' + 
-                   'VAO%: ' + '\n'
+                   'VAO%: ' + '\n' + 
+                   'TRIS: ' + '\n'
         }, () => {return false})
         buttonDebugRoad.txSize = 9
         buttonDebugRoad.setTextAlign('left-top')
@@ -481,7 +489,8 @@ class Menu{
                     this.tool.road.graphIndex.nodes._size + '\n' +
                     this.tool.road.graphIndex.edges._size + '\n' +
                    '(' + round(mousePos.x) + ', ' + round(mousePos.y) + ')' + '\n' +
-                   round(this.tool.renderer.getVAOPercentage() * 100) + '%'
+                   round(this.tool.renderer.getVAOPercentage() * 100) + '%' + '\n' +
+                   this.tool.renderer.getTotalTris() + '\n'
         }, () => {return false})
         buttonDebugValues.txSize = 9
         buttonDebugValues.setTextAlign('right-top')

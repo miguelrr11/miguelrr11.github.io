@@ -5,7 +5,7 @@ const COL_LANE_2 = [255, 40, 40, 90]
 const SIDE_WALK_COL = [200]
 const ROAD_COL = [110]
 const ARROWS_COL = [190]
-const MARKINGS_COL = [220]
+const MARKINGS_COL = [190]
 
 const MIN_ZOOM = 0.001
 const MAX_ZOOM = 8
@@ -49,7 +49,7 @@ class Tool{
             SHOW_SEGS_DETAILS: false,
             SHOW_LANES: false,
             SHOW_INTERSECTION_AREA_AREA: false,
-            SHOW_WAYS: true,        //first attempt at rendering (node/edge approach, its biggest problem is that nodes can overlap)
+            SHOW_WAYS: true,
             SHOW_GRAPH: false,       //debug
             SHOW_CAR_DEBUG: false
         }
@@ -112,8 +112,8 @@ class Tool{
 
         this.renderer = new Renderer(this.road)
 
-        // this.textToRoad("Welcome to\nPROCROAD V2")
-        // this.center()
+        this.textToRoad("Welcome to\nPROCROAD V2")
+        this.center()
     }
 
     updateElementsInView(){
@@ -1447,12 +1447,27 @@ class Tool{
         this.road.pendingRemoveHandles.length = 0
         for(const obj of this.road.dirtyPolygons) obj.constructPolygon()
         this.road.dirtyPolygons.clear()
-        let visiblePolygonsOfIntersections = this.intersectionsIDsInView.map(id => this.road.findIntersection(id)).filter(inter => inter && inter.polygon).map(inter => inter.polygon)
-        let visiblePolygonsOfPaths = this.pathsInView.map(p => p.polygon).filter(p => p)
-        this.renderer.beginFrame(this.zoom, this.xOff, this.yOff)
-        // it still fucking lags sometimes
-        // this.renderer.drawMeshes(visiblePolygonsOfIntersections, [ROAD_COL[0]/255, ROAD_COL[0]/255, ROAD_COL[0]/255, 1.0])
-        // this.renderer.drawMeshes(visiblePolygonsOfPaths, [ROAD_COL[0]/255, ROAD_COL[0]/255, ROAD_COL[0]/255, 1.0])
+
+        if(this.showOptions.SHOW_WAYS){
+            let visiblePolygonsOfIntersections = this.intersectionsIDsInView.map(id => this.road.findIntersection(id)).
+                filter(inter => inter && inter.polygon).map(inter => inter.polygon)
+            let visiblePolygonsOfPaths = this.pathsInView.map(p => p.polygon).filter(p => p)
+            this.renderer.beginFrame(this.zoom, this.xOff, this.yOff)
+            
+            if(this.zoom > 0.075){
+                let visiblePolygonsBaseOfPaths = this.pathsInView.map(p => p.polygonBase).filter(p => p)
+                let visiblePolygonsBaseOfIntersections = this.intersectionsIDsInView.map(id => this.road.findIntersection(id)).
+                    filter(inter => inter && inter.polygonBase).map(inter => inter.polygonBase)
+                this.renderer.drawMeshes([...visiblePolygonsBaseOfIntersections, ...visiblePolygonsBaseOfPaths], 
+                    [SIDE_WALK_COL[0]/255, SIDE_WALK_COL[0]/255, SIDE_WALK_COL[0]/255, 1.0])
+            }
+            this.renderer.drawMeshes([...visiblePolygonsOfIntersections, ...visiblePolygonsOfPaths], 
+                [ROAD_COL[0]/255, ROAD_COL[0]/255, ROAD_COL[0]/255, 1.0])
+        }
+        else this.renderer.clearPixels()
+        
+
+
 
         push()
 

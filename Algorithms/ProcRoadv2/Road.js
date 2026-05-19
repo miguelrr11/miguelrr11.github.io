@@ -198,6 +198,7 @@ class Road{
         }
 
         if(newPath.segmentsIDs.size == 0){
+            this._freePath(newPath)
             this.paths.delete(nodesIDs[0] + '-' + nodesIDs[1])
             this.paths.delete(nodesIDs[1] + '-' + nodesIDs[0])
         }
@@ -222,7 +223,8 @@ class Road{
                 for(const inter of intersecSegs) {
                     this.intersecSegs.delete(inter.id);
                 }
-                if(intersection.polygon) this.pendingRemoveHandles.push(intersection.polygon)
+                let dirtyPolygons = intersection.getAllPolygons()
+                if(dirtyPolygons.length > 0) this.pendingRemoveHandles.push(...dirtyPolygons)
                 this.dirtyPolygons.delete(intersection)
                 this.intersections.delete(nodeID)
             }
@@ -405,6 +407,8 @@ class Road{
                     this.intersecSegs.delete(inter.id);
                 }
                 this.intersections.delete(nodeID)
+                this.dirtyPolygons.delete(intersection)
+                this.pendingRemoveHandles.push(...intersection.getAllPolygons())
             }
         }
         this.deletePathByNodeID(nodeID)
@@ -431,19 +435,33 @@ class Road{
         this.graphIndex.deleteNode(nodeID)
     }
 
+    _freePath(path) {
+        if (!path) return
+        if (path.polygon)     this.pendingRemoveHandles.push(path.polygon)
+        if (path.polygonBase) this.pendingRemoveHandles.push(path.polygonBase)
+        this.dirtyPolygons.delete(path)
+    }
+
     deletePathByNodeID(nodeID){
         let pathsToDelete = []
         this.paths.forEach((path, key) => {
             if(path.nodeA == nodeID || path.nodeB == nodeID){
-                pathsToDelete.push(key)
+                pathsToDelete.push({ key, path })
             }
         })
-        pathsToDelete.reverse().forEach(key => this.paths.delete(key))
+        pathsToDelete.reverse().forEach(({ key, path }) => {
+            this._freePath(path)
+            this.paths.delete(key)
+        })
     }
 
     deletePathExact(nodeAID, nodeBID){
-        this.paths.delete(nodeAID + '-' + nodeBID)
-        this.paths.delete(nodeBID + '-' + nodeAID)
+        const keyAB = nodeAID + '-' + nodeBID
+        const keyBA = nodeBID + '-' + nodeAID
+        this._freePath(this.paths.get(keyAB))
+        this._freePath(this.paths.get(keyBA))
+        this.paths.delete(keyAB)
+        this.paths.delete(keyBA)
     }
 
     deleteSegment(segmentID){
@@ -475,6 +493,7 @@ class Road{
     checkAndDeletePath(nodeAID, nodeBID){
         let path = this.findPathByNodes(nodeAID, nodeBID)
         if(path && path.segmentsIDs.size == 0){
+            this._freePath(path)
             this.paths.delete(nodeAID + '-' + nodeBID)
         }
     }
@@ -844,6 +863,7 @@ class Road{
     // the visual bug where the road is engulfed in both intersections is fixed.
     // what we do now is check if the other side of the road has enough space to also trim, 
     // if not we trim proportionally so both sides fit, and if there is no space at all we dont trim
+    // se ha optimizado sobre todo la parte de estructura de datos para evitar llamadas repetidas pero meh
     trimSegmentsAtIntersection(options) {
         let { nodeID, connect = true, instantConvex = true, straightMode = false, activenessMap = new Map() } = options
 
@@ -927,6 +947,7 @@ class Road{
 
     // straightMode: only connect segments that go straight through the intersection
     // connectSelf: if true, allows connecting segments that go from and to the same node (U-turns)
+    // lo intente optimizar al maximo con IA pero sinceramente no se nota mucho
     connectIntersection(nodeID, connectSelf = false, instantConvex = true, straightMode = false, activenessMap = new Map()) {
         const node = this.findNode(nodeID)
         if (!node) return
@@ -1068,12 +1089,15 @@ class Road{
         // ── finalise intersection ────────────────────────────────────────────────
         for (const c of connectorMap.values()) c.constructDirections()
 
-        intersection.connectors  = Array.from(connectorMap.values())
+        intersection.connectors   = Array.from(connectorMap.values())
         intersection.intersecSegs = intersecSegObjects          // no findIntersecSeg scan needed
         intersection.paths        = this.findAnyPath(nodeID) || []
         intersection.calculateOutlinesIntersection()
         intersection.calculateInnerEdges()
         this.dirtyPolygons.add(intersection)
+        for(let path of intersection.paths){ 
+            this.dirtyPolygons.add(path)
+        }
         this.intersections.set(nodeID, intersection)
     }
 
@@ -1252,14 +1276,14 @@ class Road{
         fill(SIDE_WALK_COL)
         stroke(SIDE_WALK_COL)
         strokeWeight(1)
-        if(zoom > 0.1) pathsInView.forEach((p, key) => p.showWayBase())
+        // if(zoom > 0.1) pathsInView.forEach((p, key) => p.showWayBase())
         pop()
 
         push()
         fill(SIDE_WALK_COL)
         stroke(SIDE_WALK_COL)
         strokeWeight(1)
-        if(zoom > 0.1) intersectionsInView.forEach((p, key) => p.showWayBase())
+        // if(zoom > 0.1) intersectionsInView.forEach((p, key) => p.showWayBase())
         pop()
 
         push()
@@ -1267,7 +1291,7 @@ class Road{
         stroke(ROAD_COL)
         strokeWeight(1)
         
-        if(zoom > 0.05) intersectionsInView.forEach((p, key) => p.showWayTop())
+        // if(zoom > 0.05) intersectionsInView.forEach((p, key) => p.showWayTop())
         stroke(MARKINGS_COL)
         strokeWeight(1.5)
         noFill()
@@ -1280,7 +1304,7 @@ class Road{
         fill(ROAD_COL)
         stroke(ROAD_COL)
         strokeWeight(1)
-        if(zoom > 0.05) pathsInView.forEach((p, key) => p.showWayTop(hoveredID))
+        // if(zoom > 0.05) pathsInView.forEach((p, key) => p.showWayTop(hoveredID))
         stroke(MARKINGS_COL)
         strokeWeight(WIDTH_YIELD_MARKING)
         strokeCap(SQUARE)
@@ -1315,6 +1339,13 @@ class Road{
             strokeWeight(2.5)
             //intersectionsInView.forEach(i => i.drawIntersectionAreaMarkings())
             pop()
+        }
+
+        if(toolObj.showOptions.SHOW_TRIS){
+            stroke(0, 255, 0, 75)
+            strokeWeight(1)
+            intersectionsInView.forEach(i => {i.renderTris()})
+            pathsInView.forEach(p => {p.renderTris()})
         }
         pop()
 

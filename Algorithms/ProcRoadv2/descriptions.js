@@ -36,6 +36,7 @@ let descriptions = {
     'roadButton': '• Shows the main render of the network\n• It is the only rendering mode that is fully optimized',
     'graphButton': 'Shows the area of both R-Trees: nodes and edges',
     'carDebugButton': 'Shows debug information for cars and traffic lights',
+    'showTrisButton': 'Shows the triangles used for rendering',
     
     'zoomButton': 'Current zoom value',
     'OSMRadiusSlider': 'Sets the radius for the OSM System',

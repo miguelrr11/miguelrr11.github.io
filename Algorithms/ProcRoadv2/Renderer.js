@@ -1,6 +1,6 @@
 const FLOATS_PER_VERTEX = 2; // solo x, y
 const BYTES_PER_VERTEX = FLOATS_PER_VERTEX * 4;
-const MAX_VERTICES = 2_500_000; // ajusta a tu escena
+const MAX_VERTICES = 2_500_000;
 const MAX_INDICES = 7_500_000;
 
 class Renderer{
@@ -49,9 +49,7 @@ class Renderer{
         window.addEventListener('resize', () => this.resizeCanvas());
     }
 
-    getVAOPercentage(){
-        return this.vertexCursor / MAX_VERTICES;
-    }
+    
 
     // ---------- Aloc/free de slots ----------
 
@@ -257,6 +255,12 @@ class Renderer{
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
         gl.bufferSubData(gl.ARRAY_BUFFER, handle.vertexOffset * BYTES_PER_VERTEX, this.vertexData, handle.vertexOffset * FLOATS_PER_VERTEX, handle.vertexCount * FLOATS_PER_VERTEX);
     }
+    
+    clearPixels(){
+        const gl = this.gl;
+        gl.clearColor(50.0/255, 50.0/255, 50.0/255, 1);
+        gl.clear(gl.COLOR_BUFFER_BIT);
+    }
 
 
     // ---------- API: dibujar una lista de meshes visibles ----------
@@ -270,8 +274,7 @@ class Renderer{
     //   renderer.drawMeshes(visibleIntersections, [0.3, 0.3, 0.3, 1]);
     beginFrame(zoom, xOff, yOff) {
         const gl = this.gl;
-        gl.clearColor(50.0/255, 50.0/255, 50.0/255, 1);
-        gl.clear(gl.COLOR_BUFFER_BIT);
+        this.clearPixels();
         gl.useProgram(this.program);
         gl.bindVertexArray(this.vao);
 
@@ -313,5 +316,102 @@ class Renderer{
         if(rangeOffset !== -1) {
             gl.drawElements(gl.TRIANGLES, rangeCount, gl.UNSIGNED_INT, rangeOffset * 4);
         }
+    }
+
+    getActualUsedSpace() {
+        const activeVertices = this.vertexCursor - this.wastedVertices;
+        const activeIndices  = this.indexCursor  - this.wastedIndices;
+
+        const freeVertexBuckets = [];
+        let freeVertexSlotCount = 0;
+        for (const [size, bucket] of this.freeVertexSlots) {
+            if (bucket.length > 0) {
+                freeVertexSlotCount += bucket.length;
+                freeVertexBuckets.push({ size, count: bucket.length, total: size * bucket.length });
+            }
+        }
+        freeVertexBuckets.sort((a, b) => b.total - a.total);
+
+        const freeIndexBuckets = [];
+        let freeIndexSlotCount = 0;
+        for (const [size, bucket] of this.freeIndexSlots) {
+            if (bucket.length > 0) {
+                freeIndexSlotCount += bucket.length;
+                freeIndexBuckets.push({ size, count: bucket.length, total: size * bucket.length });
+            }
+        }
+        freeIndexBuckets.sort((a, b) => b.total - a.total);
+
+        return {
+            vertices: {
+                cursor:           this.vertexCursor,
+                active:           activeVertices,
+                freed:            this.wastedVertices,
+                capacity:         MAX_VERTICES,
+                usedPct:          (this.vertexCursor / MAX_VERTICES * 100).toFixed(1),
+                fragmentationPct: this.vertexCursor > 0 ? (this.wastedVertices / this.vertexCursor * 100).toFixed(1) : '0.0',
+                freeSlotCount:    freeVertexSlotCount,
+                freeBuckets:      freeVertexBuckets.slice(0, 10),
+            },
+            indices: {
+                cursor:           this.indexCursor,
+                active:           activeIndices,
+                freed:            this.wastedIndices,
+                capacity:         MAX_INDICES,
+                usedPct:          (this.indexCursor / MAX_INDICES * 100).toFixed(1),
+                fragmentationPct: this.indexCursor > 0 ? (this.wastedIndices / this.indexCursor * 100).toFixed(1) : '0.0',
+                freeSlotCount:    freeIndexSlotCount,
+                freeBuckets:      freeIndexBuckets.slice(0, 10),
+            },
+            gpu: {
+                vboUsedMB:  (this.vertexCursor * BYTES_PER_VERTEX / 1048576).toFixed(2),
+                vboTotalMB: (MAX_VERTICES      * BYTES_PER_VERTEX / 1048576).toFixed(2),
+                iboUsedMB:  (this.indexCursor  * 4               / 1048576).toFixed(2),
+                iboTotalMB: (MAX_INDICES        * 4               / 1048576).toFixed(2),
+            },
+        };
+    }
+
+    getTotalTris(){
+        let s = this.getActualUsedSpace();
+        return s.indices.active / 3;
+    }
+
+    getVAOPercentage(){
+        let s = this.getActualUsedSpace();
+        return s.vertices.usedPct/100;
+    }
+
+    debugMemory() {
+        const s = this.getActualUsedSpace();
+        const lines = [
+            '=== Renderer Memory Debug ===',
+            '',
+            '--- Vertices ---',
+            `  Cursor (high-watermark): ${s.vertices.cursor} / ${s.vertices.capacity}  (${s.vertices.usedPct}% of capacity)`,
+            `  Active right now:        ${s.vertices.active}`,
+            `  In free-list (freed):    ${s.vertices.freed}  →  ${s.vertices.fragmentationPct}% fragmentation`,
+            `  Free-list slot count:    ${s.vertices.freeSlotCount}`,
+            `  VBO GPU range used:      ${s.gpu.vboUsedMB} MB / ${s.gpu.vboTotalMB} MB`,
+            '',
+            '--- Indices ---',
+            `  Cursor (high-watermark): ${s.indices.cursor} / ${s.indices.capacity}  (${s.indices.usedPct}% of capacity)`,
+            `  Active right now:        ${s.indices.active}`,
+            `  In free-list (freed):    ${s.indices.freed}  →  ${s.indices.fragmentationPct}% fragmentation`,
+            `  Free-list slot count:    ${s.indices.freeSlotCount}`,
+            `  IBO GPU range used:      ${s.gpu.iboUsedMB} MB / ${s.gpu.iboTotalMB} MB`,
+            '',
+            '--- Top free-list buckets (vertices, by wasted space) ---',
+            ...(s.vertices.freeBuckets.length
+                ? s.vertices.freeBuckets.map(b => `  size=${b.size}: ${b.count} slot(s)  →  ${b.total} verts wasted`)
+                : ['  (none)']),
+            '',
+            '--- Top free-list buckets (indices, by wasted space) ---',
+            ...(s.indices.freeBuckets.length
+                ? s.indices.freeBuckets.map(b => `  size=${b.size}: ${b.count} slot(s)  →  ${b.total} idxs wasted`)
+                : ['  (none)']),
+        ];
+        console.log(lines.join('\n'));
+        return s;
     }
 }

@@ -20,22 +20,35 @@ class Intersection {
         this.innerLaneEdges = []    //filled by calculateInnerLaneEdges()
 
         this.polygon = null
+        this.polygonBase = null
     }
 
-    triangulate(){
-        return window.earcut(this.outline);
+    getAllPolygons(){
+        let polygons = []
+        if(this.polygon) polygons.push(this.polygon)
+        if(this.polygonBase) polygons.push(this.polygonBase)
+        return polygons
+    }
+
+    triangulate(cornersType){
+        if(cornersType == 'top') return window.earcut(this.outline)
+        else return window.earcut(this.outline16)
     }
 
     constructPolygon(){
         if(this.polygon) this.road.tool.renderer.removePolygon(this.polygon)
-        let tris = this.triangulate()
+        if(this.polygonBase) this.road.tool.renderer.removePolygon(this.polygonBase)
+        let tris = this.triangulate('top')
         let arr = new Float32Array(this.outline)
         this.polygon = this.road.tool.renderer.addPolygon(arr, tris)
+        let trisBase = this.triangulate('base')
+        let arrBase = new Float32Array(this.outline16)
+        this.polygonBase = this.road.tool.renderer.addPolygon(arrBase, trisBase)
     }
 
     // debug para ver que triangulate funciona
     renderTris(){
-        if(!this.tris || this.tris.length == 0) this.tris = this.triangulate()
+        if(!this.tris || this.tris.length == 0) this.tris = this.triangulate('top')
         push()
         stroke(0, 255, 0, 150)
         strokeWeight(1)
@@ -51,6 +64,7 @@ class Intersection {
         }
         endShape()
         pop()
+        delete this.tris
     }
 
     findInterSeg(interSegID){

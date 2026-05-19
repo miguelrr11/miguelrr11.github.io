@@ -24,6 +24,7 @@ A p5.js interactive road editor and traffic simulator. The user draws a road net
 14. [Save / Load](#14-save--load)
 15. [Key Constants and Tunables](#15-key-constants-and-tunables)
 16. [File Map](#16-file-map)
+17. [Expanding the Project — GPU Memory Contract](#17-expanding-the-project--gpu-memory-contract)
 
 ---
 
@@ -234,23 +235,96 @@ The visual junction area (the grey polygon at a node) is built by `getOutline()`
 
 ## 6. Rendering System
 
-`Road.showWays()` is the main visual renderer, called from `Tool.show()`. It uses zoom-dependent LOD:
+Rendering is split into two layers: **WebGL** for all filled polygons (road surfaces, sidewalk bases) and **p5.js** for everything else (edge lines, arrows, debug overlays).
+
+### 6.1 WebGL Renderer (`Renderer.js`)
+
+`Renderer` manages a single large VBO + IBO pre-allocated on the GPU at startup:
+
+| Constant | Value | Meaning |
+|---|---|---|
+| `MAX_VERTICES` | 2 500 000 | Maximum vertices in the VBO |
+| `MAX_INDICES` | 7 500 000 | Maximum indices in the IBO |
+| `FLOATS_PER_VERTEX` | 2 | Only x, y — color is a per-draw-call uniform |
+
+The GPU buffers are never reallocated. All edits are `gl.bufferSubData` on exact sub-ranges.
+
+#### Polygon handles
+
+`addPolygon(points, localIndices)` uploads a triangulated polygon and returns a **handle**:
+
+```js
+{ vertexOffset, vertexCount, indexOffset, indexCount }
+```
+
+This handle is the only way to reference the polygon later. Path and Intersection each store `this.polygon` and `this.polygonBase` as their handles.
+
+`removePolygon(handle)` writes degenerate indices (all pointing to the same vertex, so area = 0) over the polygon's IBO range, then returns the vertex and index slots to the free-list.
+
+#### Free-list memory management
+
+Freed slots are grouped by exact size in two `Map<size, offset[]>`:
+- `freeVertexSlots` — vertex slots available for reuse
+- `freeIndexSlots` — index slots available for reuse
+
+When `addPolygon` is called, it first looks for a free slot of the **exact same size**. If none exists, it bumps the cursor forward. The cursor (`vertexCursor`, `indexCursor`) is a high-watermark — it never goes down.
+
+**Consequence:** if a polygon changes size (e.g. intersection shape changes), the old slot goes into the free-list at its original size and a new slot at the new size is allocated from the cursor. The old slot can only be recycled by a future polygon of the exact same vertex/index count.
+
+#### Memory counters
+
+| Field | Meaning |
+|---|---|
+| `vertexCursor` | High-watermark — total GPU range ever used |
+| `wastedVertices` | Vertices currently sitting in the free-list |
+| `active = cursor - wasted` | Vertices belonging to live polygons |
+
+`renderer.debugMemory()` prints a full breakdown to the console. Call it from DevTools at any time.
+
+#### Batch draw calls
+
+`beginFrame(zoom, xOff, yOff)` — clears the canvas and uploads camera uniforms.
+
+`drawMeshes(visibleMeshes, color)` — sorts meshes by `indexOffset`, then merges **contiguous** IBO ranges into a single `drawElements` call. This means polygons added in sequence are drawn in one call with no overhead.
+
+#### Frame-loop integration (Tool.js)
+
+Every frame, before drawing:
+
+```js
+// 1. Execute all queued removes
+for (const handle of road.pendingRemoveHandles)
+    renderer.removePolygon(handle)
+road.pendingRemoveHandles.length = 0
+
+// 2. Rebuild all dirty polygons (each does its own remove→add internally)
+for (const obj of road.dirtyPolygons)
+    obj.constructPolygon()
+road.dirtyPolygons.clear()
+```
+
+`pendingRemoveHandles` — array on `Road`. Any code that destroys a path or intersection must push its GPU handles here (or use `_freePath` / the intersection cleanup in `deleteNode`, which do it automatically).
+
+`dirtyPolygons` — `Set` on `Road`. Any code that changes a path or intersection's geometry must add the object here. `constructPolygon()` always does `removePolygon` on the existing handle first, then `addPolygon`.
+
+### 6.2 p5.js Overlay Layer
+
+`Road.showWays()` is called from `Tool.show()` after the WebGL pass. It uses zoom-dependent LOD:
 
 | Zoom | What is drawn |
 |---|---|
 | ≤ 0.05 | Only thin white lines (showMain) |
-| > 0.05 | Sidewalk base + road surface polygons |
-| > 0.1 | Path way shapes |
+| > 0.05 | (WebGL handles filled polygons) |
 | > 0.18 | Outer/inner edge markings, yield lines, nodes |
 | > 0.35 | Direction arrows, lane names |
 
-The rendering order (back to front):
-1. Sidewalk base (wider polygon, grey) — paths + intersections
-2. Road surface (narrower polygon, darker grey) — intersections then paths
-3. Outer edge lines (white) — intersection curves
-4. Inner edge lines — center dividers
-5. Yield markings (thick lines at intersection entries)
-6. Direction arrows
+Rendering order (back to front):
+1. **WebGL** — sidewalk base polygons (paths + intersections)
+2. **WebGL** — road surface polygons (intersections then paths)
+3. **p5** — outer edge curves (white lines)
+4. **p5** — inner edge dividers
+5. **p5** — yield markings
+6. **p5** — direction arrows
 
 Debug overlays (toggled via Menu):
 - `SHOW_PATHS` — colored lines with arrows for each segment
@@ -462,3 +536,93 @@ Flow:
 | `Tool.js` | Input handling, editor state machine, zoom/pan, OSM import, save/load |
 | `Menu.js` | UI elements: `Menu`, `Button`, `Slider`, Overpass fetch helper |
 | `Utils.js` | Math helpers (not covered here) |
+| `Renderer.js` | WebGL renderer — VBO/IBO, free-list, polygon handles, batch draw |
+
+---
+
+## 17. Expanding the Project — GPU Memory Contract
+
+This section exists because the GPU memory system has one rule that **must not be broken**: every polygon added with `addPolygon` must eventually be removed with `removePolygon`, and it must happen **exactly once**. Violating this leaks GPU address space permanently (the cursor never goes back). Double-freeing corrupts the free-list.
+
+### 17.1 The two queues on Road
+
+```
+road.pendingRemoveHandles  — []      array of GPU handles to free this frame
+road.dirtyPolygons         — Set()   set of Path/Intersection objects to rebuild this frame
+```
+
+The frame loop in `Tool.js` processes them in order: **removes first, then rebuilds**. This ordering matters — `constructPolygon` does its own `removePolygon` on the existing handle, so if you put something in both queues, the polygon would be freed twice. Only use `pendingRemoveHandles` for objects that are being **destroyed** (no rebuild follows). Use `dirtyPolygons` for objects that are being **updated** (geometry changed, rebuild follows).
+
+### 17.2 Rule: never delete a Path without calling `_freePath` first
+
+`Road._freePath(path)` does three things:
+1. Pushes `path.polygon` to `pendingRemoveHandles` (if not null)
+2. Pushes `path.polygonBase` to `pendingRemoveHandles` (if not null)
+3. Removes `path` from `dirtyPolygons` (prevents a zombie rebuild after destruction)
+
+**Every place in Road.js that removes a path from `this.paths` must call `_freePath` first.** The existing helpers already do this:
+
+| Function | Calls `_freePath`? |
+|---|---|
+| `deletePathByNodeID` | ✓ |
+| `deletePathExact` | ✓ |
+| `checkAndDeletePath` | ✓ |
+| `updateRoad` (empty path branch) | ✓ |
+
+If you add a new code path that does `this.paths.delete(key)` directly, you must call `_freePath(path)` on the path object **before** deleting it. Same rule applies if you replace a path object in the map with a new one.
+
+### 17.3 Rule: never delete an Intersection without freeing its GPU handles
+
+When removing an intersection from `this.intersections`, always do **both**:
+
+```js
+this.dirtyPolygons.delete(intersection)           // 1. cancel any pending rebuild
+this.pendingRemoveHandles.push(...intersection.getAllPolygons())  // 2. free GPU slots
+this.intersections.delete(nodeID)                 // 3. then remove from map
+```
+
+The existing code in `deleteNode` and `updateRoad` already follows this pattern. If you add a new code path that removes intersections, copy this exact sequence.
+
+`getAllPolygons()` is defined on `Intersection` (not on `Path`). It returns `[this.polygon, this.polygonBase]` filtering out nulls. A freshly created intersection with no `constructPolygon` call yet will have both as null — `getAllPolygons()` returns `[]`, which is safe to spread into `pendingRemoveHandles`.
+
+### 17.4 Rule: "update geometry" goes through `dirtyPolygons`, not manual calls
+
+When the geometry of an existing path or intersection changes (node moved, lane count changed, intersection shape changed), do:
+
+```js
+road.dirtyPolygons.add(pathOrIntersection)
+```
+
+**Do not** call `constructPolygon()` directly. The frame loop calls it once at the end of the frame. Calling it in the middle of an update risks operating on stale geometry.
+
+`constructPolygon()` is written to be idempotent: it calls `removePolygon` on the existing handle before calling `addPolygon`. So adding an object to `dirtyPolygons` twice in the same frame is safe — `constructPolygon` runs once (the Set deduplicates), and the double-remove is handled by the remove→add sequence inside `constructPolygon` itself.
+
+### 17.5 Rule: new geometry object types follow the same pattern
+
+If you add a new class that renders filled polygons (e.g. a building, a parking lot, a crosswalk), it must:
+
+1. Store its handle(s) as `this.polygon = null` initially.
+2. Implement `constructPolygon()` that does `removePolygon` on any existing handle, then `addPolygon`.
+3. Implement `getAllPolygons()` returning its handles (filtering nulls).
+4. Any code that destroys one of these objects must call `road.pendingRemoveHandles.push(...obj.getAllPolygons())` and `road.dirtyPolygons.delete(obj)` before removing it from whatever map stores it.
+
+Do not invent a separate pending-remove or dirty list — add the object to the existing `road.pendingRemoveHandles` / `road.dirtyPolygons` queues so the frame loop handles everything in one place.
+
+### 17.6 Debugging memory health
+
+Call from the browser console at any time:
+
+```js
+tool.renderer.debugMemory()
+```
+
+Key numbers to watch:
+
+| Number | Healthy | Warning |
+|---|---|---|
+| `active` (vertices) | Goes to 0 after clearing all nodes | Stays > 0 after clearing → leak |
+| `fragmentationPct` | < 20% during normal use | > 50% → many size-varying polygons not being recycled |
+| `freeSlotCount` | Grows/shrinks as polygons are added/removed | Grows monotonically → slots are freed but never reused |
+| `cursor` vs `active` | Cursor grows, active tracks reality | Cursor >> active means lots of wasted address space |
+
+The `cursor` never goes down. If you see it grow without bound while `active` stays small, the free-list is accumulating slots that never match incoming `addPolygon` size requests. This usually means polygon sizes are changing too wildly — consider normalizing sizes (e.g. always rounding vertex count to a fixed grid) if this becomes a problem at scale.

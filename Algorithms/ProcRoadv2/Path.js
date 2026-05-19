@@ -17,6 +17,7 @@ class Path{
         this.OOB = false
 
         this.polygon = null
+        this.polygonBase = null
     }
 
     getCorners(cornersType){
@@ -43,24 +44,29 @@ class Path{
             cornersArr.push(last[corners][4], last[corners][5])
             cornersArr.push(last[corners][2], last[corners][3])
         }
-        this.outline = cornersArr
+        if(cornersType == 'top') this.outline = cornersArr
+        else this.outlineBase = cornersArr
         return cornersArr
     }
 
-    triangulate(){
-        return window.earcut(this.getCorners('top'));
+    triangulate(cornersType){
+        return window.earcut(this.getCorners(cornersType));
     }
 
     constructPolygon(){
         if(this.polygon) this.road.tool.renderer.removePolygon(this.polygon)
-        let tris = this.triangulate()
+        if(this.polygonBase) this.road.tool.renderer.removePolygon(this.polygonBase)
+        let tris = this.triangulate('top')
         let arr = new Float32Array(this.outline)
         this.polygon = this.road.tool.renderer.addPolygon(arr, tris)
+        let trisBase = this.triangulate('base')
+        let arrBase = new Float32Array(this.outlineBase)
+        this.polygonBase = this.road.tool.renderer.addPolygon(arrBase, trisBase)
     }
 
     // debug para ver que triangulate funciona
     renderTris(){
-        if(this.tris.length == 0) this.triangulate()
+        if(!this.tris || this.tris.length == 0) this.tris = this.triangulate('top')
         push()
         stroke(0, 255, 0, 150)
         strokeWeight(1)
@@ -76,6 +82,7 @@ class Path{
         }
         endShape()
         pop()
+        delete this.tris
     }
 
     setOOB(value){
