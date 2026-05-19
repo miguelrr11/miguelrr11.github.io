@@ -1233,7 +1233,7 @@ class Road{
             push()
             noFill()
             strokeWeight(1.5 / zoom)
-            stroke(255, 200)
+            stroke(255, 150)
             blendMode(DIFFERENCE)
             let nodesInView = intersectionsInViewIDs.map(id => this.findNode(id)).filter(n => n != undefined)
             nodesInView.forEach((n, key) => {

@@ -49,6 +49,7 @@ class Renderer{
         window.addEventListener('resize', () => this.resizeCanvas());
     }
 
+
     
 
     // ---------- Aloc/free de slots ----------

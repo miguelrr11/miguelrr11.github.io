@@ -1667,6 +1667,7 @@ class Tool{
     setStateToRoad(roadData){
         let initialTime = performance.now()
 
+        this.renderer = new Renderer(this)
         this.road = new Road(this)
         this.road.nodeIDcounter = getNextID()
         this.road.segmentIDcounter = getNextID()
@@ -1900,6 +1901,7 @@ class Tool{
     constructRoadFromOSMAsync(data, button){
         startTime = millis()
         this.road = new Road()
+        this.renderer = new Renderer(this)      // Como reiniciamos todo el network, tambien reiniciamos el renderer
         this.road.tool = this
         let nodesToProcess = new Set()          // Set of node IDs
         let segsToProcess = new Set()           // Set of way IDs
