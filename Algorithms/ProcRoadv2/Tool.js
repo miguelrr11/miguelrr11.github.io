@@ -112,8 +112,8 @@ class Tool{
 
         this.renderer = new Renderer(this.road)
 
-        this.textToRoad("Welcome to\nPROCROAD V2")
-        this.center()
+        // this.textToRoad("Welcome to\nPROCROAD V2")
+        // this.center()
     }
 
     updateElementsInView(){
@@ -1617,8 +1617,11 @@ class Tool{
                 blendMode(BLEND)
             }
             else if(hoverSegment && this.showOptions.SHOW_WAYS){
-                noStroke()
-                _hoverSegment.closestSegment.showCustomLanes([255, 100], LANE_WIDTH)
+                this.renderer.drawHoverPolygon(
+                    _hoverSegment.closestSegment.corners,
+                    [0.3, 0.4, 1.0, 1.0],
+                    LANE_WIDTH * .5
+                )
             }
         }
         if(this.showOptions.SHOW_CONNECTORS){

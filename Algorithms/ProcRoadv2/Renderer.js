@@ -8,6 +8,7 @@ const MAX_INDICES = 7_500_000 * 2;
  * En Windows Google Chrome va BIEN
  * En MacOS   Google Chrome va MUY MAL
  * En MacOS   Safari va MUY BIEN
+ * Supongo que es porque en mac Safari va directo a Metal y Chrome tiene capas de traduccion lentas 
  */
 
 class Renderer{
@@ -24,6 +25,8 @@ class Renderer{
         this.vertexCursor = 0;
         this.indexCursor  = 0;
 
+        this.programs = new Map()
+
         // Free-list: huecos disponibles, agrupados por tamaño.
         // Clave: vertexCount, Valor: array de slots libres con ese tamaño.
         this.freeVertexSlots = new Map();
@@ -32,23 +35,6 @@ class Renderer{
         // Contadores para saber cuánto espacio desperdiciado tenemos
         this.wastedVertices = 0;
         this.wastedIndices  = 0;
-
-        let gl = this.gl;
-        this.vbo = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
-        gl.bufferData(gl.ARRAY_BUFFER, this.vertexData.byteLength, gl.DYNAMIC_DRAW);
-
-        this.ibo = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indexData.byteLength, gl.DYNAMIC_DRAW);
-
-        this.vao = gl.createVertexArray();
-        gl.bindVertexArray(this.vao);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
-        gl.enableVertexAttribArray(this.aPos);
-        gl.vertexAttribPointer(this.aPos, 2, gl.FLOAT, false, BYTES_PER_VERTEX, 0);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
-        gl.bindVertexArray(null);
 
         this.initShaders();
         this.initBuffers();
@@ -59,6 +45,8 @@ class Renderer{
             drawCalls: 0,
             meshes: 0,
         };
+
+        
     }
 
 
@@ -116,19 +104,64 @@ class Renderer{
 
     // ---------- Shaders ----------
     initShaders() {
-        this.program = this.gl.createProgram();
-        this.gl.attachShader(this.program, this.compile(this.gl.VERTEX_SHADER, vsSrc));
-        this.gl.attachShader(this.program, this.compile(this.gl.FRAGMENT_SHADER, fsSrc));
-        this.gl.linkProgram(this.program);
-        if(!this.gl.getProgramParameter(this.program, this.gl.LINK_STATUS)) throw new Error(this.gl.getProgramInfoLog(this.program));
-        this.gl.useProgram(this.program);
-        // Atributos
-        this.aPos = this.gl.getAttribLocation(this.program, 'aPos');
-        // Uniforms
-        this.uResolution = this.gl.getUniformLocation(this.program, 'uResolution');
-        this.uCameraOffset = this.gl.getUniformLocation(this.program, 'uCameraOffset');
-        this.uCameraScale = this.gl.getUniformLocation(this.program, 'uCameraScale');
-        this.uColor = this.gl.getUniformLocation(this.program, 'uColor');
+        let programObjShaderSuperficies = {
+            program: null,
+            aPos: null,
+            uResolution: null,
+            uCameraOffset: null,
+            uCameraScale: null,
+            uColor: null,
+        }
+        let program = this.gl.createProgram();
+        this.gl.attachShader(program, this.compile(this.gl.VERTEX_SHADER, vsSrc));
+        this.gl.attachShader(program, this.compile(this.gl.FRAGMENT_SHADER, fsSrc));
+        this.gl.linkProgram(program);
+        if(!this.gl.getProgramParameter(program, this.gl.LINK_STATUS)) throw new Error(this.gl.getProgramInfoLog(program));
+        this.gl.useProgram(program);
+        programObjShaderSuperficies.aPos = this.gl.getAttribLocation(program, 'aPos');
+        programObjShaderSuperficies.uResolution = this.gl.getUniformLocation(program, 'uResolution');
+        programObjShaderSuperficies.uCameraOffset = this.gl.getUniformLocation(program, 'uCameraOffset');
+        programObjShaderSuperficies.uCameraScale = this.gl.getUniformLocation(program, 'uCameraScale');
+        programObjShaderSuperficies.uColor = this.gl.getUniformLocation(program, 'uColor');
+        programObjShaderSuperficies.program = program;
+        this.programs.set('surfaceShader', programObjShaderSuperficies);
+        this._initHoverShader();
+    }
+
+    _initHoverShader() {
+        const gl = this.gl;
+        const prog = gl.createProgram();
+        gl.attachShader(prog, this.compile(gl.VERTEX_SHADER, vsHoverSrc));
+        gl.attachShader(prog, this.compile(gl.FRAGMENT_SHADER, fsHoverSrc));
+        gl.linkProgram(prog);
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+        const obj = {
+            program:       prog,
+            aPos:          gl.getAttribLocation(prog, 'aPos'),
+            uResolution:   gl.getUniformLocation(prog, 'uResolution'),
+            uCameraOffset: gl.getUniformLocation(prog, 'uCameraOffset'),
+            uCameraScale:  gl.getUniformLocation(prog, 'uCameraScale'),
+            uColor:        gl.getUniformLocation(prog, 'uColor'),
+            uBorderWidth:  gl.getUniformLocation(prog, 'uBorderWidth'),
+            uCorners:      gl.getUniformLocation(prog, 'uCorners'),
+        };
+        this.programs.set('hoverShader', obj);
+
+        this.hoverVBO = gl.createBuffer();
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.hoverVBO);
+        gl.bufferData(gl.ARRAY_BUFFER, 4 * 2 * 4, gl.DYNAMIC_DRAW);
+
+        this.hoverIBO = gl.createBuffer();
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hoverIBO);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0,1,2, 0,2,3]), gl.STATIC_DRAW);
+
+        this.hoverVAO = gl.createVertexArray();
+        gl.bindVertexArray(this.hoverVAO);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.hoverVBO);
+        gl.enableVertexAttribArray(obj.aPos);
+        gl.vertexAttribPointer(obj.aPos, 2, gl.FLOAT, false, 8, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hoverIBO);
+        gl.bindVertexArray(null);
     }
 
     compile(type, src) {
@@ -156,11 +189,12 @@ class Renderer{
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, this.indexData.byteLength, gl.DYNAMIC_DRAW);
         // VAO: encapsula la config de atributos. Se bindea una vez al dibujar.
+        const aPos = this.programs.get('surfaceShader').aPos;
         this.vao = gl.createVertexArray();
         gl.bindVertexArray(this.vao);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
-        gl.enableVertexAttribArray(this.aPos);
-        gl.vertexAttribPointer(this.aPos, 2, gl.FLOAT, false, BYTES_PER_VERTEX, 0);
+        gl.enableVertexAttribArray(aPos);
+        gl.vertexAttribPointer(aPos, 2, gl.FLOAT, false, BYTES_PER_VERTEX, 0);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
         gl.bindVertexArray(null);
     }
@@ -180,6 +214,8 @@ class Renderer{
             this.canvas.width  = bufW;
             this.canvas.height = bufH;
         }
+        this.cssWidth  = cssW;
+        this.cssHeight = cssH;
         this.gl.viewport(0, 0, bufW, bufH);
     }
 
@@ -293,26 +329,57 @@ class Renderer{
     //   renderer.beginFrame();
     //   renderer.drawMeshes(visibleRoads,         [0.2, 0.2, 0.2, 1]);
     //   renderer.drawMeshes(visibleIntersections, [0.3, 0.3, 0.3, 1]);
+    // usa el programa de superficies
     beginFrame(zoom, xOff, yOff) {
         const gl = this.gl;
+        this._zoom = zoom;
+        this._xOff = xOff;
+        this._yOff = yOff;
         this.clearPixels();
-        gl.useProgram(this.program);
+        let program = this.programs.get('surfaceShader');
+        gl.useProgram(program.program);
         gl.bindVertexArray(this.vao);
 
-        // gl.uniform2f(this.uResolution,   width, height);
-        // gl.uniform2f(this.uCameraOffset, this.tool.xOff, this.tool.yOff);
-        // gl.uniform1f(this.uCameraScale,  this.tool.zoom);
+        gl.uniform2f(program.uResolution,   this.cssWidth, this.cssHeight);
+        gl.uniform2f(program.uCameraOffset, xOff, yOff);
+        gl.uniform1f(program.uCameraScale,  zoom);
+    }
 
-        gl.uniform2f(this.uResolution,   width, height);
-        gl.uniform2f(this.uCameraOffset, xOff, yOff);
-        gl.uniform1f(this.uCameraScale,  zoom);
+    // corners: flat [x0,y0, x1,y1, x2,y2, x3,y3] in world space
+    // color: [r,g,b,a] in 0..1
+    // borderWidth: gradient width in world units
+    drawHoverPolygon(corners, color, borderWidth) {
+        const gl = this.gl;
+        const prog = this.programs.get('hoverShader');
+
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+        gl.useProgram(prog.program);
+        gl.bindVertexArray(this.hoverVAO);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.hoverVBO);
+        gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(corners));
+
+        gl.uniform2f(prog.uResolution,   this.cssWidth, this.cssHeight);
+        gl.uniform2f(prog.uCameraOffset, this._xOff, this._yOff);
+        gl.uniform1f(prog.uCameraScale,  this._zoom);
+        gl.uniform4f(prog.uColor,        color[0], color[1], color[2], color[3]);
+        gl.uniform1f(prog.uBorderWidth,  borderWidth);
+        gl.uniform2fv(prog.uCorners,     corners);
+
+        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+
+        gl.bindVertexArray(null);
+        gl.disable(gl.BLEND);
     }
 
     drawMeshes(visibleMeshes, color) {
         if(visibleMeshes.length === 0) return;
         const gl = this.gl;
+        let program = this.programs.get('surfaceShader');
         // Set color para este grupo
-        gl.uniform4f(this.uColor, color[0], color[1], color[2], color[3]);
+        gl.uniform4f(program.uColor, color[0], color[1], color[2], color[3]);
         // Fusionar rangos contiguos en el IBO para minimizar draw calls.
         // Ordena por indexOffset (en tu app puedes hacerlo más eficiente si
         // mantienes los meshes pre-ordenados por offset). 
