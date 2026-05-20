@@ -3,6 +3,13 @@ const BYTES_PER_VERTEX = FLOATS_PER_VERTEX * 4;
 const MAX_VERTICES = 2_500_000 * 2;
 const MAX_INDICES = 7_500_000 * 2;
 
+/**
+ * NOTAS SOBRE RENDIMIENTO:
+ * En Windows Google Chrome va BIEN
+ * En MacOS   Google Chrome va MUY MAL
+ * En MacOS   Safari va MUY BIEN
+ */
+
 class Renderer{
     constructor(tool) {
         this.tool = tool;
@@ -159,13 +166,21 @@ class Renderer{
     }
 
     resizeCanvas() {
-        const w = window.innerWidth;
-        const h = window.innerHeight;
-        if(this.canvas.width !== w || this.canvas.height !== h) {
-            this.canvas.width = w;
-            this.canvas.height = h;
+        const dpr  = window.devicePixelRatio || 1;
+        const cssW = window.innerWidth;
+        const cssH = window.innerHeight;
+        const bufW = Math.round(cssW * dpr);
+        const bufH = Math.round(cssH * dpr);
+        // CSS size keeps the element at the right layout size.
+        this.canvas.style.width  = cssW + 'px';
+        this.canvas.style.height = cssH + 'px';
+        // Buffer at physical-pixel resolution — eliminates Retina blur.
+        // Guard: setting .width/.height resets WebGL state even with same value.
+        if(this.canvas.width !== bufW || this.canvas.height !== bufH) {
+            this.canvas.width  = bufW;
+            this.canvas.height = bufH;
         }
-        this.gl.viewport(0, 0, w, h);
+        this.gl.viewport(0, 0, bufW, bufH);
     }
 
     // ---------- API: añadir un polígono ----------
