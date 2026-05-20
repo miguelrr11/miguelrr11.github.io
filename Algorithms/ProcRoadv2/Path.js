@@ -13,7 +13,7 @@ class Path{
         this.nodeBObj = undefined  // Direct object reference
 
         this.length = 0
-        this.id = nodeA + '_' + nodeB
+        this.id = nodeA + '-' + nodeB
         this.OOB = false
 
         this.polygon = null

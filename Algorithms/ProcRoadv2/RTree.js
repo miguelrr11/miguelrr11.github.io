@@ -417,6 +417,7 @@ _reinsertBranch(child, targetDepth, node = this._root, depth = 0) {
  *   gi.insertNode({ id: 1, x: 100, y: 200, radius: 20 });
  *   gi.insertEdge({ id: 1, x1: 100, y1: 200, x2: 300, y2: 400, width: 2 });
  *   //            ↑ same id, different pools — perfectly fine
+ *   // I updated it so edges now carry also the id of their path
  *
  *   gi.search({ minX: 80, minY: 180, maxX: 320, maxY: 420 });
  *   // → { nodes: [...], edges: [...] }

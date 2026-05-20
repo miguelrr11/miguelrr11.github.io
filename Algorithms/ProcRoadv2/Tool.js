@@ -12,7 +12,7 @@ const MAX_ZOOM = 8
 
 const SCALE_FACTOR_OSM = 1000000
 let AROUND_RADIUS = 5000  //meters
-const MAX_AROUND_RADIUS = 20000
+const MAX_AROUND_RADIUS = 10000
 
 const OSM_QUEUE_UPDATE_ITERS_PER_FRAME = 20
 
@@ -60,7 +60,7 @@ class Tool{
         this.dragging = false
         //document.addEventListener("click", () => this.onClick())
         document.addEventListener("mouseup", () => { this.dragging = false; this.onMouseRelease()})
-        document.addEventListener("mousedown", (e) => {this.dragging = true; this.onClick(); this.updateElementsInView()})
+        document.addEventListener("mousedown", (e) => {this.dragging = true; this.onClick()})
         document.addEventListener("mousemove", (e) => {if(this.dragging) {this.onMouseDragged(e);}})
         document.addEventListener("keydown", (e) => this.onKeyPressed(e));
         document.addEventListener("wheel", (e) => {e.preventDefault(); this.onMouseWheel(e)}, {passive: false});
@@ -106,7 +106,7 @@ class Tool{
         if(showOptions) this.showOptions = showOptions
 
         this.pathsInView = []
-        this.intersectionsIDsInView = []
+        this.intersectionsInView = []
 
         this.deltaTimeMult = 1 //for cars update
 
@@ -123,21 +123,15 @@ class Tool{
         minY -= margin
         maxX += margin
         maxY += margin
-        let pathsInView = new Set()
-        let nodesAndSegmentsInView = this.road.graphIndex.search({
-            minX, minY, maxX, maxY
-        })
-        for(let item of nodesAndSegmentsInView.edges){
-            let segID = item.id
-            let seg = this.road.findSegment(segID)
-            let path = seg ? this.road.findPathByNodes(seg.fromNodeID, seg.toNodeID) : undefined
-            if(path) {
-                pathsInView.add(path)
-            }
-        }
-        pathsInView = Array.from(pathsInView)
-        this.pathsInView = pathsInView
-        this.intersectionsIDsInView = nodesAndSegmentsInView.nodes.map(n => n.id)
+        let pathsIDsInView = new Set()
+        let nodesAndSegmentsInView = this.road.graphIndex.search({minX, minY, maxX, maxY})
+        nodesAndSegmentsInView.edges.forEach(edge => pathsIDsInView.add(edge.pathID))
+        this.pathsInView = Array.from(pathsIDsInView).map(id => this.road.findPath(id)).filter(p => p != undefined)
+            .sort((a, b) => (a.polygon?.indexOffset ?? 0) - (b.polygon?.indexOffset ?? 0)).filter(p => p.polygon != undefined)
+        this.intersectionsInView = nodesAndSegmentsInView.nodes
+            .map(n => this.road.findIntersection(n.id))
+            .filter(i => i)
+            .sort((a, b) => (a.polygon?.indexOffset ?? 0) - (b.polygon?.indexOffset ?? 0)).filter(i => i.polygon != undefined)
     }
 
     getInitialState(){
@@ -1437,27 +1431,30 @@ class Tool{
     }
 
     show(){
-        if(frameCount % 10 === 0) this.updateElementsInView()
-
         // FLUJO DE RENDERIZADO (hay que moverlo a otro lado)
         // El lag ya resuelto era porque la GPU al ser asincrona, al mover un nodo estabamos constantemente metiendo
-        // datos a la GPU mientras drawMesh intentaba leer, lo cual bloqueaba la CPU. Ahora se hace constructPolygon antes de cualquier 
+        // datos a la GPU mientras drawMesh intentaba leer, lo cual bloqueaba la CPU. Ahora se hace constructPolygon antes de cualquier
         // drawMesh, asi que se asegura que la GPU procese las escrituras antes de las lecturas, evitando el bloqueo.
+
+        // NOTA: hacemos un sort segun polygon.indexOffset para optimizar el batch rendering, pero claro los paths e intersections
+        // tambien tienen polygonBase, asi que xd
+        // he quitado de aqui los filters para asegurarnos que tienen polygons, porque eso ya se hace en updateElementsInView
         for(const handle of this.road.pendingRemoveHandles) this.renderer.removePolygon(handle)
         this.road.pendingRemoveHandles.length = 0
+        const hadDirty = this.road.dirtyPolygons.size > 0
         for(const obj of this.road.dirtyPolygons) obj.constructPolygon()
         this.road.dirtyPolygons.clear()
 
+        if(hadDirty || frameCount % 12 === 0) this.updateElementsInView()
+
         if(this.showOptions.SHOW_WAYS){
-            let visiblePolygonsOfIntersections = this.intersectionsIDsInView.map(id => this.road.findIntersection(id)).
-                filter(inter => inter && inter.polygon).map(inter => inter.polygon)
-            let visiblePolygonsOfPaths = this.pathsInView.map(p => p.polygon).filter(p => p)
+            let visiblePolygonsOfIntersections = this.intersectionsInView.map(inter => inter.polygon)
+            let visiblePolygonsOfPaths = this.pathsInView.map(p => p.polygon)
             this.renderer.beginFrame(this.zoom, this.xOff, this.yOff)
             
             if(this.zoom > 0.075){
-                let visiblePolygonsBaseOfPaths = this.pathsInView.map(p => p.polygonBase).filter(p => p)
-                let visiblePolygonsBaseOfIntersections = this.intersectionsIDsInView.map(id => this.road.findIntersection(id)).
-                    filter(inter => inter && inter.polygonBase).map(inter => inter.polygonBase)
+                let visiblePolygonsBaseOfPaths = this.pathsInView.map(p => p.polygonBase)
+                let visiblePolygonsBaseOfIntersections = this.intersectionsInView.map(inter => inter.polygonBase)
                 this.renderer.drawMeshes([...visiblePolygonsBaseOfIntersections, ...visiblePolygonsBaseOfPaths], 
                     [SIDE_WALK_COL[0]/255, SIDE_WALK_COL[0]/255, SIDE_WALK_COL[0]/255, 1.0])
             }
@@ -1477,7 +1474,7 @@ class Tool{
         if(this.zoom > 0.3 && this.state.snapToGrid) this.showGridPoints()
         
         // only showWays is optimized
-        if(this.showOptions.SHOW_WAYS) this.road.showWays(this, this.pathsInView, this.intersectionsIDsInView)
+        if(this.showOptions.SHOW_WAYS) this.road.showWays(this, this.pathsInView, this.intersectionsInView)
 
         if(this.showOptions.SHOW_LANES){ 
             this.road.showLanes(this.state.hoverSegID)
@@ -1490,10 +1487,10 @@ class Tool{
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_INTERSECTION_AREA_AREA) this.road.showIntersectionArea()
         
-        if(this.showOptions.SHOW_NODES) this.road.showNodes(this, this.intersectionsIDsInView)
+        if(this.showOptions.SHOW_NODES) this.road.showNodes(this, this.intersectionsInView)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_TAGS && this.showOptions.SHOW_NODES) this.road.showNodesTags()
-        if(this.showOptions.SHOW_CAR_DEBUG) this.road.showCarDebug(this, this.pathsInView, this.intersectionsIDsInView)
+        if(this.showOptions.SHOW_CAR_DEBUG) this.road.showCarDebug(this, this.pathsInView, this.intersectionsInView)
 
         let curSegs = this.createCurrentLanes()
         if(curSegs) this.showCurSegs(curSegs)

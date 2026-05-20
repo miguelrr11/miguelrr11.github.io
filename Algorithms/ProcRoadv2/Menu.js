@@ -455,7 +455,7 @@ class Menu{
 
         this.sliders.push(sliderAround)
 
-        let buttonDebugRoad = new Button(10, 430, 95, 155, 'Debug Road', undefined, () => {
+        let buttonDebugRoad = new Button(10, 430, 95, 180, 'Debug Road', undefined, () => {
             let mousePos = this.tool.getRelativePos(mouseX, mouseY)
             return 'NODES: ' + '\n' +
                    'SEGS: '   + '\n' +
@@ -469,7 +469,10 @@ class Menu{
                    'GRAPH_S: ' +  '\n' +
                    '(X, Y): ' + '\n' + 
                    'VAO%: ' + '\n' + 
-                   'TRIS: ' + '\n'
+                   'TRIS: ' + '\n' + 
+                   'DCs ' + '\n' +
+                   'EFF%: ' + '\n' 
+                   
         }, () => {return false})
         buttonDebugRoad.txSize = 9
         buttonDebugRoad.setTextAlign('left-top')
@@ -490,7 +493,10 @@ class Menu{
                     this.tool.road.graphIndex.edges._size + '\n' +
                    '(' + round(mousePos.x) + ', ' + round(mousePos.y) + ')' + '\n' +
                    round(this.tool.renderer.getVAOPercentage() * 100) + '%' + '\n' +
-                   this.tool.renderer.getTotalTris() + '\n'
+                   this.tool.renderer.getTotalTris() + '\n' +
+                   this.tool.renderer.efficiency.drawCalls + ' / ' + this.tool.renderer.efficiency.meshes + '\n' +
+                   ( (1-(this.tool.renderer.efficiency.drawCalls / this.tool.renderer.efficiency.meshes)) * 100).toFixed(1) + '%\n' 
+                    
         }, () => {return false})
         buttonDebugValues.txSize = 9
         buttonDebugValues.setTextAlign('right-top')

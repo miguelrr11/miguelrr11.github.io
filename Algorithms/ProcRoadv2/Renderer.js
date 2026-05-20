@@ -1,7 +1,7 @@
 const FLOATS_PER_VERTEX = 2; // solo x, y
 const BYTES_PER_VERTEX = FLOATS_PER_VERTEX * 4;
-const MAX_VERTICES = 2_500_000;
-const MAX_INDICES = 7_500_000;
+const MAX_VERTICES = 2_500_000 * 2;
+const MAX_INDICES = 7_500_000 * 2;
 
 class Renderer{
     constructor(tool) {
@@ -47,6 +47,11 @@ class Renderer{
         this.initBuffers();
         this.resizeCanvas();
         window.addEventListener('resize', () => this.resizeCanvas());
+
+        this.efficiency = {
+            drawCalls: 0,
+            meshes: 0,
+        };
     }
 
 
@@ -295,8 +300,8 @@ class Renderer{
         gl.uniform4f(this.uColor, color[0], color[1], color[2], color[3]);
         // Fusionar rangos contiguos en el IBO para minimizar draw calls.
         // Ordena por indexOffset (en tu app puedes hacerlo más eficiente si
-        // mantienes los meshes pre-ordenados por offset).  
-        visibleMeshes.sort((a, b) => a.indexOffset - b.indexOffset);
+        // mantienes los meshes pre-ordenados por offset). 
+        let drawCalls = 0
         let rangeOffset = -1;
         let rangeCount = 0;
         for(const m of visibleMeshes) {
@@ -311,12 +316,17 @@ class Renderer{
                 gl.drawElements(gl.TRIANGLES, rangeCount, gl.UNSIGNED_INT, rangeOffset * 4);
                 rangeOffset = m.indexOffset;
                 rangeCount = m.indexCount;
+                drawCalls++;
             }
         }
         // Último rango pendiente
         if(rangeOffset !== -1) {
             gl.drawElements(gl.TRIANGLES, rangeCount, gl.UNSIGNED_INT, rangeOffset * 4);
+            drawCalls++;
         }
+
+        this.efficiency.drawCalls = drawCalls;
+        this.efficiency.meshes = visibleMeshes.length;
     }
 
     getActualUsedSpace() {

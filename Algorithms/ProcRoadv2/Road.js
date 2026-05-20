@@ -259,9 +259,11 @@ class Road{
         path.constructRealLanes()
         for(let segmentID of path.segmentsIDs){
             let segment = this.findSegment(segmentID)
+            if(!segment.path) segment.path = path
             this.graphIndex.deleteEdge(segmentID)
             this.graphIndex.insertEdge({
                 id: segmentID,
+                pathID: segment.path.id,
                 x1: segment.fromPos.x,
                 y1: segment.fromPos.y,
                 x2: segment.toPos.x,
@@ -1237,7 +1239,7 @@ class Road{
         pop()
     }
 
-    showNodes(toolObj, intersectionsInViewIDs){
+    showNodes(toolObj, intersectionsInView){
         let zoom = toolObj.zoom
         if(zoom > 0.3 && toolObj.showOptions.SHOW_NODES){
             push()
@@ -1245,18 +1247,16 @@ class Road{
             strokeWeight(1.5 / zoom)
             stroke(255, 150)
             blendMode(DIFFERENCE)
-            let nodesInView = intersectionsInViewIDs.map(id => this.findNode(id)).filter(n => n != undefined)
-            nodesInView.forEach((n, key) => {
-                this.findNode(n.id).show(true, zoom)
+            intersectionsInView.forEach((inter, key) => {
+                this.findNode(inter.id).show(true, zoom)
             })
             blendMode(BLEND)
             pop()
         }
     }
 
-    showCarDebug(toolObj, pathsInView, intersectionsInViewIDs){
+    showCarDebug(toolObj, pathsInView, intersectionsInView){
         let zoom = toolObj.zoom
-        let intersectionsInView = intersectionsInViewIDs.map(id => this.findIntersection(id)).filter(i => i != undefined)
 
         push()
         pathsInView.forEach((p, key) => p.showCarDebug())
@@ -1271,15 +1271,13 @@ class Road{
 
     // every function with  "type: showWays" as a comment must only be called from here, as this function sets the correct drawing modes for optimization purposes
     // the filling of paths and intersections is done with the drawingContext and not with p5 functions for optimization purposes
-    showWays(toolObj, pathsInView, intersectionsInViewIDs){
+    showWays(toolObj, pathsInView, intersectionsInView){
         let zoom = toolObj.zoom
         let hoveredID = toolObj.state.hoverSeg
         let ctx = drawingContext
 
         // this.paths.forEach((p, key) => p.setOOB())
         // this.nodes.forEach((n, key) => n.setOOB())
-
-        let intersectionsInView = intersectionsInViewIDs.map(id => this.findIntersection(id)).filter(i => i != undefined)
 
         push()
         rectMode(CORNERS)
@@ -1337,7 +1335,8 @@ class Road{
             pathsInView.forEach((p, key) => p.showName())
         }
         if (zoom <= 0.05) {
-            this.showMain(zoom, pathsInView)
+            // not necessay anymore because shader is fast as fuuuuck boy
+            //this.showMain(zoom, pathsInView)
         }
 
         if(zoom > 0.18) {

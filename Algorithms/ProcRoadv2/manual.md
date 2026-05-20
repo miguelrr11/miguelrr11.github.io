@@ -335,7 +335,7 @@ Debug overlays (toggled via Menu):
 - `SHOW_GRAPH` — R-tree bounding boxes
 - `SHOW_CAR_DEBUG` — car routes and detection radii, TLS phase colors
 
-Only elements within the current viewport are rendered. `Tool.updateElementsInView()` queries the GraphIndex and builds `pathsInView` and `intersectionsIDsInView` to pass to the draw calls.
+Only elements within the current viewport are rendered. `Tool.updateElementsInView()` queries the GraphIndex and builds `pathsInView` and `intersectionsInView` to pass to the draw calls.
 
 ---
 
