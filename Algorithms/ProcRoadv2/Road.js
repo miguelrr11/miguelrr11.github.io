@@ -201,9 +201,12 @@ class Road{
             this._freePath(newPath)
             this.paths.delete(nodesIDs[0] + '-' + nodesIDs[1])
             this.paths.delete(nodesIDs[1] + '-' + nodesIDs[0])
+        } 
+        // importante llamar a contructlanesofpath SI Y SOLO SI el path tiene segmentos, si no, 
+        // corrompemos estado de GPU y aparecen paths invisbles zombies
+        else {
+            this.constructLanesOfPath(newPath)
         }
-        
-        this.constructLanesOfPath(newPath)
 
         let activenessMap = new Map()
         let activenessMaps = []
@@ -440,6 +443,13 @@ class Road{
         if (path.polygon)     this.pendingRemoveHandles.push(path.polygon)
         if (path.polygonBase) this.pendingRemoveHandles.push(path.polygonBase)
         this.dirtyPolygons.delete(path)
+        // Clear stale s.path references so findAnyPath never returns this zombie.
+        // Only clears segments still alive (splitSegmentAtPos deletes one segment before
+        // calling _freePath, so that one returns null here and is skipped safely).
+        for (const segID of path.segmentsIDs) {
+            const seg = this.findSegment(segID)
+            if (seg && seg.path === path) seg.path = null
+        }
     }
 
     deletePathByNodeID(nodeID){
