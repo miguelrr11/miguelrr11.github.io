@@ -1634,7 +1634,7 @@ class Tool{
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
         let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
         let hoverIntersection = this.state.hoverIntersection
-        if(hoverIntersection) hoverNode = hoverIntersection.nodeObj  // if we are hovering an intersection, we don't want to also hover a node that is inside the intersection
+        if(hoverIntersection && this.state.mode == 'creating') hoverNode = hoverIntersection.nodeObj
         let _hoverSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
         let hoverSegment = (_hoverSegment.closestSegment && _hoverSegment.minDist < LANE_WIDTH * .5) ? _hoverSegment.closestSegment : false
         let hoverPath = hoverSegment.path
