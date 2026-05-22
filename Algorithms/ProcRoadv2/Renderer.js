@@ -128,6 +128,9 @@ class Renderer{
         this._initHoverShader();
     }
 
+    // guardamos los corners en una textura, asi no hay (casi) limite de numero de vertices
+    // al draw le pasamos tambien el earcut, asi no hay pixeles pintados fuera del poligono,
+    // ya que las intersecciones son concavas
     _initHoverShader() {
         const gl = this.gl;
         const prog = gl.createProgram();
@@ -144,23 +147,28 @@ class Renderer{
             uColor:        gl.getUniformLocation(prog, 'uColor'),
             uBorderWidth:  gl.getUniformLocation(prog, 'uBorderWidth'),
             uCorners:      gl.getUniformLocation(prog, 'uCorners'),
+            uCornersCount: gl.getUniformLocation(prog, 'uCornerCount')
         };
         this.programs.set('hoverShader', obj);
 
+        // Buffers vacíos - se redimensionan en cada draw con bufferData
         this.hoverVBO = gl.createBuffer();
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.hoverVBO);
-        gl.bufferData(gl.ARRAY_BUFFER, 4 * 2 * 4, gl.DYNAMIC_DRAW);
-
         this.hoverIBO = gl.createBuffer();
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hoverIBO);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array([0,1,2, 0,2,3]), gl.STATIC_DRAW);
+
+        // Textura 1D-style (N×1) RG32F para los corners
+        this.hoverCornersTex = gl.createTexture();
+        gl.bindTexture(gl.TEXTURE_2D, this.hoverCornersTex);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
 
         this.hoverVAO = gl.createVertexArray();
         gl.bindVertexArray(this.hoverVAO);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.hoverVBO);
         gl.enableVertexAttribArray(obj.aPos);
-        gl.vertexAttribPointer(obj.aPos, 2, gl.FLOAT, false, 8, 0);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hoverIBO);
+        gl.vertexAttribPointer(obj.aPos, 2, gl.FLOAT, false, 0, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hoverIBO); // queda capturado en el VAO
         gl.bindVertexArray(null);
     }
 
@@ -345,12 +353,12 @@ class Renderer{
         gl.uniform1f(program.uCameraScale,  zoom);
     }
 
-    // corners: flat [x0,y0, x1,y1, x2,y2, x3,y3] in world space
-    // color: [r,g,b,a] in 0..1
-    // borderWidth: gradient width in world units
-    drawHoverPolygon(corners, color, borderWidth) {
+    drawHoverPolygon(corners, indices, color, borderWidth) {
         const gl = this.gl;
         const prog = this.programs.get('hoverShader');
+
+        const cornersF32 = corners instanceof Float32Array ? corners : new Float32Array(corners);
+        const n = cornersF32.length / 2;
 
         gl.enable(gl.BLEND);
         gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
@@ -358,17 +366,28 @@ class Renderer{
         gl.useProgram(prog.program);
         gl.bindVertexArray(this.hoverVAO);
 
+        // VBO dinámico
         gl.bindBuffer(gl.ARRAY_BUFFER, this.hoverVBO);
-        gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(corners));
+        gl.bufferData(gl.ARRAY_BUFFER, cornersF32, gl.DYNAMIC_DRAW);
+
+        // IBO dinámico (el VAO ya tiene el IBO bindado)
+        const idxArr = indices instanceof Uint16Array ? indices : new Uint16Array(indices);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idxArr, gl.DYNAMIC_DRAW);
+
+        // Subir corners a la textura RG32F (N x 1)
+        gl.activeTexture(gl.TEXTURE0);
+        gl.bindTexture(gl.TEXTURE_2D, this.hoverCornersTex);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RG32F, n, 1, 0, gl.RG, gl.FLOAT, cornersF32);
 
         gl.uniform2f(prog.uResolution,   this.cssWidth, this.cssHeight);
         gl.uniform2f(prog.uCameraOffset, this._xOff, this._yOff);
         gl.uniform1f(prog.uCameraScale,  this._zoom);
         gl.uniform4f(prog.uColor,        color[0], color[1], color[2], color[3]);
         gl.uniform1f(prog.uBorderWidth,  borderWidth);
-        gl.uniform2fv(prog.uCorners,     corners);
+        gl.uniform1i(prog.uCorners,      0); // texture unit 0
+        gl.uniform1i(prog.uCornersCount, n);
 
-        gl.drawElements(gl.TRIANGLES, 6, gl.UNSIGNED_SHORT, 0);
+        gl.drawElements(gl.TRIANGLES, idxArr.length, gl.UNSIGNED_SHORT, 0);
 
         gl.bindVertexArray(null);
         gl.disable(gl.BLEND);

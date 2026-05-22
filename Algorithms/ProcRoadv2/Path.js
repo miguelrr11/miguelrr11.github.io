@@ -21,6 +21,9 @@ class Path{
     }
 
     getCorners(cornersType){
+        // if(cornersType == 'base' && this.outlineBase && this.outlineBase.length != 0) return this.outlineBase
+        // if(cornersType == 'top' && this.outline && this.outline.length != 0) return this.outline
+        //if(this.segments.length == 0) return []
         let first = this.segments[0]
         let last = this.segments[this.segments.length - 1]
         if(!first || !last) return []

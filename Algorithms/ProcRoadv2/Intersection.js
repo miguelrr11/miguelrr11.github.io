@@ -23,6 +23,17 @@ class Intersection {
         this.polygonBase = null
     }
 
+    hoverArea(x, y){
+        let indices = this.triangulate('top')
+        for(let i = 0; i < indices.length; i+=3){
+            let p1 = {x: this.outline[indices[i]*2], y: this.outline[indices[i]*2 + 1]}
+            let p2 = {x: this.outline[indices[i+1]*2], y: this.outline[indices[i+1]*2 + 1]}
+            let p3 = {x: this.outline[indices[i+2]*2], y: this.outline[indices[i+2]*2 + 1]}
+            if(pointInTriangle({x, y}, p1, p2, p3)) return true
+        }
+        return false
+    }
+
     getAllPolygons(){
         let polygons = []
         if(this.polygon) polygons.push(this.polygon)

@@ -8,6 +8,8 @@
  * Intersections are just a data structure to group intersections (they contain the nodeID, the connectors and the intersection-segments)
  * setPaths() recoomputes everything, so the convex hull calculations are relegated to the convexHullQueue that processes them one by one
  * Now convex hulls are not calculated anymore, they were too slow and ugly
+ * 
+ * esta descripcion esta muy outdated
  */
 
 // It is extremely important to separate segments (array segments) from the intersection segments (array intersecSegs)
@@ -31,7 +33,7 @@ const GRID_CELL_SIZE = 40   //15
 
 let OFFSET_RAD_INTERSEC = 25      //25 (intersec_rad)
 let LENGTH_SEG_BEZIER = 12         //3
-let LENGTH_SEG_BEZIER_INTER = LENGTH_SEG_BEZIER
+let LENGTH_SEG_BEZIER_INTER = 4    // define la resolucion de las curvas exteriores de intersecciones, menos es mas detallado
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.75
 let MIN_DIST_INTERSEC = 0        //30
@@ -55,7 +57,7 @@ class Road{
 
         this.connectors = new Map()
         this.intersecSegs = new Map()
-        this.intersections = new Map()
+        this.intersections = new Map()  // extremandamente importante: el ID de una interseccion es el mismo que el ID de su nodo, nos simplifica mucho la vida
         this.paths = new Map()
 
         this.graphIndex = new GraphIndex()   //it stores two rtrees to store nodes and segments for spatial queries
@@ -501,12 +503,21 @@ class Road{
         this.updateRoad([fromNode.id, toNode.id])
 
     }
+    
+    // fully removes a path (so all of its segments, etc)
+    removePath(path){
+        if(!path) return
+        for(let segmentID of path.segmentsIDs){
+            this.deleteSegment(segmentID)
+        }
+    }
 
     checkAndDeletePath(nodeAID, nodeBID){
         let path = this.findPathByNodes(nodeAID, nodeBID)
         if(path && path.segmentsIDs.size == 0){
             this._freePath(path)
             this.paths.delete(nodeAID + '-' + nodeBID)
+            console.log('freed')
         }
     }
 
@@ -684,6 +695,19 @@ class Road{
             return node && node.hover(x, y)
         })
         if(graphNode) return this.findNode(graphNode.id)
+    }
+
+    // use the polygon of the intersection (point on triangle)
+    // en intersecciones grandes, el margen puede ser insuficiente pero bueno
+    findHoverIntersection(x, y){
+        let margin = 150
+        let candidates = this.graphIndex.searchNodes({minX: x - margin, minY: y - margin, maxX: x + margin, maxY: y + margin})
+        if(!candidates || candidates.length == 0) return undefined
+        let graphIntersection = candidates.find(c => {
+            const intersection = this.findIntersection(c.id)
+            return intersection && intersection.hoverArea(x, y)
+        })
+        if(graphIntersection) return this.findIntersection(graphIntersection.id)
     }
 
     addSegment(fromNodeID, toNodeID, visualDir, updateR = true, straightMode = false){
@@ -1239,7 +1263,7 @@ class Road{
         pop()
     }
 
-    showNodes(toolObj, intersectionsInView){
+    showNodes(toolObj, nodesInView){
         let zoom = toolObj.zoom
         if(zoom > 0.3 && toolObj.showOptions.SHOW_NODES){
             push()
@@ -1247,8 +1271,8 @@ class Road{
             strokeWeight(1.5 / zoom)
             stroke(255, 150)
             blendMode(DIFFERENCE)
-            intersectionsInView.forEach((inter, key) => {
-                this.findNode(inter.id).show(true, zoom)
+            nodesInView.forEach((node) => {
+                node.show(true, zoom)
             })
             blendMode(BLEND)
             pop()
@@ -1267,6 +1291,16 @@ class Road{
             inter.showTLS()
         }
         pop()
+    }
+
+    showTris(toolObj, pathsInView, intersectionsInView){
+        push()
+        stroke(0, 255, 0, 75)
+        strokeWeight(1/toolObj.zoom)
+        intersectionsInView.forEach(i => {i.renderTris()})
+        pathsInView.forEach(p => {p.renderTris()})
+        pop()
+        
     }
 
     // every function with  "type: showWays" as a comment must only be called from here, as this function sets the correct drawing modes for optimization purposes
@@ -1350,12 +1384,7 @@ class Road{
             pop()
         }
 
-        if(toolObj.showOptions.SHOW_TRIS){
-            stroke(0, 255, 0, 75)
-            strokeWeight(1)
-            intersectionsInView.forEach(i => {i.renderTris()})
-            pathsInView.forEach(p => {p.renderTris()})
-        }
+        
         pop()
 
         

@@ -1,7 +1,7 @@
 let descriptions = {
     'createButton': '• Click in blank space to create a new node\n• Click on a segment to divide it and create a new node\n• Keep clicking to create segments between nodes\n• Right click to cancel',
     'createButton_disabled': 'Reset the car state to enable this button',
-    'deleteButton': '• Click on a node or segment to delete it',
+    'deleteButton': '• Click on a node or path to delete it\n• Hold shift to delete an individual segment ',
     'deleteButton_disabled': 'Reset the car state to enable this button',
     'handButton': '• Click and drag to move nodes\n• Click and drag on blank space to pan the view\n• Double click on a node to toggle individual paths of the intersection',
     'selectButton': '• Click and drag to create a selection box',

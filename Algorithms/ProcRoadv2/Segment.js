@@ -36,6 +36,15 @@ class Segment{
         this.cars = [] // ordered array of cars that are currently on the segment, updated by car manager
     }
 
+    getCorners(cornersType){
+        if(cornersType == 'top') return this.corners
+        else if(cornersType == 'base') return this.corners16
+    }
+
+    triangulate(cornersType){
+        return window.earcut(this.getCorners(cornersType));
+    }
+
     getWorldPos(travelled){
         if(this.len == undefined) this.getLen()
         let relPos = travelled / this.getLen()

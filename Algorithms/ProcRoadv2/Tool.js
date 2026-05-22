@@ -34,8 +34,8 @@ state.modes:
     settingStart
     settingEnd
 */
-
 ///////////
+
 
 class Tool{
     constructor(){
@@ -51,7 +51,8 @@ class Tool{
             SHOW_INTERSECTION_AREA_AREA: false,
             SHOW_WAYS: true,
             SHOW_GRAPH: false,       //debug
-            SHOW_CAR_DEBUG: false
+            SHOW_CAR_DEBUG: false,
+            SHOW_TRIS: false
         }
         this.road = new Road(this)
         this.state = this.getInitialState()
@@ -107,6 +108,7 @@ class Tool{
 
         this.pathsInView = []
         this.intersectionsInView = []
+        this.nodesInView = []
 
         this.deltaTimeMult = 1 //for cars update
 
@@ -132,6 +134,9 @@ class Tool{
             .map(n => this.road.findIntersection(n.id))
             .filter(i => i)
             .sort((a, b) => (a.polygon?.indexOffset ?? 0) - (b.polygon?.indexOffset ?? 0)).filter(i => i.polygon != undefined)
+        this.nodesInView = nodesAndSegmentsInView.nodes
+            .map(n => this.road.findNode(n.id))
+            .filter(n => n)
     }
 
     getInitialState(){
@@ -413,13 +418,20 @@ class Tool{
 
         let mode = (this.state.mode == 'creating') ? (mouseButton.left ? 'creating' : (mouseButton.right ? 'deleting' : this.state.mode)) : this.state.mode
 
+        let pressingShift = keyIsDown(SHIFT)
+
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
+
+        let hoverNode = this.state.hoverNode
+        let hoverIntersection = this.state.hoverIntersection
+        let hoverSegID = this.state.hoverSegID
+        let hoverSeg = hoverSegID != undefined ? this.road.findSegment(hoverSegID) : undefined
+        let hoverPath = hoverSeg ? hoverSeg.path : undefined
 
         // CSmode: First click - create or select starting node (or use existing prevNodeID)
         if(mode == 'creating' && this.state.CSmode && this.state.firstPointCS == undefined && this.state.prevNodeID == -1){
 
             // Otherwise, create or select a starting node
-            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined){
                 // Use existing node
                 this.state.prevNodeID = hoverNode.id
@@ -459,7 +471,6 @@ class Tool{
 
         // CSmode: Third click - create or select ending node and create curved segments
         if(mode == 'creating' && this.state.CSmode && this.state.secondPointCS == undefined){
-            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined && hoverNode.id != this.state.prevNodeID){
                 // Connect to existing node
                 this.state.secondPointCS = {x: hoverNode.pos.x, y: hoverNode.pos.y}
@@ -505,9 +516,13 @@ class Tool{
         //not following a previous node, so just create a new node
         if(mode == 'creating' && this.state.prevNodeID == -1){
             //resumes creating a segment from the clicked node
-            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined){
                 this.state.prevNodeID = hoverNode.id
+                return
+            }
+            // nuevo: ahora se puede conectar desde el area de la interseccion, no hace falta que haya hover sobre el nodo
+            if(hoverIntersection != undefined){
+                this.state.prevNodeID = hoverIntersection.id
                 return
             }
             //creates a new node on top of a segment, it splits it and creates a new node which becomes the previous node (anchor)
@@ -531,10 +546,15 @@ class Tool{
         //following a previous node: create a segment that follows the previous node and creates a new node
         else if(mode == 'creating' && this.state.prevNodeID != -1){
             //connects it to an existing node if hovering one
-            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined && hoverNode.id != this.state.prevNodeID){
                 this.createSegmentBetweenTwoNodes(this.state.prevNodeID, hoverNode.id)
                 this.state.prevNodeID = hoverNode.id
+                return
+            }
+            // nuevo, no hace falta hacer click sobre el nodo, basta con hacer click en el area de la interseccion para conectar
+            if(hoverIntersection != undefined && hoverIntersection.id != this.state.prevNodeID){
+                this.createSegmentBetweenTwoNodes(this.state.prevNodeID, hoverIntersection.id)
+                this.state.prevNodeID = hoverIntersection.id
                 return
             }
             if(hoverNode != undefined && hoverNode.id == this.state.prevNodeID) return
@@ -562,15 +582,20 @@ class Tool{
 
         //deletes a node or segment
         else if(mode == 'deleting'){
-            let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             if(hoverNode != undefined && this.state.prevNodeID != hoverNode.id){
                 this.road.deleteNode(hoverNode.id)
                 return
             }
-            let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
-            if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
-                this.road.deleteSegment(closestPosToSegment.closestSegment.id)
+            if(hoverIntersection != undefined && this.state.prevNodeID != hoverIntersection.id){
+                this.road.deleteNode(hoverIntersection.id)
                 return
+            }
+            if(hoverSeg && pressingShift){
+                this.road.deleteSegment(hoverSeg.id)
+                return
+            }
+            if(hoverPath && !pressingShift){
+                this.road.removePath(hoverPath)
             }
         }
 
@@ -699,7 +724,7 @@ class Tool{
                 this.road.moveNodeTo(node, mousePosGridX + this.state.offsetDraggingNode.x, mousePosGridY + this.state.offsetDraggingNode.y)
                 this.road.updateNode(this.state.draggingNodeID)    
                 //this.updateElementsInView()
-                return
+                return  
             }
             //finds a node to start dragging
             let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
@@ -1392,6 +1417,7 @@ class Tool{
         let mousePos = this.getRelativePos(mouseX, mouseY)
         
         if(this.finishedOSM()){
+            this.state.hoverIntersection = this.road.findHoverIntersection(mousePos.x, mousePos.y)
             this.state.hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
             let closestPosToSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
             if(closestPosToSegment.closestSegment && closestPosToSegment.minDist < LANE_WIDTH * 0.5){
@@ -1447,10 +1473,12 @@ class Tool{
 
         if(hadDirty || frameCount % 12 === 0) this.updateElementsInView()
 
+        this.renderer.beginFrame(this.zoom, this.xOff, this.yOff)
+
         if(this.showOptions.SHOW_WAYS){
             let visiblePolygonsOfIntersections = this.intersectionsInView.map(inter => inter.polygon)
             let visiblePolygonsOfPaths = this.pathsInView.map(p => p.polygon)
-            this.renderer.beginFrame(this.zoom, this.xOff, this.yOff)
+            
             
             if(this.zoom > 0.075){
                 let visiblePolygonsBaseOfPaths = this.pathsInView.map(p => p.polygonBase)
@@ -1463,9 +1491,6 @@ class Tool{
         }
         else this.renderer.clearPixels()
         
-
-
-
         push()
 
         translate(this.xOff, this.yOff)
@@ -1475,27 +1500,22 @@ class Tool{
         
         // only showWays is optimized
         if(this.showOptions.SHOW_WAYS) this.road.showWays(this, this.pathsInView, this.intersectionsInView)
-
-        if(this.showOptions.SHOW_LANES){ 
-            this.road.showLanes(this.state.hoverSegID)
-        }
+        if(this.showOptions.SHOW_LANES) this.road.showLanes(this.state.hoverSegID)
         if(this.showOptions.SHOW_ROAD) this.road.showMain(this.zoom, this.pathsInView)
         if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, 
                                                             this.showOptions.SHOW_SEGS_DETAILS,
                                                             this.state.hoverSegID)
-        
         if(this.showOptions.SHOW_INTERSECSEGS) this.road.showIntersecSegs(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_INTERSECTION_AREA_AREA) this.road.showIntersectionArea()
-        
-        if(this.showOptions.SHOW_NODES) this.road.showNodes(this, this.intersectionsInView)
+        if(this.showOptions.SHOW_TRIS) this.road.showTris(this, this.pathsInView, this.intersectionsInView)
+        if(this.showOptions.SHOW_NODES) this.road.showNodes(this, this.nodesInView)
         if(this.showOptions.SHOW_CONNECTORS) this.road.showConnectors(this.showOptions.SHOW_TAGS)
         if(this.showOptions.SHOW_TAGS && this.showOptions.SHOW_NODES) this.road.showNodesTags()
         if(this.showOptions.SHOW_CAR_DEBUG) this.road.showCarDebug(this, this.pathsInView, this.intersectionsInView)
 
-        let curSegs = this.createCurrentLanes()
-        if(curSegs) this.showCurSegs(curSegs)
-
-        
+        // let curSegs = this.createCurrentLanes()
+        // if(curSegs) this.showCurSegs(curSegs)
+        this.showCurrentlyCreatingPath()
 
         this.showFoundPath()
         this.showStartEndPathfinding()
@@ -1515,6 +1535,7 @@ class Tool{
 
         this.menu.show()
     }
+
     showIntersectingPaths(){
 
         if(this.state.mode != 'creating' || this.state.prevNodeID == -1) return
@@ -1540,11 +1561,14 @@ class Tool{
 
         if(points.length > 0){
             push()
-            stroke(0, 0, 255)
-            fill(0, 0, 255, 100)
+            strokeWeight(5)
+            stroke(255, 150)
+            noFill()
+            blendMode(DIFFERENCE)
             for(let p of points){
-                ellipse(p.x, p.y, NODE_RAD * 2)
+                ellipse(p.x, p.y, NODE_RAD * 1.75)
             }
+            blendMode(BLEND)
             pop()
         }
     }
@@ -1599,26 +1623,53 @@ class Tool{
         //intersection.showCollisions()
     }
 
+    // hay un bug que es si esta desactivado el show_ways, las areas de hover de las intersecciones no respetan el zoom, es como que show_ways
+    // actualiza algo y ya se vuelven a ver bien, entonces en vez de hacer lo correcto y arreglar el bug, he desactivado showHover si no se esta
+    // viendo show_ways
+    // retiro lo dicho, bug arreglado -> cuando show_ways esta desactivado, no haciamos begin_frame, entonces no seteabamos el zoom ni offsets
     showHover(){
         if(this.state.carState) return // in car state we don't show hover because the hover interactions are disabled anyway
+        //if(this.showOptions.SHOW_WAYS == false) return
+        let pressingShift = keyIsDown(SHIFT)
         let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
         let hoverNode = this.road.findHoverNode(mousePos.x, mousePos.y)
+        let hoverIntersection = this.state.hoverIntersection
+        if(hoverIntersection) hoverNode = hoverIntersection.nodeObj  // if we are hovering an intersection, we don't want to also hover a node that is inside the intersection
         let _hoverSegment = this.road.findClosestSegmentAndPos(mousePos.x, mousePos.y)
         let hoverSegment = (_hoverSegment.closestSegment && _hoverSegment.minDist < LANE_WIDTH * .5) ? _hoverSegment.closestSegment : false
+        let hoverPath = hoverSegment.path
         if(this.state.mode == 'movingNode' && hoverNode != undefined){
             blendMode(ADD)
-            hoverNode.show(true, this.zoom)
+            hoverNode.show(true)
             blendMode(BLEND)
         }
         else if(this.state.mode == 'deleting' || this.state.mode == 'creating'){
             if(hoverNode){
                 blendMode(ADD)
-                hoverNode.show(true, this.zoom)
+                hoverNode.show(true)
                 blendMode(BLEND)
             }
-            else if(hoverSegment && this.showOptions.SHOW_WAYS){
+            let inter = hoverIntersection
+            if(inter){
                 this.renderer.drawHoverPolygon(
-                    _hoverSegment.closestSegment.corners,
+                    inter.outline, inter.triangulate('top'),
+                    [0.3, 0.4, 1.0, 1.0],
+                    LANE_WIDTH * .75
+                    
+                )
+            }
+            else if(hoverPath && this.showOptions.SHOW_WAYS && !pressingShift){
+                this.renderer.drawHoverPolygon(
+                    hoverPath.getCorners('top'),
+                    hoverPath.triangulate('top'),
+                    [0.3, 0.4, 1.0, 1.0],
+                    LANE_WIDTH * .75
+                )
+            }
+            else if(hoverSegment && this.showOptions.SHOW_WAYS && pressingShift){
+                this.renderer.drawHoverPolygon(
+                    hoverSegment.getCorners('top'),
+                    hoverSegment.triangulate('top'),
                     [0.3, 0.4, 1.0, 1.0],
                     LANE_WIDTH * .5
                 )
@@ -1632,6 +1683,40 @@ class Tool{
                 }
             }
         }
+    }
+
+    
+
+    showCurrentlyCreatingPath(){
+        if(this.state.prevNodeID == -1) return
+        let [mousePosGridX, mousePosGridY, mousePos] = this.getMousePositions()
+        if(this.state.hoverNode){
+            mousePosGridX = this.state.hoverNode.pos.x
+            mousePosGridY = this.state.hoverNode.pos.y
+        }
+        let fromPos = this.road.findNode(this.state.prevNodeID).pos
+        let toPos = {x: mousePosGridX, y: mousePosGridY}
+        let angle = Math.atan2(toPos.y - fromPos.y, toPos.x - fromPos.x) - PI / 2
+        let numLanes = this.state.nForLanes + this.state.nBackLanes
+        let totalWidth = numLanes * LANE_WIDTH
+        let startOffset = -totalWidth / 2
+        let outline = [
+            {x: fromPos.x + Math.cos(angle) * startOffset, y: fromPos.y + Math.sin(angle) * startOffset},
+            {x: fromPos.x + Math.cos(angle) * (startOffset + numLanes * LANE_WIDTH), y: fromPos.y + Math.sin(angle) * (startOffset + numLanes * LANE_WIDTH)},
+            {x: toPos.x + Math.cos(angle) * (startOffset + numLanes * LANE_WIDTH), y: toPos.y + Math.sin(angle) * (startOffset + numLanes * LANE_WIDTH)},
+            {x: toPos.x + Math.cos(angle) * startOffset, y: toPos.y + Math.sin(angle) * startOffset}
+        ]
+        let flatOutline = []
+        outline.forEach(p => {
+            flatOutline.push(p.x, p.y)
+        })
+        let indices = [1, 0, 3, 3, 2, 1]
+        this.renderer.drawHoverPolygon(
+            flatOutline,
+            indices,
+            [255/255, 162/255, 23/255, 1.0],
+            LANE_WIDTH * .75
+        )
     }
 
     getRelativePos(x, y){

@@ -330,6 +330,13 @@ function bezierPointAt(a, b, c, d, t, tension = 0.3) {
   return add(add(p, p1), add(p2, p3));
 }
 
+function pointInTriangle(pt, v1, v2, v3) {
+    const b1 = (pt.x - v1.x) * (v2.y - v1.y) - (v2.x - v1.x) * (pt.y - v1.y) < 0.0;
+    const b2 = (pt.x - v2.x) * (v3.y - v2.y) - (v3.x - v2.x) * (pt.y - v2.y) < 0.0;
+    const b3 = (pt.x - v3.x) * (v1.y - v3.y) - (v1.x - v3.x) * (pt.y - v3.y) < 0.0;
+    return (b1 === b2) && (b2 === b3);
+}
+
 
 function shortenSegment(A, B, length) {
     const dx = B.x - A.x;

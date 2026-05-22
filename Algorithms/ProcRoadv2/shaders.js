@@ -32,9 +32,13 @@ const vsHoverSrc = `#version 300 es
 
 const fsHoverSrc = `#version 300 es
   precision mediump float;
+  precision highp sampler2D;
+
   uniform vec4 uColor;
   uniform float uBorderWidth;
-  uniform vec2 uCorners[4];
+  uniform sampler2D uCorners;
+  uniform int uCornerCount;
+
   in vec2 vWorldPos;
   out vec4 outColor;
 
@@ -44,13 +48,22 @@ const fsHoverSrc = `#version 300 es
     return length(p - (a + t * ab));
   }
 
+  vec2 getCorner(int i) {
+    return texelFetch(uCorners, ivec2(i, 0), 0).xy;
+  }
+
   void main() {
-    float d = min(
-      min(distToSeg(uCorners[0], uCorners[1], vWorldPos),
-          distToSeg(uCorners[1], uCorners[2], vWorldPos)),
-      min(distToSeg(uCorners[2], uCorners[3], vWorldPos),
-          distToSeg(uCorners[3], uCorners[0], vWorldPos))
-    );
-    float alpha = uColor.a * (1.0 - smoothstep(0.0, uBorderWidth, d));
-    outColor = vec4(uColor.rgb, alpha);
+    float uSolidWidth = uBorderWidth * 0.25;
+
+    float d = 1e20;
+    for (int i = 0; i < uCornerCount; i++) {
+      int j = (i + 1) == uCornerCount ? 0 : (i + 1);
+      d = min(d, distToSeg(getCorner(i), getCorner(j), vWorldPos));
+    }
+
+    float t = smoothstep(uSolidWidth * 0.7, uSolidWidth, d);
+    vec3 lightColor = mix(uColor.rgb, vec3(1.0), 0.75);
+    vec3 rgb = mix(lightColor, uColor.rgb, t);
+    float alpha = uColor.a * (1.0 - smoothstep(uSolidWidth, uBorderWidth, d));
+    outColor = vec4(rgb, alpha);
   }`;
