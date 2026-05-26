@@ -1,7 +1,7 @@
 const FLOATS_PER_VERTEX = 2; // solo x, y
 const BYTES_PER_VERTEX = FLOATS_PER_VERTEX * 4;
-const MAX_VERTICES = 2_500_000 * 2;
-const MAX_INDICES = 7_500_000 * 2;
+const MAX_VERTICES = 2_500_000 * 3;
+const MAX_INDICES = 7_500_000 * 3;
 
 /**
  * NOTAS SOBRE RENDIMIENTO:

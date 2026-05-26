@@ -3,8 +3,8 @@ class TrafficLightSystem{
         this.phases = phases
         this.intersection = intersection
         this.currentPhaseIndex = floor(random(this.phases.length))
-        this.phaseDuration = 5.5*60
-        this.yellowDuration = 2*60
+        this.phaseDuration = 7*60
+        this.yellowDuration = 2.5*60
         this.isInYellow = false
         this.timeInCurrentPhase = random(this.phaseDuration)
     }

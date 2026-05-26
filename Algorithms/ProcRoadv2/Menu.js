@@ -278,7 +278,7 @@ class Menu{
         })
         buttonFullscreen.txSize = 12
 
-        let buttonWiki = new Button(width - 70 - 10, HEIGHT - 90 - 30, 70, 20, 'Wiki')
+        let buttonWiki = new Button(width - 70 - 10, HEIGHT - 90 - 30, 70, 20, 'Wiki', () => {this.hoverTime = this.minHoverTime})
         buttonWiki.labelID = 'wikiButton'
         buttonWiki.widthDescription = 750
 

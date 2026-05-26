@@ -12,9 +12,9 @@ const MAX_ZOOM = 8
 
 const SCALE_FACTOR_OSM = 1000000
 let AROUND_RADIUS = 5000  //meters
-const MAX_AROUND_RADIUS = 10000
+const MAX_AROUND_RADIUS = 7500
 
-const OSM_QUEUE_UPDATE_ITERS_PER_FRAME = 20
+const OSM_QUEUE_UPDATE_ITERS_PER_FRAME = 25
 
 let startTime = 0
 let endTime = 0
@@ -1459,6 +1459,8 @@ class Tool{
         this.road.updateTLSs(this.deltaTimeMult)
     }
 
+    // en general, si intentamos dibujar con shaders y a la vez estamos manipulando sus arrays internos en la gpu, el framerate se va a la
+    // mierda, por eso cuando estamos generando OSM, desactivamos el dibujado de caminos
     show(){
         // FLUJO DE RENDERIZADO (hay que moverlo a otro lado)
         // El lag ya resuelto era porque la GPU al ser asincrona, al mover un nodo estabamos constantemente metiendo
@@ -1480,7 +1482,7 @@ class Tool{
         if(this.zoom > 0.3 && this.state.snapToGrid) this.showGridPoints()
         this.renderer.beginFrame(this.zoom, this.xOff, this.yOff, false)
 
-        if(this.showOptions.SHOW_WAYS){
+        if(this.showOptions.SHOW_WAYS && this.finishedOSM()){
             let visiblePolygonsOfIntersections = this.intersectionsInView.map(inter => inter.polygon)
             let visiblePolygonsOfPaths = this.pathsInView.map(p => p.polygon)
             
@@ -1500,13 +1502,11 @@ class Tool{
 
         translate(this.xOff, this.yOff)
         scale(this.zoom)
-
-        
         
         // only showWays is optimized
-        if(this.showOptions.SHOW_WAYS) this.road.showWays(this, this.pathsInView, this.intersectionsInView)
+        if(this.showOptions.SHOW_WAYS && this.finishedOSM()) this.road.showWays(this, this.pathsInView, this.intersectionsInView)
         if(this.showOptions.SHOW_LANES) this.road.showLanes(this.state.hoverSegID)
-        if(this.showOptions.SHOW_ROAD) this.road.showMain(this.zoom, this.pathsInView)
+        if(this.showOptions.SHOW_ROAD || (this.showOptions.SHOW_WAYS && !this.finishedOSM())) this.road.showMain(this.zoom, this.pathsInView)
         if(this.showOptions.SHOW_PATHS) this.road.showPaths(this.showOptions.SHOW_TAGS, 
                                                             this.showOptions.SHOW_SEGS_DETAILS,
                                                             this.state.hoverSegID)
@@ -1934,7 +1934,7 @@ class Tool{
         }
 
         for(let [nodeIDA, nodeIDB, path] of pathsToUpdate){
-            this.road.updateRoad([nodeIDA, nodeIDB], path)
+            this.road.updateRoad([nodeIDA, nodeIDB], path, undefined, undefined, false)
         }
 
         let nextNodeID = undefined

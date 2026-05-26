@@ -175,7 +175,7 @@ class Road{
     //connect a node to another node
     //the current way to modify the road in the fly when wanting to connect two nodes
     //nodesIDs is an array of two node IDs
-    updateRoad(nodesIDs, usePath = undefined, trim = true, straightMode = false){
+    updateRoad(nodesIDs, usePath = undefined, trim = true, straightMode = false, construct = true){
         let segmentIDs = usePath ? new Set(usePath.segmentsIDs) : new Set(this.getAllSegmentsBetweenNodes(nodesIDs[0], nodesIDs[1]).map(s => s.id))
         let newPath 
         if(usePath) newPath = usePath
@@ -206,7 +206,7 @@ class Road{
         } 
         // importante llamar a contructlanesofpath SI Y SOLO SI el path tiene segmentos, si no, 
         // corrompemos estado de GPU y aparecen paths invisbles zombies
-        else {
+        else if(construct && newPath.segmentsIDs.size > 0){
             this.constructLanesOfPath(newPath)
         }
 
