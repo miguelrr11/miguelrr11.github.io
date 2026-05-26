@@ -901,6 +901,9 @@ class Tool{
     }
 
     showGridPoints(){
+
+        this.renderer.drawGrid(undefined, GRID_CELL_SIZE)
+        return
         
         push()
         let edges = this.getEdges()
@@ -1474,6 +1477,8 @@ class Tool{
         if(hadDirty || frameCount % 12 === 0) this.updateElementsInView()
 
         this.renderer.beginFrame(this.zoom, this.xOff, this.yOff)
+        if(this.zoom > 0.3 && this.state.snapToGrid) this.showGridPoints()
+        this.renderer.beginFrame(this.zoom, this.xOff, this.yOff, false)
 
         if(this.showOptions.SHOW_WAYS){
             let visiblePolygonsOfIntersections = this.intersectionsInView.map(inter => inter.polygon)
@@ -1496,7 +1501,7 @@ class Tool{
         translate(this.xOff, this.yOff)
         scale(this.zoom)
 
-        if(this.zoom > 0.3 && this.state.snapToGrid) this.showGridPoints()
+        
         
         // only showWays is optimized
         if(this.showOptions.SHOW_WAYS) this.road.showWays(this, this.pathsInView, this.intersectionsInView)

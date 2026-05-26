@@ -126,6 +126,7 @@ class Renderer{
         programObjShaderSuperficies.program = program;
         this.programs.set('surfaceShader', programObjShaderSuperficies);
         this._initHoverShader();
+        this._initGridShader()
     }
 
     // guardamos los corners en una textura, asi no hay (casi) limite de numero de vertices
@@ -170,6 +171,24 @@ class Renderer{
         gl.vertexAttribPointer(obj.aPos, 2, gl.FLOAT, false, 0, 0);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.hoverIBO); // queda capturado en el VAO
         gl.bindVertexArray(null);
+    }
+
+    _initGridShader(){
+        const gl = this.gl
+        const prog = gl.createProgram()
+        gl.attachShader(prog, this.compile(gl.VERTEX_SHADER, vsGridSrc));
+        gl.attachShader(prog, this.compile(gl.FRAGMENT_SHADER, fsGridSrc));
+        gl.linkProgram(prog);
+        if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(prog));
+        let obj = {
+            program:       prog,
+            uResolution:   gl.getUniformLocation(prog, 'uResolution'),
+            uCameraOffset: gl.getUniformLocation(prog, 'uCameraOffset'),
+            uCameraScale:  gl.getUniformLocation(prog, 'uCameraScale'),
+            uCellSize:     gl.getUniformLocation(prog, 'uCellSize'),
+            uDPR:          gl.getUniformLocation(prog, 'uDPR')
+        }
+        this.programs.set('gridShader', obj);
     }
 
     compile(type, src) {
@@ -340,12 +359,14 @@ class Renderer{
     // 
     // es clave llamar a esto antes de dibujar, por eso lo tengo al principio en tool.show(), aun que no dibujes las 
     // superficies, porque el hover tambien lo necesita
-    beginFrame(zoom, xOff, yOff) {
+    beginFrame(zoom, xOff, yOff, clear = true) {
         const gl = this.gl;
         this._zoom = zoom;
         this._xOff = xOff;
         this._yOff = yOff;
-        this.clearPixels();
+        if (clear) {
+            this.clearPixels();
+        }
         let program = this.programs.get('surfaceShader');
         gl.useProgram(program.program);
         gl.bindVertexArray(this.vao);
@@ -430,6 +451,22 @@ class Renderer{
 
         this.efficiency.drawCalls = drawCalls;
         this.efficiency.meshes = visibleMeshes.length;
+    }
+
+    drawGrid(edges, cellSize){
+        const gl = this.gl
+        const prog = this.programs.get('gridShader')
+        gl.enable(gl.BLEND)
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA)
+        gl.useProgram(prog.program)
+        gl.bindVertexArray(null)
+        gl.uniform2f(prog.uResolution,   this.cssWidth, this.cssHeight)
+        gl.uniform2f(prog.uCameraOffset, this._xOff, this._yOff)
+        gl.uniform1f(prog.uCameraScale,  this._zoom)
+        gl.uniform1f(prog.uCellSize,     cellSize)
+        gl.uniform1f(prog.uDPR,          window.devicePixelRatio || 1.0)
+        gl.drawArrays(gl.TRIANGLES, 0, 3)
+        gl.disable(gl.BLEND)
     }
 
     getActualUsedSpace() {
