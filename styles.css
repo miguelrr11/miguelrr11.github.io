@@ -109,14 +109,9 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
   transition: transform 0.3s ease;
 }
 
-.cards-wrapper .card {
-  position: relative;
-}
-
 .cards-wrapper .card-image,
 .cards-wrapper .card-video {
-  position: absolute;
-  inset: 0;
+  grid-area: 1 / 1 / 2 / 2;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -133,9 +128,6 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
   transition: opacity 0.35s ease;
 }
 
-.cards-wrapper .card {
-  aspect-ratio: 1 / 1;
-}
 
 
 .category-card ul {
@@ -221,7 +213,8 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
 }
 
 .cards-wrapper .card {
-  display: inline-block;
+  display: grid;
+  grid-template-rows: 180px auto;
   width: 180px;
   text-decoration: none;
   color: inherit;

@@ -337,7 +337,9 @@ class Renderer{
     //   renderer.beginFrame();
     //   renderer.drawMeshes(visibleRoads,         [0.2, 0.2, 0.2, 1]);
     //   renderer.drawMeshes(visibleIntersections, [0.3, 0.3, 0.3, 1]);
-    // usa el programa de superficies
+    // 
+    // es clave llamar a esto antes de dibujar, por eso lo tengo al principio en tool.show(), aun que no dibujes las 
+    // superficies, porque el hover tambien lo necesita
     beginFrame(zoom, xOff, yOff) {
         const gl = this.gl;
         this._zoom = zoom;
