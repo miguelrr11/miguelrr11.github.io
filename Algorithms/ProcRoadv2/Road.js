@@ -32,7 +32,7 @@ const NODE_RAD_SQ = NODE_RAD * NODE_RAD
 const GRID_CELL_SIZE = 40   //15
 
 let OFFSET_RAD_INTERSEC = 25      //25 (intersec_rad)
-let LENGTH_SEG_BEZIER = 12         //3
+let LENGTH_SEG_BEZIER = 10         // de 12 a 10
 let LENGTH_SEG_BEZIER_INTER = 4    // define la resolucion de las curvas exteriores de intersecciones, menos es mas detallado
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.75
