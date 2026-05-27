@@ -474,6 +474,11 @@ Double-clicking a node opens it in the `selectedIntersection` state. The user ca
 
 Sliders that affect road geometry (`Lane Width`, `Bezier Length`, `Intersec Rad`, `Tension Min/Max`) call `road.setPaths()` immediately on change — full recompute.
 
+The save UI has two entry points:
+
+1. `Quick Save` in the bottom-right corner. It saves to the last used save name if one exists, or prompts for a name on first use.
+2. `Manage Saves` at the bottom center. It opens a list of named saves where each entry can be loaded, updated, or deleted.
+
 ---
 
 ## 13. OSM Import
@@ -489,9 +494,17 @@ Flow:
 
 ## 14. Save / Load
 
-`saveToLocalStorage()` — serializes nodes and segments (via their `export()` methods) to JSON and stores it with p5's `storeItem()`.
+Saves are stored in p5 localStorage under the `PRsavesMap` key as a map from save name to serialized road data.
 
-`loadFromLocalStorage()` — reconstructs nodes and segments from the saved JSON, then calls `road.setPaths()` to recompute all derived state (paths, intersections, connectors, etc).
+`saveAsave(name)` — writes the current road to `PRsavesMap[name]` and refreshes the save manager list.
+
+`quickSave()` — if there is no current save selected, prompts for a name, stores the road under that name, and remembers it as the active save. If there is a current save selected, it overwrites that save in place without prompting.
+
+The save manager entries expose three actions:
+
+1. `Load` — loads the selected named save into the editor and marks it as the current save.
+2. `Update` — overwrites the selected named save with the current road.
+3. `Delete` — removes the selected named save from `PRsavesMap` and clears the current save if it was that entry.
 
 ---
 
