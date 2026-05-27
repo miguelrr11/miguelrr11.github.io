@@ -1,3 +1,5 @@
 timetrackermig/.vscode
 timetrackermig/node_modules
 timetrackermig/out
+.DS_Store
+Algorithms/.DS_Store
