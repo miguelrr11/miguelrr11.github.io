@@ -61,8 +61,8 @@ class Tool{
         this.dragging = false
         //document.addEventListener("click", () => this.onClick())
         document.addEventListener("mouseup", () => { this.dragging = false; this.onMouseRelease()})
-        document.addEventListener("mousedown", (e) => {this.dragging = true; this.onClick()})
-        document.addEventListener("mousemove", (e) => {if(this.dragging) {this.onMouseDragged(e);}})
+        document.addEventListener("mousedown", (e) => {this.dragging = true; this.onClick();});
+        document.addEventListener("mousemove", (e) => {this.dragging = e.buttons !== 0; if(this.dragging) {this.onMouseDragged(e);}})
         document.addEventListener("keydown", (e) => this.onKeyPressed(e));
         document.addEventListener("wheel", (e) => {e.preventDefault(); this.onMouseWheel(e)}, {passive: false});
         document.addEventListener('contextmenu', (event) => {

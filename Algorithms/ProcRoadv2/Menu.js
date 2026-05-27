@@ -7,6 +7,22 @@ class Menu{
         this.sliders = []
         this.tool = tool
 
+        this.currentSaveID = undefined
+
+        this.mouseIsPressed = false;
+
+        document.addEventListener('mousedown', () => {
+            this.mouseIsPressed = true;
+        });
+
+        document.addEventListener('mouseup', () => {
+            this.mouseIsPressed = false;
+        });
+
+        document.addEventListener('mousemove', (e) => {
+            this.mouseIsPressed = e.buttons !== 0;
+        });
+
         let buttonCreate = new Button(10, 10, 80, 30, 'Create [K]', () => {tool.createState()}, () => {
             return this.tool.state.mode === 'creating' ? 'Creating...' : 'Create [K]'
         }, () => {return this.tool.state.mode == 'creating'})
@@ -344,14 +360,14 @@ class Menu{
         
 
 
-        let buttonSave = new Button(width - 70 - 10, HEIGHT - 60, 70, 20, 'Save', () => {
-            this.tool.saveToLocalStorage()
+        let buttonSave = new Button(width - 70 - 10, HEIGHT - 60, 70, 50, 'Quick\nSave', () => {
+            this.quickSave()
         })
         buttonSave.labelID = 'saveButton'
-        let buttonLoad = new Button(width - 70 - 10, HEIGHT - 30, 70, 20, 'Load', () => {
-            this.tool.loadFromLocalStorage()
-        })
-        buttonLoad.labelID = 'loadButton'
+        // let buttonLoad = new Button(width - 70 - 10, HEIGHT - 30, 70, 20, 'Load', () => {
+        //     this.tool.loadFromLocalStorage()
+        // })
+        // buttonLoad.labelID = 'loadButton'
 
         let buttonZoomMinus = new Button(width - 70 - 10 - 80 - 10, HEIGHT - 30, 30, 20, '-', () => {
             this.tool.changeZoom('dec')
@@ -388,7 +404,7 @@ class Menu{
         this.buttons.push(buttonRemovePathfinding)
         this.buttons.push(buttonShowFps)
         this.buttons.push(buttonSave)
-        this.buttons.push(buttonLoad)
+        // this.buttons.push(buttonLoad)
         this.buttons.push(buttonWiki)
 
         this.buttons.push(buttonShowNodes)
@@ -522,27 +538,34 @@ class Menu{
         backgroundButtonSM.col = "#3c3c3c"
         backgroundButtonSM.cornerRad = 15
         backgroundButtonSM.hidden = true
-        let saveButtonSM = new Button(width/2 - 100, height/2 - 300 + 10, 200, 20, 'Save', () => {
-            let currentTime = new Date().toLocaleString()
-            let PRsavesMap = getItem('PRsavesMap')
-            if(!PRsavesMap) PRsavesMap = {}
-            PRsavesMap[currentTime] = this.tool.getCurrentRoad()
-            storeItem('PRsavesMap', PRsavesMap)
-
-            this.initSavesButtons()
+        let saveButtonSM = new Button(width/2 - 75, height/2 - 300 + 10, 150, 30, 'Save network', () => {
+            let name = prompt('Enter a name for the save:')
+            this.mouseIsPressed = false
+            if(!name) return
+            this.saveAsave(name)
+            this.currentSaveID = name
         })
         saveButtonSM.hidden = true
+        saveButtonSM.txSize += 4
 
-        let buttonDebug = new Button(width/2 - 50, height - 30, 100, 25, 'debug', () => {
+        let buttonManageSaves = new Button(width/2 - 50, height - 30, 120, 20, 'Manage Saves', () => {
             backgroundButtonSM.hidden = !backgroundButtonSM.hidden
             saveButtonSM.hidden = !saveButtonSM.hidden
             this.buttonsSaveManager.forEach(b => b.hidden = !b.hidden)
         })
-        this.buttons.push(buttonDebug)
-
+        this.buttons.push(buttonManageSaves)
         this.buttons.push(backgroundButtonSM)
         this.buttons.push(saveButtonSM)
 
+        this.initSavesButtons()
+    }
+
+    saveAsave(name){
+        if(!name) return
+        let PRsavesMap = getItem('PRsavesMap')
+        if(!PRsavesMap) PRsavesMap = {}
+        PRsavesMap[name] = this.tool.getCurrentRoad()
+        storeItem('PRsavesMap', PRsavesMap)
         this.initSavesButtons()
     }
 
@@ -558,47 +581,54 @@ class Menu{
         let i = 0
         // aligned to left ...  aligned to right
         // [titleButton]...     [loadButton][updateButton][deleteButton]
+        let startY = height/2 - 300 + 10 + 20 + 30
         Object.keys(PRsavesMap).forEach(id => {
             let titleSaveButton = new Button(width/2 - widthPanel/2 + 10,
-                height/2 - 300 + 10 + 20 + 10 + i * 30,
+                startY + i * 30,
                 100, 20, id
             )
             titleSaveButton.col = "#00000000"
-            titleSaveButton.textAlign = 'left-top'
+            titleSaveButton.textAlign = 'left-center'
             titleSaveButton.labelID = id
             titleSaveButton.hidden = this.buttonBackgroundSM.hidden
             titleSaveButton.isSave = true
             titleSaveButton.enableHoverEffect = false
 
-            let deleteButton = new Button(width/2 + widthPanel/2 - 10 - 70 - 50 - 10 - 60 - 10, height/2 - 300 + 10 + 20 + 10 + i * 30, 60, 20, 'Delete', () => {
+            let deleteButton = new Button(width/2 + widthPanel/2 - 10 - 70 - 50 - 10 - 60 - 10, startY + i * 30, 60, 20, 'Delete', () => {
+                let PRsavesMap = getItem('PRsavesMap')
+                if(!PRsavesMap) PRsavesMap = {}
                 deleteButton.hidden = true
                 titleSaveButton.hidden = true
+                if(this.currentSaveID == id) this.currentSaveID = undefined
                 delete PRsavesMap[id]
                 storeItem('PRsavesMap', PRsavesMap)
                 this.initSavesButtons()
             })
             deleteButton.isSave = true
-            deleteButton.col = "#c54040"
+            deleteButton.colOnHover = "#767676"
             deleteButton.textAlign = 'center'
             deleteButton.labelID = id
             deleteButton.hidden = this.buttonBackgroundSM.hidden
 
-            let loadButton = new Button(width/2 + widthPanel/2 - 10 - 70 - 50 - 10, height/2 - 300 + 10 + 20 + 10 + i * 30, 50, 20, 'Load', () => {
+            let loadButton = new Button(width/2 + widthPanel/2 - 10 - 70 - 50 - 10, startY + i * 30, 50, 20, 'Load', () => {
+                let PRsavesMap = getItem('PRsavesMap')
+                if(!PRsavesMap) PRsavesMap = {}
                 this.tool.loadRoadFromJSON(PRsavesMap[id])
+                this.currentSaveID = id
             })
             loadButton.isSave = true
-            loadButton.col = "#50da50"
+            loadButton.colOnHover = "#767676"
             loadButton.labelID = id
             loadButton.hidden = this.buttonBackgroundSM.hidden
 
-            let updateButton = new Button(width/2 + widthPanel/2 - 10 - 70, height/2 - 300 + 10 + 20 + 10 + i * 30, 70, 20, 'Update', () => {
+            let updateButton = new Button(width/2 + widthPanel/2 - 10 - 70, startY + i * 30, 70, 20, 'Update', () => {
                 let PRsavesMap = getItem('PRsavesMap')
                 if(!PRsavesMap) PRsavesMap = {}
                 PRsavesMap[id] = this.tool.getCurrentRoad()
                 storeItem('PRsavesMap', PRsavesMap)
             })
             updateButton.isSave = true
-            updateButton.col = "#42abf6"
+            updateButton.colOnHover = "#767676"
             updateButton.labelID = id
             updateButton.hidden = this.buttonBackgroundSM.hidden    
 
@@ -606,6 +636,23 @@ class Menu{
             this.buttonsSaveManager.push(titleSaveButton, deleteButton, loadButton, updateButton)
             i++
         })
+        this.buttonBackgroundSM.size.h = 20 + 10 + 20 + i * 30
+    }
+
+    quickSave(){
+        if(this.currentSaveID == undefined){
+            let name = prompt('Enter a name for the save:')
+            this.mouseIsPressed = false
+            if(!name) return
+            this.currentSaveID = name
+            this.saveAsave(name)
+        }
+        else {
+            let PRsavesMap = getItem('PRsavesMap')
+            if(!PRsavesMap) PRsavesMap = {}
+            PRsavesMap[this.currentSaveID] = this.tool.getCurrentRoad()
+            storeItem('PRsavesMap', PRsavesMap)
+        }
     }
 
     toggleElement(label, bool){
@@ -622,13 +669,13 @@ class Menu{
 
     inBounds(){
         for(let b of this.buttons){
-            if(b.hover()){
+            if(b.hover() && !b.hidden){
                 cursor(HAND)
                 return true
             }
         }
         for(let s of this.sliders){
-            if(s.isMouseOver()){
+            if(s.isMouseOver() && !s.hidden){
                 return true
             }
         }
@@ -650,7 +697,7 @@ class Menu{
         this.buttons.forEach(b => {
             if(b.hidden) return
             if(b.hover()) hovering = b
-            if(b.hover() && mouseIsPressed && this.coolDownClick <= 0 && !b.collapsing && !b.uncollapsing){
+            if(b.hover() && this.mouseIsPressed && this.coolDownClick <= 0 && !b.collapsing && !b.uncollapsing){
                 anyClicked = true
                 whatInteracting = 'button'
                 if(b.onClick) b.onClick()
@@ -801,6 +848,7 @@ class Button{
         let originalAlpha = enabled ? 255 : 170
         enabled ? fill(70) : fill(50, 170)
         if(this.col) fill(this.col)
+        if(this.colOnHover && this.hover()) fill(this.colOnHover)
         if(this.collapsing){
             fill(originalCol, map(this.collapseProgress, 0, 1, originalAlpha, 0))
         }
@@ -831,6 +879,10 @@ class Button{
         else if(this.textAlign == 'left-top'){
             textAlign(LEFT, TOP)
             text(this.label, this.pos.x + 5, this.pos.y + 5)
+        }
+        else if(this.textAlign == 'left-center'){
+            textAlign(LEFT, CENTER)
+            text(this.label, this.pos.x + 5, this.pos.y + this.size.h / 2)
         }
         else{
             textAlign(RIGHT, TOP)
@@ -914,12 +966,12 @@ class Slider{
         let interacted = false
 
         // Start dragging
-        if(mouseIsPressed && this.isMouseOver() && !this.isDragging){
+        if(this.mouseIsPressed && this.isMouseOver() && !this.isDragging){
             this.isDragging = true
         }
 
         // Update value while dragging
-        if(this.isDragging && mouseIsPressed){
+        if(this.isDragging && this.mouseIsPressed){
             let normalizedX = constrainn(mouseX - this.pos.x, 0, this.width)
             let normalizedValue = normalizedX / this.width
             let newValue = this.minValue + normalizedValue * (this.maxValue - this.minValue)
@@ -945,7 +997,7 @@ class Slider{
         }
 
         // Stop dragging
-        if(!mouseIsPressed && this.isDragging){
+        if(!this.mouseIsPressed && this.isDragging){
             this.isDragging = false
         }
 
