@@ -17,7 +17,7 @@ jobs:
       - name: Checkout (último commit + padre)
         uses: actions/checkout@v5
         with:
-          fetch-depth: 2
+          fetch-depth: 0
 
       - name: Calcular diff del último commit
         id: diff
@@ -73,8 +73,10 @@ jobs:
           git add manual.md
           git commit -m "docs(ProcRoadv2): actualizar manual tras ${{ github.sha }} [skip ci]"
           for i in 1 2 3; do
-            git pull --rebase origin main && git push origin HEAD:main && exit 0
-            echo "Push falló (intento $i), reintentando en 5s..."
+            git fetch origin main
+            git rebase origin/main && git push origin HEAD:main && exit 0
+            echo "Push falló (intento $i), reintentando..."
+            git rebase --abort 2>/dev/null || true
             sleep 5
           done
           echo "Push falló tras 3 intentos."
