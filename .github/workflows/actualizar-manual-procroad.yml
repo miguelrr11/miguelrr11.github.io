@@ -1,0 +1,83 @@
+name: Actualizar manual ProcRoadv2
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'Algorithms/ProcRoadv2/**'
+      - '!Algorithms/ProcRoadv2/manual.md'
+
+jobs:
+  update-manual:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout (último commit + padre)
+        uses: actions/checkout@v5
+        with:
+          fetch-depth: 2
+
+      - name: Ejecutar Codex
+        uses: openai/codex-action@v1
+        with:
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          working-directory: Algorithms/ProcRoadv2
+          sandbox: workspace-write
+          prompt: |
+            Estás en el directorio Algorithms/ProcRoadv2 del repositorio.
+
+            TAREA: revisar el último commit y, SI PROCEDE, actualizar manual.md.
+
+            PASOS:
+
+            1. Ejecuta `git diff HEAD~1 HEAD -- .` desde el directorio actual
+               para ver los cambios del último commit dentro de este directorio.
+
+            2. Lee manual.md completo para conocer la documentación actual.
+
+            3. Evalúa si los cambios afectan a algo descrito (o que debería
+               estar descrito) en el manual.
+
+               NO toques manual.md si los cambios son:
+               - Refactors internos sin cambio de comportamiento externo
+               - Formateo, comentarios, renombrados de variables locales
+               - Cambios en tests
+               - Correcciones de bugs no documentados
+               - Cambios menores que no se contemplan en el manual
+
+               SÍ actualiza manual.md si los cambios incluyen:
+               - Funciones o métodos o clases nuevos relevantes
+               - Cambios en el comportamiento observable de algo documentado
+               - Cambios en formatos de entrada/salida descritos en el manual
+               - Eliminación o renombrado de funcionalidades documentadas
+
+               Lo importante que entiendas es que el manual que estás modificando es un manual técnico
+               con el objetivo de describir el comportamiento interno del proyecto, entonces si los
+               cambios del commit cambian este comportamiento es necesario reflefarlo en el manual.
+
+            4. Si actualizas:
+               - El ÚNICO archivo que puedes modificar es manual.md.
+               - Mantén el tono y estructura existentes.
+               - Edita solo las secciones afectadas, no reescribas todo.
+
+            5. Si NO procede actualizar:
+               - No modifiques ningún archivo. Termina normalmente.
+
+            Sé conservador: ante la duda, no cambies nada.
+
+      - name: Abrir PR si manual.md cambió
+        uses: peter-evans/create-pull-request@v7
+        with:
+          commit-message: "docs(ProcRoadv2): actualizar manual tras ${{ github.sha }}"
+          title: "docs(ProcRoadv2): actualizar manual.md"
+          body: |
+            Actualización automática del manual generada por Codex tras el commit ${{ github.sha }}.
+
+            Revisa los cambios antes de mergear.
+          branch: docs/procroad-auto-${{ github.run_number }}
+          base: main
+          add-paths: Algorithms/ProcRoadv2/manual.md
+          delete-branch: true
