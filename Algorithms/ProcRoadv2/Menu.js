@@ -1,4 +1,5 @@
 let nAddCars = 1
+let widthPanel = 400
 
 class Menu{
     constructor(tool){
@@ -369,7 +370,7 @@ class Menu{
         })
 
         this.buttons.push(buttonShowZoomLevel)
-        this.buttons.push(buttonCSmode)
+        //this.buttons.push(buttonCSmode)       //diabled for now because it doesnt have the quality I want
         this.buttons.push(buttonShowConvexHull)
         this.buttons.push(buttonLoadOpenStreetMap)
 
@@ -512,6 +513,99 @@ class Menu{
         this.minHoverTime = 1200
         this.maxHoverTime = 1500
 
+
+        // SAVE MANAGER UI
+        // work in progress, not finished
+        this.buttonsSaveManager = []
+        let backgroundButtonSM = new Button(width/2 - widthPanel/2, height/2-300, widthPanel, 400, ' ')
+        this.buttonBackgroundSM = backgroundButtonSM
+        backgroundButtonSM.col = "#3c3c3c"
+        backgroundButtonSM.cornerRad = 15
+        backgroundButtonSM.hidden = true
+        let saveButtonSM = new Button(width/2 - 100, height/2 - 300 + 10, 200, 20, 'Save', () => {
+            let currentTime = new Date().toLocaleString()
+            let PRsavesMap = getItem('PRsavesMap')
+            if(!PRsavesMap) PRsavesMap = {}
+            PRsavesMap[currentTime] = this.tool.getCurrentRoad()
+            storeItem('PRsavesMap', PRsavesMap)
+
+            this.initSavesButtons()
+        })
+        saveButtonSM.hidden = true
+
+        let buttonDebug = new Button(width/2 - 50, height - 30, 100, 25, 'debug', () => {
+            backgroundButtonSM.hidden = !backgroundButtonSM.hidden
+            saveButtonSM.hidden = !saveButtonSM.hidden
+            this.buttonsSaveManager.forEach(b => b.hidden = !b.hidden)
+        })
+        this.buttons.push(buttonDebug)
+
+        this.buttons.push(backgroundButtonSM)
+        this.buttons.push(saveButtonSM)
+
+        this.initSavesButtons()
+    }
+
+    initSavesButtons(){
+        this.buttons = this.buttons.filter(b => !b.isSave)
+        this.buttonsSaveManager = []
+        let PRsavesMap = getItem('PRsavesMap')
+        if(!PRsavesMap) {
+            PRsavesMap = {}
+            storeItem('PRsavesMap', PRsavesMap)
+            return
+        }
+        let i = 0
+        // aligned to left ...  aligned to right
+        // [titleButton]...     [loadButton][updateButton][deleteButton]
+        Object.keys(PRsavesMap).forEach(id => {
+            let titleSaveButton = new Button(width/2 - widthPanel/2 + 10,
+                height/2 - 300 + 10 + 20 + 10 + i * 30,
+                100, 20, id
+            )
+            titleSaveButton.col = "#00000000"
+            titleSaveButton.textAlign = 'left-top'
+            titleSaveButton.labelID = id
+            titleSaveButton.hidden = this.buttonBackgroundSM.hidden
+            titleSaveButton.isSave = true
+            titleSaveButton.enableHoverEffect = false
+
+            let deleteButton = new Button(width/2 + widthPanel/2 - 10 - 70 - 50 - 10 - 60 - 10, height/2 - 300 + 10 + 20 + 10 + i * 30, 60, 20, 'Delete', () => {
+                deleteButton.hidden = true
+                titleSaveButton.hidden = true
+                delete PRsavesMap[id]
+                storeItem('PRsavesMap', PRsavesMap)
+                this.initSavesButtons()
+            })
+            deleteButton.isSave = true
+            deleteButton.col = "#c54040"
+            deleteButton.textAlign = 'center'
+            deleteButton.labelID = id
+            deleteButton.hidden = this.buttonBackgroundSM.hidden
+
+            let loadButton = new Button(width/2 + widthPanel/2 - 10 - 70 - 50 - 10, height/2 - 300 + 10 + 20 + 10 + i * 30, 50, 20, 'Load', () => {
+                this.tool.loadRoadFromJSON(PRsavesMap[id])
+            })
+            loadButton.isSave = true
+            loadButton.col = "#50da50"
+            loadButton.labelID = id
+            loadButton.hidden = this.buttonBackgroundSM.hidden
+
+            let updateButton = new Button(width/2 + widthPanel/2 - 10 - 70, height/2 - 300 + 10 + 20 + 10 + i * 30, 70, 20, 'Update', () => {
+                let PRsavesMap = getItem('PRsavesMap')
+                if(!PRsavesMap) PRsavesMap = {}
+                PRsavesMap[id] = this.tool.getCurrentRoad()
+                storeItem('PRsavesMap', PRsavesMap)
+            })
+            updateButton.isSave = true
+            updateButton.col = "#42abf6"
+            updateButton.labelID = id
+            updateButton.hidden = this.buttonBackgroundSM.hidden    
+
+            this.buttons.push(titleSaveButton, deleteButton, loadButton, updateButton)
+            this.buttonsSaveManager.push(titleSaveButton, deleteButton, loadButton, updateButton)
+            i++
+        })
     }
 
     toggleElement(label, bool){
@@ -554,6 +648,7 @@ class Menu{
         let hovering = false
         if(this.coolDownClick > 0) this.coolDownClick--
         this.buttons.forEach(b => {
+            if(b.hidden) return
             if(b.hover()) hovering = b
             if(b.hover() && mouseIsPressed && this.coolDownClick <= 0 && !b.collapsing && !b.uncollapsing){
                 anyClicked = true
@@ -587,7 +682,8 @@ class Menu{
     }
 
     show(){
-        this.buttons.forEach(b => b.show())
+        this.buttons.forEach(b => {if(!b.isSave) b.show()})
+        this.buttons.forEach(b => {if(b.isSave) b.show()})
         this.sliders.forEach(s => s.show())
 
         if(this.elementToShowDescription){
@@ -622,6 +718,8 @@ class Button{
         this.enableHoverEffect = true
 
         this.disabled = false
+
+        this.hidden = false
 
         this.widthDescription = 200
     }
@@ -671,6 +769,7 @@ class Button{
     }
 
     show(){
+        if(this.hidden) return
         if(this.updateLabel) this.label = this.updateLabel()
         if(this.collapsing){
             this.pos.y = lerp(this.pos.y, this.collapseGoalY, collapseSpeed)
@@ -701,6 +800,7 @@ class Button{
         let originalCol = enabled ? 70 : 50
         let originalAlpha = enabled ? 255 : 170
         enabled ? fill(70) : fill(50, 170)
+        if(this.col) fill(this.col)
         if(this.collapsing){
             fill(originalCol, map(this.collapseProgress, 0, 1, originalAlpha, 0))
         }
@@ -709,7 +809,7 @@ class Button{
         }
         if(collapsed) noFill()
         noStroke()
-        if(this.showBackground) rect(this.pos.x, this.pos.y, this.size.w, this.size.h, 4)
+        if(this.showBackground) rect(this.pos.x, this.pos.y, this.size.w, this.size.h, this.cornerRad == undefined ? 4 : this.cornerRad)
 
         let textCol = enabled ? 255 : 170
         enabled ? fill(255) : fill(170)

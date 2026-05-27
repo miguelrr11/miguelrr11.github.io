@@ -782,6 +782,10 @@ class Tool{
         this.removeSelectedBox()
     }
 
+    loadRoadFromJSON(roadData){
+        this.setStateToRoad(roadData)
+    }
+
     saveToLocalStorage(){
         storeItem('roadData', this.getCurrentRoad())
         storeItem('showOptions', this.showOptions)
