@@ -503,7 +503,7 @@ Flow:
 | `BIG_LANE_WIDTH` | 48 | Sidewalk base width (1.6 × lane) |
 | `NODE_RAD` | 25 | Visual and hit-test radius of nodes |
 | `OFFSET_RAD_INTERSEC` | 25 | Extra gap added to computed trim distances |
-| `LENGTH_SEG_BEZIER` | 12 | Bezier sample interval for intersegments |
+| `LENGTH_SEG_BEZIER` | 10 | Bezier sample interval for intersegments |
 | `TENSION_BEZIER_MAX` | 0.75 | Control-point strength for bezier curves |
 | `MIN_ANGLE_DEG` | 20 | Segment pairs closer to parallel than this are skipped during trimming |
 | `MAX_REASONABLE_TRIM` | 200 | Intersection points farther than this from the node are discarded |
