@@ -37,7 +37,7 @@ let LENGTH_SEG_BEZIER_INTER = 4    // define la resolucion de las curvas exterio
 let TENSION_BEZIER_MIN = 0.1
 let TENSION_BEZIER_MAX = 0.75
 let MIN_DIST_INTERSEC = 0        //30
-let LANE_WIDTH = 40     //changed lane width from 30 to 40, important change
+let LANE_WIDTH = 30     //changed lane width from 40 back to 30
 let BIG_LANE_WIDTH = LANE_WIDTH * 1.6
 
 
