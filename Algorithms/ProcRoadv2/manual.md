@@ -499,8 +499,8 @@ Flow:
 
 | Constant | Default | Meaning |
 |---|---|---|
-| `LANE_WIDTH` | 40 | Width of one lane in pixels |
-| `BIG_LANE_WIDTH` | 64 | Sidewalk base width (1.6 × lane) |
+| `LANE_WIDTH` | 30 | Width of one lane in pixels |
+| `BIG_LANE_WIDTH` | 48 | Sidewalk base width (1.6 × lane) |
 | `NODE_RAD` | 25 | Visual and hit-test radius of nodes |
 | `OFFSET_RAD_INTERSEC` | 25 | Extra gap added to computed trim distances |
 | `LENGTH_SEG_BEZIER` | 12 | Bezier sample interval for intersegments |
