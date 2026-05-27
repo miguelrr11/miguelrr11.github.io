@@ -72,4 +72,10 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add manual.md
           git commit -m "docs(ProcRoadv2): actualizar manual tras ${{ github.sha }} [skip ci]"
-          git push origin HEAD:main
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin HEAD:main && exit 0
+            echo "Push falló (intento $i), reintentando en 5s..."
+            sleep 5
+          done
+          echo "Push falló tras 3 intentos."
+          exit 1
