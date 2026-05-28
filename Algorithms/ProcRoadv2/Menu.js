@@ -637,6 +637,7 @@ class Menu{
             i++
         })
         this.buttonBackgroundSM.size.h = 20 + 10 + 20 + i * 30
+        if(i > 0) this.buttonBackgroundSM.size.h += 10  
     }
 
     quickSave(){
@@ -707,7 +708,7 @@ class Menu{
         // Update sliders
         this.sliders.forEach(s => {
             if(s.isMouseOver()) hovering = s
-            if(s.update()){
+            if(s.update(this.mouseIsPressed)){
                 anyClicked = true
                 whatInteracting = 'slider'
                 cursor('ew-resize')
@@ -960,18 +961,18 @@ class Slider{
                mouseY <= sliderY + this.height + 5
     }
 
-    update(){
+    update(mouseIsPressedFromMenu){
         if(this.disabled) return false
         let sliderY = this.pos.y + this.titleHeight
         let interacted = false
 
         // Start dragging
-        if(this.mouseIsPressed && this.isMouseOver() && !this.isDragging){
+        if(mouseIsPressedFromMenu && this.isMouseOver() && !this.isDragging){
             this.isDragging = true
         }
 
         // Update value while dragging
-        if(this.isDragging && this.mouseIsPressed){
+        if(this.isDragging && mouseIsPressedFromMenu){
             let normalizedX = constrainn(mouseX - this.pos.x, 0, this.width)
             let normalizedValue = normalizedX / this.width
             let newValue = this.minValue + normalizedValue * (this.maxValue - this.minValue)
@@ -997,7 +998,7 @@ class Slider{
         }
 
         // Stop dragging
-        if(!this.mouseIsPressed && this.isDragging){
+        if(!mouseIsPressedFromMenu && this.isDragging){
             this.isDragging = false
         }
 
