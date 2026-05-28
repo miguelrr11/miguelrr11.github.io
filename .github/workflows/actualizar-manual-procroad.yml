@@ -10,6 +10,7 @@ on:
 jobs:
   update-manual:
     runs-on: ubuntu-latest
+    if: ${{ !contains(github.event.head_commit.message, '[IGNORE MANUAL]') }}
     permissions:
       contents: write
 
