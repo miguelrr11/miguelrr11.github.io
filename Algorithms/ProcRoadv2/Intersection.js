@@ -353,9 +353,11 @@ class Intersection {
         for(let seg of segs){
             if(seg.toConnectorID == toConnID && seg.fromConnectorID == fromConnID){
                 seg.active = !seg.active
+                this.calculateInnerEdges()
                 return
             }
         }
+        
     }
 
     findHoveredConnectorsOfSelectedConnector(selectedConnID, x, y){
@@ -528,8 +530,26 @@ class Intersection {
 
                 let bp = bezierPoints(controlPointBez1, inSegFromPos, outSegToPos, controlPointBez2, LENGTH_SEG_BEZIER, tension)
                 bpMap.set(firstSeg.id + '_' + secSeg.id, bp)
-                this.innerEdges.push(bp)
+                this.innerEdges.push({points: bp, type: 'dashed'})
             }
+        }
+
+        //now we check if each innerLaneEdge collides with any of our intersecSegs, if it DOESNT, we mark the innerLaceEdge as conitnuous, otherwise, continuous
+        let interSecSegs = this.intersecSegs.filter(s => s.active)
+        for(let laneEdge of this.innerEdges){
+            let collides = false
+            for(let seg of interSecSegs){
+                let fromPos = seg.fromPos
+                let toPos = seg.toPos
+                let laneEdgeFromPos = laneEdge.points[0]
+                let laneEdgeToPos = laneEdge.points[laneEdge.points.length-1]
+                let inter = lineIntersection(fromPos, toPos, laneEdgeFromPos, laneEdgeToPos, false)
+                if(inter){
+                    collides = true
+                    break
+                }
+            }
+            laneEdge.type = collides ? 'dashed' : 'continuous'
         }
 
         if(this.innerEdges.length == 0) this.innerEdges = null
@@ -538,14 +558,14 @@ class Intersection {
     }
 
     // type: showWays
-    showInnerEdges(){
-        if(this.nodeObj.OOB) return
+    showInnerEdges(selectedIntersectionID){
+        if(this.nodeObj.OOB || this.id == selectedIntersectionID) return
         
         if(this.innerEdges && this.innerEdges.length > 0){
             for(let p of this.innerEdges) {
-                for(let i = 0; i < p.length; i+= this.paths.length > 2 ? 2 : 1){
-                    let p1 = p[i]
-                    let p2 = p[Math.min(i+1, p.length-1)]
+                for(let i = 0; i < p.points.length; i+= this.paths.length > 2 ? p.type === 'dashed' ? 2 : 1 : 1){
+                    let p1 = p.points[i]
+                    let p2 = p.points[Math.min(i+1, p.points.length-1)]
                     line(p1.x, p1.y, p2.x, p2.y)
                 }
             }
@@ -696,6 +716,36 @@ class Intersection {
                         let yieldPos = segment.yieldPos
                         if(yieldPos && yieldPos[0] != undefined){
                             line(yieldPos[0].x, yieldPos[0].y, yieldPos[1].x, yieldPos[1].y)
+                        }
+                    });
+                }
+            }
+        }
+
+    }
+
+    showCrossWalks(){
+        if(this.nodeObj.OOB) return
+        // find all segments that feed into this intersection
+        let paths = this.paths.length > 0 ? this.paths : this.road.findAnyPath(this.nodeID)
+        if(paths.length > 2){
+            for(let i = 0; i < paths.length; i++){
+                let path = paths[i]
+                if(path){
+                    let segmentsEndingHere = path.segments
+                    segmentsEndingHere.forEach(segment => {
+                        if(!segment.crosswalkPos) return
+                        for(let crosswalk of segment.crosswalkPos){
+                            let numSegments = 12
+                            for(let j = 0; j < numSegments-1; j+=2){
+                                let pos = {
+                                    x1: crosswalk[0].x + (crosswalk[1].x - crosswalk[0].x) * (j/numSegments),
+                                    y1: crosswalk[0].y + (crosswalk[1].y - crosswalk[0].y) * (j/numSegments),
+                                    x2: crosswalk[0].x + (crosswalk[1].x - crosswalk[0].x) * ((j+1)/numSegments),
+                                    y2: crosswalk[0].y + (crosswalk[1].y - crosswalk[0].y) * ((j+1)/numSegments),
+                                }
+                                line(pos.x1, pos.y1, pos.x2, pos.y2)
+                            }
                         }
                     });
                 }

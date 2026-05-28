@@ -96,9 +96,20 @@ class Segment{
         }
 
         let dir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
-        let toPosShort = {x: this.toPos.x - Math.cos(dir) * WIDTH_YIELD_MARKING * 0.5, y: this.toPos.y - Math.sin(dir) * WIDTH_YIELD_MARKING * 0.5}
+        let toPosShort = {x: this.toPos.x - Math.cos(dir) * (WIDTH_YIELD_MARKING + 25), y: this.toPos.y - Math.sin(dir) * (WIDTH_YIELD_MARKING + 25)}
         let yieldCorners = getCornersOfLine(this.fromPos, toPosShort, LANE_WIDTH)
         this.yieldPos = [{x: yieldCorners[2].x, y: yieldCorners[2].y}, {x: yieldCorners[3].x, y: yieldCorners[3].y}]
+
+        //now the same but for crosswalks which are behind the stop line
+        let toPosShorter = {x: this.toPos.x - Math.cos(dir) * (WIDTH_YIELD_MARKING), y: this.toPos.y - Math.sin(dir) * (WIDTH_YIELD_MARKING)}
+        let crosswalkCorners1 = getCornersOfLine(this.fromPos, toPosShorter, LANE_WIDTH)
+        
+        let fromPosShorter = {x: this.fromPos.x + Math.cos(dir) * (WIDTH_YIELD_MARKING), y: this.fromPos.y + Math.sin(dir) * (WIDTH_YIELD_MARKING)}
+        let crosswalkCorners2 = getCornersOfLine(fromPosShorter, this.toPos, LANE_WIDTH)
+
+        // segments have 2 cross walks, one for each ending
+        this.crosswalkPos = [[{x: crosswalkCorners1[2].x, y: crosswalkCorners1[2].y}, {x: crosswalkCorners1[3].x, y: crosswalkCorners1[3].y}],
+                             [{x: crosswalkCorners2[0].x, y: crosswalkCorners2[0].y}, {x: crosswalkCorners2[1].x, y: crosswalkCorners2[1].y}]]
     }
 
     createArrows(){
@@ -184,22 +195,34 @@ class Segment{
         if(this.outOfBounds()) return false
     }
 
-    drawLineBelow(disc = false){
+    drawLineBelow(disc = false, doCut = true){
         push()
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = this.corners
-        if(!disc) line(corners[0], corners[1], corners[6], corners[7])
-        else drawDashedLine(corners[0], corners[1], corners[6], corners[7])
+        let cutInPixels = doCut ? -30 : 0
+        let dir = this.dir
+        let x1 = corners[0] + Math.cos(dir) * cutInPixels
+        let y1 = corners[1] + Math.sin(dir) * cutInPixels
+        let x2 = corners[6] - Math.cos(dir) * cutInPixels
+        let y2 = corners[7] - Math.sin(dir) * cutInPixels
+        if(!disc) line(x1, y1, x2, y2)
+        else drawDashedLine(x1, y1, x2, y2)
         pop()
     }
 
-    drawLineAbove(disc = false){
+    drawLineAbove(disc = false, doCut = true){
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = this.corners
-        if(!disc) line(corners[2], corners[3], corners[4], corners[5])
-        else drawDashedLine(corners[2], corners[3], corners[4], corners[5])
+        let cutInPixels = doCut ? -30 : 0
+        let dir = this.dir
+        let x1 = corners[2] + Math.cos(dir) * cutInPixels
+        let y1 = corners[3] + Math.sin(dir) * cutInPixels
+        let x2 = corners[4] - Math.cos(dir) * cutInPixels
+        let y2 = corners[5] - Math.sin(dir) * cutInPixels
+        if(!disc) line(x1, y1, x2, y2)
+        else drawDashedLine(x1, y1, x2, y2)
     }
 
     // rectMode must be CORNERS and noStroke must be set before calling this
@@ -440,8 +463,9 @@ class Segment{
             let dirs = toConnector.dirs
             if(!dirs.straight && !dirs.leftTurn && !dirs.rightTurn) return
             let length_arrow_line = 10
-            let basePos = shortenSegment(this.fromPos, this.toPos, 40)
-            let endPos = shortenSegment(this.fromPos, this.toPos, 30)
+            let margin = 60
+            let basePos = shortenSegment(this.fromPos, this.toPos, margin)
+            let endPos = shortenSegment(this.fromPos, this.toPos, margin - 10)
             let straightDir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
             let leftDir = straightDir - Math.PI / 2.5
             let rightDir = straightDir + Math.PI / 2.5

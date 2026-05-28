@@ -1338,7 +1338,7 @@ class Road{
         strokeWeight(1.5)
         noFill()
         if(zoom > 0.22) intersectionsInView.forEach((p, key) => p.showOuterEdges())
-        if(zoom > 0.22) intersectionsInView.forEach((p, key) => p.showInnerEdges())
+        if(zoom > 0.22) intersectionsInView.forEach((p, key) => p.showInnerEdges(toolObj.state.selectedIntersection))
         pop()
     
         push()
@@ -1351,6 +1351,8 @@ class Road{
         strokeWeight(WIDTH_YIELD_MARKING)
         strokeCap(SQUARE)
         if(zoom > 0.18) intersectionsInView.forEach((p, key) => p.showYieldMarkings())
+        strokeWeight(WIDTH_YIELD_MARKING*2)
+        if(zoom > 0.18) intersectionsInView.forEach((p, key) => p.showCrossWalks())
         strokeWeight(1.5)
         stroke(MARKINGS_COL)
         strokeCap(SQUARE)
