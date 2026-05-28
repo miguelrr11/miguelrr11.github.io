@@ -23,6 +23,10 @@ class Intersection {
         this.polygonBase = null
     }
 
+    updatePathsOuterLines(){
+        for(let path of this.paths) path.setSegmentDrawOuterLinesLogic()
+    }
+
     hoverArea(x, y){
         let indices = this.triangulate('top')
         for(let i = 0; i < indices.length; i+=3){
@@ -734,19 +738,19 @@ class Intersection {
                 if(path){
                     let segmentsEndingHere = path.segments
                     segmentsEndingHere.forEach(segment => {
-                        if(!segment.crosswalkPos) return
-                        for(let crosswalk of segment.crosswalkPos){
-                            let numSegments = 12
-                            for(let j = 0; j < numSegments-1; j+=2){
-                                let pos = {
-                                    x1: crosswalk[0].x + (crosswalk[1].x - crosswalk[0].x) * (j/numSegments),
-                                    y1: crosswalk[0].y + (crosswalk[1].y - crosswalk[0].y) * (j/numSegments),
-                                    x2: crosswalk[0].x + (crosswalk[1].x - crosswalk[0].x) * ((j+1)/numSegments),
-                                    y2: crosswalk[0].y + (crosswalk[1].y - crosswalk[0].y) * ((j+1)/numSegments),
-                                }
-                                line(pos.x1, pos.y1, pos.x2, pos.y2)
+                        if(!segment.crosswalkPos || !segment.crosswalkPos.has(this.id)) return
+                        let crosswalk = segment.crosswalkPos.get(this.id)
+                        let numSegments = 12
+                        for(let j = 0; j < numSegments-1; j+=2){
+                            let pos = {
+                                x1: crosswalk[0].x + (crosswalk[1].x - crosswalk[0].x) * (j/numSegments),
+                                y1: crosswalk[0].y + (crosswalk[1].y - crosswalk[0].y) * (j/numSegments),
+                                x2: crosswalk[0].x + (crosswalk[1].x - crosswalk[0].x) * ((j+1)/numSegments),
+                                y2: crosswalk[0].y + (crosswalk[1].y - crosswalk[0].y) * ((j+1)/numSegments),
                             }
+                            line(pos.x1, pos.y1, pos.x2, pos.y2)
                         }
+                        
                     });
                 }
             }

@@ -1124,17 +1124,18 @@ class Road{
 
         // ── finalise intersection ────────────────────────────────────────────────
         for (const c of connectorMap.values()) c.constructDirections()
-
+        this.intersections.set(nodeID, intersection)
         intersection.connectors   = Array.from(connectorMap.values())
         intersection.intersecSegs = intersecSegObjects          // no findIntersecSeg scan needed
         intersection.paths        = this.findAnyPath(nodeID) || []
         intersection.calculateOutlinesIntersection()
         intersection.calculateInnerEdges()
+        //intersection.updatePathsOuterLines()
         this.dirtyPolygons.add(intersection)
         for(let path of intersection.paths){ 
             this.dirtyPolygons.add(path)
         }
-        this.intersections.set(nodeID, intersection)
+        
     }
 
     // pushToConvexQueue(intersection){

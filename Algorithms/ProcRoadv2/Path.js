@@ -258,34 +258,60 @@ class Path{
 
             i++
         })
-        this.setSegmentDrawOuterLinesLogic()
+        //this.setSegmentDrawOuterLinesLogic()
         this.length = this.getLength()
         this.width = totalWidth
         this.road.dirtyPolygons.add(this)
     }
 
-
+    //we also need to set if each line should be cut or not, conditions:
+    // if the path has less or equal than 2 segments, all lines are never cut
+    // else:
+    // the outer most lines (only 2: the ones that touch the outer sides of the path) are never cut, beacuse they are the outer edges
+    // the inner lines are cut only if the segment has the enough length for a crosswalk (220)
+    // just realized both endings of a segment might need different cut logic, so we need to check them separately
+    // okay I give up, im gonna draw the lines dynamically from path
     setSegmentDrawOuterLinesLogic(){
+        let intersectionA = this.road.findIntersection(this.nodeA)
+        let intersectionB = this.road.findIntersection(this.nodeB)
+        if(!intersectionA || !intersectionB) return
+        let nSegsA = intersectionA.paths.length
+        let nSegsB = intersectionB.paths.length
         for(let i = 0; i < this.segments.length; i++){
             let segment = this.segments[i]
-            let dashedAbove = undefined
-            let dashedBelow = undefined
+            segment.getLen()  // we make sure
+            let cutAboveFrom = false
+            let cutBelowFrom = false
+            let cutAboveTo = false
+            let cutBelowTo = false
+            let dashedAbove = true
+            let dashedBelow = true
+            let suffLen = segment.len >= 220
             if(segment.fromNodeID == this.nodeA){
-                if(i - 1 < 0 || this.segments[i-1].fromNodeID != this.segments[i].fromNodeID) dashedBelow = false
-                else dashedBelow = true
-                if(i + 1 > this.segments.length-1 || this.segments[i+1].fromNodeID != this.segments[i].fromNodeID) dashedAbove = false
-                else dashedAbove = true
+                if(i == 0) {dashedBelow = false; dashedAbove = true; cutAboveFrom = suffLen; cutBelowFrom = suffLen; cutAboveTo = suffLen; cutBelowTo = suffLen}
+                if(i == this.segments.length-1) {dashedAbove = false; dashedBelow = true; cutAboveFrom = suffLen; cutBelowFrom = suffLen; cutAboveTo = suffLen; cutBelowTo = suffLen}
             }
             else{
-                if(i - 1 < 0 || this.segments[i-1].fromNodeID != this.segments[i].fromNodeID) dashedAbove = false
-                else dashedAbove = true
-                if(i + 1 > this.segments.length-1 || this.segments[i+1].fromNodeID != this.segments[i].fromNodeID) dashedBelow = false
-                else dashedBelow = true
+                if(i == 0) {dashedAbove = false; dashedBelow = true; cutAboveTo = suffLen; cutBelowTo = suffLen; cutAboveFrom = suffLen; cutBelowFrom = suffLen}
+                if(i == this.segments.length-1) {dashedBelow = false; dashedAbove = true; cutAboveTo = suffLen; cutBelowTo = suffLen; cutAboveFrom = suffLen; cutBelowFrom = suffLen}
             }
-            segment.drawOuterLinesAboveDashed = dashedAbove
-            segment.drawOuterLinesBelowDashed = dashedBelow
+            if(segment.fromNodeID == this.nodeA){
+                if(nSegsA <= 2){
+                    cutAboveFrom = false
+                    cutBelowFrom = false
+                }
+            }
+            else{
+                if(nSegsB <= 2){
+                    cutAboveTo = false
+                    cutBelowTo = false
+                }
+            }
+            segment.drawOuterLines = {dashedAbove, dashedBelow, cutAboveFrom, cutBelowFrom, cutAboveTo, cutBelowTo}
         }
     }
+
+
 
     showLanes(hoveredSegID = undefined){
         if(this.OOB) return
@@ -371,12 +397,38 @@ class Path{
     }
 
     // type: showWays (lineas continuas/discontinuas de los carriles)
+    // showEdges(){
+    //     if(this.OOB) return
+    //     for(let i = 0; i < this.segments.length; i++){
+    //         let segment = this.segments[i]
+    //         segment.drawLineAbove()
+    //         segment.drawLineBelow()
+    //     }
+    // }
+
     showEdges(){
         if(this.OOB) return
+        let len = this.segments[0].getLen()
+        let interA = this.road.findIntersection(this.nodeA)
+        let interB = this.road.findIntersection(this.nodeB)
+        let nPathsA = interA ? interA.paths.length : 0
+        let nPathsB = interB ? interB.paths.length : 0
+        let moreThan2A = nPathsA > 2
+        let moreThan2B = nPathsB > 2
+        let changed = false
         for(let i = 0; i < this.segments.length; i++){
             let segment = this.segments[i]
-            segment.drawLineAbove(segment.drawOuterLinesAboveDashed)
-            segment.drawLineBelow(segment.drawOuterLinesBelowDashed)
+            let nextSeg = this.segments[i+1]
+            if(segment.fromNodeID == this.nodeA){
+                if(i == 0){segment.drawLineBelow(moreThan2A, moreThan2B, false); segment.drawLineAbove(moreThan2A, moreThan2B, true)}
+                else if(i == this.segments.length-1){segment.drawLineAbove(moreThan2A, moreThan2B, false); segment.drawLineBelow(moreThan2A, moreThan2B, true)}
+                else {segment.drawLineAbove(moreThan2A, moreThan2B, true); segment.drawLineBelow(moreThan2A, moreThan2B, true)}
+            }
+            else{
+                if(i == 0){segment.drawLineAbove(moreThan2B, moreThan2A, false); segment.drawLineBelow(moreThan2B, moreThan2A, true)}
+                else if(i == this.segments.length-1){segment.drawLineBelow(moreThan2B, moreThan2A, false); segment.drawLineAbove(moreThan2B, moreThan2A, true)}
+                else {segment.drawLineAbove(moreThan2B, moreThan2A, true); segment.drawLineBelow(moreThan2B, moreThan2A, true)}
+            }
         }
     }
 

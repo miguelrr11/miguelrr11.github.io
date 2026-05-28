@@ -29,8 +29,7 @@ class Segment{
         this.corners = []       // now is a FLAT array (8 entries of the 4 corners of the segment)
         this.corners16 = []     // same
         this.yieldPos = []
-        this.drawOuterLinesAboveDashed = undefined
-        this.drawOuterLinesBelowDashed = undefined
+        this.drawOuterLines = undefined
 
         // car stuff
         this.cars = [] // ordered array of cars that are currently on the segment, updated by car manager
@@ -95,10 +94,17 @@ class Segment{
             this.corners16.push(c.x, c.y)
         }
 
+        this.yieldPos = []
+        this.crosswalkPos = new Map()
+
         let dir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
-        let toPosShort = {x: this.toPos.x - Math.cos(dir) * (WIDTH_YIELD_MARKING + 25), y: this.toPos.y - Math.sin(dir) * (WIDTH_YIELD_MARKING + 25)}
+        let separation = 25 + WIDTH_YIELD_MARKING
+        separation = Math.min(separation, Math.max(0, this.len - separation - 10))
+        let toPosShort = {x: this.toPos.x - Math.cos(dir) * (separation), y: this.toPos.y - Math.sin(dir) * (separation)}
         let yieldCorners = getCornersOfLine(this.fromPos, toPosShort, LANE_WIDTH)
         this.yieldPos = [{x: yieldCorners[2].x, y: yieldCorners[2].y}, {x: yieldCorners[3].x, y: yieldCorners[3].y}]
+
+        if(this.len < 75) return
 
         //now the same but for crosswalks which are behind the stop line
         let toPosShorter = {x: this.toPos.x - Math.cos(dir) * (WIDTH_YIELD_MARKING), y: this.toPos.y - Math.sin(dir) * (WIDTH_YIELD_MARKING)}
@@ -108,11 +114,13 @@ class Segment{
         let crosswalkCorners2 = getCornersOfLine(fromPosShorter, this.toPos, LANE_WIDTH)
 
         // segments have 2 cross walks, one for each ending
-        this.crosswalkPos = [[{x: crosswalkCorners1[2].x, y: crosswalkCorners1[2].y}, {x: crosswalkCorners1[3].x, y: crosswalkCorners1[3].y}],
-                             [{x: crosswalkCorners2[0].x, y: crosswalkCorners2[0].y}, {x: crosswalkCorners2[1].x, y: crosswalkCorners2[1].y}]]
+        this.crosswalkPos = new Map()
+        this.crosswalkPos.set(this.toNodeID, [{x: crosswalkCorners1[2].x, y: crosswalkCorners1[2].y}, {x: crosswalkCorners1[3].x, y: crosswalkCorners1[3].y}])
+        this.crosswalkPos.set(this.fromNodeID, [{x: crosswalkCorners2[0].x, y: crosswalkCorners2[0].y}, {x: crosswalkCorners2[1].x, y: crosswalkCorners2[1].y}])
     }
 
     createArrows(){
+        this.getLen()
         this.arrowsPos = []
         let spacing = 300
         let fromPos = {x: this.fromPos.x, y: this.fromPos.y}
@@ -195,32 +203,36 @@ class Segment{
         if(this.outOfBounds()) return false
     }
 
-    drawLineBelow(disc = false, doCut = true){
-        push()
+    drawLineBelow(doCutFrom = false, doCutTo = false, disc = false){
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = this.corners
-        let cutInPixels = doCut ? -30 : 0
+        let separation = 25 + WIDTH_YIELD_MARKING
+        separation = Math.min(separation, Math.max(0, this.len - separation - 10))
+        let cutInPixelsFrom = doCutFrom ? -separation : 0
+        let cutInPixelsTo = doCutTo ? -separation : 0
         let dir = this.dir
-        let x1 = corners[0] + Math.cos(dir) * cutInPixels
-        let y1 = corners[1] + Math.sin(dir) * cutInPixels
-        let x2 = corners[6] - Math.cos(dir) * cutInPixels
-        let y2 = corners[7] - Math.sin(dir) * cutInPixels
+        let x1 = corners[0] + Math.cos(dir) * cutInPixelsFrom
+        let y1 = corners[1] + Math.sin(dir) * cutInPixelsFrom
+        let x2 = corners[6] - Math.cos(dir) * cutInPixelsTo
+        let y2 = corners[7] - Math.sin(dir) * cutInPixelsTo
         if(!disc) line(x1, y1, x2, y2)
         else drawDashedLine(x1, y1, x2, y2)
-        pop()
     }
 
-    drawLineAbove(disc = false, doCut = true){
+    drawLineAbove(doCutFrom = false, doCutTo = false, disc = false){
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = this.corners
-        let cutInPixels = doCut ? -30 : 0
+        let separation = 25 + WIDTH_YIELD_MARKING
+        separation = Math.min(separation, Math.max(0, this.len - separation - 10))
+        let cutInPixelsFrom = doCutFrom ? -separation : 0
+        let cutInPixelsTo = doCutTo ? -separation : 0
         let dir = this.dir
-        let x1 = corners[2] + Math.cos(dir) * cutInPixels
-        let y1 = corners[3] + Math.sin(dir) * cutInPixels
-        let x2 = corners[4] - Math.cos(dir) * cutInPixels
-        let y2 = corners[5] - Math.sin(dir) * cutInPixels
+        let x1 = corners[2] + Math.cos(dir) * cutInPixelsFrom
+        let y1 = corners[3] + Math.sin(dir) * cutInPixelsFrom
+        let x2 = corners[4] - Math.cos(dir) * cutInPixelsTo
+        let y2 = corners[5] - Math.sin(dir) * cutInPixelsTo
         if(!disc) line(x1, y1, x2, y2)
         else drawDashedLine(x1, y1, x2, y2)
     }
@@ -365,9 +377,9 @@ class Segment{
             let midPos = {x: (fromPos.x + toPos.x) / 2, y: (fromPos.y + toPos.y) / 2}
             let str = 'from: ' + this.fromNodeID + ', to: ' + this.toNodeID + '\n' +
             'visualDir: ' + this.visualDir + '\n' +
-            'dashAbove: ' + this.drawOuterLinesAboveDashed + '\ndashBelow: ' + this.drawOuterLinesBelowDashed
+            'len: ' + round(this.len, 2) + '\n'
             textAlign(CENTER)
-            textSize(12)
+            textSize(8)
             text(str, midPos.x, midPos.y)
             pop()
 
