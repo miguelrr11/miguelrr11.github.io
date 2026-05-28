@@ -110,7 +110,7 @@ Groups all segments that run between the **same pair of nodes** (regardless of d
 | `segments[]` | same as direct references |
 | `id` | `"nodeA_nodeB"` |
 
-`constructRealLanes()` — **the most important function in Path**. Reads the node positions and the number of segments, then assigns each segment its actual offset `fromPos/toPos` by spreading all lanes perpendicular to the road direction. Lanes going from nodeA→nodeB sit on one side; lanes going nodeB→nodeA on the other. Also calls `setSegmentDrawOuterLinesLogic()` to decide which lane edge lines are dashed (inner lane boundary) vs solid (outer road edge).
+`constructRealLanes()` — **the most important function in Path**. Reads the node positions and the number of segments, then assigns each segment its actual offset `fromPos/toPos` by spreading all lanes perpendicular to the road direction. Lanes going from nodeA→nodeB sit on one side; lanes going nodeB→nodeA on the other. Lane edge rendering is resolved later when `showEdges()` draws the path, using the current intersection context.
 
 `orderSegmentsByDirection()` — sorts the segments Set so that forward-direction lanes come first. This ordering controls the left-to-right lane layout.
 
@@ -158,7 +158,7 @@ A data container that groups everything belonging to one node's junction area.
 | `edges[]` | the curved edge lines between road and sidewalk |
 | `innerEdges[]` | bezier curves separating bidirectional flow |
 | `innerLaneEdges[]` | dashed bezier curves separating same-direction lanes crossing the junction |
-| `crosswalkPos[]` | pairs of line endpoints used to draw dashed crosswalk markings |
+| `crosswalkPos` | `Map<nodeID, [p1, p2]>` with the line endpoints used to draw dashed crosswalk markings for each connected intersection |
 | `TLS` | TrafficLightSystem instance, if any |
 
 `calculateOutlinesIntersection()` — calls `getOutline()` to compute the visual boundary polygons.  
