@@ -158,11 +158,13 @@ A data container that groups everything belonging to one node's junction area.
 | `edges[]` | the curved edge lines between road and sidewalk |
 | `innerEdges[]` | bezier curves separating bidirectional flow |
 | `innerLaneEdges[]` | dashed bezier curves separating same-direction lanes crossing the junction |
+| `crosswalkPos[]` | pairs of line endpoints used to draw dashed crosswalk markings |
 | `TLS` | TrafficLightSystem instance, if any |
 
 `calculateOutlinesIntersection()` — calls `getOutline()` to compute the visual boundary polygons.  
 `getOutline()` — the core geometry function. Collects all segment endpoint corners, sorts them clockwise around the node, then builds bezier curves between consecutive pairs to form a smooth junction outline.  
-`calculateInnerEdges()` — computes the center divider bezier lines.  
+`calculateInnerEdges()` — computes the center divider bezier lines. These are hidden while the intersection is the currently selected one in the editor.  
+`showCrossWalks()` — draws dashed crosswalk markings for segments that meet at intersections with more than two connected paths.  
 `getActivenessMap()` — returns a `Map<"fromSegID_toSegID", bool>` that records which turns are enabled; used to restore turn state after a road rebuild.  
 `constructTLphases()` — see Section 9.
 
@@ -324,7 +326,8 @@ Rendering order (back to front):
 3. **p5** — outer edge curves (white lines)
 4. **p5** — inner edge dividers
 5. **p5** — yield markings
-6. **p5** — direction arrows
+6. **p5** — crosswalk markings
+7. **p5** — direction arrows
 
 Debug overlays (toggled via Menu):
 - `SHOW_PATHS` — colored lines with arrows for each segment
