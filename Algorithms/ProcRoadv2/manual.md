@@ -499,6 +499,13 @@ Flow:
 
 Saves are stored in p5 localStorage under the `PRsavesMap` key as a map from save name to serialized road data.
 
+The lane-count controls in the menu are also persisted in localStorage under the `nLanes` key. That state stores:
+
+- `nFor` for forward lanes
+- `nBack` for backward lanes
+
+So changing the lane buttons affects future road creation even after reloading the page, and the values are restored when the tool starts or loads from storage.
+
 `saveAsave(name)` — writes the current road to `PRsavesMap[name]` and refreshes the save manager list.
 
 `quickSave()` — if there is no current save selected, prompts for a name, stores the road under that name, and remembers it as the active save. If there is a current save selected, it overwrites that save in place without prompting.
