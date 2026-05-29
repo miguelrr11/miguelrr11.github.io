@@ -98,7 +98,7 @@ class Segment{
         this.crosswalkPos = new Map()
 
         let dir = Math.atan2(this.toPos.y - this.fromPos.y, this.toPos.x - this.fromPos.x)
-        let separation = 25 + WIDTH_YIELD_MARKING
+        let separation = 17 + WIDTH_YIELD_MARKING
         separation = Math.min(separation, Math.max(0, this.len - separation - 10))
         let toPosShort = {x: this.toPos.x - Math.cos(dir) * (separation), y: this.toPos.y - Math.sin(dir) * (separation)}
         let yieldCorners = getCornersOfLine(this.fromPos, toPosShort, LANE_WIDTH)
@@ -203,11 +203,11 @@ class Segment{
         if(this.outOfBounds()) return false
     }
 
-    drawLineBelow(doCutFrom = false, doCutTo = false, disc = false){
+    drawLineBelow(doCutFrom = false, doCutTo = false, disc = false, doubleLine = false){
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = this.corners
-        let separation = 25 + WIDTH_YIELD_MARKING
+        let separation = 13.5 + WIDTH_YIELD_MARKING
         separation = Math.min(separation, Math.max(0, this.len - separation - 10))
         let cutInPixelsFrom = doCutFrom ? -separation : 0
         let cutInPixelsTo = doCutTo ? -separation : 0
@@ -216,15 +216,20 @@ class Segment{
         let y1 = corners[1] + Math.sin(dir) * cutInPixelsFrom
         let x2 = corners[6] - Math.cos(dir) * cutInPixelsTo
         let y2 = corners[7] - Math.sin(dir) * cutInPixelsTo
+        if(doubleLine){
+            push()
+            strokeWeight(3)
+        }
         if(!disc) line(x1, y1, x2, y2)
         else drawDashedLine(x1, y1, x2, y2)
+        if(doubleLine) pop()
     }
 
-    drawLineAbove(doCutFrom = false, doCutTo = false, disc = false){
+    drawLineAbove(doCutFrom = false, doCutTo = false, disc = false, doubleLine = false){
         let fromPos = this.fromPos
         let toPos = this.toPos
         let corners = this.corners
-        let separation = 25 + WIDTH_YIELD_MARKING
+        let separation = 13.5 + WIDTH_YIELD_MARKING
         separation = Math.min(separation, Math.max(0, this.len - separation - 10))
         let cutInPixelsFrom = doCutFrom ? -separation : 0
         let cutInPixelsTo = doCutTo ? -separation : 0
@@ -233,8 +238,13 @@ class Segment{
         let y1 = corners[3] + Math.sin(dir) * cutInPixelsFrom
         let x2 = corners[4] - Math.cos(dir) * cutInPixelsTo
         let y2 = corners[5] - Math.sin(dir) * cutInPixelsTo
+        if(doubleLine){
+            push()
+            strokeWeight(3)
+        }
         if(!disc) line(x1, y1, x2, y2)
         else drawDashedLine(x1, y1, x2, y2)
+        if(doubleLine) pop()
     }
 
     // rectMode must be CORNERS and noStroke must be set before calling this
@@ -381,6 +391,13 @@ class Segment{
             textAlign(CENTER)
             textSize(8)
             text(str, midPos.x, midPos.y)
+            pop()
+
+            push()
+            stroke(0, 255, 0)
+            this.drawLineAbove(false, false, false)
+            stroke(255, 0, 0)
+            this.drawLineBelow(false, false, false)
             pop()
 
             // stroke(0)

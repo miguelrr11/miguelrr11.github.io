@@ -271,6 +271,7 @@ class Path{
     // the inner lines are cut only if the segment has the enough length for a crosswalk (220)
     // just realized both endings of a segment might need different cut logic, so we need to check them separately
     // okay I give up, im gonna draw the lines dynamically from path
+    // this is not used
     setSegmentDrawOuterLinesLogic(){
         let intersectionA = this.road.findIntersection(this.nodeA)
         let intersectionB = this.road.findIntersection(this.nodeB)
@@ -406,8 +407,22 @@ class Path{
     //     }
     // }
 
+    getNsegsByDir(){
+        let countAtoB = 0
+        let countBtoA = 0
+        this.segments.forEach(segment => {
+            if(segment.fromNodeID == this.nodeA) countAtoB++
+            else countBtoA++
+        })
+        return {countAtoB, countBtoA}
+    }
+
     showEdges(){
         if(this.OOB) return
+        //debug
+        let hoveredID = this.road.tool.state.hoverSegID
+        //if(!hoveredID) return
+
         let len = this.segments[0].getLen()
         let interA = this.road.findIntersection(this.nodeA)
         let interB = this.road.findIntersection(this.nodeB)
@@ -416,18 +431,44 @@ class Path{
         let moreThan2A = nPathsA > 2
         let moreThan2B = nPathsB > 2
         let changed = false
+        let count = this.getNsegsByDir()
+        let doubleLine = count.countAtoB > 1 && count.countBtoA > 1
         for(let i = 0; i < this.segments.length; i++){
             let segment = this.segments[i]
+           // if(segment.id !== hoveredID) continue
             let nextSeg = this.segments[i+1]
-            if(segment.fromNodeID == this.nodeA){
-                if(i == 0){segment.drawLineBelow(moreThan2A, moreThan2B, false); segment.drawLineAbove(moreThan2A, moreThan2B, true)}
-                else if(i == this.segments.length-1){segment.drawLineAbove(moreThan2A, moreThan2B, false); segment.drawLineBelow(moreThan2A, moreThan2B, true)}
-                else {segment.drawLineAbove(moreThan2A, moreThan2B, true); segment.drawLineBelow(moreThan2A, moreThan2B, true)}
+            let fromHere = segment.fromNodeID == this.nodeA 
+            if(this.segments.length == 1){
+                segment.drawLineAbove(false, false, false)
+                segment.drawLineBelow(false, false, false)
+                return
             }
-            else{
-                if(i == 0){segment.drawLineAbove(moreThan2B, moreThan2A, false); segment.drawLineBelow(moreThan2B, moreThan2A, true)}
-                else if(i == this.segments.length-1){segment.drawLineBelow(moreThan2B, moreThan2A, false); segment.drawLineAbove(moreThan2B, moreThan2A, true)}
-                else {segment.drawLineAbove(moreThan2B, moreThan2A, true); segment.drawLineBelow(moreThan2B, moreThan2A, true)}
+            if(fromHere){
+                if(i == 0){
+                    segment.drawLineBelow(false, false, false); 
+                    segment.drawLineAbove(moreThan2A, moreThan2B, true)
+                }
+                else if(i == this.segments.length-1){
+                    segment.drawLineAbove(false, false, false); 
+                    segment.drawLineBelow(moreThan2A, moreThan2B, true)
+                }
+                else {
+                    segment.drawLineAbove(moreThan2A, moreThan2B, true); 
+                    segment.drawLineBelow(moreThan2A, moreThan2B, true)}
+            }
+            else{ 
+                if(i == 0){
+                    segment.drawLineAbove(moreThan2B, moreThan2A, false); 
+                    segment.drawLineBelow(moreThan2B, moreThan2A, true)
+                }
+                else if(i == this.segments.length-1){
+                    segment.drawLineBelow(false, false, false); 
+                    segment.drawLineAbove(moreThan2B, moreThan2A, true)
+                }
+                else {
+                    segment.drawLineAbove(moreThan2B, moreThan2A, true); 
+                    segment.drawLineBelow(moreThan2B, moreThan2A, true)
+                }
             }
         }
     }

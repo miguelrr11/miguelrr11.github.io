@@ -74,35 +74,35 @@ class Menu{
         const BOTTOM_Y = MAIN_Y + SIDE_H + GAP;   
 
         let buttonPlusFor = new Button(
-        LEFT_X, TOP_Y, SIDE_W, SIDE_H,
-        '+',
-        () => { this.tool.state.nForLanes++; }
+            LEFT_X, TOP_Y, SIDE_W, SIDE_H,
+            '+',
+            () => { this.tool.state.nForLanes++; this.tool.viewSettingsChanged() }
         );
 
         let buttonMinusFor = new Button(
-        LEFT_X, BOTTOM_Y, SIDE_W, SIDE_H,
-        '-',
-        () => { if (this.tool.state.nForLanes > 0) this.tool.state.nForLanes--; }
+            LEFT_X, BOTTOM_Y, SIDE_W, SIDE_H,
+            '-',
+            () => { if (this.tool.state.nForLanes > 0) {this.tool.state.nForLanes--; this.tool.viewSettingsChanged()} }
         );
 
         let buttonShowLaneState = new Button(
-        MAIN_X-SIDE_W, MAIN_Y, MAIN_W + SIDE_W*2, MAIN_H,
-        '',
-        undefined,
-        () => `${this.tool.state.nForLanes} - ${this.tool.state.nBackLanes}`
+            MAIN_X-SIDE_W, MAIN_Y, MAIN_W + SIDE_W*2, MAIN_H,
+            '',
+            undefined,
+            () => `${this.tool.state.nForLanes} - ${this.tool.state.nBackLanes}`
         );
         buttonShowLaneState.labelID = 'numberOfLanesButton'
 
         let buttonPlusBack = new Button(
-        RIGHT_X, TOP_Y, SIDE_W, SIDE_H,
-        '+',
-        () => { this.tool.state.nBackLanes++; }
+            RIGHT_X, TOP_Y, SIDE_W, SIDE_H,
+            '+',
+            () => { this.tool.state.nBackLanes++; this.tool.viewSettingsChanged() }
         );
 
         let buttonMinusBack = new Button(
-        RIGHT_X, BOTTOM_Y, SIDE_W, SIDE_H,
-        '-',
-        () => { if (this.tool.state.nBackLanes > 0) this.tool.state.nBackLanes--; }
+            RIGHT_X, BOTTOM_Y, SIDE_W, SIDE_H,
+            '-',
+            () => { if (this.tool.state.nBackLanes > 0) {this.tool.state.nBackLanes--; this.tool.viewSettingsChanged()} }
         );
 
         let xLoc = width - 95 - 10

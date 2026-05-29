@@ -2,7 +2,7 @@ let GLOBAL_EDGES = [0, 1400, 0, 700]
 const COL_PATHS = [200]
 const COL_LANE_1 = [40, 40, 255, 90]
 const COL_LANE_2 = [255, 40, 40, 90]
-const SIDE_WALK_COL = [200]
+const SIDE_WALK_COL = [210]
 const ROAD_COL = [110]
 const ARROWS_COL = [190]
 const MARKINGS_COL = [190]
@@ -105,6 +105,11 @@ class Tool{
 
         let showOptions = getItem('showOptions')
         if(showOptions) this.showOptions = showOptions
+        let nLanes = getItem('nLanes')
+        if(nLanes) {
+            this.state.nForLanes = nLanes.nFor
+            this.state.nBackLanes = nLanes.nBack
+        }
 
         this.pathsInView = []
         this.intersectionsInView = []
@@ -789,6 +794,7 @@ class Tool{
     saveToLocalStorage(){
         storeItem('roadData', this.getCurrentRoad())
         storeItem('showOptions', this.showOptions)
+        storeItem('nLanes', {nFor: this.state.nForLanes, nBack: this.state.nBackLanes})
     }
 
     loadFromLocalStorage(){
@@ -796,6 +802,10 @@ class Tool{
         if(roadData) this.setStateToRoad(roadData)
         let showOptions = getItem('showOptions')
         if(showOptions) this.showOptions = showOptions
+        if(getItem('nLanes')) {
+            this.state.nForLanes = getItem('nLanes').nFor
+            this.state.nBackLanes = getItem('nLanes').nBack
+        }
     }
 
     removeSelectedBox(){
@@ -1401,6 +1411,7 @@ class Tool{
     
     viewSettingsChanged(){
         storeItem('showOptions', this.showOptions)
+        storeItem('nLanes', {nFor: this.state.nForLanes, nBack: this.state.nBackLanes})
     }
 
     update(){
