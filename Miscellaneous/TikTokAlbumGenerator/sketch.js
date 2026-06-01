@@ -184,7 +184,9 @@ function createTracksFromPaste(texto){
         let finalGrade
         let text = lineObj.text
         setTrackText(tracks[trackIndex], text)
-        if(grade == null) finalGrade = 'Interlude'
+        let doesntHaveDecimal = grade !== null && grade !== undefined && Number.isInteger(grade)
+        if(grade) setTrackMiniDescription(tracks[trackIndex], doesntHaveDecimal ? '' : grade.toString())
+        if(grade == null) finalGrade = 'INTERLUDE'
         else if(grade >= 10.5) finalGrade = 'GOAT'
         else if(grade >= 10) finalGrade = 'PEAK'
         else if(grade >= 9) finalGrade = 'EXCEPTIONAL'
@@ -197,6 +199,12 @@ function createTracksFromPaste(texto){
         if(i < lineas.length - 1) addTrackRowWithCapture()
         trackIndex++
     }
+}
+
+function setTrackMiniDescription(trackObj, newDescription) {
+    trackObj.textInput.value(newDescription);
+    const evt = new Event('input', { bubbles: true });
+    trackObj.textInput.elt.dispatchEvent(evt);
 }
 
 function setTrackText(trackObj, newText) {
