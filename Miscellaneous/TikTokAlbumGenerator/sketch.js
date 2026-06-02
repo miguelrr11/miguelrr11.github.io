@@ -185,7 +185,7 @@ function createTracksFromPaste(texto){
         let text = lineObj.text
         setTrackText(tracks[trackIndex], text)
         let doesntHaveDecimal = grade !== null && grade !== undefined && Number.isInteger(grade)
-        if(grade) setTrackMiniDescription(tracks[trackIndex], doesntHaveDecimal ? '' : grade.toString())
+        if(grade && grade < 10) setTrackMiniDescription(tracks[trackIndex], doesntHaveDecimal ? '' : grade.toString())
         if(grade == null) finalGrade = 'INTERLUDE'
         else if(grade >= 10.5) finalGrade = 'GOAT'
         else if(grade >= 10) finalGrade = 'PEAK'
