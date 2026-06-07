@@ -2114,6 +2114,7 @@ function downloadJSON() {
             tracksSpacing,
             tracksRectHeight,
             showGradeLegend,
+            currentProfileName
 
         }
     };
@@ -2275,6 +2276,10 @@ function fillFormFromData(data) {
             tracksRectHeightSlider.value(tracksRectHeight);
             tracksRectHeightLabel.html(tracksRectHeight);
         }
+    }
+    if(data.currentProfileName) {
+        currentProfileName = data.currentProfileName;
+        if(profileSelect) profileSelect.selected(currentProfileName);
     }
 }
 
