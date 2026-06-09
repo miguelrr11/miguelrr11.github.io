@@ -56,7 +56,7 @@ let isUpdatingMonacoFromUI = false;
 let isUpdatingEditorFromMonaco = false;
 
 // Text box selection and sizing
-let textBoxes = [], selectedTextBox = null, sizeAdjustPanel = null;
+let textBoxes = [], selectedTextBox = null, sizeAdjustPanel = null, tracksAdjustPanel = null;
 let textSizeOffsets = { title: 0, artist: 0, year: 0, genre: 0, funfact: 0 };
 let textLeadingOffsets = { funfact: 0 };
 let verticalOffsetsRatings = { title: 0, artist: 0, year: 0, genre: 0, funfact: 0, tracks: 0, image: 0 };
@@ -333,12 +333,12 @@ function createAlbumEditor() {
     // === Panel 3: Settings ===
     createButtonGrid(panel3);
     createProfileSection(panel3);
-    createTracksCustomizationSection(panel3);
     createColorSection(panel3);
     createAdvancedOptionsSection(panel3);
 
-    // Size adjust panel (fixed position, not in any column)
-    createSizeAdjustPanel();
+    // Floating panels (fixed position, not in any column)
+    createSizeAdjustPanel();   // shown when a textbox is selected
+    createTracksAdjustPanel(); // shown when the tracks block is selected
 }
 
 function setDataEditor(data){
@@ -1213,32 +1213,17 @@ function saveLastProfile() {
     localStorage.setItem('albumGeneratorLastProfile', currentProfileName);
 }
 
-function createTracksCustomizationSection(parent = editorPanel) {
-    createDiv('').parent(parent).class('section-divider');
-    let tracksSection = createDiv('').parent(parent).class('color-section');
-    let tracksHeader = createDiv('').parent(tracksSection).class('color-section-header');
-    let tracksToggle = createSpan('▶').parent(tracksHeader).class('color-toggle');
-    createSpan(' Customize Tracks').parent(tracksHeader);
+// Floating panel shown when the tracks block is selected on the canvas. Mirrors the
+// textbox size-adjust panel (same .sap-* styling) and holds the track customization
+// controls that used to live in the "Customize Tracks" dropdown.
+function createTracksAdjustPanel() {
+    tracksAdjustPanel = createDiv('').id('tracks-adjust-panel');
 
-    let tracksContent = createDiv('').parent(tracksSection).class('color-content collapsed');
-
-    tracksHeader.mousePressed(() => {
-        if (tracksContent.hasClass('collapsed')) {
-            tracksContent.removeClass('collapsed');
-            tracksToggle.html('▼');
-        } else {
-            tracksContent.addClass('collapsed');
-            tracksToggle.html('▶');
-        }
-    });
-
-    // Text Size control
-    let textSizeRow = createDiv('').parent(tracksContent).class('slider-row');
-    createSpan('Text Size').parent(textSizeRow).class('slider-label');
-    let textSizeContainer = createDiv('').parent(textSizeRow).class('slider-container');
-    tracksTextSizeSlider = createSlider(30, 100, 60, 2).parent(textSizeContainer).class('form-slider');
-    tracksTextSizeLabel = createSpan('60').parent(textSizeContainer).class('slider-value');
-
+    // --- Text Size ---
+    let sizeGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group');
+    createSpan('Text Size').parent(sizeGroup).class('sap-label');
+    tracksTextSizeSlider = createSlider(30, 100, 60, 2).parent(sizeGroup).class('sap-slider');
+    tracksTextSizeLabel = createSpan('60').parent(sizeGroup).class('sap-value');
     tracksTextSizeSlider.input(() => {
         tracksTextSize = tracksTextSizeSlider.value();
         tracksTextSizeLabel.html(tracksTextSize);
@@ -1246,13 +1231,11 @@ function createTracksCustomizationSection(parent = editorPanel) {
     });
     tracksTextSizeSlider.changed(() => captureState());
 
-    // Spacing control
-    let spacingRow = createDiv('').parent(tracksContent).class('slider-row');
-    createSpan('Spacing').parent(spacingRow).class('slider-label');
-    let spacingContainer = createDiv('').parent(spacingRow).class('slider-container');
-    tracksSpacingSlider = createSlider(-30, 50, 0, 1).parent(spacingContainer).class('form-slider');
-    tracksSpacingLabel = createSpan('0').parent(spacingContainer).class('slider-value');
-
+    // --- Spacing ---
+    let spacingGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group');
+    createSpan('Spacing').parent(spacingGroup).class('sap-label');
+    tracksSpacingSlider = createSlider(-30, 50, 0, 1).parent(spacingGroup).class('sap-slider');
+    tracksSpacingLabel = createSpan('0').parent(spacingGroup).class('sap-value');
     tracksSpacingSlider.input(() => {
         tracksSpacing = tracksSpacingSlider.value();
         tracksSpacingLabel.html(tracksSpacing);
@@ -1260,13 +1243,11 @@ function createTracksCustomizationSection(parent = editorPanel) {
     });
     tracksSpacingSlider.changed(() => captureState());
 
-    // Rectangle Height control
-    let rectHeightRow = createDiv('').parent(tracksContent).class('slider-row');
-    createSpan('Rect Height').parent(rectHeightRow).class('slider-label');
-    let rectHeightContainer = createDiv('').parent(rectHeightRow).class('slider-container');
-    tracksRectHeightSlider = createSlider(20, 80, 40, 2).parent(rectHeightContainer).class('form-slider');
-    tracksRectHeightLabel = createSpan('40').parent(rectHeightContainer).class('slider-value');
-
+    // --- Rect Height ---
+    let rectGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group');
+    createSpan('Rect Height').parent(rectGroup).class('sap-label');
+    tracksRectHeightSlider = createSlider(20, 80, 40, 2).parent(rectGroup).class('sap-slider');
+    tracksRectHeightLabel = createSpan('40').parent(rectGroup).class('sap-value');
     tracksRectHeightSlider.input(() => {
         tracksRectHeight = tracksRectHeightSlider.value();
         tracksRectHeightLabel.html(tracksRectHeight);
@@ -1274,20 +1255,35 @@ function createTracksCustomizationSection(parent = editorPanel) {
     });
     tracksRectHeightSlider.changed(() => captureState());
 
-    // Reset button
-    createButton('Reset to Default').parent(tracksContent).class('btn btn-secondary').style('margin-top', '12px').mousePressed(() => {
+    // --- Actions (reset + close) ---
+    let actionsGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group sap-actions');
+    createButton('↻').parent(actionsGroup).class('sap-btn sap-btn-reset').mousePressed(() => {
         tracksTextSize = 44;
         tracksSpacing = -18;
         tracksRectHeight = 28;
-        tracksTextSizeSlider.value(44);
-        tracksSpacingSlider.value(-18);
-        tracksRectHeightSlider.value(28);
-        tracksTextSizeLabel.html('44');
-        tracksSpacingLabel.html('-18');
-        tracksRectHeightLabel.html('28');
+        showTracksAdjustPanel();
         if (albumData && currentView === 'ratings') printAlbum();
         captureState();
     });
+    createButton('✕').parent(actionsGroup).class('sap-btn sap-btn-close').mousePressed(() => {
+        selectedTextBox = null;
+        tracksAdjustPanel.style('display', 'none');
+        updateVerticalOffsetSlider();
+        currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    });
+}
+
+// Sync the tracks panel controls to current state and show it.
+function showTracksAdjustPanel() {
+    if (!tracksAdjustPanel) return;
+    tracksTextSizeSlider.value(tracksTextSize);
+    tracksTextSizeLabel.html(tracksTextSize);
+    tracksSpacingSlider.value(tracksSpacing);
+    tracksSpacingLabel.html(tracksSpacing);
+    tracksRectHeightSlider.value(tracksRectHeight);
+    tracksRectHeightLabel.html(tracksRectHeight);
+    tracksAdjustPanel.style('display', 'flex');
+    updateVerticalOffsetSlider();
 }
 
 function createColorSection(parent = editorPanel) {
@@ -1426,7 +1422,7 @@ function createAdvancedOptionsSection(parent = editorPanel) {
     let maxWidthRow = createDiv('').parent(advancedContent).class('slider-row');
     createSpan('Max Text Width').parent(maxWidthRow).class('slider-label');
     let maxWidthContainer = createDiv('').parent(maxWidthRow).class('slider-container');
-    maxTextboxWidthSlider = createSlider(100, 1000, 500, 10).parent(maxWidthContainer).class('form-slider');
+    maxTextboxWidthSlider = createSlider(100, 1080, 500, 10).parent(maxWidthContainer).class('form-slider');
     maxTextboxWidthLabel = createSpan('500').parent(maxWidthContainer).class('slider-value');
 
     // Initially disable
@@ -1438,6 +1434,10 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         let value = maxTextboxWidthSlider.value();
         maxTextboxWidthLabel.html(value);
         maxTextboxWidths[selectedTextBox.id] = value;
+
+        // keep the unified textbox panel's width control in sync
+        let sapWidth = select('#sap-width-slider');
+        if (sapWidth) { sapWidth.value(value); select('#sap-width-display').html(value); }
 
         if (albumData) {
             currentView === 'ratings' ? printAlbum() : printCoverScreen();
@@ -1603,109 +1603,73 @@ function updateMaxTextboxWidthSlider() {
     }
 }
 
+// Unified floating panel shown when ANY textbox (predefined or custom) is selected.
+// Every control uses the same widget for both textbox types; controls that don't
+// apply to a given type (e.g. Font/Color for predefined boxes) are simply hidden.
 function createSizeAdjustPanel() {
     sizeAdjustPanel = createDiv('').id('size-adjust-panel');
 
-    // Text Size controls (for predefined textboxes)
-    let sizeContainer = createDiv('').parent(sizeAdjustPanel).id('size-container');
-    createSpan('Text Size:').parent(sizeContainer).class('label');
-    createButton('−').parent(sizeContainer).class('btn-control').mousePressed(() => adjustTextSize(-2));
-    createSpan('0').parent(sizeContainer).id('size-display').class('display');
-    createButton('+').parent(sizeContainer).class('btn-control').mousePressed(() => adjustTextSize(2));
+    // --- Size (stepper) — every textbox ---
+    let sizeGroup = createDiv('').parent(sizeAdjustPanel).class('sap-group').id('sap-size');
+    createSpan('Size').parent(sizeGroup).class('sap-label');
+    createButton('−').parent(sizeGroup).class('sap-btn').mousePressed(() => adjustTextSize(-2));
+    createSpan('0').parent(sizeGroup).id('sap-size-display').class('sap-value');
+    createButton('+').parent(sizeGroup).class('sap-btn').mousePressed(() => adjustTextSize(2));
 
-    // Leading controls (for predefined textboxes with leading)
-    let leadingContainer = createDiv('').parent(sizeAdjustPanel).id('leading-container');
-    createSpan('Leading:').parent(leadingContainer).class('label');
-    createButton('−').parent(leadingContainer).class('btn-control').mousePressed(() => adjustTextLeading(-2));
-    createSpan('0').parent(leadingContainer).id('leading-display').class('display');
-    createButton('+').parent(leadingContainer).class('btn-control').mousePressed(() => adjustTextLeading(2));
+    // --- Leading (stepper) — funfact + custom ---
+    let leadingGroup = createDiv('').parent(sizeAdjustPanel).class('sap-group').id('sap-leading');
+    createSpan('Leading').parent(leadingGroup).class('sap-label');
+    createButton('−').parent(leadingGroup).class('sap-btn').mousePressed(() => adjustTextLeading(-2));
+    createSpan('0').parent(leadingGroup).id('sap-leading-display').class('sap-value');
+    createButton('+').parent(leadingGroup).class('sap-btn').mousePressed(() => adjustTextLeading(2));
 
-    // Custom textbox controls container
-    let customContainer = createDiv('').parent(sizeAdjustPanel).id('custom-textbox-controls');
-    customContainer.style('display', 'none');
-    customContainer.style('gap', '10px');
-    customContainer.style('align-items', 'center');
+    // --- Width (slider) — every text box ---
+    let widthGroup = createDiv('').parent(sizeAdjustPanel).class('sap-group').id('sap-width');
+    createSpan('Width').parent(widthGroup).class('sap-label');
+    let widthSlider = createSlider(100, 1080, 500, 10).parent(widthGroup).id('sap-width-slider').class('sap-slider');
+    createSpan('500').parent(widthGroup).id('sap-width-display').class('sap-value');
+    widthSlider.input(() => {
+        if (!selectedTextBox) return;
+        let value = widthSlider.value();
+        if (selectedTextBox.isCustom) {
+            let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+            if (textbox) textbox.maxWidth = value;
+        } else {
+            maxTextboxWidths[selectedTextBox.id] = value;
+            updateMaxTextboxWidthSlider(); // keep the Advanced Options slider in sync
+        }
+        select('#sap-width-display').html(value);
+        autoGeneratePreview();
+    });
+    widthSlider.changed(() => captureState());
 
-    // Font Size slider for custom textboxes
-    createSpan('Size:').parent(customContainer).class('label');
-    let customFontSizeSlider = createSlider(10, 80, 40, 2).parent(customContainer).id('custom-font-size-slider').class('form-slider').style('width', '80px');
-    createSpan('40').parent(customContainer).id('custom-font-size-display').class('display');
-
-    customFontSizeSlider.input(() => {
+    // --- Font (select) — custom only ---
+    let fontGroup = createDiv('').parent(sizeAdjustPanel).class('sap-group').id('sap-font');
+    createSpan('Font').parent(fontGroup).class('sap-label');
+    let fontSelect = createSelect().parent(fontGroup).id('sap-font-select').class('form-select');
+    ['fontHeavy', 'fontLight', 'fontRegular', 'fontRegularCondensed', 'fontRegularItalic', 'fontRegularCrammed'].forEach(f => fontSelect.option(f));
+    fontSelect.changed(() => {
         if (!selectedTextBox || !selectedTextBox.isCustom) return;
         let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
-        if (textbox) {
-            textbox.fontSize = customFontSizeSlider.value();
-            select('#custom-font-size-display').html(textbox.fontSize);
-            autoGeneratePreview();
-        }
+        if (textbox) { textbox.fontType = fontSelect.value(); autoGeneratePreview(); captureState(); }
     });
-    customFontSizeSlider.changed(() => captureState());
 
-    // Leading slider for custom textboxes
-    createSpan('Lead:').parent(customContainer).class('label');
-    let customLeadingSlider = createSlider(-30, 50, 0, 1).parent(customContainer).id('custom-leading-slider').class('form-slider').style('width', '60px');
-    createSpan('0').parent(customContainer).id('custom-leading-display').class('display');
-
-    customLeadingSlider.input(() => {
+    // --- Color (picker) — custom only ---
+    let colorGroup = createDiv('').parent(sizeAdjustPanel).class('sap-group').id('sap-color');
+    createSpan('Color').parent(colorGroup).class('sap-label');
+    let colorPicker = createColorPicker('#ffffff').parent(colorGroup).id('sap-color-picker').class('color-picker');
+    colorPicker.input(() => {
         if (!selectedTextBox || !selectedTextBox.isCustom) return;
         let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
-        if (textbox) {
-            textbox.leading = customLeadingSlider.value();
-            select('#custom-leading-display').html(textbox.leading);
-            autoGeneratePreview();
-        }
+        if (textbox) { textbox.color = colorPicker.value(); autoGeneratePreview(); }
     });
-    customLeadingSlider.changed(() => captureState());
+    colorPicker.changed(() => captureState());
 
-    // Font type select for custom textboxes
-    let customFontSelect = createSelect().parent(customContainer).id('custom-font-select').class('form-select').style('width', '100px');
-    ['fontHeavy', 'fontLight', 'fontRegular', 'fontRegularCondensed', 'fontRegularItalic', 'fontRegularCrammed'].forEach(f => customFontSelect.option(f));
-    customFontSelect.changed(() => {
-        if (!selectedTextBox || !selectedTextBox.isCustom) return;
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
-        if (textbox) {
-            textbox.fontType = customFontSelect.value();
-            autoGeneratePreview();
-            captureState();
-        }
-    });
-
-    // Color picker for custom textboxes
-    let customColorPicker = createColorPicker('#ffffff').parent(customContainer).id('custom-color-picker').class('color-picker');
-    customColorPicker.input(() => {
-        if (!selectedTextBox || !selectedTextBox.isCustom) return;
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
-        if (textbox) {
-            textbox.color = customColorPicker.value();
-            autoGeneratePreview();
-        }
-    });
-    customColorPicker.changed(() => captureState());
-
-    // Max width slider for custom textboxes
-    createSpan('Width:').parent(customContainer).class('label');
-    let customMaxWidthSlider = createSlider(100, 1000, 500, 10).parent(customContainer).id('custom-max-width-slider').class('form-slider').style('width', '80px');
-    createSpan('500').parent(customContainer).id('custom-max-width-display').class('display');
-
-    customMaxWidthSlider.input(() => {
-        if (!selectedTextBox || !selectedTextBox.isCustom) return;
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
-        if (textbox) {
-            textbox.maxWidth = customMaxWidthSlider.value();
-            select('#custom-max-width-display').html(textbox.maxWidth);
-            autoGeneratePreview();
-        }
-    });
-    customMaxWidthSlider.changed(() => captureState());
-
-    // Alignment selector (shared for all textboxes)
-    let alignContainer = createDiv('').parent(sizeAdjustPanel).id('align-container').style('display', 'flex').style('align-items', 'center').style('gap', '4px');
-    createSpan('Align:').parent(alignContainer).class('label');
-    let alignSelect = createSelect().parent(alignContainer).id('align-select').class('form-select').style('width', '75px');
-    alignSelect.option('left');
-    alignSelect.option('center');
-    alignSelect.option('right');
+    // --- Align (select) — every textbox ---
+    let alignGroup = createDiv('').parent(sizeAdjustPanel).class('sap-group').id('sap-align');
+    createSpan('Align').parent(alignGroup).class('sap-label');
+    let alignSelect = createSelect().parent(alignGroup).id('sap-align-select').class('form-select');
+    ['left', 'center', 'right'].forEach(a => alignSelect.option(a));
     alignSelect.changed(() => {
         if (!selectedTextBox) return;
         let align = alignSelect.value();
@@ -1719,8 +1683,10 @@ function createSizeAdjustPanel() {
         }
     });
 
-    createButton('↻').parent(sizeAdjustPanel).class('btn-control btn-reset').mousePressed(resetTextBoxToDefault);
-    createButton('✕').parent(sizeAdjustPanel).class('btn-control btn-close').mousePressed(() => {
+    // --- Actions (reset + close) — every textbox ---
+    let actionsGroup = createDiv('').parent(sizeAdjustPanel).class('sap-group sap-actions');
+    createButton('↻').parent(actionsGroup).class('sap-btn sap-btn-reset').mousePressed(resetTextBoxToDefault);
+    createButton('✕').parent(actionsGroup).class('sap-btn sap-btn-close').mousePressed(() => {
         selectedTextBox = null;
         sizeAdjustPanel.style('display', 'none');
         updateVerticalOffsetSlider();
@@ -1740,6 +1706,7 @@ function clearAll() {
     lastUrlChecked = null;
     selectedTextBox = null;
     if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
+    if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
     updateVerticalOffsetSlider();
     background(200);
     localStorage.removeItem('albumGeneratorData');
@@ -1751,6 +1718,7 @@ function toggleView() {
     // Deselect textbox when switching views
     selectedTextBox = null;
     if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
+    if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
     updateVerticalOffsetSlider();
     if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
     updateVisibilityCustomTextBoxesUI()
@@ -2929,13 +2897,15 @@ function mousePressed() {
     let scaledMouseX = mouseX / canvasScale;
     let scaledMouseY = mouseY / canvasScale;
 
-    if (sizeAdjustPanel && sizeAdjustPanel.style('display') !== 'none') {
-        let panel = sizeAdjustPanel.elt;
-        let panelRect = panel.getBoundingClientRect();
-        let mouseClientX = mouseX + canvasRect.left;
-        let mouseClientY = mouseY + canvasRect.top;
-        if (mouseClientX >= panelRect.left && mouseClientX <= panelRect.right &&
-            mouseClientY >= panelRect.top && mouseClientY <= panelRect.bottom) return;
+    // Ignore clicks that land inside either floating panel (don't deselect)
+    for (let panel of [sizeAdjustPanel, tracksAdjustPanel]) {
+        if (panel && panel.style('display') !== 'none') {
+            let panelRect = panel.elt.getBoundingClientRect();
+            let mouseClientX = mouseX + canvasRect.left;
+            let mouseClientY = mouseY + canvasRect.top;
+            if (mouseClientX >= panelRect.left && mouseClientX <= panelRect.right &&
+                mouseClientY >= panelRect.top && mouseClientY <= panelRect.bottom) return;
+        }
     }
 
     if (scaledMouseX < 0 || scaledMouseX > width || scaledMouseY < 0 || scaledMouseY > height) return;
@@ -2973,13 +2943,18 @@ function mousePressed() {
             }
         }
 
-        // Show size adjust panel for text boxes (not for tracks or image)
-        if (clickedBox.id !== 'tracks' && clickedBox.id !== 'image') {
-            showSizeAdjustPanel(clickedBox);
-        } else {
-            // For tracks and image, just update the vertical offset slider
+        // Show the matching floating panel for the selected box
+        if (clickedBox.id === 'tracks') {
             sizeAdjustPanel.style('display', 'none');
+            showTracksAdjustPanel();
+        } else if (clickedBox.id === 'image') {
+            // Image has no styling panel — just update the offset slider
+            sizeAdjustPanel.style('display', 'none');
+            tracksAdjustPanel.style('display', 'none');
             updateVerticalOffsetSlider();
+        } else {
+            tracksAdjustPanel.style('display', 'none');
+            showSizeAdjustPanel(clickedBox);
         }
 
         if (selectionChanged) currentView === 'ratings' ? printAlbum() : printCoverScreen();
@@ -2987,6 +2962,7 @@ function mousePressed() {
         if (selectedTextBox) {
             selectedTextBox = null;
             sizeAdjustPanel.style('display', 'none');
+            tracksAdjustPanel.style('display', 'none');
             updateVerticalOffsetSlider();
             currentView === 'ratings' ? printAlbum() : printCoverScreen();
         }
@@ -3069,60 +3045,56 @@ function mouseReleased() {
 }
 
 function showSizeAdjustPanel(box) {
-    let sizeContainer = select('#size-container');
-    let leadingContainer = select('#leading-container');
-    let customContainer = select('#custom-textbox-controls');
+    let isCustom = !!box.isCustom;
+    let textbox = isCustom ? customTextboxes.find(t => t.id === box.id) : null;
 
-    if (box.isCustom) {
-        // Show custom textbox controls, hide predefined ones
-        sizeContainer.style('display', 'none');
-        leadingContainer.style('display', 'none');
-        customContainer.style('display', 'flex');
-
-        // Update custom controls with current values
-        let textbox = customTextboxes.find(t => t.id === box.id);
-        if (textbox) {
-            select('#custom-font-size-slider').value(textbox.fontSize);
-            select('#custom-font-size-display').html(textbox.fontSize);
-            select('#custom-leading-slider').value(textbox.leading || 0);
-            select('#custom-leading-display').html(textbox.leading || 0);
-            select('#custom-font-select').selected(textbox.fontType);
-            select('#custom-color-picker').value(textbox.color);
-            select('#custom-max-width-slider').value(textbox.maxWidth || 500);
-            select('#custom-max-width-display').html(textbox.maxWidth || 500);
-        }
+    // Size — shown for every textbox. Custom shows its absolute font size; predefined
+    // shows the signed offset applied on top of its auto-fitted base size.
+    if (isCustom) {
+        select('#sap-size-display').html(textbox ? textbox.fontSize : 40);
     } else {
-        // Show predefined textbox controls, hide custom ones
-        sizeContainer.style('display', 'flex');
-        customContainer.style('display', 'none');
-
-        let sizeDisplay = select('#size-display');
         let offset = box.sizeOffset || 0;
-        sizeDisplay.html(offset >= 0 ? '+' + offset : offset);
+        select('#sap-size-display').html(offset >= 0 ? '+' + offset : '' + offset);
+    }
 
-        if (box.id === 'funfact') {
-            leadingContainer.style('display', 'flex');
-            let leadingDisplay = select('#leading-display');
+    // Leading — custom boxes and the predefined funfact support line spacing
+    let showLeading = isCustom || box.id === 'funfact';
+    select('#sap-leading').style('display', showLeading ? 'flex' : 'none');
+    if (showLeading) {
+        if (isCustom) {
+            select('#sap-leading-display').html(textbox ? (textbox.leading || 0) : 0);
+        } else {
             let leadingOffset = textLeadingOffsets.funfact || 0;
-            leadingDisplay.html(leadingOffset >= 0 ? '+' + leadingOffset : leadingOffset);
-        } else {
-            leadingContainer.style('display', 'none');
+            select('#sap-leading-display').html(leadingOffset >= 0 ? '+' + leadingOffset : '' + leadingOffset);
         }
     }
 
-    // Sync alignment selector
-    let alignSelect = select('#align-select');
-    if (alignSelect) {
-        let align;
-        if (box.isCustom) {
-            let textbox = customTextboxes.find(t => t.id === box.id);
-            align = textbox ? (textbox.textAlign || 'left') : 'left';
-        } else {
-            align = currentView === 'ratings' ? (textAlignRatings[box.id] || 'left') : (textAlignCover[box.id] || 'center');
-        }
-        alignSelect.selected(align);
+    // Width — every text box has a wrap width
+    let showWidth = isCustom || maxTextboxWidths.hasOwnProperty(box.id);
+    select('#sap-width').style('display', showWidth ? 'flex' : 'none');
+    if (showWidth) {
+        let w = isCustom
+            ? (textbox ? (textbox.maxWidth || 500) : 500)
+            : (maxTextboxWidths[box.id] || defaultMaxTextboxWidths[box.id] || 500);
+        select('#sap-width-slider').value(w);
+        select('#sap-width-display').html(w);
     }
 
+    // Font + Color — only custom boxes expose these (predefined styling is fixed)
+    select('#sap-font').style('display', isCustom ? 'flex' : 'none');
+    select('#sap-color').style('display', isCustom ? 'flex' : 'none');
+    if (isCustom && textbox) {
+        select('#sap-font-select').selected(textbox.fontType);
+        select('#sap-color-picker').value(textbox.color);
+    }
+
+    // Align — shown for every textbox
+    let align;
+    if (isCustom) align = textbox ? (textbox.textAlign || 'left') : 'left';
+    else align = currentView === 'ratings' ? (textAlignRatings[box.id] || 'left') : (textAlignCover[box.id] || 'center');
+    select('#sap-align-select').selected(align);
+
+    if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
     sizeAdjustPanel.style('display', 'flex');
 
     // Update vertical offset slider
@@ -3165,7 +3137,10 @@ function updateVerticalOffsetSlider() {
 
 function adjustTextSize(delta) {
     if (!selectedTextBox) return;
-    if (textSizeOffsets.hasOwnProperty(selectedTextBox.id)) {
+    if (selectedTextBox.isCustom) {
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) textbox.fontSize = Math.max(8, Math.min(200, textbox.fontSize + delta));
+    } else if (textSizeOffsets.hasOwnProperty(selectedTextBox.id)) {
         textSizeOffsets[selectedTextBox.id] += delta;
         selectedTextBox.sizeOffset = textSizeOffsets[selectedTextBox.id];
     }
@@ -3175,8 +3150,13 @@ function adjustTextSize(delta) {
 }
 
 function adjustTextLeading(delta) {
-    if (!selectedTextBox || selectedTextBox.id !== 'funfact') return;
-    textLeadingOffsets.funfact += delta;
+    if (!selectedTextBox) return;
+    if (selectedTextBox.isCustom) {
+        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        if (textbox) textbox.leading = (textbox.leading || 0) + delta;
+    } else if (selectedTextBox.id === 'funfact') {
+        textLeadingOffsets.funfact += delta;
+    } else return;
     captureState();
     showSizeAdjustPanel(selectedTextBox);
     currentView === 'ratings' ? printAlbum() : printCoverScreen();

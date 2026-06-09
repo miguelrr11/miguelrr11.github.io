@@ -939,108 +939,156 @@ canvas {
     color: #fff;
 }
 
-/* Size Adjust Panel */
-#size-adjust-panel {
+/* Floating adjust panels — unified controls for textboxes (size panel) and the
+   tracks block (tracks panel). Both share the same .sap-* control styling. */
+#size-adjust-panel,
+#tracks-adjust-panel {
     display: none;
     position: fixed;
     bottom: 20px;
     left: 50%;
     transform: translateX(-50%);
-    background: rgba(40, 40, 40, 0.95);
-    padding: 15px 25px;
-    border-radius: 12px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
+    background: rgba(28, 28, 40, 0.96);
+    backdrop-filter: blur(20px);
+    padding: 12px 16px;
+    border-radius: 14px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
     z-index: 1000;
     align-items: center;
-    gap: 15px;
+    gap: 14px;
+    flex-wrap: nowrap;
+    white-space: nowrap;
 }
 
-#size-adjust-panel .label {
-    color: white;
-    font-family: system-ui, -apple-system, sans-serif;
-    font-size: 14px;
+/* A labelled control group inside the panel */
+.sap-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
 }
 
-#size-adjust-panel .btn-control {
-    width: 40px;
-    height: 40px;
-    font-size: 24px;
-    background: #444;
-    color: white;
-    border: none;
+/* Vertical divider between adjacent groups */
+.sap-group + .sap-group {
+    border-left: 1px solid rgba(255, 255, 255, 0.12);
+    padding-left: 14px;
+}
+
+.sap-group.sap-actions {
+    border-left: none;
+    padding-left: 0;
+    margin-left: 4px;
+}
+
+.sap-label {
+    color: rgba(255, 255, 255, 0.6);
+    font-size: 11px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.sap-value {
+    color: #fff;
+    font-size: 13px;
+    min-width: 38px;
+    text-align: center;
+    font-variant-numeric: tabular-nums;
+}
+
+.sap-btn {
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.15);
     border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 0;
+    user-select: none;
+}
+
+.sap-btn:hover {
+    background: rgba(255, 255, 255, 0.16);
+    border-color: rgba(138, 180, 248, 0.5);
+}
+
+.sap-btn:active {
+    background: rgba(138, 180, 248, 0.3);
+}
+
+.sap-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 110px;
+    height: 5px;
+    background: rgba(255, 255, 255, 0.12);
+    border-radius: 3px;
+    outline: none;
     cursor: pointer;
 }
 
-#size-adjust-panel .btn-control:hover {
-    background: #555;
+.sap-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 16px;
+    height: 16px;
+    background: linear-gradient(135deg, #8ab4f8, #669df6);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(138, 180, 248, 0.4);
 }
 
-#size-adjust-panel .display {
-    color: white;
-    font-family: monospace;
+.sap-slider::-moz-range-thumb {
+    width: 16px;
+    height: 16px;
+    border: none;
+    background: linear-gradient(135deg, #8ab4f8, #669df6);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+/* Select + color picker reuse the shared component look, sized for the bar */
+#size-adjust-panel .form-select {
+    width: auto;
+    min-width: 95px;
+    height: 34px;
+    padding: 4px 30px 4px 10px;
+    font-size: 13px;
+    background-position: right 10px center;
+    background-size: 10px;
+}
+
+#size-adjust-panel .color-picker {
+    width: 38px;
+    height: 30px;
+}
+
+.sap-btn-reset {
+    background: rgba(96, 165, 250, 0.2);
+    border-color: rgba(96, 165, 250, 0.35);
+    color: #8ab4f8;
     font-size: 16px;
-    min-width: 60px;
-    text-align: center;
 }
 
-#size-adjust-panel #size-container {
-    display: flex;
-    gap: 10px;
-    align-items: center;
+.sap-btn-reset:hover {
+    background: rgba(96, 165, 250, 0.3);
 }
 
-#size-adjust-panel #leading-container {
-    display: none;
-    gap: 10px;
-    align-items: center;
-    border-left: 1px solid rgba(255, 255, 255, 0.2);
-    padding-left: 15px;
-    margin-left: 5px;
+.sap-btn-close {
+    background: rgba(239, 68, 68, 0.18);
+    border-color: rgba(239, 68, 68, 0.3);
+    color: #ef4444;
+    font-size: 14px;
 }
 
-#size-adjust-panel #custom-textbox-controls {
-    display: none;
-    gap: 10px;
-    align-items: center;
-    flex-wrap: wrap;
-}
-
-#size-adjust-panel #custom-textbox-controls .form-slider {
-    width: 70px;
-    height: 4px;
-}
-
-#size-adjust-panel #custom-textbox-controls .form-select {
-    padding: 6px 10px;
-    font-size: 12px;
-    background-size: 8px;
-    min-width: 90px;
-}
-
-#size-adjust-panel #custom-textbox-controls .color-picker {
-    width: 36px;
-    height: 28px;
-}
-
-#size-adjust-panel #custom-textbox-controls .display {
-    min-width: 30px;
-    font-size: 12px;
-}
-
-#size-adjust-panel #custom-textbox-controls .label {
-    font-size: 12px;
-}
-
-#size-adjust-panel .btn-reset {
-    background: #336688;
-    margin-left: 10px;
-}
-
-#size-adjust-panel .btn-close {
-    background: #883333;
-    font-size: 18px;
+.sap-btn-close:hover {
+    background: rgba(239, 68, 68, 0.28);
 }
 
 .track-number-input {
