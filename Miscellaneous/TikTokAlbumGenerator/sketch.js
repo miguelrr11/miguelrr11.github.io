@@ -2,6 +2,8 @@
 //Miguel Rodríguez
 //17-01-2026
 
+
+
 p5.disableFriendlyErrors = true
 const WIDTH = 1080
 const HEIGHT = 1920
@@ -2039,15 +2041,21 @@ function generateFromForm() {
     currentView === 'ratings' ? printAlbum() : printCoverScreen();
 }
 
+/*
+let tracksTextSize = 60;
+let tracksSpacing = 0; // Added to base spacing calculation
+let tracksRectHeight = 40;
+*/
+
 function downloadJSON() {
     let tracksData = collectTracksData();
     let jsonData = {
         album: {
-            title: titleInput.value() || 'Untitled Album',
-            artist: artistInput.value() || 'Unknown Artist',
-            year: yearInput.value() || new Date().getFullYear().toString(),
+            title: titleInput.value() || '',
+            artist: artistInput.value() || '',
+            year: yearInput.value() || '',
             runtime: '',
-            genre: genreInput.value() || 'Unknown',
+            genre: genreInput.value() || '',
             funfact: funfactInput.value() || '',
             tracks: tracksData,
             imageUrl: imageUrlInput.value() || '',
@@ -2056,7 +2064,26 @@ function downloadJSON() {
                 id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
                 fontType: t.fontType, color: t.color, viewType: t.viewType,
                 textAlign: t.textAlign || 'left', leading: t.leading || 0, maxWidth: t.maxWidth || width - 100
-            }))
+            })),
+            textSizeOffsets,
+            textLeadingOffsets,
+            verticalOffsetsRatings,
+            verticalOffsetsCover,
+            horizontalOffsetsRatings,
+            horizontalOffsetsCover,
+            imageSizeMultiplier,
+            maxTextboxWidths,
+            textAlignRatings,
+            textAlignCover,
+            aspectRatio: currentAspectRatio,
+            aspectRatioCover: currentAspectRatioCover,
+            imageFormat: currentImageFormat,
+            tracksTextSize,
+            tracksSpacing,
+            tracksRectHeight,
+            showGradeLegend,
+            currentProfileName
+
         }
     };
     saveJSON(jsonData, getBaseFileName() + '.json');
@@ -2217,6 +2244,10 @@ function fillFormFromData(data) {
             tracksRectHeightSlider.value(tracksRectHeight);
             tracksRectHeightLabel.html(tracksRectHeight);
         }
+    }
+    if(data.currentProfileName) {
+        currentProfileName = data.currentProfileName;
+        if(profileSelect) profileSelect.selected(currentProfileName);
     }
 }
 
