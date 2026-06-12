@@ -2,6 +2,8 @@
 //Miguel Rodríguez
 //17-01-2026
 
+//Esta webapp la hice para agilizar el proceso de subir mis reviews a tiktok (@thethirdeye)
+//esta completamente vibe-codeada, con 100% mis ideas y direccion creativa
 
 
 p5.disableFriendlyErrors = true
@@ -75,7 +77,8 @@ let textAlignCover = { title: 'center', artist: 'center' };
 let tracksTextSize = 60;
 let tracksSpacing = 0; // Added to base spacing calculation
 let tracksRectHeight = 40;
-let tracksTextSizeSlider, tracksSpacingSlider, tracksRectHeightSlider;
+let tracksTwoColumns = true; // Split the tracklist into two columns
+let tracksTextSizeSlider, tracksSpacingSlider, tracksRectHeightSlider, tracksTwoColumnsCheckbox;
 let tracksTextSizeLabel, tracksSpacingLabel, tracksRectHeightLabel;
 let automaticAlignmentCheckbox
 let showTrackNumbersCheckbox
@@ -94,6 +97,7 @@ let lastUrlChecked = null;
 // Custom color map
 let colorMap = { "GOAT": "#05668d", "PEAK": "#ffd21f", "EXCEPTIONAL": "#ff1fa9", "STRONG": "#bc3fde", "DECENT": "#38b6ff", "OKAY": "#14b60b", "FLOP": "#CC0000", "SHIT": "#7a4900", "INTERLUDE": "#b2b2b2", "None": "#5c5c5c" };
 let goatGradient = ["#05668d", "#028090", "#00a896", "#02c39a", "#f0f3bd"]
+const GOAT_GRADIENT_STOPS = [0, .2, .38, .59, 1];
 const defaultColorMap = {...colorMap};
 let colorPickers = {}, canvasScale = 1;
 
@@ -384,7 +388,7 @@ function syncEditorFromUI() {
         maxTextboxWidths: {...maxTextboxWidths},
         textSizeOffsets: {...textSizeOffsets},
         textLeadingOffsets: {...textLeadingOffsets},
-        tracksTextSize, tracksSpacing, tracksRectHeight,
+        tracksTextSize, tracksSpacing, tracksRectHeight, tracksTwoColumns,
         textAlignRatings: {...textAlignRatings},
         textAlignCover: {...textAlignCover}
     };
@@ -857,6 +861,7 @@ function getDefaultProfile() {
         tracksTextSize: 44,
         tracksSpacing: -18,
         tracksRectHeight: 28,
+        tracksTwoColumns: true,
         tracksVerticalOffset: 0,
         colorMap: {...defaultColorMap},
         aspectRatio: '3:4',
@@ -907,6 +912,7 @@ function getCurrentProfileData() {
         tracksTextSize: tracksTextSize,
         tracksSpacing: tracksSpacing,
         tracksRectHeight: tracksRectHeight,
+        tracksTwoColumns: tracksTwoColumns,
         tracksVerticalOffset: verticalOffsetsRatings.tracks || 0,
         colorMap: {...colorMap},
         aspectRatio: currentAspectRatio,
@@ -948,6 +954,7 @@ function applyProfile(profileData) {
     tracksTextSize = profileData.tracksTextSize || 60;
     tracksSpacing = profileData.tracksSpacing || 0;
     tracksRectHeight = profileData.tracksRectHeight || 40;
+    tracksTwoColumns = profileData.tracksTwoColumns !== undefined ? profileData.tracksTwoColumns : true;
     verticalOffsetsRatings.tracks = profileData.tracksVerticalOffset || 0;
     customTextboxes = customTextboxes.filter(tb => tb.id !== 'album_review' && tb.id !== 'comentario');
 
@@ -964,6 +971,7 @@ function applyProfile(profileData) {
         tracksRectHeightSlider.value(tracksRectHeight);
         tracksRectHeightLabel.html(tracksRectHeight);
     }
+    if (tracksTwoColumnsCheckbox) tracksTwoColumnsCheckbox.checked(tracksTwoColumns);
 
     // Update vertical offset slider if tracks is selected
     if (selectedTextBox && selectedTextBox.id === 'tracks') {
@@ -1257,12 +1265,22 @@ function createTracksAdjustPanel() {
     });
     tracksRectHeightSlider.changed(() => captureState());
 
+    // --- Two Columns ---
+    let columnsGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group');
+    tracksTwoColumnsCheckbox = createCheckbox('Two Columns', tracksTwoColumns).parent(columnsGroup).class('checkbox-input');
+    tracksTwoColumnsCheckbox.changed(() => {
+        tracksTwoColumns = tracksTwoColumnsCheckbox.checked();
+        if (albumData && currentView === 'ratings') printAlbum();
+        captureState();
+    });
+
     // --- Actions (reset + close) ---
     let actionsGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group sap-actions');
     createButton('↻').parent(actionsGroup).class('sap-btn sap-btn-reset').mousePressed(() => {
         tracksTextSize = 44;
         tracksSpacing = -18;
         tracksRectHeight = 28;
+        tracksTwoColumns = true;
         showTracksAdjustPanel();
         if (albumData && currentView === 'ratings') printAlbum();
         captureState();
@@ -1284,6 +1302,7 @@ function showTracksAdjustPanel() {
     tracksSpacingLabel.html(tracksSpacing);
     tracksRectHeightSlider.value(tracksRectHeight);
     tracksRectHeightLabel.html(tracksRectHeight);
+    if (tracksTwoColumnsCheckbox) tracksTwoColumnsCheckbox.checked(tracksTwoColumns);
     tracksAdjustPanel.style('display', 'flex');
     updateVerticalOffsetSlider();
 }
@@ -2081,6 +2100,7 @@ function downloadJSON() {
             tracksTextSize,
             tracksSpacing,
             tracksRectHeight,
+            tracksTwoColumns,
             showGradeLegend,
             currentProfileName
 
@@ -2245,6 +2265,10 @@ function fillFormFromData(data) {
             tracksRectHeightLabel.html(tracksRectHeight);
         }
     }
+    if (data.tracksTwoColumns !== undefined) {
+        tracksTwoColumns = data.tracksTwoColumns;
+        if (tracksTwoColumnsCheckbox) tracksTwoColumnsCheckbox.checked(tracksTwoColumns);
+    }
     if(data.currentProfileName) {
         currentProfileName = data.currentProfileName;
         if(profileSelect) profileSelect.selected(currentProfileName);
@@ -2280,6 +2304,7 @@ function saveToLocalStorage() {
     data.tracksTextSize = tracksTextSize;
     data.tracksSpacing = tracksSpacing;
     data.tracksRectHeight = tracksRectHeight;
+    data.tracksTwoColumns = tracksTwoColumns;
     data.textAlignRatings = {...textAlignRatings};
     data.textAlignCover = {...textAlignCover};
     localStorage.setItem('albumGeneratorData', JSON.stringify(data));
@@ -2370,13 +2395,91 @@ function getMaxTextSizeByHeight(text, maxHeight, maxStartSize){
     return size;
 }
 
+// ============================================================
+// Ratings view layout. Every position/size constant lives here.
+// Values are canvas pixels unless the name says "Ratio"
+// (fraction of the canvas width).
+// ============================================================
+const RATINGS_LAYOUT = {
+    leftMargin: 50,
+
+    cover: {
+        xRatio: 0.05,
+        y: 250,
+        sizeRatio: 0.425,
+        shadowBlur: 50,
+    },
+
+    header: {
+        top: 130,                  // y of the title block
+        rightColumnXRatio: 0.475,  // x of the artist/year/genre/funfact column
+        shadowBlur: 20,
+        title:  { maxFontSize: 100, leading: 70 },
+        artist: { offsetY: 110, fontSize: 45, leading: 50 },
+        // offsets below are measured from header.top + the artist block height
+        year:    { offsetY: 145, fontSize: 38, leading: 60 },
+        genre:   { offsetY: 195, fontSize: 30, leading: 40 },
+        funfact: { offsetY: 280, fontSize: 30, leading: 40 },
+    },
+
+    tracks: {
+        startY: 820,             // y of the first track row
+        textIndent: 295,         // title x relative to the left margin (single-column)
+        pillWidthFactorOneColumn: 0.75,   // pill width as a fraction of (leftMargin + textIndent)
+        pillWidthFactorTwoColumns: 0.85,    // pill width as a fraction of (columnShift + textIndent)
+        pillCornerRadius: 20,
+        columnShift: 450,        // x shift of the second column in two-column mode
+        horizOffsetFix: 30,      // correction added to the user's horizontal offset
+        titleMaxWidth: { oneColumn: 900, twoColumns: 370 },  // titles are truncated to this
+        // row spacing shrinks as the track count grows, then user spacing is added
+        rowSpacing: { fewTracks: 5, manyTracks: 20, max: 80, min: 45, cap: 70 },
+        goatGlowBlur: 50,
+        peakGlowBlur: 35,
+        goatTitleGlowBlur: 20,
+        // small label rendered inside the pill (track.customText)
+        pillLabel: { maxFontSize: 28, widthPad: 20, heightSlack: 5, nudgeY: 2 },
+        // larger note rendered below the row (track.customTextLarge)
+        note: {
+            x: { oneColumn: 75, twoColumns: 90 },  // left edge, from the canvas left edge
+            maxWidth: { oneColumn: 900, twoColumns: 330 },
+            fontSize: 22,
+            topGap: 20,          // gap between the row baseline and the note
+            bottomGap: 35,       // extra row spacing added below the note
+            lineWeight: 7,       // vertical accent line next to the note
+            lineInset: 15,       // accent line x, from the pill's left edge
+        },
+        // selection hitbox around the whole section
+        hitbox: { padY: 50, rightExtent: 700 },
+    },
+
+    legend: {
+        minGradeIndex: 4,     // always show at least GOAT..DECENT
+        compactThreshold: 6,  // with more grades than this, shorten 'GOAT' to 'G'
+        topPadding: 15,       // gap below the album cover
+        gap: 12,
+        cornerRadius: 20,
+        labelMaxFontSize: { byWidth: 26, byHeight: 30 },
+        labelWidthPad: 10,
+        labelHeightSlack: 5,
+        labelNudgeY: 2,
+    },
+
+    gradeBar: {
+        height: 115,
+        cornerRadius: 20,
+        fontSize: 85,
+        textYFactor: 0.57,   // vertical position of the grade text within the bar
+        glowBlur: 30,
+    },
+};
+
 async function printAlbum(){
-    background(200)
+    background(200);
     let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
 
-    let y = 50, imgOff = 200, sizeSclMult = 0.425, hasImage = false, imgBW, img;
-
+    // Load the album art (cached after the first successful load)
+    let hasImage = false, img, imgBW;
     if (albumData.imageUrl && albumData.imageUrl.trim() !== '') {
         try {
             let images = await loadAndCacheImages(albumData.imageUrl);
@@ -2393,302 +2496,294 @@ async function printAlbum(){
         }
     }
 
+    // Blurred grayscale backdrop
     if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
     else background(50);
-
     imageMode(CORNER); rectMode(CORNER);
 
-    // Apply image offsets and size multiplier
-    let imageVertOffset = verticalOffsetsRatings.image || 0;
-    let imageHorizOffset = horizontalOffsetsRatings.image || 0;
-    let imageX = width * 0.05 + imageHorizOffset;
-    let imageY = y + imgOff + imageVertOffset;
-    let imageSize = width * sizeSclMult * imageSizeMultiplier;
+    let cover = drawAlbumCover(img, hasImage);
 
-    utils.beginShadow("#000000", 50, 0, 0);
-    if (hasImage) {
-        rect(imageX+1, imageY+1, imageSize-2, imageSize-2);
-        image(img, imageX, imageY, imageSize, imageSize);
-    }
-    else drawImagePlaceholder(imageX, imageY, imageSize, imageSize, true);
-    utils.endShadow();
+    if (!albumData) return;
 
-    // Add image box for selection
-    textBoxes.push({
-        id: 'image',
-        x: imageX,
-        y: imageY,
-        w: imageSize,
-        h: imageSize,
-        sizeOffset: 0,
-        currentSize: 0
-    });
-
-    if(!albumData) return;
-
-    let leftMargin = 50, topMargin = 80;
-
-    // Draw title, artist, year, genre, funfact with vertical offsets
-    utils.beginShadow("#000000", 20, 0, 0);
-    textFont(fontHeavy)
-
-    
-    let titleOffset = verticalOffsetsRatings.title || 0;
-    let titleHorizOffset = (horizontalOffsetsRatings.title || 0) + 0;
-    let titleMaxWidth = maxTextboxWidths.title || defaultMaxTextboxWidths.title;
-    drawTextWithBox('title', fontHeavy, getMaxTextSizeByWidth(albumData.title, titleMaxWidth, 100) + textSizeOffsets.title,
-                     albumData.title, leftMargin + titleHorizOffset, topMargin + y + titleOffset, titleMaxWidth, 70, textAlignRatings.title || 'left', BOTTOM);
-    
-
-    let artistOffset = verticalOffsetsRatings.artist || 10;
-    let artistHorizOffset = (horizontalOffsetsRatings.artist || 0) + width * .475;
-    let artistMaxWidth = maxTextboxWidths.artist || defaultMaxTextboxWidths.artist;
-    let bbox = drawTextWithBox('artist', fontRegularCondensed, 45 + textSizeOffsets.artist,
-                                albumData.artist, leftMargin + artistHorizOffset, topMargin + y + 110 + artistOffset, artistMaxWidth, 50, textAlignRatings.artist || 'left');
-    y += bbox.h;
-
-    let yearOffset = verticalOffsetsRatings.year || 0;
-    let yearHorizOffset = (horizontalOffsetsRatings.year || 0) + width * .475;
-    let yearMaxWidth = maxTextboxWidths.year || defaultMaxTextboxWidths.year;
-    let yearY = topMargin + y + 85 + 60 + yearOffset;
-    textFont(fontLight); textLeading(60); textSize(38 + textSizeOffsets.year); fill(230);
-    textAlign(getP5Align(textAlignRatings.year || 'left'), BASELINE);
-    text("\n" + albumData.year + "\n", leftMargin + yearHorizOffset, topMargin + y + 85 + yearOffset, yearMaxWidth);
-    addTextBox('year', getAlignedBounds(fontLight.textBounds(albumData.year, leftMargin + yearHorizOffset, yearY, yearMaxWidth), leftMargin + yearHorizOffset, textAlignRatings.year || 'left', yearMaxWidth, fontLight), 38 + textSizeOffsets.year);
-
-    let genreOffset = verticalOffsetsRatings.genre || 0;
-    let genreHorizOffset = (horizontalOffsetsRatings.genre || 0) + width * .475;
-    let genreMaxWidth = maxTextboxWidths.genre || defaultMaxTextboxWidths.genre;
-    textSize(30 + textSizeOffsets.genre); textLeading(40);
-    textAlign(getP5Align(textAlignRatings.genre || 'left'), BASELINE);
-    let genreText = shortenText(albumData.genre, genreMaxWidth);
-    let genreY = topMargin + y + 75 + (40 * 3) + genreOffset;
-    text("\n\n\n" + genreText, leftMargin + genreHorizOffset, topMargin + y + 75 + genreOffset, genreMaxWidth);
-    addTextBox('genre', getAlignedBounds(fontLight.textBounds(genreText, leftMargin + genreHorizOffset, genreY, genreMaxWidth), leftMargin + genreHorizOffset, textAlignRatings.genre || 'left', genreMaxWidth, fontLight), 30 + textSizeOffsets.genre);
-
-    let funfactOffset = verticalOffsetsRatings.funfact || 0;
-    let funfactHorizOffset = (horizontalOffsetsRatings.funfact || 0) + width * .475;
-    let funfactMaxWidth = maxTextboxWidths.funfact || defaultMaxTextboxWidths.funfact;
-    let funfactSize = 30 + textSizeOffsets.funfact;
-    let funfactLeading = 40 + textLeadingOffsets.funfact;
-    let funfactStartY = topMargin + y + 120 + (40 * 4) + funfactOffset;
-    textFont(fontRegularCondensed)
-    textAlign(getP5Align(textAlignRatings.funfact || 'left'), BASELINE);
-    textLeading(40); text("\n\n\n\n", leftMargin + funfactHorizOffset, topMargin + y + 120 + funfactOffset, funfactMaxWidth);
-    textSize(funfactSize); textLeading(funfactLeading); text(albumData.funfact, leftMargin + funfactHorizOffset, funfactStartY, funfactMaxWidth);
-    let bounds = fontLight.textBounds(albumData.funfact, leftMargin + funfactHorizOffset, funfactStartY, funfactMaxWidth)
-    addTextBox('funfact', getAlignedBounds(bounds, leftMargin + funfactHorizOffset, textAlignRatings.funfact || 'left', funfactMaxWidth, fontLight), funfactSize);
-    utils.endShadow();
-
-    // Draw custom textboxes
+    drawAlbumHeader();
     drawCustomTextboxes('ratings');
+    drawTrackList();
 
-    // Draw tracks
-    push()
-    y = 820; let x = 275;
-    let spacing = Math.min(map(albumData.tracks.length, 5, 20, 80, 45, true), 70) + tracksSpacing;
-    textFont(fontRegular); textSize(tracksTextSize); textAlign(LEFT, BASELINE);
-    rectMode(CENTER); let w = (leftMargin + x) * 0.75, h = tracksRectHeight;
-    let tracksVertOffset = verticalOffsetsRatings.tracks || 0;
-    let tracksHorizOffset = horizontalOffsetsRatings.tracks || 0;
-    tracksHorizOffset += 10 //offset fix
-
-    let tracksStartY = y + tracksVertOffset;
-    let tracksMinX = leftMargin + tracksHorizOffset, tracksMaxX = leftMargin + x + 700 + tracksHorizOffset;
-    let tracksMinY = tracksStartY - 50, tracksMaxY = tracksStartY;
-
-    for(let i = 0; i < albumData.tracks.length; i++){
-        let track = albumData.tracks[i];
-        let trackY = tracksStartY;
-        let gradeColor = colorMap[track.grade] || "#888888";
-        textSize(tracksTextSize); textFont(fontRegular);
-        let textHeight = textAscent() + textDescent();
-        let rectCenterOffset = textAscent() - textHeight / 2;
-
-        push()
-        //custom text large
-        let extraSpacing = 0
-        if (track.customTextLarge && track.customTextLarge.trim() !== '') {
-            push()
-            fill(245); noStroke(); textSize(22); textFont(fontLight); textAlign(LEFT, TOP);
-            text(track.customTextLarge, tracksHorizOffset + 525, trackY + 20, 900)
-            let bottomSpacing = 25
-            extraSpacing = fontLight.textBounds(track.customTextLarge, tracksHorizOffset, trackY + 20, 900).h + bottomSpacing
-
-            
-            stroke(gradeColor)
-            strokeCap(ROUND)
-            strokeWeight(7)
-            fill(255)
-            let xLine = ((leftMargin + x) * 0.5 + tracksHorizOffset) - w / 2 + 15
-            utils.beginLinearGradient(
-                goatGradient, 
-                xLine, 
-                trackY - rectCenterOffset, 
-                xLine, 
-                trackY - rectCenterOffset + extraSpacing, 
-                [0, .2, .38, .59, 1]
-            )
-            rectMode(CORNERS)
-            let grad = track.grade == 'GOAT' ? goatGradient : [gradeColor, gradeColor, makeTransparent(gradeColor)]
-            gradientLine(xLine, trackY - rectCenterOffset, xLine, trackY - rectCenterOffset + extraSpacing,  grad)
-
-            pop()
-        }
-
-        pop()
-
-        textSize(tracksTextSize); textFont(fontRegular);
-        textHeight = textAscent() + textDescent();
-        rectCenterOffset = textAscent() - textHeight / 2;
-
-        
-        fill(gradeColor);
-        if(track.grade == 'GOAT'){
-            utils.beginLinearGradient(goatGradient,
-                (leftMargin + x) * 0.5 + tracksHorizOffset - w * 0.5, trackY - rectCenterOffset, (leftMargin + x) * 0.5 + tracksHorizOffset + w * 0.5, trackY - rectCenterOffset, [0, .2, .38, .59, 1]);
-        }
-        noStroke();
-        if(track.grade == 'GOAT') utils.beginShadow("#ffffff", 50, 0, 0);
-        if(track.grade == 'PEAK') utils.beginShadow(colorMap[track.grade], 35, 0, 0);
-        rect((leftMargin + x) * 0.5 + tracksHorizOffset, trackY - rectCenterOffset, w, h, 20);
-        if(track.grade == 'GOAT' || track.grade == 'PEAK') utils.endShadow();
-
-        if (track.customText && track.customText.trim() !== '') {
-            push(); blendMode(BLEND); textAlign(CENTER, CENTER); fill(0, 160); textFont(fontRegularCondensed);
-            let customTextSize = Math.min(getMaxTextSizeByWidth(track.customText, w - 20, 28), getMaxTextSizeByHeight(track.customText, h+5, 28));
-            textSize(customTextSize); text(track.customText, (leftMargin + x) * 0.5 + tracksHorizOffset, trackY - rectCenterOffset+2);
-            textSize(tracksTextSize); pop();
-        }
-
-        fill(255); textAlign(LEFT, BASELINE);
-        let trackNumber = showTrackNumbersCheckbox.checked() ? track.customNumber || ((i + 1) + '.') : '';
-        text(shortenText(trackNumber + " " + track.title + (track.playing ? " " + musicChar : ""), 700), leftMargin + x + tracksHorizOffset, trackY);
-
-        
-        tracksStartY += spacing + extraSpacing;
-    }
-
-    tracksMaxY = tracksStartY + 50;
-    pop()
-
-    // Add tracks box for selection
-    textBoxes.push({
-        id: 'tracks',
-        x: tracksMinX,
-        y: tracksMinY,
-        w: tracksMaxX - tracksMinX,
-        h: tracksMaxY - tracksMinY,
-        sizeOffset: 0,
-        currentSize: 0
-    });
-
-    // Get export dimensions based on aspect ratio
     let exportHeight = aspectRatioOptions[currentAspectRatio].height;
+    if (showGradeLegend) drawGradeLegend(cover);
+    if (albumData.albumGrade !== 'None') drawAlbumGradeBar(exportHeight);
 
-    // Album grade at bottom (positioned according to export height)
-    let gradeRectHeight = 115;
-    let gradeRectY = exportHeight - gradeRectHeight;
-
-    // Draw grade legend above the big rectangle
-    if (showGradeLegend) {
-        push()
-        
-        let maxIndex = 4; // Minimum: GOAT through DECENT
-        for (let track of albumData.tracks) {
-            let idx = allLegendGrades.indexOf(track.grade);
-            if (idx > maxIndex) maxIndex = idx;
-        }
-        let legendGrades = allLegendGrades.slice(0, maxIndex + 1);
-        let legendLabels = allLegendLabels.slice(0, maxIndex + 1);
-        if (legendGrades.length > 6) legendLabels[0] = 'G';
-        let nOfGrades = legendGrades.length
-        let legendPadding = 15; // Padding between legend and big rectangle
-        let legendRectHeight = tracksRectHeight;
-        let legendY = imageY + imageSize + legendPadding * 1
-
-        let leftMargin = imageX
-        let totalWidth = imageSize
-        let gapBetween = 12;
-        let rectWidth = (totalWidth - (gapBetween * (nOfGrades - 1))) / nOfGrades;
-
-        push();
-        rectMode(CORNER);
-        textAlign(CENTER, CENTER);
-        textFont(fontRegularCondensed);
-
-        for (let i = 0; i < legendGrades.length; i++) {
-            let grade = legendGrades[i];
-            let label = legendLabels[i];
-            let x = leftMargin + i * (rectWidth + gapBetween);
-            let y = legendY
-
-            // Draw rectangle
-            let gradeColor = colorMap[grade] || "#888888";
-            fill(gradeColor);
-            noStroke();
-
-            if (grade == 'GOAT') {
-                utils.beginLinearGradient(goatGradient,
-                    x, y, x + rectWidth, y, [0, .2, .38, .59, 1]);
-            }
-            rect(x, y, rectWidth, legendRectHeight, 20);
-
-            // Draw label
-            fill(0, 180);
-            stroke(0, 180)
-            strokeWeight(.5)
-            textSize(Math.min(getMaxTextSizeByWidth(label, rectWidth - 10, 26), getMaxTextSizeByHeight(label, legendRectHeight+5, 30)));
-            text(label, x + rectWidth / 2, y + legendRectHeight / 2 + 2);
-        }
-        pop();
-        pop()
-    }
-
-    // Only draw grade rectangle if grade is not "None"
-    if (albumData.albumGrade !== 'None') {
-        fill(colorMap[albumData.albumGrade] || "#888888");
-        rectMode(CORNER); noStroke();
-        if(albumData.albumGrade == 'GOAT'){
-            utils.beginLinearGradient(goatGradient,
-                0, gradeRectY, width, gradeRectY, [0, .2, .38, .59, 1]);
-        }
-        rect(0, gradeRectY, width, gradeRectHeight, 20, 20, 0, 0);
-
-        push()
-        textAlign(CENTER, CENTER); fill(255); textFont(fontHeavy); textSize(85);
-        utils.beginShadow("#ffffffa3", 30, 0, 0);
-        text(albumData.albumGrade, width * 0.5, gradeRectY + gradeRectHeight * 0.57);
-        utils.endShadow();
-        pop()
-    }
-
-    
-
-    // Draw green rectangle to visualize export area (only when not downloading)
+    // Green outline showing the export area (hidden while downloading)
     if (showGreenRectangle) {
         push();
-        noFill();
-        stroke(0, 255, 0);
-        strokeWeight(4);
-        rectMode(CORNER);
+        noFill(); stroke(0, 255, 0); strokeWeight(4); rectMode(CORNER);
         rect(0, 0, WIDTH, exportHeight);
         pop();
     }
 
-    // Draw selection outline for any selected box
+    // Outline the selected box
     if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
     if (selectedTextBox) {
-        console.log('Selected box:', selectedTextBox);
         push();
-        noFill();
-        stroke(138, 180, 248);
-        strokeWeight(3);
-        rectMode(CORNER);
+        noFill(); stroke(138, 180, 248); strokeWeight(3); rectMode(CORNER);
         let padding = 5;
         rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
         pop();
     }
+}
+
+function drawAlbumCover(img, hasImage) {
+    const C = RATINGS_LAYOUT.cover;
+    let x = width * C.xRatio + (horizontalOffsetsRatings.image || 0);
+    let y = C.y + (verticalOffsetsRatings.image || 0);
+    let size = width * C.sizeRatio * imageSizeMultiplier;
+
+    utils.beginShadow("#000000", C.shadowBlur, 0, 0);
+    if (hasImage) {
+        rect(x + 1, y + 1, size - 2, size - 2); // backing rect so the shadow has a solid edge
+        image(img, x, y, size, size);
+    }
+    else drawImagePlaceholder(x, y, size, size, true);
+    utils.endShadow();
+
+    textBoxes.push({ id: 'image', x, y, w: size, h: size, sizeOffset: 0, currentSize: 0 });
+
+    return { x, y, size };
+}
+
+function drawAlbumHeader() {
+    const H = RATINGS_LAYOUT.header;
+    const leftMargin = RATINGS_LAYOUT.leftMargin;
+    let rightColX = leftMargin + width * H.rightColumnXRatio;
+
+    utils.beginShadow("#000000", H.shadowBlur, 0, 0);
+
+    let titleMaxWidth = maxTextboxWidths.title || defaultMaxTextboxWidths.title;
+    drawTextWithBox('title', fontHeavy,
+        getMaxTextSizeByWidth(albumData.title, titleMaxWidth, H.title.maxFontSize) + textSizeOffsets.title,
+        albumData.title,
+        leftMargin + (horizontalOffsetsRatings.title || 0),
+        H.top + (verticalOffsetsRatings.title || 0),
+        titleMaxWidth, H.title.leading, textAlignRatings.title || 'left', BOTTOM);
+
+    let artistMaxWidth = maxTextboxWidths.artist || defaultMaxTextboxWidths.artist;
+    let artistBox = drawTextWithBox('artist', fontRegularCondensed,
+        H.artist.fontSize + textSizeOffsets.artist,
+        albumData.artist,
+        rightColX + (horizontalOffsetsRatings.artist || 0),
+        H.top + H.artist.offsetY + (verticalOffsetsRatings.artist || 10),
+        artistMaxWidth, H.artist.leading, textAlignRatings.artist || 'left');
+
+    // year / genre / funfact shift down with the artist block height
+    let blockTop = H.top + artistBox.h;
+    fill(230);
+
+    let yearX = rightColX + (horizontalOffsetsRatings.year || 0);
+    let yearY = blockTop + H.year.offsetY + (verticalOffsetsRatings.year || 0);
+    let yearMaxWidth = maxTextboxWidths.year || defaultMaxTextboxWidths.year;
+    let yearSize = H.year.fontSize + textSizeOffsets.year;
+    let yearAlign = textAlignRatings.year || 'left';
+    textFont(fontLight); textSize(yearSize); textLeading(H.year.leading);
+    textAlign(getP5Align(yearAlign), BASELINE);
+    text(albumData.year, yearX, yearY, yearMaxWidth);
+    addTextBox('year', getAlignedBounds(fontLight.textBounds(albumData.year, yearX, yearY, yearMaxWidth), yearX, yearAlign, yearMaxWidth, fontLight), yearSize);
+
+    let genreX = rightColX + (horizontalOffsetsRatings.genre || 0);
+    let genreY = blockTop + H.genre.offsetY + (verticalOffsetsRatings.genre || 0);
+    let genreMaxWidth = maxTextboxWidths.genre || defaultMaxTextboxWidths.genre;
+    let genreSize = H.genre.fontSize + textSizeOffsets.genre;
+    let genreAlign = textAlignRatings.genre || 'left';
+    textSize(genreSize); textLeading(H.genre.leading);
+    textAlign(getP5Align(genreAlign), BASELINE);
+    let genreText = shortenText(albumData.genre, genreMaxWidth);
+    text(genreText, genreX, genreY, genreMaxWidth);
+    addTextBox('genre', getAlignedBounds(fontLight.textBounds(genreText, genreX, genreY, genreMaxWidth), genreX, genreAlign, genreMaxWidth, fontLight), genreSize);
+
+    let funfactX = rightColX + (horizontalOffsetsRatings.funfact || 0);
+    let funfactY = blockTop + H.funfact.offsetY + (verticalOffsetsRatings.funfact || 0);
+    let funfactMaxWidth = maxTextboxWidths.funfact || defaultMaxTextboxWidths.funfact;
+    let funfactSize = H.funfact.fontSize + textSizeOffsets.funfact;
+    let funfactAlign = textAlignRatings.funfact || 'left';
+    textFont(fontRegularCondensed);
+    textSize(funfactSize); textLeading(H.funfact.leading + textLeadingOffsets.funfact);
+    textAlign(getP5Align(funfactAlign), BASELINE);
+    text(albumData.funfact, funfactX, funfactY, funfactMaxWidth);
+    // hitbox measured with fontLight to keep the historical selection size
+    addTextBox('funfact', getAlignedBounds(fontLight.textBounds(albumData.funfact, funfactX, funfactY, funfactMaxWidth), funfactX, funfactAlign, funfactMaxWidth, fontLight), funfactSize);
+
+    utils.endShadow();
+}
+
+function drawTrackList() {
+    const T = RATINGS_LAYOUT.tracks;
+    const leftMargin = RATINGS_LAYOUT.leftMargin;
+    const twoColumns = tracksTwoColumns;
+
+    // Column geometry: the grade pill sits left of the title; in two-column
+    // mode the pill shrinks and the title moves left with it.
+    let pillW = (leftMargin + T.textIndent) * (twoColumns ? T.pillWidthFactorTwoColumns : T.pillWidthFactorOneColumn);
+    let textIndent = T.textIndent;
+    if (twoColumns) { pillW *= 0.5; textIndent -= pillW; }
+    let pillH = tracksRectHeight;
+    let titleBaseX = leftMargin + textIndent; // first-column titles
+    let pillCenterBaseX = titleBaseX * 0.5;   // first-column pill centers
+
+    let horizOffset = (horizontalOffsetsRatings.tracks || 0) + T.horizOffsetFix;
+    let columnTopY = T.startY + (verticalOffsetsRatings.tracks || 0);
+    let titleMaxWidth = twoColumns ? T.titleMaxWidth.twoColumns : T.titleMaxWidth.oneColumn;
+    let S = T.rowSpacing;
+    let rowSpacing = Math.min(map(albumData.tracks.length, S.fewTracks, S.manyTracks, S.max, S.min, true), S.cap) + tracksSpacing;
+    let secondColumnStart = Math.floor(albumData.tracks.length / 2);
+
+    push();
+    textFont(fontRegular); textSize(tracksTextSize); textAlign(LEFT, BASELINE);
+    rectMode(CENTER);
+    let pillCenterOffsetY = (textAscent() - textDescent()) / 2; // centers pills on the title baseline
+
+    let rowY = columnTopY;
+    for (let i = 0; i < albumData.tracks.length; i++) {
+        let track = albumData.tracks[i];
+        let gradeColor = colorMap[track.grade] || "#888888";
+        let columnShift = (twoColumns && i >= secondColumnStart) ? T.columnShift : 0;
+        let titleX = titleBaseX + columnShift + horizOffset;
+        let pillCenterX = pillCenterBaseX + columnShift + horizOffset;
+        let pillCenterY = rowY - pillCenterOffsetY;
+
+        // Large note below the row, with an accent line fading out of the pill
+        let noteSpacing = 0;
+        if (track.customTextLarge && track.customTextLarge.trim() !== '') {
+            const N = T.note;
+            let noteX = (twoColumns ? N.x.twoColumns : N.x.oneColumn) + columnShift + horizOffset;
+            let noteMaxWidth = twoColumns ? N.maxWidth.twoColumns : N.maxWidth.oneColumn;
+            let noteY = rowY + N.topGap;
+
+            push();
+            rectMode(CORNER); // anchor the text box at its top-left so noteX is the left edge
+            fill(245); noStroke(); textFont(fontLight); textSize(N.fontSize); textAlign(LEFT, TOP);
+            text(track.customTextLarge, noteX, noteY, noteMaxWidth);
+            noteSpacing = fontLight.textBounds(track.customTextLarge, noteX, noteY, noteMaxWidth).h + N.bottomGap;
+
+            let lineX = pillCenterX - pillW / 2 + N.lineInset;
+            let lineColors = track.grade == 'GOAT'
+                ? goatGradient
+                : [gradeColor, gradeColor, makeTransparent(gradeColor)];
+            stroke(gradeColor); strokeCap(ROUND); strokeWeight(N.lineWeight);
+            gradientLine(lineX, pillCenterY, lineX, pillCenterY + noteSpacing, lineColors);
+            pop();
+        }
+
+        // Grade pill
+        fill(gradeColor);
+        noStroke();
+        if (track.grade == 'GOAT') {
+            utils.beginLinearGradient(goatGradient,
+                pillCenterX - pillW / 2, pillCenterY,
+                pillCenterX + pillW / 2, pillCenterY, GOAT_GRADIENT_STOPS);
+            utils.beginShadow("#ffffff", T.goatGlowBlur, 0, 0);
+        }
+        if (track.grade == 'PEAK') utils.beginShadow(gradeColor, T.peakGlowBlur, 0, 0);
+        rect(pillCenterX, pillCenterY, pillW, pillH, T.pillCornerRadius);
+        if (track.grade == 'GOAT' || track.grade == 'PEAK') utils.endShadow();
+
+        // Small label inside the pill
+        if (track.customText && track.customText.trim() !== '') {
+            const L = T.pillLabel;
+            push();
+            blendMode(BLEND); textAlign(CENTER, CENTER); fill(0, 160); textFont(fontRegularCondensed);
+            textSize(Math.min(
+                getMaxTextSizeByWidth(track.customText, pillW - L.widthPad, L.maxFontSize),
+                getMaxTextSizeByHeight(track.customText, pillH + L.heightSlack, L.maxFontSize)));
+            text(track.customText, pillCenterX, pillCenterY + L.nudgeY);
+            pop();
+        }
+
+        // Track title
+        fill(255);
+        let trackNumber = showTrackNumbersCheckbox.checked() ? track.customNumber || ((i + 1) + '.') : '';
+        let title = shortenText(trackNumber + " " + track.title + (track.playing ? " " + musicChar : ""), titleMaxWidth);
+        if (track.grade == 'GOAT') utils.beginShadow("#ffffff", T.goatTitleGlowBlur, 0, 0);
+        text(title, titleX, rowY);
+        if (track.grade == 'GOAT') utils.endShadow();
+
+        rowY += rowSpacing + noteSpacing;
+        if (twoColumns && i == secondColumnStart - 1) rowY = columnTopY; // second column restarts at the top
+    }
+    pop();
+
+    // Selection hitbox around the whole section
+    textBoxes.push({
+        id: 'tracks',
+        x: leftMargin + horizOffset,
+        y: columnTopY - T.hitbox.padY,
+        w: textIndent + T.hitbox.rightExtent,
+        h: (rowY + T.hitbox.padY) - (columnTopY - T.hitbox.padY),
+        sizeOffset: 0,
+        currentSize: 0
+    });
+}
+
+function drawGradeLegend(cover) {
+    const L = RATINGS_LAYOUT.legend;
+
+    // Show every grade from GOAT down to the worst one used
+    let maxIndex = L.minGradeIndex;
+    for (let track of albumData.tracks) {
+        let idx = allLegendGrades.indexOf(track.grade);
+        if (idx > maxIndex) maxIndex = idx;
+    }
+    let legendGrades = allLegendGrades.slice(0, maxIndex + 1);
+    let legendLabels = allLegendLabels.slice(0, maxIndex + 1);
+    if (legendGrades.length > L.compactThreshold) legendLabels[0] = 'G';
+
+    let y = cover.y + cover.size + L.topPadding;
+    let rectH = tracksRectHeight;
+    let rectW = (cover.size - L.gap * (legendGrades.length - 1)) / legendGrades.length;
+
+    push();
+    rectMode(CORNER);
+    textAlign(CENTER, CENTER);
+    textFont(fontRegularCondensed);
+
+    for (let i = 0; i < legendGrades.length; i++) {
+        let grade = legendGrades[i];
+        let label = legendLabels[i];
+        let x = cover.x + i * (rectW + L.gap);
+
+        fill(colorMap[grade] || "#888888");
+        noStroke();
+        if (grade == 'GOAT') {
+            utils.beginLinearGradient(goatGradient, x, y, x + rectW, y, GOAT_GRADIENT_STOPS);
+        }
+        rect(x, y, rectW, rectH, L.cornerRadius);
+
+        fill(0, 180);
+        stroke(0, 180);
+        strokeWeight(.5);
+        textSize(Math.min(
+            getMaxTextSizeByWidth(label, rectW - L.labelWidthPad, L.labelMaxFontSize.byWidth),
+            getMaxTextSizeByHeight(label, rectH + L.labelHeightSlack, L.labelMaxFontSize.byHeight)));
+        text(label, x + rectW / 2, y + rectH / 2 + L.labelNudgeY);
+    }
+    pop();
+}
+
+function drawAlbumGradeBar(exportHeight) {
+    const G = RATINGS_LAYOUT.gradeBar;
+    let barY = exportHeight - G.height;
+
+    push();
+    rectMode(CORNER); noStroke();
+    fill(colorMap[albumData.albumGrade] || "#888888");
+    if (albumData.albumGrade == 'GOAT') {
+        utils.beginLinearGradient(goatGradient, 0, barY, width, barY, GOAT_GRADIENT_STOPS);
+    }
+    rect(0, barY, width, G.height, G.cornerRadius, G.cornerRadius, 0, 0);
+
+    textAlign(CENTER, CENTER); fill(255); textFont(fontHeavy); textSize(G.fontSize);
+    utils.beginShadow("#ffffffa3", G.glowBlur, 0, 0);
+    text(albumData.albumGrade, width * 0.5, barY + G.height * G.textYFactor);
+    utils.endShadow();
+    pop();
 }
 
 function makeTransparent(col, alpha = 100) {
@@ -2773,14 +2868,14 @@ async function printCoverScreen() {
     // utils.endShadow();
 
     imageMode(CENTER); rectMode(CENTER);
-    utils.beginShadow("#000000", 80, 0, 0);
+    utils.beginShadow("#000000", 60, 0, 0);
     if (hasImage) { rect(width * 0.5, coverY, coverSize, coverSize); image(img, width * 0.5, coverY, coverSize, coverSize); }
     else drawImagePlaceholder(width * 0.5, coverY, coverSize, coverSize, false);
     utils.endShadow();
 
     push()
 
-    utils.beginShadow("#000000", 20, 0, 0);
+    utils.beginShadow("#000000", 30, 0, 0);
     let titleVertOffset = verticalOffsetsCover.title || 0;
     let titleHorizOffset = horizontalOffsetsCover.title || 0;
     let titleY = coverY + coverSize * 0.5 + 60 + titleVertOffset;
@@ -3253,6 +3348,7 @@ function captureState() {
         tracksTextSize: tracksTextSize,
         tracksSpacing: tracksSpacing,
         tracksRectHeight: tracksRectHeight,
+        tracksTwoColumns: tracksTwoColumns,
         textAlignRatings: {...textAlignRatings},
         textAlignCover: {...textAlignCover}
     };
@@ -3338,6 +3434,10 @@ function restoreState(state) {
     if (state.tracksTextSize !== undefined) tracksTextSize = state.tracksTextSize;
     if (state.tracksSpacing !== undefined) tracksSpacing = state.tracksSpacing;
     if (state.tracksRectHeight !== undefined) tracksRectHeight = state.tracksRectHeight;
+    if (state.tracksTwoColumns !== undefined) {
+        tracksTwoColumns = state.tracksTwoColumns;
+        if (tracksTwoColumnsCheckbox) tracksTwoColumnsCheckbox.checked(tracksTwoColumns);
+    }
 
     while (tracks.length > 0) { tracks[0].rowDiv.remove(); tracks.shift(); }
 
