@@ -77,7 +77,7 @@ let textAlignCover = { title: 'center', artist: 'center' };
 let tracksTextSize = 60;
 let tracksSpacing = 0; // Added to base spacing calculation
 let tracksRectHeight = 40;
-let tracksTwoColumns = true; // Split the tracklist into two columns
+let tracksTwoColumns = false; // Split the tracklist into two columns
 let tracksTextSizeSlider, tracksSpacingSlider, tracksRectHeightSlider, tracksTwoColumnsCheckbox;
 let tracksTextSizeLabel, tracksSpacingLabel, tracksRectHeightLabel;
 let automaticAlignmentCheckbox
@@ -1280,7 +1280,7 @@ function createTracksAdjustPanel() {
         tracksTextSize = 44;
         tracksSpacing = -18;
         tracksRectHeight = 28;
-        tracksTwoColumns = true;
+        tracksTwoColumns = false;
         showTracksAdjustPanel();
         if (albumData && currentView === 'ratings') printAlbum();
         captureState();
@@ -1690,7 +1690,7 @@ function createSizeAdjustPanel() {
     let alignGroup = createDiv('').parent(sizeAdjustPanel).class('sap-group').id('sap-align');
     createSpan('Align').parent(alignGroup).class('sap-label');
     let alignSelect = createSelect().parent(alignGroup).id('sap-align-select').class('form-select');
-    ['left', 'center', 'right'].forEach(a => alignSelect.option(a));
+    ['left', 'center', 'right', 'justify'].forEach(a => alignSelect.option(a));
     alignSelect.changed(() => {
         if (!selectedTextBox) return;
         let align = alignSelect.value();
@@ -2584,8 +2584,7 @@ function drawAlbumHeader() {
     let yearSize = H.year.fontSize + textSizeOffsets.year;
     let yearAlign = textAlignRatings.year || 'left';
     textFont(fontLight); textSize(yearSize); textLeading(H.year.leading);
-    textAlign(getP5Align(yearAlign), BASELINE);
-    text(albumData.year, yearX, yearY, yearMaxWidth);
+    drawBoxText(albumData.year, yearX, yearY, yearMaxWidth, yearAlign);
     addTextBox('year', getAlignedBounds(fontLight.textBounds(albumData.year, yearX, yearY, yearMaxWidth), yearX, yearAlign, yearMaxWidth, fontLight), yearSize);
 
     let genreX = rightColX + (horizontalOffsetsRatings.genre || 0);
@@ -2594,9 +2593,8 @@ function drawAlbumHeader() {
     let genreSize = H.genre.fontSize + textSizeOffsets.genre;
     let genreAlign = textAlignRatings.genre || 'left';
     textSize(genreSize); textLeading(H.genre.leading);
-    textAlign(getP5Align(genreAlign), BASELINE);
     let genreText = shortenText(albumData.genre, genreMaxWidth);
-    text(genreText, genreX, genreY, genreMaxWidth);
+    drawBoxText(genreText, genreX, genreY, genreMaxWidth, genreAlign);
     addTextBox('genre', getAlignedBounds(fontLight.textBounds(genreText, genreX, genreY, genreMaxWidth), genreX, genreAlign, genreMaxWidth, fontLight), genreSize);
 
     let funfactX = rightColX + (horizontalOffsetsRatings.funfact || 0);
@@ -2606,8 +2604,7 @@ function drawAlbumHeader() {
     let funfactAlign = textAlignRatings.funfact || 'left';
     textFont(fontRegularCondensed);
     textSize(funfactSize); textLeading(H.funfact.leading + textLeadingOffsets.funfact);
-    textAlign(getP5Align(funfactAlign), BASELINE);
-    text(albumData.funfact, funfactX, funfactY, funfactMaxWidth);
+    drawBoxText(albumData.funfact, funfactX, funfactY, funfactMaxWidth, funfactAlign);
     // hitbox measured with fontLight to keep the historical selection size
     addTextBox('funfact', getAlignedBounds(fontLight.textBounds(albumData.funfact, funfactX, funfactY, funfactMaxWidth), funfactX, funfactAlign, funfactMaxWidth, fontLight), funfactSize);
 
@@ -2633,7 +2630,7 @@ function drawTrackList() {
     let titleMaxWidth = twoColumns ? T.titleMaxWidth.twoColumns : T.titleMaxWidth.oneColumn;
     let S = T.rowSpacing;
     let rowSpacing = Math.min(map(albumData.tracks.length, S.fewTracks, S.manyTracks, S.max, S.min, true), S.cap) + tracksSpacing;
-    let secondColumnStart = Math.floor(albumData.tracks.length / 2);
+    let secondColumnStart = Math.ceil(albumData.tracks.length / 2);
 
     push();
     textFont(fontRegular); textSize(tracksTextSize); textAlign(LEFT, BASELINE);
@@ -2798,6 +2795,17 @@ function getP5Align(align) {
     return LEFT;
 }
 
+// Draws text inside a box honoring the chosen alignment. 'justify' needs a custom
+// renderer (justifyText); left/center/right use p5's native textAlign + text().
+function drawBoxText(str, x, y, maxWidth, align, verAlign = BASELINE) {
+    if (align === 'justify') {
+        justifyText(str, x, y, maxWidth);
+    } else {
+        textAlign(getP5Align(align), verAlign);
+        text(str, x, y, maxWidth);
+    }
+}
+
 function textIsWrapping(bounds, font) {
     // Compare text height to a single-line reference to detect line wrapping
     return bounds.h > font.textBounds('glIM|', 0, 0).h * 1.2;
@@ -2808,7 +2816,7 @@ function getAlignedBounds(bounds, anchorX, align, maxWidth, font) {
     // but textBounds treats x as the alignment anchor (center/right), shifting bounds.x to the left.
     // Correct by offsetting bounds.x back to where the text actually renders within the container.
     // Wrapping text already returns correct bounds from p5 — skip correction in that case.
-    if (!maxWidth || align === 'left') return bounds;
+    if (!maxWidth || align === 'left' || align === 'justify') return bounds;
     if (font && textIsWrapping(bounds, font)) return bounds;
     if (align === 'center') return { x: bounds.x + maxWidth / 2, y: bounds.y, w: bounds.w, h: bounds.h };
     if (align === 'right')  return { x: bounds.x + maxWidth,     y: bounds.y, w: bounds.w, h: bounds.h };
@@ -2822,8 +2830,7 @@ function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align
     textSize(size);
     fill(255);
     textLeading(leading);
-    textAlign(getP5Align(align), verAlign);
-    text(textStr, x, y, maxWidth);
+    drawBoxText(textStr, x, y, maxWidth, align, verAlign);
     let bbox = font.textBounds(textStr, x, y, maxWidth);
     addTextBox(id, getAlignedBounds(bbox, x, align, maxWidth, font), size);
     pop()
@@ -2948,7 +2955,6 @@ function drawCustomTextboxes(coverType){
             textFont(fontObj);
             textSize(textbox.fontSize);
             fill(textbox.color);
-            textAlign(getP5Align(tbAlign), TOP);
 
             // Apply leading (spacing) if set
             let baseLeading = textbox.fontSize * 1.25; // Default line height
@@ -2956,7 +2962,7 @@ function drawCustomTextboxes(coverType){
 
             if (textbox.text) {
                 utils.beginShadow("#000000", 20, 0, 0);
-                text(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
+                drawBoxText(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500, tbAlign, TOP);
                 utils.endShadow();
 
 
@@ -3513,4 +3519,138 @@ function resetColors() {
         if (colorPickers[grade]) colorPickers[grade].value(defaultColorMap[grade]);
     });
     saveCustomColors();
+}
+
+// ---- Robust justified text for p5.js (2D renderer) ----
+// Usage: justifyText(str, x, y, boxWidth) or with options:
+// justifyText(str, x, y, boxWidth, { lineHeight: 28, lastLine: 'left' })
+// Returns the y coordinate below the rendered block.
+
+function justifyText(str, x, y, boxWidth, options = {}) {
+  if (!str || boxWidth <= 0) return y;
+  str = String(str);
+
+  const lineHeight   = options.lineHeight ?? textLeading();
+  const lastLineMode = options.lastLine ?? 'left';     // 'left' | 'justify'
+  const maxStretch   = options.maxStretch ?? 4;        // give up justifying if gaps exceed spaceW * this
+  const paraSpacing  = options.paragraphSpacing ?? 0;
+  const hyphenChar   = options.hyphenChar ?? '';       // e.g. '-' for forced breaks in long words
+
+  push();
+  textAlign(LEFT, TOP);
+
+  // --- Robust measurement helpers ---
+  const sizeFallback = textSize();
+
+  function safeWidth(s) {
+    let w = textWidth(s);
+    if (Number.isFinite(w) && w > 0) return w;
+    // Fallback: native canvas measurement (handles loadFont() quirks)
+    if (typeof drawingContext?.measureText === 'function') {
+      w = drawingContext.measureText(s).width;
+      if (Number.isFinite(w) && w > 0) return w;
+    }
+    return s.length * sizeFallback * 0.5; // last-resort estimate
+  }
+
+  function measureSpace() {
+    let w = textWidth(' ');
+    if (Number.isFinite(w) && w > 0) return w;
+    w = textWidth('i i') - textWidth('ii');   // derive from a difference
+    if (Number.isFinite(w) && w > 0) return w;
+    if (typeof drawingContext?.measureText === 'function') {
+      w = drawingContext.measureText(' ').width;
+      if (Number.isFinite(w) && w > 0) return w;
+    }
+    return sizeFallback * 0.3;
+  }
+
+  const spaceW = measureSpace();
+
+  // --- Break a word that's wider than the box into fitting chunks ---
+  function breakWord(word) {
+    const hyphenW = hyphenChar ? safeWidth(hyphenChar) : 0;
+    const parts = [];
+    let cur = '';
+    for (const ch of word) {            // for...of handles emoji/surrogates
+      if (cur && safeWidth(cur + ch) + hyphenW > boxWidth) {
+        parts.push(cur + hyphenChar);
+        cur = ch;
+      } else {
+        cur += ch;
+      }
+    }
+    if (cur) parts.push(cur);
+    return parts.length ? parts : [word];
+  }
+
+  // --- Render one line ---
+  function renderLine(words, yTop, justify) {
+  if (words.length === 0) return;
+    if (justify && words.length === 1) {
+    const w = words[0];
+    const chars = [...w];
+    if (chars.length > 1) {
+        const charGap = (boxWidth - widths[0]) / (chars.length - 1);
+        let cx = x;
+        for (const ch of chars) {
+        text(ch, cx, yTop);
+        cx += safeWidth(ch) + charGap;
+        }
+        return;
+    }
+    }
+
+  let totalW = 0;
+  const widths = words.map(w => { const ww = safeWidth(w); totalW += ww; return ww; });
+
+  let gap = spaceW;
+  if (justify && words.length > 1) {
+    const g = (boxWidth - totalW) / (words.length - 1);
+    gap = Number.isFinite(g) ? Math.max(g, 0) : spaceW; // always fill the line
+  }
+
+  let cx = x;
+  for (let i = 0; i < words.length; i++) {
+    text(words[i], cx, yTop);
+    cx += widths[i] + gap;
+  }
+}
+
+  // --- Tokenize and pack ---
+  let cursorY = y;
+  const paragraphs = str.split(/\r\n|\r|\n/);
+
+  for (let p = 0; p < paragraphs.length; p++) {
+    let words = paragraphs[p].split(/\s+/).filter(w => w.length);
+
+    if (words.length === 0) {           // blank line = empty paragraph
+      cursorY += lineHeight;
+      continue;
+    }
+
+    // Pre-split any word wider than the box
+    words = words.flatMap(w => safeWidth(w) > boxWidth ? breakWord(w) : [w]);
+
+    let line = [], lineW = 0;
+    for (const w of words) {
+      const wW = safeWidth(w);
+      const test = lineW + (line.length ? spaceW : 0) + wW;
+      if (test > boxWidth && line.length) {
+        renderLine(line, cursorY, true);   // full line → justified
+        cursorY += lineHeight;
+        line = [w]; lineW = wW;
+      } else {
+        line.push(w); lineW = test;
+      }
+    }
+    if (line.length) {                     // final line of paragraph
+      renderLine(line, cursorY, lastLineMode === 'justify');
+      cursorY += lineHeight;
+    }
+    if (p < paragraphs.length - 1) cursorY += paraSpacing;
+  }
+
+  pop();
+  return cursorY;
 }
