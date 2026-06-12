@@ -87,6 +87,8 @@ let showTrackNumbersCheckbox
 let showGreenRectangle = true; // Only show when not downloading
 let imageFormatSelect;
 let currentImageFormat = 'png';
+let downloadImageSelect;
+let downloadImageOption = 'both'; // 'both' | 'cover' | 'ratings' — which screens the image download exports
 let showGradeLegend = true;
 let gradeLegendCheckbox;
 
@@ -161,6 +163,7 @@ async function setup(){
     loadFromLocalStorage(); // Then load album data (overrides profile settings)
     captureState();
     updateVisibilityCustomTextBoxesUI()
+    if(localStorage.getItem('albumGeneratorData') == undefined) applySelectedProfile()
 
     setInterval(saveToLocalStorage, 1000);
     document.addEventListener('keydown', handleKeyboard);
@@ -377,6 +380,7 @@ function syncEditorFromUI() {
         aspectRatio: currentAspectRatio,
         aspectRatioCover: currentAspectRatioCover,
         imageFormat: currentImageFormat,
+        downloadImageOption: downloadImageOption,
         showGradeLegend: showGradeLegend,
         tracks: tracks.map(t => ({
             title: t.titleInput.value(), grade: t.gradeSelect.value(),
@@ -733,7 +737,7 @@ function createButtonGrid(parent = editorPanel) {
         .parent(aspectRatioGroup)
         .style('display: flex; flex-direction: column; flex: 1;');
 
-    createElement('label', 'AP1').parent(ap1Wrapper);
+    createElement('label', 'Ratings').parent(ap1Wrapper);
     aspectRatioSelect = createSelect().parent(ap1Wrapper).class('form-select');
     Object.keys(aspectRatioOptions).forEach(opt => aspectRatioSelect.option(opt));
     aspectRatioSelect.selected('9:16');
@@ -747,7 +751,7 @@ function createButtonGrid(parent = editorPanel) {
         .parent(aspectRatioGroup)
         .style('display: flex; flex-direction: column; flex: 1;');
 
-    createElement('label', 'AP2').parent(ap2Wrapper);
+    createElement('label', 'Cover').parent(ap2Wrapper);
     aspectRatioCoverSelect = createSelect().parent(ap2Wrapper).class('form-select');
     Object.keys(aspectRatioOptions).forEach(opt => aspectRatioCoverSelect.option(opt));
     aspectRatioCoverSelect.selected('3:4');
@@ -886,6 +890,7 @@ function getDefaultProfile() {
         "aspectRatio": "3:4",
         "aspectRatioCover": "3:4",
         "imageFormat": "jpg",
+        "downloadImageOption": "both",
         "showGradeLegend": true,
         "verticalOffsetsRatings": {
             "funfact": -21,
@@ -1004,6 +1009,7 @@ function getCurrentProfileData() {
         aspectRatio: currentAspectRatio,
         aspectRatioCover: currentAspectRatioCover,
         imageFormat: currentImageFormat,
+        downloadImageOption: downloadImageOption,
         showGradeLegend: showGradeLegend,
         verticalOffsetsRatings: {...verticalOffsetsRatings},
         verticalOffsetsCover: {...verticalOffsetsCover},
@@ -1091,6 +1097,12 @@ function applyProfile(profileData) {
     if (profileData.imageFormat) {
         currentImageFormat = profileData.imageFormat;
         imageFormatSelect.selected(profileData.imageFormat);
+    }
+
+    // Apply image download scope
+    if (profileData.downloadImageOption) {
+        downloadImageOption = profileData.downloadImageOption;
+        if (downloadImageSelect) downloadImageSelect.selected(downloadImageOption);
     }
 
     // Apply grade legend preference
@@ -1576,6 +1588,19 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         if (albumData && currentView === 'ratings') printAlbum();
     });
 
+    // Download scope — which screens the image download button exports
+    let downloadScopeRow = createDiv('').parent(advancedContent).class('form-group').style('margin-top: 12px;');
+    createElement('label', 'Download Images').parent(downloadScopeRow);
+    downloadImageSelect = createSelect().parent(downloadScopeRow).class('form-select');
+    downloadImageSelect.option('Both', 'both');
+    downloadImageSelect.option('Only Cover', 'cover');
+    downloadImageSelect.option('Only Ratings', 'ratings');
+    downloadImageSelect.selected(downloadImageOption);
+    downloadImageSelect.changed(() => {
+        downloadImageOption = downloadImageSelect.value();
+        captureState();
+    });
+
     // Reset button
     createButton('Reset Advanced Options').parent(advancedContent).class('btn btn-secondary').style('margin-top', '12px').mousePressed(() => {
         imageSizeMultiplier = 1.0;
@@ -1583,6 +1608,9 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         imageSizeMultiplierLabel.html('1.0x');
 
         automaticAlignmentCheckbox.checked(true);
+
+        downloadImageOption = 'both';
+        if (downloadImageSelect) downloadImageSelect.selected('both');
 
         // Reset horizontal offsets
         Object.keys(horizontalOffsetsRatings).forEach(k => horizontalOffsetsRatings[k] = 0);
@@ -1838,44 +1866,37 @@ async function downloadBothImages() {
     if (!albumData.imageUrl) return;
 
     let baseFileName = getBaseFileName();
+    let mime = 'image/' + (currentImageFormat === 'jpg' ? 'jpeg' : currentImageFormat);
+    let downloadRatings = downloadImageOption !== 'cover';
+    let downloadCover = downloadImageOption !== 'ratings';
 
-    // Download ratings screen with aspect ratio crop
+    // Crop the current canvas to the export height and trigger a download
+    let exportCurrentCanvas = (exportHeight, suffix) => {
+        let tempCanvas = createGraphics(WIDTH, exportHeight);
+        tempCanvas.image(get(0, 0, WIDTH, exportHeight), 0, 0);
+        let link = document.createElement('a');
+        link.download = baseFileName + ' - ' + suffix + '.' + currentImageFormat;
+        link.href = tempCanvas.canvas.toDataURL(mime);
+        link.click();
+        tempCanvas.remove();
+    };
+
     showGreenRectangle = false; // Hide green rectangle for download
-    await printAlbum();
-    let exportHeight = aspectRatioOptions[currentAspectRatio].height;
 
-    // Create a temporary canvas for the cropped version
-    let tempCanvas = createGraphics(WIDTH, exportHeight);
-    tempCanvas.image(get(0, 0, WIDTH, exportHeight), 0, 0);
+    if (downloadRatings) {
+        await printAlbum();
+        exportCurrentCanvas(aspectRatioOptions[currentAspectRatio].height, 'Ratings');
+    }
 
-    // Get the data URL and download it manually with the correct extension
-    let dataURL = tempCanvas.canvas.toDataURL('image/' + (currentImageFormat === 'jpg' ? 'jpeg' : currentImageFormat));
-    let link = document.createElement('a');
-    link.download = baseFileName + ' - Ratings.' + currentImageFormat;
-    link.href = dataURL;
-    link.click();
+    if (downloadCover) {
+        await printCoverScreen();
+        exportCurrentCanvas(aspectRatioOptions[currentAspectRatioCover].height, 'Cover');
+    }
 
-    // Download cover screen (full size)
-    await printCoverScreen();
-    let exportHeightCover = aspectRatioOptions[currentAspectRatioCover].height;
-
-    // Create a temporary canvas for the cropped version
-    tempCanvas = createGraphics(WIDTH, exportHeightCover);
-    tempCanvas.image(get(0, 0, WIDTH, exportHeightCover), 0, 0);
-
-    // Get the data URL and download it manually with the correct extension
-    dataURL = tempCanvas.canvas.toDataURL('image/' + (currentImageFormat === 'jpg' ? 'jpeg' : currentImageFormat));
-    link = document.createElement('a');
-    link.download = baseFileName + ' - Cover.' + currentImageFormat;
-    link.href = dataURL;
-    link.click();
-
-    tempCanvas.remove(); // Clean up
     showGreenRectangle = true; // Show it again
 
-
-    // Restore the view
-    await printAlbum();
+    // Restore the current view
+    currentView === 'ratings' ? await printAlbum() : await printCoverScreen();
 }
 
 function makeNumberEditable(trackNumSpan, trackIndex) {
@@ -2184,6 +2205,7 @@ function downloadJSON() {
             aspectRatio: currentAspectRatio,
             aspectRatioCover: currentAspectRatioCover,
             imageFormat: currentImageFormat,
+            downloadImageOption,
             tracksTextSize,
             tracksSpacing,
             tracksRectHeight,
@@ -2218,6 +2240,11 @@ function fillFormFromData(data) {
     if (data.imageFormat) {
         currentImageFormat = data.imageFormat;
         imageFormatSelect.selected(data.imageFormat);
+    }
+
+    if (data.downloadImageOption) {
+        downloadImageOption = data.downloadImageOption;
+        if (downloadImageSelect) downloadImageSelect.selected(downloadImageOption);
     }
 
     while (tracks.length > 0) { tracks[0].rowDiv.remove(); tracks.shift(); }
@@ -2373,6 +2400,7 @@ function saveToLocalStorage() {
     data.aspectRatio = currentAspectRatio;
     data.aspectRatioCover = currentAspectRatioCover;
     data.imageFormat = currentImageFormat;
+    data.downloadImageOption = downloadImageOption;
     data.showGradeLegend = showGradeLegend;
     data.customTextboxes = customTextboxes.map(t => ({
         id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
@@ -3450,6 +3478,7 @@ function captureState() {
         aspectRatio: currentAspectRatio,
         aspectRatioCover: currentAspectRatioCover,
         imageFormat: currentImageFormat,
+        downloadImageOption: downloadImageOption,
         showGradeLegend: showGradeLegend,
         tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(),
                                     customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null,
@@ -3519,6 +3548,11 @@ function restoreState(state) {
     if (state.imageFormat) {
         currentImageFormat = state.imageFormat;
         imageFormatSelect.selected(state.imageFormat);
+    }
+
+    if (state.downloadImageOption) {
+        downloadImageOption = state.downloadImageOption;
+        if (downloadImageSelect) downloadImageSelect.selected(downloadImageOption);
     }
 
     if (state.showGradeLegend !== undefined) {
