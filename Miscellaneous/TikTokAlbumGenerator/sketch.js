@@ -283,6 +283,14 @@ function createAlbumEditor() {
     genreInput = createFormInput('Genre', 'e.g. Rock', rowGroup);
 
     funfactInput = createFormTextarea('Description', 'Add a description or fun fact about the album...', panel1);
+
+    // Focusing a metadata field selects its matching canvas textbox so the adjustment bar appears
+    titleInput.elt.addEventListener('focus', () => selectTextBoxById('title'));
+    artistInput.elt.addEventListener('focus', () => selectTextBoxById('artist'));
+    yearInput.elt.addEventListener('focus', () => selectTextBoxById('year'));
+    genreInput.elt.addEventListener('focus', () => selectTextBoxById('genre'));
+    funfactInput.elt.addEventListener('focus', () => selectTextBoxById('funfact'));
+
     createImageInputWithUpload(panel1);
 
     let gradeRow = createDiv('').parent(panel1).style('display: flex; gap: 35px; align-items: center;');
@@ -858,53 +866,131 @@ function alignMainElementsToImage(){
 
 function getDefaultProfile() {
     return {
-        tracksTextSize: 44,
-        tracksSpacing: -18,
-        tracksRectHeight: 28,
-        tracksTwoColumns: true,
-        tracksVerticalOffset: 0,
-        colorMap: {...defaultColorMap},
-        aspectRatio: '3:4',
-        aspectRatioCover: '3:4',
-        imageFormat: 'jpg',
-        showGradeLegend: true,
-        verticalOffsetsRatings: {funfact: -21, title: 100},
-        verticalOffsetsCover: {artist: 2, title: 31},
-        horizontalOffsetsRatings: {artist: -40, funfact: -40, year: -40, genre: -40},
-        horizontalOffsetsCover: {},
-        imageSizeMultiplier: 0.95,
-        maxTextboxWidths: {...defaultMaxTextboxWidths},
-        textSizeOffsets: {funfact: -4},
-        textLeadingOffsets: {funfact: -4},
-        textAlignRatings: { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' },
-        textAlignCover: { title: 'center', artist: 'center' },
-        customTextboxes: [{
-            "color": "#ffffff",
-            "fontSize": 72,
-            "fontType": "fontRegularCondensed",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "Album Review",
-            "viewType": "cover",
-            "textAlign": "center",
-            "x": 47.683885894149626,
-            "y": 265.0988790146261,
-            "id": "album_review"
+        "tracksTextSize": 44,
+        "tracksSpacing": -18,
+        "tracksRectHeight": 28,
+        "tracksTwoColumns": false,
+        "tracksVerticalOffset": 0,
+        "colorMap": {
+            "GOAT": "#05668d",
+            "PEAK": "#ffd21f",
+            "EXCEPTIONAL": "#ff1fa9",
+            "STRONG": "#bc3fde",
+            "DECENT": "#38b6ff",
+            "OKAY": "#14b60b",
+            "FLOP": "#CC0000",
+            "SHIT": "#7a4900",
+            "INTERLUDE": "#b2b2b2",
+            "None": "#5c5c5c"
         },
-        {
-            "color": "#ffffff",
-            "fontSize": 44,
-            "fontType": "fontRegular",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "comentario",
-            "viewType": "cover",
-            "textAlign": "center",
-            "x": 50,
-            "y": 1328,
-            "id": "comentario"
-        }]
-    };
+        "aspectRatio": "3:4",
+        "aspectRatioCover": "3:4",
+        "imageFormat": "jpg",
+        "showGradeLegend": true,
+        "verticalOffsetsRatings": {
+            "funfact": -21,
+            "title": 100,
+            "tracks": 0
+        },
+        "verticalOffsetsCover": {
+            "artist": -500,
+            "title": -826
+        },
+        "horizontalOffsetsRatings": {
+            "artist": -40,
+            "funfact": -40,
+            "year": -40,
+            "genre": -40,
+            "tracks": -19
+        },
+        "horizontalOffsetsCover": {
+            "title": 0,
+            "artist": 2597
+        },
+        "imageSizeMultiplier": 0.95,
+        "maxTextboxWidths": {
+            "title": 980,
+            "artist": 480,
+            "year": 480,
+            "genre": 550,
+            "funfact": 490
+        },
+        "textSizeOffsets": {
+            "title": 0,
+            "artist": 4,
+            "year": 0,
+            "genre": 0,
+            "funfact": -4
+        },
+        "textLeadingOffsets": {
+            "funfact": -4
+        },
+        "textAlignRatings": {
+            "title": "left",
+            "artist": "left",
+            "year": "left",
+            "genre": "left",
+            "funfact": "justify"
+        },
+        "textAlignCover": {
+            "title": "center",
+            "artist": "center"
+        },
+        "customTextboxes": [
+            {
+                "color": "#ffffff",
+                "fontSize": 36,
+                "fontType": "fontRegularCondensed",
+                "leading": 0,
+                "maxWidth": 980,
+                "text": "Album Review #nnn",
+                "viewType": "cover",
+                "textAlign": "center",
+                "x": 47.683885894149626,
+                "y": 186.35340253694213,
+                "id": "album_review"
+            },
+            {
+                "color": "#ffffff",
+                "fontSize": 24,
+                "fontType": "fontRegularCondensed",
+                "leading": 0,
+                "maxWidth": 980,
+                "text": "Songs added to GOAT Playlist: - (link in bio)",
+                "viewType": "ratings",
+                "textAlign": "left",
+                "x": 56.94990391440638,
+                "y": 1284.4670669176778,
+                "id": "custom_1777014064688"
+            },
+            {
+                "color": "#cfcfcf",
+                "fontSize": 34,
+                "fontType": "fontRegularCondensed",
+                "leading": 0,
+                "maxWidth": 980,
+                "text": "$(js: albumData.genre.replace(/,\s*/g, '\\n'))$",
+                "viewType": "cover",
+                "textAlign": "center",
+                "x": 56.02164222708063,
+                "y": 1195.3363191721955,
+                "id": "custom_1780566684769"
+            },
+            {
+                "color": "#ededed",
+                "fontSize": 52,
+                "fontType": "fontRegularCondensed",
+                "leading": 0,
+                "maxWidth": 980,
+                "text": "$artist$, $year$",
+                "viewType": "cover",
+                "textAlign": "center",
+                "x": 54.7153196622437,
+                "y": 1117.336460532268,
+                "id": "custom_1780566918445"
+            }
+        ]
+    }
 }
 
 function getCurrentProfileData() {
@@ -1232,7 +1318,7 @@ function createTracksAdjustPanel() {
     // --- Text Size ---
     let sizeGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group');
     createSpan('Text Size').parent(sizeGroup).class('sap-label');
-    tracksTextSizeSlider = createSlider(30, 100, 60, 2).parent(sizeGroup).class('sap-slider');
+    tracksTextSizeSlider = createSlider(30, 50, 60, 2).parent(sizeGroup).class('sap-slider');
     tracksTextSizeLabel = createSpan('60').parent(sizeGroup).class('sap-value');
     tracksTextSizeSlider.input(() => {
         tracksTextSize = tracksTextSizeSlider.value();
@@ -1244,7 +1330,7 @@ function createTracksAdjustPanel() {
     // --- Spacing ---
     let spacingGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group');
     createSpan('Spacing').parent(spacingGroup).class('sap-label');
-    tracksSpacingSlider = createSlider(-30, 50, 0, 1).parent(spacingGroup).class('sap-slider');
+    tracksSpacingSlider = createSlider(-25, 20, 0, 1).parent(spacingGroup).class('sap-slider');
     tracksSpacingLabel = createSpan('0').parent(spacingGroup).class('sap-value');
     tracksSpacingSlider.input(() => {
         tracksSpacing = tracksSpacingSlider.value();
@@ -1560,6 +1646,7 @@ function addCustomTextboxUI(textbox) {
         textbox.text = textarea.elt.value;
         autoGeneratePreview();
     });
+    textarea.elt.addEventListener('focus', () => selectTextBoxById(textbox.id));
     textarea.elt.addEventListener('blur', captureState);
 
     // Remove button
@@ -2366,8 +2453,8 @@ function drawImagePlaceholder(x, y, w, h, isCornerMode = true) {
     fill(60); noStroke(); rect(x, y, w, h);
     let centerX = isCornerMode ? x + w / 2 : x;
     let centerY = isCornerMode ? y + h / 2 : y;
-    fill(100); textAlign(CENTER, CENTER); textSize(w * 0.15); text('🖼', centerX, centerY - h * 0.1);
-    textFont(fontLight); textSize(w * 0.06); fill(120); text('No Image', centerX, centerY + h * 0.15);
+    fill(100); textAlign(CENTER, CENTER); textSize(w * 0.15); _text('🖼', centerX, centerY - h * 0.1);
+    textFont(fontLight); textSize(w * 0.06); fill(120); _text('No Image', centerX, centerY + h * 0.15);
     pop();
 }
 
@@ -2427,7 +2514,6 @@ const RATINGS_LAYOUT = {
         textIndent: 295,         // title x relative to the left margin (single-column)
         pillWidthFactorOneColumn: 0.75,   // pill width as a fraction of (leftMargin + textIndent)
         pillWidthFactorTwoColumns: 0.85,    // pill width as a fraction of (columnShift + textIndent)
-        pillCornerRadius: 20,
         columnShift: 450,        // x shift of the second column in two-column mode
         horizOffsetFix: 30,      // correction added to the user's horizontal offset
         titleMaxWidth: { oneColumn: 900, twoColumns: 370 },  // titles are truncated to this
@@ -2585,7 +2671,7 @@ function drawAlbumHeader() {
     let yearAlign = textAlignRatings.year || 'left';
     textFont(fontLight); textSize(yearSize); textLeading(H.year.leading);
     drawBoxText(albumData.year, yearX, yearY, yearMaxWidth, yearAlign);
-    addTextBox('year', getAlignedBounds(fontLight.textBounds(albumData.year, yearX, yearY, yearMaxWidth), yearX, yearAlign, yearMaxWidth, fontLight), yearSize);
+    addTextBox('year', getAlignedBounds(fontLight.textBounds(getRichText(albumData.year), yearX, yearY, yearMaxWidth), yearX, yearAlign, yearMaxWidth, fontLight), yearSize);
 
     let genreX = rightColX + (horizontalOffsetsRatings.genre || 0);
     let genreY = blockTop + H.genre.offsetY + (verticalOffsetsRatings.genre || 0);
@@ -2595,7 +2681,7 @@ function drawAlbumHeader() {
     textSize(genreSize); textLeading(H.genre.leading);
     let genreText = shortenText(albumData.genre, genreMaxWidth);
     drawBoxText(genreText, genreX, genreY, genreMaxWidth, genreAlign);
-    addTextBox('genre', getAlignedBounds(fontLight.textBounds(genreText, genreX, genreY, genreMaxWidth), genreX, genreAlign, genreMaxWidth, fontLight), genreSize);
+    addTextBox('genre', getAlignedBounds(fontLight.textBounds(getRichText(genreText), genreX, genreY, genreMaxWidth), genreX, genreAlign, genreMaxWidth, fontLight), genreSize);
 
     let funfactX = rightColX + (horizontalOffsetsRatings.funfact || 0);
     let funfactY = blockTop + H.funfact.offsetY + (verticalOffsetsRatings.funfact || 0);
@@ -2606,7 +2692,7 @@ function drawAlbumHeader() {
     textSize(funfactSize); textLeading(H.funfact.leading + textLeadingOffsets.funfact);
     drawBoxText(albumData.funfact, funfactX, funfactY, funfactMaxWidth, funfactAlign);
     // hitbox measured with fontLight to keep the historical selection size
-    addTextBox('funfact', getAlignedBounds(fontLight.textBounds(albumData.funfact, funfactX, funfactY, funfactMaxWidth), funfactX, funfactAlign, funfactMaxWidth, fontLight), funfactSize);
+    addTextBox('funfact', getAlignedBounds(fontLight.textBounds(getRichText(albumData.funfact), funfactX, funfactY, funfactMaxWidth), funfactX, funfactAlign, funfactMaxWidth, fontLight), funfactSize);
 
     utils.endShadow();
 }
@@ -2645,6 +2731,7 @@ function drawTrackList() {
         let titleX = titleBaseX + columnShift + horizOffset;
         let pillCenterX = pillCenterBaseX + columnShift + horizOffset;
         let pillCenterY = rowY - pillCenterOffsetY;
+        let pillCornerRadius = pillH * 0.5;
 
         // Large note below the row, with an accent line fading out of the pill
         let noteSpacing = 0;
@@ -2657,8 +2744,8 @@ function drawTrackList() {
             push();
             rectMode(CORNER); // anchor the text box at its top-left so noteX is the left edge
             fill(245); noStroke(); textFont(fontLight); textSize(N.fontSize); textAlign(LEFT, TOP);
-            text(track.customTextLarge, noteX, noteY, noteMaxWidth);
-            noteSpacing = fontLight.textBounds(track.customTextLarge, noteX, noteY, noteMaxWidth).h + N.bottomGap;
+            _text(track.customTextLarge, noteX, noteY, noteMaxWidth);
+            noteSpacing = fontLight.textBounds(getRichText(track.customTextLarge), noteX, noteY, noteMaxWidth).h + N.bottomGap;
 
             let lineX = pillCenterX - pillW / 2 + N.lineInset;
             let lineColors = track.grade == 'GOAT'
@@ -2679,7 +2766,7 @@ function drawTrackList() {
             utils.beginShadow("#ffffff", T.goatGlowBlur, 0, 0);
         }
         if (track.grade == 'PEAK') utils.beginShadow(gradeColor, T.peakGlowBlur, 0, 0);
-        rect(pillCenterX, pillCenterY, pillW, pillH, T.pillCornerRadius);
+        rect(pillCenterX, pillCenterY, pillW, pillH, pillCornerRadius);
         if (track.grade == 'GOAT' || track.grade == 'PEAK') utils.endShadow();
 
         // Small label inside the pill
@@ -2690,7 +2777,7 @@ function drawTrackList() {
             textSize(Math.min(
                 getMaxTextSizeByWidth(track.customText, pillW - L.widthPad, L.maxFontSize),
                 getMaxTextSizeByHeight(track.customText, pillH + L.heightSlack, L.maxFontSize)));
-            text(track.customText, pillCenterX, pillCenterY + L.nudgeY);
+            _text(track.customText, pillCenterX, pillCenterY + L.nudgeY);
             pop();
         }
 
@@ -2699,7 +2786,7 @@ function drawTrackList() {
         let trackNumber = showTrackNumbersCheckbox.checked() ? track.customNumber || ((i + 1) + '.') : '';
         let title = shortenText(trackNumber + " " + track.title + (track.playing ? " " + musicChar : ""), titleMaxWidth);
         if (track.grade == 'GOAT') utils.beginShadow("#ffffff", T.goatTitleGlowBlur, 0, 0);
-        text(title, titleX, rowY);
+        _text(title, titleX, rowY);
         if (track.grade == 'GOAT') utils.endShadow();
 
         rowY += rowSpacing + noteSpacing;
@@ -2745,13 +2832,14 @@ function drawGradeLegend(cover) {
         let grade = legendGrades[i];
         let label = legendLabels[i];
         let x = cover.x + i * (rectW + L.gap);
+        let cornerRadius = rectH * 0.5;
 
         fill(colorMap[grade] || "#888888");
         noStroke();
         if (grade == 'GOAT') {
             utils.beginLinearGradient(goatGradient, x, y, x + rectW, y, GOAT_GRADIENT_STOPS);
         }
-        rect(x, y, rectW, rectH, L.cornerRadius);
+        rect(x, y, rectW, rectH, cornerRadius);
 
         fill(0, 180);
         stroke(0, 180);
@@ -2759,7 +2847,7 @@ function drawGradeLegend(cover) {
         textSize(Math.min(
             getMaxTextSizeByWidth(label, rectW - L.labelWidthPad, L.labelMaxFontSize.byWidth),
             getMaxTextSizeByHeight(label, rectH + L.labelHeightSlack, L.labelMaxFontSize.byHeight)));
-        text(label, x + rectW / 2, y + rectH / 2 + L.labelNudgeY);
+        _text(label, x + rectW / 2, y + rectH / 2 + L.labelNudgeY);
     }
     pop();
 }
@@ -2778,7 +2866,7 @@ function drawAlbumGradeBar(exportHeight) {
 
     textAlign(CENTER, CENTER); fill(255); textFont(fontHeavy); textSize(G.fontSize);
     utils.beginShadow("#ffffffa3", G.glowBlur, 0, 0);
-    text(albumData.albumGrade, width * 0.5, barY + G.height * G.textYFactor);
+    _text(albumData.albumGrade, width * 0.5, barY + G.height * G.textYFactor);
     utils.endShadow();
     pop();
 }
@@ -2796,13 +2884,13 @@ function getP5Align(align) {
 }
 
 // Draws text inside a box honoring the chosen alignment. 'justify' needs a custom
-// renderer (justifyText); left/center/right use p5's native textAlign + text().
+// renderer (justifyText); left/center/right use p5's native textAlign + _text().
 function drawBoxText(str, x, y, maxWidth, align, verAlign = BASELINE) {
     if (align === 'justify') {
         justifyText(str, x, y, maxWidth);
     } else {
         textAlign(getP5Align(align), verAlign);
-        text(str, x, y, maxWidth);
+        _text(str, x, y, maxWidth);
     }
 }
 
@@ -2812,7 +2900,7 @@ function textIsWrapping(bounds, font) {
 }
 
 function getAlignedBounds(bounds, anchorX, align, maxWidth, font) {
-    // When text() is called in box mode (with maxWidth), x is always the left edge of the container,
+    // When _text() is called in box mode (with maxWidth), x is always the left edge of the container,
     // but textBounds treats x as the alignment anchor (center/right), shifting bounds.x to the left.
     // Correct by offsetting bounds.x back to where the text actually renders within the container.
     // Wrapping text already returns correct bounds from p5 — skip correction in that case.
@@ -2831,7 +2919,7 @@ function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align
     fill(255);
     textLeading(leading);
     drawBoxText(textStr, x, y, maxWidth, align, verAlign);
-    let bbox = font.textBounds(textStr, x, y, maxWidth);
+    let bbox = font.textBounds(getRichText(textStr), x, y, maxWidth);
     addTextBox(id, getAlignedBounds(bbox, x, align, maxWidth, font), size);
     pop()
     return bbox;
@@ -2871,7 +2959,7 @@ async function printCoverScreen() {
 
     // utils.beginShadow("#000000", 30, 0, 0);
     // textAlign(CENTER, TOP); textFont(fontLight); textSize(55); fill(255);
-    // text("Album Review", width * 0.5, 260);
+    // _text("Album Review", width * 0.5, 260);
     // utils.endShadow();
 
     imageMode(CENTER); rectMode(CENTER);
@@ -2891,8 +2979,8 @@ async function printCoverScreen() {
     textAlign(getP5Align(titleAlignCover), CENTER);
     let titleSize = getMaxTextSizeByWidth(albumData.title, width - 100, 100) + textSizeOffsets.title;
     titleSize = max(10, titleSize);
-    textSize(titleSize); fill(255); text(albumData.title, width * 0.5 + titleHorizOffset, titleY);
-    let titleBounds = fontHeavy.textBounds(albumData.title, width * 0.5 + titleHorizOffset, titleY, width - 100);
+    textSize(titleSize); fill(255); _text(albumData.title, width * 0.5 + titleHorizOffset, titleY);
+    let titleBounds = fontHeavy.textBounds(getRichText(albumData.title), width * 0.5 + titleHorizOffset, titleY, width - 100);
     addTextBox('title', getAlignedBounds(titleBounds, width * 0.5 + titleHorizOffset, titleAlignCover), titleSize);
 
     let artistVertOffset = verticalOffsetsCover.artist || 0;
@@ -2902,8 +2990,8 @@ async function printCoverScreen() {
     textFont(fontRegularCondensed);
     textAlign(getP5Align(artistAlignCover), CENTER);
     let artistSize = getMaxTextSizeByWidth(albumData.artist, width - 100, 50) + textSizeOffsets.artist;
-    textSize(artistSize); fill(230); text(albumData.artist, width * 0.5 + artistHorizOffset, artistY);
-    let artistBounds = fontRegularCondensed.textBounds(albumData.artist, width * 0.5 + artistHorizOffset, artistY, width - 100);
+    textSize(artistSize); fill(230); _text(albumData.artist, width * 0.5 + artistHorizOffset, artistY);
+    let artistBounds = fontRegularCondensed.textBounds(getRichText(albumData.artist), width * 0.5 + artistHorizOffset, artistY, width - 100);
     addTextBox('artist', getAlignedBounds(artistBounds, width * 0.5 + artistHorizOffset, artistAlignCover), artistSize);
     utils.endShadow();
 
@@ -2966,8 +3054,11 @@ function drawCustomTextboxes(coverType){
                 utils.endShadow();
 
 
-                // Add to textBoxes for selection
-                let bounds = fontObj.textBounds(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500);
+                // Add to textBoxes for selection. Measure with the same TOP baseline used to
+                // render: justifyText() restores the prior baseline on exit, so without this the
+                // bounds would be computed against a stale baseline and the box would be offset.
+                textAlign(getP5Align(tbAlign), TOP);
+                let bounds = fontObj.textBounds(getRichText(textbox.text), textbox.x, textbox.y, textbox.maxWidth || 500);
                 let alignedBounds = getAlignedBounds(bounds, textbox.x, tbAlign, textbox.maxWidth || 500, fontObj);
                 textBoxes.push({
                     id: textbox.id,
@@ -3174,6 +3265,31 @@ function mouseReleased() {
         shiftDragAxis = null; // Reset axis constraint
         captureState();
     }
+}
+
+// Select the canvas textbox with the given id (if it exists in the current view) and
+// open its adjustment panel. Mirrors the canvas-click selection so focusing the matching
+// form field brings up the same floating UI bar.
+function selectTextBoxById(id) {
+    let box = textBoxes.find(b => b.id === id);
+    if (!box) return;
+    let selectionChanged = !selectedTextBox || selectedTextBox.id !== box.id;
+    selectedTextBox = box;
+
+    if (box.id === 'tracks') {
+        sizeAdjustPanel.style('display', 'none');
+        showTracksAdjustPanel();
+    } else if (box.id === 'image') {
+        sizeAdjustPanel.style('display', 'none');
+        tracksAdjustPanel.style('display', 'none');
+        updateVerticalOffsetSlider();
+    } else {
+        tracksAdjustPanel.style('display', 'none');
+        showSizeAdjustPanel(box);
+    }
+
+    // Re-render to draw the selection outline (only needed if the selection actually changed)
+    if (selectionChanged) currentView === 'ratings' ? printAlbum() : printCoverScreen();
 }
 
 function showSizeAdjustPanel(box) {
@@ -3527,130 +3643,162 @@ function resetColors() {
 // Returns the y coordinate below the rendered block.
 
 function justifyText(str, x, y, boxWidth, options = {}) {
-  if (!str || boxWidth <= 0) return y;
-  str = String(str);
+    if (!str || boxWidth <= 0) return y;
+    str = String(str);
 
-  const lineHeight   = options.lineHeight ?? textLeading();
-  const lastLineMode = options.lastLine ?? 'left';     // 'left' | 'justify'
-  const maxStretch   = options.maxStretch ?? 4;        // give up justifying if gaps exceed spaceW * this
-  const paraSpacing  = options.paragraphSpacing ?? 0;
-  const hyphenChar   = options.hyphenChar ?? '';       // e.g. '-' for forced breaks in long words
+    const lineHeight   = options.lineHeight ?? textLeading();
+    const lastLineMode = options.lastLine ?? 'left';     // 'left' | 'justify'
+    const maxStretch   = options.maxStretch ?? 4;        // give up justifying if gaps exceed spaceW * this
+    const paraSpacing  = options.paragraphSpacing ?? 0;
+    const hyphenChar   = options.hyphenChar ?? '';       // e.g. '-' for forced breaks in long words
+    const spaceFactor = options.spaceFactor ?? 0.7;          // multiplier for space width (for tighter/looser spacing)
 
-  push();
-  textAlign(LEFT, TOP);
+    push();
+    textAlign(LEFT, TOP);
 
-  // --- Robust measurement helpers ---
-  const sizeFallback = textSize();
+    // --- Robust measurement helpers ---
+    const sizeFallback = textSize();
 
-  function safeWidth(s) {
-    let w = textWidth(s);
-    if (Number.isFinite(w) && w > 0) return w;
-    // Fallback: native canvas measurement (handles loadFont() quirks)
-    if (typeof drawingContext?.measureText === 'function') {
-      w = drawingContext.measureText(s).width;
-      if (Number.isFinite(w) && w > 0) return w;
-    }
-    return s.length * sizeFallback * 0.5; // last-resort estimate
-  }
-
-  function measureSpace() {
-    let w = textWidth(' ');
-    if (Number.isFinite(w) && w > 0) return w;
-    w = textWidth('i i') - textWidth('ii');   // derive from a difference
-    if (Number.isFinite(w) && w > 0) return w;
-    if (typeof drawingContext?.measureText === 'function') {
-      w = drawingContext.measureText(' ').width;
-      if (Number.isFinite(w) && w > 0) return w;
-    }
-    return sizeFallback * 0.3;
-  }
-
-  const spaceW = measureSpace();
-
-  // --- Break a word that's wider than the box into fitting chunks ---
-  function breakWord(word) {
-    const hyphenW = hyphenChar ? safeWidth(hyphenChar) : 0;
-    const parts = [];
-    let cur = '';
-    for (const ch of word) {            // for...of handles emoji/surrogates
-      if (cur && safeWidth(cur + ch) + hyphenW > boxWidth) {
-        parts.push(cur + hyphenChar);
-        cur = ch;
-      } else {
-        cur += ch;
-      }
-    }
-    if (cur) parts.push(cur);
-    return parts.length ? parts : [word];
-  }
-
-  // --- Render one line ---
-  function renderLine(words, yTop, justify) {
-  if (words.length === 0) return;
-    if (justify && words.length === 1) {
-    const w = words[0];
-    const chars = [...w];
-    if (chars.length > 1) {
-        const charGap = (boxWidth - widths[0]) / (chars.length - 1);
-        let cx = x;
-        for (const ch of chars) {
-        text(ch, cx, yTop);
-        cx += safeWidth(ch) + charGap;
+    function safeWidth(s) {
+        let w = textWidth(s);
+        if (Number.isFinite(w) && w > 0) return w;
+        // Fallback: native canvas measurement (handles loadFont() quirks)
+        if (typeof drawingContext?.measureText === 'function') {
+            w = drawingContext.measureText(s).width;
+            if (Number.isFinite(w) && w > 0) return w;
         }
-        return;
+        return s.length * sizeFallback * 0.5; // last-resort estimate
     }
+
+    function measureSpace() {
+        let w = textWidth(' ');
+        if (Number.isFinite(w) && w > 0) return w;
+        w = textWidth('i i') - textWidth('ii');   // derive from a difference
+        if (Number.isFinite(w) && w > 0) return w;
+        if (typeof drawingContext?.measureText === 'function') {
+            w = drawingContext.measureText(' ').width;
+            if (Number.isFinite(w) && w > 0) return w;
+        }
+        return sizeFallback * 0.3;
     }
 
-  let totalW = 0;
-  const widths = words.map(w => { const ww = safeWidth(w); totalW += ww; return ww; });
+    const spaceW = measureSpace() * spaceFactor
 
-  let gap = spaceW;
-  if (justify && words.length > 1) {
-    const g = (boxWidth - totalW) / (words.length - 1);
-    gap = Number.isFinite(g) ? Math.max(g, 0) : spaceW; // always fill the line
-  }
+    // --- Break a word that's wider than the box into fitting chunks ---
+    function breakWord(word) {
+        const hyphenW = hyphenChar ? safeWidth(hyphenChar) : 0;
+        const parts = [];
+        let cur = '';
+        for (const ch of word) {            // for...of handles emoji/surrogates
+            if (cur && safeWidth(cur + ch) + hyphenW > boxWidth) {
+                parts.push(cur + hyphenChar);
+                cur = ch;
+            } else {
+                cur += ch;
+            }
+        }
+        if (cur) parts.push(cur);
+        return parts.length ? parts : [word];
+    }
 
-  let cx = x;
-  for (let i = 0; i < words.length; i++) {
-    text(words[i], cx, yTop);
-    cx += widths[i] + gap;
-  }
+    // --- Render one line ---
+    function renderLine(words, yTop, justify) {
+        if (words.length === 0) return;
+            if (justify && words.length === 1) {
+            const w = words[0];
+            const chars = [...w];
+            if (chars.length > 1) {
+                const charGap = (boxWidth - widths[0]) / (chars.length - 1);
+                let cx = x;
+                for (const ch of chars) {
+                _text(ch, cx, yTop);
+                cx += safeWidth(ch) + charGap;
+                }
+                return;
+            }
+            }
+
+        let totalW = 0;
+        const widths = words.map(w => { const ww = safeWidth(w); totalW += ww; return ww; });
+
+        let gap = spaceW;
+        if (justify && words.length > 1) {
+            const g = (boxWidth - totalW) / (words.length - 1);
+            gap = Number.isFinite(g) ? Math.max(g, 0) : spaceW; // always fill the line
+        }
+
+        let cx = x;
+        for (let i = 0; i < words.length; i++) {
+            _text(words[i], cx, yTop);
+            cx += widths[i] + gap;
+        }
+    }
+
+    // --- Tokenize and pack ---
+    let cursorY = y;
+    const paragraphs = str.split(/\r\n|\r|\n/);
+
+    for (let p = 0; p < paragraphs.length; p++) {
+        let words = paragraphs[p].split(/\s+/).filter(w => w.length);
+
+        if (words.length === 0) {           // blank line = empty paragraph
+        cursorY += lineHeight;
+        continue;
+        }
+
+        // Pre-split any word wider than the box
+        words = words.flatMap(w => safeWidth(w) > boxWidth ? breakWord(w) : [w]);
+
+        let line = [], lineW = 0;
+        for (const w of words) {
+            const wW = safeWidth(w);
+            const test = lineW + (line.length ? spaceW : 0) + wW;
+            if (test > boxWidth && line.length) {
+                renderLine(line, cursorY, true);   // full line → justified
+                cursorY += lineHeight;
+                line = [w]; lineW = wW;
+            } 
+            else {
+                line.push(w); lineW = test;
+            }
+        }
+        if (line.length) {                     // final line of paragraph
+            renderLine(line, cursorY, lastLineMode === 'justify');
+            cursorY += lineHeight;
+        }
+        if (p < paragraphs.length - 1) cursorY += paraSpacing;
+    }
+
+    pop();
+    return cursorY;
 }
 
-  // --- Tokenize and pack ---
-  let cursorY = y;
-  const paragraphs = str.split(/\r\n|\r|\n/);
-
-  for (let p = 0; p < paragraphs.length; p++) {
-    let words = paragraphs[p].split(/\s+/).filter(w => w.length);
-
-    if (words.length === 0) {           // blank line = empty paragraph
-      cursorY += lineHeight;
-      continue;
+function _text(...args) {
+    let str = args[0];
+    if (typeof str === 'string') {
+        args[0] = getRichText(str);
     }
+    text(...args);
+}
 
-    // Pre-split any word wider than the box
-    words = words.flatMap(w => safeWidth(w) > boxWidth ? breakWord(w) : [w]);
-
-    let line = [], lineW = 0;
-    for (const w of words) {
-      const wW = safeWidth(w);
-      const test = lineW + (line.length ? spaceW : 0) + wW;
-      if (test > boxWidth && line.length) {
-        renderLine(line, cursorY, true);   // full line → justified
-        cursorY += lineHeight;
-        line = [w]; lineW = wW;
-      } else {
-        line.push(w); lineW = test;
-      }
+function getRichText(str){
+    if (typeof str === 'string') {
+        str = str.replace(/\$(\w+)\$/g, (match, varName) => {
+            if (albumData.hasOwnProperty(varName)) return albumData[varName];
+            return match; // no replacement if variable not found
+        });
+        str = str.replace(/\$\((js:)?\s*([^]+?)\s*\)\$/g, (match, jsPrefix, code) => {
+            if (jsPrefix) {
+                try {
+                    let func = new Function('albumData', `with(albumData) { return ${code} }`);
+                    return func(albumData);
+                } catch (err) {
+                    console.error("Error executing code in text: ", err);
+                    return match; // return original if error
+                }
+            }
+            return match; // no replacement if not js
+        });
     }
-    if (line.length) {                     // final line of paragraph
-      renderLine(line, cursorY, lastLineMode === 'justify');
-      cursorY += lineHeight;
-    }
-    if (p < paragraphs.length - 1) cursorY += paraSpacing;
-  }
-
-  pop();
-  return cursorY;
+    return str;
 }
