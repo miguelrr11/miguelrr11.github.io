@@ -1342,7 +1342,7 @@ function createTracksAdjustPanel() {
     // --- Spacing ---
     let spacingGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group');
     createSpan('Spacing').parent(spacingGroup).class('sap-label');
-    tracksSpacingSlider = createSlider(-25, 20, 0, 1).parent(spacingGroup).class('sap-slider');
+    tracksSpacingSlider = createSlider(-45, 20, 0, 1).parent(spacingGroup).class('sap-slider');
     tracksSpacingLabel = createSpan('0').parent(spacingGroup).class('sap-value');
     tracksSpacingSlider.input(() => {
         tracksSpacing = tracksSpacingSlider.value();
@@ -2555,7 +2555,7 @@ const RATINGS_LAYOUT = {
         pillLabel: { maxFontSize: 28, widthPad: 20, heightSlack: 5, nudgeY: 2 },
         // larger note rendered below the row (track.customTextLarge)
         note: {
-            x: { oneColumn: 75, twoColumns: 90 },  // left edge, from the canvas left edge
+            x: { oneColumn: 90, twoColumns: 90 },  // left edge, from the canvas left edge
             maxWidth: { oneColumn: 900, twoColumns: 330 },
             fontSize: 22,
             topGap: 20,          // gap between the row baseline and the note
