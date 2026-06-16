@@ -873,9 +873,9 @@ function alignMainElementsToImage(){
 
 function getDefaultProfile() {
     return {
-        "tracksTextSize": 44,
-        "tracksSpacing": -18,
-        "tracksRectHeight": 28,
+        "tracksTextSize": 38,
+        "tracksSpacing": -22,
+        "tracksRectHeight": 26,
         "tracksTwoColumns": false,
         "tracksVerticalOffset": 0,
         "colorMap": {
@@ -898,7 +898,7 @@ function getDefaultProfile() {
         "verticalOffsetsRatings": {
             "funfact": -21,
             "title": 100,
-            "tracks": 0
+            "tracks": -41
         },
         "verticalOffsetsCover": {
             "artist": -500,
@@ -909,7 +909,7 @@ function getDefaultProfile() {
             "funfact": -40,
             "year": -40,
             "genre": -40,
-            "tracks": -19
+            "tracks": -29
         },
         "horizontalOffsetsCover": {
             "title": 0,
@@ -928,10 +928,10 @@ function getDefaultProfile() {
             "artist": 4,
             "year": 0,
             "genre": 0,
-            "funfact": -4
+            "funfact": -6
         },
         "textLeadingOffsets": {
-            "funfact": -4
+            "funfact": -6
         },
         "textAlignRatings": {
             "title": "left",
@@ -1345,7 +1345,7 @@ function createTracksAdjustPanel() {
     // --- Spacing ---
     let spacingGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group');
     createSpan('Spacing').parent(spacingGroup).class('sap-label');
-    tracksSpacingSlider = createSlider(-25, 20, 0, 1).parent(spacingGroup).class('sap-slider');
+    tracksSpacingSlider = createSlider(-45, 20, 0, 1).parent(spacingGroup).class('sap-slider');
     tracksSpacingLabel = createSpan('0').parent(spacingGroup).class('sap-value');
     tracksSpacingSlider.input(() => {
         tracksSpacing = tracksSpacingSlider.value();
@@ -2868,12 +2868,13 @@ const RATINGS_LAYOUT = {
 
     tracks: {
         startY: 820,             // y of the first track row
-        textIndent: 295,         // title x relative to the left margin (single-column)
-        pillWidthFactorOneColumn: 0.75,   // pill width as a fraction of (leftMargin + textIndent)
+        textIndent: { oneColumn: 295, twoColumns: 295 },         // title x relative to the left margin (single-column)
+        titleIndent: { oneColumn: -15, twoColumns: 15 },
+        pillWidthFactorOneColumn: 0.70,   // pill width as a fraction of (leftMargin + textIndent)
         pillWidthFactorTwoColumns: 0.85,    // pill width as a fraction of (columnShift + textIndent)
         columnShift: 450,        // x shift of the second column in two-column mode
         horizOffsetFix: 30,      // correction added to the user's horizontal offset
-        titleMaxWidth: { oneColumn: 900, twoColumns: 370 },  // titles are truncated to this
+        titleMaxWidth: { oneColumn: 900, twoColumns: 240 },  // titles are truncated to this
         // row spacing shrinks as the track count grows, then user spacing is added
         rowSpacing: { fewTracks: 5, manyTracks: 20, max: 80, min: 45, cap: 70 },
         goatGlowBlur: 50,
@@ -2883,7 +2884,7 @@ const RATINGS_LAYOUT = {
         pillLabel: { maxFontSize: 28, widthPad: 20, heightSlack: 5, nudgeY: 2 },
         // larger note rendered below the row (track.customTextLarge)
         note: {
-            x: { oneColumn: 75, twoColumns: 90 },  // left edge, from the canvas left edge
+            x: { oneColumn: 90, twoColumns: 90 },  // left edge, from the canvas left edge
             maxWidth: { oneColumn: 900, twoColumns: 330 },
             fontSize: 22,
             topGap: 20,          // gap between the row baseline and the note
@@ -3058,15 +3059,16 @@ function drawTrackList() {
     const T = RATINGS_LAYOUT.tracks;
     const leftMargin = RATINGS_LAYOUT.leftMargin;
     const twoColumns = tracksTwoColumns;
+    let textIndent = twoColumns ? T.textIndent.twoColumns : T.textIndent.oneColumn;
+    let twoColumnsFix = twoColumns ? 25 : 0;
 
     // Column geometry: the grade pill sits left of the title; in two-column
     // mode the pill shrinks and the title moves left with it.
-    let pillW = (leftMargin + T.textIndent) * (twoColumns ? T.pillWidthFactorTwoColumns : T.pillWidthFactorOneColumn);
-    let textIndent = T.textIndent;
+    let pillW = (leftMargin + textIndent) * (twoColumns ? T.pillWidthFactorTwoColumns : T.pillWidthFactorOneColumn);
     if (twoColumns) { pillW *= 0.5; textIndent -= pillW; }
     let pillH = tracksRectHeight;
     let titleBaseX = leftMargin + textIndent; // first-column titles
-    let pillCenterBaseX = titleBaseX * 0.5;   // first-column pill centers
+    let pillCenterBaseX = titleBaseX * 0.5 + twoColumnsFix;   // first-column pill centers
 
     let horizOffset = (horizontalOffsetsRatings.tracks || 0) + T.horizOffsetFix;
     let columnTopY = T.startY + (verticalOffsetsRatings.tracks || 0);
@@ -3085,7 +3087,7 @@ function drawTrackList() {
         let track = albumData.tracks[i];
         let gradeColor = colorMap[track.grade] || "#888888";
         let columnShift = (twoColumns && i >= secondColumnStart) ? T.columnShift : 0;
-        let titleX = titleBaseX + columnShift + horizOffset;
+        let titleX = titleBaseX + columnShift + horizOffset + (!twoColumns ? T.titleIndent.oneColumn : T.titleIndent.twoColumns) + twoColumnsFix*0.5;
         let pillCenterX = pillCenterBaseX + columnShift + horizOffset;
         let pillCenterY = rowY - pillCenterOffsetY;
         let pillCornerRadius = pillH * 0.5;
@@ -4014,7 +4016,7 @@ function justifyText(str, x, y, boxWidth, options = {}) {
     const maxStretch   = options.maxStretch ?? 4;        // give up justifying if gaps exceed spaceW * this
     const paraSpacing  = options.paragraphSpacing ?? 0;
     const hyphenChar   = options.hyphenChar ?? '';       // e.g. '-' for forced breaks in long words
-    const spaceFactor = options.spaceFactor ?? 0.7;          // multiplier for space width (for tighter/looser spacing)
+    const spaceFactor = options.spaceFactor ?? 0.9;          // multiplier for space width (for tighter/looser spacing)
 
     push();
     textAlign(LEFT, TOP);
