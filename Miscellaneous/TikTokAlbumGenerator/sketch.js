@@ -54,7 +54,7 @@ let viewToggleBtn, editorPanel, dragOverlay;
 
 // Undo/Redo system
 let historyStack = [], historyIndex = -1;
-const MAX_HISTORY = 150;
+const MAX_HISTORY = 300;
 let isUndoRedoAction = false;
 
 // Monaco sync flags
@@ -873,9 +873,9 @@ function alignMainElementsToImage(){
 
 function getDefaultProfile() {
     return {
-        "tracksTextSize": 38,
-        "tracksSpacing": -22,
-        "tracksRectHeight": 26,
+        "tracksTextSize": 40,
+        "tracksSpacing": -30,
+        "tracksRectHeight": 28,
         "tracksTwoColumns": false,
         "tracksVerticalOffset": 0,
         "colorMap": {
@@ -1049,7 +1049,7 @@ function applyProfile(profileData) {
     tracksTextSize = profileData.tracksTextSize || 60;
     tracksSpacing = profileData.tracksSpacing || 0;
     tracksRectHeight = profileData.tracksRectHeight || 40;
-    tracksTwoColumns = profileData.tracksTwoColumns !== undefined ? profileData.tracksTwoColumns : true;
+    tracksTwoColumns = profileData.tracksTwoColumns !== undefined ? profileData.tracksTwoColumns : false;
     verticalOffsetsRatings.tracks = profileData.tracksVerticalOffset || 0;
     customTextboxes = customTextboxes.filter(tb => tb.id !== 'album_review' && tb.id !== 'comentario');
 
