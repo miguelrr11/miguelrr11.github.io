@@ -21,6 +21,10 @@ var utils = new p5.Utils();
 let titleInput, artistInput, yearInput, genreInput, funfactInput, imageUrlInput, albumGradeSelect;
 let trackContainer, tracks = [];
 const gradeOptions = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP', 'SHIT', 'INTERLUDE', 'None'];
+// Grades selectable in the album/track dropdowns. INTERLUDE is no longer a grade —
+// it's a per-track boolean toggle — but it stays in gradeOptions/colorMap so the grey
+// pill colour remains customizable in the color section.
+const selectableGradeOptions = gradeOptions.filter(g => g !== 'INTERLUDE');
 let allLegendGrades = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP', 'SHIT'];
 let allLegendLabels = ['GOAT', '10', '9', '8', '7', '<7', '<5', '<2'];
 let verticalOffsetSlider, verticalOffsetLabel;
@@ -123,6 +127,16 @@ let shiftDragAxis = null; // null, 'x', or 'y' - for shift+drag constraint
 
 let draggedTrackIndex = null;
 let autoGenerateTimeout = null;
+let selectedTrackRow = null; // rowDiv element of the currently selected track (shows its button row)
+
+// Mark a track row as the selected one in the UI so only its button row is shown.
+function selectTrackRowUI(rowDiv) {
+    selectedTrackRow = rowDiv;
+    tracks.forEach(t => {
+        if (t.rowDiv === rowDiv) t.rowDiv.addClass('selected');
+        else t.rowDiv.removeClass('selected');
+    });
+}
 
 function calculateCanvasScale() {
     const scale = (window.innerHeight - 40) / HEIGHT;
@@ -197,7 +211,9 @@ function createTracksFromPaste(texto){
         setTrackText(tracks[trackIndex], text)
         let doesntHaveDecimal = grade !== null && grade !== undefined && Number.isInteger(grade)
         if(grade && grade < 10) setTrackMiniDescription(tracks[trackIndex], doesntHaveDecimal ? '' : grade.toString())
-        if(grade == null) finalGrade = 'INTERLUDE'
+        // No number on the line → treat it as an interlude with no grade (just a grey pill)
+        let isInterlude = grade == null
+        if(isInterlude) finalGrade = 'None'
         else if(grade >= 10.5) finalGrade = 'GOAT'
         else if(grade >= 10) finalGrade = 'PEAK'
         else if(grade >= 9) finalGrade = 'EXCEPTIONAL'
@@ -207,9 +223,16 @@ function createTracksFromPaste(texto){
         else if(grade >= 2) finalGrade = 'FLOP'
         else finalGrade = 'SHIT'
         tracks[trackIndex].gradeSelect.value(finalGrade)
+        setTrackInterlude(tracks[trackIndex], isInterlude)
         if(i < lineas.length - 1) addTrackRowWithCapture()
         trackIndex++
     }
+}
+
+// Toggle a track's interlude flag and keep its button's visual state in sync.
+function setTrackInterlude(trackObj, val) {
+    trackObj.interlude = !!val;
+    if (trackObj.interludeBtn) trackObj.interludeBtn.elt.classList.toggle('active', trackObj.interlude);
 }
 
 function setTrackMiniDescription(trackObj, newDescription) {
@@ -302,11 +325,11 @@ function createAlbumEditor() {
     let gradeGroup = createDiv('').parent(gradeRow).class('form-group').style('flex: 1;');
     createElement('label', 'Album Grade').parent(gradeGroup);
     albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
-    gradeOptions.forEach(opt => albumGradeSelect.option(opt));
+    selectableGradeOptions.forEach(opt => albumGradeSelect.option(opt));
     let options = albumGradeSelect.elt.options;
-    for(let i = 0; i < gradeOptions.length; i++) {
-        options[i].style.backgroundColor = colorMap[gradeOptions[i]];
-        options[i].style.color = getContrastYIQ(colorMap[gradeOptions[i]]);
+    for(let i = 0; i < selectableGradeOptions.length; i++) {
+        options[i].style.backgroundColor = colorMap[selectableGradeOptions[i]];
+        options[i].style.color = getContrastYIQ(colorMap[selectableGradeOptions[i]]);
     }
     albumGradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
@@ -386,7 +409,7 @@ function syncEditorFromUI() {
         downloadImageOption: downloadImageOption,
         showGradeLegend: showGradeLegend,
         tracks: tracks.map(t => ({
-            title: t.titleInput.value(), grade: t.gradeSelect.value(),
+            title: t.titleInput.value(), grade: t.gradeSelect.value(), interlude: t.interlude || false,
             customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null,
             customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null
         })),
@@ -2271,8 +2294,11 @@ function addTrackRowWithCapture(shouldCapture) {
     let rowDiv = createDiv('').parent(trackContainer).class('track-row');
 
     // Make row draggable
-    
+
     setupTrackDragAndDrop(rowDiv);
+
+    // Selecting a track (click anywhere on the row, or focusing its title) reveals its button row
+    rowDiv.elt.addEventListener('mousedown', () => selectTrackRowUI(rowDiv));
 
     // Add drag handle
     let dragHandle = createSpan('⋮⋮').parent(rowDiv).class('track-drag-handle');
@@ -2285,30 +2311,31 @@ function addTrackRowWithCapture(shouldCapture) {
     let titleIn = createInput('').parent(rowDiv).class('track-title-input');
     titleIn.attribute('placeholder', 'Track title');
     titleIn.elt.addEventListener('input', autoGeneratePreview);
+    titleIn.elt.addEventListener('focus', () => selectTrackRowUI(rowDiv));
     titleIn.elt.addEventListener('blur', captureState);
     titleIn.elt.addEventListener('keydown', (e) => handleTrackNavigation(e, titleIn));
 
     let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
-    gradeOptions.forEach(grade => {
+    selectableGradeOptions.forEach(grade => {
         gradeSelect.option(grade)
     });
     let options = gradeSelect.elt.options;
-    for(let i = 0; i < gradeOptions.length; i++) {
-        options[i].style.backgroundColor = colorMap[gradeOptions[i]];
-        options[i].style.color = getContrastYIQ(colorMap[gradeOptions[i]]);
+    for(let i = 0; i < selectableGradeOptions.length; i++) {
+        options[i].style.backgroundColor = colorMap[selectableGradeOptions[i]];
+        options[i].style.color = getContrastYIQ(colorMap[selectableGradeOptions[i]]);
     }
     gradeSelect.selected('STRONG');
     gradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
+    // Visibility is driven by the 'open' class (gated behind .track-row.selected in CSS),
+    // not inline display, so these collapse with the rest of the row when deselected.
     let textInputContainer = createDiv('').parent(rowDiv).class('track-text-input-container');
-    textInputContainer.style('display', 'none');
     let textInput = createInput('').parent(textInputContainer).class('track-text-input')
     textInput.attribute('placeholder', 'Text inside rect...');
     textInput.elt.addEventListener('input', autoGeneratePreview);
     textInput.elt.addEventListener('blur', captureState);
 
     let textLargeInputContainer = createDiv('').parent(rowDiv).class('track-text-input-container');
-    textLargeInputContainer.style('display', 'none');
     let textLargeInput = createInput('').parent(textLargeInputContainer).class('track-textLarge-input');
     textLargeInput.attribute('placeholder', 'Text below track...');
     textLargeInput.elt.addEventListener('input', autoGeneratePreview);
@@ -2317,18 +2344,30 @@ function addTrackRowWithCapture(shouldCapture) {
     // Buttons row — always at the bottom
     let buttonsDiv = createDiv('').parent(rowDiv).class('track-buttons-row');
 
+    // Interlude toggle — independent of the grade. When active the track renders as a
+    // grey pill with a small grade-coloured dot on top.
+    let interludeBtn = createButton('INT').parent(buttonsDiv).class('track-interlude-btn');
+    interludeBtn.attribute('title', 'Toggle interlude');
+    interludeBtn.mousePressed(() => {
+        let t = tracks.find(tk => tk.rowDiv === rowDiv);
+        if (!t) return;
+        setTrackInterlude(t, !t.interlude);
+        autoGeneratePreview();
+        captureState();
+    });
+
     let textBtn = createButton('T').parent(buttonsDiv).class('track-text-btn');
     textBtn.mousePressed(() => {
-        let isHidden = textInputContainer.style('display') === 'none';
-        textInputContainer.style('display', isHidden ? 'block' : 'none');
-        if (isHidden) textInput.elt.focus();
+        let willOpen = !textInputContainer.hasClass('open');
+        textInputContainer.toggleClass('open');
+        if (willOpen) textInput.elt.focus();
     });
 
     let textLargeBtn = createButton('TT').parent(buttonsDiv).class('track-textLarge-btn');
     textLargeBtn.mousePressed(() => {
-        let isHidden = textLargeInputContainer.style('display') === 'none';
-        textLargeInputContainer.style('display', isHidden ? 'block' : 'none');
-        if (isHidden) textLargeInput.elt.focus();
+        let willOpen = !textLargeInputContainer.hasClass('open');
+        textLargeInputContainer.toggleClass('open');
+        if (willOpen) textLargeInput.elt.focus();
     });
 
     let removeBtn = createButton('×').parent(buttonsDiv).class('track-remove-btn');
@@ -2339,8 +2378,8 @@ function addTrackRowWithCapture(shouldCapture) {
 
 
 
-    tracks.push({   titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, customTextLarge: null, 
-                    textInput, textInputContainer, textLargeInput, textLargeInputContainer, dragHandle });
+    tracks.push({   titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, customTextLarge: null,
+                    textInput, textInputContainer, textLargeInput, textLargeInputContainer, dragHandle, interlude: false, interludeBtn });
 
     if (shouldCapture && historyStack.length > 0) captureState();
 }
@@ -2448,6 +2487,7 @@ function handleTrackNavigation(e, titleIn) {
 
 function removeTrackRow(index) {
     if (tracks.length <= 1) return;
+    if (selectedTrackRow === tracks[index].rowDiv) selectedTrackRow = null;
     tracks[index].rowDiv.remove();
     tracks.splice(index, 1);
     updateTrackNumbers();
@@ -2466,6 +2506,7 @@ function collectTracksData() {
         return title ? {
             title,
             grade: track.gradeSelect.value(),
+            interlude: track.interlude || false,
             customNumber: track.customNumber || null,
             customText: track.textInput ? track.textInput.value().trim() : null,
             customTextLarge: track.textLargeInput ? track.textLargeInput.value().trim() : null
@@ -2583,18 +2624,23 @@ function fillFormFromData(data) {
             addTrackRow();
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
-            lastTrack.gradeSelect.selected(track.grade || 'STRONG');
+            // Migrate legacy data: an 'INTERLUDE' grade becomes interlude=true with no grade.
+            let loadedGrade = track.grade || 'STRONG';
+            let loadedInterlude = track.interlude || false;
+            if (loadedGrade === 'INTERLUDE') { loadedInterlude = true; loadedGrade = 'None'; }
+            lastTrack.gradeSelect.selected(loadedGrade);
+            setTrackInterlude(lastTrack, loadedInterlude);
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
                 lastTrack.numSpan.html(track.customNumber);
             }
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
-                lastTrack.textInputContainer.style('display', 'block');
+                lastTrack.textInputContainer.addClass('open');
             }
             if (track.customTextLarge && track.customTextLarge.trim() !== '') {
                 lastTrack.textLargeInput.value(track.customTextLarge);
-                lastTrack.textLargeInputContainer.style('display', 'block');
+                lastTrack.textLargeInputContainer.addClass('open');
             }
         });
     } else addTrackRow();
@@ -2722,6 +2768,7 @@ function saveToLocalStorage() {
     let data = collectAlbumData(tracks.map(t => ({
         title: t.titleInput.value(),
         grade: t.gradeSelect.value(),
+        interlude: t.interlude || false,
         customNumber: t.customNumber || null,
         customText: t.textInput ? t.textInput.value() : null,
         customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null
@@ -3085,7 +3132,11 @@ function drawTrackList() {
     let rowY = columnTopY;
     for (let i = 0; i < albumData.tracks.length; i++) {
         let track = albumData.tracks[i];
-        let gradeColor = colorMap[track.grade] || "#888888";
+        // Interludes always render with the grey pill colour; the grade (if any) is
+        // shown as a small coloured dot drawn on top of the pill instead.
+        let gradeColor = track.interlude ? colorMap["INTERLUDE"] : (colorMap[track.grade] || "#888888");
+        let showGoatFx = track.grade == 'GOAT' && !track.interlude;
+        let showPeakFx = track.grade == 'PEAK' && !track.interlude;
         let columnShift = (twoColumns && i >= secondColumnStart) ? T.columnShift : 0;
         let titleX = titleBaseX + columnShift + horizOffset + (!twoColumns ? T.titleIndent.oneColumn : T.titleIndent.twoColumns) + twoColumnsFix*0.5;
         let pillCenterX = pillCenterBaseX + columnShift + horizOffset;
@@ -3107,7 +3158,7 @@ function drawTrackList() {
             noteSpacing = fontLight.textBounds(getRichText(track.customTextLarge), noteX, noteY, noteMaxWidth).h + N.bottomGap;
 
             let lineX = pillCenterX - pillW / 2 + N.lineInset;
-            let lineColors = track.grade == 'GOAT'
+            let lineColors = showGoatFx
                 ? goatGradient
                 : [gradeColor, gradeColor, makeTransparent(gradeColor)];
             stroke(gradeColor); strokeCap(ROUND); strokeWeight(N.lineWeight);
@@ -3118,15 +3169,32 @@ function drawTrackList() {
         // Grade pill
         fill(gradeColor);
         noStroke();
-        if (track.grade == 'GOAT') {
+        if (showGoatFx) {
             utils.beginLinearGradient(goatGradient,
                 pillCenterX - pillW / 2, pillCenterY,
                 pillCenterX + pillW / 2, pillCenterY, GOAT_GRADIENT_STOPS);
             utils.beginShadow("#ffffff", T.goatGlowBlur, 0, 0);
         }
-        if (track.grade == 'PEAK') utils.beginShadow(gradeColor, T.peakGlowBlur, 0, 0);
+        if (showPeakFx) utils.beginShadow(gradeColor, T.peakGlowBlur, 0, 0);
         rect(pillCenterX, pillCenterY, pillW, pillH, pillCornerRadius);
-        if (track.grade == 'GOAT' || track.grade == 'PEAK') utils.endShadow();
+        if (showGoatFx || showPeakFx) utils.endShadow();
+
+        // Interlude grade dot — small circle on top of the grey pill, coloured by the
+        // track's grade. Skipped when the interlude has no grade ('None').
+        if (track.interlude && track.grade !== 'None') {
+            let dotColor = colorMap["INTERLUDE"];
+            push();
+            let gradeColor = colorMap[track.grade] || colorMap["INTERLUDE"];
+            fill(gradeColor); noStroke();
+            let h = pillH * 0.6
+            let w = pillW - (h * 0.5);
+            let radius = h * 0.5;
+            //rect(pillCenterX, pillCenterY, w, h, radius);
+
+            let x = pillCenterX - w * 0.5 + radius;
+            ellipse(x, pillCenterY, h, h);
+            pop();
+        }
 
         // Small label inside the pill
         if (track.customText && track.customText.trim() !== '') {
@@ -3144,9 +3212,9 @@ function drawTrackList() {
         fill(255);
         let trackNumber = showTrackNumbersCheckbox.checked() ? track.customNumber || ((i + 1) + '.') : '';
         let title = shortenText(trackNumber + " " + track.title + (track.playing ? " " + musicChar : ""), titleMaxWidth);
-        if (track.grade == 'GOAT') utils.beginShadow("#ffffff", T.goatTitleGlowBlur, 0, 0);
+        if (showGoatFx) utils.beginShadow("#ffffff", T.goatTitleGlowBlur, 0, 0);
         _text(title, titleX, rowY);
-        if (track.grade == 'GOAT') utils.endShadow();
+        if (showGoatFx) utils.endShadow();
 
         rowY += rowSpacing + noteSpacing;
         if (twoColumns && i == secondColumnStart - 1) rowY = columnTopY; // second column restarts at the top
@@ -3811,7 +3879,7 @@ function captureState() {
         imageFormat: currentImageFormat,
         downloadImageOption: downloadImageOption,
         showGradeLegend: showGradeLegend,
-        tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(),
+        tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(), interlude: t.interlude || false,
                                     customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null,
                                     customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null})),
         customTextboxes: customTextboxes.map(t => ({
@@ -3933,18 +4001,23 @@ function restoreState(state) {
             addTrackRowWithoutCapture();
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
-            lastTrack.gradeSelect.selected(track.grade || 'STRONG');
+            // Migrate legacy data: an 'INTERLUDE' grade becomes interlude=true with no grade.
+            let loadedGrade = track.grade || 'STRONG';
+            let loadedInterlude = track.interlude || false;
+            if (loadedGrade === 'INTERLUDE') { loadedInterlude = true; loadedGrade = 'None'; }
+            lastTrack.gradeSelect.selected(loadedGrade);
+            setTrackInterlude(lastTrack, loadedInterlude);
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
                 lastTrack.numSpan.html(track.customNumber);
             }
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
-                lastTrack.textInputContainer.style('display', 'block');
+                lastTrack.textInputContainer.addClass('open');
             }
             if (track.customTextLarge && track.customTextLarge.trim() !== '') {
                 lastTrack.textLargeInput.value(track.customTextLarge);
-                lastTrack.textLargeInputContainer.style('display', 'block');
+                lastTrack.textLargeInputContainer.addClass('open');
             }
         });
     } else addTrackRowWithoutCapture();
