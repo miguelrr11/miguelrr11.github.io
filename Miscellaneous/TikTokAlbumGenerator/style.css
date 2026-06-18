@@ -431,11 +431,21 @@ canvas {
     transform: translateY(-2px);
 }
 
+.track-row.selected {
+    background: rgba(138, 180, 248, 0.1);
+    box-shadow: inset 0 0 0 1px rgba(138, 180, 248, 0.35);
+}
+
+/* The button row is only shown for the currently selected track */
 .track-buttons-row {
     width: 100%;
-    display: flex;
+    display: none;
     flex-direction: row;
     gap: 7px;
+}
+
+.track-row.selected .track-buttons-row {
+    display: flex;
 }
 
 .track-drag-handle {
@@ -520,8 +530,34 @@ canvas {
     background: #1a1a2e;
 }
 
+.track-interlude-btn {
+    width: calc(25% - 6px);
+    height: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(178, 178, 178, 0.15);
+    border: none;
+    border-radius: 6px;
+    color: #b2b2b2;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    flex-shrink: 0;
+}
+
+.track-interlude-btn:hover {
+    background: rgba(178, 178, 178, 0.25);
+}
+
+.track-interlude-btn.active {
+    background: #b2b2b2;
+    color: #1a1a2e;
+}
+
 .track-text-btn {
-    width: calc(33.33% - 5px);
+    width: calc(25% - 6px);
     height: 22px;
     display: flex;
     align-items: center;
@@ -542,7 +578,7 @@ canvas {
 }
 
 .track-textLarge-btn {
-    width: calc(33.33% - 5px);
+    width: calc(25% - 6px);
     height: 22px;
     display: flex;
     align-items: center;
@@ -567,6 +603,12 @@ canvas {
     margin-top: 6px;
     flex-basis: 100%;
     order: 999;
+    display: none;
+}
+
+/* Short/long text fields show only when opened AND their track is selected */
+.track-row.selected .track-text-input-container.open {
+    display: block;
 }
 
 .track-text-input {
@@ -612,7 +654,7 @@ canvas {
 }
 
 .track-remove-btn {
-    width: calc(33.33% - 5px);
+    width: calc(25% - 6px);
     height: 22px;
     display: flex;
     align-items: center;

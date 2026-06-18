@@ -21,6 +21,10 @@ var utils = new p5.Utils();
 let titleInput, artistInput, yearInput, genreInput, funfactInput, imageUrlInput, albumGradeSelect;
 let trackContainer, tracks = [];
 const gradeOptions = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP', 'SHIT', 'INTERLUDE', 'None'];
+// Grades selectable in the album/track dropdowns. INTERLUDE is no longer a grade —
+// it's a per-track boolean toggle — but it stays in gradeOptions/colorMap so the grey
+// pill colour remains customizable in the color section.
+const selectableGradeOptions = gradeOptions.filter(g => g !== 'INTERLUDE');
 let allLegendGrades = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP', 'SHIT'];
 let allLegendLabels = ['GOAT', '10', '9', '8', '7', '<7', '<5', '<2'];
 let verticalOffsetSlider, verticalOffsetLabel;
@@ -28,6 +32,8 @@ let horizontalOffsetSlider, horizontalOffsetLabel;
 let imageSizeMultiplierSlider, imageSizeMultiplierLabel;
 let maxTextboxWidthSlider, maxTextboxWidthLabel;
 let positionXInput, positionYInput, positionXLabel, positionYLabel;
+
+const IA_MODEL = 'gpt-5.4-mini'
 
 // Aspect Ratio options (for ratings screen only)
 let aspectRatioSelect;
@@ -52,7 +58,7 @@ let viewToggleBtn, editorPanel, dragOverlay;
 
 // Undo/Redo system
 let historyStack = [], historyIndex = -1;
-const MAX_HISTORY = 150;
+const MAX_HISTORY = 300;
 let isUndoRedoAction = false;
 
 // Monaco sync flags
@@ -121,6 +127,16 @@ let shiftDragAxis = null; // null, 'x', or 'y' - for shift+drag constraint
 
 let draggedTrackIndex = null;
 let autoGenerateTimeout = null;
+let selectedTrackRow = null; // rowDiv element of the currently selected track (shows its button row)
+
+// Mark a track row as the selected one in the UI so only its button row is shown.
+function selectTrackRowUI(rowDiv) {
+    selectedTrackRow = rowDiv;
+    tracks.forEach(t => {
+        if (t.rowDiv === rowDiv) t.rowDiv.addClass('selected');
+        else t.rowDiv.removeClass('selected');
+    });
+}
 
 function calculateCanvasScale() {
     const scale = (window.innerHeight - 40) / HEIGHT;
@@ -195,7 +211,9 @@ function createTracksFromPaste(texto){
         setTrackText(tracks[trackIndex], text)
         let doesntHaveDecimal = grade !== null && grade !== undefined && Number.isInteger(grade)
         if(grade && grade < 10) setTrackMiniDescription(tracks[trackIndex], doesntHaveDecimal ? '' : grade.toString())
-        if(grade == null) finalGrade = 'INTERLUDE'
+        // No number on the line → treat it as an interlude with no grade (just a grey pill)
+        let isInterlude = grade == null
+        if(isInterlude) finalGrade = 'None'
         else if(grade >= 10.5) finalGrade = 'GOAT'
         else if(grade >= 10) finalGrade = 'PEAK'
         else if(grade >= 9) finalGrade = 'EXCEPTIONAL'
@@ -205,9 +223,16 @@ function createTracksFromPaste(texto){
         else if(grade >= 2) finalGrade = 'FLOP'
         else finalGrade = 'SHIT'
         tracks[trackIndex].gradeSelect.value(finalGrade)
+        setTrackInterlude(tracks[trackIndex], isInterlude)
         if(i < lineas.length - 1) addTrackRowWithCapture()
         trackIndex++
     }
+}
+
+// Toggle a track's interlude flag and keep its button's visual state in sync.
+function setTrackInterlude(trackObj, val) {
+    trackObj.interlude = !!val;
+    if (trackObj.interludeBtn) trackObj.interludeBtn.elt.classList.toggle('active', trackObj.interlude);
 }
 
 function setTrackMiniDescription(trackObj, newDescription) {
@@ -300,11 +325,11 @@ function createAlbumEditor() {
     let gradeGroup = createDiv('').parent(gradeRow).class('form-group').style('flex: 1;');
     createElement('label', 'Album Grade').parent(gradeGroup);
     albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
-    gradeOptions.forEach(opt => albumGradeSelect.option(opt));
+    selectableGradeOptions.forEach(opt => albumGradeSelect.option(opt));
     let options = albumGradeSelect.elt.options;
-    for(let i = 0; i < gradeOptions.length; i++) {
-        options[i].style.backgroundColor = colorMap[gradeOptions[i]];
-        options[i].style.color = getContrastYIQ(colorMap[gradeOptions[i]]);
+    for(let i = 0; i < selectableGradeOptions.length; i++) {
+        options[i].style.backgroundColor = colorMap[selectableGradeOptions[i]];
+        options[i].style.color = getContrastYIQ(colorMap[selectableGradeOptions[i]]);
     }
     albumGradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
@@ -352,6 +377,7 @@ function createAlbumEditor() {
     createProfileSection(panel3);
     createColorSection(panel3);
     createAdvancedOptionsSection(panel3);
+    createIASection(panel3);
 
     // Floating panels (fixed position, not in any column)
     createSizeAdjustPanel();   // shown when a textbox is selected
@@ -383,7 +409,7 @@ function syncEditorFromUI() {
         downloadImageOption: downloadImageOption,
         showGradeLegend: showGradeLegend,
         tracks: tracks.map(t => ({
-            title: t.titleInput.value(), grade: t.gradeSelect.value(),
+            title: t.titleInput.value(), grade: t.gradeSelect.value(), interlude: t.interlude || false,
             customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null,
             customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null
         })),
@@ -870,9 +896,9 @@ function alignMainElementsToImage(){
 
 function getDefaultProfile() {
     return {
-        "tracksTextSize": 38,
-        "tracksSpacing": -22,
-        "tracksRectHeight": 26,
+        "tracksTextSize": 40,
+        "tracksSpacing": -30,
+        "tracksRectHeight": 28,
         "tracksTwoColumns": false,
         "tracksVerticalOffset": 0,
         "colorMap": {
@@ -1046,7 +1072,7 @@ function applyProfile(profileData) {
     tracksTextSize = profileData.tracksTextSize || 60;
     tracksSpacing = profileData.tracksSpacing || 0;
     tracksRectHeight = profileData.tracksRectHeight || 40;
-    tracksTwoColumns = profileData.tracksTwoColumns !== undefined ? profileData.tracksTwoColumns : true;
+    tracksTwoColumns = profileData.tracksTwoColumns !== undefined ? profileData.tracksTwoColumns : false;
     verticalOffsetsRatings.tracks = profileData.tracksVerticalOffset || 0;
     customTextboxes = customTextboxes.filter(tb => tb.id !== 'album_review' && tb.id !== 'comentario');
 
@@ -1629,6 +1655,332 @@ function createAdvancedOptionsSection(parent = editorPanel) {
     });
 }
 
+// ---- Provider config: everything that differs between APIs lives here ----
+// To add another provider (Gemini, Mistral, etc.) just add an entry below.
+const AI_PROVIDERS = {
+    openai: {
+        label: 'OpenAI',
+        endpoint: 'https://api.openai.com/v1/chat/completions',
+        // Adjust these to whatever model strings you actually have access to.
+        models: ['gpt-5-mini', 'gpt-5-nano', 'gpt-4.1-mini', 'gpt-4o-mini'],
+        defaultModel: (typeof IA_MODEL !== 'undefined' ? IA_MODEL : 'gpt-5-mini'),
+        buildHeaders: (key) => ({
+            'Content-Type': 'application/json',
+            'Authorization': 'Bearer ' + key
+        }),
+        buildBody: (model, prompt) => JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: prompt }]
+        }),
+        parseResponse: (data) => data.choices[0].message.content
+    },
+    anthropic: {
+        label: 'Anthropic',
+        endpoint: 'https://api.anthropic.com/v1/messages',
+        // Verify these against Anthropic's current model strings.
+        models: ['claude-haiku-4-5', 'claude-sonnet-4-6', 'claude-opus-4-8'],
+        defaultModel: 'claude-haiku-4-5',
+        buildHeaders: (key) => ({
+            'Content-Type': 'application/json',
+            'x-api-key': key,
+            'anthropic-version': '2023-06-01',
+            // Required for calling Anthropic directly from a browser (CORS).
+            'anthropic-dangerous-direct-browser-access': 'true'
+        }),
+        buildBody: (model, prompt) => JSON.stringify({
+            model,
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: prompt }]
+        }),
+        parseResponse: (data) => data.content[0].text
+    }
+};
+
+function createIASection(parent = editorPanel) {
+    createDiv('').parent(parent).class('section-divider');
+    let iaSection = createDiv('').parent(parent).class('color-section');
+    let iaHeader = createDiv('').parent(iaSection).class('color-section-header');
+    let iaToggle = createSpan('▶').parent(iaHeader).class('color-toggle');
+    createSpan(' AI Space ').parent(iaHeader);
+    let iaContent = createDiv('').parent(iaSection).class('color-content collapsed');
+
+    iaHeader.mousePressed(() => {
+        if (iaContent.hasClass('collapsed')) {
+            iaContent.removeClass('collapsed');
+            iaToggle.html('▼');
+        }
+        else {
+            iaContent.addClass('collapsed');
+            iaToggle.html('▶');
+        }
+    });
+
+    // ---- Provider / key / model state (persisted per provider) ----
+    let aiProvider = localStorage.getItem('aiProvider') || 'openai';
+
+    // Per-provider keys. Note the migration from the old single-key format.
+    let apiKeys = {
+        openai: localStorage.getItem('apiKey_openai') || localStorage.getItem('openAIApiKey') || '',
+        anthropic: localStorage.getItem('apiKey_anthropic') || ''
+    };
+    // One-time migration of the legacy key, then drop the old entry.
+    if (!localStorage.getItem('apiKey_openai') && localStorage.getItem('openAIApiKey')) {
+        localStorage.setItem('apiKey_openai', localStorage.getItem('openAIApiKey'));
+        localStorage.removeItem('openAIApiKey');
+    }
+
+    let aiModels = {
+        openai: localStorage.getItem('aiModel_openai') || AI_PROVIDERS.openai.defaultModel,
+        anthropic: localStorage.getItem('aiModel_anthropic') || AI_PROVIDERS.anthropic.defaultModel
+    };
+
+    // ---- Provider selector ----
+    let providerRow = createDiv('').parent(iaContent).class('form-group');
+    createElement('label', 'AI Provider').parent(providerRow);
+    let providerSelect = createSelect().parent(providerRow).class('form-select');
+    for (let id in AI_PROVIDERS) providerSelect.option(AI_PROVIDERS[id].label, id);
+    providerSelect.selected(aiProvider);
+    providerSelect.style('margin-bottom', '15px');
+
+    // ---- API key input ----
+    let apiKeyRow = createDiv('').parent(iaContent).class('form-group');
+    let apiKeyLabel = createElement('label', 'API Key').parent(apiKeyRow);
+    let apiKeyInput = createInput('').parent(apiKeyRow).class('form-input').attribute('type', 'password');
+    apiKeyInput.style('margin-bottom', '15px');
+
+    let saveApiKeyCheckbox = createCheckbox('Save API Key in Local Storage', true).parent(apiKeyRow).class('checkbox-input');
+    saveApiKeyCheckbox.style('margin-bottom', '15px');
+
+    // ---- Model selector ----
+    let modelRow = createDiv('').parent(iaContent).class('form-group');
+    createElement('label', 'Model').parent(modelRow);
+    let modelSelect = createSelect().parent(modelRow).class('form-select');
+    modelSelect.style('margin-bottom', '15px');
+
+    // (Re)build the model options for the current provider.
+    function populateModelSelect() {
+        modelSelect.elt.innerHTML = '';
+        let provider = AI_PROVIDERS[aiProvider];
+        let saved = aiModels[aiProvider];
+        let list = provider.models.slice();
+        // Preserve a custom/saved model that isn't in the predefined list.
+        if (saved && !list.includes(saved)) list.unshift(saved);
+        for (let m of list) {
+            let label = (m === provider.defaultModel) ? m + ' [RECOMMENDED]' : m;
+            modelSelect.option(label, m);
+        }
+        modelSelect.selected(saved || provider.defaultModel);
+    }
+
+
+    // Keep the visible inputs in sync with the selected provider.
+    function refreshProviderUI() {
+        apiKeyLabel.html(AI_PROVIDERS[aiProvider].label + ' API Key');
+        apiKeyInput.value(apiKeys[aiProvider] || '');
+        populateModelSelect();
+    }
+    refreshProviderUI();
+
+    providerSelect.changed(() => {
+        aiProvider = providerSelect.value();
+        localStorage.setItem('aiProvider', aiProvider);
+        refreshProviderUI();
+    });
+
+    apiKeyInput.input(() => {
+        apiKeys[aiProvider] = apiKeyInput.value().trim();
+        if (saveApiKeyCheckbox.checked() && apiKeys[aiProvider]) {
+            localStorage.setItem('apiKey_' + aiProvider, apiKeys[aiProvider]);
+        }
+    });
+
+    saveApiKeyCheckbox.changed(() => {
+        if (!saveApiKeyCheckbox.checked()) {
+            localStorage.removeItem('apiKey_' + aiProvider);
+        } else if (apiKeys[aiProvider]) {
+            localStorage.setItem('apiKey_' + aiProvider, apiKeys[aiProvider]);
+        }
+    });
+
+    modelSelect.changed(() => {
+        aiModels[aiProvider] = modelSelect.value();
+        localStorage.setItem('aiModel_' + aiProvider, aiModels[aiProvider]);
+    });
+
+    // ---- Single entry point for all AI calls ----
+    async function callAI(prompt) {
+        const provider = AI_PROVIDERS[aiProvider];
+        const key = apiKeys[aiProvider];
+        const model = (aiModels[aiProvider] || provider.defaultModel).trim();
+
+        const response = await fetch(provider.endpoint, {
+            method: 'POST',
+            headers: provider.buildHeaders(key),
+            body: provider.buildBody(model, prompt)
+        });
+        const data = await response.json();
+        if (data.error) throw new Error(data.error.message || 'API error');
+        return provider.parseResponse(data).trim();
+    }
+
+    function requireKey() {
+        if (!apiKeys[aiProvider]) {
+            showToast(`Please enter your ${AI_PROVIDERS[aiProvider].label} API key first`, true);
+            return false;
+        }
+        return true;
+    }
+
+    // Some models wrap JSON in ```json fences despite being told not to.
+    function stripFences(s) {
+        return s.replace(/```(?:json)?/gi, '').trim();
+    }
+
+    // ---- Prompts ----
+    const promptFixGrammar = "fix any grammar or syntax mistakes or anything that is awkard but do not change it a lot. Only respond with the fixed text without any additional commentary. Here is the text: ";
+
+    const promptGenerateAlbumInfo = `Return album metadata as a JSON object with no extra text or markdown.
+Format (placeholders, do not copy these values):
+{"year":"<release year as string>","artist":"<performing artist>","genre":"<genre 1>, <genre 2>"}
+
+Rules:
+- genre must be exactly two genres, comma-separated.
+- If the album name is ambiguous, pick the most famous match.
+- Set a field to "unknown" only if you truly have no idea. Answer well-known albums confidently.
+
+Album: {albumName}`;
+
+    const promptGenerateDescription = `You are a music database. Given an album name and its metadata, return a short description of the album in 2-3 sentences. Do not add asterisks or any other formatting. Do not include the album name or its year as that information is already known. Focus on the music, the artist, and the genre. If you don't know the album, return "unknown".`;
+
+    // ---- Button: fix description grammar ----
+    let generateFunFactRow = createDiv('').parent(iaContent).class('form-group');
+    let generateFunFactButton = createButton('Fix description grammar').parent(generateFunFactRow).class('btn btn-secondary');
+    generateFunFactButton.mousePressed(async () => {
+        if (!requireKey()) return;
+        if (!albumData || !albumData.funfact) {
+            showToast('Album description not found', true);
+            return;
+        }
+        generateFunFactButton.attribute('disabled', '');
+        generateFunFactButton.html('Generating...');
+        try {
+            let funFact = await callAI(promptFixGrammar + albumData.funfact);
+            setField('funfact', funFact);
+            showToast('Description grammar fixed successfully');
+        } catch (error) {
+            console.error('Error fixing grammar:', error);
+            showToast('Error fixing grammar', true);
+        } finally {
+            generateFunFactButton.removeAttribute('disabled');
+            generateFunFactButton.html('Fix description grammar');
+        }
+    });
+
+    // ---- Button: fill year / artist / genre from the album name ----
+    let generateAlbumInfoRow = createDiv('').parent(iaContent).class('form-group');
+    let generateAlbumInfoButton = createButton('Fill album info').parent(generateAlbumInfoRow).class('btn btn-secondary');
+    generateAlbumInfoButton.mousePressed(async () => {
+        if (!requireKey()) return;
+        if (!albumData || !albumData.title) {
+            showToast('Album name not found', true);
+            return;
+        }
+        generateAlbumInfoButton.attribute('disabled', '');
+        generateAlbumInfoButton.html('Generating...');
+        try {
+            let prompt = promptGenerateAlbumInfo.replace('{albumName}', albumData.title);
+            if (albumData.artist) prompt += ` The artist is "${albumData.artist}".`;
+            if (albumData.year)   prompt += ` The year is "${albumData.year}".`;
+            if (albumData.genre)  prompt += ` The genre is "${albumData.genre}".`;
+
+            let content = await callAI(prompt);
+            if (content === 'unknown') {
+                showToast('No information found for this album', true);
+                return;
+            }
+
+            let albumInfo = JSON.parse(stripFences(content));
+            if (albumInfo.year === 'unknown' && albumInfo.artist === 'unknown' && albumInfo.genre === 'unknown') {
+                showToast('No information found for this album', true);
+                return;
+            }
+            setField('year', albumInfo.year);
+            setField('artist', albumInfo.artist);
+            let genres = albumInfo.genre.split(',')
+                .map(g => g.trim())
+                .map(g => g.charAt(0).toUpperCase() + g.slice(1))
+                .join(', ');
+            setField('genre', genres);
+
+            showToast('Album info filled successfully');
+        }
+        catch (error) {
+            console.error('Error generating album info:', error);
+            showToast('Error generating album info', true);
+        }
+        finally {
+            generateAlbumInfoButton.removeAttribute('disabled');
+            generateAlbumInfoButton.html('Fill album info');
+        }
+    });
+
+    // ---- Button: generate a description ----
+    let generateDescriptionRow = createDiv('').parent(iaContent).class('form-group');
+    let generateDescriptionButton = createButton('Generate description').parent(generateDescriptionRow).class('btn btn-secondary');
+    generateDescriptionButton.mousePressed(async () => {
+        if (!requireKey()) return;
+        if (!albumData || !albumData.title) {
+            showToast('Please fill the album name field first', true);
+            return;
+        }
+        if (!albumData.artist) {
+            showToast('Please fill the artist field first', true);
+            return;
+        }
+        generateDescriptionButton.attribute('disabled', '');
+        generateDescriptionButton.html('Generating...');
+        try {
+            let prompt = promptGenerateDescription +
+                ` Album name: ${albumData.title}. Year: ${albumData.year || 'unknown'}. Artist: ${albumData.artist}. Genre: ${albumData.genre || 'unknown'}.`;
+            let description = await callAI(prompt);
+            if (description === 'unknown') {
+                showToast('No description found for this album', true);
+                return;
+            }
+            setField('funfact', description);
+            showToast('Description generated successfully');
+        }
+        catch (error) {
+            console.error('Error generating description:', error);
+            showToast('Error generating description', true);
+        }
+        finally {
+            generateDescriptionButton.removeAttribute('disabled');
+            generateDescriptionButton.html('Generate description');
+        }
+    });
+}
+
+
+function setField(fieldName, value) {
+    if (!albumData) return;
+    albumData[fieldName] = value;
+    if (fieldName === 'funfact') {
+        funfactInput.value(value);
+    }
+    else if (fieldName === 'year') {
+        yearInput.value(value);
+    }
+    else if (fieldName === 'artist') {
+        artistInput.value(value);
+    }
+    else if (fieldName === 'genre') {
+        genreInput.value(value);
+    }
+    autoGeneratePreview();
+    captureState();
+}
+
 function addCustomTextbox(tbData) {
     let id = 'custom_' + Date.now();
     let textbox = {
@@ -1942,8 +2294,11 @@ function addTrackRowWithCapture(shouldCapture) {
     let rowDiv = createDiv('').parent(trackContainer).class('track-row');
 
     // Make row draggable
-    
+
     setupTrackDragAndDrop(rowDiv);
+
+    // Selecting a track (click anywhere on the row, or focusing its title) reveals its button row
+    rowDiv.elt.addEventListener('mousedown', () => selectTrackRowUI(rowDiv));
 
     // Add drag handle
     let dragHandle = createSpan('⋮⋮').parent(rowDiv).class('track-drag-handle');
@@ -1956,30 +2311,31 @@ function addTrackRowWithCapture(shouldCapture) {
     let titleIn = createInput('').parent(rowDiv).class('track-title-input');
     titleIn.attribute('placeholder', 'Track title');
     titleIn.elt.addEventListener('input', autoGeneratePreview);
+    titleIn.elt.addEventListener('focus', () => selectTrackRowUI(rowDiv));
     titleIn.elt.addEventListener('blur', captureState);
     titleIn.elt.addEventListener('keydown', (e) => handleTrackNavigation(e, titleIn));
 
     let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
-    gradeOptions.forEach(grade => {
+    selectableGradeOptions.forEach(grade => {
         gradeSelect.option(grade)
     });
     let options = gradeSelect.elt.options;
-    for(let i = 0; i < gradeOptions.length; i++) {
-        options[i].style.backgroundColor = colorMap[gradeOptions[i]];
-        options[i].style.color = getContrastYIQ(colorMap[gradeOptions[i]]);
+    for(let i = 0; i < selectableGradeOptions.length; i++) {
+        options[i].style.backgroundColor = colorMap[selectableGradeOptions[i]];
+        options[i].style.color = getContrastYIQ(colorMap[selectableGradeOptions[i]]);
     }
     gradeSelect.selected('STRONG');
     gradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
 
+    // Visibility is driven by the 'open' class (gated behind .track-row.selected in CSS),
+    // not inline display, so these collapse with the rest of the row when deselected.
     let textInputContainer = createDiv('').parent(rowDiv).class('track-text-input-container');
-    textInputContainer.style('display', 'none');
     let textInput = createInput('').parent(textInputContainer).class('track-text-input')
     textInput.attribute('placeholder', 'Text inside rect...');
     textInput.elt.addEventListener('input', autoGeneratePreview);
     textInput.elt.addEventListener('blur', captureState);
 
     let textLargeInputContainer = createDiv('').parent(rowDiv).class('track-text-input-container');
-    textLargeInputContainer.style('display', 'none');
     let textLargeInput = createInput('').parent(textLargeInputContainer).class('track-textLarge-input');
     textLargeInput.attribute('placeholder', 'Text below track...');
     textLargeInput.elt.addEventListener('input', autoGeneratePreview);
@@ -1988,18 +2344,30 @@ function addTrackRowWithCapture(shouldCapture) {
     // Buttons row — always at the bottom
     let buttonsDiv = createDiv('').parent(rowDiv).class('track-buttons-row');
 
+    // Interlude toggle — independent of the grade. When active the track renders as a
+    // grey pill with a small grade-coloured dot on top.
+    let interludeBtn = createButton('INT').parent(buttonsDiv).class('track-interlude-btn');
+    interludeBtn.attribute('title', 'Toggle interlude');
+    interludeBtn.mousePressed(() => {
+        let t = tracks.find(tk => tk.rowDiv === rowDiv);
+        if (!t) return;
+        setTrackInterlude(t, !t.interlude);
+        autoGeneratePreview();
+        captureState();
+    });
+
     let textBtn = createButton('T').parent(buttonsDiv).class('track-text-btn');
     textBtn.mousePressed(() => {
-        let isHidden = textInputContainer.style('display') === 'none';
-        textInputContainer.style('display', isHidden ? 'block' : 'none');
-        if (isHidden) textInput.elt.focus();
+        let willOpen = !textInputContainer.hasClass('open');
+        textInputContainer.toggleClass('open');
+        if (willOpen) textInput.elt.focus();
     });
 
     let textLargeBtn = createButton('TT').parent(buttonsDiv).class('track-textLarge-btn');
     textLargeBtn.mousePressed(() => {
-        let isHidden = textLargeInputContainer.style('display') === 'none';
-        textLargeInputContainer.style('display', isHidden ? 'block' : 'none');
-        if (isHidden) textLargeInput.elt.focus();
+        let willOpen = !textLargeInputContainer.hasClass('open');
+        textLargeInputContainer.toggleClass('open');
+        if (willOpen) textLargeInput.elt.focus();
     });
 
     let removeBtn = createButton('×').parent(buttonsDiv).class('track-remove-btn');
@@ -2010,8 +2378,8 @@ function addTrackRowWithCapture(shouldCapture) {
 
 
 
-    tracks.push({   titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, customTextLarge: null, 
-                    textInput, textInputContainer, textLargeInput, textLargeInputContainer, dragHandle });
+    tracks.push({   titleInput: titleIn, gradeSelect, rowDiv, numSpan: trackNumSpan, customNumber: null, customText: null, customTextLarge: null,
+                    textInput, textInputContainer, textLargeInput, textLargeInputContainer, dragHandle, interlude: false, interludeBtn });
 
     if (shouldCapture && historyStack.length > 0) captureState();
 }
@@ -2119,6 +2487,7 @@ function handleTrackNavigation(e, titleIn) {
 
 function removeTrackRow(index) {
     if (tracks.length <= 1) return;
+    if (selectedTrackRow === tracks[index].rowDiv) selectedTrackRow = null;
     tracks[index].rowDiv.remove();
     tracks.splice(index, 1);
     updateTrackNumbers();
@@ -2137,6 +2506,7 @@ function collectTracksData() {
         return title ? {
             title,
             grade: track.gradeSelect.value(),
+            interlude: track.interlude || false,
             customNumber: track.customNumber || null,
             customText: track.textInput ? track.textInput.value().trim() : null,
             customTextLarge: track.textLargeInput ? track.textLargeInput.value().trim() : null
@@ -2254,18 +2624,23 @@ function fillFormFromData(data) {
             addTrackRow();
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
-            lastTrack.gradeSelect.selected(track.grade || 'STRONG');
+            // Migrate legacy data: an 'INTERLUDE' grade becomes interlude=true with no grade.
+            let loadedGrade = track.grade || 'STRONG';
+            let loadedInterlude = track.interlude || false;
+            if (loadedGrade === 'INTERLUDE') { loadedInterlude = true; loadedGrade = 'None'; }
+            lastTrack.gradeSelect.selected(loadedGrade);
+            setTrackInterlude(lastTrack, loadedInterlude);
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
                 lastTrack.numSpan.html(track.customNumber);
             }
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
-                lastTrack.textInputContainer.style('display', 'block');
+                lastTrack.textInputContainer.addClass('open');
             }
             if (track.customTextLarge && track.customTextLarge.trim() !== '') {
                 lastTrack.textLargeInput.value(track.customTextLarge);
-                lastTrack.textLargeInputContainer.style('display', 'block');
+                lastTrack.textLargeInputContainer.addClass('open');
             }
         });
     } else addTrackRow();
@@ -2393,6 +2768,7 @@ function saveToLocalStorage() {
     let data = collectAlbumData(tracks.map(t => ({
         title: t.titleInput.value(),
         grade: t.gradeSelect.value(),
+        interlude: t.interlude || false,
         customNumber: t.customNumber || null,
         customText: t.textInput ? t.textInput.value() : null,
         customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null
@@ -2756,7 +3132,11 @@ function drawTrackList() {
     let rowY = columnTopY;
     for (let i = 0; i < albumData.tracks.length; i++) {
         let track = albumData.tracks[i];
-        let gradeColor = colorMap[track.grade] || "#888888";
+        // Interludes always render with the grey pill colour; the grade (if any) is
+        // shown as a small coloured dot drawn on top of the pill instead.
+        let gradeColor = track.interlude ? colorMap["INTERLUDE"] : (colorMap[track.grade] || "#888888");
+        let showGoatFx = track.grade == 'GOAT' && !track.interlude;
+        let showPeakFx = track.grade == 'PEAK' && !track.interlude;
         let columnShift = (twoColumns && i >= secondColumnStart) ? T.columnShift : 0;
         let titleX = titleBaseX + columnShift + horizOffset + (!twoColumns ? T.titleIndent.oneColumn : T.titleIndent.twoColumns) + twoColumnsFix*0.5;
         let pillCenterX = pillCenterBaseX + columnShift + horizOffset;
@@ -2778,7 +3158,7 @@ function drawTrackList() {
             noteSpacing = fontLight.textBounds(getRichText(track.customTextLarge), noteX, noteY, noteMaxWidth).h + N.bottomGap;
 
             let lineX = pillCenterX - pillW / 2 + N.lineInset;
-            let lineColors = track.grade == 'GOAT'
+            let lineColors = showGoatFx
                 ? goatGradient
                 : [gradeColor, gradeColor, makeTransparent(gradeColor)];
             stroke(gradeColor); strokeCap(ROUND); strokeWeight(N.lineWeight);
@@ -2789,15 +3169,32 @@ function drawTrackList() {
         // Grade pill
         fill(gradeColor);
         noStroke();
-        if (track.grade == 'GOAT') {
+        if (showGoatFx) {
             utils.beginLinearGradient(goatGradient,
                 pillCenterX - pillW / 2, pillCenterY,
                 pillCenterX + pillW / 2, pillCenterY, GOAT_GRADIENT_STOPS);
             utils.beginShadow("#ffffff", T.goatGlowBlur, 0, 0);
         }
-        if (track.grade == 'PEAK') utils.beginShadow(gradeColor, T.peakGlowBlur, 0, 0);
+        if (showPeakFx) utils.beginShadow(gradeColor, T.peakGlowBlur, 0, 0);
         rect(pillCenterX, pillCenterY, pillW, pillH, pillCornerRadius);
-        if (track.grade == 'GOAT' || track.grade == 'PEAK') utils.endShadow();
+        if (showGoatFx || showPeakFx) utils.endShadow();
+
+        // Interlude grade dot — small circle on top of the grey pill, coloured by the
+        // track's grade. Skipped when the interlude has no grade ('None').
+        if (track.interlude && track.grade !== 'None') {
+            let dotColor = colorMap["INTERLUDE"];
+            push();
+            let gradeColor = colorMap[track.grade] || colorMap["INTERLUDE"];
+            fill(gradeColor); noStroke();
+            let h = pillH * 0.6
+            let w = pillW - (h * 0.5);
+            let radius = h * 0.5;
+            //rect(pillCenterX, pillCenterY, w, h, radius);
+
+            let x = pillCenterX - w * 0.5 + radius;
+            ellipse(x, pillCenterY, h, h);
+            pop();
+        }
 
         // Small label inside the pill
         if (track.customText && track.customText.trim() !== '') {
@@ -2815,9 +3212,9 @@ function drawTrackList() {
         fill(255);
         let trackNumber = showTrackNumbersCheckbox.checked() ? track.customNumber || ((i + 1) + '.') : '';
         let title = shortenText(trackNumber + " " + track.title + (track.playing ? " " + musicChar : ""), titleMaxWidth);
-        if (track.grade == 'GOAT') utils.beginShadow("#ffffff", T.goatTitleGlowBlur, 0, 0);
+        if (showGoatFx) utils.beginShadow("#ffffff", T.goatTitleGlowBlur, 0, 0);
         _text(title, titleX, rowY);
-        if (track.grade == 'GOAT') utils.endShadow();
+        if (showGoatFx) utils.endShadow();
 
         rowY += rowSpacing + noteSpacing;
         if (twoColumns && i == secondColumnStart - 1) rowY = columnTopY; // second column restarts at the top
@@ -3482,7 +3879,7 @@ function captureState() {
         imageFormat: currentImageFormat,
         downloadImageOption: downloadImageOption,
         showGradeLegend: showGradeLegend,
-        tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(),
+        tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(), interlude: t.interlude || false,
                                     customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null,
                                     customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null})),
         customTextboxes: customTextboxes.map(t => ({
@@ -3604,18 +4001,23 @@ function restoreState(state) {
             addTrackRowWithoutCapture();
             let lastTrack = tracks[tracks.length - 1];
             lastTrack.titleInput.value(track.title || '');
-            lastTrack.gradeSelect.selected(track.grade || 'STRONG');
+            // Migrate legacy data: an 'INTERLUDE' grade becomes interlude=true with no grade.
+            let loadedGrade = track.grade || 'STRONG';
+            let loadedInterlude = track.interlude || false;
+            if (loadedGrade === 'INTERLUDE') { loadedInterlude = true; loadedGrade = 'None'; }
+            lastTrack.gradeSelect.selected(loadedGrade);
+            setTrackInterlude(lastTrack, loadedInterlude);
             if (track.customNumber) {
                 lastTrack.customNumber = track.customNumber;
                 lastTrack.numSpan.html(track.customNumber);
             }
             if (track.customText && track.customText.trim() !== '') {
                 lastTrack.textInput.value(track.customText);
-                lastTrack.textInputContainer.style('display', 'block');
+                lastTrack.textInputContainer.addClass('open');
             }
             if (track.customTextLarge && track.customTextLarge.trim() !== '') {
                 lastTrack.textLargeInput.value(track.customTextLarge);
-                lastTrack.textLargeInputContainer.style('display', 'block');
+                lastTrack.textLargeInputContainer.addClass('open');
             }
         });
     } else addTrackRowWithoutCapture();
