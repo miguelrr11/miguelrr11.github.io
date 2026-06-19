@@ -3387,7 +3387,7 @@ const textOpts = {
 
     //energy curves dissipating from the letter silhouette
     energy: {
-        chance: 0.1,        //fraction of silhouette rows that emit a strand (both sides get the SAME count)
+        chance: 0.2,        //fraction of silhouette rows that emit a strand (both sides get the SAME count)
         minLen: 8,           //ignore strands shorter than this (px)
         reach: 500,          //strand length in px (outward from the letter). null = run all the way to the canvas edge
 
@@ -3408,9 +3408,9 @@ const textOpts = {
                              //0 = starts right at the letter; larger = a gap before the strand starts.
                              //picked at random per strand within this [min, max] range.
 
-        curveAmp: 0.18,      //vertical curveness as a fraction of the curve length
-        curveAmpRand: 0.6,   //+/- randomness applied to curveAmp per strand
-        curvePower: 1.8,     //how fast the curve gets wild as it leaves the letter (>1 = ramps up far away)
+        curveAmp: 0.38,      //vertical curveness as a fraction of the curve length
+        curveAmpRand: 0.8,   //+/- randomness applied to curveAmp per strand
+        curvePower: 2,     //how fast the curve gets wild as it leaves the letter (>1 = ramps up far away)
         waves: 1.4,          //how many vertical oscillations along the strand
         wavesRand: 0.5,      //+/- randomness on the wave count per strand
         endDrift: 0.25,      //extra vertical wander of the far (edge) end, as a fraction of length
@@ -3483,7 +3483,16 @@ async function printCoverScreen() {
     //_text(albumData.title, width * 0.5 + titleHorizOffset, titleY);
 
     push()
+    let colors = getPopularColors(img, 3, 64, 4, true, 20);
+    colors.sort((a, b) =>
+        a.reduce((sum, v) => sum + v, 0) -
+        b.reduce((sum, v) => sum + v, 0)
+    );
     textOpts.fontSize = titleSize
+    textOpts.energy.grad1From = [colors[0][0], colors[0][1], colors[0][2], 255]
+    textOpts.energy.grad1To = [colors[1][0], colors[1][1], colors[1][2], 255]
+    textOpts.energy.grad2From = textOpts.energy.grad1To
+    textOpts.energy.grad2To = [colors[2][0], colors[2][1], colors[2][2], 255]
     let textGfx = createGlitchyText(albumData.title, width * 0.5 + titleHorizOffset, titleY, fontHeavy, textOpts )
     imageMode(CORNER)
     image(textGfx, 0, 0)

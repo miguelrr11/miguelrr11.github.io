@@ -114,6 +114,91 @@ function hexToRgb(hex) {
     ] : null;
 }
 
+function getPopularColors(
+  img, count = 3, bucketSize = 32, step = 1,
+  distinctHue = false, hueMinDiff = 30
+) {
+  img.loadPixels();
+  const px = img.pixels;
+  const levels = Math.ceil(256 / bucketSize);
+  const buckets = {};
+  const stride = 4 * Math.max(1, Math.floor(step));
+
+  for (let i = 0; i < px.length; i += stride) {
+    if (px[i + 3] < 128) continue; // skip mostly-transparent pixels
+
+    const r = px[i], g = px[i + 1], b = px[i + 2];
+    const key = (Math.floor(r / bucketSize) * levels
+              +  Math.floor(g / bucketSize)) * levels
+              +  Math.floor(b / bucketSize);
+
+    if (!buckets[key]) buckets[key] = { count: 0, r: 0, g: 0, b: 0 };
+    const bk = buckets[key];
+    bk.count++; bk.r += r; bk.g += g; bk.b += b;
+  }
+
+  const sorted = Object.values(buckets)
+    .sort((a, b) => b.count - a.count)
+    .map(bk => [
+      Math.round(bk.r / bk.count),
+      Math.round(bk.g / bk.count),
+      Math.round(bk.b / bk.count),
+    ]);
+
+  const minDist = bucketSize * 1.5;
+  const result = [];
+
+  // Pick the distinctness rule once
+  const passes = distinctHue
+    ? (c) => isHueFarEnough(c, result, hueMinDiff)
+    : (c) => isFarEnough(c, result, minDist);
+
+  // Pass 1: enforce distinctness
+  for (const avg of sorted) {
+    if (passes(avg)) result.push(avg);
+    if (result.length === count) return result;
+  }
+
+  // Pass 2: top up with the next most popular, skipping exact dupes
+  for (const avg of sorted) {
+    if (!result.some(c => c[0] === avg[0] && c[1] === avg[1] && c[2] === avg[2])) {
+      result.push(avg);
+    }
+    if (result.length === count) break;
+  }
+  return result;
+}
+
+function isFarEnough(c, chosen, minDist) {
+  return chosen.every(o => {
+    const dr = o[0] - c[0], dg = o[1] - c[1], db = o[2] - c[2];
+    return Math.sqrt(dr * dr + dg * dg + db * db) >= minDist;
+  });
+}
+
+function isHueFarEnough(c, chosen, minDiff) {
+  const h = rgbHue(c[0], c[1], c[2]);
+  return chosen.every(o => {
+    const ho = rgbHue(o[0], o[1], o[2]);
+    if (h === null || ho === null) return h !== ho; // achromatic handling (see note)
+    const d = Math.abs(h - ho);
+    return Math.min(d, 360 - d) >= minDiff; // hue is circular
+  });
+}
+
+function rgbHue(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b);
+  const d = max - min;
+  if (d === 0) return null; // gray/black/white — no meaningful hue
+  let h;
+  if (max === r)      h = ((g - b) / d) % 6;
+  else if (max === g) h = (b - r) / d + 2;
+  else                h = (r - g) / d + 4;
+  h *= 60;
+  return h < 0 ? h + 360 : h;
+}
+
 // ===================
 // Drawing Utilities
 // ===================
@@ -399,6 +484,8 @@ function createReflectedText(str, x, y, opts = {}, stretchFactor = 1, font, alig
     return g
 }
 
+
+
 // ===================
 // String Utilities
 // ===================
@@ -631,10 +718,6 @@ function createGlitchyText(str, x, y, font, opts = {}){
     //both sides emit the SAME number of strands
     const count = Math.round(e.chance * Math.min(leftArr.length, rightArr.length))
 
-    //TEMP diagnostic - remove once strands are working
-    console.log('[glitch]', {rows: leftPt.size, leftArr: leftArr.length, rightArr: rightArr.length,
-        count, minX: Math.round(minX), maxX: Math.round(maxX),
-        leftBand: Math.round(leftBand), rightBand: Math.round(rightBand), reach: e.reach, fontSize})
 
     //strand target x: a fixed `reach` px outward when set, otherwise all the way to the canvas edge.
     //(reach lets strands have a consistent length even when the text nearly fills the canvas; the
