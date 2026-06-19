@@ -10,6 +10,12 @@ fi
 DEST_FOLDER="$1"
 NEW_FOLDER_NAME="$2"
 
+# if the last argument is -s, then start a server after creating the project
+START_SERVER=false
+if [ "$3" == "-s" ]; then
+  START_SERVER=true
+fi
+
 # Paths relative to the script's location
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BLANCO_FOLDER="$SCRIPT_DIR/BLANCO"
@@ -31,3 +37,9 @@ echo "Project $NEW_FOLDER_NAME created at $DEST_FOLDER"
 
 # Open the new project folder in VS Code
 code "../../$TARGET_FOLDER"
+
+# Start a server if the -s flag was provided
+if [ "$START_SERVER" == true ]; then
+  cd "$TARGET_FOLDER"
+  http-server
+fi
