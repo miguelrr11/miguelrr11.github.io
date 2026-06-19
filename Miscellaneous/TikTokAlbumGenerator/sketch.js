@@ -129,6 +129,8 @@ let draggedTrackIndex = null;
 let autoGenerateTimeout = null;
 let selectedTrackRow = null; // rowDiv element of the currently selected track (shows its button row)
 
+
+
 // Mark a track row as the selected one in the UI so only its button row is shown.
 function selectTrackRowUI(rowDiv) {
     selectedTrackRow = rowDiv;
@@ -428,7 +430,8 @@ function syncEditorFromUI() {
         textLeadingOffsets: {...textLeadingOffsets},
         tracksTextSize, tracksSpacing, tracksRectHeight, tracksTwoColumns,
         textAlignRatings: {...textAlignRatings},
-        textAlignCover: {...textAlignCover}
+        textAlignCover: {...textAlignCover},
+        glitchOpts: {...glitchOpts}
     };
     isUpdatingMonacoFromUI = true;
     window.monacoEditor.setValue(JSON.stringify(data, null, 2));
@@ -728,6 +731,7 @@ function createButtonGrid(parent = editorPanel) {
                             isUpdatingEditorFromMonaco = true;
                             isUndoRedoAction = true;
                             fillFormFromData(data);
+                            glitchOpts = data.glitchOpts ? data.glitchOpts : glitchOpts
                             isUndoRedoAction = false;
                             generateFromForm();
                             captureState();
@@ -3191,7 +3195,7 @@ function drawTrackList() {
             let radius = h * 0.5;
             //rect(pillCenterX, pillCenterY, w, h, radius);
 
-            let x = pillCenterX - w * 0.5 + radius;
+            let x = pillCenterX - w * 0.5 + radius * 1.25;
             ellipse(x, pillCenterY, h, h);
             pop();
         }
@@ -3356,6 +3360,67 @@ function addTextBox(id, bounds, size) {
     textBoxes.push({ id, x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h, sizeOffset: textSizeOffsets[id], currentSize: size });
 }
 
+let glitchOpts = {
+    sides: {left: true, right: true, top: false, bottom: false},
+    type: 'sine',          //'noise' | 'sine' | 'none'
+    amp: 50,               //max vertical shift in pixels
+    scale: 0.005,            //noise zoom / sine frequency
+    symmetrical: false,     //left and right mirror each other
+    color: {
+        mode: 'fade', //'none' | 'invert' | 'tint' | 'rainbow' | 'chromatic' | 'posterize' | 'fade'
+        amount: 1,         //effect strength 0..1
+        tint: [255, 60, 180], //used by 'tint'
+        levels: 10,         //used by 'posterize'
+        shift: 60          //used by 'chromatic' (vertical split in px)
+    }
+}
+
+const textOpts = {
+    fontSize: 50,          //text height in px
+    col: [255, 255, 255],     //base streak colour [r,g,b]
+    variance: 60,           //how much each channel is randomly nudged per line
+    spacing: 1,             //vertical gap (px) between silhouette samples -> bigger = fewer curves
+    sampleFactor: 1,      //textToPoints density (higher = more outline points)
+    drawText: true,          //also draw the actual letters in the middle
+    monoVariance: true,
+    justFirstAndLastLetters: true,
+
+    //energy curves dissipating from the letter silhouette
+    energy: {
+        chance: 0.1,        //fraction of silhouette rows that emit a strand (both sides get the SAME count)
+        minLen: 8,           //ignore strands shorter than this (px)
+        reach: 500,          //strand length in px (outward from the letter). null = run all the way to the canvas edge
+
+        //two colour+alpha gradients laid end-to-end along each strand (strand start -> strand end).
+        //each blends from `From` to `To` as [r, g, b, alpha]. `Speed` controls how fast that gradient
+        //completes: higher speed = it occupies LESS of the strand. The two speeds share the strand,
+        //so a fast grad1 + slow grad2 = quick fade-in near the letter, long slow tail toward the edge.
+        //speeds are picked at random per strand within their [min, max] range.
+        grad1From: [255, 255, 255, 0],   //strand start: fully transparent...
+        grad1To:   [255, 255, 255, 255], //...to opaque white
+        grad1Speed: [1, 2],              //fast
+
+        grad2From: [255, 255, 255, 255], //then opaque white...
+        grad2To:   [0, 0, 0, 0],         //...to transparent black
+        grad2Speed: [0.4, 0.8],          //slow
+
+        startDist: [5, 18],   //how far from the origin (the letter) the strand begins, in segments.
+                             //0 = starts right at the letter; larger = a gap before the strand starts.
+                             //picked at random per strand within this [min, max] range.
+
+        curveAmp: 0.18,      //vertical curveness as a fraction of the curve length
+        curveAmpRand: 0.6,   //+/- randomness applied to curveAmp per strand
+        curvePower: 1.8,     //how fast the curve gets wild as it leaves the letter (>1 = ramps up far away)
+        waves: 1.4,          //how many vertical oscillations along the strand
+        wavesRand: 0.5,      //+/- randomness on the wave count per strand
+        endDrift: 0.25,      //extra vertical wander of the far (edge) end, as a fraction of length
+
+        weight: 2,           //stroke weight
+        weightRand: 0.4,     //+/- randomness on the stroke weight per strand
+        segments: 100         //resolution of each strand (more = smoother)
+    }
+}
+
 async function printCoverScreen() {
     push()
     background(200);
@@ -3381,6 +3446,7 @@ async function printCoverScreen() {
         }
     }
 
+    //background
     if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
     else background(50);
 
@@ -3389,9 +3455,16 @@ async function printCoverScreen() {
     // _text("Album Review", width * 0.5, 260);
     // utils.endShadow();
 
+
     imageMode(CENTER); rectMode(CENTER);
-    utils.beginShadow("#000000", 60, 0, 0);
-    if (hasImage) { rect(width * 0.5, coverY, coverSize, coverSize); image(img, width * 0.5, coverY, coverSize, coverSize); }
+    utils.beginShadow("#000000", 40, 0, 0);
+    if (hasImage) {
+        fill(0) 
+        rect(width * 0.5, coverY, coverSize, coverSize); 
+        let glitchedImg = createGlitchyImage(img, coverSize, coverSize, {x: width*0.5, y: coverY}, glitchOpts)
+        image(glitchedImg, width*0.5, height/2); 
+        image(img, width * 0.5, coverY, coverSize, coverSize); 
+    }
     else drawImagePlaceholder(width * 0.5, coverY, coverSize, coverSize, false);
     utils.endShadow();
 
@@ -3406,7 +3479,26 @@ async function printCoverScreen() {
     textAlign(getP5Align(titleAlignCover), CENTER);
     let titleSize = getMaxTextSizeByWidth(albumData.title, width - 100, 100) + textSizeOffsets.title;
     titleSize = max(10, titleSize);
-    textSize(titleSize); fill(255); _text(albumData.title, width * 0.5 + titleHorizOffset, titleY);
+    textSize(titleSize); fill(255);
+    //_text(albumData.title, width * 0.5 + titleHorizOffset, titleY);
+
+    push()
+    textOpts.fontSize = titleSize
+    let textGfx = createGlitchyText(albumData.title, width * 0.5 + titleHorizOffset, titleY, fontHeavy, textOpts )
+    imageMode(CORNER)
+    image(textGfx, 0, 0)
+    pop()
+
+
+
+    // textOpts.fontSize = titleSize
+    // textOpts.fade = .35
+    // let gfx = createReflectedText(albumData.title, width * 0.5 + titleHorizOffset, titleY, textOpts, .65, fontHeavy, getP5Align(titleAlignCover))
+    // push()
+    // imageMode(CORNER)
+    // image(gfx, 0, 0)
+    // pop()
+
     let titleBounds = fontHeavy.textBounds(getRichText(albumData.title), width * 0.5 + titleHorizOffset, titleY, width - 100);
     addTextBox('title', getAlignedBounds(titleBounds, width * 0.5 + titleHorizOffset, titleAlignCover), titleSize);
 
@@ -4240,3 +4332,6 @@ function getRichText(str){
     }
     return str;
 }
+
+
+

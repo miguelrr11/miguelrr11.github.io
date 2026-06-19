@@ -161,6 +161,244 @@ function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {
     }
 }
 
+function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
+    //what this function does is strech the edge pixels of an image towards the sides of the canvas, creating a glitchy effect
+    //opts:
+    //  sides       {left, right, top, bottom} - which edges get extended
+    //  type        'noise' | 'sine' | 'none'  - how the stretched columns are distorted vertically
+    //  amp         max vertical pixel shift of the stretched columns
+    //  scale       noise zoom / sine frequency
+    //  symmetrical if true the distortion is driven by distance to the image, so left and right mirror each other
+    //  color       {mode, amount, tint, levels, shift} - recolours the stretched pixels, growing with distance:
+    //              mode: 'none' | 'invert' | 'tint' | 'rainbow' | 'chromatic' | 'posterize' | 'fade'
+    //              amount 0..1 strength, tint [r,g,b], levels = posterize steps, shift = chromatic split in px
+    const {
+        sides = {left: true, right: true, top: false, bottom: false},
+        type = 'noise',
+        amp = 60,
+        scale = 0.02,
+        symmetrical = true,
+        color = {}
+    } = opts
+    const isSine = type === 'sine'
+    const doDistort = type !== 'none' && amp !== 0
+
+    //resolve the colour effect once, map its name to an int so the inner loop only switches on a number
+    const cAmount = color.amount != null ? color.amount : 1
+    const cTint = color.tint || [255, 60, 180]
+    const cLevels = color.levels || 4
+    const cShift = color.shift != null ? color.shift : 10
+    const cModeCode = {none: 0, invert: 1, tint: 2, rainbow: 3, chromatic: 4, posterize: 5, fade: 6}[color.mode] || 0
+    const doColor = cModeCode !== 0 && cAmount !== 0
+
+    //rainbow mode reads from a precomputed 256-entry palette (cosine gradient) so there's no trig per pixel
+    let palette = null
+    if(cModeCode === 3){
+        palette = new Uint8Array(256 * 3)
+        for(let i = 0; i < 256; i++){
+            const t = i / 255 * 6.28318
+            palette[i * 3]     = 128 + 127 * Math.sin(t)
+            palette[i * 3 + 1] = 128 + 127 * Math.sin(t + 2.094)
+            palette[i * 3 + 2] = 128 + 127 * Math.sin(t + 4.188)
+        }
+    }
+
+    img.loadPixels()
+    const src = img.pixels          //raw RGBA bytes of the source image
+    const iw = img.width
+    const ih = img.height
+
+    //the rectangle where the image is displayed inside the canvas (imgW/imgH is the display size, imgPos its center)
+    const left = imgPos.x - imgW/2
+    const right = imgPos.x + imgW/2
+    const top = imgPos.y - imgH/2
+    const bottom = imgPos.y + imgH/2
+
+    //newImg covers the whole canvas so it can be drawn at (0,0)
+    const newImg = createImage(width, height)
+    newImg.loadPixels()
+    const dst = newImg.pixels       //starts fully transparent, we only write the pixels we want
+    const cw = width
+    const ch = height
+
+    const sLeft = sides.left, sRight = sides.right, sTop = sides.top, sBottom = sides.bottom
+
+    //precompute the source column for every canvas x, so there are no divisions in the inner loop
+    const colSrc = new Int32Array(cw)
+    //colFactor = 0 at the image edge -> 1 at the canvas edge, so the distortion grows with distance
+    const colFactor = new Float32Array(cw)
+    //colDist = pixel distance from the image edge; used as the distortion coordinate so both sides can mirror
+    const colDist = new Float32Array(cw)
+    for(let x = 0; x < cw; x++){
+        let sx = (x - left) / imgW * iw | 0
+        if(sx < 0) sx = 0
+        else if(sx > iw - 1) sx = iw - 1
+        colSrc[x] = sx
+
+        if(x < left){
+            colFactor[x] = left > 0 ? (left - x) / left : 0
+            colDist[x] = left - x
+        }
+        else if(x >= right){
+            colFactor[x] = (cw - right) > 0 ? (x - right) / (cw - right) : 0
+            colDist[x] = x - right
+        }
+        else { colFactor[x] = 0; colDist[x] = 0 }
+    }
+
+    for(let y = 0; y < ch; y++){
+        const inRows = (y >= top && y < bottom)
+        const aboveTop = (y < top)
+        //map the canvas row to a row of the source image, clamped
+        let sy = (y - top) / imgH * ih | 0
+        if(sy < 0) sy = 0
+        else if(sy > ih - 1) sy = ih - 1
+
+        //how far this row is from the image (0 inside -> 1 at the canvas edge), used by top/bottom effects
+        let rowF = 0
+        if(aboveTop) rowF = top > 0 ? (top - y) / top : 0
+        else if(y >= bottom) rowF = (ch - bottom) > 0 ? (y - bottom) / (ch - bottom) : 0
+
+        const dRow = y * cw
+        for(let x = 0; x < cw; x++){
+            //decide which source pixel feeds this canvas pixel (ssx < 0 means leave transparent)
+            //str = 0..1 distance from the image, drives the colour effects
+            let ssx = -1, ssy = 0, str = 0
+            if(inRows){
+                if(x >= left && x < right){ ssx = colSrc[x]; ssy = sy }   //inside the image
+                else {
+                    const useLeft = (x < left)
+                    if(useLeft ? sLeft : sRight){                         //stretch first/last column
+                        ssx = useLeft ? 0 : iw - 1
+                        ssy = sy
+                        str = colFactor[x]
+                        if(doDistort){
+                            //coord is symmetric (distance to image) or raw x; -1..1 wave * amp * distance-from-image
+                            const coord = symmetrical ? colDist[x] : x
+                            const n = isSine ? Math.sin((coord + y) * scale)
+                                             : (noise(coord * scale, y * scale) - 0.5) * 2
+                            ssy = sy + (n * amp * colFactor[x] | 0)
+                            if(ssy < 0) ssy = 0
+                            else if(ssy > ih - 1) ssy = ih - 1
+                        }
+                    }
+                }
+            }
+            else if(x >= left && x < right){
+                if(aboveTop){ if(sTop){ ssx = colSrc[x]; ssy = 0; str = rowF } }      //stretch first row
+                else { if(sBottom){ ssx = colSrc[x]; ssy = ih - 1; str = rowF } }     //stretch last row
+            }
+            if(ssx < 0) continue
+
+            const si = (ssx + ssy * iw) << 2
+            const di = (x + dRow) << 2
+            let r = src[si], g = src[si + 1], b = src[si + 2], a = src[si + 3]
+
+            if(doColor && str > 0){
+                const t = Math.min(1, str * cAmount)   //blend strength, capped so it never over-shoots
+                switch(cModeCode){
+                    case 1:  //invert: fade toward the negative
+                        r += (255 - 2 * r) * t
+                        g += (255 - 2 * g) * t
+                        b += (255 - 2 * b) * t
+                        break
+                    case 2:  //tint: fade toward a single colour
+                        r += (cTint[0] - r) * t
+                        g += (cTint[1] - g) * t
+                        b += (cTint[2] - b) * t
+                        break
+                    case 3: {//rainbow: fade toward a palette colour picked by distance
+                        const li = (str * 255 | 0) * 3
+                        r += (palette[li]     - r) * t
+                        g += (palette[li + 1] - g) * t
+                        b += (palette[li + 2] - b) * t
+                        break
+                    }
+                    case 4: {//chromatic: split red up and blue down by a growing vertical offset
+                        const sh = (str * cShift) | 0
+                        let ry = ssy + sh; if(ry < 0) ry = 0; else if(ry > ih - 1) ry = ih - 1
+                        let by = ssy - sh; if(by < 0) by = 0; else if(by > ih - 1) by = ih - 1
+                        r = src[(ssx + ry * iw) << 2]
+                        b = src[((ssx + by * iw) << 2) + 2]
+                        break
+                    }
+                    case 5: {//posterize: crush to fewer colour levels the farther out we go
+                        let lv = (cLevels - (cLevels - 2) * str) | 0
+                        if(lv < 2) lv = 2
+                        const step = 255 / (lv - 1)
+                        r = Math.round(r / step) * step
+                        g = Math.round(g / step) * step
+                        b = Math.round(b / step) * step
+                        break
+                    }
+                    case 6:  //fade: dissolve into the background with distance
+                        a *= (1 - t)
+                        break
+                }
+            }
+
+            dst[di]     = r
+            dst[di + 1] = g
+            dst[di + 2] = b
+            dst[di + 3] = a
+        }
+    }
+    newImg.updatePixels()
+    return newImg
+}
+
+
+//draws the string at (x, y) with a flipped, faded, stretched reflection below it.
+//stretchFactor: 1 = mirror the same height, >1 = elongated reflection, <1 = squashed.
+function createReflectedText(str, x, y, opts = {}, stretchFactor = 1, font, alignment){
+    const {
+        fontSize = 120,
+        col = [255, 255, 255],
+        gap = 4,
+        fade = 0.6
+    } = opts
+
+    const g = createGraphics(width, height)
+    g.textFont(font)
+    g.textSize(fontSize)
+    g.textAlign(alignment, BASELINE)   //baseline anchoring is what lets the reflection meet the text's bottom
+    g.noStroke()
+    g.fill(col[0], col[1], col[2])
+
+    //the normal text, baseline sitting at y
+    g.text(str, x, y)
+
+    //the reflection goes on its own buffer so we can multiply its alpha by a gradient
+    const ref = createGraphics(width, height)
+    ref.textFont(font)
+    ref.textSize(fontSize)
+    ref.textAlign(alignment, BASELINE)
+    ref.noStroke()
+    ref.fill(col[0], col[1], col[2])
+
+    //flip vertically (negative Y) and stretch by the factor; baseline anchored just below the text
+    const refTop = y + gap
+    ref.push()
+    ref.translate(x, refTop)
+    ref.scale(1, -stretchFactor)
+    ref.text(str, 0, 0)
+    ref.pop()
+
+    //fade: keep the reflection only where a top-down gradient is opaque (destination-in mask)
+    const ctx = ref.drawingContext
+    const refBottom = refTop + fontSize * stretchFactor
+    const grad = ctx.createLinearGradient(0, refTop, 0, refBottom)
+    grad.addColorStop(0, 'rgba(0,0,0,' + fade + ')')  //right under the text: most visible
+    grad.addColorStop(1, 'rgba(0,0,0,0)')             //farther down: fully gone
+    ctx.globalCompositeOperation = 'destination-in'
+    ctx.fillStyle = grad
+    ctx.fillRect(0, refTop, width, height - refTop)
+    ctx.globalCompositeOperation = 'source-over'      //restore default for safety
+
+    g.image(ref, 0, 0)
+    return g
+}
+
 // ===================
 // String Utilities
 // ===================
@@ -299,3 +537,197 @@ function getRelativePos(x, y){
     return createVector(worldX, worldY);
 }
 */
+
+//grab outline points; works whether textToPoints is global (p5 2.0) or a font method (fallback)
+function getTextPoints(str, x, y, fontSize, options, font){
+    if(typeof textToPoints === 'function') return textToPoints(str, x, y, options)
+    return font.textToPoints(str, x, y, fontSize, options)
+}
+
+function createGlitchyText(str, x, y, font, opts = {}){
+    //draws curvy "energy" strokes that fly off the left/right silhouette of the text toward the
+    //screen edges, fading from transparent (at the edge) into bright (at the letter)
+    const {
+        fontSize = 200,
+        col = [255, 255, 255],
+        spacing = 1,
+        sampleFactor = 0.5,
+        drawText = true,
+        justFirstAndLastLetters = false, //only emit strands from the outer edges (first + last char)
+        energy = {}
+    } = opts
+
+    const e = {
+        chance: 0.08, minLen: 8, reach: null,
+        grad1From: [255, 255, 255, 0], grad1To: [255, 255, 255, 255], grad1Speed: [3, 5],
+        grad2From: [255, 255, 255, 255], grad2To: [0, 0, 0, 0], grad2Speed: [0.4, 0.8],
+        startDist: [0, 0],
+        curveAmp: 0.18, curveAmpRand: 0.6, curvePower: 1.8,
+        waves: 1.4, wavesRand: 0.5, endDrift: 0.25,
+        weight: 1, weightRand: 0.4, segments: 28,
+        ...energy
+    }
+
+    //textToPoints reads the font/size/alignment off the main canvas
+    textFont(font)
+    textSize(fontSize)
+    textAlign(CENTER, CENTER)
+
+    //sample the silhouette from a rasterised copy of the text (font-agnostic + always dense):
+    //draw the word into a tight buffer, then read the leftmost/rightmost lit pixel of each row.
+    //(textToPoints' point density is wildly font-dependent - OTF fonts can yield almost nothing.)
+    const asc = textAscent(), desc = textDescent()
+    const pad = Math.ceil(fontSize * 0.5)                       //room for curves/overshoot
+    const bw = Math.max(1, Math.ceil(textWidth(str)) + pad * 2)
+    const bh = Math.max(1, Math.ceil(asc + desc) + pad * 2)
+    const ref = createGraphics(bw, bh)
+    ref.pixelDensity(1)
+    ref.textFont(font); ref.textSize(fontSize); ref.textAlign(CENTER, CENTER)
+    ref.noStroke(); ref.fill(255)
+    ref.text(str, bw / 2, bh / 2)                               //buffer centre maps to (x, y) on the main canvas
+    ref.loadPixels()
+
+    //bin by row; keep the leftmost and rightmost lit pixel of each row = the silhouette
+    const leftPt = new Map()
+    const rightPt = new Map()
+    let minX = Infinity, maxX = -Infinity
+    const ox = x - bw / 2, oy = y - bh / 2                      //buffer -> canvas offset
+    const step = Math.max(1, Math.round(spacing))
+    for(let by = 0; by < bh; by += step){
+        let lx = -1, rx = -1
+        for(let bx = 0; bx < bw; bx++){
+            if(ref.pixels[(by * bw + bx) * 4 + 3] > 10){        //lit pixel (alpha)
+                if(lx < 0) lx = bx
+                rx = bx
+            }
+        }
+        if(lx < 0) continue                                     //empty row
+        const cy = oy + by
+        leftPt.set(by,  {x: ox + lx, y: cy})
+        rightPt.set(by, {x: ox + rx, y: cy})
+        if(ox + lx < minX) minX = ox + lx
+        if(ox + rx > maxX) maxX = ox + rx
+    }
+    ref.remove()                                                //free the buffer (this runs every frame)
+
+    //optionally restrict to the outer edges: only keep left points within one glyph-width of the
+    //string's left edge (= the first char) and right points within one glyph-width of the right edge
+    //(= the last char). this stops a tall middle letter from sprouting strands in the centre.
+    let leftBand = Infinity, rightBand = -Infinity
+    if(justFirstAndLastLetters && str.length > 0){
+        leftBand  = minX + textWidth(str[0])
+        rightBand = maxX - textWidth(str[str.length - 1])
+    }
+
+    //everything goes into a buffer so the random curves stay fixed until the next rebuild
+    const g = createGraphics(width, height)
+    g.noFill()
+
+    //keep silhouette points whose strand is long enough (so the count we pick is the count we draw),
+    //and, if requested, only those within the first/last char bands
+    const leftArr  = [...leftPt.values()].filter(p => p.x >= e.minLen && p.x <= leftBand)
+    const rightArr = [...rightPt.values()].filter(p => width - p.x >= e.minLen && p.x >= rightBand)
+
+    //both sides emit the SAME number of strands
+    const count = Math.round(e.chance * Math.min(leftArr.length, rightArr.length))
+
+    //TEMP diagnostic - remove once strands are working
+    console.log('[glitch]', {rows: leftPt.size, leftArr: leftArr.length, rightArr: rightArr.length,
+        count, minX: Math.round(minX), maxX: Math.round(maxX),
+        leftBand: Math.round(leftBand), rightBand: Math.round(rightBand), reach: e.reach, fontSize})
+
+    //strand target x: a fixed `reach` px outward when set, otherwise all the way to the canvas edge.
+    //(reach lets strands have a consistent length even when the text nearly fills the canvas; the
+    //tail just runs off-canvas and fades out there.)
+    //left silhouette -> curve out to the left
+    for(const p of sampleN(leftArr, count))  drawEnergyCurve(g, p.x, p.y, e.reach ? p.x - e.reach : 0, e)
+    //right silhouette -> curve out to the right
+    for(const p of sampleN(rightArr, count)) drawEnergyCurve(g, p.x, p.y, e.reach ? p.x + e.reach : width, e)
+
+    //the actual letters on top
+    if(drawText){
+        g.noStroke()
+        g.fill(col[0], col[1], col[2])
+        g.textFont(font)
+        g.textSize(fontSize)
+        g.textAlign(CENTER, CENTER)
+        g.text(str, x, y)
+    }
+
+    return g
+}
+
+//one curvy energy stroke from the silhouette point (sx,sy) out to the screen edge at ex.
+//curveness grows with distance from the letter (the "origin") and with the strand's length.
+//colour+alpha runs through two gradients laid end-to-end (see grad1*/grad2* options); the
+//crossover point between them is set by the two per-strand speeds.
+function drawEnergyCurve(g, sx, sy, ex, e){
+    const len = Math.abs(ex - sx)
+    if(len < e.minLen) return
+
+    //per-strand randomness, fixed for the life of this stroke
+    const amp = len * e.curveAmp * (1 + random(-e.curveAmpRand, e.curveAmpRand))
+    const drift = len * e.endDrift * random(-1, 1)
+    const waves = e.waves * (1 + random(-e.wavesRand, e.wavesRand))
+    const phase = random(TWO_PI)
+
+    //per-strand gradient speeds -> how much of the strand each gradient eats up.
+    //higher speed = completes faster = shorter portion. crossover splits the two.
+    const s1 = random(e.grad1Speed[0], e.grad1Speed[1])
+    const s2 = random(e.grad2Speed[0], e.grad2Speed[1])
+    const cross = (1 / s1) / (1 / s1 + 1 / s2)
+
+    const g1a = color(e.grad1From[0], e.grad1From[1], e.grad1From[2], e.grad1From[3])
+    const g1b = color(e.grad1To[0],   e.grad1To[1],   e.grad1To[2],   e.grad1To[3])
+    const g2a = color(e.grad2From[0], e.grad2From[1], e.grad2From[2], e.grad2From[3])
+    const g2b = color(e.grad2To[0],   e.grad2To[1],   e.grad2To[2],   e.grad2To[3])
+
+    g.strokeWeight(e.weight * (1 + random(-e.weightRand, e.weightRand)))
+
+    //per-strand: skip this many segments at the origin so the strand starts away from the letter
+    const startSeg = constrain(Math.round(random(e.startDist[0], e.startDist[1])), 0, e.segments - 1)
+
+    //point on the (absolute) curve path at parameter t -> geometry is unchanged by startDist
+    const px_ = t => lerp(sx, ex, t)
+    const py_ = t => sy + drift * t + Math.sin(t * PI * waves + phase) * amp * Math.pow(t, e.curvePower)
+
+    let px = px_(startSeg / e.segments), py = py_(startSeg / e.segments)
+    for(let s = startSeg + 1; s <= e.segments; s++){
+        const t = s / e.segments               //0 at the letter -> 1 at the edge (curve geometry)
+        const x = px_(t), y = py_(t)
+
+        //gradient runs over the VISIBLE part of the strand, so it still fades in cleanly at the start
+        const tc = (s - startSeg) / (e.segments - startSeg)
+        let c
+        if(tc <= cross) c = lerpColor(g1a, g1b, cross > 0 ? tc / cross : 1)
+        else            c = lerpColor(g2a, g2b, cross < 1 ? (tc - cross) / (1 - cross) : 1)
+        g.stroke(c)
+        g.line(px, py, x, y)
+        px = x; py = y
+    }
+}
+
+//return n random distinct elements of arr (partial Fisher-Yates shuffle)
+function sampleN(arr, n){
+    const a = arr.slice()
+    for(let i = a.length - 1; i > 0; i--){
+        const j = Math.floor(random() * (i + 1))
+        const tmp = a[i]; a[i] = a[j]; a[j] = tmp
+    }
+    return a.slice(0, Math.min(n, a.length))
+}
+
+//base colour with each channel randomly nudged by +/- variance, clamped to 0..255
+function randCol(col, variance, mono, withNoise = false, noiseVal = 0){
+    if(mono){
+        let ran = withNoise ? noise(noiseVal) : random(-variance, variance)
+        const r = constrain(col[0] + ran, 0, 255)
+        const gc = constrain(col[1] + ran, 0, 255)
+        const b = constrain(col[2] + ran, 0, 255)
+        return color(r, gc, b)
+    }
+    const r = constrain(col[0] + random(-variance, variance), 0, 255)
+    const gc = constrain(col[1] + random(-variance, variance), 0, 255)
+    const b = constrain(col[2] + random(-variance, variance), 0, 255)
+    return color(r, gc, b)
+}
