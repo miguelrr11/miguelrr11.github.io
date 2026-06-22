@@ -247,7 +247,7 @@ function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {
 }
 
 function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
-    //what this function does is strech the edge pixels of an image towards the sides of the canvas, creating a glitchy effect
+    //stretches the edge pixels of an image toward the canvas sides for a glitchy effect
     //opts:
     //  sides       {left, right, top, bottom} - which edges get extended
     //  type        'noise' | 'sine' | 'none'  - how the stretched columns are distorted vertically
@@ -255,30 +255,71 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     //  scale       noise zoom / sine frequency
     //  symmetrical if true the distortion is driven by distance to the image, so left and right mirror each other
     //  color       {mode, amount, tint, levels, shift} - recolours the stretched pixels, growing with distance:
-    //              mode: 'none' | 'invert' | 'tint' | 'rainbow' | 'chromatic' | 'posterize' | 'fade'
+    //              mode: combine with '+' or an array, e.g. 'glow+fade' or ['glow','fade']
+    //                    'none'|'invert'|'tint'|'rainbow'|'chromatic'|'posterize'|'fade'|'glow'|'bloom'|'scanlines'|'bands'
     //              amount 0..1 strength, tint [r,g,b], levels = posterize steps, shift = chromatic split in px
+    //              bandScale = band thickness (smaller=thicker), bandSeed = noise offset for animating bands
+    //  warp        {mosaic, shear, echo, haze, band} - geometry distortions of the SAMPLE position, grow with distance:
+    //              mosaic = max cell size (resolution decay), shear = max band jump in px (torn-signal tearing),
+    //              echo   = max smear offset in px (motion-trail blur), haze = shimmer amplitude in px,
+    //              band   = shear band thickness in px (default 24)
     const {
         sides = {left: true, right: true, top: false, bottom: false},
         type = 'noise',
         amp = 60,
         scale = 0.02,
         symmetrical = true,
-        color = {}
+        color = {},
+        warp = {}
     } = opts
     const isSine = type === 'sine'
     const doDistort = type !== 'none' && amp !== 0
 
-    //resolve the colour effect once, map its name to an int so the inner loop only switches on a number
+    //--- colour effects: parse mode(s) into a bitmask so several can stack -------------------
     const cAmount = color.amount != null ? color.amount : 1
     const cTint = color.tint || [255, 60, 180]
     const cLevels = color.levels || 4
     const cShift = color.shift != null ? color.shift : 10
-    const cModeCode = {none: 0, invert: 1, tint: 2, rainbow: 3, chromatic: 4, posterize: 5, fade: 6}[color.mode] || 0
+    //bands mode: bandScale controls average band thickness (smaller = thicker), bandSeed offsets the
+    //noise so you can animate it from the call site (e.g. bandSeed: frameCount * 0.02)
+    const cBandScale = color.bandScale != null ? color.bandScale : 0.05
+    const cBandSeed = color.bandSeed || 0
+
+    const MODE_BITS = {
+        none: 0, invert: 1, tint: 2, rainbow: 4, chromatic: 8, posterize: 16,
+        fade: 32, glow: 64, overexpose: 64, bloom: 128, scanlines: 256, crt: 256,
+        bands: 512, interference: 512
+    }
+    let cModeCode = 0
+    {
+        const m = color.mode
+        const names = Array.isArray(m) ? m : (typeof m === 'string' ? m.split(/[+,\s|]+/) : [])
+        for(const name of names) cModeCode |= (MODE_BITS[name] || 0)
+    }
     const doColor = cModeCode !== 0 && cAmount !== 0
+    //resolve to booleans once so the inner loop is just flag checks
+    const mInvert    = (cModeCode & 1)   !== 0
+    const mTint      = (cModeCode & 2)   !== 0
+    const mRainbow   = (cModeCode & 4)   !== 0
+    const mChromatic = (cModeCode & 8)   !== 0
+    const mPosterize = (cModeCode & 16)  !== 0
+    const mFade      = (cModeCode & 32)  !== 0
+    const mGlow      = (cModeCode & 64)  !== 0
+    const mBloom     = (cModeCode & 128) !== 0
+    const mScanline  = (cModeCode & 256) !== 0
+    const mBands     = (cModeCode & 512) !== 0
+
+    //--- geometry warps: distort which source pixel feeds each canvas pixel ------------------
+    const wMosaic = warp.mosaic || 0
+    const wShear  = warp.shear  || 0
+    const wEcho   = warp.echo   || 0
+    const wHaze   = warp.haze   || 0
+    const wBand   = warp.band   || 24
+    const doWarp  = wMosaic !== 0 || wShear !== 0 || wHaze !== 0   //echo handled separately (it changes the read)
 
     //rainbow mode reads from a precomputed 256-entry palette (cosine gradient) so there's no trig per pixel
     let palette = null
-    if(cModeCode === 3){
+    if(mRainbow){
         palette = new Uint8Array(256 * 3)
         for(let i = 0; i < 256; i++){
             const t = i / 255 * 6.28318
@@ -344,11 +385,22 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
         if(aboveTop) rowF = top > 0 ? (top - y) / top : 0
         else if(y >= bottom) rowF = (ch - bottom) > 0 ? (y - bottom) / (ch - bottom) : 0
 
+        //bands: one noise sample per row decides if this row sits in a bright band (+), dark band (-) or
+        //neither (0). the varying run-length of noise above/below the thresholds randomises the band widths
+        let bandW = 0
+        if(mBands){
+            const nb = noise(y * cBandScale + cBandSeed)
+            if(nb > 0.66) bandW = (nb - 0.66) / 0.34          //0..1 toward white
+            else if(nb < 0.34) bandW = -(0.34 - nb) / 0.34    //-1..0 toward black
+        }
+        bandW *= 15
+
         const dRow = y * cw
         for(let x = 0; x < cw; x++){
             //decide which source pixel feeds this canvas pixel (ssx < 0 means leave transparent)
-            //str = 0..1 distance from the image, drives the colour effects
-            let ssx = -1, ssy = 0, str = 0
+            //str = 0..1 distance from the image, drives colour + warp effects
+            //vert = which axis the stretch leaves free: true for left/right (ssy free), false for top/bottom (ssx free)
+            let ssx = -1, ssy = 0, str = 0, vert = true
             if(inRows){
                 if(x >= left && x < right){ ssx = colSrc[x]; ssy = sy }   //inside the image
                 else {
@@ -370,58 +422,135 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                 }
             }
             else if(x >= left && x < right){
+                vert = false
                 if(aboveTop){ if(sTop){ ssx = colSrc[x]; ssy = 0; str = rowF } }      //stretch first row
                 else { if(sBottom){ ssx = colSrc[x]; ssy = ih - 1; str = rowF } }     //stretch last row
             }
             if(ssx < 0) continue
 
-            const si = (ssx + ssy * iw) << 2
-            const di = (x + dRow) << 2
-            let r = src[si], g = src[si + 1], b = src[si + 2], a = src[si + 3]
+            //--- geometry warps: nudge the sample position, all scaled by distance (str) ------
+            if(doWarp && str > 0){
+                if(wMosaic){
+                    //resolution decay: snap the free axis to growing cells
+                    const cell = (1 + wMosaic * str) | 0
+                    if(cell > 1){
+                        if(vert) ssy = (ssy / cell | 0) * cell
+                        else     ssx = (ssx / cell | 0) * cell
+                    }
+                }
+                if(wShear){
+                    //torn-signal tearing: each band (perpendicular to the stretch) jumps by a noise amount
+                    const bandCoord = vert ? y : x
+                    const band = bandCoord / wBand | 0
+                    const j = (noise(band * 0.5, 17.3) - 0.5) * 2 * wShear * str | 0
+                    if(vert) ssy += j
+                    else     ssx += j
+                }
+                if(wHaze){
+                    //shimmer: a fast secondary sine wobble layered on top of the main wave
+                    const h = Math.sin(y * 0.3 + x * 0.1) * wHaze * str | 0
+                    if(vert) ssy += h
+                    else     ssx += h
+                }
+                //re-clamp after the offsets
+                if(ssy < 0) ssy = 0; else if(ssy > ih - 1) ssy = ih - 1
+                if(ssx < 0) ssx = 0; else if(ssx > iw - 1) ssx = iw - 1
+            }
 
+            //--- sample the source (echo = average a few taps along the free axis for motion trails) ---
+            let r, g, b, a
+            if(wEcho && str > 0){
+                const d = (wEcho * str) | 0
+                let R = 0, G = 0, B = 0, A = 0
+                for(let e = -1; e <= 1; e++){
+                    let ex = ssx, ey = ssy
+                    if(vert) ey += e * d
+                    else     ex += e * d
+                    if(ey < 0) ey = 0; else if(ey > ih - 1) ey = ih - 1
+                    if(ex < 0) ex = 0; else if(ex > iw - 1) ex = iw - 1
+                    const ei = (ex + ey * iw) << 2
+                    R += src[ei]; G += src[ei + 1]; B += src[ei + 2]; A += src[ei + 3]
+                }
+                r = R / 3; g = G / 3; b = B / 3; a = A / 3
+            }
+            else {
+                const si = (ssx + ssy * iw) << 2
+                r = src[si]; g = src[si + 1]; b = src[si + 2]; a = src[si + 3]
+            }
+
+            //--- colour effects: each runs in order, so they stack ---------------------------
             if(doColor && str > 0){
                 const t = Math.min(1, str * cAmount)   //blend strength, capped so it never over-shoots
-                switch(cModeCode){
-                    case 1:  //invert: fade toward the negative
-                        r += (255 - 2 * r) * t
-                        g += (255 - 2 * g) * t
-                        b += (255 - 2 * b) * t
-                        break
-                    case 2:  //tint: fade toward a single colour
-                        r += (cTint[0] - r) * t
-                        g += (cTint[1] - g) * t
-                        b += (cTint[2] - b) * t
-                        break
-                    case 3: {//rainbow: fade toward a palette colour picked by distance
-                        const li = (str * 255 | 0) * 3
-                        r += (palette[li]     - r) * t
-                        g += (palette[li + 1] - g) * t
-                        b += (palette[li + 2] - b) * t
-                        break
+                if(mInvert){                           //fade toward the negative
+                    r += (255 - 2 * r) * t
+                    g += (255 - 2 * g) * t
+                    b += (255 - 2 * b) * t
+                }
+                if(mTint){                             //fade toward a single colour
+                    r += (cTint[0] - r) * t
+                    g += (cTint[1] - g) * t
+                    b += (cTint[2] - b) * t
+                }
+                if(mRainbow){                          //fade toward a palette colour picked by distance
+                    const li = (str * 255 | 0) * 3
+                    r += (palette[li]     - r) * t
+                    g += (palette[li + 1] - g) * t
+                    b += (palette[li + 2] - b) * t
+                }
+                if(mChromatic){                        //split red up / blue down by a growing vertical offset
+                    const sh = (str * cShift) | 0
+                    let ry = ssy + sh; if(ry < 0) ry = 0; else if(ry > ih - 1) ry = ih - 1
+                    let by = ssy - sh; if(by < 0) by = 0; else if(by > ih - 1) by = ih - 1
+                    r = src[(ssx + ry * iw) << 2]
+                    b = src[((ssx + by * iw) << 2) + 2]
+                }
+                if(mPosterize){                        //crush to fewer colour levels the farther out we go
+                    let lv = (cLevels - (cLevels - 2) * str) | 0
+                    if(lv < 2) lv = 2
+                    const step = 255 / (lv - 1)
+                    r = Math.round(r / step) * step
+                    g = Math.round(g / step) * step
+                    b = Math.round(b / step) * step
+                }
+                if(mGlow){                             //overexpose: pump brightness and bloom toward white
+                    const gain = 1 + str * cAmount * 2.5
+                    r *= gain; g *= gain; b *= gain
+                    const lift = str * cAmount * 0.4
+                    r += (255 - r) * lift
+                    g += (255 - g) * lift
+                    b += (255 - b) * lift
+                }
+                if(mBloom){                            //selective overexposure: only bright pixels blow out
+                    const lum = r * 0.299 + g * 0.587 + b * 0.114
+                    if(lum > 160){
+                        const over = (lum - 160) / 95              //0..1 above the threshold
+                        const gain = 1 + over * str * cAmount * 3
+                        r *= gain; g *= gain; b *= gain
+                    } else {
+                        a *= (1 - t * 0.5)                         //dark pixels recede instead
                     }
-                    case 4: {//chromatic: split red up and blue down by a growing vertical offset
-                        const sh = (str * cShift) | 0
-                        let ry = ssy + sh; if(ry < 0) ry = 0; else if(ry > ih - 1) ry = ih - 1
-                        let by = ssy - sh; if(by < 0) by = 0; else if(by > ih - 1) by = ih - 1
-                        r = src[(ssx + ry * iw) << 2]
-                        b = src[((ssx + by * iw) << 2) + 2]
-                        break
+                }
+                if(mScanline){                         //CRT lines: darken alternate rows, deepening with distance
+                    if((y & 1) === 0){
+                        const dim = 1 - 0.5 * t
+                        r *= dim; g *= dim; b *= dim
                     }
-                    case 5: {//posterize: crush to fewer colour levels the farther out we go
-                        let lv = (cLevels - (cLevels - 2) * str) | 0
-                        if(lv < 2) lv = 2
-                        const step = 255 / (lv - 1)
-                        r = Math.round(r / step) * step
-                        g = Math.round(g / step) * step
-                        b = Math.round(b / step) * step
-                        break
+                }
+                if(mBands && bandW !== 0){              //random white/black noise bands of varying width
+                    if(bandW > 0){
+                        const w = bandW * t                //bright band: blow toward white
+                        r += (255 - r) * w; g += (255 - g) * w; b += (255 - b) * w
+                    } else {
+                        const w = -bandW * t               //dark band: crush toward black
+                        r *= (1 - w); g *= (1 - w); b *= (1 - w)
                     }
-                    case 6:  //fade: dissolve into the background with distance
-                        a *= (1 - t)
-                        break
+                }
+                if(mFade){                             //alpha-only, so run last: dissolve into the background
+                    a *= (1 - t)
                 }
             }
 
+            const di = (x + dRow) << 2
             dst[di]     = r
             dst[di + 1] = g
             dst[di + 2] = b

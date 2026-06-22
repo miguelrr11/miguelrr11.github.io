@@ -431,7 +431,8 @@ function syncEditorFromUI() {
         tracksTextSize, tracksSpacing, tracksRectHeight, tracksTwoColumns,
         textAlignRatings: {...textAlignRatings},
         textAlignCover: {...textAlignCover},
-        glitchOpts: {...glitchOpts}
+        glitchOpts: {...glitchOpts},
+        glitchOptsTitle: {...glitchOptsTitle}
     };
     isUpdatingMonacoFromUI = true;
     window.monacoEditor.setValue(JSON.stringify(data, null, 2));
@@ -732,6 +733,7 @@ function createButtonGrid(parent = editorPanel) {
                             isUndoRedoAction = true;
                             fillFormFromData(data);
                             glitchOpts = data.glitchOpts ? data.glitchOpts : glitchOpts
+                            glitchOptsTitle = data.glitchOptsTitle ? data.glitchOptsTitle : glitchOptsTitle
                             isUndoRedoAction = false;
                             generateFromForm();
                             captureState();
@@ -2672,6 +2674,9 @@ function fillFormFromData(data) {
         });
     }
 
+    if(data.glitchOpts) glitchOpts = data.glitchOpts
+    if(data.glitchOptsTitle) glitchOptsTitle = data.glitchOptsTitle
+
     // Load all offsets and advanced options - clear first, then load
     // Clear existing offsets
     Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
@@ -2802,6 +2807,8 @@ function saveToLocalStorage() {
     data.tracksTwoColumns = tracksTwoColumns;
     data.textAlignRatings = {...textAlignRatings};
     data.textAlignCover = {...textAlignCover};
+    data.glitchOpts = {...glitchOpts}
+    data.glitchOptsTitle = {...glitchOptsTitle}
     localStorage.setItem('albumGeneratorData', JSON.stringify(data));
 }
 
@@ -3037,6 +3044,18 @@ function drawAlbumCover(img, hasImage) {
     if (hasImage) {
         rect(x + 1, y + 1, size - 2, size - 2); // backing rect so the shadow has a solid edge
         image(img, x, y, size, size);
+
+        // createGlitchyImage returns a FULL-CANVAS image with the glitch already positioned
+        // around the cover, where imgPos is the cover's CENTER (here x,y is the top-left
+        // corner because imageMode is CORNER). So draw the result at (0,0) full size — don't
+        // squish it into the size×size cover box.
+        let center = { x: x + size / 2, y: y + size / 2 };
+        let glitchOptsAux = {...glitchOpts}
+        glitchOptsAux.sides = {left: true, right: false, top: false, bottom: false}
+        glitchOptsAux.color.amount = 0.4
+        let glitchedImg = getCachedGlitchyImage('ratingsImage', () => img, size, size, center, glitchOptsAux, albumData.imageUrl);
+        imageMode(CORNER);
+        image(glitchedImg, 0, 0);
     }
     else drawImagePlaceholder(x, y, size, size, true);
     utils.endShadow();
@@ -3059,7 +3078,14 @@ function drawAlbumHeader() {
         albumData.title,
         leftMargin + (horizontalOffsetsRatings.title || 0),
         H.top + (verticalOffsetsRatings.title || 0),
-        titleMaxWidth, H.title.leading, textAlignRatings.title || 'left', BOTTOM);
+        titleMaxWidth, H.title.leading, textAlignRatings.title || 'left', BOTTOM, false);
+
+    drawStylizedText(fontHeavy, 
+        getMaxTextSizeByWidth(albumData.title, titleMaxWidth, H.title.maxFontSize) + textSizeOffsets.title,
+        albumData.title, 
+        leftMargin + (horizontalOffsetsRatings.title || 0),
+        H.top + (verticalOffsetsRatings.title || 0), textAlignRatings.title || 'left', BOTTOM, glitchOptsTitle, 'ratingsTitle')
+
 
     let artistMaxWidth = maxTextboxWidths.artist || defaultMaxTextboxWidths.artist;
     let artistBox = drawTextWithBox('artist', fontRegularCondensed,
@@ -3342,14 +3368,15 @@ function getAlignedBounds(bounds, anchorX, align, maxWidth, font) {
     return bounds;
 }
 
-function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align = 'left', verAlign = BASELINE) {
+function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align = 'left', verAlign = BASELINE, drawText = true) {
     push()
     size = max(10, size);
     textFont(font);
     textSize(size);
     fill(255);
     textLeading(leading);
-    drawBoxText(textStr, x, y, maxWidth, align, verAlign);
+    if(drawText) drawBoxText(textStr, x, y, maxWidth, align, verAlign);
+    textAlign(getP5Align(align), verAlign);
     let bbox = font.textBounds(getRichText(textStr), x, y, maxWidth);
     addTextBox(id, getAlignedBounds(bbox, x, align, maxWidth, font), size);
     pop()
@@ -3360,6 +3387,23 @@ function addTextBox(id, bounds, size) {
     textBoxes.push({ id, x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h, sizeOffset: textSizeOffsets[id], currentSize: size });
 }
 
+//opts:
+//  sides       {left, right, top, bottom} - which edges get extended
+//  type        'noise' | 'sine' | 'none'  - how the stretched columns are distorted vertically
+//  amp         max vertical pixel shift of the stretched columns
+//  scale       noise zoom / sine frequency
+//  symmetrical if true the distortion is driven by distance to the image, so left and right mirror each other
+//  color       {mode, amount, tint, levels, shift} - recolours the stretched pixels, growing with distance:
+//              mode: combine with '+' or an array, e.g. 'glow+fade' or ['glow','fade']
+//                    'none'|'invert'|'tint'|'rainbow'|'chromatic'|'posterize'|'fade'|'glow'|'bloom'|'scanlines'
+//              amount 0..1 strength, tint [r,g,b], levels = posterize steps, shift = chromatic split in px
+//  warp        {mosaic, shear, echo, haze, band} - geometry distortions of the SAMPLE position, grow with distance:
+//              mosaic = max cell size (resolution decay), 
+//              shear = max band jump in px (torn-signal tearing),
+//              echo   = max smear offset in px (motion-trail blur), 
+//              haze = shimmer amplitude in px,
+//              band   = shear band thickness in px (default 24)
+
 let glitchOpts = {
     sides: {left: true, right: true, top: false, bottom: false},
     type: 'sine',          //'noise' | 'sine' | 'none'
@@ -3367,12 +3411,63 @@ let glitchOpts = {
     scale: 0.005,            //noise zoom / sine frequency
     symmetrical: false,     //left and right mirror each other
     color: {
-        mode: 'fade', //'none' | 'invert' | 'tint' | 'rainbow' | 'chromatic' | 'posterize' | 'fade'
-        amount: 1,         //effect strength 0..1
+        mode: 'bloom+glow', //'none'|'invert'|'tint'|'rainbow'|'chromatic'|'posterize'|'fade'|'glow'|'bloom'|'scanlines'
+        amount: .3,         //effect strength 0..1
         tint: [255, 60, 180], //used by 'tint'
         levels: 10,         //used by 'posterize'
         shift: 60          //used by 'chromatic' (vertical split in px)
-    }
+    },
+    warp:  {}
+}
+
+let glitchOptsTitle = {
+    sides: {left: true, right: true, top: false, bottom: false},
+    type: 'none',          //'noise' | 'sine' | 'none'
+    amp: 60,               //max vertical shift in pixels
+    scale: 0.005,            //noise zoom / sine frequency
+    symmetrical: false,     //left and right mirror each other
+    color: {
+        mode: 'fade+bands', //'none'|'invert'|'tint'|'rainbow'|'chromatic'|'posterize'|'fade'|'glow'|'bloom'|'scanlines'
+        amount: .85,         //effect strength 0..1
+        bandScale: 5000005,
+        bandSeed: 10,
+        tint: [255, 60, 180], //used by 'tint'
+        levels: 10,         //used by 'posterize'
+        shift: 60          //used by 'chromatic' (vertical split in px)
+    },
+    warp:  {}
+}
+
+// --- createGlitchyImage result cache -------------------------------------------------
+// createGlitchyImage does per-pixel work across the whole canvas, so it's expensive and
+// every edit triggers a full re-render. We memoize its output per call site: each slot
+// remembers the params that produced its image and only re-runs the glitch when something
+// that actually affects the result changes (source image, display size, position, glitch
+// options). Otherwise the cached p5.Image is reused as-is.
+let glitchImageCache = {};
+
+// Map a p5.Font object to a stable string so it can be part of a cache key.
+function glitchFontKey(font){
+    if(font === fontHeavy) return 'fontHeavy';
+    if(font === fontLight) return 'fontLight';
+    if(font === fontRegular) return 'fontRegular';
+    if(font === fontRegularItalic) return 'fontRegularItalic';
+    if(font === fontRegularCrammed) return 'fontRegularCrammed';
+    if(font === fontRegularCondensed) return 'fontRegularCondensed';
+    return 'font?';
+}
+
+// Return a cached createGlitchyImage result for `cacheId`, recomputing only when the
+// inputs change. `getImg` is a lazy factory for the source image so we don't pay to build
+// it (e.g. render the title to a graphics buffer) on a cache hit. `srcKey` identifies the
+// source content (image url, or text+font+size) so changing it busts the cache.
+function getCachedGlitchyImage(cacheId, getImg, imgW, imgH, imgPos, opts, srcKey = ''){
+    let key = srcKey + '|' + imgW + '|' + imgH + '|' + imgPos.x + '|' + imgPos.y + '|' + JSON.stringify(opts);
+    let slot = glitchImageCache[cacheId];
+    if (slot && slot.key === key) return slot.image;
+    let image = createGlitchyImage(getImg(), imgW, imgH, imgPos, opts);
+    glitchImageCache[cacheId] = { key, image };
+    return image;
 }
 
 const textOpts = {
@@ -3461,54 +3556,27 @@ async function printCoverScreen() {
     if (hasImage) {
         fill(0) 
         rect(width * 0.5, coverY, coverSize, coverSize); 
-        let glitchedImg = createGlitchyImage(img, coverSize, coverSize, {x: width*0.5, y: coverY}, glitchOpts)
-        image(glitchedImg, width*0.5, height/2); 
+        let glitchedImg = getCachedGlitchyImage('coverImage', () => img, coverSize, coverSize, {x: width*0.5, y: coverY}, glitchOpts, albumData.imageUrl)
+        image(glitchedImg, width*.5, height*.5);
         image(img, width * 0.5, coverY, coverSize, coverSize); 
+        image(img, width * 0.5, coverY, coverSize, coverSize); 
+        image(img, width * 0.5, coverY, coverSize, coverSize);
     }
     else drawImagePlaceholder(width * 0.5, coverY, coverSize, coverSize, false);
     utils.endShadow();
 
     push()
 
-    utils.beginShadow("#000000", 30, 0, 0);
     let titleVertOffset = verticalOffsetsCover.title || 0;
     let titleHorizOffset = horizontalOffsetsCover.title || 0;
     let titleY = coverY + coverSize * 0.5 + 60 + titleVertOffset;
-    let titleAlignCover = textAlignCover.title || 'center';
-    textFont(fontHeavy);
-    textAlign(getP5Align(titleAlignCover), CENTER);
+    let titleAlignCover = textAlignCover.title || 'center'; //right now not suppored, it defaults to center
     let titleSize = getMaxTextSizeByWidth(albumData.title, width - 100, 100) + textSizeOffsets.title;
     titleSize = max(10, titleSize);
-    textSize(titleSize); fill(255);
-    //_text(albumData.title, width * 0.5 + titleHorizOffset, titleY);
 
-    push()
-    let colors = getPopularColors(img, 3, 64, 4, true, 20);
-    colors.sort((a, b) =>
-        a.reduce((sum, v) => sum + v, 0) -
-        b.reduce((sum, v) => sum + v, 0)
-    );
-    textOpts.fontSize = titleSize
-    textOpts.energy.grad1From = [colors[0][0], colors[0][1], colors[0][2], 255]
-    textOpts.energy.grad1To = [colors[1][0], colors[1][1], colors[1][2], 255]
-    textOpts.energy.grad2From = textOpts.energy.grad1To
-    textOpts.energy.grad2To = [colors[2][0], colors[2][1], colors[2][2], 255]
-    let textGfx = createGlitchyText(albumData.title, width * 0.5 + titleHorizOffset, titleY, fontHeavy, textOpts )
-    imageMode(CORNER)
-    image(textGfx, 0, 0)
-    pop()
+    drawStylizedText(fontHeavy, titleSize, albumData.title, width * 0.5 + titleHorizOffset, titleY, CENTER, CENTER, glitchOptsTitle, 'coverTitle')
 
-
-
-    // textOpts.fontSize = titleSize
-    // textOpts.fade = .35
-    // let gfx = createReflectedText(albumData.title, width * 0.5 + titleHorizOffset, titleY, textOpts, .65, fontHeavy, getP5Align(titleAlignCover))
-    // push()
-    // imageMode(CORNER)
-    // image(gfx, 0, 0)
-    // pop()
-
-    let titleBounds = fontHeavy.textBounds(getRichText(albumData.title), width * 0.5 + titleHorizOffset, titleY, width - 100);
+    let titleBounds = fontHeavy.textBounds(getRichText(albumData.title), width * 0.5 + titleHorizOffset, titleY);
     addTextBox('title', getAlignedBounds(titleBounds, width * 0.5 + titleHorizOffset, titleAlignCover), titleSize);
 
     let artistVertOffset = verticalOffsetsCover.artist || 0;
@@ -3516,7 +3584,7 @@ async function printCoverScreen() {
     let artistY = coverY + coverSize * 0.5 + 60 + 130 + artistVertOffset;
     let artistAlignCover = textAlignCover.artist || 'center';
     textFont(fontRegularCondensed);
-    textAlign(getP5Align(artistAlignCover), CENTER);
+    textAlign(CENTER, CENTER);
     let artistSize = getMaxTextSizeByWidth(albumData.artist, width - 100, 50) + textSizeOffsets.artist;
     textSize(artistSize); fill(230); _text(albumData.artist, width * 0.5 + artistHorizOffset, artistY);
     let artistBounds = fontRegularCondensed.textBounds(getRichText(albumData.artist), width * 0.5 + artistHorizOffset, artistY, width - 100);
@@ -3548,6 +3616,50 @@ async function printCoverScreen() {
         rect(0, 0, WIDTH, aspectRatioOptions[currentAspectRatioCover].height);
         pop();
     }
+}
+
+function drawStylizedText(font, fontSz, str, x, y, hAlign = CENTER, vAlign = CENTER, opts = glitchOptsTitle, cacheId = 'stylizedText'){
+    push()
+    textFont(font);
+    textSize(fontSz);
+
+    let auxStr = str.replaceAll(" ", ".")
+    let bbox = font.textBounds(auxStr, 0, 0, fontSz);
+
+    // padding so descenders / glyph overhang / antialiased edges never clip
+    let Wpad = -20
+    let Hpad = 20
+    let tw = Math.ceil(bbox.w + Wpad);
+    let th = Math.ceil(bbox.h + Hpad);
+
+    // alignment is applied OUT here: convert the (x, y) anchor into the rectangle CENTER
+    // (imgPos), offsetting by the glyph size — bbox.w/h, not tw/th, so padding doesn't skew it
+    let cx = x, cy = y;
+    if(hAlign === LEFT)       cx = x + bbox.w / 2;
+    else if(hAlign === RIGHT) cx = x - bbox.w / 2;
+    // hAlign === CENTER -> cx = x
+
+    if(vAlign === TOP)        cy = y + bbox.h / 2;
+    else if(vAlign === BOTTOM) cy = y - bbox.h / 2;
+    // vAlign === CENTER -> cy = y
+
+    // The expensive glitch result is cached: only when the text/font/size/position/opts
+    // change do we rebuild the centered text buffer and re-run createGlitchyImage.
+    let srcKey = glitchFontKey(font) + '|' + fontSz + '|' + str;
+    let g2 = getCachedGlitchyImage(cacheId, () => {
+        // buffer ALWAYS draws text centered -> it can't clip regardless of requested alignment
+        let g = createGraphics(tw, th);
+        g.textFont(font);
+        g.noStroke();
+        g.fill(255);
+        g.textSize(fontSz);
+        g.textAlign(CENTER, CENTER);
+        g.text(str, tw / 2, th / 2);
+        return g;
+    }, tw, th, { x: cx, y: cy }, opts, srcKey);
+    imageMode(CORNER);
+    image(g2, 0, 0);
+    pop()
 }
 
 function drawCustomTextboxes(coverType){
@@ -4001,7 +4113,9 @@ function captureState() {
         tracksRectHeight: tracksRectHeight,
         tracksTwoColumns: tracksTwoColumns,
         textAlignRatings: {...textAlignRatings},
-        textAlignCover: {...textAlignCover}
+        textAlignCover: {...textAlignCover},
+        glitchOpts: {...glitchOpts},
+        glitchOptsTitle: {glitchOptsTitle}
     };
 
     if (historyIndex < historyStack.length - 1) historyStack = historyStack.slice(0, historyIndex + 1);
