@@ -14,7 +14,6 @@ let uploadedFile = null
 let albumData = null
 
 let fontRegular, fontRegularItalic, fontRegularCrammed, fontRegularCondensed, fontHeavy, fontLight
-let musicChar = '♫'
 var utils = new p5.Utils();
 
 // UI Elements
@@ -64,6 +63,7 @@ let isUndoRedoAction = false;
 // Monaco sync flags
 let isUpdatingMonacoFromUI = false;
 let isUpdatingEditorFromMonaco = false;
+let monacoInitStarted = false; // persists across JSON-mode toggles so the editor is created only once
 
 // Text box selection and sizing
 let textBoxes = [], selectedTextBox = null, sizeAdjustPanel = null, tracksAdjustPanel = null;
@@ -418,7 +418,7 @@ function syncEditorFromUI() {
         customTextboxes: customTextboxes.map(t => ({
             id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
             fontType: t.fontType, color: t.color, viewType: t.viewType,
-            textAlign: t.textAlign || 'left', leading: t.leading || 0, maxWidth: t.maxWidth || 500
+            textAlign: t.textAlign || 'left', leading: t.leading || 0, maxWidth: t.maxWidth || width - 100
         })),
         verticalOffsetsRatings: {...verticalOffsetsRatings},
         verticalOffsetsCover: {...verticalOffsetsCover},
@@ -710,11 +710,13 @@ function createButtonGrid(parent = editorPanel) {
     buttonToggleJSONeditor.mousePressed(() => {
         editorPanel.toggleClass('editor-open');
         buttonToggleJSONeditor.html(editorPanel.hasClass('editor-open') ? 'Switch to UI Mode' : 'Switch to JSON Mode');
-        let monacoReady = false;
 
         if (editorPanel.hasClass('editor-open')) {
-            if (!monacoReady) {
-                monacoReady = true;
+            // Create the Monaco editor only once; subsequent toggles just re-sync it.
+            // Creating it on every toggle stacks editors in #panel-editor, whose
+            // overlapping hidden textareas break keyboard editing (arrows/delete/overwrite).
+            if (!monacoInitStarted) {
+                monacoInitStarted = true;
                 require(['vs/editor/editor.main'], function() {
                     window.monacoEditor = monaco.editor.create(document.getElementById('panel-editor'), {
                         value: '{}',
@@ -1362,7 +1364,7 @@ function createTracksAdjustPanel() {
     // --- Text Size ---
     let sizeGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group');
     createSpan('Text Size').parent(sizeGroup).class('sap-label');
-    tracksTextSizeSlider = createSlider(30, 50, 60, 2).parent(sizeGroup).class('sap-slider');
+    tracksTextSizeSlider = createSlider(30, 80, 60, 2).parent(sizeGroup).class('sap-slider');
     tracksTextSizeLabel = createSpan('60').parent(sizeGroup).class('sap-value');
     tracksTextSizeSlider.input(() => {
         tracksTextSize = tracksTextSizeSlider.value();
@@ -2790,7 +2792,7 @@ function saveToLocalStorage() {
     data.customTextboxes = customTextboxes.map(t => ({
         id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
         fontType: t.fontType, color: t.color, viewType: t.viewType,
-        textAlign: t.textAlign || 'left', leading: t.leading || 0, maxWidth: t.maxWidth || 500
+        textAlign: t.textAlign || 'left', leading: t.leading || 0, maxWidth: t.maxWidth || width - 100
     }));
     // Save all offsets and advanced options
     data.verticalOffsetsRatings = {...verticalOffsetsRatings};
@@ -2917,7 +2919,7 @@ const RATINGS_LAYOUT = {
         rightColumnXRatio: 0.475,  // x of the artist/year/genre/funfact column
         shadowBlur: 20,
         title:  { maxFontSize: 100, leading: 70 },
-        artist: { offsetY: 110, fontSize: 45, leading: 50 },
+        artist: { offsetY: 120, fontSize: 45, leading: 50 },
         // offsets below are measured from header.top + the artist block height
         year:    { offsetY: 145, fontSize: 38, leading: 60 },
         genre:   { offsetY: 195, fontSize: 30, leading: 40 },
@@ -2977,6 +2979,7 @@ const RATINGS_LAYOUT = {
 
 async function printAlbum(){
     background(200);
+    if (!albumData) return;
     let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
 
@@ -3004,8 +3007,6 @@ async function printAlbum(){
     imageMode(CORNER); rectMode(CORNER);
 
     let cover = drawAlbumCover(img, hasImage);
-
-    if (!albumData) return;
 
     drawAlbumHeader();
     drawCustomTextboxes('ratings');
@@ -3092,7 +3093,7 @@ function drawAlbumHeader() {
         H.artist.fontSize + textSizeOffsets.artist,
         albumData.artist,
         rightColX + (horizontalOffsetsRatings.artist || 0),
-        H.top + H.artist.offsetY + (verticalOffsetsRatings.artist || 10),
+        H.top + H.artist.offsetY + (verticalOffsetsRatings.artist || 0),
         artistMaxWidth, H.artist.leading, textAlignRatings.artist || 'left');
 
     // year / genre / funfact shift down with the artist block height
@@ -3212,7 +3213,6 @@ function drawTrackList() {
         // Interlude grade dot — small circle on top of the grey pill, coloured by the
         // track's grade. Skipped when the interlude has no grade ('None').
         if (track.interlude && track.grade !== 'None') {
-            let dotColor = colorMap["INTERLUDE"];
             push();
             let gradeColor = colorMap[track.grade] || colorMap["INTERLUDE"];
             fill(gradeColor); noStroke();
@@ -3241,7 +3241,7 @@ function drawTrackList() {
         // Track title
         fill(255);
         let trackNumber = showTrackNumbersCheckbox.checked() ? track.customNumber || ((i + 1) + '.') : '';
-        let title = shortenText(trackNumber + " " + track.title + (track.playing ? " " + musicChar : ""), titleMaxWidth);
+        let title = shortenText(trackNumber + " " + track.title, titleMaxWidth);
         if (showGoatFx) utils.beginShadow("#ffffff", T.goatTitleGlowBlur, 0, 0);
         _text(title, titleX, rowY);
         if (showGoatFx) utils.endShadow();
@@ -3361,7 +3361,10 @@ function getAlignedBounds(bounds, anchorX, align, maxWidth, font) {
     // but textBounds treats x as the alignment anchor (center/right), shifting bounds.x to the left.
     // Correct by offsetting bounds.x back to where the text actually renders within the container.
     // Wrapping text already returns correct bounds from p5 — skip correction in that case.
-    if (!maxWidth || align === 'left' || align === 'justify') return bounds;
+    if (!maxWidth || align === 'left') return bounds;
+    // Justified text is stretched to fill the whole container, so textBounds (which reports
+    // the natural widest-line width) understates it — the box must span the full maxWidth.
+    if (align === 'justify') return { x: bounds.x, y: bounds.y, w: maxWidth, h: bounds.h };
     if (font && textIsWrapping(bounds, font)) return bounds;
     if (align === 'center') return { x: bounds.x + maxWidth / 2, y: bounds.y, w: bounds.w, h: bounds.h };
     if (align === 'right')  return { x: bounds.x + maxWidth,     y: bounds.y, w: bounds.w, h: bounds.h };
@@ -3880,7 +3883,7 @@ function mouseDragged() {
                 verticalOffsetsCover[draggedTextbox.id] = Math.round(dragStartOffsetY + deltaY);
             }
 
-            if(draggedTextbox.id === 'image' && automaticAlignmentCheckbox.checked){
+            if(draggedTextbox.id === 'image' && automaticAlignmentCheckbox.checked()){
                 alignMainElementsToImage()
                 captureState()
                 currentView === 'ratings' ? printAlbum() : printCoverScreen();
@@ -4098,7 +4101,7 @@ function captureState() {
         customTextboxes: customTextboxes.map(t => ({
             id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
             fontType: t.fontType, color: t.color, viewType: t.viewType,
-            leading: t.leading || 0, maxWidth: t.maxWidth || 500, textAlign: t.textAlign || 'left'
+            leading: t.leading || 0, maxWidth: t.maxWidth || width - 100, textAlign: t.textAlign || 'left'
         })),
         textSizeOffsets: {...textSizeOffsets},
         textLeadingOffsets: {...textLeadingOffsets},
@@ -4115,7 +4118,7 @@ function captureState() {
         textAlignRatings: {...textAlignRatings},
         textAlignCover: {...textAlignCover},
         glitchOpts: {...glitchOpts},
-        glitchOptsTitle: {glitchOptsTitle}
+        glitchOptsTitle: {...glitchOptsTitle}
     };
 
     if (historyIndex < historyStack.length - 1) historyStack = historyStack.slice(0, historyIndex + 1);
@@ -4173,6 +4176,9 @@ function restoreState(state) {
         showGradeLegend = state.showGradeLegend;
         if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
     }
+
+    if (state.glitchOpts) glitchOpts = {...state.glitchOpts};
+    if (state.glitchOptsTitle) glitchOptsTitle = {...state.glitchOptsTitle};
 
     // Clear existing offsets before restoring
     Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
@@ -4361,7 +4367,7 @@ function justifyText(str, x, y, boxWidth, options = {}) {
             const w = words[0];
             const chars = [...w];
             if (chars.length > 1) {
-                const charGap = (boxWidth - widths[0]) / (chars.length - 1);
+                const charGap = (boxWidth - safeWidth(w)) / (chars.length - 1);
                 let cx = x;
                 for (const ch of chars) {
                 _text(ch, cx, yTop);
