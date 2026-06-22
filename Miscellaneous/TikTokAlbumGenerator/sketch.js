@@ -3420,7 +3420,12 @@ let glitchOpts = {
         levels: 10,         //used by 'posterize'
         shift: 60          //used by 'chromatic' (vertical split in px)
     },
-    warp:  {}
+    warp:  {},
+    // edges: {
+    //     colors: ['#ff0044', '#00ffd5', '#1a1a2e', '#ffffff'],
+    //     mode: 'noise', 
+    //     scale: 0.04
+    // }
 }
 
 let glitchOptsTitle = {

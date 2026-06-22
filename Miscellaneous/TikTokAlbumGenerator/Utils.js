@@ -263,6 +263,10 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     //              mosaic = max cell size (resolution decay), shear = max band jump in px (torn-signal tearing),
     //              echo   = max smear offset in px (motion-trail blur), haze = shimmer amplitude in px,
     //              band   = shear band thickness in px (default 24)
+    //  edges       {colors, mode, scale, seed} - rebuild the sampled edge from synthetic colours so the stretched
+    //              art comes from these instead of the image. colors = array of [r,g,b] or '#hex'; all selected sides
+    //              get the same treatment. mode 'random' (re-rolls each call) | 'noise' (smooth colour regions);
+    //              scale = noise zoom, seed = noise offset (animate with e.g. seed: frameCount * 0.01)
     const {
         sides = {left: true, right: true, top: false, bottom: false},
         type = 'noise',
@@ -270,7 +274,8 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
         scale = 0.02,
         symmetrical = true,
         color = {},
-        warp = {}
+        warp = {},
+        edges = {}
     } = opts
     const isSine = type === 'sine'
     const doDistort = type !== 'none' && amp !== 0
@@ -317,6 +322,25 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     const wBand   = warp.band   || 24
     const doWarp  = wMosaic !== 0 || wShear !== 0 || wHaze !== 0   //echo handled separately (it changes the read)
 
+    //--- edge art: parse the synthetic colours that will replace the sampled edge ------------
+    //colours may be [r,g,b(,a)] arrays or '#rgb'/'#rrggbb' strings
+    const toRGBA = c => {
+        if(Array.isArray(c)) return [c[0] || 0, c[1] || 0, c[2] || 0, c[3] != null ? c[3] : 255]
+        if(typeof c === 'string'){
+            let h = c.replace('#', '')
+            if(h.length === 3) h = h[0]+h[0] + h[1]+h[1] + h[2]+h[2]
+            const n = parseInt(h, 16)
+            return [(n >> 16) & 255, (n >> 8) & 255, n & 255, 255]
+        }
+        return [0, 0, 0, 255]
+    }
+    const eColors = (edges.colors || []).map(toRGBA)
+    const nCol = eColors.length
+    const doEdges = nCol > 0
+    const eNoise = edges.mode === 'noise'
+    const eScale = edges.scale != null ? edges.scale : 0.05
+    const eSeed = edges.seed || 0
+
     //rainbow mode reads from a precomputed 256-entry palette (cosine gradient) so there's no trig per pixel
     let palette = null
     if(mRainbow){
@@ -348,6 +372,25 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     const ch = height
 
     const sLeft = sides.left, sRight = sides.right, sTop = sides.top, sBottom = sides.bottom
+
+    //build the synthetic edge(s): a 1D strip of colours indexed by the free axis. left+right share the
+    //vertical strip (length ih), top+bottom share the horizontal strip (length iw) - hence "same treatment".
+    let edgeV = null, edgeH = null
+    if(doEdges){
+        const fillEdge = (len) => {
+            const buf = new Uint8ClampedArray(len * 4)
+            for(let i = 0; i < len; i++){
+                //random re-rolls every call; noise gives smooth colour regions of varying width
+                let idx = eNoise ? (noise(i * eScale + eSeed) * nCol | 0) : (Math.random() * nCol | 0)
+                if(idx >= nCol) idx = nCol - 1
+                const c = eColors[idx], k = i << 2
+                buf[k] = c[0]; buf[k + 1] = c[1]; buf[k + 2] = c[2]; buf[k + 3] = c[3]
+            }
+            return buf
+        }
+        if(sLeft || sRight) edgeV = fillEdge(ih)
+        if(sTop || sBottom) edgeH = fillEdge(iw)
+    }
 
     //precompute the source column for every canvas x, so there are no divisions in the inner loop
     const colSrc = new Int32Array(cw)
@@ -458,6 +501,8 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
             }
 
             //--- sample the source (echo = average a few taps along the free axis for motion trails) ---
+            //if edge-art is on, stretched pixels read from the synthetic edge strip instead of the image
+            const eBuf = (doEdges && str > 0) ? (vert ? edgeV : edgeH) : null
             let r, g, b, a
             if(wEcho && str > 0){
                 const d = (wEcho * str) | 0
@@ -468,10 +513,19 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                     else     ex += e * d
                     if(ey < 0) ey = 0; else if(ey > ih - 1) ey = ih - 1
                     if(ex < 0) ex = 0; else if(ex > iw - 1) ex = iw - 1
-                    const ei = (ex + ey * iw) << 2
-                    R += src[ei]; G += src[ei + 1]; B += src[ei + 2]; A += src[ei + 3]
+                    if(eBuf){
+                        const ek = (vert ? ey : ex) << 2
+                        R += eBuf[ek]; G += eBuf[ek + 1]; B += eBuf[ek + 2]; A += eBuf[ek + 3]
+                    } else {
+                        const ei = (ex + ey * iw) << 2
+                        R += src[ei]; G += src[ei + 1]; B += src[ei + 2]; A += src[ei + 3]
+                    }
                 }
                 r = R / 3; g = G / 3; b = B / 3; a = A / 3
+            }
+            else if(eBuf){
+                const ek = (vert ? ssy : ssx) << 2
+                r = eBuf[ek]; g = eBuf[ek + 1]; b = eBuf[ek + 2]; a = eBuf[ek + 3]
             }
             else {
                 const si = (ssx + ssy * iw) << 2
@@ -501,8 +555,12 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                     const sh = (str * cShift) | 0
                     let ry = ssy + sh; if(ry < 0) ry = 0; else if(ry > ih - 1) ry = ih - 1
                     let by = ssy - sh; if(by < 0) by = 0; else if(by > ih - 1) by = ih - 1
-                    r = src[(ssx + ry * iw) << 2]
-                    b = src[((ssx + by * iw) << 2) + 2]
+                    if(eBuf){                          //on edge-art, split within the synthetic strip (vertical strips only)
+                        if(vert){ r = eBuf[ry << 2]; b = eBuf[(by << 2) + 2] }
+                    } else {
+                        r = src[(ssx + ry * iw) << 2]
+                        b = src[((ssx + by * iw) << 2) + 2]
+                    }
                 }
                 if(mPosterize){                        //crush to fewer colour levels the farther out we go
                     let lv = (cLevels - (cLevels - 2) * str) | 0
