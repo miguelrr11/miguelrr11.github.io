@@ -263,10 +263,14 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     //              mosaic = max cell size (resolution decay), shear = max band jump in px (torn-signal tearing),
     //              echo   = max smear offset in px (motion-trail blur), haze = shimmer amplitude in px,
     //              band   = shear band thickness in px (default 24)
-    //  edges       {colors, mode, scale, seed} - rebuild the sampled edge from synthetic colours so the stretched
-    //              art comes from these instead of the image. colors = array of [r,g,b] or '#hex'; all selected sides
-    //              get the same treatment. mode 'random' (re-rolls each call) | 'noise' (smooth colour regions);
-    //              scale = noise zoom, seed = noise offset (animate with e.g. seed: frameCount * 0.01)
+    //  edges       {colors, mode, scale, seed, sample, sampleFactor} - rebuild the sampled edge so the
+    //              stretched art comes from synthetic colours instead of the image. colors = array of
+    //              [r,g,b] or '#hex'; all selected sides get the same treatment.
+    //              mode 'random' (re-rolls each call) | 'noise' (smooth regions); scale = noise zoom,
+    //              seed = noise offset (animate with e.g. seed: frameCount * 0.01).
+    //              sample (boolean) ignores `colors`: it keeps each real edge pixel's hue but jitters its
+    //              luminance by up to +/-sampleFactor (0..1, default 0.5). mode/scale/seed shape the jitter
+    //              (noise = smooth bands, random = per-call), so sample works with either mode.
     const {
         sides = {left: true, right: true, top: false, bottom: false},
         type = 'noise',
@@ -336,8 +340,12 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     }
     const eColors = (edges.colors || []).map(toRGBA)
     const nCol = eColors.length
-    const doEdges = nCol > 0
     const eNoise = edges.mode === 'noise'
+    //sample is independent of mode: it keeps the real edge pixel but jitters its luminance (no colours).
+    //mode/scale/seed still shape the jitter, so it composes with 'noise' or 'random'.
+    const eSample = !!edges.sample
+    const eSampleFactor = edges.sampleFactor != null ? edges.sampleFactor : 0.5
+    const doEdges = nCol > 0 || eSample
     const eScale = edges.scale != null ? edges.scale : 0.05
     const eSeed = edges.seed || 0
 
@@ -375,8 +383,26 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
 
     //build the synthetic edge(s): a 1D strip of colours indexed by the free axis. left+right share the
     //vertical strip (length ih), top+bottom share the horizontal strip (length iw) - hence "same treatment".
-    let edgeV = null, edgeH = null
-    if(doEdges){
+    let edgeV = null, edgeH = null   //synthetic colour strips (colour edge modes)
+    let lumV = null, lumH = null     //per-index brightness multipliers (sample mode)
+    if(doEdges && eSample){
+        //sample: a 1D strip of brightness multipliers in [1-f, 1+f]. Scaling r,g,b by the same
+        //factor changes luminance while leaving the hue untouched. noise = smooth jitter bands
+        //(driven by scale/seed); random = re-rolled per call.
+        const fillLum = (len) => {
+            const buf = new Float32Array(len)
+            for(let i = 0; i < len; i++){
+                const n = eNoise ? (noise(i * eScale + eSeed) * 2 - 1) : (Math.random() * 2 - 1)
+                let f = 1 + n * eSampleFactor
+                if(f < 0) f = 0
+                buf[i] = f
+            }
+            return buf
+        }
+        if(sLeft || sRight) lumV = fillLum(ih)
+        if(sTop || sBottom) lumH = fillLum(iw)
+    }
+    else if(doEdges){
         const fillEdge = (len) => {
             const buf = new Uint8ClampedArray(len * 4)
             for(let i = 0; i < len; i++){
@@ -530,6 +556,16 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
             else {
                 const si = (ssx + ssy * iw) << 2
                 r = src[si]; g = src[si + 1]; b = src[si + 2]; a = src[si + 3]
+            }
+
+            //sample edge mode: scale the real edge pixel's brightness by the per-index factor
+            //(same factor on r,g,b -> luminance changes, hue preserved). stretched pixels only.
+            if(eSample && str > 0){
+                const lf = vert ? lumV : lumH
+                if(lf){
+                    const f = lf[vert ? ssy : ssx]
+                    r *= f; g *= f; b *= f
+                }
             }
 
             //--- colour effects: each runs in order, so they stack ---------------------------

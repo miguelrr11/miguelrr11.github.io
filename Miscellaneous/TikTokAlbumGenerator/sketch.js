@@ -3390,6 +3390,7 @@ function addTextBox(id, bounds, size) {
     textBoxes.push({ id, x: bounds.x, y: bounds.y, w: bounds.w, h: bounds.h, sizeOffset: textSizeOffsets[id], currentSize: size });
 }
 
+//stretches the edge pixels of an image toward the canvas sides for a glitchy effect
 //opts:
 //  sides       {left, right, top, bottom} - which edges get extended
 //  type        'noise' | 'sine' | 'none'  - how the stretched columns are distorted vertically
@@ -3398,14 +3399,17 @@ function addTextBox(id, bounds, size) {
 //  symmetrical if true the distortion is driven by distance to the image, so left and right mirror each other
 //  color       {mode, amount, tint, levels, shift} - recolours the stretched pixels, growing with distance:
 //              mode: combine with '+' or an array, e.g. 'glow+fade' or ['glow','fade']
-//                    'none'|'invert'|'tint'|'rainbow'|'chromatic'|'posterize'|'fade'|'glow'|'bloom'|'scanlines'
+//                    'none'|'invert'|'tint'|'rainbow'|'chromatic'|'posterize'|'fade'|'glow'|'bloom'|'scanlines'|'bands'
 //              amount 0..1 strength, tint [r,g,b], levels = posterize steps, shift = chromatic split in px
+//              bandScale = band thickness (smaller=thicker), bandSeed = noise offset for animating bands
 //  warp        {mosaic, shear, echo, haze, band} - geometry distortions of the SAMPLE position, grow with distance:
-//              mosaic = max cell size (resolution decay), 
-//              shear = max band jump in px (torn-signal tearing),
-//              echo   = max smear offset in px (motion-trail blur), 
-//              haze = shimmer amplitude in px,
+//              mosaic = max cell size (resolution decay), shear = max band jump in px (torn-signal tearing),
+//              echo   = max smear offset in px (motion-trail blur), haze = shimmer amplitude in px,
 //              band   = shear band thickness in px (default 24)
+//  edges       {colors, mode, scale, seed} - rebuild the sampled edge from synthetic colours so the stretched
+//              art comes from these instead of the image. colors = array of [r,g,b] or '#hex'; all selected sides
+//              get the same treatment. mode 'random' (re-rolls each call) | 'noise' (smooth colour regions);
+//              scale = noise zoom, seed = noise offset (animate with e.g. seed: frameCount * 0.01)
 
 let glitchOpts = {
     sides: {left: true, right: true, top: false, bottom: false},
@@ -3421,11 +3425,11 @@ let glitchOpts = {
         shift: 60          //used by 'chromatic' (vertical split in px)
     },
     warp:  {},
-    // edges: {
-    //     colors: ['#ff0044', '#00ffd5', '#1a1a2e', '#ffffff'],
-    //     mode: 'noise', 
-    //     scale: 0.04
-    // }
+    edges: {
+        mode: 'noise',
+        sample: true,
+        scale: 0.04
+    }
 }
 
 let glitchOptsTitle = {
