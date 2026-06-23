@@ -211,6 +211,20 @@ async function setup(){
 
     setInterval(saveToLocalStorage, 1000);
     document.addEventListener('keydown', handleKeyboard);
+
+    const ua = navigator.userAgent;
+    const isSafari = ua.includes('Safari') && !ua.includes('Chrome') && !ua.includes('Chromium');
+    if (isSafari) {
+        const banner = document.createElement('div');
+        banner.id = 'safari-warning-banner';
+        banner.innerHTML = '⚠️ You are using Safari. Some features may not work correctly — for the best experience, use Chrome or Firefox. <button onclick="this.parentElement.remove()" style="margin-left:12px;background:rgba(255,255,255,0.25);border:none;color:inherit;padding:2px 10px;border-radius:4px;cursor:pointer;font-size:13px;">Dismiss</button>';
+        Object.assign(banner.style, {
+            position: 'fixed', top: '0', left: '0', right: '0', zIndex: '9999',
+            background: '#b45309', color: '#fff', textAlign: 'center',
+            padding: '10px 16px', fontSize: '14px', fontFamily: 'sans-serif',
+        });
+        document.body.prepend(banner);
+    }
 }
 
 function createTracksFromPaste(texto){
