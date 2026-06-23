@@ -365,6 +365,10 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     const src = img.pixels          //raw RGBA bytes of the source image
     const iw = img.width
     const ih = img.height
+    // On high-DPI displays createGraphics() buffers have pixelDensity()>1, so their
+    // pixels array row stride is iw*pd not iw. createImage() is always density-1.
+    const pd = (img.pixelDensity ? img.pixelDensity() : 1)
+    const physStride = iw * pd      //physical pixels per source row
 
     //the rectangle where the image is displayed inside the canvas (imgW/imgH is the display size, imgPos its center)
     const left = imgPos.x - imgW/2
@@ -372,12 +376,14 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     const top = imgPos.y - imgH/2
     const bottom = imgPos.y + imgH/2
 
-    //newImg covers the whole canvas so it can be drawn at (0,0)
-    const newImg = createImage(width, height)
+    // Output at full display density: each physical screen pixel gets its own output pixel → crisp on HiDPI.
+    // Callers must draw with image(result, 0, 0, width, height) so the logical size stays correct.
+    const pdOut = (typeof pixelDensity === 'function') ? pixelDensity() : 1
+    const newImg = createImage(width * pdOut, height * pdOut)
     newImg.loadPixels()
     const dst = newImg.pixels       //starts fully transparent, we only write the pixels we want
-    const cw = width
-    const ch = height
+    const cw = width * pdOut        //physical output dimensions
+    const ch = height * pdOut
 
     const sLeft = sides.left, sRight = sides.right, sTop = sides.top, sBottom = sides.bottom
 
@@ -425,40 +431,42 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     //colDist = pixel distance from the image edge; used as the distortion coordinate so both sides can mirror
     const colDist = new Float32Array(cw)
     for(let x = 0; x < cw; x++){
-        let sx = (x - left) / imgW * iw | 0
+        const xl = x / pdOut            //logical x for this physical output column
+        let sx = (xl - left) / imgW * iw | 0
         if(sx < 0) sx = 0
         else if(sx > iw - 1) sx = iw - 1
         colSrc[x] = sx
 
-        if(x < left){
-            colFactor[x] = left > 0 ? (left - x) / left : 0
-            colDist[x] = left - x
+        if(xl < left){
+            colFactor[x] = left > 0 ? (left - xl) / left : 0
+            colDist[x] = left - xl      //logical distance; keeps effect scale density-independent
         }
-        else if(x >= right){
-            colFactor[x] = (cw - right) > 0 ? (x - right) / (cw - right) : 0
-            colDist[x] = x - right
+        else if(xl >= right){
+            colFactor[x] = (width - right) > 0 ? (xl - right) / (width - right) : 0
+            colDist[x] = xl - right
         }
         else { colFactor[x] = 0; colDist[x] = 0 }
     }
 
     for(let y = 0; y < ch; y++){
-        const inRows = (y >= top && y < bottom)
-        const aboveTop = (y < top)
+        const yl = y / pdOut            //logical y for this physical output row
+        const inRows = (yl >= top && yl < bottom)
+        const aboveTop = (yl < top)
         //map the canvas row to a row of the source image, clamped
-        let sy = (y - top) / imgH * ih | 0
+        let sy = (yl - top) / imgH * ih | 0
         if(sy < 0) sy = 0
         else if(sy > ih - 1) sy = ih - 1
 
         //how far this row is from the image (0 inside -> 1 at the canvas edge), used by top/bottom effects
         let rowF = 0
-        if(aboveTop) rowF = top > 0 ? (top - y) / top : 0
-        else if(y >= bottom) rowF = (ch - bottom) > 0 ? (y - bottom) / (ch - bottom) : 0
+        if(aboveTop) rowF = top > 0 ? (top - yl) / top : 0
+        else if(yl >= bottom) rowF = (height - bottom) > 0 ? (yl - bottom) / (height - bottom) : 0
 
         //bands: one noise sample per row decides if this row sits in a bright band (+), dark band (-) or
         //neither (0). the varying run-length of noise above/below the thresholds randomises the band widths
         let bandW = 0
         if(mBands){
-            const nb = noise(y * cBandScale + cBandSeed)
+            const nb = noise(yl * cBandScale + cBandSeed)
             if(nb > 0.66) bandW = (nb - 0.66) / 0.34          //0..1 toward white
             else if(nb < 0.34) bandW = -(0.34 - nb) / 0.34    //-1..0 toward black
         }
@@ -466,23 +474,24 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
 
         const dRow = y * cw
         for(let x = 0; x < cw; x++){
+            const xl = x / pdOut        //logical x for this physical output column
             //decide which source pixel feeds this canvas pixel (ssx < 0 means leave transparent)
             //str = 0..1 distance from the image, drives colour + warp effects
             //vert = which axis the stretch leaves free: true for left/right (ssy free), false for top/bottom (ssx free)
             let ssx = -1, ssy = 0, str = 0, vert = true
             if(inRows){
-                if(x >= left && x < right){ ssx = colSrc[x]; ssy = sy }   //inside the image
+                if(xl >= left && xl < right){ ssx = colSrc[x]; ssy = sy }   //inside the image
                 else {
-                    const useLeft = (x < left)
-                    if(useLeft ? sLeft : sRight){                         //stretch first/last column
+                    const useLeft = (xl < left)
+                    if(useLeft ? sLeft : sRight){                            //stretch first/last column
                         ssx = useLeft ? 0 : iw - 1
                         ssy = sy
                         str = colFactor[x]
                         if(doDistort){
                             //coord is symmetric (distance to image) or raw x; -1..1 wave * amp * distance-from-image
-                            const coord = symmetrical ? colDist[x] : x
-                            const n = isSine ? Math.sin((coord + y) * scale)
-                                             : (noise(coord * scale, y * scale) - 0.5) * 2
+                            const coord = symmetrical ? colDist[x] : xl
+                            const n = isSine ? Math.sin((coord + yl) * scale)
+                                             : (noise(coord * scale, yl * scale) - 0.5) * 2
                             ssy = sy + (n * amp * colFactor[x] | 0)
                             if(ssy < 0) ssy = 0
                             else if(ssy > ih - 1) ssy = ih - 1
@@ -490,7 +499,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                     }
                 }
             }
-            else if(x >= left && x < right){
+            else if(xl >= left && xl < right){
                 vert = false
                 if(aboveTop){ if(sTop){ ssx = colSrc[x]; ssy = 0; str = rowF } }      //stretch first row
                 else { if(sBottom){ ssx = colSrc[x]; ssy = ih - 1; str = rowF } }     //stretch last row
@@ -509,7 +518,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                 }
                 if(wShear){
                     //torn-signal tearing: each band (perpendicular to the stretch) jumps by a noise amount
-                    const bandCoord = vert ? y : x
+                    const bandCoord = vert ? yl : xl
                     const band = bandCoord / wBand | 0
                     const j = (noise(band * 0.5, 17.3) - 0.5) * 2 * wShear * str | 0
                     if(vert) ssy += j
@@ -517,7 +526,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                 }
                 if(wHaze){
                     //shimmer: a fast secondary sine wobble layered on top of the main wave
-                    const h = Math.sin(y * 0.3 + x * 0.1) * wHaze * str | 0
+                    const h = Math.sin(yl * 0.3 + xl * 0.1) * wHaze * str | 0
                     if(vert) ssy += h
                     else     ssx += h
                 }
@@ -543,7 +552,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                         const ek = (vert ? ey : ex) << 2
                         R += eBuf[ek]; G += eBuf[ek + 1]; B += eBuf[ek + 2]; A += eBuf[ek + 3]
                     } else {
-                        const ei = (ex + ey * iw) << 2
+                        const ei = (ex * pd + ey * pd * physStride) << 2
                         R += src[ei]; G += src[ei + 1]; B += src[ei + 2]; A += src[ei + 3]
                     }
                 }
@@ -554,7 +563,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                 r = eBuf[ek]; g = eBuf[ek + 1]; b = eBuf[ek + 2]; a = eBuf[ek + 3]
             }
             else {
-                const si = (ssx + ssy * iw) << 2
+                const si = (ssx * pd + ssy * pd * physStride) << 2
                 r = src[si]; g = src[si + 1]; b = src[si + 2]; a = src[si + 3]
             }
 
@@ -594,8 +603,8 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                     if(eBuf){                          //on edge-art, split within the synthetic strip (vertical strips only)
                         if(vert){ r = eBuf[ry << 2]; b = eBuf[(by << 2) + 2] }
                     } else {
-                        r = src[(ssx + ry * iw) << 2]
-                        b = src[((ssx + by * iw) << 2) + 2]
+                        r = src[(ssx * pd + ry * pd * physStride) << 2]
+                        b = src[((ssx * pd + by * pd * physStride) << 2) + 2]
                     }
                 }
                 if(mPosterize){                        //crush to fewer colour levels the farther out we go
@@ -625,7 +634,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                     }
                 }
                 if(mScanline){                         //CRT lines: darken alternate rows, deepening with distance
-                    if((y & 1) === 0){
+                    if(((yl | 0) & 1) === 0){
                         const dim = 1 - 0.5 * t
                         r *= dim; g *= dim; b *= dim
                     }

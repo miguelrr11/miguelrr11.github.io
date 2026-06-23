@@ -114,6 +114,32 @@ let profiles = {};
 let currentProfileName = 'Default';
 let profileSelect, profileNameInput;
 
+// Glitch Options UI controls
+let glitchTargetSel;
+let glSideLeft, glSideRight, glSideTop, glSideBottom;
+let glTypeSelect;
+let glAmpSlider, glAmpLabel;
+let glScaleSlider, glScaleLabel;
+let glSymChk;
+let glColorChks = {};
+let glColorAmtSlider, glColorAmtLabel;
+let glColorTint;
+let glColorShiftSlider, glColorShiftLabel;
+let glColorLvlSlider, glColorLvlLabel;
+let glColorBandScaleSlider, glColorBandScaleLabel;
+let glColorBandSeedSlider, glColorBandSeedLabel;
+let glWarpMosaicSlider, glWarpMosaicLabel;
+let glWarpShearSlider, glWarpShearLabel;
+let glWarpEchoSlider, glWarpEchoLabel;
+let glWarpHazeSlider, glWarpHazeLabel;
+let glWarpBandSlider, glWarpBandLabel;
+let glEdgesModeSelect;
+let glEdgesSampleChk;
+let glEdgesCommonColorsChk;
+let glEdgesSfSlider, glEdgesSfLabel;
+let glEdgesScaleSlider, glEdgesScaleLabel;
+let glEdgesSeedSlider, glEdgesSeedLabel;
+
 // Custom textboxes system
 let customTextboxes = [];
 let customTextboxContainer;
@@ -377,6 +403,7 @@ function createAlbumEditor() {
     // === Panel 3: Settings ===
     createButtonGrid(panel3);
     createProfileSection(panel3);
+    createGlitchOptionsSection(panel3);
     createColorSection(panel3);
     createAdvancedOptionsSection(panel3);
     createIASection(panel3);
@@ -1028,7 +1055,26 @@ function getDefaultProfile() {
                 "y": 1117.336460532268,
                 "id": "custom_1780566918445"
             }
-        ]
+        ],
+        "glitchOpts": {
+            "sides": {"left": true, "right": true, "top": false, "bottom": false},
+            "type": "sine",
+            "amp": 50,
+            "scale": 0.005,
+            "symmetrical": false,
+            "color": {"mode": "bloom+glow", "amount": 0.3, "tint": [255, 60, 180], "levels": 10, "shift": 60},
+            "warp": {},
+            "edges": {"mode": "noise", "sample": true, "scale": 0.04}
+        },
+        "glitchOptsTitle": {
+            "sides": {"left": true, "right": true, "top": false, "bottom": false},
+            "type": "none",
+            "amp": 60,
+            "scale": 0.005,
+            "symmetrical": false,
+            "color": {"mode": "fade+bands", "amount": 0.85, "bandScale": 0.05, "bandSeed": 10, "tint": [255, 60, 180], "levels": 10, "shift": 60},
+            "warp": {}
+        }
     }
 }
 
@@ -1055,7 +1101,9 @@ function getCurrentProfileData() {
         textLeadingOffsets: {...textLeadingOffsets},
         textAlignRatings: {...textAlignRatings},
         textAlignCover: {...textAlignCover},
-        customTextboxes: getCustomTextboxesProperties()
+        customTextboxes: getCustomTextboxesProperties(),
+        glitchOpts: JSON.parse(JSON.stringify(glitchOpts)),
+        glitchOptsTitle: JSON.parse(JSON.stringify(glitchOptsTitle))
     };
 }
 
@@ -1237,6 +1285,13 @@ function applyProfile(profileData) {
             }
         }
     }
+
+    // Apply glitch opts
+    if (profileData.glitchOpts)      glitchOpts      = JSON.parse(JSON.stringify(profileData.glitchOpts));
+    if (profileData.glitchOptsTitle) glitchOptsTitle = JSON.parse(JSON.stringify(profileData.glitchOptsTitle));
+    if (glitchTargetSel) syncGlitchUI(getActiveGlitchOpts());
+
+    glitchImageCache = {};
 
     // Update UI
     if (albumData) {
@@ -1437,6 +1492,327 @@ function showTracksAdjustPanel() {
     if (tracksTwoColumnsCheckbox) tracksTwoColumnsCheckbox.checked(tracksTwoColumns);
     tracksAdjustPanel.style('display', 'flex');
     updateVerticalOffsetSlider();
+}
+
+// ─── Glitch Options helpers ───────────────────────────────────────────────────
+
+function getActiveGlitchOpts() {
+    return (glitchTargetSel && glitchTargetSel.value() === 'title') ? glitchOptsTitle : glitchOpts;
+}
+
+function refreshGlitchCache() {
+    glitchImageCache = {};
+    if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
+}
+
+function rgbToHex(rgb) {
+    return '#' + rgb.map(v => Math.round(v).toString(16).padStart(2, '0')).join('');
+}
+
+function hexToRgbArr(hex) {
+    return [parseInt(hex.slice(1,3),16), parseInt(hex.slice(3,5),16), parseInt(hex.slice(5,7),16)];
+}
+
+function syncGlitchUI(opts) {
+    if (!opts || !glSideLeft) return;
+
+    const sides = opts.sides || {};
+    glSideLeft.checked(!!sides.left);
+    glSideRight.checked(!!sides.right);
+    glSideTop.checked(!!sides.top);
+    glSideBottom.checked(!!sides.bottom);
+
+    glTypeSelect.selected(opts.type || 'none');
+
+    const amp = opts.amp != null ? opts.amp : 60;
+    glAmpSlider.value(amp); glAmpLabel.html(amp);
+
+    const sc = opts.scale != null ? opts.scale : 0.02;
+    glScaleSlider.value(sc); glScaleLabel.html(parseFloat(sc).toFixed(3));
+
+    glSymChk.checked(!!opts.symmetrical);
+
+    const col = opts.color || {};
+    const activeModes = (col.mode || '').split(/[+,\s|]+/).filter(Boolean);
+    const ALL_MODES = ['invert','tint','rainbow','chromatic','posterize','fade','glow','bloom','scanlines','bands'];
+    ALL_MODES.forEach(m => { if(glColorChks[m]) glColorChks[m].checked(activeModes.includes(m)); });
+
+    const amt = col.amount != null ? col.amount : 1;
+    glColorAmtSlider.value(amt); glColorAmtLabel.html(parseFloat(amt).toFixed(2));
+
+    if (col.tint) glColorTint.value(rgbToHex(col.tint));
+
+    const shift = col.shift != null ? col.shift : 10;
+    glColorShiftSlider.value(shift); glColorShiftLabel.html(shift);
+
+    const levels = col.levels != null ? col.levels : 4;
+    glColorLvlSlider.value(levels); glColorLvlLabel.html(levels);
+
+    const bsc = col.bandScale != null ? Math.min(0.2, col.bandScale) : 0.05;
+    glColorBandScaleSlider.value(bsc); glColorBandScaleLabel.html(parseFloat(bsc).toFixed(3));
+
+    const bsd = col.bandSeed != null ? Math.min(100, col.bandSeed) : 0;
+    glColorBandSeedSlider.value(bsd); glColorBandSeedLabel.html(parseFloat(bsd).toFixed(1));
+
+    const warp = opts.warp || {};
+    glWarpMosaicSlider.value(warp.mosaic || 0);  glWarpMosaicLabel.html(warp.mosaic || 0);
+    glWarpShearSlider.value(warp.shear  || 0);   glWarpShearLabel.html(warp.shear   || 0);
+    glWarpEchoSlider.value(warp.echo    || 0);   glWarpEchoLabel.html(warp.echo     || 0);
+    glWarpHazeSlider.value(warp.haze    || 0);   glWarpHazeLabel.html(warp.haze     || 0);
+    const wb = warp.band != null ? warp.band : 24;
+    glWarpBandSlider.value(wb); glWarpBandLabel.html(wb);
+
+    const edges = opts.edges || {};
+    glEdgesModeSelect.selected(edges.mode || 'noise');
+    glEdgesSampleChk.checked(!!edges.sample);
+    if (glEdgesCommonColorsChk) glEdgesCommonColorsChk.checked(!!(edges.colors && edges.colors.length > 0));
+    const sf = edges.sampleFactor != null ? edges.sampleFactor : 0.5;
+    glEdgesSfSlider.value(sf); glEdgesSfLabel.html(parseFloat(sf).toFixed(2));
+    const esc = edges.scale != null ? Math.min(0.2, edges.scale) : 0.05;
+    glEdgesScaleSlider.value(esc); glEdgesScaleLabel.html(parseFloat(esc).toFixed(3));
+    const esd = edges.seed != null ? Math.min(100, edges.seed) : 0;
+    glEdgesSeedSlider.value(esd); glEdgesSeedLabel.html(parseFloat(esd).toFixed(1));
+}
+
+// ─── Glitch Options section ───────────────────────────────────────────────────
+
+function createGlitchOptionsSection(parent = editorPanel) {
+    createDiv('').parent(parent).class('section-divider');
+    let section = createDiv('').parent(parent).class('color-section');
+    let header  = createDiv('').parent(section).class('color-section-header');
+    let toggle  = createSpan('▶').parent(header).class('color-toggle');
+    createSpan(' Glitch Styling').parent(header);
+
+    let content = createDiv('').parent(section).class('color-content collapsed').style('max-height', '0px');
+
+    header.mousePressed(() => {
+        if (content.hasClass('collapsed')) {
+            content.removeClass('collapsed');
+            content.style('max-height', '2000px');
+            toggle.html('▼');
+        } else {
+            content.addClass('collapsed');
+            content.style('max-height', '0px');
+            toggle.html('▶');
+        }
+    });
+
+    // ── Target selector ──────────────────────────────────────────────────────
+    let targetRow = createDiv('').parent(content).style('display:flex; align-items:center; gap:10px; margin-bottom:14px;');
+    createSpan('Target').parent(targetRow).class('slider-label').style('min-width:70px;');
+    let targetGroup = createDiv('').parent(targetRow).class('form-group').style('flex:1; margin-bottom:0;');
+    glitchTargetSel = createSelect().parent(targetGroup).class('form-select');
+    glitchTargetSel.option('Image', 'image');
+    glitchTargetSel.option('Title', 'title');
+    glitchTargetSel.changed(() => syncGlitchUI(getActiveGlitchOpts()));
+
+    // helper: slider row
+    function sliderRow(label, min, max, def, step) {
+        let row = createDiv('').parent(content).class('slider-row');
+        createSpan(label).parent(row).class('slider-label');
+        let cont = createDiv('').parent(row).class('slider-container');
+        let sl = createSlider(min, max, def, step).parent(cont).class('form-slider');
+        let lbl = createSpan(String(def)).parent(cont).class('slider-value');
+        return { sl, lbl };
+    }
+
+    // ── Sides ────────────────────────────────────────────────────────────────
+    createDiv('Sides').parent(content).class('section-title').style('margin-bottom:8px;');
+    let sidesRow = createDiv('').parent(content).style('display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px;');
+    glSideLeft   = createCheckbox('Left',   false).parent(sidesRow).class('checkbox-input');
+    glSideRight  = createCheckbox('Right',  false).parent(sidesRow).class('checkbox-input');
+    glSideTop    = createCheckbox('Top',    false).parent(sidesRow).class('checkbox-input');
+    glSideBottom = createCheckbox('Bottom', false).parent(sidesRow).class('checkbox-input');
+    [glSideLeft, glSideRight, glSideTop, glSideBottom].forEach(chk => chk.changed(() => {
+        const o = getActiveGlitchOpts();
+        o.sides = { left: glSideLeft.checked(), right: glSideRight.checked(),
+                    top: glSideTop.checked(), bottom: glSideBottom.checked() };
+        refreshGlitchCache();
+    }));
+
+    // ── Wave ─────────────────────────────────────────────────────────────────
+    createDiv('Wave').parent(content).class('section-title').style('margin-bottom:8px;');
+
+    let typeRow = createDiv('').parent(content).class('slider-row');
+    createSpan('Type').parent(typeRow).class('slider-label');
+    let typeGroup = createDiv('').parent(typeRow).class('form-group').style('flex:1; margin-bottom:0;');
+    glTypeSelect = createSelect().parent(typeGroup).class('form-select');
+    ['none','noise','sine'].forEach(v => glTypeSelect.option(v));
+    glTypeSelect.changed(() => { getActiveGlitchOpts().type = glTypeSelect.value(); refreshGlitchCache(); });
+
+    let { sl: ampSl, lbl: ampLbl } = sliderRow('Amplitude', 0, 300, 50, 1);
+    glAmpSlider = ampSl; glAmpLabel = ampLbl;
+    glAmpSlider.input(() => {
+        const v = glAmpSlider.value(); glAmpLabel.html(v);
+        getActiveGlitchOpts().amp = parseInt(v); refreshGlitchCache();
+    });
+
+    let { sl: scaleSl, lbl: scaleLbl } = sliderRow('Scale', 0, 0.1, 0.005, 0.001);
+    glScaleSlider = scaleSl; glScaleLabel = scaleLbl;
+    glScaleSlider.input(() => {
+        const v = parseFloat(glScaleSlider.value()); glScaleLabel.html(v.toFixed(3));
+        getActiveGlitchOpts().scale = v; refreshGlitchCache();
+    });
+
+    let symRow = createDiv('').parent(content).style('margin-bottom:14px;');
+    glSymChk = createCheckbox('Symmetrical', false).parent(symRow).class('checkbox-input');
+    glSymChk.changed(() => { getActiveGlitchOpts().symmetrical = glSymChk.checked(); refreshGlitchCache(); });
+
+    // ── Color ─────────────────────────────────────────────────────────────────
+    createDiv('Color').parent(content).class('section-title').style('margin-bottom:8px;');
+
+    const ALL_MODES = ['invert','tint','rainbow','chromatic','posterize','fade','glow','bloom','scanlines','bands'];
+    let modesGrid = createDiv('').parent(content).style('display:grid; grid-template-columns:1fr 1fr; gap:2px 8px; margin-bottom:12px;');
+    glColorChks = {};
+    ALL_MODES.forEach(m => {
+        let chk = createCheckbox(m, false).parent(modesGrid).class('checkbox-input');
+        chk.changed(() => {
+            const active = ALL_MODES.filter(n => glColorChks[n].checked());
+            const o = getActiveGlitchOpts();
+            if (!o.color) o.color = {};
+            o.color.mode = active.length ? active.join('+') : 'none';
+            refreshGlitchCache();
+        });
+        glColorChks[m] = chk;
+    });
+
+    let { sl: amtSl, lbl: amtLbl } = sliderRow('Amount', 0, 1, 1, 0.01);
+    glColorAmtSlider = amtSl; glColorAmtLabel = amtLbl;
+    glColorAmtSlider.input(() => {
+        const v = parseFloat(glColorAmtSlider.value()); glColorAmtLabel.html(v.toFixed(2));
+        const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
+        o.color.amount = v; refreshGlitchCache();
+    });
+
+    let tintRow = createDiv('').parent(content).class('color-row');
+    createSpan('Tint').parent(tintRow).class('color-label');
+    glColorTint = createColorPicker('#ff3cb4').parent(tintRow).class('color-picker');
+    glColorTint.input(() => {
+        const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
+        o.color.tint = hexToRgbArr(glColorTint.value()); refreshGlitchCache();
+    });
+
+    let { sl: shiftSl, lbl: shiftLbl } = sliderRow('Chr. Shift', 0, 120, 60, 1);
+    glColorShiftSlider = shiftSl; glColorShiftLabel = shiftLbl;
+    glColorShiftSlider.input(() => {
+        const v = parseInt(glColorShiftSlider.value()); glColorShiftLabel.html(v);
+        const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
+        o.color.shift = v; refreshGlitchCache();
+    });
+
+    let { sl: lvlSl, lbl: lvlLbl } = sliderRow('Post. Levels', 2, 20, 4, 1);
+    glColorLvlSlider = lvlSl; glColorLvlLabel = lvlLbl;
+    glColorLvlSlider.input(() => {
+        const v = parseInt(glColorLvlSlider.value()); glColorLvlLabel.html(v);
+        const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
+        o.color.levels = v; refreshGlitchCache();
+    });
+
+    let { sl: bscSl, lbl: bscLbl } = sliderRow('Band Scale', 0.001, 0.2, 0.05, 0.001);
+    glColorBandScaleSlider = bscSl; glColorBandScaleLabel = bscLbl;
+    glColorBandScaleSlider.input(() => {
+        const v = parseFloat(glColorBandScaleSlider.value()); glColorBandScaleLabel.html(v.toFixed(3));
+        const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
+        o.color.bandScale = v; refreshGlitchCache();
+    });
+
+    let { sl: bsdSl, lbl: bsdLbl } = sliderRow('Band Seed', 0, 100, 0, 0.1);
+    glColorBandSeedSlider = bsdSl; glColorBandSeedLabel = bsdLbl;
+    glColorBandSeedSlider.input(() => {
+        const v = parseFloat(glColorBandSeedSlider.value()); glColorBandSeedLabel.html(v.toFixed(1));
+        const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
+        o.color.bandSeed = v; refreshGlitchCache();
+    });
+
+    // ── Warp ─────────────────────────────────────────────────────────────────
+    createDiv('Warp').parent(content).class('section-title').style('margin-bottom:8px;');
+
+    function warpSlider(label, max, def, key) {
+        let { sl, lbl } = sliderRow(label, 0, max, def, 1);
+        sl.input(() => {
+            const v = parseInt(sl.value()); lbl.html(v);
+            const o = getActiveGlitchOpts(); if(!o.warp) o.warp = {};
+            if (v === 0) delete o.warp[key]; else o.warp[key] = v;
+            refreshGlitchCache();
+        });
+        return { sl, lbl };
+    }
+
+    let mos  = warpSlider('Mosaic', 50,  0, 'mosaic');
+    let she  = warpSlider('Shear',  100, 0, 'shear');
+    let ech  = warpSlider('Echo',   100, 0, 'echo');
+    let haz  = warpSlider('Haze',   50,  0, 'haze');
+    glWarpMosaicSlider = mos.sl; glWarpMosaicLabel = mos.lbl;
+    glWarpShearSlider  = she.sl; glWarpShearLabel  = she.lbl;
+    glWarpEchoSlider   = ech.sl; glWarpEchoLabel   = ech.lbl;
+    glWarpHazeSlider   = haz.sl; glWarpHazeLabel   = haz.lbl;
+
+    let { sl: bandSl, lbl: bandLbl } = sliderRow('Band Size', 8, 64, 24, 2);
+    glWarpBandSlider = bandSl; glWarpBandLabel = bandLbl;
+    glWarpBandSlider.input(() => {
+        const v = parseInt(glWarpBandSlider.value()); glWarpBandLabel.html(v);
+        const o = getActiveGlitchOpts(); if(!o.warp) o.warp = {};
+        o.warp.band = v; refreshGlitchCache();
+    });
+
+    // ── Edges ─────────────────────────────────────────────────────────────────
+    createDiv('Edges').parent(content).class('section-title').style('margin-bottom:8px;');
+
+    let eModeRow = createDiv('').parent(content).class('slider-row');
+    createSpan('Mode').parent(eModeRow).class('slider-label');
+    let eModeGroup = createDiv('').parent(eModeRow).class('form-group').style('flex:1; margin-bottom:0;');
+    glEdgesModeSelect = createSelect().parent(eModeGroup).class('form-select');
+    ['noise','random'].forEach(v => glEdgesModeSelect.option(v));
+    glEdgesModeSelect.changed(() => {
+        const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
+        o.edges.mode = glEdgesModeSelect.value(); refreshGlitchCache();
+    });
+
+    let sampleRow = createDiv('').parent(content).style('margin-bottom:10px;');
+    glEdgesSampleChk = createCheckbox('Modify edges', false).parent(sampleRow).class('checkbox-input');
+    glEdgesSampleChk.changed(() => {
+        const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
+        o.edges.sample = glEdgesSampleChk.checked(); refreshGlitchCache();
+    });
+
+    let commonColorsRow = createDiv('').parent(content).style('margin-bottom:10px;');
+    glEdgesCommonColorsChk = createCheckbox('Use common colors', false).parent(commonColorsRow).class('checkbox-input');
+    glEdgesCommonColorsChk.changed(() => {
+        const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
+        if (glEdgesCommonColorsChk.checked()) {
+            o.edges.colors = cachedOriginalImage ? getPopularColors(cachedOriginalImage, 3) : [];
+        } else {
+            o.edges.colors = [];
+        }
+        refreshGlitchCache();
+    });
+
+    let { sl: sfSl, lbl: sfLbl } = sliderRow('Sample Factor', 0, 1, 0.5, 0.01);
+    glEdgesSfSlider = sfSl; glEdgesSfLabel = sfLbl;
+    glEdgesSfSlider.input(() => {
+        const v = parseFloat(glEdgesSfSlider.value()); glEdgesSfLabel.html(v.toFixed(2));
+        const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
+        o.edges.sampleFactor = v; refreshGlitchCache();
+    });
+
+    let { sl: escSl, lbl: escLbl } = sliderRow('Edge Scale', 0, 0.2, 0.05, 0.001);
+    glEdgesScaleSlider = escSl; glEdgesScaleLabel = escLbl;
+    glEdgesScaleSlider.input(() => {
+        const v = parseFloat(glEdgesScaleSlider.value()); glEdgesScaleLabel.html(v.toFixed(3));
+        const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
+        o.edges.scale = v; refreshGlitchCache();
+    });
+
+    let { sl: esdSl, lbl: esdLbl } = sliderRow('Edge Seed', 0, 100, 0, 0.1);
+    glEdgesSeedSlider = esdSl; glEdgesSeedLabel = esdLbl;
+    glEdgesSeedSlider.input(() => {
+        const v = parseFloat(glEdgesSeedSlider.value()); glEdgesSeedLabel.html(v.toFixed(1));
+        const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
+        o.edges.seed = v; refreshGlitchCache();
+    });
+
+    // seed the controls with the current Image glitch opts
+    syncGlitchUI(glitchOpts);
 }
 
 function createColorSection(parent = editorPanel) {
@@ -2216,6 +2592,8 @@ function toggleView() {
     if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
     if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
     updateVerticalOffsetSlider();
+    delete glitchImageCache['coverTitle'];
+    delete glitchImageCache['ratingsTitle'];
     if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
     updateVisibilityCustomTextBoxesUI()
 }
@@ -3051,12 +3429,12 @@ function drawAlbumCover(img, hasImage) {
         // corner because imageMode is CORNER). So draw the result at (0,0) full size — don't
         // squish it into the size×size cover box.
         let center = { x: x + size / 2, y: y + size / 2 };
-        let glitchOptsAux = {...glitchOpts}
+        let glitchOptsAux = {...glitchOpts, color: {...glitchOpts.color}}
         glitchOptsAux.sides = {left: true, right: false, top: false, bottom: false}
         glitchOptsAux.color.amount = 0.4
         let glitchedImg = getCachedGlitchyImage('ratingsImage', () => img, size, size, center, glitchOptsAux, albumData.imageUrl);
         imageMode(CORNER);
-        image(glitchedImg, 0, 0);
+        image(glitchedImg, 0, 0, width, height);
     }
     else drawImagePlaceholder(x, y, size, size, true);
     utils.endShadow();
@@ -3569,7 +3947,7 @@ async function printCoverScreen() {
         fill(0) 
         rect(width * 0.5, coverY, coverSize, coverSize); 
         let glitchedImg = getCachedGlitchyImage('coverImage', () => img, coverSize, coverSize, {x: width*0.5, y: coverY}, glitchOpts, albumData.imageUrl)
-        image(glitchedImg, width*.5, height*.5);
+        image(glitchedImg, width*.5, height*.5, width, height);
         image(img, width * 0.5, coverY, coverSize, coverSize); 
         image(img, width * 0.5, coverY, coverSize, coverSize); 
         image(img, width * 0.5, coverY, coverSize, coverSize);
@@ -3670,7 +4048,7 @@ function drawStylizedText(font, fontSz, str, x, y, hAlign = CENTER, vAlign = CEN
         return g;
     }, tw, th, { x: cx, y: cy }, opts, srcKey);
     imageMode(CORNER);
-    image(g2, 0, 0);
+    image(g2, 0, 0, width, height);
     pop()
 }
 
@@ -4186,8 +4564,9 @@ function restoreState(state) {
         if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
     }
 
-    if (state.glitchOpts) glitchOpts = {...state.glitchOpts};
-    if (state.glitchOptsTitle) glitchOptsTitle = {...state.glitchOptsTitle};
+    if (state.glitchOpts)      glitchOpts      = JSON.parse(JSON.stringify(state.glitchOpts));
+    if (state.glitchOptsTitle) glitchOptsTitle = JSON.parse(JSON.stringify(state.glitchOptsTitle));
+    if (glitchTargetSel) syncGlitchUI(getActiveGlitchOpts());
 
     // Clear existing offsets before restoring
     Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
