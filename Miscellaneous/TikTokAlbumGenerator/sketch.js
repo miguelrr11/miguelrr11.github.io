@@ -75,7 +75,7 @@ let horizontalOffsetsRatings = { title: 0, artist: 0, year: 0, genre: 0, funfact
 let horizontalOffsetsCover = { title: 0, artist: 0 };
 let imageSizeMultiplier = 1.0;
 let maxTextboxWidths = { title: 980, artist: 378, year: 378, genre: 378, funfact: 459 };
-const defaultMaxTextboxWidths = { title: 980, artist: 480, year: 480, genre: 550, funfact: 490 };
+const defaultMaxTextboxWidths = { title: 980, artist: 480, year: 480, genre: 480, funfact: 490 };
 let textAlignRatings = { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' };
 let textAlignCover = { title: 'center', artist: 'center' };
 
@@ -121,6 +121,7 @@ let glTypeSelect;
 let glAmpSlider, glAmpLabel;
 let glScaleSlider, glScaleLabel;
 let glSymChk;
+let glBlurSlider, glBlurLabel;
 let glColorChks = {};
 let glColorAmtSlider, glColorAmtLabel;
 let glColorTint;
@@ -139,6 +140,9 @@ let glEdgesCommonColorsChk;
 let glEdgesSfSlider, glEdgesSfLabel;
 let glEdgesScaleSlider, glEdgesScaleLabel;
 let glEdgesSeedSlider, glEdgesSeedLabel;
+// rows whose visibility depends on the active mode (kept so the panel only shows relevant controls)
+let glTintRow, glShiftRow, glLvlRow, glBandScaleRow, glBandSeedRow;
+let glSfRow, glEdgeScaleRow, glEdgeSeedRow;
 
 // Custom textboxes system
 let customTextboxes = [];
@@ -1546,6 +1550,9 @@ function syncGlitchUI(opts) {
 
     glSymChk.checked(!!opts.symmetrical);
 
+    const blur = opts.blur != null ? opts.blur : 0;
+    glBlurSlider.value(blur); glBlurLabel.html(parseFloat(blur).toFixed(1));
+
     const col = opts.color || {};
     const activeModes = (col.mode || '').split(/[+,\s|]+/).filter(Boolean);
     const ALL_MODES = ['invert','tint','rainbow','chromatic','posterize','fade','glow','bloom','scanlines','bands'];
@@ -1586,6 +1593,31 @@ function syncGlitchUI(opts) {
     glEdgesScaleSlider.value(esc); glEdgesScaleLabel.html(parseFloat(esc).toFixed(3));
     const esd = edges.seed != null ? Math.min(100, edges.seed) : 0;
     glEdgesSeedSlider.value(esd); glEdgesSeedLabel.html(parseFloat(esd).toFixed(1));
+
+    updateGlitchColorVis();
+    updateGlitchEdgesVis();
+}
+
+// Only show the colour sub-controls whose mode is active, so the panel stays uncluttered.
+function updateGlitchColorVis() {
+    if (!glColorChks || !glColorChks.tint) return;
+    const show = (row, on) => { if (row) row.style('display', on ? 'flex' : 'none'); };
+    show(glTintRow,      glColorChks.tint.checked());
+    show(glShiftRow,     glColorChks.chromatic.checked());
+    show(glLvlRow,       glColorChks.posterize.checked());
+    show(glBandScaleRow, glColorChks.bands.checked());
+    show(glBandSeedRow,  glColorChks.bands.checked());
+}
+
+// Edge tuning sliders only matter in the relevant mode: sample factor when "Modify edges"
+// is on; scale/seed only drive the 'noise' mode.
+function updateGlitchEdgesVis() {
+    if (!glEdgesModeSelect) return;
+    const noise  = glEdgesModeSelect.value() === 'noise';
+    const sample = glEdgesSampleChk && glEdgesSampleChk.checked();
+    if (glSfRow)        glSfRow.style('display', sample ? 'flex' : 'none');
+    if (glEdgeScaleRow) glEdgeScaleRow.style('display', noise ? 'flex' : 'none');
+    if (glEdgeSeedRow)  glEdgeSeedRow.style('display', noise ? 'flex' : 'none');
 }
 
 // ─── Glitch Options section ───────────────────────────────────────────────────
@@ -1602,7 +1634,7 @@ function createGlitchOptionsSection(parent = editorPanel) {
     header.mousePressed(() => {
         if (content.hasClass('collapsed')) {
             content.removeClass('collapsed');
-            content.style('max-height', '2000px');
+            content.style('max-height', '3000px');
             toggle.html('▼');
         } else {
             content.addClass('collapsed');
@@ -1611,28 +1643,56 @@ function createGlitchOptionsSection(parent = editorPanel) {
         }
     });
 
-    // ── Target selector ──────────────────────────────────────────────────────
-    let targetRow = createDiv('').parent(content).style('display:flex; align-items:center; gap:10px; margin-bottom:14px;');
-    createSpan('Target').parent(targetRow).class('slider-label').style('min-width:70px;');
-    let targetGroup = createDiv('').parent(targetRow).class('form-group').style('flex:1; margin-bottom:0;');
-    glitchTargetSel = createSelect().parent(targetGroup).class('form-select');
-    glitchTargetSel.option('Image', 'image');
-    glitchTargetSel.option('Title', 'title');
-    glitchTargetSel.changed(() => syncGlitchUI(getActiveGlitchOpts()));
+    // Collapsible sub-section (accordion). Returns its body div so callers parent their
+    // controls into it — keeps each group tidy and independently expandable.
+    function subSection(title, openByDefault = false) {
+        let sub  = createDiv('').parent(content).class('gl-sub');
+        let head = createDiv('').parent(sub).class('gl-sub-header');
+        let tog  = createSpan(openByDefault ? '▾' : '▸').parent(head).class('gl-sub-toggle');
+        createSpan(title).parent(head);
+        let body = createDiv('').parent(sub).class('gl-sub-content' + (openByDefault ? '' : ' collapsed'));
+        head.mousePressed(() => {
+            const collapsed = body.hasClass('collapsed');
+            body.toggleClass('collapsed');
+            tog.html(collapsed ? '▾' : '▸');
+        });
+        return body;
+    }
 
-    // helper: slider row
-    function sliderRow(label, min, max, def, step) {
-        let row = createDiv('').parent(content).class('slider-row');
+    // slider row — parents into a sub-section body (defaults to the panel content)
+    function sliderRow(label, min, max, def, step, parentEl) {
+        let row = createDiv('').parent(parentEl || content).class('slider-row');
         createSpan(label).parent(row).class('slider-label');
         let cont = createDiv('').parent(row).class('slider-container');
         let sl = createSlider(min, max, def, step).parent(cont).class('form-slider');
         let lbl = createSpan(String(def)).parent(cont).class('slider-value');
-        return { sl, lbl };
+        return { sl, lbl, row };
     }
 
-    // ── Sides ────────────────────────────────────────────────────────────────
-    createDiv('Sides').parent(content).class('section-title').style('margin-bottom:8px;');
-    let sidesRow = createDiv('').parent(content).style('display:flex; gap:12px; flex-wrap:wrap; margin-bottom:14px;');
+    // dropdown row — options are 'name' or ['name','value']
+    function selectRow(label, options, parentEl) {
+        let row = createDiv('').parent(parentEl || content).class('slider-row');
+        createSpan(label).parent(row).class('slider-label');
+        let group = createDiv('').parent(row).class('form-group').style('flex:1; margin-bottom:0;');
+        let sel = createSelect().parent(group).class('form-select');
+        options.forEach(o => Array.isArray(o) ? sel.option(o[0], o[1]) : sel.option(o));
+        return sel;
+    }
+
+    // ── Target & global output (always visible) ────────────────────────────────
+    glitchTargetSel = selectRow('Target', [['Image','image'], ['Title','title']]);
+    glitchTargetSel.changed(() => syncGlitchUI(getActiveGlitchOpts()));
+
+    let blur = sliderRow('Blur', 0, 20, 0, 0.5);
+    glBlurSlider = blur.sl; glBlurLabel = blur.lbl;
+    glBlurSlider.input(() => {
+        const v = parseFloat(glBlurSlider.value()); glBlurLabel.html(v.toFixed(1));
+        getActiveGlitchOpts().blur = v; refreshGlitchCache();
+    });
+
+    // ── Sides ───────────────────────────────────────────────────────────────────
+    let sidesBody = subSection('Sides', true);
+    let sidesRow = createDiv('').parent(sidesBody).style('display:flex; gap:12px; flex-wrap:wrap;');
     glSideLeft   = createCheckbox('Left',   false).parent(sidesRow).class('checkbox-input');
     glSideRight  = createCheckbox('Right',  false).parent(sidesRow).class('checkbox-input');
     glSideTop    = createCheckbox('Top',    false).parent(sidesRow).class('checkbox-input');
@@ -1644,39 +1704,33 @@ function createGlitchOptionsSection(parent = editorPanel) {
         refreshGlitchCache();
     }));
 
-    // ── Wave ─────────────────────────────────────────────────────────────────
-    createDiv('Wave').parent(content).class('section-title').style('margin-bottom:8px;');
-
-    let typeRow = createDiv('').parent(content).class('slider-row');
-    createSpan('Type').parent(typeRow).class('slider-label');
-    let typeGroup = createDiv('').parent(typeRow).class('form-group').style('flex:1; margin-bottom:0;');
-    glTypeSelect = createSelect().parent(typeGroup).class('form-select');
-    ['none','noise','sine'].forEach(v => glTypeSelect.option(v));
+    // ── Wave ─────────────────────────────────────────────────────────────────────
+    let waveBody = subSection('Wave');
+    glTypeSelect = selectRow('Type', ['none','noise','sine','square','sawtooth'], waveBody);
     glTypeSelect.changed(() => { getActiveGlitchOpts().type = glTypeSelect.value(); refreshGlitchCache(); });
 
-    let { sl: ampSl, lbl: ampLbl } = sliderRow('Amplitude', 0, 300, 50, 1);
-    glAmpSlider = ampSl; glAmpLabel = ampLbl;
+    let amp = sliderRow('Amplitude', 0, 300, 50, 1, waveBody);
+    glAmpSlider = amp.sl; glAmpLabel = amp.lbl;
     glAmpSlider.input(() => {
         const v = glAmpSlider.value(); glAmpLabel.html(v);
         getActiveGlitchOpts().amp = parseInt(v); refreshGlitchCache();
     });
 
-    let { sl: scaleSl, lbl: scaleLbl } = sliderRow('Scale', 0, 0.1, 0.005, 0.001);
-    glScaleSlider = scaleSl; glScaleLabel = scaleLbl;
+    let sc = sliderRow('Scale', 0, 0.1, 0.005, 0.001, waveBody);
+    glScaleSlider = sc.sl; glScaleLabel = sc.lbl;
     glScaleSlider.input(() => {
         const v = parseFloat(glScaleSlider.value()); glScaleLabel.html(v.toFixed(3));
         getActiveGlitchOpts().scale = v; refreshGlitchCache();
     });
 
-    let symRow = createDiv('').parent(content).style('margin-bottom:14px;');
+    let symRow = createDiv('').parent(waveBody);
     glSymChk = createCheckbox('Symmetrical', false).parent(symRow).class('checkbox-input');
     glSymChk.changed(() => { getActiveGlitchOpts().symmetrical = glSymChk.checked(); refreshGlitchCache(); });
 
-    // ── Color ─────────────────────────────────────────────────────────────────
-    createDiv('Color').parent(content).class('section-title').style('margin-bottom:8px;');
-
+    // ── Color ────────────────────────────────────────────────────────────────────
+    let colorBody = subSection('Color');
     const ALL_MODES = ['invert','tint','rainbow','chromatic','posterize','fade','glow','bloom','scanlines','bands'];
-    let modesGrid = createDiv('').parent(content).style('display:grid; grid-template-columns:1fr 1fr; gap:2px 8px; margin-bottom:12px;');
+    let modesGrid = createDiv('').parent(colorBody).style('display:grid; grid-template-columns:1fr 1fr; gap:2px 8px; margin-bottom:12px;');
     glColorChks = {};
     ALL_MODES.forEach(m => {
         let chk = createCheckbox(m, false).parent(modesGrid).class('checkbox-input');
@@ -1685,64 +1739,64 @@ function createGlitchOptionsSection(parent = editorPanel) {
             const o = getActiveGlitchOpts();
             if (!o.color) o.color = {};
             o.color.mode = active.length ? active.join('+') : 'none';
+            updateGlitchColorVis();
             refreshGlitchCache();
         });
         glColorChks[m] = chk;
     });
 
-    let { sl: amtSl, lbl: amtLbl } = sliderRow('Amount', 0, 1, 1, 0.01);
-    glColorAmtSlider = amtSl; glColorAmtLabel = amtLbl;
+    let amt = sliderRow('Amount', 0, 1, 1, 0.01, colorBody);
+    glColorAmtSlider = amt.sl; glColorAmtLabel = amt.lbl;
     glColorAmtSlider.input(() => {
         const v = parseFloat(glColorAmtSlider.value()); glColorAmtLabel.html(v.toFixed(2));
         const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
         o.color.amount = v; refreshGlitchCache();
     });
 
-    let tintRow = createDiv('').parent(content).class('color-row');
-    createSpan('Tint').parent(tintRow).class('color-label');
-    glColorTint = createColorPicker('#ff3cb4').parent(tintRow).class('color-picker');
+    glTintRow = createDiv('').parent(colorBody).class('color-row');
+    createSpan('Tint').parent(glTintRow).class('color-label');
+    glColorTint = createColorPicker('#ff3cb4').parent(glTintRow).class('color-picker');
     glColorTint.input(() => {
         const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
         o.color.tint = hexToRgbArr(glColorTint.value()); refreshGlitchCache();
     });
 
-    let { sl: shiftSl, lbl: shiftLbl } = sliderRow('Chr. Shift', 0, 120, 60, 1);
-    glColorShiftSlider = shiftSl; glColorShiftLabel = shiftLbl;
+    let shift = sliderRow('Chr. Shift', 0, 120, 60, 1, colorBody);
+    glColorShiftSlider = shift.sl; glColorShiftLabel = shift.lbl; glShiftRow = shift.row;
     glColorShiftSlider.input(() => {
         const v = parseInt(glColorShiftSlider.value()); glColorShiftLabel.html(v);
         const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
         o.color.shift = v; refreshGlitchCache();
     });
 
-    let { sl: lvlSl, lbl: lvlLbl } = sliderRow('Post. Levels', 2, 20, 4, 1);
-    glColorLvlSlider = lvlSl; glColorLvlLabel = lvlLbl;
+    let lvl = sliderRow('Post. Levels', 2, 20, 4, 1, colorBody);
+    glColorLvlSlider = lvl.sl; glColorLvlLabel = lvl.lbl; glLvlRow = lvl.row;
     glColorLvlSlider.input(() => {
         const v = parseInt(glColorLvlSlider.value()); glColorLvlLabel.html(v);
         const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
         o.color.levels = v; refreshGlitchCache();
     });
 
-    let { sl: bscSl, lbl: bscLbl } = sliderRow('Band Scale', 0.001, 0.2, 0.05, 0.001);
-    glColorBandScaleSlider = bscSl; glColorBandScaleLabel = bscLbl;
+    let bsc = sliderRow('Band Scale', 0.001, 0.2, 0.05, 0.001, colorBody);
+    glColorBandScaleSlider = bsc.sl; glColorBandScaleLabel = bsc.lbl; glBandScaleRow = bsc.row;
     glColorBandScaleSlider.input(() => {
         const v = parseFloat(glColorBandScaleSlider.value()); glColorBandScaleLabel.html(v.toFixed(3));
         const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
         o.color.bandScale = v; refreshGlitchCache();
     });
 
-    let { sl: bsdSl, lbl: bsdLbl } = sliderRow('Band Seed', 0, 100, 0, 0.1);
-    glColorBandSeedSlider = bsdSl; glColorBandSeedLabel = bsdLbl;
+    let bsd = sliderRow('Band Seed', 0, 100, 0, 0.1, colorBody);
+    glColorBandSeedSlider = bsd.sl; glColorBandSeedLabel = bsd.lbl; glBandSeedRow = bsd.row;
     glColorBandSeedSlider.input(() => {
         const v = parseFloat(glColorBandSeedSlider.value()); glColorBandSeedLabel.html(v.toFixed(1));
         const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
         o.color.bandSeed = v; refreshGlitchCache();
     });
 
-    // ── Warp ─────────────────────────────────────────────────────────────────
-    createDiv('Warp').parent(content).class('section-title').style('margin-bottom:8px;');
-
+    // ── Warp ─────────────────────────────────────────────────────────────────────
+    let warpBody = subSection('Warp');
     function warpSlider(label, max, def, key) {
-        let { sl, lbl } = sliderRow(label, 0, max, def, 1);
+        let { sl, lbl } = sliderRow(label, 0, max, def, 1, warpBody);
         sl.input(() => {
             const v = parseInt(sl.value()); lbl.html(v);
             const o = getActiveGlitchOpts(); if(!o.warp) o.warp = {};
@@ -1761,35 +1815,34 @@ function createGlitchOptionsSection(parent = editorPanel) {
     glWarpEchoSlider   = ech.sl; glWarpEchoLabel   = ech.lbl;
     glWarpHazeSlider   = haz.sl; glWarpHazeLabel   = haz.lbl;
 
-    let { sl: bandSl, lbl: bandLbl } = sliderRow('Band Size', 8, 64, 24, 2);
-    glWarpBandSlider = bandSl; glWarpBandLabel = bandLbl;
+    let band = sliderRow('Band Size', 8, 64, 24, 2, warpBody);
+    glWarpBandSlider = band.sl; glWarpBandLabel = band.lbl;
     glWarpBandSlider.input(() => {
         const v = parseInt(glWarpBandSlider.value()); glWarpBandLabel.html(v);
         const o = getActiveGlitchOpts(); if(!o.warp) o.warp = {};
         o.warp.band = v; refreshGlitchCache();
     });
 
-    // ── Edges ─────────────────────────────────────────────────────────────────
-    createDiv('Edges').parent(content).class('section-title').style('margin-bottom:8px;');
-
-    let eModeRow = createDiv('').parent(content).class('slider-row');
-    createSpan('Mode').parent(eModeRow).class('slider-label');
-    let eModeGroup = createDiv('').parent(eModeRow).class('form-group').style('flex:1; margin-bottom:0;');
-    glEdgesModeSelect = createSelect().parent(eModeGroup).class('form-select');
-    ['noise','random'].forEach(v => glEdgesModeSelect.option(v));
+    // ── Edges ────────────────────────────────────────────────────────────────────
+    let edgesBody = subSection('Edges');
+    glEdgesModeSelect = selectRow('Mode', ['noise','random'], edgesBody);
     glEdgesModeSelect.changed(() => {
         const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
-        o.edges.mode = glEdgesModeSelect.value(); refreshGlitchCache();
+        o.edges.mode = glEdgesModeSelect.value();
+        updateGlitchEdgesVis();
+        refreshGlitchCache();
     });
 
-    let sampleRow = createDiv('').parent(content).style('margin-bottom:10px;');
+    let sampleRow = createDiv('').parent(edgesBody).style('margin-bottom:8px;');
     glEdgesSampleChk = createCheckbox('Modify edges', false).parent(sampleRow).class('checkbox-input');
     glEdgesSampleChk.changed(() => {
         const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
-        o.edges.sample = glEdgesSampleChk.checked(); refreshGlitchCache();
+        o.edges.sample = glEdgesSampleChk.checked();
+        updateGlitchEdgesVis();
+        refreshGlitchCache();
     });
 
-    let commonColorsRow = createDiv('').parent(content).style('margin-bottom:10px;');
+    let commonColorsRow = createDiv('').parent(edgesBody).style('margin-bottom:8px;');
     glEdgesCommonColorsChk = createCheckbox('Use common colors', false).parent(commonColorsRow).class('checkbox-input');
     glEdgesCommonColorsChk.changed(() => {
         const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
@@ -1801,24 +1854,24 @@ function createGlitchOptionsSection(parent = editorPanel) {
         refreshGlitchCache();
     });
 
-    let { sl: sfSl, lbl: sfLbl } = sliderRow('Sample Factor', 0, 1, 0.5, 0.01);
-    glEdgesSfSlider = sfSl; glEdgesSfLabel = sfLbl;
+    let sf = sliderRow('Sample Factor', 0, 1, 0.5, 0.01, edgesBody);
+    glEdgesSfSlider = sf.sl; glEdgesSfLabel = sf.lbl; glSfRow = sf.row;
     glEdgesSfSlider.input(() => {
         const v = parseFloat(glEdgesSfSlider.value()); glEdgesSfLabel.html(v.toFixed(2));
         const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
         o.edges.sampleFactor = v; refreshGlitchCache();
     });
 
-    let { sl: escSl, lbl: escLbl } = sliderRow('Edge Scale', 0, 0.2, 0.05, 0.001);
-    glEdgesScaleSlider = escSl; glEdgesScaleLabel = escLbl;
+    let esc = sliderRow('Edge Scale', 0, 0.2, 0.05, 0.001, edgesBody);
+    glEdgesScaleSlider = esc.sl; glEdgesScaleLabel = esc.lbl; glEdgeScaleRow = esc.row;
     glEdgesScaleSlider.input(() => {
         const v = parseFloat(glEdgesScaleSlider.value()); glEdgesScaleLabel.html(v.toFixed(3));
         const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
         o.edges.scale = v; refreshGlitchCache();
     });
 
-    let { sl: esdSl, lbl: esdLbl } = sliderRow('Edge Seed', 0, 100, 0, 0.1);
-    glEdgesSeedSlider = esdSl; glEdgesSeedLabel = esdLbl;
+    let esd = sliderRow('Edge Seed', 0, 100, 0, 0.1, edgesBody);
+    glEdgesSeedSlider = esd.sl; glEdgesSeedLabel = esd.lbl; glEdgeSeedRow = esd.row;
     glEdgesSeedSlider.input(() => {
         const v = parseFloat(glEdgesSeedSlider.value()); glEdgesSeedLabel.html(v.toFixed(1));
         const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
@@ -3785,7 +3838,7 @@ function addTextBox(id, bounds, size) {
 //stretches the edge pixels of an image toward the canvas sides for a glitchy effect
 //opts:
 //  sides       {left, right, top, bottom} - which edges get extended
-//  type        'noise' | 'sine' | 'none'  - how the stretched columns are distorted vertically
+//  type        'noise' | 'sine' | 'square' | 'sawtooth' | 'none'  - how the stretched columns are distorted vertically
 //  amp         max vertical pixel shift of the stretched columns
 //  scale       noise zoom / sine frequency
 //  symmetrical if true the distortion is driven by distance to the image, so left and right mirror each other
@@ -3805,7 +3858,7 @@ function addTextBox(id, bounds, size) {
 
 let glitchOpts = {
     sides: {left: true, right: true, top: false, bottom: false},
-    type: 'sine',          //'noise' | 'sine' | 'none'
+    type: 'sine',          //'noise' | 'sine' | 'square' | 'sawtooth' | 'none'
     amp: 50,               //max vertical shift in pixels
     scale: 0.005,            //noise zoom / sine frequency
     symmetrical: false,     //left and right mirror each other
@@ -3826,7 +3879,7 @@ let glitchOpts = {
 
 let glitchOptsTitle = {
     sides: {left: true, right: true, top: false, bottom: false},
-    type: 'none',          //'noise' | 'sine' | 'none'
+    type: 'none',          //'noise' | 'sine' | 'square' | 'sawtooth' | 'none'
     amp: 60,               //max vertical shift in pixels
     scale: 0.005,            //noise zoom / sine frequency
     symmetrical: false,     //left and right mirror each other

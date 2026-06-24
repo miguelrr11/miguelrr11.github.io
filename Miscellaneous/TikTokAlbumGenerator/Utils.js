@@ -250,7 +250,8 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     //stretches the edge pixels of an image toward the canvas sides for a glitchy effect
     //opts:
     //  sides       {left, right, top, bottom} - which edges get extended
-    //  type        'noise' | 'sine' | 'none'  - how the stretched columns are distorted vertically
+    //  type        'noise' | 'sine' | 'square' | 'sawtooth' | 'none'  - how the stretched columns are
+    //              distorted vertically. square = hard alternating bands; sawtooth = ramp that snaps back
     //  amp         max vertical pixel shift of the stretched columns
     //  scale       noise zoom / sine frequency
     //  symmetrical if true the distortion is driven by distance to the image, so left and right mirror each other
@@ -259,6 +260,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     //                    'none'|'invert'|'tint'|'rainbow'|'chromatic'|'posterize'|'fade'|'glow'|'bloom'|'scanlines'|'bands'
     //              amount 0..1 strength, tint [r,g,b], levels = posterize steps, shift = chromatic split in px
     //              bandScale = band thickness (smaller=thicker), bandSeed = noise offset for animating bands
+    //  blur        gaussian blur radius applied to the finished glitch image (0 = off)
     //  warp        {mosaic, shear, echo, haze, band} - geometry distortions of the SAMPLE position, grow with distance:
     //              mosaic = max cell size (resolution decay), shear = max band jump in px (torn-signal tearing),
     //              echo   = max smear offset in px (motion-trail blur), haze = shimmer amplitude in px,
@@ -279,9 +281,12 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
         symmetrical = true,
         color = {},
         warp = {},
-        edges = {}
+        edges = {},
+        blur = 0           //gaussian blur radius applied to the finished glitch image (0 = off)
     } = opts
     const isSine = type === 'sine'
+    const isSquare = type === 'square'     //hard alternating bands (digital tearing)
+    const isSaw = type === 'sawtooth'      //ramp that snaps back (directional sweep tears)
     const doDistort = type !== 'none' && amp !== 0
 
     //--- colour effects: parse mode(s) into a bitmask so several can stack -------------------
@@ -490,8 +495,14 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                         if(doDistort){
                             //coord is symmetric (distance to image) or raw x; -1..1 wave * amp * distance-from-image
                             const coord = symmetrical ? colDist[x] : xl
-                            const n = isSine ? Math.sin((coord + yl) * scale)
-                                             : (noise(coord * scale, yl * scale) - 0.5) * 2
+                            let n
+                            if(isSquare) n = Math.sin((coord + yl) * scale) >= 0 ? 1 : -1
+                            else if(isSaw){
+                                const ph = (coord + yl) * scale * 0.15915494309
+                                n = 2 * (ph - Math.floor(ph)) - 1
+                            }
+                            else if(isSine) n = Math.sin((coord + yl) * scale)
+                            else            n = (noise(coord * scale, yl * scale) - 0.5) * 2
                             ssy = sy + (n * amp * colFactor[x] | 0)
                             if(ssy < 0) ssy = 0
                             else if(ssy > ih - 1) ssy = ih - 1
@@ -660,8 +671,74 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
             dst[di + 3] = a
         }
     }
+    if(blur > 0) boxBlurRGBA(dst, cw, ch, blur)   //custom fast blur (p5's filter(BLUR) is too slow)
     newImg.updatePixels()
     return newImg
+}
+
+//Fast approximate gaussian blur for an RGBA pixel buffer (in place). It runs a separable
+//box blur (horizontal then vertical) a few times; ~3 box passes look gaussian. Each pass is
+//O(pixels) regardless of radius thanks to a sliding-window sum, so it's far faster than
+//p5's filter(BLUR). Colours are premultiplied by alpha first so the transparent canvas
+//around the glitch strip doesn't bleed dark halos into the edges.
+function boxBlurRGBA(px, w, h, radius, passes = 3){
+    radius = Math.round(radius)
+    if(radius < 1) return
+    const n = w * h
+    //split into channels in premultiplied space (colour * alpha), alpha kept 0..255
+    const pr = new Float32Array(n), pg = new Float32Array(n), pb = new Float32Array(n), pa = new Float32Array(n)
+    for(let i = 0; i < n; i++){
+        const k = i << 2, a01 = px[k + 3] / 255
+        pr[i] = px[k] * a01; pg[i] = px[k + 1] * a01; pb[i] = px[k + 2] * a01; pa[i] = px[k + 3]
+    }
+    const tr = new Float32Array(n), tg = new Float32Array(n), tb = new Float32Array(n), ta = new Float32Array(n)
+    for(let p = 0; p < passes; p++){
+        boxBlurPass(pr, tr, w, h, radius, true);  boxBlurPass(tr, pr, w, h, radius, false)
+        boxBlurPass(pg, tg, w, h, radius, true);  boxBlurPass(tg, pg, w, h, radius, false)
+        boxBlurPass(pb, tb, w, h, radius, true);  boxBlurPass(tb, pb, w, h, radius, false)
+        boxBlurPass(pa, ta, w, h, radius, true);  boxBlurPass(ta, pa, w, h, radius, false)
+    }
+    //un-premultiply back to straight RGBA
+    for(let i = 0; i < n; i++){
+        const k = i << 2, a = pa[i]
+        if(a > 0){
+            const inv = 255 / a
+            px[k] = pr[i] * inv; px[k + 1] = pg[i] * inv; px[k + 2] = pb[i] * inv
+        } else { px[k] = px[k + 1] = px[k + 2] = 0 }
+        px[k + 3] = a
+    }
+}
+
+//one separable box-blur pass over a single channel. horizontal === true blurs rows, else
+//columns. uses a running sum with clamped edges so cost is independent of the radius.
+function boxBlurPass(src, dst, w, h, r, horizontal){
+    const norm = 1 / (2 * r + 1)
+    if(horizontal){
+        for(let y = 0; y < h; y++){
+            const row = y * w
+            let sum = 0
+            for(let i = -r; i <= r; i++){ const xi = i < 0 ? 0 : (i >= w ? w - 1 : i); sum += src[row + xi] }
+            for(let x = 0; x < w; x++){
+                dst[row + x] = sum * norm
+                const addIdx = x + r + 1, remIdx = x - r
+                const a = addIdx >= w ? w - 1 : addIdx
+                const b = remIdx < 0 ? 0 : remIdx
+                sum += src[row + a] - src[row + b]
+            }
+        }
+    } else {
+        for(let x = 0; x < w; x++){
+            let sum = 0
+            for(let i = -r; i <= r; i++){ const yi = i < 0 ? 0 : (i >= h ? h - 1 : i); sum += src[yi * w + x] }
+            for(let y = 0; y < h; y++){
+                dst[y * w + x] = sum * norm
+                const addIdx = y + r + 1, remIdx = y - r
+                const a = addIdx >= h ? h - 1 : addIdx
+                const b = remIdx < 0 ? 0 : remIdx
+                sum += src[a * w + x] - src[b * w + x]
+            }
+        }
+    }
 }
 
 

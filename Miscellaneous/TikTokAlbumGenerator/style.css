@@ -902,6 +902,52 @@ canvas {
     pointer-events: none;
 }
 
+/* Glitch panel sub-sections (nested accordions) */
+.gl-sub {
+    border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.gl-sub-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 11px 2px;
+    user-select: none;
+    transition: color 0.2s ease;
+}
+
+.gl-sub-header:hover {
+    color: #fff;
+}
+
+.gl-sub-toggle {
+    display: inline-block;
+    width: 12px;
+    font-size: 10px;
+    color: #8ab4f8;
+    flex-shrink: 0;
+}
+
+.gl-sub-content {
+    overflow: hidden;
+    max-height: 1500px;
+    opacity: 1;
+    padding: 6px 2px 14px;
+    transition: max-height 0.3s ease, opacity 0.25s ease, padding 0.3s ease;
+}
+
+.gl-sub-content.collapsed {
+    max-height: 0;
+    opacity: 0;
+    padding-top: 0;
+    padding-bottom: 0;
+    pointer-events: none;
+}
+
 .color-row {
     display: flex;
     align-items: center;
@@ -947,8 +993,37 @@ canvas {
 }
 
 .checkbox-input input[type="checkbox"] {
+    width: 18px;
+    height: 18px;
     margin: 0;
-    vertical-align: middle;
+    flex-shrink: 0;
+    cursor: pointer;
+
+    /* strip the native look so we can fully style it */
+    appearance: none;
+    -webkit-appearance: none;
+
+    border-radius: 6px;        /* roundness — bump up for more, or 50% for a circle */
+    border: 1px solid #c7d8f5;
+    background-color: #eaf1fd;  /* very light blue when unchecked */
+    transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+
+.checkbox-input input[type="checkbox"]:checked {
+    background-color: #8ab4f8;  /* your original accent color, now the checked fill */
+    border-color: #8ab4f8;
+}
+
+/* the checkmark */
+.checkbox-input input[type="checkbox"]:checked::after {
+    content: "";
+    display: block;
+    width: 4px;
+    height: 8px;
+    margin: 2px auto 0;          /* roughly centers it in an 18px box */
+    border: solid white;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
 }
 
 /* Toast Notifications */
