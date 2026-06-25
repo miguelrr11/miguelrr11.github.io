@@ -353,6 +353,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     const doEdges = nCol > 0 || eSample
     const eScale = edges.scale != null ? edges.scale : 0.05
     const eSeed = edges.seed || 0
+    const edgeOffset = edges.offset != null ? edges.offset : 0
 
     //rainbow mode reads from a precomputed 256-entry palette (cosine gradient) so there's no trig per pixel
     let palette = null
@@ -374,6 +375,10 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     // pixels array row stride is iw*pd not iw. createImage() is always density-1.
     const pd = (img.pixelDensity ? img.pixelDensity() : 1)
     const physStride = iw * pd      //physical pixels per source row
+    // Physical source dimensions — ssx/ssy are kept in physical coords throughout so
+    // the floor only happens once (at physical resolution), eliminating aliasing artifacts.
+    const ipw = iw * pd             //physical source width
+    const iph = ih * pd             //physical source height
 
     //the rectangle where the image is displayed inside the canvas (imgW/imgH is the display size, imgPos its center)
     const left = imgPos.x - imgW/2
@@ -437,9 +442,9 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     const colDist = new Float32Array(cw)
     for(let x = 0; x < cw; x++){
         const xl = x / pdOut            //logical x for this physical output column
-        let sx = (xl - left) / imgW * iw | 0
+        let sx = (xl - left) / imgW * ipw | 0   //physical source x — floor at physical res, not logical
         if(sx < 0) sx = 0
-        else if(sx > iw - 1) sx = iw - 1
+        else if(sx > ipw - 1) sx = ipw - 1
         colSrc[x] = sx
 
         if(xl < left){
@@ -457,10 +462,10 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
         const yl = y / pdOut            //logical y for this physical output row
         const inRows = (yl >= top && yl < bottom)
         const aboveTop = (yl < top)
-        //map the canvas row to a row of the source image, clamped
-        let sy = (yl - top) / imgH * ih | 0
+        //map the canvas row to a row of the source image (physical coords, floor at physical res)
+        let sy = (yl - top) / imgH * iph | 0
         if(sy < 0) sy = 0
-        else if(sy > ih - 1) sy = ih - 1
+        else if(sy > iph - 1) sy = iph - 1
 
         //how far this row is from the image (0 inside -> 1 at the canvas edge), used by top/bottom effects
         let rowF = 0
@@ -489,7 +494,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                 else {
                     const useLeft = (xl < left)
                     if(useLeft ? sLeft : sRight){                            //stretch first/last column
-                        ssx = useLeft ? 0 : iw - 1
+                        ssx = useLeft ? (edgeOffset * (ipw - 1) | 0) : ((1 - edgeOffset) * (ipw - 1) | 0)
                         ssy = sy
                         str = colFactor[x]
                         if(doDistort){
@@ -503,47 +508,48 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                             }
                             else if(isSine) n = Math.sin((coord + yl) * scale)
                             else            n = (noise(coord * scale, yl * scale) - 0.5) * 2
-                            ssy = sy + (n * amp * colFactor[x] | 0)
+                            ssy = sy + (n * amp * colFactor[x] * pd | 0)   //shift in physical pixels
                             if(ssy < 0) ssy = 0
-                            else if(ssy > ih - 1) ssy = ih - 1
+                            else if(ssy > iph - 1) ssy = iph - 1
                         }
                     }
                 }
             }
             else if(xl >= left && xl < right){
                 vert = false
-                if(aboveTop){ if(sTop){ ssx = colSrc[x]; ssy = 0; str = rowF } }      //stretch first row
-                else { if(sBottom){ ssx = colSrc[x]; ssy = ih - 1; str = rowF } }     //stretch last row
+                if(aboveTop){ if(sTop){ ssx = colSrc[x]; ssy = (edgeOffset * (iph - 1) | 0); str = rowF } }      //stretch first row
+                else { if(sBottom){ ssx = colSrc[x]; ssy = ((1 - edgeOffset) * (iph - 1) | 0); str = rowF } }    //stretch last row
             }
             if(ssx < 0) continue
 
             //--- geometry warps: nudge the sample position, all scaled by distance (str) ------
             if(doWarp && str > 0){
                 if(wMosaic){
-                    //resolution decay: snap the free axis to growing cells
+                    //resolution decay: snap the free axis to growing cells (cell size in logical px)
                     const cell = (1 + wMosaic * str) | 0
-                    if(cell > 1){
-                        if(vert) ssy = (ssy / cell | 0) * cell
-                        else     ssx = (ssx / cell | 0) * cell
+                    const cellPh = cell * pd            //same cell size in physical pixels
+                    if(cellPh > 1){
+                        if(vert) ssy = (ssy / cellPh | 0) * cellPh
+                        else     ssx = (ssx / cellPh | 0) * cellPh
                     }
                 }
                 if(wShear){
                     //torn-signal tearing: each band (perpendicular to the stretch) jumps by a noise amount
                     const bandCoord = vert ? yl : xl
                     const band = bandCoord / wBand | 0
-                    const j = (noise(band * 0.5, 17.3) - 0.5) * 2 * wShear * str | 0
+                    const j = ((noise(band * 0.5, 17.3) - 0.5) * 2 * wShear * str * pd) | 0
                     if(vert) ssy += j
                     else     ssx += j
                 }
                 if(wHaze){
                     //shimmer: a fast secondary sine wobble layered on top of the main wave
-                    const h = Math.sin(yl * 0.3 + xl * 0.1) * wHaze * str | 0
+                    const h = (Math.sin(yl * 0.3 + xl * 0.1) * wHaze * str * pd) | 0
                     if(vert) ssy += h
                     else     ssx += h
                 }
                 //re-clamp after the offsets
-                if(ssy < 0) ssy = 0; else if(ssy > ih - 1) ssy = ih - 1
-                if(ssx < 0) ssx = 0; else if(ssx > iw - 1) ssx = iw - 1
+                if(ssy < 0) ssy = 0; else if(ssy > iph - 1) ssy = iph - 1
+                if(ssx < 0) ssx = 0; else if(ssx > ipw - 1) ssx = ipw - 1
             }
 
             //--- sample the source (echo = average a few taps along the free axis for motion trails) ---
@@ -551,30 +557,30 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
             const eBuf = (doEdges && str > 0) ? (vert ? edgeV : edgeH) : null
             let r, g, b, a
             if(wEcho && str > 0){
-                const d = (wEcho * str) | 0
+                const d = (wEcho * str * pd) | 0   //echo offset in physical pixels
                 let R = 0, G = 0, B = 0, A = 0
                 for(let e = -1; e <= 1; e++){
                     let ex = ssx, ey = ssy
                     if(vert) ey += e * d
                     else     ex += e * d
-                    if(ey < 0) ey = 0; else if(ey > ih - 1) ey = ih - 1
-                    if(ex < 0) ex = 0; else if(ex > iw - 1) ex = iw - 1
+                    if(ey < 0) ey = 0; else if(ey > iph - 1) ey = iph - 1
+                    if(ex < 0) ex = 0; else if(ex > ipw - 1) ex = ipw - 1
                     if(eBuf){
-                        const ek = (vert ? ey : ex) << 2
+                        const ek = (vert ? ey/pd|0 : ex/pd|0) << 2   //eBuf is logical-indexed
                         R += eBuf[ek]; G += eBuf[ek + 1]; B += eBuf[ek + 2]; A += eBuf[ek + 3]
                     } else {
-                        const ei = (ex * pd + ey * pd * physStride) << 2
+                        const ei = (ex + ey * physStride) << 2         //ssx/ssy are physical
                         R += src[ei]; G += src[ei + 1]; B += src[ei + 2]; A += src[ei + 3]
                     }
                 }
                 r = R / 3; g = G / 3; b = B / 3; a = A / 3
             }
             else if(eBuf){
-                const ek = (vert ? ssy : ssx) << 2
+                const ek = (vert ? ssy/pd|0 : ssx/pd|0) << 2   //eBuf is logical-indexed
                 r = eBuf[ek]; g = eBuf[ek + 1]; b = eBuf[ek + 2]; a = eBuf[ek + 3]
             }
             else {
-                const si = (ssx * pd + ssy * pd * physStride) << 2
+                const si = (ssx + ssy * physStride) << 2        //ssx/ssy are physical
                 r = src[si]; g = src[si + 1]; b = src[si + 2]; a = src[si + 3]
             }
 
@@ -583,7 +589,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
             if(eSample && str > 0){
                 const lf = vert ? lumV : lumH
                 if(lf){
-                    const f = lf[vert ? ssy : ssx]
+                    const f = lf[vert ? ssy/pd|0 : ssx/pd|0]   //lumV/lumH are logical-indexed
                     r *= f; g *= f; b *= f
                 }
             }
@@ -608,14 +614,14 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                     b += (palette[li + 2] - b) * t
                 }
                 if(mChromatic){                        //split red up / blue down by a growing vertical offset
-                    const sh = (str * cShift) | 0
-                    let ry = ssy + sh; if(ry < 0) ry = 0; else if(ry > ih - 1) ry = ih - 1
-                    let by = ssy - sh; if(by < 0) by = 0; else if(by > ih - 1) by = ih - 1
+                    const sh = (str * cShift * pd) | 0    //shift in physical pixels
+                    let ry = ssy + sh; if(ry < 0) ry = 0; else if(ry > iph - 1) ry = iph - 1
+                    let by = ssy - sh; if(by < 0) by = 0; else if(by > iph - 1) by = iph - 1
                     if(eBuf){                          //on edge-art, split within the synthetic strip (vertical strips only)
-                        if(vert){ r = eBuf[ry << 2]; b = eBuf[(by << 2) + 2] }
+                        if(vert){ r = eBuf[(ry/pd|0) << 2]; b = eBuf[((by/pd|0) << 2) + 2] }
                     } else {
-                        r = src[(ssx * pd + ry * pd * physStride) << 2]
-                        b = src[((ssx * pd + by * pd * physStride) << 2) + 2]
+                        r = src[(ssx + ry * physStride) << 2]
+                        b = src[((ssx + by * physStride) << 2) + 2]
                     }
                 }
                 if(mPosterize){                        //crush to fewer colour levels the farther out we go

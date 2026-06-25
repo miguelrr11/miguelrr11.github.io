@@ -140,6 +140,7 @@ let glEdgesCommonColorsChk;
 let glEdgesSfSlider, glEdgesSfLabel;
 let glEdgesScaleSlider, glEdgesScaleLabel;
 let glEdgesSeedSlider, glEdgesSeedLabel;
+let glEdgesOffsetSlider, glEdgesOffsetLabel;
 // rows whose visibility depends on the active mode (kept so the panel only shows relevant controls)
 let glTintRow, glShiftRow, glLvlRow, glBandScaleRow, glBandSeedRow;
 let glSfRow, glEdgeScaleRow, glEdgeSeedRow;
@@ -1593,6 +1594,8 @@ function syncGlitchUI(opts) {
     glEdgesScaleSlider.value(esc); glEdgesScaleLabel.html(parseFloat(esc).toFixed(3));
     const esd = edges.seed != null ? Math.min(100, edges.seed) : 0;
     glEdgesSeedSlider.value(esd); glEdgesSeedLabel.html(parseFloat(esd).toFixed(1));
+    const eoff = edges.offset != null ? edges.offset : 0;
+    if (glEdgesOffsetSlider) { glEdgesOffsetSlider.value(eoff * 100); glEdgesOffsetLabel.html(Math.round(eoff * 100) + '%'); }
 
     updateGlitchColorVis();
     updateGlitchEdgesVis();
@@ -1876,6 +1879,14 @@ function createGlitchOptionsSection(parent = editorPanel) {
         const v = parseFloat(glEdgesSeedSlider.value()); glEdgesSeedLabel.html(v.toFixed(1));
         const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
         o.edges.seed = v; refreshGlitchCache();
+    });
+
+    let eoff = sliderRow('Col Offset', 0, 100, 0, 1, edgesBody);
+    glEdgesOffsetSlider = eoff.sl; glEdgesOffsetLabel = eoff.lbl;
+    glEdgesOffsetSlider.input(() => {
+        const v = parseInt(glEdgesOffsetSlider.value()); glEdgesOffsetLabel.html(v + '%');
+        const o = getActiveGlitchOpts(); if(!o.edges) o.edges = {};
+        o.edges.offset = v / 100; refreshGlitchCache();
     });
 
     // seed the controls with the current Image glitch opts
@@ -3123,6 +3134,7 @@ function fillFormFromData(data) {
 
     if(data.glitchOpts) glitchOpts = data.glitchOpts
     if(data.glitchOptsTitle) glitchOptsTitle = data.glitchOptsTitle
+    if(glitchTargetSel) syncGlitchUI(getActiveGlitchOpts())
 
     // Load all offsets and advanced options - clear first, then load
     // Clear existing offsets
@@ -3497,7 +3509,7 @@ function drawAlbumCover(img, hasImage) {
         // squish it into the size×size cover box.
         let center = { x: x + size / 2, y: y + size / 2 };
         let glitchOptsAux = {...glitchOpts, color: {...glitchOpts.color}}
-        glitchOptsAux.sides = {left: true, right: false, top: false, bottom: false}
+        glitchOptsAux.sides = {left: false, right: false, top: false, bottom: false}
         glitchOptsAux.color.amount = 0.4
         let glitchedImg = getCachedGlitchyImage('ratingsImage', () => img, size, size, center, glitchOptsAux, albumData.imageUrl);
         imageMode(CORNER);
@@ -3519,16 +3531,18 @@ function drawAlbumHeader() {
     utils.beginShadow("#000000", H.shadowBlur, 0, 0);
 
     let titleMaxWidth = maxTextboxWidths.title || defaultMaxTextboxWidths.title;
+    textFont(fontHeavy);
+    let ratingsTitleSize = getMaxTextSizeByWidth(albumData.title, titleMaxWidth, H.title.maxFontSize) + textSizeOffsets.title;
     drawTextWithBox('title', fontHeavy,
-        getMaxTextSizeByWidth(albumData.title, titleMaxWidth, H.title.maxFontSize) + textSizeOffsets.title,
+        ratingsTitleSize,
         albumData.title,
         leftMargin + (horizontalOffsetsRatings.title || 0),
         H.top + (verticalOffsetsRatings.title || 0),
         titleMaxWidth, H.title.leading, textAlignRatings.title || 'left', BOTTOM, false);
 
-    drawStylizedText(fontHeavy, 
-        getMaxTextSizeByWidth(albumData.title, titleMaxWidth, H.title.maxFontSize) + textSizeOffsets.title,
-        albumData.title, 
+    drawStylizedText(fontHeavy,
+        ratingsTitleSize,
+        albumData.title,
         leftMargin + (horizontalOffsetsRatings.title || 0),
         H.top + (verticalOffsetsRatings.title || 0), textAlignRatings.title || 'left', BOTTOM, glitchOptsTitle, 'ratingsTitle')
 
@@ -4028,12 +4042,15 @@ async function printCoverScreen() {
     let titleHorizOffset = horizontalOffsetsCover.title || 0;
     let titleY = coverY + coverSize * 0.5 + 60 + titleVertOffset;
     let titleAlignCover = textAlignCover.title || 'center'; //right now not suppored, it defaults to center
-    let titleSize = getMaxTextSizeByWidth(albumData.title, width - 100, 100) + textSizeOffsets.title;
+    let coverTitleMaxWidth = maxTextboxWidths.title || defaultMaxTextboxWidths.title;
+    textFont(fontHeavy);
+    let titleSize = getMaxTextSizeByWidth(albumData.title, coverTitleMaxWidth, 100) + textSizeOffsets.title;
     titleSize = max(10, titleSize);
 
     drawStylizedText(fontHeavy, titleSize, albumData.title, width * 0.5 + titleHorizOffset, titleY, CENTER, CENTER, glitchOptsTitle, 'coverTitle')
 
-    let titleBounds = fontHeavy.textBounds(getRichText(albumData.title), width * 0.5 + titleHorizOffset, titleY);
+    textAlign(CENTER, CENTER);
+    let titleBounds = fontHeavy.textBounds(getRichText(albumData.title), width * 0.5 + titleHorizOffset, titleY, coverTitleMaxWidth);
     addTextBox('title', getAlignedBounds(titleBounds, width * 0.5 + titleHorizOffset, titleAlignCover), titleSize);
 
     let artistVertOffset = verticalOffsetsCover.artist || 0;
