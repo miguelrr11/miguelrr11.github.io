@@ -367,6 +367,39 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
         }
     }
 
+    // Output at full display density: each physical screen pixel gets its own output pixel → crisp on HiDPI.
+    // Callers must draw with image(result, 0, 0, width, height) so the logical size stays correct.
+    const pdOut = (typeof pixelDensity === 'function') ? pixelDensity() : 1
+
+    //--- supersample the source so the stretched pixels aren't blocky -------------------------
+    //The stretch repeats a single edge row/column outward, so the detail you see in the
+    //stretched band is limited by the source's resolution. A typical album cover (~640px)
+    //displayed at HiDPI gets upscaled by the nearest-neighbour sampler below -> visible blocks.
+    //Here we pre-upscale a COPY of the source (p5's resize is smooth/bilinear) so its pixel grid
+    //is at least as dense as the output region, giving the sampler real pixels to read.
+    //  opts.superSample : false disables, a number sets the max enlargement (default cap 4).
+    //geoScale records how much we enlarged so amp/warp/chromatic offsets (which are authored in
+    //logical px) keep their on-screen size — see geoPd below.
+    let geoScale = 1
+    {
+        const ss = opts.superSample
+        if(ss !== false && img.width > 0 && img.height > 0){
+            const srcPd = (img.pixelDensity ? img.pixelDensity() : 1)
+            //how much bigger the output stretch region is than the source, per axis
+            const needW = (imgW * pdOut) / (img.width  * srcPd)
+            const needH = (imgH * pdOut) / (img.height * srcPd)
+            let k = Math.max(needW, needH)
+            if(k > 1.01){
+                const cap = (typeof ss === 'number') ? ss : 4
+                k = Math.min(k, cap)
+                const up = img.get()                                   //copy so the original isn't mutated
+                up.resize(Math.round(img.width * k), Math.round(img.height * k))
+                img = up
+                geoScale = k
+            }
+        }
+    }
+
     img.loadPixels()
     const src = img.pixels          //raw RGBA bytes of the source image
     const iw = img.width
@@ -379,6 +412,10 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     // the floor only happens once (at physical resolution), eliminating aliasing artifacts.
     const ipw = iw * pd             //physical source width
     const iph = ih * pd             //physical source height
+    // Logical-px -> source-physical-px factor for the geometry/colour offsets (amp, shear, echo,
+    // haze, mosaic, chromatic). When we supersampled, the source got `geoScale`x denser but pd
+    // dropped to 1, so use geoScale to keep those offsets the same on-screen size as before.
+    const geoPd = geoScale > 1 ? geoScale : pd
 
     //the rectangle where the image is displayed inside the canvas (imgW/imgH is the display size, imgPos its center)
     const left = imgPos.x - imgW/2
@@ -386,9 +423,6 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     const top = imgPos.y - imgH/2
     const bottom = imgPos.y + imgH/2
 
-    // Output at full display density: each physical screen pixel gets its own output pixel → crisp on HiDPI.
-    // Callers must draw with image(result, 0, 0, width, height) so the logical size stays correct.
-    const pdOut = (typeof pixelDensity === 'function') ? pixelDensity() : 1
     const newImg = createImage(width * pdOut, height * pdOut)
     newImg.loadPixels()
     const dst = newImg.pixels       //starts fully transparent, we only write the pixels we want
@@ -508,7 +542,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                             }
                             else if(isSine) n = Math.sin((coord + yl) * scale)
                             else            n = (noise(coord * scale, yl * scale) - 0.5) * 2
-                            ssy = sy + (n * amp * colFactor[x] * pd | 0)   //shift in physical pixels
+                            ssy = sy + (n * amp * colFactor[x] * geoPd | 0)   //shift in physical pixels
                             if(ssy < 0) ssy = 0
                             else if(ssy > iph - 1) ssy = iph - 1
                         }
@@ -527,7 +561,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                 if(wMosaic){
                     //resolution decay: snap the free axis to growing cells (cell size in logical px)
                     const cell = (1 + wMosaic * str) | 0
-                    const cellPh = cell * pd            //same cell size in physical pixels
+                    const cellPh = cell * geoPd         //same cell size in physical pixels
                     if(cellPh > 1){
                         if(vert) ssy = (ssy / cellPh | 0) * cellPh
                         else     ssx = (ssx / cellPh | 0) * cellPh
@@ -537,13 +571,13 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                     //torn-signal tearing: each band (perpendicular to the stretch) jumps by a noise amount
                     const bandCoord = vert ? yl : xl
                     const band = bandCoord / wBand | 0
-                    const j = ((noise(band * 0.5, 17.3) - 0.5) * 2 * wShear * str * pd) | 0
+                    const j = ((noise(band * 0.5, 17.3) - 0.5) * 2 * wShear * str * geoPd) | 0
                     if(vert) ssy += j
                     else     ssx += j
                 }
                 if(wHaze){
                     //shimmer: a fast secondary sine wobble layered on top of the main wave
-                    const h = (Math.sin(yl * 0.3 + xl * 0.1) * wHaze * str * pd) | 0
+                    const h = (Math.sin(yl * 0.3 + xl * 0.1) * wHaze * str * geoPd) | 0
                     if(vert) ssy += h
                     else     ssx += h
                 }
@@ -557,7 +591,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
             const eBuf = (doEdges && str > 0) ? (vert ? edgeV : edgeH) : null
             let r, g, b, a
             if(wEcho && str > 0){
-                const d = (wEcho * str * pd) | 0   //echo offset in physical pixels
+                const d = (wEcho * str * geoPd) | 0   //echo offset in physical pixels
                 let R = 0, G = 0, B = 0, A = 0
                 for(let e = -1; e <= 1; e++){
                     let ex = ssx, ey = ssy
@@ -614,7 +648,7 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                     b += (palette[li + 2] - b) * t
                 }
                 if(mChromatic){                        //split red up / blue down by a growing vertical offset
-                    const sh = (str * cShift * pd) | 0    //shift in physical pixels
+                    const sh = (str * cShift * geoPd) | 0    //shift in physical pixels
                     let ry = ssy + sh; if(ry < 0) ry = 0; else if(ry > iph - 1) ry = iph - 1
                     let by = ssy - sh; if(by < 0) by = 0; else if(by > iph - 1) by = iph - 1
                     if(eBuf){                          //on edge-art, split within the synthetic strip (vertical strips only)
