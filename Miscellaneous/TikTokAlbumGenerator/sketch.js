@@ -997,7 +997,7 @@ function getDefaultProfile() {
             "title": 980,
             "artist": 480,
             "year": 480,
-            "genre": 550,
+            "genre": 520,
             "funfact": 490
         },
         "textSizeOffsets": {
