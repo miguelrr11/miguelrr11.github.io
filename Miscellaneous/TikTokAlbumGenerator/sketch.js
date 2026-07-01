@@ -3463,7 +3463,7 @@ async function printAlbum(){
     else background(50);
     imageMode(CORNER); rectMode(CORNER);
 
-    let cover = drawAlbumCover(img, hasImage);
+    let cover = drawAlbumCover(img, hasImage, false);
 
     drawAlbumHeader();
     drawCustomTextboxes('ratings');
@@ -3492,7 +3492,7 @@ async function printAlbum(){
     }
 }
 
-function drawAlbumCover(img, hasImage) {
+function drawAlbumCover(img, hasImage, drawGlitch = true) {
     const C = RATINGS_LAYOUT.cover;
     let x = width * C.xRatio + (horizontalOffsetsRatings.image || 0);
     let y = C.y + (verticalOffsetsRatings.image || 0);
@@ -3507,13 +3507,15 @@ function drawAlbumCover(img, hasImage) {
         // around the cover, where imgPos is the cover's CENTER (here x,y is the top-left
         // corner because imageMode is CORNER). So draw the result at (0,0) full size — don't
         // squish it into the size×size cover box.
-        let center = { x: x + size / 2, y: y + size / 2 };
-        let glitchOptsAux = {...glitchOpts, color: {...glitchOpts.color}}
-        glitchOptsAux.sides = {left: false, right: false, top: false, bottom: false}
-        glitchOptsAux.color.amount = 0.4
-        let glitchedImg = getCachedGlitchyImage('ratingsImage', () => img, size, size, center, glitchOptsAux, albumData.imageUrl);
-        imageMode(CORNER);
-        image(glitchedImg, 0, 0, width, height);
+        if (drawGlitch) {
+            let center = { x: x + size / 2, y: y + size / 2 };
+            let glitchOptsAux = {...glitchOpts, color: {...glitchOpts.color}}
+            glitchOptsAux.sides = {left: false, right: false, top: false, bottom: false}
+            glitchOptsAux.color.amount = 0.4
+            let glitchedImg = getCachedGlitchyImage('ratingsImage', () => img, size, size, center, glitchOptsAux, albumData.imageUrl);
+            imageMode(CORNER);
+            image(glitchedImg, 0, 0, width, height);
+        }
     }
     else drawImagePlaceholder(x, y, size, size, true);
     utils.endShadow();
