@@ -979,7 +979,7 @@ function getDefaultProfile() {
         },
         "verticalOffsetsCover": {
             "artist": -500,
-            "title": -826
+            "title": 23
         },
         "horizontalOffsetsRatings": {
             "artist": -40,
@@ -1023,16 +1023,16 @@ function getDefaultProfile() {
         },
         "customTextboxes": [
             {
-                "color": "#ffffff",
-                "fontSize": 36,
+                "color": "#f2f2f2",
+                "fontSize": 48,
                 "fontType": "fontRegularCondensed",
                 "leading": 0,
                 "maxWidth": 980,
                 "text": "Album Review #nnn",
                 "viewType": "cover",
                 "textAlign": "center",
-                "x": 47.683885894149626,
-                "y": 186.35340253694213,
+                "x": 49,
+                "y": 292,
                 "id": "album_review"
             },
             {
@@ -1046,33 +1046,33 @@ function getDefaultProfile() {
                 "textAlign": "left",
                 "x": 56.94990391440638,
                 "y": 1284.4670669176778,
-                "id": "custom_1777014064688"
+                "id": "songsAddedToGOATPlaylist"
             },
             {
-                "color": "#cfcfcf",
-                "fontSize": 34,
-                "fontType": "fontRegularCondensed",
+                "color": "#cccccc",
+                "fontSize": 30,
+                "fontType": "fontLight",
                 "leading": 0,
                 "maxWidth": 980,
-                "text": "$(js: albumData.genre.replace(/,\s*/g, '\\n'))$",
+                "text": "$(js: albumData.genre.split(/,s*/g)[0])$",
                 "viewType": "cover",
                 "textAlign": "center",
-                "x": 56.02164222708063,
-                "y": 1195.3363191721955,
-                "id": "custom_1780566684769"
+                "x": 55.02164222708063,
+                "y": 1266.3363191721955,
+                "id": "genreInCover"
             },
             {
                 "color": "#ededed",
-                "fontSize": 52,
+                "fontSize": 36,
                 "fontType": "fontRegularCondensed",
                 "leading": 0,
                 "maxWidth": 980,
                 "text": "$artist$, $year$",
                 "viewType": "cover",
                 "textAlign": "center",
-                "x": 54.7153196622437,
-                "y": 1117.336460532268,
-                "id": "custom_1780566918445"
+                "x": 50.7153196622437,
+                "y": 1209.336460532268,
+                "id": "artistAndYearInCover"
             }
         ],
         "glitchOpts": {
@@ -1081,7 +1081,7 @@ function getDefaultProfile() {
             "amp": 50,
             "scale": 0.005,
             "symmetrical": false,
-            "color": {"mode": "bloom+glow", "amount": 0.3, "tint": [255, 60, 180], "levels": 10, "shift": 60},
+            "color": {"mode": "bloom+glow", "amount": 0.15, "tint": [255, 60, 180], "levels": 10, "shift": 60},
             "warp": {},
             "edges": {"mode": "noise", "sample": true, "scale": 0.04}
         },
@@ -4104,7 +4104,7 @@ function drawStylizedText(font, fontSz, str, x, y, hAlign = CENTER, vAlign = CEN
 
     // padding so descenders / glyph overhang / antialiased edges never clip
     let Wpad = -20
-    let Hpad = 20
+    let Hpad = 50 // esto en realidad se deberia calcular, lo pongo alto para que no se corte si el textsize es alto
     let tw = Math.ceil(bbox.w + Wpad);
     let th = Math.ceil(bbox.h + Hpad);
 
