@@ -1519,9 +1519,19 @@ function getActiveGlitchOpts() {
     return (glitchTargetSel && glitchTargetSel.value() === 'title') ? glitchOptsTitle : glitchOpts;
 }
 
+let glitchRefreshScheduled = false;
+// Coalesce glitch refreshes to at most one per animation frame. Interactive controls
+// (especially Chrome's native color picker for the tint) fire their `input` event many
+// times per frame while dragging; recomputing the whole glitch synchronously on each
+// event floods the main thread and freezes the tab. rAF keeps only the latest value.
 function refreshGlitchCache() {
-    glitchImageCache = {};
-    if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    if (glitchRefreshScheduled) return;
+    glitchRefreshScheduled = true;
+    requestAnimationFrame(() => {
+        glitchRefreshScheduled = false;
+        glitchImageCache = {};
+        if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    });
 }
 
 function rgbToHex(rgb) {
