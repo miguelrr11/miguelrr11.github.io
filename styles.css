@@ -220,6 +220,42 @@ a.custom-link:hover { color: #c8c8c8; transform: scale(1.05); }
   color: inherit;
 }
 
+.cards-wrapper .card.featured {
+  position: relative;
+}
+
+.featured-badge {
+  position: absolute;
+  top: 8px;
+  left: 8px;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 6px;
+  border-radius: 999px;
+  background: rgba(20, 20, 20, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  border: 1px solid rgba(255, 215, 0, 0.55);
+  color: #ffd54a;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.featured-badge svg {
+  fill: #ffd54a;
+  flex: 0 0 auto;
+}
+
+.featured-badge-text {
+  display: inline-block;
+}
+
 .cards-wrapper .card-video {
   display: block;
   width: 100%;
