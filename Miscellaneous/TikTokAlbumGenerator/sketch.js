@@ -3399,9 +3399,9 @@ const RATINGS_LAYOUT = {
         titleIndent: { oneColumn: -15, twoColumns: 15 },
         pillWidthFactorOneColumn: 0.70,   // pill width as a fraction of (leftMargin + textIndent)
         pillWidthFactorTwoColumns: 0.85,    // pill width as a fraction of (columnShift + textIndent)
-        columnShift: 450,        // x shift of the second column in two-column mode
+        columnShift: 485,        // x shift of the second column in two-column mode
         horizOffsetFix: 30,      // correction added to the user's horizontal offset
-        titleMaxWidth: { oneColumn: 900, twoColumns: 240 },  // titles are truncated to this
+        titleMaxWidth: { oneColumn: 900, twoColumns: 290 },  // titles are truncated to this
         // row spacing shrinks as the track count grows, then user spacing is added
         rowSpacing: { fewTracks: 5, manyTracks: 20, max: 80, min: 45, cap: 70 },
         goatGlowBlur: 50,
