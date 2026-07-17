@@ -3759,7 +3759,7 @@ function drawGradeLegend(cover) {
     for (let i = 0; i < legendGrades.length; i++) {
         let grade = legendGrades[i];
         let label = legendLabels[i];
-        let x = cover.x + i * (rectW + L.gap);
+        let x = cover.x + (legendGrades.length - i - 1) * (rectW + L.gap);
         let cornerRadius = rectH * 0.5;
 
         fill(colorMap[grade] || "#888888");
