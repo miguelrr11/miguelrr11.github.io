@@ -272,6 +272,7 @@ async function setup(){
     let canvas = createCanvas(WIDTH, HEIGHT);
     canvas.parent('canvas-container');
 
+    isSafariLike = detectSafariLike();
     applyCanvasScale();
     window.addEventListener('resize', applyCanvasScale);
 
@@ -3607,6 +3608,31 @@ const RATINGS_LAYOUT = {
     },
 };
 
+// ─── Safari / WebKit text baseline fix (ratings screen only) ───────────────────
+// Safari (macOS) and every browser on iOS render canvas text a few pixels too low,
+// and the error grows with font size. We nudge the affected ratings-screen text back
+// up. Two tunable offsets in pixels — a positive value moves text UP:
+//   • small text: artist, year, genre, description, pill label, legend label, note
+//   • large text: album title, grade bar
+// (Only applied on Safari/WebKit; other browsers get 0 so their layout is unchanged.)
+let safariTextOffsetSmall = 3;
+let safariTextOffsetLarge = 8;
+let isSafariLike = false; // set in setup()
+
+function detectSafariLike() {
+    const ua = navigator.userAgent;
+    const iOS = /iP(hone|ad|od)/.test(ua) ||
+                (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1); // iPadOS reports as Mac
+    const safari = /Safari/.test(ua) && !/Chrome|Chromium|CriOS|FxiOS|Edg|OPR/.test(ua);
+    return iOS || safari;
+}
+
+// Vertical nudge (px, negative = up on the canvas) for ratings text on Safari/WebKit.
+function safariTextShift(large = false) {
+    if (!isSafariLike) return 0;
+    return -(large ? safariTextOffsetLarge : safariTextOffsetSmall);
+}
+
 async function printAlbum(){
     transparentBackground ? clear() : background(200);
     if (!albumData) return;
@@ -3721,7 +3747,7 @@ function drawAlbumHeader() {
         ratingsTitleSize,
         albumData.title,
         leftMargin + (horizontalOffsetsRatings.title || 0),
-        H.top + (verticalOffsetsRatings.title || 0), textAlignRatings.title || 'left', BOTTOM, glitchOptsTitle, 'ratingsTitle')
+        H.top + (verticalOffsetsRatings.title || 0) + safariTextShift(true), textAlignRatings.title || 'left', BOTTOM, glitchOptsTitle, 'ratingsTitle')
 
 
     let artistMaxWidth = maxTextboxWidths.artist || defaultMaxTextboxWidths.artist;
@@ -3730,7 +3756,7 @@ function drawAlbumHeader() {
         albumData.artist,
         rightColX + (horizontalOffsetsRatings.artist || 0),
         H.top + H.artist.offsetY + (verticalOffsetsRatings.artist || 0),
-        artistMaxWidth, H.artist.leading, textAlignRatings.artist || 'left');
+        artistMaxWidth, H.artist.leading, textAlignRatings.artist || 'left', BASELINE, true, safariTextShift());
 
     // year / genre / funfact shift down with the artist block height
     let blockTop = H.top + artistBox.h;
@@ -3742,7 +3768,7 @@ function drawAlbumHeader() {
     let yearSize = H.year.fontSize + textSizeOffsets.year;
     let yearAlign = textAlignRatings.year || 'left';
     textFont(fontLight); textSize(yearSize); textLeading(H.year.leading);
-    drawBoxText(albumData.year, yearX, yearY, yearMaxWidth, yearAlign);
+    drawBoxText(albumData.year, yearX, yearY + safariTextShift(), yearMaxWidth, yearAlign);
     addTextBox('year', getAlignedBounds(fontLight.textBounds(getRichText(albumData.year), yearX, yearY, yearMaxWidth), yearX, yearAlign, yearMaxWidth, fontLight), yearSize);
 
     let genreX = rightColX + (horizontalOffsetsRatings.genre || 0);
@@ -3752,7 +3778,7 @@ function drawAlbumHeader() {
     let genreAlign = textAlignRatings.genre || 'left';
     textSize(genreSize); textLeading(H.genre.leading);
     let genreText = shortenText(albumData.genre, genreMaxWidth);
-    drawBoxText(genreText, genreX, genreY, genreMaxWidth, genreAlign);
+    drawBoxText(genreText, genreX, genreY + safariTextShift(), genreMaxWidth, genreAlign);
     addTextBox('genre', getAlignedBounds(fontLight.textBounds(getRichText(genreText), genreX, genreY, genreMaxWidth), genreX, genreAlign, genreMaxWidth, fontLight), genreSize);
 
     let funfactX = rightColX + (horizontalOffsetsRatings.funfact || 0);
@@ -3762,7 +3788,7 @@ function drawAlbumHeader() {
     let funfactAlign = textAlignRatings.funfact || 'left';
     textFont(fontRegularCondensed);
     textSize(funfactSize); textLeading(H.funfact.leading + textLeadingOffsets.funfact);
-    drawBoxText(albumData.funfact, funfactX, funfactY, funfactMaxWidth, funfactAlign);
+    drawBoxText(albumData.funfact, funfactX, funfactY + safariTextShift(), funfactMaxWidth, funfactAlign);
     // hitbox measured with fontLight to keep the historical selection size
     addTextBox('funfact', getAlignedBounds(fontLight.textBounds(getRichText(albumData.funfact), funfactX, funfactY, funfactMaxWidth), funfactX, funfactAlign, funfactMaxWidth, fontLight), funfactSize);
 
@@ -3821,7 +3847,7 @@ function drawTrackList() {
             push();
             rectMode(CORNER); // anchor the text box at its top-left so noteX is the left edge
             fill(245); noStroke(); textFont(fontLight); textSize(N.fontSize); textAlign(LEFT, TOP);
-            _text(track.customTextLarge, noteX, noteY, noteMaxWidth);
+            _text(track.customTextLarge, noteX, noteY + safariTextShift(), noteMaxWidth);
             noteSpacing = fontLight.textBounds(getRichText(track.customTextLarge), noteX, noteY, noteMaxWidth).h + N.bottomGap;
 
             let lineX = pillCenterX - pillW / 2 + N.lineInset;
@@ -3870,7 +3896,7 @@ function drawTrackList() {
             textSize(Math.min(
                 getMaxTextSizeByWidth(track.customText, pillW - L.widthPad, L.maxFontSize),
                 getMaxTextSizeByHeight(track.customText, pillH + L.heightSlack, L.maxFontSize)));
-            _text(track.customText, pillCenterX, pillCenterY + L.nudgeY);
+            _text(track.customText, pillCenterX, pillCenterY + L.nudgeY + safariTextShift());
             pop();
         }
 
@@ -3940,7 +3966,7 @@ function drawGradeLegend(cover) {
         textSize(Math.min(
             getMaxTextSizeByWidth(label, rectW - L.labelWidthPad, L.labelMaxFontSize.byWidth),
             getMaxTextSizeByHeight(label, rectH + L.labelHeightSlack, L.labelMaxFontSize.byHeight)));
-        _text(label, x + rectW / 2, y + rectH / 2 + L.labelNudgeY);
+        _text(label, x + rectW / 2, y + rectH / 2 + L.labelNudgeY + safariTextShift());
     }
     pop();
 }
@@ -3959,7 +3985,7 @@ function drawAlbumGradeBar(exportHeight) {
 
     textAlign(CENTER, CENTER); fill(255); textFont(fontHeavy); textSize(G.fontSize);
     utils.beginShadow("#ffffffa3", G.glowBlur, 0, 0);
-    _text(albumData.albumGrade, width * 0.5, barY + G.height * G.textYFactor);
+    _text(albumData.albumGrade, width * 0.5, barY + G.height * G.textYFactor + safariTextShift(true));
     utils.endShadow();
     pop();
 }
@@ -4007,14 +4033,16 @@ function getAlignedBounds(bounds, anchorX, align, maxWidth, font) {
     return bounds;
 }
 
-function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align = 'left', verAlign = BASELINE, drawText = true) {
+function drawTextWithBox(id, font, size, textStr, x, y, maxWidth, leading, align = 'left', verAlign = BASELINE, drawText = true, drawYShift = 0) {
     push()
     size = max(10, size);
     textFont(font);
     textSize(size);
     fill(255);
     textLeading(leading);
-    if(drawText) drawBoxText(textStr, x, y, maxWidth, align, verAlign);
+    // drawYShift nudges only the rendered text (e.g. the Safari baseline fix); the
+    // measured bounds/hitbox below stay at the true position so selection is unaffected.
+    if(drawText) drawBoxText(textStr, x, y + drawYShift, maxWidth, align, verAlign);
     textAlign(getP5Align(align), verAlign);
     let bbox = font.textBounds(getRichText(textStr), x, y, maxWidth);
     addTextBox(id, getAlignedBounds(bbox, x, align, maxWidth, font), size);
