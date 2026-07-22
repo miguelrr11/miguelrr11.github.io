@@ -173,7 +173,25 @@ function selectTrackRowUI(rowDiv) {
     });
 }
 
+// True when the viewport is phone-sized. Keep the breakpoint in sync with the
+// `@media (max-width: 768px)` block in style.css and MOBILE_TABBAR_H below.
+function isMobile() {
+    return window.matchMedia('(max-width: 768px)').matches;
+}
+
+// Must match --mtabbar-h in style.css (px) — used to reserve room when fitting the preview.
+const MOBILE_TABBAR_H = 60;
+
 function calculateCanvasScale() {
+    if (isMobile()) {
+        // Phones fit the whole 1080x1920 canvas into the area above the tab bar
+        // (width- or height-limited, whichever is smaller) instead of the desktop
+        // height-only fit, so the preview is never zoomed past the screen edges.
+        const availW = window.innerWidth - 16;
+        const availH = window.innerHeight - MOBILE_TABBAR_H - 24;
+        const scale = Math.min(availW / WIDTH, availH / HEIGHT);
+        return Math.max(0.1, Math.min(1, scale));
+    }
     const scale = (window.innerHeight - 40) / HEIGHT;
     return Math.max(0.3, Math.min(1, scale));
 }
@@ -185,6 +203,61 @@ function applyCanvasScale() {
     if (container) {
         container.style.width = (WIDTH * canvasScale) + 'px';
         container.style.height = (HEIGHT * canvasScale) + 'px';
+    }
+}
+
+// ─── Mobile UI ────────────────────────────────────────────────────────────────
+// Phone-only layer: turns the desktop 4-column editor into one full-width section
+// at a time, switched from a fixed bottom tab bar. Everything here is inert on
+// desktop (the tab bar is display:none, and the canvas guards below only trip when
+// isMobile() is true), so PC behaviour is unchanged.
+//
+// To expose a new section on mobile: add an entry here and a matching
+// `body[data-mtab="<id>"] <selector> { display: … }` rule in style.css.
+const MOBILE_SECTIONS = [
+    { id: 'preview',  label: 'Preview',  icon: '🖼️' },
+    { id: 'metadata', label: 'Album',    icon: '💿' },
+    { id: 'tracks',   label: 'Tracks',   icon: '🎵' },
+    { id: 'settings', label: 'Settings', icon: '⚙️' },
+];
+let mobileTabButtons = {};
+
+// The canvas only accepts pointer input when it's actually the visible section, so
+// taps inside an editor panel can't accidentally select/drag a hidden textbox.
+function canvasInteractive() {
+    return !isMobile() || document.body.getAttribute('data-mtab') === 'preview';
+}
+
+function setupMobileUI() {
+    let bar = createDiv('').id('mobile-tabbar').parent(document.body);
+    MOBILE_SECTIONS.forEach(sec => {
+        let btn = createDiv('').parent(bar).class('mtab-btn');
+        createSpan(sec.icon).parent(btn).class('mtab-icon');
+        createSpan(sec.label).parent(btn).class('mtab-label');
+        btn.elt.addEventListener('click', () => showMobileSection(sec.id));
+        mobileTabButtons[sec.id] = btn;
+    });
+    showMobileSection('preview');
+
+    // Re-fit the preview when crossing the mobile/desktop breakpoint (orientation
+    // change already fires 'resize', which is wired to applyCanvasScale in setup).
+    window.matchMedia('(max-width: 768px)').addEventListener('change', applyCanvasScale);
+}
+
+function showMobileSection(id) {
+    document.body.setAttribute('data-mtab', id);
+    Object.keys(mobileTabButtons).forEach(k =>
+        mobileTabButtons[k].elt.classList.toggle('active', k === id));
+
+    // The floating adjust panels belong to the canvas — hide them off the preview.
+    if (id !== 'preview') {
+        if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
+        if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
+    }
+
+    if (isMobile() && id === 'preview') {
+        applyCanvasScale();
+        if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
     }
 }
 
@@ -215,6 +288,8 @@ async function setup(){
     captureState();
     updateVisibilityCustomTextBoxesUI()
     if(localStorage.getItem('albumGeneratorData') == undefined) applySelectedProfile()
+
+    setupMobileUI();
 
     setInterval(saveToLocalStorage, 1000);
     document.addEventListener('keydown', handleKeyboard);
@@ -755,7 +830,7 @@ function createButtonGrid(parent = editorPanel) {
 
     createDiv('').parent(buttonGrid).class('section-divider')
 
-    let buttonToggleJSONeditor = createButton('Switch to JSON Mode').parent(buttonGrid).class('btn btn-secondary')
+    let buttonToggleJSONeditor = createButton('Switch to JSON Mode').parent(buttonGrid).class('btn btn-secondary btn-json-toggle')
     buttonToggleJSONeditor.mousePressed(() => {
         editorPanel.toggleClass('editor-open');
         buttonToggleJSONeditor.html(editorPanel.hasClass('editor-open') ? 'Switch to UI Mode' : 'Switch to JSON Mode');
@@ -4275,6 +4350,8 @@ function updateVisibilityCustomTextBoxesUI(){
 }
 
 function mousePressed() {
+    // On mobile, only the visible "Preview" section owns canvas input.
+    if (!canvasInteractive()) return;
     let canvasEl = document.querySelector('canvas');
     let canvasRect = canvasEl.getBoundingClientRect();
     let scaledMouseX = mouseX / canvasScale;

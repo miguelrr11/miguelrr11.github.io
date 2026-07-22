@@ -2,7 +2,12 @@
   "permissions": {
     "allow": [
       "Bash(node:*)",
-      "Bash(grep -n \"showGradeLegend: showGradeLegend,\\\\|showGradeLegend,$\" \"/Users/miguelrodriguezmbp/Library/p5js/gitrepoP5js/miguelrr11.github.io/Miscellaneous/TikTokAlbumGenerator/sketch.js\")"
+      "Bash(grep -n \"showGradeLegend: showGradeLegend,\\\\|showGradeLegend,$\" \"/Users/miguelrodriguezmbp/Library/p5js/gitrepoP5js/miguelrr11.github.io/Miscellaneous/TikTokAlbumGenerator/sketch.js\")",
+      "Bash(node --check sketch.js)",
+      "Bash(command -v python3)",
+      "Bash(node -e \"try{require.resolve\\('playwright'\\);console.log\\('playwright: yes'\\)}catch\\(e\\){console.log\\('playwright: no'\\)}\")",
+      "Bash(node -e \"try{require.resolve\\('puppeteer'\\);console.log\\('puppeteer: yes'\\)}catch\\(e\\){console.log\\('puppeteer: no'\\)}\")",
+      "Read(//Users/miguelrodriguezmbp/.cache/**)"
     ]
   }
 }

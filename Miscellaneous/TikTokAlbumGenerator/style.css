@@ -1283,3 +1283,129 @@ canvas {
 .editor-panel.editor-open .panel-editor {
   display: block;
 }
+
+/* ============================================================
+   MOBILE / TOUCH LAYOUT  (iPhone-first)
+   ------------------------------------------------------------
+   Everything below is scoped to phone-sized screens and is
+   PURELY ADDITIVE — none of the desktop rules above are edited,
+   so PC behaviour is unchanged. The desktop 4-column editor
+   becomes one full-width section at a time, switched from a
+   fixed bottom tab bar (built in sketch.js › setupMobileUI).
+
+   Add a new mobile section by adding it to MOBILE_SECTIONS in
+   sketch.js and a `body[data-mtab="<id>"] <selector>` rule here.
+   ============================================================ */
+
+/* Tab bar is inert (hidden) on desktop */
+#mobile-tabbar { display: none; }
+
+@media (max-width: 768px) {
+    :root { --mtabbar-h: 60px; }   /* keep in sync with MOBILE_TABBAR_H in sketch.js */
+
+    html, body { height: 100%; }
+    body { overflow: hidden; }
+
+    /* Stack vertically; the active section fills the space above the tab bar */
+    main {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 0;
+        padding: 0;
+        height: 100vh;
+        height: 100dvh; /* accounts for the iOS dynamic toolbar where supported */
+        padding-bottom: calc(var(--mtabbar-h) + env(safe-area-inset-bottom));
+    }
+
+    /* ---- Preview (canvas) ---- */
+    #canvas-container { display: none; margin: auto; }              /* centered when shown */
+    body[data-mtab="preview"] #canvas-container { display: block; }
+    /* Let p5 own touch gestures on the canvas: drag textboxes, no page scroll/zoom */
+    #canvas-container, canvas { touch-action: none; }
+    canvas { border-radius: 8px; }
+
+    /* ---- Editor panels become full-width sections ---- */
+    .editor-panel { flex: 1 1 auto; width: 100%; height: 100%; gap: 0; }
+    .panel-column {
+        width: 100%;
+        height: 100%;
+        border-radius: 0;
+        border: none;
+        padding: 16px;
+        padding-bottom: 40px;
+    }
+    /* Settings column is pinned to 1/3 on desktop — release it on mobile */
+    .panel-settings { flex: 1 1 auto; width: 100%; }
+
+    /* Hide every section, then reveal only the active one */
+    .panel-metadata, .panel-tracks, .panel-settings, .panel-editor { display: none; }
+    body[data-mtab="metadata"] .panel-metadata { display: block; }
+    body[data-mtab="tracks"]   .panel-tracks   { display: flex; }   /* keeps base column direction */
+    body[data-mtab="settings"] .panel-settings { display: block; }
+
+    /* The JSON / Monaco editor isn't practical on a phone */
+    .btn-json-toggle { display: none; }
+
+    /* ---- Bottom tab bar ---- */
+    #mobile-tabbar {
+        display: flex;
+        position: fixed;
+        left: 0; right: 0; bottom: 0;
+        height: calc(var(--mtabbar-h) + env(safe-area-inset-bottom));
+        padding-bottom: env(safe-area-inset-bottom);
+        background: rgba(18, 20, 34, 0.96);
+        backdrop-filter: blur(20px);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+        z-index: 2000;
+    }
+    .mtab-btn {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 3px;
+        color: rgba(255, 255, 255, 0.55);
+        font-size: 11px;
+        cursor: pointer;
+        user-select: none;
+        -webkit-tap-highlight-color: transparent;
+        transition: color 0.15s ease;
+    }
+    .mtab-btn .mtab-icon { font-size: 20px; line-height: 1; }
+    .mtab-btn.active { color: #8ab4f8; }
+
+    /* ---- iOS: 16px controls stop Safari auto-zooming on focus ---- */
+    .form-input, .form-textarea, .form-select,
+    .track-title-input, .track-grade-select,
+    .track-text-input, .track-textLarge-input,
+    .position-input, .track-number-input,
+    input, textarea, select {
+        font-size: 16px;
+    }
+
+    /* ---- Bigger touch targets ---- */
+    .position-btn { width: 34px; height: 34px; font-size: 16px; }
+    .position-input { width: 56px; }
+    .track-row { min-height: 52px; }
+    .track-interlude-btn, .track-text-btn,
+    .track-textLarge-btn, .track-remove-btn { height: 30px; }
+    .color-picker { width: 60px; height: 38px; }
+
+    /* ---- Floating adjust panels sit above the tab bar and wrap to fit ---- */
+    #size-adjust-panel, #tracks-adjust-panel {
+        left: 8px; right: 8px;
+        transform: none;
+        bottom: calc(var(--mtabbar-h) + env(safe-area-inset-bottom) + 10px);
+        flex-wrap: wrap;
+        white-space: normal;
+        justify-content: center;
+        gap: 10px;
+        max-width: none;
+    }
+    .sap-group + .sap-group { border-left: none; padding-left: 0; }
+    .sap-slider { width: 90px; }
+
+    /* Toasts clear the tab bar */
+    .toast { bottom: calc(var(--mtabbar-h) + env(safe-area-inset-bottom) + 20px); }
+}
