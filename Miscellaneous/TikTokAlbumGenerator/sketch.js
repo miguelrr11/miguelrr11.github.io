@@ -604,20 +604,62 @@ function createImageInputWithUpload(parent = editorPanel) {
     // Handle file selection
     fileInput.elt.addEventListener('change', (e) => {
         let file = e.target.files[0];
-        if (file && file.type.startsWith('image/')) {
-            let reader = new FileReader();
-            reader.onload = (event) => {
-                imageUrlInput.value(event.target.result);
-                lastUrlChecked = null;
-                cachedImageUrl = null;
-                cachedOriginalImage = null;
-                cachedFilteredImage = null;
-                autoGeneratePreview();
-                captureState();
-            };
-            reader.readAsDataURL(file);
-        }
+        if (file) loadLocalImageFile(file);
     });
+}
+
+// Apply a picked/decoded image URL to the form and refresh the preview.
+function setUploadedImage(url) {
+    imageUrlInput.value(url);
+    lastUrlChecked = null;
+    cachedImageUrl = null;
+    cachedOriginalImage = null;
+    cachedFilteredImage = null;
+    autoGeneratePreview();
+    captureState();
+}
+
+// Load a local image file chosen by the user.
+// Common web formats at a sane size pass through unchanged (keeps the original desktop
+// behaviour, including transparent PNGs). Everything else — HEIC from the iPhone Photos
+// app, unknown MIME types, or very large photos — is decoded, downscaled and re-encoded
+// to a data URL p5 can actually read and that fits in localStorage.
+function loadLocalImageFile(file) {
+    const PASSTHROUGH = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
+    const SIZE_LIMIT = 4 * 1024 * 1024; // 4 MB
+    const MAX_SIDE = 1600;
+
+    if (PASSTHROUGH.includes(file.type) && file.size <= SIZE_LIMIT) {
+        let reader = new FileReader();
+        reader.onload = (ev) => setUploadedImage(ev.target.result);
+        reader.onerror = () => showToast('Could not read that image. Try another one.', true);
+        reader.readAsDataURL(file);
+        return;
+    }
+
+    let objectUrl = URL.createObjectURL(file);
+    let img = new Image();
+    img.onload = () => {
+        let scale = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight));
+        let w = Math.max(1, Math.round(img.naturalWidth * scale));
+        let h = Math.max(1, Math.round(img.naturalHeight * scale));
+        let c = document.createElement('canvas');
+        c.width = w; c.height = h;
+        c.getContext('2d').drawImage(img, 0, 0, w, h);
+        URL.revokeObjectURL(objectUrl);
+        // Keep alpha for PNG sources; everything else (incl. HEIC) becomes a compact JPEG.
+        let outType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
+        try {
+            setUploadedImage(c.toDataURL(outType, outType === 'image/jpeg' ? 0.92 : undefined));
+        } catch (err) {
+            showToast('Could not process that image. Try another one.', true);
+        }
+    };
+    img.onerror = () => {
+        URL.revokeObjectURL(objectUrl);
+        showToast('Could not read that image format. Try a JPEG or PNG.', true);
+    };
+    img.src = objectUrl;
 }
 
 function createFormTextarea(label, placeholder, parent = editorPanel) {
