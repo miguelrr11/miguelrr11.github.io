@@ -445,7 +445,7 @@ function createAlbumEditor() {
 
     createImageInputWithUpload(panel1);
 
-    let gradeRow = createDiv('').parent(panel1).style('display: flex; gap: 35px; align-items: center;');
+    let gradeRow = createDiv('').parent(panel1).class('row-wrap-mobile').style('display: flex; gap: 35px; align-items: center;');
     let gradeGroup = createDiv('').parent(gradeRow).class('form-group').style('flex: 1;');
     createElement('label', 'Album Grade').parent(gradeGroup);
     albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
@@ -880,6 +880,7 @@ function createButtonGrid(parent = editorPanel) {
     // Aspect Ratio & Image Format selectors
     let aspectRatioRow = createDiv('')
         .parent(buttonGrid)
+        .class('row-wrap-mobile')
         .style('display: flex; gap: 12px; margin-bottom: 10px; align-items: flex-end;');
 
     // Aspect Ratio selector (half width)
@@ -2785,7 +2786,10 @@ function toggleView() {
 async function downloadBothImages() {
     let tracksData = collectTracksData();
     albumData = collectAlbumData(tracksData);
-    if (!albumData.imageUrl) return;
+    if (!albumData.imageUrl) {
+        showToast('Add an image before downloading.', true);
+        return;
+    }
 
     let baseFileName = getBaseFileName();
     let mime = 'image/' + (currentImageFormat === 'jpg' ? 'jpeg' : currentImageFormat);
@@ -2795,27 +2799,37 @@ async function downloadBothImages() {
     let downloadRatings = downloadImageOption !== 'cover';
     let downloadCover = downloadImageOption !== 'ratings';
 
-    // Crop the current canvas to the export height and trigger a download
-    let exportCurrentCanvas = (exportHeight, suffix) => {
+    // Crop the current canvas to the export height and trigger a download.
+    // Uses a Blob URL (not a data: URL): mobile Safari silently blocks downloads of
+    // large data: URLs, which is why the image export "did nothing" on iPhone while
+    // the JSON export (already Blob-based) worked.
+    let exportCurrentCanvas = (exportHeight, suffix) => new Promise(resolve => {
         let tempCanvas = createGraphics(WIDTH, exportHeight);
         tempCanvas.image(get(0, 0, WIDTH, exportHeight), 0, 0);
-        let link = document.createElement('a');
-        link.download = baseFileName + ' - ' + suffix + '.' + currentImageFormat;
-        link.href = tempCanvas.canvas.toDataURL(mime);
-        link.click();
-        tempCanvas.remove();
-    };
+        tempCanvas.canvas.toBlob(blob => {
+            let url = URL.createObjectURL(blob);
+            let link = document.createElement('a');
+            link.download = baseFileName + ' - ' + suffix + '.' + currentImageFormat;
+            link.href = url;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
+            tempCanvas.remove();
+            resolve();
+        }, mime);
+    });
 
     showGreenRectangle = false; // Hide green rectangle for download
 
     if (downloadRatings) {
         await printAlbum();
-        exportCurrentCanvas(aspectRatioOptions[currentAspectRatio].height, 'Ratings');
+        await exportCurrentCanvas(aspectRatioOptions[currentAspectRatio].height, 'Ratings');
     }
 
     if (downloadCover) {
         await printCoverScreen();
-        exportCurrentCanvas(aspectRatioOptions[currentAspectRatioCover].height, 'Cover');
+        await exportCurrentCanvas(aspectRatioOptions[currentAspectRatioCover].height, 'Cover');
     }
 
     showGreenRectangle = true; // Show it again
