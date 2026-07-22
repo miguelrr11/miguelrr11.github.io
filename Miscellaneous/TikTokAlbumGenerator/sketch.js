@@ -97,6 +97,8 @@ let downloadImageSelect;
 let downloadImageOption = 'both'; // 'both' | 'cover' | 'ratings' — which screens the image download exports
 let showGradeLegend = true;
 let gradeLegendCheckbox;
+let transparentBackground = false;
+let transparentBackgroundCheckbox;
 
 // Image cache
 let cachedImageUrl = null, cachedOriginalImage = null, cachedFilteredImage = null;
@@ -456,6 +458,7 @@ function syncEditorFromUI() {
         imageFormat: currentImageFormat,
         downloadImageOption: downloadImageOption,
         showGradeLegend: showGradeLegend,
+        transparentBackground: transparentBackground,
         tracks: tracks.map(t => ({
             title: t.titleInput.value(), grade: t.gradeSelect.value(), interlude: t.interlude || false,
             customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null,
@@ -1110,6 +1113,7 @@ function getCurrentProfileData() {
         imageFormat: currentImageFormat,
         downloadImageOption: downloadImageOption,
         showGradeLegend: showGradeLegend,
+        transparentBackground: transparentBackground,
         verticalOffsetsRatings: {...verticalOffsetsRatings},
         verticalOffsetsCover: {...verticalOffsetsCover},
         horizontalOffsetsRatings: {...horizontalOffsetsRatings},
@@ -1210,6 +1214,12 @@ function applyProfile(profileData) {
     showGradeLegend = profileData.showGradeLegend !== undefined ? profileData.showGradeLegend : true;
     if (gradeLegendCheckbox) {
         gradeLegendCheckbox.checked(showGradeLegend);
+    }
+
+    // Apply transparent background preference
+    transparentBackground = profileData.transparentBackground !== undefined ? profileData.transparentBackground : false;
+    if (transparentBackgroundCheckbox) {
+        transparentBackgroundCheckbox.checked(transparentBackground);
     }
 
     // Clear existing offsets before applying profile
@@ -2086,6 +2096,14 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         if (albumData && currentView === 'ratings') printAlbum();
     });
 
+    let transparentBackgroundCheckboxRow = createDiv('').parent(advancedContent).style('margin-top: 12px;');
+    transparentBackgroundCheckbox = createCheckbox('Transparent Background', false).parent(transparentBackgroundCheckboxRow).class('checkbox-input');
+    transparentBackgroundCheckbox.changed(() => {
+        transparentBackground = transparentBackgroundCheckbox.checked();
+        captureState();
+        if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    });
+
     // Download scope — which screens the image download button exports
     let downloadScopeRow = createDiv('').parent(advancedContent).class('form-group').style('margin-top: 12px;');
     createElement('label', 'Download Images').parent(downloadScopeRow);
@@ -2106,6 +2124,9 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         imageSizeMultiplierLabel.html('1.0x');
 
         automaticAlignmentCheckbox.checked(true);
+
+        transparentBackground = false;
+        if (transparentBackgroundCheckbox) transparentBackgroundCheckbox.checked(false);
 
         downloadImageOption = 'both';
         if (downloadImageSelect) downloadImageSelect.selected('both');
@@ -2693,6 +2714,9 @@ async function downloadBothImages() {
 
     let baseFileName = getBaseFileName();
     let mime = 'image/' + (currentImageFormat === 'jpg' ? 'jpeg' : currentImageFormat);
+    if (transparentBackground && currentImageFormat === 'jpg') {
+        showToast('JPG does not support transparency — switch to PNG to export a transparent background.', true);
+    }
     let downloadRatings = downloadImageOption !== 'cover';
     let downloadCover = downloadImageOption !== 'ratings';
 
@@ -3055,6 +3079,7 @@ function downloadJSON() {
             tracksRectHeight,
             tracksTwoColumns,
             showGradeLegend,
+            transparentBackground,
             currentProfileName
 
         }
@@ -3211,6 +3236,10 @@ function fillFormFromData(data) {
         showGradeLegend = data.showGradeLegend;
         if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
     }
+    if (data.transparentBackground !== undefined) {
+        transparentBackground = data.transparentBackground;
+        if (transparentBackgroundCheckbox) transparentBackgroundCheckbox.checked(transparentBackground);
+    }
     if (data.tracksTextSize !== undefined) {
         tracksTextSize = data.tracksTextSize;
         if (tracksTextSizeSlider) {
@@ -3256,6 +3285,7 @@ function saveToLocalStorage() {
     data.imageFormat = currentImageFormat;
     data.downloadImageOption = downloadImageOption;
     data.showGradeLegend = showGradeLegend;
+    data.transparentBackground = transparentBackground;
     data.customTextboxes = customTextboxes.map(t => ({
         id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
         fontType: t.fontType, color: t.color, viewType: t.viewType,
@@ -3445,7 +3475,7 @@ const RATINGS_LAYOUT = {
 };
 
 async function printAlbum(){
-    background(200);
+    transparentBackground ? clear() : background(200);
     if (!albumData) return;
     let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
@@ -3468,9 +3498,11 @@ async function printAlbum(){
         }
     }
 
-    // Blurred grayscale backdrop
-    if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
-    else background(50);
+    // Blurred grayscale backdrop (skipped entirely when the background is transparent)
+    if (!transparentBackground) {
+        if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
+        else background(50);
+    }
     imageMode(CORNER); rectMode(CORNER);
 
     let cover = drawAlbumCover(img, hasImage, false);
@@ -4001,7 +4033,7 @@ const textOpts = {
 
 async function printCoverScreen() {
     push()
-    background(200);
+    transparentBackground ? clear() : background(200);
     let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
 
@@ -4024,9 +4056,11 @@ async function printCoverScreen() {
         }
     }
 
-    //background
-    if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
-    else background(50);
+    //background (skipped entirely when the background is transparent)
+    if (!transparentBackground) {
+        if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
+        else background(50);
+    }
 
     // utils.beginShadow("#000000", 30, 0, 0);
     // textAlign(CENTER, TOP); textFont(fontLight); textSize(55); fill(255);
@@ -4578,6 +4612,7 @@ function captureState() {
         imageFormat: currentImageFormat,
         downloadImageOption: downloadImageOption,
         showGradeLegend: showGradeLegend,
+        transparentBackground: transparentBackground,
         tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(), interlude: t.interlude || false,
                                     customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null,
                                     customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null})),
@@ -4658,6 +4693,10 @@ function restoreState(state) {
     if (state.showGradeLegend !== undefined) {
         showGradeLegend = state.showGradeLegend;
         if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
+    }
+    if (state.transparentBackground !== undefined) {
+        transparentBackground = state.transparentBackground;
+        if (transparentBackgroundCheckbox) transparentBackgroundCheckbox.checked(transparentBackground);
     }
 
     if (state.glitchOpts)      glitchOpts      = JSON.parse(JSON.stringify(state.glitchOpts));

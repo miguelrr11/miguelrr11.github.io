@@ -1,7 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(node:*)"
+      "Bash(node:*)",
+      "Bash(grep -n \"showGradeLegend: showGradeLegend,\\\\|showGradeLegend,$\" \"/Users/miguelrodriguezmbp/Library/p5js/gitrepoP5js/miguelrr11.github.io/Miscellaneous/TikTokAlbumGenerator/sketch.js\")"
     ]
   }
 }
