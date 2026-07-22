@@ -597,7 +597,9 @@ function createImageInputWithUpload(parent = editorPanel) {
     // Upload button
     let uploadBtn = createButton('📁').parent(inputRow).class('image-upload-btn');
     uploadBtn.attribute('title', 'Upload local image');
-    uploadBtn.mousePressed(() => fileInput.elt.click());
+    // Trigger from a real click event (not p5's mousedown) so iOS Safari treats the
+    // file-picker open as a genuine user gesture.
+    uploadBtn.elt.addEventListener('click', () => fileInput.elt.click());
 
     // Handle file selection
     fileInput.elt.addEventListener('change', (e) => {

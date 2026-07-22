@@ -265,8 +265,20 @@ canvas {
     border-color: rgba(138, 180, 248, 0.5);
 }
 
+/* Visually hidden but still rendered in the layout tree, so the upload button's
+   fileInput.click() opens the picker on iOS Safari — which ignores .click() on a
+   display:none / visibility:hidden file input. */
 .hidden-file-input {
-    display: none;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    border: 0;
+    opacity: 0;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
 }
 
 /* Slider */
