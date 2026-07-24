@@ -3795,6 +3795,48 @@ function drawAlbumHeader() {
     utils.endShadow();
 }
 
+// in the 2 column mode, instead of dividing the tracks exactly in half, we take into
+// account the large text of tracks to divide by total height
+function getMiddleTrack(){
+    push()
+    const T = RATINGS_LAYOUT.tracks;
+    const N = T.note;
+    rectMode(CORNER); // anchor the text box at its top-left so noteX is the left edge
+    fill(245); noStroke(); textFont(fontLight); textSize(N.fontSize); textAlign(LEFT, TOP);
+    let S = T.rowSpacing;
+    let rowSpacing = Math.min(map(albumData.tracks.length, S.fewTracks, S.manyTracks, S.max, S.min, true), S.cap) + tracksSpacing;
+    let heightWithoutText = tracksRectHeight + rowSpacing
+    let heights = []
+
+    for(let i = 0; i < albumData.tracks.length; i++) {
+        let track = albumData.tracks[i];
+        let totalHeight = heightWithoutText
+        if(track.customTextLarge && track.customTextLarge.trim() !== ''){
+            let bbox = fontLight.textBounds(track.customTextLarge, 0, 0, N.maxWidth.twoColumns)
+            totalHeight += bbox.h + N.topGap
+        }
+        heights.push(totalHeight)
+    }
+    
+    let totalHeightTracks = heights.reduce((a, b) => {return a + b})
+    let midH = totalHeightTracks * .5
+    console.log(heights)
+    
+    let sum = 0
+    for(let i = 0; i < heights.length; i++) {
+        sum += heights[i]
+        if(sum > midH){
+            pop()
+            console.log(i)
+            diffI1 = Math.abs(sum - midH)
+            diffI2 = Math.abs((sum+heights[i+1] - midH))
+            return diffI1 > diffI2 ? i : i + 1
+        }
+    }
+    pop()
+    return "WTF"
+}
+
 function drawTrackList() {
     const T = RATINGS_LAYOUT.tracks;
     const leftMargin = RATINGS_LAYOUT.leftMargin;
@@ -3822,6 +3864,8 @@ function drawTrackList() {
     rectMode(CENTER);
     let pillCenterOffsetY = (textAscent() - textDescent()) / 2; // centers pills on the title baseline
 
+    secondColumnStart = getMiddleTrack()
+
     let rowY = columnTopY;
     for (let i = 0; i < albumData.tracks.length; i++) {
         let track = albumData.tracks[i];
@@ -3847,7 +3891,7 @@ function drawTrackList() {
             push();
             rectMode(CORNER); // anchor the text box at its top-left so noteX is the left edge
             fill(245); noStroke(); textFont(fontLight); textSize(N.fontSize); textAlign(LEFT, TOP);
-            _text(track.customTextLarge, noteX, noteY + safariTextShift(), noteMaxWidth);
+            _text(track.customTextLarge, noteX, noteY + safariTextShift(true), noteMaxWidth);
             noteSpacing = fontLight.textBounds(getRichText(track.customTextLarge), noteX, noteY, noteMaxWidth).h + N.bottomGap;
 
             let lineX = pillCenterX - pillW / 2 + N.lineInset;
