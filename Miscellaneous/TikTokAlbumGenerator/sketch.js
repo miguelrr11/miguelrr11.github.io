@@ -3798,6 +3798,7 @@ function drawAlbumHeader() {
 // in the 2 column mode, instead of dividing the tracks exactly in half, we take into
 // account the large text of tracks to divide by total height
 function getMiddleTrack(){
+    if(albumData.tracks.length < 1) return 0
     push()
     const T = RATINGS_LAYOUT.tracks;
     const N = T.note;
