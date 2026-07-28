@@ -1125,7 +1125,7 @@ function getDefaultProfile() {
     "currentPageId": "page_1",
     "verticalOffsets": {
         "ratings": {
-            "funfact": -83,
+            "funfact": -43,
             "title": 100,
             "tracks": -30,
             "year": -12,
@@ -1139,7 +1139,7 @@ function getDefaultProfile() {
     "horizontalOffsets": {
         "ratings": {
             "artist": -40,
-            "funfact": -39,
+            "funfact": -44,
             "year": -45,
             "genre": -44,
             "tracks": -29
@@ -1248,6 +1248,7 @@ function getDefaultProfile() {
             "leading": 0,
             "maxWidth": 980,
             "text": "Some context",
+            "glitch": true,
             "pageId": "page_1",
             "textAlign": "left",
             "x": 70.0083623892076,
