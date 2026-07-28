@@ -1408,6 +1408,7 @@ function getCustomTextboxesProperties(){
         leading: tb.leading,
         maxWidth: tb.maxWidth,
         text: tb.text,
+        glitch: !!tb.glitch,
         pageId: tb.pageId,
         textAlign: tb.textAlign || 'left',
         x: tb.x,
@@ -1888,6 +1889,7 @@ function setCustomTextboxesFromData(arr) {
             fontSize: d.fontSize || 40,
             fontType: d.fontType || 'fontHeavy',
             color: d.color || '#ffffff',
+            glitch: !!d.glitch,
             pageId: d.pageId || 'ratings',
             textAlign: d.textAlign || 'left',
             leading: d.leading || 0,
@@ -3188,6 +3190,7 @@ function addCustomTextbox(tbData) {
         fontSize: tbData.fontSize || 40,
         fontType: tbData.fontType || 'fontHeavy',
         color: tbData.color || '#ffffff',
+        glitch: !!tbData.glitch,
         pageId: tbData.pageId || currentPageId,
         textAlign: tbData.textAlign || (currentView === 'cover' ? 'center' : 'left'),
         leading: tbData.leading || 0, // Additional spacing added to default line height
@@ -3366,7 +3369,7 @@ function createSizeAdjustPanel() {
     let glitchGroup = createDiv('').parent(sizeAdjustPanel).class('sap-group').id('sap-glitch');
     sapGlitchCheckbox = createCheckbox('Glitch', false).parent(glitchGroup).class('checkbox-input');
     sapGlitchCheckbox.changed(() => {
-        if (!selectedTextBox || !selectedTextBox.isImage) return;
+        if (!selectedTextBox || !selectedTextBox.isCustom) return;
         let el = findCustomElement(selectedTextBox.id);
         if (el) { el.glitch = sapGlitchCheckbox.checked(); autoGeneratePreview(); captureState(); }
     });
@@ -4786,7 +4789,7 @@ function drawCustomTextboxes(pageId){
     customTextboxes.forEach(textbox => {
         rectMode(CORNER);
         if (textbox.pageId === pageId) {
-            
+
             switch(textbox.fontType) {
                 case 'fontHeavy': fontObj = fontHeavy; break;
                 case 'fontLight': fontObj = fontLight; break;
@@ -4807,14 +4810,26 @@ function drawCustomTextboxes(pageId){
             textLeading(baseLeading + (textbox.leading || 0));
 
             if (textbox.text) {
-                utils.beginShadow("#000000", 20, 0, 0);
-                drawBoxText(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500, tbAlign, TOP);
-                utils.endShadow();
+                if (textbox.glitch) {
+                    // Same path as the album title: drawStylizedText's x anchor is the
+                    // left/center/right edge depending on hAlign, while textbox.x is
+                    // always the box's left edge — convert before calling.
+                    let maxW = textbox.maxWidth || 500;
+                    let anchorX = textbox.x;
+                    if (tbAlign === 'center') anchorX = textbox.x + maxW / 2;
+                    else if (tbAlign === 'right') anchorX = textbox.x + maxW;
 
+                    drawStylizedText(fontObj, textbox.fontSize, getRichText(textbox.text),
+                        anchorX, textbox.y + safariTextShift(true), getP5Align(tbAlign), TOP,
+                        glitchOptsTitle, 'ctb_' + textbox.id);
+                } else {
+                    utils.beginShadow("#000000", 20, 0, 0);
+                    drawBoxText(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500, tbAlign, TOP);
+                    utils.endShadow();
+                }
 
-                // Add to textBoxes for selection. Measure with the same TOP baseline used to
-                // render: justifyText() restores the prior baseline on exit, so without this the
-                // bounds would be computed against a stale baseline and the box would be offset.
+                // Hitbox for selection/drag — measured with the same TOP baseline used
+                // to render. This push is what mousePressed and the blue outline rely on.
                 textAlign(getP5Align(tbAlign), TOP);
                 let bounds = fontObj.textBounds(getRichText(textbox.text), textbox.x, textbox.y, textbox.maxWidth || 500);
                 let alignedBounds = getAlignedBounds(bounds, textbox.x, tbAlign, textbox.maxWidth || 500, fontObj);
@@ -4846,6 +4861,7 @@ function drawCustomTextboxes(pageId){
     });
     pop();
 }
+
 
 function dimImage(img, amount){
     let c = color(0, 0, 0, amount);
@@ -5097,9 +5113,9 @@ function showSizeAdjustPanel(box) {
         select('#sap-align-select').selected(align);
     }
 
-    // Glitch — image elements only
-    select('#sap-glitch').style('display', isImage ? 'flex' : 'none');
-    if (isImage && el && sapGlitchCheckbox) sapGlitchCheckbox.checked(!!el.glitch);
+    // Glitch — custom elements (textboxes and images)
+    select('#sap-glitch').style('display', isCustom ? 'flex' : 'none');
+    if (isCustom && el && sapGlitchCheckbox) sapGlitchCheckbox.checked(!!el.glitch);
 
     if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
     sizeAdjustPanel.style('display', 'flex');

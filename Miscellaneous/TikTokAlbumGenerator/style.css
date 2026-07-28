@@ -1332,6 +1332,12 @@ canvas {
     /* ---- Preview (canvas) ---- */
     #canvas-container { display: none; margin: auto; }              /* centered when shown */
     body[data-mtab="preview"] #canvas-container { display: block; }
+    /* No long-press text selection / iOS callout while dragging on the preview */
+    body[data-mtab="preview"] {
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-touch-callout: none;
+    }
     /* Let p5 own touch gestures on the canvas: drag textboxes, no page scroll/zoom */
     #canvas-container, canvas { touch-action: none; }
     canvas { border-radius: 8px; }
