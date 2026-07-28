@@ -34,8 +34,7 @@ let positionXInput, positionYInput, positionXLabel, positionYLabel;
 
 const IA_MODEL = 'gpt-5.4-mini'
 
-// Aspect Ratio options (for ratings screen only)
-let aspectRatioSelect;
+// Aspect Ratio options (each page has its own ratio)
 const aspectRatioOptions = {
     '9:16': { width: 1080, height: 1920 },   // Default - TikTok, Instagram Stories, YouTube Shorts
     '3:5': { width: 1080, height: 1800 },    // Medium vertical
@@ -46,14 +45,61 @@ const aspectRatioOptions = {
     '5:6': { width: 1080, height: 1296 },    // Slight vertical
     '1:1': { width: 1080, height: 1080 }     // Square
 };
-let currentAspectRatio = '9:16';
+// ─── Page system ──────────────────────────────────────────────────────────────
+// Every screen is a "page". Cover and Ratings are permanent special pages that
+// render exactly like the classic two views; the user can add any number of
+// 'general' pages that hold only custom textboxes and image elements over the
+// blurred album-art backdrop.
+function DEFAULT_PAGES() {
+    return [
+        { id: 'cover',   name: 'Cover',   type: 'cover',   aspectRatio: '3:4' },
+        { id: 'ratings', name: 'Ratings', type: 'ratings', aspectRatio: '9:16' }
+    ];
+}
+let pages = DEFAULT_PAGES();
+let currentPageId = 'ratings';
+let currentView = 'ratings'; // derived: currentPage().type — kept for page-type checks
+let pageAspectSelect;
+let pageTabsBar;
+let editorPanel, dragOverlay;
+let metadataSection, albumGradeGroup; // panel-1 groups hidden on general pages
 
-let aspectRatioCoverSelect
-let currentAspectRatioCover = '3:4';
+function currentPage() { return pages.find(p => p.id === currentPageId) || pages[0]; }
+function pageById(id) { return pages.find(p => p.id === id); }
 
-// View toggle: 'ratings' or 'cover'
-let currentView = 'ratings';
-let viewToggleBtn, editorPanel, dragOverlay;
+function ensureCorePages() {
+    if (!pages.find(p => p.id === 'cover'))
+        pages.unshift({ id: 'cover', name: 'Cover', type: 'cover', aspectRatio: '3:4' });
+    if (!pages.find(p => p.id === 'ratings'))
+        pages.splice(1, 0, { id: 'ratings', name: 'Ratings', type: 'ratings', aspectRatio: '9:16' });
+    pages.forEach(p => { if (!aspectRatioOptions[p.aspectRatio]) p.aspectRatio = '9:16'; });
+}
+
+// Offsets/aligns are keyed per page id. These helpers always return the dict of
+// the page currently being rendered/edited (creating it lazily).
+function pageOffsets(store, pageId = currentPageId) {
+    if (!store[pageId]) store[pageId] = {};
+    return store[pageId];
+}
+function curVOffs() { return pageOffsets(verticalOffsets); }
+function curHOffs() { return pageOffsets(horizontalOffsets); }
+function curAligns() { return pageOffsets(textAligns); }
+
+function currentExportHeight() {
+    let p = currentPage();
+    return (aspectRatioOptions[p.aspectRatio] || aspectRatioOptions['9:16']).height;
+}
+
+function deepCopy(o) { return JSON.parse(JSON.stringify(o)); }
+
+// Single entry point to redraw whatever page is active.
+async function renderPage() {
+    if (!albumData) return;
+    let t = currentPage().type;
+    if (t === 'ratings') await printAlbum();
+    else if (t === 'cover') await printCoverScreen();
+    else await printGeneralPage();
+}
 
 // Undo/Redo system
 let historyStack = [], historyIndex = -1;
@@ -69,15 +115,24 @@ let monacoInitStarted = false; // persists across JSON-mode toggles so the edito
 let textBoxes = [], selectedTextBox = null, sizeAdjustPanel = null, tracksAdjustPanel = null;
 let textSizeOffsets = { title: 0, artist: 0, year: 0, genre: 0, funfact: 0 };
 let textLeadingOffsets = { funfact: 0 };
-let verticalOffsetsRatings = { title: 0, artist: 0, year: 0, genre: 0, funfact: 0, tracks: 0, image: 0 };
-let verticalOffsetsCover = { title: 0, artist: 0 };
-let horizontalOffsetsRatings = { title: 0, artist: 0, year: 0, genre: 0, funfact: 0, tracks: 0, image: 0 };
-let horizontalOffsetsCover = { title: 0, artist: 0 };
+let verticalOffsets = {
+    ratings: { title: 0, artist: 0, year: 0, genre: 0, funfact: 0, tracks: 0, image: 0 },
+    cover:   { title: 0, artist: 0 }
+};
+let horizontalOffsets = {
+    ratings: { title: 0, artist: 0, year: 0, genre: 0, funfact: 0, tracks: 0, image: 0 },
+    cover:   { title: 0, artist: 0 }
+};
 let imageSizeMultiplier = 1.0;
 let maxTextboxWidths = { title: 980, artist: 378, year: 378, genre: 378, funfact: 459 };
 const defaultMaxTextboxWidths = { title: 980, artist: 480, year: 480, genre: 480, funfact: 490 };
-let textAlignRatings = { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' };
-let textAlignCover = { title: 'center', artist: 'center' };
+function defaultTextAligns() {
+    return {
+        ratings: { title: 'left', artist: 'left', year: 'left', genre: 'left', funfact: 'left' },
+        cover:   { title: 'center', artist: 'center' }
+    };
+}
+let textAligns = defaultTextAligns();
 
 // Track customization
 let tracksTextSize = 60;
@@ -94,7 +149,7 @@ let showGreenRectangle = true; // Only show when not downloading
 let imageFormatSelect;
 let currentImageFormat = 'png';
 let downloadImageSelect;
-let downloadImageOption = 'both'; // 'both' | 'cover' | 'ratings' — which screens the image download exports
+let downloadImageOption = 'all'; // 'all' | 'current' — which pages the image download exports
 let showGradeLegend = true;
 let gradeLegendCheckbox;
 let transparentBackground = false;
@@ -150,6 +205,13 @@ let glSfRow, glEdgeScaleRow, glEdgeSeedRow;
 // Custom textboxes system
 let customTextboxes = [];
 let customTextboxContainer;
+
+// Custom image elements — multiple images per page, available on every page type
+let customImages = [];
+let customImageContainer;
+let elementImageCache = {}; // url -> loaded p5.Image for custom image elements
+let copiedTextFormat = null; // clipboard for the copy/paste format buttons
+let sapGlitchCheckbox = null;
 let isDraggingTextbox = false;
 let draggedTextbox = null;
 let dragStartX = 0;
@@ -257,7 +319,7 @@ function showMobileSection(id) {
 
     if (isMobile() && id === 'preview') {
         applyCanvasScale();
-        if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
+        if (albumData) renderPage();
     }
 }
 
@@ -281,13 +343,17 @@ async function setup(){
 
     setupDragDrop();
     createAlbumEditor();
+    setupPageTabs();
     loadProfiles();
     updateProfileSelect();
     loadCustomColors();
     loadLastProfile(); // Apply profile first (sets defaults)
     loadFromLocalStorage(); // Then load album data (overrides profile settings)
     captureState();
-    updateVisibilityCustomTextBoxesUI()
+    updateVisibilityCustomElementsUI()
+    updateMetadataVisibility();
+    updateAspectSelectFromPage();
+    buildPageTabs();
     if(localStorage.getItem('albumGeneratorData') == undefined) applySelectedProfile()
 
     setupMobileUI();
@@ -427,15 +493,19 @@ function createAlbumEditor() {
     createElement('h2', 'Album Editor').parent(header);
     createElement('p', 'Drag & drop JSON or fill manually').parent(header);
 
-    let rowGroupAlbum = createDiv('').parent(panel1).style('display: flex; gap: 12px;');
+    // Album metadata fields are grouped so they can be hidden on general pages,
+    // where only that page's own textboxes/images should be visible.
+    metadataSection = createDiv('').parent(panel1);
+
+    let rowGroupAlbum = createDiv('').parent(metadataSection).style('display: flex; gap: 12px;');
     titleInput = createFormInput('Album Title', 'Enter album title...', rowGroupAlbum);
     artistInput = createFormInput('Artist', 'Enter artist name...', rowGroupAlbum);
 
-    let rowGroup = createDiv('').parent(panel1).style('display: flex; gap: 12px;');
+    let rowGroup = createDiv('').parent(metadataSection).style('display: flex; gap: 12px;');
     yearInput = createFormInput('Year', 'e.g. 1997', rowGroup);
     genreInput = createFormInput('Genre', 'e.g. Rock', rowGroup);
 
-    funfactInput = createFormTextarea('Description', 'Add a description or fun fact about the album...', panel1);
+    funfactInput = createFormTextarea('Description', 'Add a description or fun fact about the album...', metadataSection);
 
     // Focusing a metadata field selects its matching canvas textbox so the adjustment bar appears
     titleInput.elt.addEventListener('focus', () => selectTextBoxById('title'));
@@ -444,12 +514,12 @@ function createAlbumEditor() {
     genreInput.elt.addEventListener('focus', () => selectTextBoxById('genre'));
     funfactInput.elt.addEventListener('focus', () => selectTextBoxById('funfact'));
 
-    createImageInputWithUpload(panel1);
+    createImageInputWithUpload(metadataSection);
 
     let gradeRow = createDiv('').parent(panel1).class('row-wrap-mobile').style('display: flex; gap: 35px; align-items: center;');
-    let gradeGroup = createDiv('').parent(gradeRow).class('form-group').style('flex: 1;');
-    createElement('label', 'Album Grade').parent(gradeGroup);
-    albumGradeSelect = createSelect().parent(gradeGroup).class('form-select');
+    albumGradeGroup = createDiv('').parent(gradeRow).class('form-group').style('flex: 1;');
+    createElement('label', 'Album Grade').parent(albumGradeGroup);
+    albumGradeSelect = createSelect().parent(albumGradeGroup).class('form-select');
     selectableGradeOptions.forEach(opt => albumGradeSelect.option(opt));
     let options = albumGradeSelect.elt.options;
     for(let i = 0; i < selectableGradeOptions.length; i++) {
@@ -462,9 +532,13 @@ function createAlbumEditor() {
 
      createDiv('').parent(panel1).class('section-divider')
 
-    let addTextboxBtn = createButton('+ Add Textbox').parent(panel1).class('btn btn-secondary').style('margin-bottom: 20px;');
-    addTextboxBtn.mousePressed(addCustomTextbox);
+    let addElementsRow = createDiv('').parent(panel1).style('display: flex; gap: 8px; margin-bottom: 20px;');
+    let addTextboxBtn = createButton('+ Add Textbox').parent(addElementsRow).class('btn btn-secondary').style('flex: 1;');
+    addTextboxBtn.mousePressed(() => addCustomTextbox({}));
+    let addImageBtn = createButton('+ Add Image').parent(addElementsRow).class('btn btn-secondary').style('flex: 1;');
+    addImageBtn.mousePressed(() => addCustomImage({}));
     customTextboxContainer = createDiv('').parent(panel1);
+    customImageContainer = createDiv('').parent(panel1);
 
     // === Panel 2: Tracks ===
     createDiv('Tracks').parent(panel2).class('section-title');
@@ -529,35 +603,12 @@ function syncEditorFromUI() {
         title: titleInput.value(), artist: artistInput.value(), year: yearInput.value(),
         genre: genreInput.value(), funfact: funfactInput.value(), imageUrl: imageUrlInput.value(),
         albumGrade: albumGradeSelect.value(),
-        aspectRatio: currentAspectRatio,
-        aspectRatioCover: currentAspectRatioCover,
-        imageFormat: currentImageFormat,
-        downloadImageOption: downloadImageOption,
-        showGradeLegend: showGradeLegend,
-        transparentBackground: transparentBackground,
         tracks: tracks.map(t => ({
             title: t.titleInput.value(), grade: t.gradeSelect.value(), interlude: t.interlude || false,
             customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null,
             customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null
         })),
-        customTextboxes: customTextboxes.map(t => ({
-            id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
-            fontType: t.fontType, color: t.color, viewType: t.viewType,
-            textAlign: t.textAlign || 'left', leading: t.leading || 0, maxWidth: t.maxWidth || width - 100
-        })),
-        verticalOffsetsRatings: {...verticalOffsetsRatings},
-        verticalOffsetsCover: {...verticalOffsetsCover},
-        horizontalOffsetsRatings: {...horizontalOffsetsRatings},
-        horizontalOffsetsCover: {...horizontalOffsetsCover},
-        imageSizeMultiplier,
-        maxTextboxWidths: {...maxTextboxWidths},
-        textSizeOffsets: {...textSizeOffsets},
-        textLeadingOffsets: {...textLeadingOffsets},
-        tracksTextSize, tracksSpacing, tracksRectHeight, tracksTwoColumns,
-        textAlignRatings: {...textAlignRatings},
-        textAlignCover: {...textAlignCover},
-        glitchOpts: {...glitchOpts},
-        glitchOptsTitle: {...glitchOptsTitle}
+        ...serializeLayout()
     };
     isUpdatingMonacoFromUI = true;
     window.monacoEditor.setValue(JSON.stringify(data, null, 2));
@@ -625,14 +676,14 @@ function setUploadedImage(url) {
 // behaviour, including transparent PNGs). Everything else — HEIC from the iPhone Photos
 // app, unknown MIME types, or very large photos — is decoded, downscaled and re-encoded
 // to a data URL p5 can actually read and that fits in localStorage.
-function loadLocalImageFile(file) {
+function loadLocalImageFile(file, onDone = setUploadedImage) {
     const PASSTHROUGH = ['image/png', 'image/jpeg', 'image/webp', 'image/gif'];
     const SIZE_LIMIT = 4 * 1024 * 1024; // 4 MB
     const MAX_SIDE = 1600;
 
     if (PASSTHROUGH.includes(file.type) && file.size <= SIZE_LIMIT) {
         let reader = new FileReader();
-        reader.onload = (ev) => setUploadedImage(ev.target.result);
+        reader.onload = (ev) => onDone(ev.target.result);
         reader.onerror = () => showToast('Could not read that image. Try another one.', true);
         reader.readAsDataURL(file);
         return;
@@ -651,7 +702,7 @@ function loadLocalImageFile(file) {
         // Keep alpha for PNG sources; everything else (incl. HEIC) becomes a compact JPEG.
         let outType = file.type === 'image/png' ? 'image/png' : 'image/jpeg';
         try {
-            setUploadedImage(c.toDataURL(outType, outType === 'image/jpeg' ? 0.92 : undefined));
+            onDone(c.toDataURL(outType, outType === 'image/jpeg' ? 0.92 : undefined));
         } catch (err) {
             showToast('Could not process that image. Try another one.', true);
         }
@@ -763,29 +814,21 @@ function adjustPosition(axis, delta) {
     if (!selectedTextBox) return;
 
     if (selectedTextBox.isCustom) {
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        let textbox = findCustomElement(selectedTextBox.id);
         if (textbox) {
             if (axis === 'x') textbox.x += delta;
             else textbox.y += delta;
         }
     } else {
-        if (currentView === 'ratings') {
-            if (axis === 'x') {
-                horizontalOffsetsRatings[selectedTextBox.id] = (horizontalOffsetsRatings[selectedTextBox.id] || 0) + delta;
-            } else {
-                verticalOffsetsRatings[selectedTextBox.id] = (verticalOffsetsRatings[selectedTextBox.id] || 0) + delta;
-            }
+        if (axis === 'x') {
+            curHOffs()[selectedTextBox.id] = (curHOffs()[selectedTextBox.id] || 0) + delta;
         } else {
-            if (axis === 'x') {
-                horizontalOffsetsCover[selectedTextBox.id] = (horizontalOffsetsCover[selectedTextBox.id] || 0) + delta;
-            } else {
-                verticalOffsetsCover[selectedTextBox.id] = (verticalOffsetsCover[selectedTextBox.id] || 0) + delta;
-            }
+            curVOffs()[selectedTextBox.id] = (curVOffs()[selectedTextBox.id] || 0) + delta;
         }
     }
 
     updatePositionControls();
-    currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    renderPage();
     // Note: captureState is called by setupLongPressButton after mouseup
 }
 
@@ -793,22 +836,17 @@ function applyPositionChange(axis, value) {
     if (!selectedTextBox) return;
 
     if (selectedTextBox.isCustom) {
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        let textbox = findCustomElement(selectedTextBox.id);
         if (textbox) {
             if (axis === 'x') textbox.x = value;
             else textbox.y = value;
         }
     } else {
-        if (currentView === 'ratings') {
-            if (axis === 'x') horizontalOffsetsRatings[selectedTextBox.id] = value;
-            else verticalOffsetsRatings[selectedTextBox.id] = value;
-        } else {
-            if (axis === 'x') horizontalOffsetsCover[selectedTextBox.id] = value;
-            else verticalOffsetsCover[selectedTextBox.id] = value;
-        }
+        if (axis === 'x') curHOffs()[selectedTextBox.id] = value;
+        else curVOffs()[selectedTextBox.id] = value;
     }
 
-    currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    renderPage();
 }
 
 function updatePositionControls() {
@@ -821,7 +859,7 @@ function updatePositionControls() {
 
     let xVal, yVal;
     if (selectedTextBox.isCustom) {
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        let textbox = findCustomElement(selectedTextBox.id);
         if (textbox) {
             xVal = Math.round(textbox.x);
             yVal = Math.round(textbox.y);
@@ -829,13 +867,8 @@ function updatePositionControls() {
             xVal = yVal = 0;
         }
     } else {
-        if (currentView === 'ratings') {
-            xVal = horizontalOffsetsRatings[selectedTextBox.id] || 0;
-            yVal = verticalOffsetsRatings[selectedTextBox.id] || 0;
-        } else {
-            xVal = horizontalOffsetsCover[selectedTextBox.id] || 0;
-            yVal = verticalOffsetsCover[selectedTextBox.id] || 0;
-        }
+        xVal = curHOffs()[selectedTextBox.id] || 0;
+        yVal = curVOffs()[selectedTextBox.id] || 0;
     }
 
     positionXInput.value(xVal);
@@ -869,11 +902,6 @@ function disablePositionControls() {
 function createButtonGrid(parent = editorPanel) {
     
     let buttonGrid = createDiv('').parent(parent).class('button-grid');
-
-    viewToggleBtn = createButton('View: Ratings').parent(buttonGrid).class('btn btn-blue')
-    viewToggleBtn.mousePressed(toggleView);
-
-    createDiv('').parent(buttonGrid).class('section-divider')
 
     let buttonToggleJSONeditor = createButton('Switch to JSON Mode').parent(buttonGrid).class('btn btn-secondary btn-json-toggle')
     buttonToggleJSONeditor.mousePressed(() => {
@@ -941,27 +969,14 @@ function createButtonGrid(parent = editorPanel) {
         .parent(aspectRatioGroup)
         .style('display: flex; flex-direction: column; flex: 1;');
 
-    createElement('label', 'Ratings').parent(ap1Wrapper);
-    aspectRatioSelect = createSelect().parent(ap1Wrapper).class('form-select');
-    Object.keys(aspectRatioOptions).forEach(opt => aspectRatioSelect.option(opt));
-    aspectRatioSelect.selected('9:16');
-    aspectRatioSelect.changed(() => {
-        currentAspectRatio = aspectRatioSelect.value();
+    // One selector bound to whatever page is active (pages each keep their own ratio)
+    createElement('label', 'Page Ratio').parent(ap1Wrapper);
+    pageAspectSelect = createSelect().parent(ap1Wrapper).class('form-select');
+    Object.keys(aspectRatioOptions).forEach(opt => pageAspectSelect.option(opt));
+    pageAspectSelect.selected(currentPage().aspectRatio);
+    pageAspectSelect.changed(() => {
+        currentPage().aspectRatio = pageAspectSelect.value();
         autoGeneratePreview();
-        captureState();
-    });
-
-    let ap2Wrapper = createDiv('')
-        .parent(aspectRatioGroup)
-        .style('display: flex; flex-direction: column; flex: 1;');
-
-    createElement('label', 'Cover').parent(ap2Wrapper);
-    aspectRatioCoverSelect = createSelect().parent(ap2Wrapper).class('form-select');
-    Object.keys(aspectRatioOptions).forEach(opt => aspectRatioCoverSelect.option(opt));
-    aspectRatioCoverSelect.selected('3:4');
-    aspectRatioCoverSelect.changed(() => {
-        currentAspectRatioCover = aspectRatioCoverSelect.value();
-        if(currentView === 'cover') autoGeneratePreview();
         captureState();
     });
 
@@ -1055,7 +1070,7 @@ function alignMainElementsToImage(){
 
     let sizeSclMult = 0.425
 
-    let imageHorizOffset = horizontalOffsetsRatings.image || 0;
+    let imageHorizOffset = horizontalOffsets.ratings.image || 0;
     let imageX = width * 0.05 + imageHorizOffset;
     let imageSize = width * sizeSclMult * imageSizeMultiplier;
 
@@ -1063,143 +1078,299 @@ function alignMainElementsToImage(){
 
     let marginNeeded = Math.round(imageXRight - xWithNoOffset - 20)
 
-    horizontalOffsetsRatings.artist = marginNeeded;
-    horizontalOffsetsRatings.year = marginNeeded;
-    horizontalOffsetsRatings.genre = marginNeeded;
-    horizontalOffsetsRatings.funfact = marginNeeded;
+    horizontalOffsets.ratings.artist = marginNeeded;
+    horizontalOffsets.ratings.year = marginNeeded;
+    horizontalOffsets.ratings.genre = marginNeeded;
+    horizontalOffsets.ratings.funfact = marginNeeded;
 
     captureState();
-    currentView === 'ratings' ? printAlbum() : printCoverScreen();    
+    renderPage();    
 }
 
 function getDefaultProfile() {
     return {
-        "tracksTextSize": 40,
-        "tracksSpacing": -30,
-        "tracksRectHeight": 28,
-        "tracksTwoColumns": false,
-        "tracksVerticalOffset": 0,
-        "colorMap": {
-            "GOAT": "#05668d",
-            "PEAK": "#ffd21f",
-            "EXCEPTIONAL": "#ff1fa9",
-            "STRONG": "#bc3fde",
-            "DECENT": "#38b6ff",
-            "OKAY": "#14b60b",
-            "FLOP": "#CC0000",
-            "SHIT": "#7a4900",
-            "INTERLUDE": "#b2b2b2",
-            "None": "#5c5c5c"
+    "colorMap": {
+        "GOAT": "#05668d",
+        "PEAK": "#ffd21f",
+        "EXCEPTIONAL": "#ff1fa9",
+        "STRONG": "#bc3fde",
+        "DECENT": "#38b6ff",
+        "OKAY": "#14b60b",
+        "FLOP": "#CC0000",
+        "SHIT": "#7a4900",
+        "INTERLUDE": "#b2b2b2",
+        "None": "#5c5c5c"
+    },
+    "pages": [
+        {
+            "id": "cover",
+            "name": "Cover",
+            "type": "cover",
+            "aspectRatio": "3:4"
         },
-        "aspectRatio": "3:4",
-        "aspectRatioCover": "3:4",
-        "imageFormat": "jpg",
-        "downloadImageOption": "both",
-        "showGradeLegend": true,
-        "verticalOffsetsRatings": {
-            "funfact": -21,
+        {
+            "id": "page_1",
+            "name": "Context",
+            "type": "general",
+            "aspectRatio": "3:4"
+        },
+        {
+            "id": "ratings",
+            "name": "Ratings",
+            "type": "ratings",
+            "aspectRatio": "3:4"
+        },
+        
+    ],
+    "currentPageId": "page_1",
+    "verticalOffsets": {
+        "ratings": {
+            "funfact": -83,
             "title": 100,
-            "tracks": -41
+            "tracks": -30,
+            "year": -52,
+            "genre": -54
         },
-        "verticalOffsetsCover": {
+        "cover": {
             "artist": -500,
             "title": 23
-        },
-        "horizontalOffsetsRatings": {
+        }
+    },
+    "horizontalOffsets": {
+        "ratings": {
             "artist": -40,
-            "funfact": -40,
-            "year": -40,
+            "funfact": -39,
+            "year": 253,
             "genre": -40,
             "tracks": -29
         },
-        "horizontalOffsetsCover": {
+        "cover": {
             "title": 0,
             "artist": 2597
-        },
-        "imageSizeMultiplier": 0.95,
-        "maxTextboxWidths": {
-            "title": 980,
-            "artist": 480,
-            "year": 480,
-            "genre": 520,
-            "funfact": 490
-        },
-        "textSizeOffsets": {
-            "title": 0,
-            "artist": 4,
-            "year": 0,
-            "genre": 0,
-            "funfact": -6
-        },
-        "textLeadingOffsets": {
-            "funfact": -6
-        },
-        "textAlignRatings": {
+        }
+    },
+    "textAligns": {
+        "ratings": {
             "title": "left",
             "artist": "left",
             "year": "left",
             "genre": "left",
             "funfact": "justify"
         },
-        "textAlignCover": {
+        "cover": {
             "title": "center",
             "artist": "center"
+        }
+    },
+    "textSizeOffsets": {
+        "title": 0,
+        "artist": 4,
+        "year": 0,
+        "genre": 0,
+        "funfact": -6
+    },
+    "textLeadingOffsets": {
+        "funfact": -6
+    },
+    "maxTextboxWidths": {
+        "title": 980,
+        "artist": 480,
+        "year": 480,
+        "genre": 520,
+        "funfact": 490
+    },
+    "imageSizeMultiplier": 0.95,
+    "imageFormat": "jpg",
+    "downloadImageOption": "all",
+    "showGradeLegend": true,
+    "transparentBackground": false,
+    "tracksTextSize": 36,
+    "tracksSpacing": -31,
+    "tracksRectHeight": 28,
+    "tracksTwoColumns": false,
+    "customTextboxes": [
+        {
+            "color": "#f2f2f2",
+            "fontSize": 48,
+            "fontType": "fontRegularCondensed",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "Album Review #nnn",
+            "pageId": "cover",
+            "textAlign": "center",
+            "x": 49,
+            "y": 292,
+            "id": "album_review"
         },
-        "customTextboxes": [
-            {
-                "color": "#f2f2f2",
-                "fontSize": 48,
-                "fontType": "fontRegularCondensed",
-                "leading": 0,
-                "maxWidth": 980,
-                "text": "Album Review #nnn",
-                "viewType": "cover",
-                "textAlign": "center",
-                "x": 49,
-                "y": 292,
-                "id": "album_review"
-            },
-            {
-                "color": "#ffffff",
-                "fontSize": 24,
-                "fontType": "fontRegularCondensed",
-                "leading": 0,
-                "maxWidth": 980,
-                "text": "Songs added to GOAT Playlist: - (link in bio)",
-                "viewType": "ratings",
-                "textAlign": "left",
-                "x": 56.94990391440638,
-                "y": 1284.4670669176778,
-                "id": "songsAddedToGOATPlaylist"
-            },
-            {
-                "color": "#cccccc",
-                "fontSize": 30,
-                "fontType": "fontLight",
-                "leading": 0,
-                "maxWidth": 980,
-                "text": "$(js: albumData.genre.split(/,s*/g)[0])$",
-                "viewType": "cover",
-                "textAlign": "center",
-                "x": 55.02164222708063,
-                "y": 1266.3363191721955,
-                "id": "genreInCover"
-            },
-            {
-                "color": "#ededed",
-                "fontSize": 36,
-                "fontType": "fontRegularCondensed",
-                "leading": 0,
-                "maxWidth": 980,
-                "text": "$artist$, $year$",
-                "viewType": "cover",
-                "textAlign": "center",
-                "x": 50.7153196622437,
-                "y": 1209.336460532268,
-                "id": "artistAndYearInCover"
-            }
-        ],
-        "glitchOpts": {
+        {
+            "color": "#ffffff",
+            "fontSize": 24,
+            "fontType": "fontRegularCondensed",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "Songs added to GOAT Playlist: 1 (link in bio)",
+            "pageId": "ratings",
+            "textAlign": "left",
+            "x": 56.94990391440638,
+            "y": 1284.4670669176778,
+            "id": "songsAddedToGOATPlaylist"
+        },
+        {
+            "color": "#cccccc",
+            "fontSize": 30,
+            "fontType": "fontLight",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "$(js: albumData.genre.split(/,s*/g)[0])$",
+            "pageId": "cover",
+            "textAlign": "center",
+            "x": 55.02164222708063,
+            "y": 1266.3363191721955,
+            "id": "genreInCover"
+        },
+        {
+            "color": "#ededed",
+            "fontSize": 36,
+            "fontType": "fontRegularCondensed",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "$artist$, $year$",
+            "pageId": "cover",
+            "textAlign": "center",
+            "x": 50.7153196622437,
+            "y": 1209.336460532268,
+            "id": "artistAndYearInCover"
+        },
+        {
+            "color": "#ffffff",
+            "fontSize": 90,
+            "fontType": "fontHeavy",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "Some context",
+            "pageId": "page_1",
+            "textAlign": "left",
+            "x": 70.0083623892076,
+            "y": 142.25235637708548,
+            "id": "custom_1785251657804"
+        },
+        {
+            "color": "#ffffff",
+            "fontSize": 40,
+            "fontType": "fontRegularCondensed",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "before the review",
+            "pageId": "page_1",
+            "textAlign": "left",
+            "x": 70.12409777437438,
+            "y": 233.97287824230966,
+            "id": "custom_1785251686697"
+        },
+        {
+            "color": "#ffffff",
+            "fontSize": 42,
+            "fontType": "fontHeavy",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "the band",
+            "pageId": "page_1",
+            "textAlign": "left",
+            "x": 70,
+            "y": 344.7862356621481,
+            "id": "custom_1785251730029"
+        },
+        {
+            "color": "#ffffff",
+            "fontSize": 24,
+            "fontType": "fontLight",
+            "leading": 0,
+            "maxWidth": 920,
+            "text": "Dictumst vivamus curae non, porttitor diam odio, aliquet nunc massa tortor etiam quisque. Morbi quis gravida taciti, rutrum phasellus consectetur, mi pulvinar eros himenaeos vestibulum sagittis duis. Ipsum suspendisse donec, leo at, vehicula lacus semper gravida per",
+            "pageId": "page_1",
+            "textAlign": "justify",
+            "x": 70.18252248435874,
+            "y": 401.56409875195516,
+            "id": "custom_1785251803030"
+        },
+        {
+            "color": "#ffffff",
+            "fontSize": 42,
+            "fontType": "fontHeavy",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "the genres",
+            "pageId": "page_1",
+            "textAlign": "left",
+            "x": 69.7392914168405,
+            "y": 603.7018134124087,
+            "id": "custom_1785251838428"
+        },
+        {
+            "color": "#dedede",
+            "fontSize": 30,
+            "fontType": "fontHeavy",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "Genre 1",
+            "pageId": "page_1",
+            "textAlign": "left",
+            "x": 70.29196061978621,
+            "y": 656.600635834854,
+            "id": "custom_1785251853712"
+        },
+        {
+            "color": "#ffffff",
+            "fontSize": 24,
+            "fontType": "fontLight",
+            "leading": 0,
+            "maxWidth": 920,
+            "text": "Blandit rhoncus, quam molestie luctus. Congue sit, fringilla ullamcorper gravida platea. Ut sapien vivamus tristique, turpis integer tortor, nostra cursus magna lectus eros pretium. Vel nulla, condimentum nostra ligula curae.",
+            "pageId": "page_1",
+            "textAlign": "justify",
+            "x": 70,
+            "y": 697.4243800508343,
+            "id": "custom_1785251886944"
+        },
+        {
+            "color": "#dedede",
+            "fontSize": 30,
+            "fontType": "fontHeavy",
+            "leading": 0,
+            "maxWidth": 980,
+            "text": "Genre 2",
+            "pageId": "page_1",
+            "textAlign": "left",
+            "x": 69.58083371350364,
+            "y": 850.4432107012514,
+            "id": "custom_1785251928912"
+        },
+        {
+            "color": "#ffffff",
+            "fontSize": 24,
+            "fontType": "fontLight",
+            "leading": 0,
+            "maxWidth": 920,
+            "text": "Volutpat platea mollis curabitur, sodales est vehicula, quisque sollicitudin ante tortor nam feugiat. Senectus duis lacinia rhoncus, suspendisse ornare condimentum, inceptos dapibus pretium ad massa taciti eleifend. ",
+            "pageId": "page_1",
+            "textAlign": "justify",
+            "x": 69.97184567257568,
+            "y": 891.5589308117179,
+            "id": "custom_1785251952709"
+        }
+    ],
+    "customImages": [
+        {
+            "id": "img_1785251989928",
+            "url": "",
+            "x": 95.16164706074034,
+            "y": 1041.7622828955944,
+            "w": 890,
+            "glitch": false,
+            "pageId": "page_1"
+        }
+    ],
+    "glitchOpts": {
             "sides": {"left": true, "right": true, "top": false, "bottom": false},
             "type": "sine",
             "amp": 50,
@@ -1218,36 +1389,14 @@ function getDefaultProfile() {
             "color": {"mode": "fade+bands", "amount": 0.85, "bandScale": 0.05, "bandSeed": 10, "tint": [255, 60, 180], "levels": 10, "shift": 60},
             "warp": {}
         }
-    }
+}
 }
 
 function getCurrentProfileData() {
+    // Profiles are layout templates: pages + everything styled/positioned on them.
     return {
-        tracksTextSize: tracksTextSize,
-        tracksSpacing: tracksSpacing,
-        tracksRectHeight: tracksRectHeight,
-        tracksTwoColumns: tracksTwoColumns,
-        tracksVerticalOffset: verticalOffsetsRatings.tracks || 0,
         colorMap: {...colorMap},
-        aspectRatio: currentAspectRatio,
-        aspectRatioCover: currentAspectRatioCover,
-        imageFormat: currentImageFormat,
-        downloadImageOption: downloadImageOption,
-        showGradeLegend: showGradeLegend,
-        transparentBackground: transparentBackground,
-        verticalOffsetsRatings: {...verticalOffsetsRatings},
-        verticalOffsetsCover: {...verticalOffsetsCover},
-        horizontalOffsetsRatings: {...horizontalOffsetsRatings},
-        horizontalOffsetsCover: {...horizontalOffsetsCover},
-        imageSizeMultiplier: imageSizeMultiplier,
-        maxTextboxWidths: {...maxTextboxWidths},
-        textSizeOffsets: {...textSizeOffsets},
-        textLeadingOffsets: {...textLeadingOffsets},
-        textAlignRatings: {...textAlignRatings},
-        textAlignCover: {...textAlignCover},
-        customTextboxes: getCustomTextboxesProperties(),
-        glitchOpts: JSON.parse(JSON.stringify(glitchOpts)),
-        glitchOptsTitle: JSON.parse(JSON.stringify(glitchOptsTitle))
+        ...serializeLayout()
     };
 }
 
@@ -1259,7 +1408,7 @@ function getCustomTextboxesProperties(){
         leading: tb.leading,
         maxWidth: tb.maxWidth,
         text: tb.text,
-        viewType: tb.viewType,
+        pageId: tb.pageId,
         textAlign: tb.textAlign || 'left',
         x: tb.x,
         y: tb.y,
@@ -1267,36 +1416,608 @@ function getCustomTextboxesProperties(){
     }));
 }
 
-function applyProfile(profileData) {
-    // Apply tracks customization
-    tracksTextSize = profileData.tracksTextSize || 60;
-    tracksSpacing = profileData.tracksSpacing || 0;
-    tracksRectHeight = profileData.tracksRectHeight || 40;
-    tracksTwoColumns = profileData.tracksTwoColumns !== undefined ? profileData.tracksTwoColumns : false;
-    verticalOffsetsRatings.tracks = profileData.tracksVerticalOffset || 0;
-    customTextboxes = customTextboxes.filter(tb => tb.id !== 'album_review' && tb.id !== 'comentario');
 
-    // Update track sliders
-    if (tracksTextSizeSlider) {
-        tracksTextSizeSlider.value(tracksTextSize);
-        tracksTextSizeLabel.html(tracksTextSize);
+// ════════════════════════════ PAGE TABS ════════════════════════════
+// Strip of page pills rendered over the canvas (desktop always, mobile only on
+// the Preview section — see the #page-tabs rules in style.css). Cover and
+// Ratings are permanent; general pages can be added (+), renamed (double-click)
+// and deleted (×).
+
+function setupPageTabs() {
+    pageTabsBar = createDiv('').id('page-tabs').parent(document.body);
+    buildPageTabs();
+}
+
+function buildPageTabs() {
+    if (!pageTabsBar) return;
+    pageTabsBar.html('');
+    pages.forEach(p => {
+        let tab = createDiv('').parent(pageTabsBar).class('page-tab' + (p.id === currentPageId ? ' active' : ''));
+        let label = createSpan(p.name).parent(tab).class('page-tab-label');
+        tab.elt.addEventListener('click', () => {
+            if (currentPageId !== p.id) switchToPage(p.id);
+        });
+        if (p.type === 'general') {
+            label.elt.addEventListener('dblclick', (e) => {
+                e.stopPropagation();
+                startRenamePage(p, label);
+            });
+            let close = createSpan('×').parent(tab).class('page-tab-close');
+            close.attribute('title', 'Delete page');
+            close.elt.addEventListener('click', (e) => {
+                e.stopPropagation();
+                deletePage(p.id);
+            });
+        }
+    });
+    let addBtn = createDiv('+').parent(pageTabsBar).class('page-tab page-tab-add');
+    addBtn.attribute('title', 'Add page');
+    addBtn.elt.addEventListener('click', addNewPage);
+}
+
+function switchToPage(id) {
+    if (!pageById(id)) return;
+    currentPageId = id;
+    currentView = currentPage().type;
+
+    // Deselect and hide floating panels when switching pages
+    selectedTextBox = null;
+    if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
+    if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
+    updateVerticalOffsetSlider();
+    delete glitchImageCache['coverTitle'];
+    delete glitchImageCache['ratingsTitle'];
+
+    buildPageTabs();
+    updateAspectSelectFromPage();
+    updateMetadataVisibility();
+    updateVisibilityCustomElementsUI();
+    if (albumData) renderPage();
+}
+
+function addNewPage() {
+    let n = 1;
+    while (pageById('page_' + n)) n++;
+    let page = { id: 'page_' + n, name: 'Page ' + (pages.length + 1), type: 'general', aspectRatio: '9:16' };
+    pages.push(page);
+    switchToPage(page.id);
+    captureState();
+    showToast('Page added — double-click its tab to rename it');
+}
+
+function deletePage(id) {
+    let p = pageById(id);
+    if (!p || p.type !== 'general') return;
+    if (!confirm('Delete "' + p.name + '" and everything on it?')) return;
+
+    // Remove the page's elements (and their column-1 rows)
+    customTextboxes.filter(t => t.pageId === id).forEach(t => t.rowDiv && t.rowDiv.remove());
+    customTextboxes = customTextboxes.filter(t => t.pageId !== id);
+    customImages.filter(t => t.pageId === id).forEach(t => t.rowDiv && t.rowDiv.remove());
+    customImages = customImages.filter(t => t.pageId !== id);
+    delete verticalOffsets[id];
+    delete horizontalOffsets[id];
+    delete textAligns[id];
+
+    pages = pages.filter(pg => pg.id !== id);
+    if (currentPageId === id) switchToPage('ratings');
+    else buildPageTabs();
+    captureState();
+}
+
+function startRenamePage(page, labelSpan) {
+    let input = document.createElement('input');
+    input.type = 'text';
+    input.value = page.name;
+    input.className = 'page-tab-rename-input';
+    labelSpan.elt.replaceWith(input);
+    input.focus();
+    input.select();
+
+    let done = false;
+    let finish = (commit) => {
+        if (done) return;
+        done = true;
+        if (commit) {
+            let v = input.value.trim();
+            if (v) page.name = v;
+            captureState();
+        }
+        buildPageTabs();
+    };
+    input.addEventListener('blur', () => finish(true));
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') { e.preventDefault(); finish(true); }
+        else if (e.key === 'Escape') { e.preventDefault(); finish(false); }
+    });
+    input.addEventListener('click', e => e.stopPropagation());
+}
+
+function updateAspectSelectFromPage() {
+    if (pageAspectSelect) pageAspectSelect.selected(currentPage().aspectRatio);
+}
+
+// Column 1: album metadata fields only make sense on the cover/ratings pages;
+// general pages show just their own textboxes and images.
+function updateMetadataVisibility() {
+    let isGeneral = currentPage().type === 'general';
+    if (metadataSection) metadataSection.style('display', isGeneral ? 'none' : 'block');
+    if (albumGradeGroup) albumGradeGroup.style('display', isGeneral ? 'none' : 'block');
+}
+
+// ════════════════════════ GENERAL PAGE RENDERING ═══════════════════
+// A general page is just the blurred album-art backdrop plus that page's
+// custom image elements and textboxes.
+async function printGeneralPage() {
+    push();
+    transparentBackground ? clear() : background(200);
+    let selectedId = selectedTextBox ? selectedTextBox.id : null;
+    textBoxes = [];
+
+    // Blurred grayscale backdrop from the album image (same one every page uses)
+    if (!transparentBackground) {
+        let hasImage = false, imgBW;
+        if (albumData.imageUrl && albumData.imageUrl.trim() !== '') {
+            try {
+                let images = await loadAndCacheImages(albumData.imageUrl);
+                imgBW = images.filtered;
+                hasImage = true;
+                lastUrlChecked = albumData.imageUrl;
+            } catch (err) {
+                console.error('Failed to load image:', err);
+                if (lastUrlChecked !== albumData.imageUrl) {
+                    showToast('Failed to load image. Check the URL.', true);
+                    lastUrlChecked = albumData.imageUrl;
+                }
+            }
+        }
+        if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
+        else background(50);
     }
-    if (tracksSpacingSlider) {
-        tracksSpacingSlider.value(tracksSpacing);
-        tracksSpacingLabel.html(tracksSpacing);
+    imageMode(CORNER); rectMode(CORNER);
+
+    await drawCustomImages(currentPageId);
+    drawCustomTextboxes(currentPageId);
+
+    // Green outline showing the export area (hidden while downloading)
+    if (showGreenRectangle) {
+        push();
+        noFill(); stroke(0, 255, 0); strokeWeight(4); rectMode(CORNER);
+        rect(0, 0, WIDTH, currentExportHeight());
+        pop();
     }
-    if (tracksRectHeightSlider) {
-        tracksRectHeightSlider.value(tracksRectHeight);
-        tracksRectHeightLabel.html(tracksRectHeight);
+
+    // Outline the selected box
+    if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
+    if (selectedTextBox) {
+        push();
+        noFill(); stroke(138, 180, 248); strokeWeight(3); rectMode(CORNER);
+        let padding = 5;
+        rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
+        pop();
     }
+    pop();
+}
+
+// ═══════════════════════ CUSTOM IMAGE ELEMENTS ═════════════════════
+
+// Find a custom element (textbox or image) by its id.
+function findCustomElement(id) {
+    return customTextboxes.find(t => t.id === id) || customImages.find(t => t.id === id);
+}
+
+function addCustomImage(imgData = {}) {
+    let imgEl = {
+        id: imgData.id || ('img_' + Date.now()),
+        url: imgData.url || '',
+        x: imgData.x != undefined ? imgData.x : 100,
+        y: imgData.y != undefined ? imgData.y : 100,
+        w: imgData.w || 400,
+        glitch: !!imgData.glitch,
+        pageId: imgData.pageId || currentPageId
+    };
+    customImages.push(imgEl);
+    addCustomImageUI(imgEl);
+    captureState();
+    autoGeneratePreview();
+    return imgEl;
+}
+
+function addCustomImageUI(imgEl) {
+    let group = createDiv('').parent(customImageContainer).class('form-group');
+    imgEl.rowDiv = group;
+
+    createElement('label', 'Image Element (URL or Local)').parent(group);
+
+    let inputRow = createDiv('').parent(group).class('image-input-row');
+
+    let urlInput = createInput('').parent(inputRow).class('form-input');
+    urlInput.attribute('placeholder', 'https://... or upload →');
+    urlInput.value(imgEl.url || '');
+    imgEl.urlInput = urlInput;
+    urlInput.elt.addEventListener('input', () => {
+        delete elementImageCache[imgEl.url]; // drop a possibly-failed cache entry
+        imgEl.url = urlInput.value();
+        delete elementImageCache[imgEl.url];
+        autoGeneratePreview();
+    });
+    urlInput.elt.addEventListener('focus', () => selectTextBoxById(imgEl.id));
+    urlInput.elt.addEventListener('blur', captureState);
+
+    // Hidden file input + upload button (same flow as the main album image)
+    let fileInput = createElement('input').parent(inputRow);
+    fileInput.attribute('type', 'file');
+    fileInput.attribute('accept', 'image/*');
+    fileInput.class('hidden-file-input');
+    let uploadBtn = createButton('📁').parent(inputRow).class('image-upload-btn');
+    uploadBtn.attribute('title', 'Upload local image');
+    uploadBtn.elt.addEventListener('click', () => fileInput.elt.click());
+    fileInput.elt.addEventListener('change', (e) => {
+        let file = e.target.files[0];
+        if (file) loadLocalImageFile(file, (url) => {
+            delete elementImageCache[imgEl.url];
+            imgEl.url = url;
+            urlInput.value(url);
+            autoGeneratePreview();
+            captureState();
+        });
+    });
+
+    let removeBtn = createButton('×').parent(inputRow).class('track-remove-btn').style('width: 32px; height: 32px; font-size: 18px; flex-shrink: 0;');
+    removeBtn.mousePressed(() => {
+        let index = customImages.findIndex(t => t.id === imgEl.id);
+        if (index !== -1) {
+            if (selectedTextBox && selectedTextBox.id === imgEl.id) {
+                selectedTextBox = null;
+                sizeAdjustPanel.style('display', 'none');
+            }
+            customImages.splice(index, 1);
+            group.remove();
+            captureState();
+            autoGeneratePreview();
+        }
+    });
+}
+
+function getCustomImagesProperties() {
+    return customImages.map(el => ({
+        id: el.id, url: el.url, x: el.x, y: el.y, w: el.w,
+        glitch: !!el.glitch, pageId: el.pageId
+    }));
+}
+
+// Load (and cache) the p5.Image for a custom image element. Failures are cached
+// too so a bad URL doesn't re-fetch on every render; editing the URL input
+// clears the entry and allows a retry.
+async function getElementImage(url) {
+    let cached = elementImageCache[url];
+    if (cached && cached !== 'error') return cached;
+    if (cached === 'error') throw new Error('image previously failed to load');
+    try {
+        let img = await loadImageSafe(url);
+        elementImageCache[url] = img;
+        return img;
+    } catch (err) {
+        elementImageCache[url] = 'error';
+        throw err;
+    }
+}
+
+// Draw every custom image element belonging to `pageId`. Height follows the
+// source aspect ratio from the element's width. Each element can individually
+// enable the glitch effect, which reuses the shared image glitch options.
+async function drawCustomImages(pageId) {
+    for (let el of customImages) {
+        if (el.pageId !== pageId) continue;
+
+        push();
+        imageMode(CORNER); rectMode(CORNER);
+        let w = el.w || 400;
+        let h = w;
+        let img = null;
+        if (el.url && el.url.trim() !== '') {
+            try {
+                img = await getElementImage(el.url);
+                h = w * (img.height / img.width);
+            } catch (err) {
+                img = null;
+            }
+        }
+
+        if (img) {
+            if (el.glitch) {
+                // createGlitchyImage returns a FULL-CANVAS image positioned around the
+                // element's center, so it's drawn at (0,0) full size (see drawAlbumCover).
+                let glitched = getCachedGlitchyImage('cimg_' + el.id, () => img, w, h,
+                    { x: el.x + w / 2, y: el.y + h / 2 }, glitchOpts, el.url + '|g');
+                image(glitched, 0, 0, width, height);
+            }
+            utils.beginShadow("#000000", 30, 0, 0);
+            fill(0);
+            rect(el.x + 1, el.y + 1, w - 2, h - 2); // backing rect so the shadow has a solid edge
+            image(img, el.x, el.y, w, h);
+            utils.endShadow();
+        } else {
+            drawImagePlaceholder(el.x, el.y, w, h, true);
+        }
+
+        textBoxes.push({ id: el.id, x: el.x, y: el.y, w: w, h: h, sizeOffset: 0, currentSize: 0, isCustom: true, isImage: true });
+        pop();
+    }
+}
+
+// ═══════════════════════ COPY / PASTE FORMAT ═══════════════════════
+// Copies a textbox's styling (not its text/position) so it can be pasted onto
+// another textbox — including across pages. Works between custom and
+// predefined boxes for the properties they share.
+
+function copyTextboxFormat() {
+    if (!selectedTextBox) return;
+    if (selectedTextBox.isImage) { showToast('Select a textbox to copy its format', true); return; }
+
+    if (selectedTextBox.isCustom) {
+        let tb = findCustomElement(selectedTextBox.id);
+        if (!tb) return;
+        copiedTextFormat = {
+            fontSize: tb.fontSize,
+            fontType: tb.fontType,
+            color: tb.color,
+            textAlign: tb.textAlign || 'left',
+            leading: tb.leading || 0,
+            maxWidth: tb.maxWidth
+        };
+    } else {
+        copiedTextFormat = {
+            sizeOffset: textSizeOffsets[selectedTextBox.id] || 0,
+            leading: textLeadingOffsets[selectedTextBox.id] || 0,
+            maxWidth: maxTextboxWidths[selectedTextBox.id],
+            textAlign: curAligns()[selectedTextBox.id] || 'left'
+        };
+    }
+    showToast('Format copied');
+}
+
+function pasteTextboxFormat() {
+    if (!copiedTextFormat) { showToast('No format copied yet', true); return; }
+    if (!selectedTextBox) { showToast('Select a textbox first', true); return; }
+    if (selectedTextBox.isImage) { showToast('Formats only apply to textboxes', true); return; }
+
+    let f = copiedTextFormat;
+    if (selectedTextBox.isCustom) {
+        let tb = findCustomElement(selectedTextBox.id);
+        if (!tb) return;
+        if (f.fontSize !== undefined) tb.fontSize = f.fontSize;
+        if (f.fontType) tb.fontType = f.fontType;
+        if (f.color) tb.color = f.color;
+        if (f.textAlign) tb.textAlign = f.textAlign;
+        if (f.leading !== undefined) tb.leading = f.leading;
+        if (f.maxWidth !== undefined) tb.maxWidth = f.maxWidth;
+    } else {
+        if (textSizeOffsets.hasOwnProperty(selectedTextBox.id) && f.sizeOffset !== undefined) {
+            textSizeOffsets[selectedTextBox.id] = f.sizeOffset;
+            selectedTextBox.sizeOffset = f.sizeOffset;
+        }
+        if (selectedTextBox.id === 'funfact' && f.leading !== undefined) textLeadingOffsets.funfact = f.leading;
+        if (maxTextboxWidths.hasOwnProperty(selectedTextBox.id) && f.maxWidth !== undefined) maxTextboxWidths[selectedTextBox.id] = f.maxWidth;
+        if (f.textAlign) curAligns()[selectedTextBox.id] = f.textAlign;
+    }
+    captureState();
+    showSizeAdjustPanel(selectedTextBox);
+    renderPage();
+    showToast('Format pasted');
+}
+
+// ─── Shared serialize / migrate / apply for the layout state ─────────────────
+// Everything page-related that gets persisted (profiles, localStorage, JSON
+// export, Monaco, undo history) flows through these three functions so the
+// format only lives in one place.
+
+function serializeLayout() {
+    return {
+        pages: deepCopy(pages),
+        currentPageId,
+        verticalOffsets: deepCopy(verticalOffsets),
+        horizontalOffsets: deepCopy(horizontalOffsets),
+        textAligns: deepCopy(textAligns),
+        textSizeOffsets: {...textSizeOffsets},
+        textLeadingOffsets: {...textLeadingOffsets},
+        maxTextboxWidths: {...maxTextboxWidths},
+        imageSizeMultiplier,
+        imageFormat: currentImageFormat,
+        downloadImageOption,
+        showGradeLegend,
+        transparentBackground,
+        tracksTextSize, tracksSpacing, tracksRectHeight, tracksTwoColumns,
+        customTextboxes: getCustomTextboxesProperties(),
+        customImages: getCustomImagesProperties(),
+        glitchOpts: deepCopy(glitchOpts),
+        glitchOptsTitle: deepCopy(glitchOptsTitle)
+    };
+}
+
+// Convert v1 data (fixed cover/ratings pair) to the page-based v2 format, in place.
+// Safe to call on data that is already v2.
+function migrateData(data) {
+    if (!data || typeof data !== 'object') return data;
+
+    if (!data.pages || !data.pages.length) {
+        data.pages = DEFAULT_PAGES();
+        if (data.aspectRatio && aspectRatioOptions[data.aspectRatio])
+            data.pages.find(p => p.id === 'ratings').aspectRatio = data.aspectRatio;
+        if (data.aspectRatioCover && aspectRatioOptions[data.aspectRatioCover])
+            data.pages.find(p => p.id === 'cover').aspectRatio = data.aspectRatioCover;
+    }
+
+    if (!data.verticalOffsets && (data['verticalOffsetsRatings'] || data['verticalOffsetsCover']))
+        data.verticalOffsets = { ratings: data['verticalOffsetsRatings'] || {}, cover: data['verticalOffsetsCover'] || {} };
+    if (!data.horizontalOffsets && (data['horizontalOffsetsRatings'] || data['horizontalOffsetsCover']))
+        data.horizontalOffsets = { ratings: data['horizontalOffsetsRatings'] || {}, cover: data['horizontalOffsetsCover'] || {} };
+    if (!data.textAligns && (data['textAlignRatings'] || data['textAlignCover']))
+        data.textAligns = { ratings: data['textAlignRatings'] || {}, cover: data['textAlignCover'] || {} };
+
+    if (data.downloadImageOption === 'both') data.downloadImageOption = 'all';
+    else if (data.downloadImageOption === 'cover' || data.downloadImageOption === 'ratings') data.downloadImageOption = 'current';
+
+    // v1 textboxes had viewType 'cover' | 'ratings' | 'both' — now they belong to
+    // exactly one page. 'both' is split into one copy per page.
+    if (data.customTextboxes) {
+        data.customTextboxes = data.customTextboxes.flatMap(tb => {
+            if (tb.pageId) return [tb];
+            let vt = tb.viewType || 'both';
+            if (vt === 'both') return [
+                { ...tb, pageId: 'ratings' },
+                { ...tb, pageId: 'cover', id: (tb.id || 'tb') + '_cover' }
+            ];
+            return [{ ...tb, pageId: vt }];
+        });
+    }
+    if (!data.customImages) data.customImages = [];
+    return data;
+}
+
+// Rebuild the custom textbox list (data + column-1 UI rows) from plain objects.
+function setCustomTextboxesFromData(arr) {
+    customTextboxes = [];
+    if (customTextboxContainer) customTextboxContainer.html('');
+    (arr || []).forEach(d => {
+        let tb = {
+            id: d.id || ('custom_' + Date.now() + '_' + Math.floor(Math.random() * 1e6)),
+            text: d.text || '',
+            x: d.x != undefined ? d.x : 100,
+            y: d.y != undefined ? d.y : 100,
+            fontSize: d.fontSize || 40,
+            fontType: d.fontType || 'fontHeavy',
+            color: d.color || '#ffffff',
+            pageId: d.pageId || 'ratings',
+            textAlign: d.textAlign || 'left',
+            leading: d.leading || 0,
+            maxWidth: d.maxWidth || width - 100
+        };
+        customTextboxes.push(tb);
+        addCustomTextboxUI(tb);
+    });
+}
+
+function setCustomImagesFromData(arr) {
+    customImages = [];
+    if (customImageContainer) customImageContainer.html('');
+    (arr || []).forEach(d => {
+        let imgEl = {
+            id: d.id || ('img_' + Date.now() + '_' + Math.floor(Math.random() * 1e6)),
+            url: d.url || '',
+            x: d.x != undefined ? d.x : 100,
+            y: d.y != undefined ? d.y : 100,
+            w: d.w || 400,
+            glitch: !!d.glitch,
+            pageId: d.pageId || 'ratings'
+        };
+        customImages.push(imgEl);
+        addCustomImageUI(imgEl);
+    });
+}
+
+// Apply every layout field of a (migrated) data object to the live state + UI.
+function applyLayoutData(data) {
+    // Pages
+    pages = (data.pages && data.pages.length) ? deepCopy(data.pages) : DEFAULT_PAGES();
+    ensureCorePages();
+    if (data.currentPageId && pageById(data.currentPageId)) currentPageId = data.currentPageId;
+    if (!pageById(currentPageId)) currentPageId = 'ratings';
+    currentView = currentPage().type;
+
+    // Offsets / aligns — reset to defaults, then apply what the data carries
+    verticalOffsets = { ratings: {}, cover: {} };
+    horizontalOffsets = { ratings: {}, cover: {} };
+    textAligns = defaultTextAligns();
+    if (data.verticalOffsets) Object.keys(data.verticalOffsets).forEach(pid => {
+        verticalOffsets[pid] = { ...data.verticalOffsets[pid] };
+    });
+    if (data.horizontalOffsets) Object.keys(data.horizontalOffsets).forEach(pid => {
+        horizontalOffsets[pid] = { ...data.horizontalOffsets[pid] };
+    });
+    if (data.textAligns) Object.keys(data.textAligns).forEach(pid => {
+        textAligns[pid] = Object.assign(textAligns[pid] || {}, data.textAligns[pid]);
+    });
+
+    Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
+    Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
+    Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
+    if (data.textSizeOffsets) Object.assign(textSizeOffsets, data.textSizeOffsets);
+    if (data.textLeadingOffsets) Object.assign(textLeadingOffsets, data.textLeadingOffsets);
+    if (data.maxTextboxWidths) Object.assign(maxTextboxWidths, data.maxTextboxWidths);
+
+    if (data.imageSizeMultiplier !== undefined) {
+        imageSizeMultiplier = data.imageSizeMultiplier;
+        if (imageSizeMultiplierSlider) {
+            imageSizeMultiplierSlider.value(imageSizeMultiplier);
+            imageSizeMultiplierLabel.html(imageSizeMultiplier.toFixed(2) + 'x');
+        }
+    }
+
+    // Tracks customization
+    if (data.tracksTextSize !== undefined) tracksTextSize = data.tracksTextSize;
+    if (data.tracksSpacing !== undefined) tracksSpacing = data.tracksSpacing;
+    if (data.tracksRectHeight !== undefined) tracksRectHeight = data.tracksRectHeight;
+    if (data.tracksTwoColumns !== undefined) tracksTwoColumns = data.tracksTwoColumns;
+    if (tracksTextSizeSlider) { tracksTextSizeSlider.value(tracksTextSize); tracksTextSizeLabel.html(tracksTextSize); }
+    if (tracksSpacingSlider) { tracksSpacingSlider.value(tracksSpacing); tracksSpacingLabel.html(tracksSpacing); }
+    if (tracksRectHeightSlider) { tracksRectHeightSlider.value(tracksRectHeight); tracksRectHeightLabel.html(tracksRectHeight); }
     if (tracksTwoColumnsCheckbox) tracksTwoColumnsCheckbox.checked(tracksTwoColumns);
 
-    // Update vertical offset slider if tracks is selected
-    if (selectedTextBox && selectedTextBox.id === 'tracks') {
-        updateVerticalOffsetSlider();
+    // Export / misc settings
+    if (data.imageFormat) {
+        currentImageFormat = data.imageFormat;
+        if (imageFormatSelect) imageFormatSelect.selected(data.imageFormat);
+    }
+    if (data.downloadImageOption) {
+        downloadImageOption = data.downloadImageOption;
+        if (downloadImageSelect) downloadImageSelect.selected(downloadImageOption);
+    }
+    if (data.showGradeLegend !== undefined) {
+        showGradeLegend = data.showGradeLegend;
+        if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
+    }
+    if (data.transparentBackground !== undefined) {
+        transparentBackground = data.transparentBackground;
+        if (transparentBackgroundCheckbox) transparentBackgroundCheckbox.checked(transparentBackground);
     }
 
-    // Apply colors
+    // Glitch options
+    if (data.glitchOpts)      glitchOpts      = deepCopy(data.glitchOpts);
+    if (data.glitchOptsTitle) glitchOptsTitle = deepCopy(data.glitchOptsTitle);
+    if (glitchTargetSel) syncGlitchUI(getActiveGlitchOpts());
+
+    // Custom elements — full replace (data/profile is the source of truth)
+    setCustomTextboxesFromData(data.customTextboxes || []);
+    setCustomImagesFromData(data.customImages || []);
+
+    refreshPageDependentUI();
+}
+
+function refreshPageDependentUI() {
+    if (pageTabsBar) buildPageTabs();
+    updateAspectSelectFromPage();
+    updateMetadataVisibility();
+    updateVisibilityCustomElementsUI();
+    if (selectedTextBox) {
+        updateVerticalOffsetSlider();
+        updateHorizontalOffsetSlider();
+        updateMaxTextboxWidthSlider();
+    }
+}
+
+function applyProfile(profileData) {
+    profileData = migrateData(deepCopy(profileData));
+
+    // Legacy profiles stored the tracks block offset in its own field
+    if (profileData.tracksVerticalOffset !== undefined) {
+        profileData.verticalOffsets = profileData.verticalOffsets || {};
+        profileData.verticalOffsets.ratings = profileData.verticalOffsets.ratings || {};
+        if (profileData.verticalOffsets.ratings.tracks === undefined)
+            profileData.verticalOffsets.ratings.tracks = profileData.tracksVerticalOffset;
+    }
+
+    // Colors
     if (profileData.colorMap) {
         Object.keys(profileData.colorMap).forEach(grade => {
             if (colorMap.hasOwnProperty(grade)) {
@@ -1307,145 +2028,16 @@ function applyProfile(profileData) {
         saveCustomColors();
     }
 
-    // Apply aspect ratio
-    if (profileData.aspectRatio && aspectRatioOptions[profileData.aspectRatio]) {
-        currentAspectRatio = profileData.aspectRatio;
-        aspectRatioSelect.selected(profileData.aspectRatio);
-    }
+    // Profiles are templates: applying one replaces the pages and every custom
+    // element with the profile's version.
+    applyLayoutData(profileData);
 
-    // Apply aspect ratio for cover
-    if (profileData.aspectRatioCover && aspectRatioOptions[profileData.aspectRatioCover]) {
-        currentAspectRatioCover = profileData.aspectRatioCover;
-        aspectRatioCoverSelect.selected(profileData.aspectRatioCover);
-    }
-
-    // Apply image format
-    if (profileData.imageFormat) {
-        currentImageFormat = profileData.imageFormat;
-        imageFormatSelect.selected(profileData.imageFormat);
-    }
-
-    // Apply image download scope
-    if (profileData.downloadImageOption) {
-        downloadImageOption = profileData.downloadImageOption;
-        if (downloadImageSelect) downloadImageSelect.selected(downloadImageOption);
-    }
-
-    // Apply grade legend preference
-    showGradeLegend = profileData.showGradeLegend !== undefined ? profileData.showGradeLegend : true;
-    if (gradeLegendCheckbox) {
-        gradeLegendCheckbox.checked(showGradeLegend);
-    }
-
-    // Apply transparent background preference
-    transparentBackground = profileData.transparentBackground !== undefined ? profileData.transparentBackground : false;
-    if (transparentBackgroundCheckbox) {
-        transparentBackgroundCheckbox.checked(transparentBackground);
-    }
-
-    // Clear existing offsets before applying profile
-    Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
-    Object.keys(verticalOffsetsCover).forEach(k => delete verticalOffsetsCover[k]);
-    Object.keys(horizontalOffsetsRatings).forEach(k => delete horizontalOffsetsRatings[k]);
-    Object.keys(horizontalOffsetsCover).forEach(k => delete horizontalOffsetsCover[k]);
-    Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
-    Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
-    Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
-    Object.keys(textAlignRatings).forEach(k => textAlignRatings[k] = 'left');
-    Object.keys(textAlignCover).forEach(k => textAlignCover[k] = 'center');
-
-    // Apply vertical offsets
-    if (profileData.verticalOffsetsRatings) {
-        Object.keys(profileData.verticalOffsetsRatings).forEach(key => {
-            verticalOffsetsRatings[key] = profileData.verticalOffsetsRatings[key];
-        });
-    }
-    if (profileData.verticalOffsetsCover) {
-        Object.keys(profileData.verticalOffsetsCover).forEach(key => {
-            verticalOffsetsCover[key] = profileData.verticalOffsetsCover[key];
-        });
-    }
-
-    // Apply horizontal offsets
-    if (profileData.horizontalOffsetsRatings) {
-        Object.keys(profileData.horizontalOffsetsRatings).forEach(key => {
-            horizontalOffsetsRatings[key] = profileData.horizontalOffsetsRatings[key];
-        });
-    }
-    if (profileData.horizontalOffsetsCover) {
-        Object.keys(profileData.horizontalOffsetsCover).forEach(key => {
-            horizontalOffsetsCover[key] = profileData.horizontalOffsetsCover[key];
-        });
-    }
-
-    // Apply image size multiplier
-    if (profileData.imageSizeMultiplier !== undefined) {
-        imageSizeMultiplier = profileData.imageSizeMultiplier;
-        if (imageSizeMultiplierSlider) {
-            imageSizeMultiplierSlider.value(imageSizeMultiplier);
-            imageSizeMultiplierLabel.html(imageSizeMultiplier.toFixed(2) + 'x');
-        }
-    }
-
-    // Apply max textbox widths
-    if (profileData.maxTextboxWidths) {
-        Object.keys(profileData.maxTextboxWidths).forEach(key => {
-            maxTextboxWidths[key] = profileData.maxTextboxWidths[key];
-        });
-    }
-
-    // Apply text size offsets
-    if (profileData.textSizeOffsets) {
-        Object.keys(profileData.textSizeOffsets).forEach(key => {
-            textSizeOffsets[key] = profileData.textSizeOffsets[key];
-        });
-    }
-
-    // Apply text leading offsets
-    if (profileData.textLeadingOffsets) {
-        Object.keys(profileData.textLeadingOffsets).forEach(key => {
-            textLeadingOffsets[key] = profileData.textLeadingOffsets[key];
-        });
-    }
-
-    // Apply text alignment settings
-    if (profileData.textAlignRatings) {
-        Object.keys(profileData.textAlignRatings).forEach(key => {
-            textAlignRatings[key] = profileData.textAlignRatings[key];
-        });
-    }
-    if (profileData.textAlignCover) {
-        Object.keys(profileData.textAlignCover).forEach(key => {
-            textAlignCover[key] = profileData.textAlignCover[key];
-        });
-    }
-
-    // Update sliders if an item is selected
-    if (selectedTextBox) {
-        updateVerticalOffsetSlider();
-        updateHorizontalOffsetSlider();
-        updateMaxTextboxWidthSlider();
-    }
-
-    // Apply custom textboxes if any and if they aren't already applied
-    if (profileData.customTextboxes) {
-        for(let tbData of profileData.customTextboxes) {
-            if (!customTextboxes.find(t => t.id === tbData.id)) {
-                let newTextbox = addCustomTextbox(tbData);
-            }
-        }
-    }
-
-    // Apply glitch opts
-    if (profileData.glitchOpts)      glitchOpts      = JSON.parse(JSON.stringify(profileData.glitchOpts));
-    if (profileData.glitchOptsTitle) glitchOptsTitle = JSON.parse(JSON.stringify(profileData.glitchOptsTitle));
-    if (glitchTargetSel) syncGlitchUI(getActiveGlitchOpts());
-
+    // Refresh glitched images with the new options
     glitchImageCache = {};
 
     // Update UI
     if (albumData) {
-        currentView === 'ratings' ? printAlbum() : printCoverScreen();
+        renderPage();
     }
 }
 
@@ -1626,7 +2218,7 @@ function createTracksAdjustPanel() {
         selectedTextBox = null;
         tracksAdjustPanel.style('display', 'none');
         updateVerticalOffsetSlider();
-        currentView === 'ratings' ? printAlbum() : printCoverScreen();
+        renderPage();
     });
 }
 
@@ -1661,7 +2253,7 @@ function refreshGlitchCache() {
     requestAnimationFrame(() => {
         glitchRefreshScheduled = false;
         glitchImageCache = {};
-        if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
+        if (albumData) renderPage();
     });
 }
 
@@ -2100,16 +2692,12 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         let value = verticalOffsetSlider.value();
         verticalOffsetLabel.html(value);
 
-        if (currentView === 'ratings') {
-            verticalOffsetsRatings[selectedTextBox.id] = value;
-        } else {
-            verticalOffsetsCover[selectedTextBox.id] = value;
-        }
+        curVOffs()[selectedTextBox.id] = value;
 
         updatePositionControls();
 
         if (albumData) {
-            currentView === 'ratings' ? printAlbum() : printCoverScreen();
+            renderPage();
         }
 
         if (vertSliderTimeout) clearTimeout(vertSliderTimeout);
@@ -2132,16 +2720,12 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         let value = horizontalOffsetSlider.value();
         horizontalOffsetLabel.html(value);
 
-        if (currentView === 'ratings') {
-            horizontalOffsetsRatings[selectedTextBox.id] = value;
-        } else {
-            horizontalOffsetsCover[selectedTextBox.id] = value;
-        }
+        curHOffs()[selectedTextBox.id] = value;
 
         updatePositionControls();
 
         if (albumData) {
-            currentView === 'ratings' ? printAlbum() : printCoverScreen();
+            renderPage();
         }
     });
     horizontalOffsetSlider.changed(() => captureState());
@@ -2158,7 +2742,7 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         imageSizeMultiplierLabel.html(imageSizeMultiplier.toFixed(2) + 'x');
 
         if (albumData) {
-            currentView === 'ratings' ? printAlbum() : printCoverScreen();
+            renderPage();
         }
     });
     imageSizeMultiplierSlider.changed(() => {
@@ -2188,7 +2772,7 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         if (sapWidth) { sapWidth.value(value); select('#sap-width-display').html(value); }
 
         if (albumData) {
-            currentView === 'ratings' ? printAlbum() : printCoverScreen();
+            renderPage();
         }
     });
     maxTextboxWidthSlider.changed(() => captureState());
@@ -2222,16 +2806,15 @@ function createAdvancedOptionsSection(parent = editorPanel) {
     transparentBackgroundCheckbox.changed(() => {
         transparentBackground = transparentBackgroundCheckbox.checked();
         captureState();
-        if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
+        if (albumData) renderPage();
     });
 
     // Download scope — which screens the image download button exports
     let downloadScopeRow = createDiv('').parent(advancedContent).class('form-group').style('margin-top: 12px;');
     createElement('label', 'Download Images').parent(downloadScopeRow);
     downloadImageSelect = createSelect().parent(downloadScopeRow).class('form-select');
-    downloadImageSelect.option('Both', 'both');
-    downloadImageSelect.option('Only Cover', 'cover');
-    downloadImageSelect.option('Only Ratings', 'ratings');
+    downloadImageSelect.option('All Pages', 'all');
+    downloadImageSelect.option('Only Current Page', 'current');
     downloadImageSelect.selected(downloadImageOption);
     downloadImageSelect.changed(() => {
         downloadImageOption = downloadImageSelect.value();
@@ -2249,12 +2832,12 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         transparentBackground = false;
         if (transparentBackgroundCheckbox) transparentBackgroundCheckbox.checked(false);
 
-        downloadImageOption = 'both';
-        if (downloadImageSelect) downloadImageSelect.selected('both');
+        downloadImageOption = 'all';
+        if (downloadImageSelect) downloadImageSelect.selected('all');
 
         // Reset horizontal offsets
-        Object.keys(horizontalOffsetsRatings).forEach(k => horizontalOffsetsRatings[k] = 0);
-        Object.keys(horizontalOffsetsCover).forEach(k => horizontalOffsetsCover[k] = 0);
+        Object.keys(horizontalOffsets.ratings).forEach(k => horizontalOffsets.ratings[k] = 0);
+        Object.keys(horizontalOffsets.cover).forEach(k => horizontalOffsets.cover[k] = 0);
 
         // Reset max textbox widths
         Object.keys(defaultMaxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k]);
@@ -2263,7 +2846,7 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         updateMaxTextboxWidthSlider();
 
         if (albumData) {
-            currentView === 'ratings' ? printAlbum() : printCoverScreen();
+            renderPage();
         }
         captureState();
     });
@@ -2605,7 +3188,7 @@ function addCustomTextbox(tbData) {
         fontSize: tbData.fontSize || 40,
         fontType: tbData.fontType || 'fontHeavy',
         color: tbData.color || '#ffffff',
-        viewType: tbData.viewType || currentView,
+        pageId: tbData.pageId || currentPageId,
         textAlign: tbData.textAlign || (currentView === 'cover' ? 'center' : 'left'),
         leading: tbData.leading || 0, // Additional spacing added to default line height
         maxWidth: tbData.maxWidth || width - 100 // Maximum width before text wraps
@@ -2669,12 +3252,7 @@ function updateHorizontalOffsetSlider() {
         horizontalOffsetSlider.removeAttribute('disabled');
         horizontalOffsetSlider.removeClass('disabled');
 
-        let offset;
-        if (currentView === 'ratings') {
-            offset = horizontalOffsetsRatings[selectedTextBox.id] || 0;
-        } else {
-            offset = horizontalOffsetsCover[selectedTextBox.id] || 0;
-        }
+        let offset = curHOffs()[selectedTextBox.id] || 0;
 
         horizontalOffsetSlider.value(offset);
         horizontalOffsetLabel.html(offset);
@@ -2734,8 +3312,8 @@ function createSizeAdjustPanel() {
         if (!selectedTextBox) return;
         let value = widthSlider.value();
         if (selectedTextBox.isCustom) {
-            let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
-            if (textbox) textbox.maxWidth = value;
+            let el = findCustomElement(selectedTextBox.id);
+            if (el) { if (selectedTextBox.isImage) el.w = value; else el.maxWidth = value; }
         } else {
             maxTextboxWidths[selectedTextBox.id] = value;
             updateMaxTextboxWidthSlider(); // keep the Advanced Options slider in sync
@@ -2752,7 +3330,7 @@ function createSizeAdjustPanel() {
     ['fontHeavy', 'fontLight', 'fontRegular', 'fontRegularCondensed', 'fontRegularItalic', 'fontRegularCrammed'].forEach(f => fontSelect.option(f));
     fontSelect.changed(() => {
         if (!selectedTextBox || !selectedTextBox.isCustom) return;
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        let textbox = findCustomElement(selectedTextBox.id);
         if (textbox) { textbox.fontType = fontSelect.value(); autoGeneratePreview(); captureState(); }
     });
 
@@ -2762,7 +3340,7 @@ function createSizeAdjustPanel() {
     let colorPicker = createColorPicker('#ffffff').parent(colorGroup).id('sap-color-picker').class('color-picker');
     colorPicker.input(() => {
         if (!selectedTextBox || !selectedTextBox.isCustom) return;
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        let textbox = findCustomElement(selectedTextBox.id);
         if (textbox) { textbox.color = colorPicker.value(); autoGeneratePreview(); }
     });
     colorPicker.changed(() => captureState());
@@ -2776,23 +3354,35 @@ function createSizeAdjustPanel() {
         if (!selectedTextBox) return;
         let align = alignSelect.value();
         if (selectedTextBox.isCustom) {
-            let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+            let textbox = findCustomElement(selectedTextBox.id);
             if (textbox) { textbox.textAlign = align; autoGeneratePreview(); captureState(); }
         } else {
-            if (currentView === 'ratings') textAlignRatings[selectedTextBox.id] = align;
-            else textAlignCover[selectedTextBox.id] = align;
+            curAligns()[selectedTextBox.id] = align;
             autoGeneratePreview(); captureState();
         }
     });
 
-    // --- Actions (reset + close) — every textbox ---
+    // --- Glitch (checkbox) — image elements only ---
+    let glitchGroup = createDiv('').parent(sizeAdjustPanel).class('sap-group').id('sap-glitch');
+    sapGlitchCheckbox = createCheckbox('Glitch', false).parent(glitchGroup).class('checkbox-input');
+    sapGlitchCheckbox.changed(() => {
+        if (!selectedTextBox || !selectedTextBox.isImage) return;
+        let el = findCustomElement(selectedTextBox.id);
+        if (el) { el.glitch = sapGlitchCheckbox.checked(); autoGeneratePreview(); captureState(); }
+    });
+
+    // --- Actions (copy/paste format + reset + close) ---
     let actionsGroup = createDiv('').parent(sizeAdjustPanel).class('sap-group sap-actions');
+    createButton('<i class="fa-solid fa-copy"></i>').parent(actionsGroup).class('sap-btn')
+        .attribute('title', 'Copy format').mousePressed(copyTextboxFormat);
+    createButton('<i class="fa-solid fa-paste"></i>').parent(actionsGroup).class('sap-btn')
+        .attribute('title', 'Paste format').mousePressed(pasteTextboxFormat);
     createButton('↻').parent(actionsGroup).class('sap-btn sap-btn-reset').mousePressed(resetTextBoxToDefault);
     createButton('✕').parent(actionsGroup).class('sap-btn sap-btn-close').mousePressed(() => {
         selectedTextBox = null;
         sizeAdjustPanel.style('display', 'none');
         updateVerticalOffsetSlider();
-        currentView === 'ratings' ? printAlbum() : printCoverScreen();
+        renderPage();
     });
 }
 
@@ -2803,6 +3393,8 @@ function clearAll() {
     addTrackRow();
     customTextboxes = [];
     if (customTextboxContainer) customTextboxContainer.html('');
+    customImages = [];
+    if (customImageContainer) customImageContainer.html('');
     albumData = null;
     cachedImageUrl = cachedOriginalImage = cachedFilteredImage = null;
     lastUrlChecked = null;
@@ -2814,19 +3406,6 @@ function clearAll() {
     localStorage.removeItem('albumGeneratorData');
 }
 
-function toggleView() {
-    currentView = currentView === 'ratings' ? 'cover' : 'ratings';
-    viewToggleBtn.html(currentView === 'ratings' ? 'View Ratings' : 'View Cover');
-    // Deselect textbox when switching views
-    selectedTextBox = null;
-    if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
-    if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
-    updateVerticalOffsetSlider();
-    delete glitchImageCache['coverTitle'];
-    delete glitchImageCache['ratingsTitle'];
-    if (albumData) currentView === 'ratings' ? printAlbum() : printCoverScreen();
-    updateVisibilityCustomTextBoxesUI()
-}
 
 async function downloadBothImages() {
     let tracksData = collectTracksData();
@@ -2841,8 +3420,9 @@ async function downloadBothImages() {
     if (transparentBackground && currentImageFormat === 'jpg') {
         showToast('JPG does not support transparency — switch to PNG to export a transparent background.', true);
     }
-    let downloadRatings = downloadImageOption !== 'cover';
-    let downloadCover = downloadImageOption !== 'ratings';
+
+    let pagesToExport = downloadImageOption === 'current' ? [currentPage()] : pages;
+    let originalPageId = currentPageId;
 
     // Crop the current canvas to the export height and trigger a download.
     // Uses a Blob URL (not a data: URL): mobile Safari silently blocks downloads of
@@ -2867,20 +3447,19 @@ async function downloadBothImages() {
 
     showGreenRectangle = false; // Hide green rectangle for download
 
-    if (downloadRatings) {
-        await printAlbum();
-        await exportCurrentCanvas(aspectRatioOptions[currentAspectRatio].height, 'Ratings');
-    }
-
-    if (downloadCover) {
-        await printCoverScreen();
-        await exportCurrentCanvas(aspectRatioOptions[currentAspectRatioCover].height, 'Cover');
+    for (let p of pagesToExport) {
+        currentPageId = p.id;
+        currentView = p.type;
+        await renderPage();
+        await exportCurrentCanvas((aspectRatioOptions[p.aspectRatio] || aspectRatioOptions['9:16']).height, p.name);
     }
 
     showGreenRectangle = true; // Show it again
 
-    // Restore the current view
-    currentView === 'ratings' ? await printAlbum() : await printCoverScreen();
+    // Restore the page that was being viewed
+    currentPageId = originalPageId;
+    currentView = currentPage().type;
+    await renderPage();
 }
 
 function makeNumberEditable(trackNumSpan, trackIndex) {
@@ -3167,7 +3746,7 @@ function getBaseFileName() {
 
 function generateFromForm() {
     albumData = collectAlbumData(collectTracksData());
-    currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    renderPage();
 }
 
 /*
@@ -3189,39 +3768,16 @@ function downloadJSON() {
             tracks: tracksData,
             imageUrl: imageUrlInput.value() || '',
             albumGrade: albumGradeSelect.value(),
-            customTextboxes: customTextboxes.map(t => ({
-                id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
-                fontType: t.fontType, color: t.color, viewType: t.viewType,
-                textAlign: t.textAlign || 'left', leading: t.leading || 0, maxWidth: t.maxWidth || width - 100
-            })),
-            textSizeOffsets,
-            textLeadingOffsets,
-            verticalOffsetsRatings,
-            verticalOffsetsCover,
-            horizontalOffsetsRatings,
-            horizontalOffsetsCover,
-            imageSizeMultiplier,
-            maxTextboxWidths,
-            textAlignRatings,
-            textAlignCover,
-            aspectRatio: currentAspectRatio,
-            aspectRatioCover: currentAspectRatioCover,
-            imageFormat: currentImageFormat,
-            downloadImageOption,
-            tracksTextSize,
-            tracksSpacing,
-            tracksRectHeight,
-            tracksTwoColumns,
-            showGradeLegend,
-            transparentBackground,
+            ...serializeLayout(),
             currentProfileName
-
         }
     };
     saveJSON(jsonData, getBaseFileName() + '.json');
 }
 
 function fillFormFromData(data) {
+    data = migrateData(data);
+
     titleInput.value(data.title || '');
     artistInput.value(data.artist || '');
     yearInput.value(data.year || '');
@@ -3229,26 +3785,6 @@ function fillFormFromData(data) {
     funfactInput.value(data.funfact || '');
     imageUrlInput.value(data.imageUrl || '');
     albumGradeSelect.selected(data.albumGrade || 'STRONG');
-
-    if (data.aspectRatio && aspectRatioOptions[data.aspectRatio]) {
-        currentAspectRatio = data.aspectRatio;
-        aspectRatioSelect.selected(data.aspectRatio);
-    }
-
-    if(data.aspectRatioCover && aspectRatioOptions[data.aspectRatioCover]) {
-        currentAspectRatioCover = data.aspectRatioCover;
-        aspectRatioCoverSelect.selected(data.aspectRatioCover);
-    }
-
-    if (data.imageFormat) {
-        currentImageFormat = data.imageFormat;
-        imageFormatSelect.selected(data.imageFormat);
-    }
-
-    if (data.downloadImageOption) {
-        downloadImageOption = data.downloadImageOption;
-        if (downloadImageSelect) downloadImageSelect.selected(downloadImageOption);
-    }
 
     while (tracks.length > 0) { tracks[0].rowDiv.remove(); tracks.shift(); }
 
@@ -3278,127 +3814,8 @@ function fillFormFromData(data) {
         });
     } else addTrackRow();
 
-    // Load custom textboxes
-    customTextboxes = [];
-    if (customTextboxContainer) customTextboxContainer.html('');
-    if (data.customTextboxes && data.customTextboxes.length > 0) {
-        data.customTextboxes.forEach(textboxData => {
-            let textbox = {
-                id: textboxData.id,
-                text: textboxData.text || '',
-                x: textboxData.x || 100,
-                y: textboxData.y || 100,
-                fontSize: textboxData.fontSize || 40,
-                fontType: textboxData.fontType || 'fontHeavy',
-                color: textboxData.color || '#ffffff',
-                viewType: textboxData.viewType || 'both',
-                textAlign: textboxData.textAlign || 'left',
-                leading: textboxData.leading || 0,
-                maxWidth: textboxData.maxWidth || width - 100
-            };
-            customTextboxes.push(textbox);
-            addCustomTextboxUI(textbox);
-        });
-    }
+    applyLayoutData(data);
 
-    if(data.glitchOpts) glitchOpts = data.glitchOpts
-    if(data.glitchOptsTitle) glitchOptsTitle = data.glitchOptsTitle
-    if(glitchTargetSel) syncGlitchUI(getActiveGlitchOpts())
-
-    // Load all offsets and advanced options - clear first, then load
-    // Clear existing offsets
-    Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
-    Object.keys(verticalOffsetsCover).forEach(k => delete verticalOffsetsCover[k]);
-    Object.keys(horizontalOffsetsRatings).forEach(k => delete horizontalOffsetsRatings[k]);
-    Object.keys(horizontalOffsetsCover).forEach(k => delete horizontalOffsetsCover[k]);
-    Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
-    Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
-    Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
-    Object.keys(textAlignRatings).forEach(k => textAlignRatings[k] = 'left');
-    Object.keys(textAlignCover).forEach(k => textAlignCover[k] = 'center');
-
-    // Load saved offsets
-    if (data.verticalOffsetsRatings) {
-        Object.keys(data.verticalOffsetsRatings).forEach(key => {
-            verticalOffsetsRatings[key] = data.verticalOffsetsRatings[key];
-        });
-    }
-    if (data.verticalOffsetsCover) {
-        Object.keys(data.verticalOffsetsCover).forEach(key => {
-            verticalOffsetsCover[key] = data.verticalOffsetsCover[key];
-        });
-    }
-    if (data.horizontalOffsetsRatings) {
-        Object.keys(data.horizontalOffsetsRatings).forEach(key => {
-            horizontalOffsetsRatings[key] = data.horizontalOffsetsRatings[key];
-        });
-    }
-    if (data.horizontalOffsetsCover) {
-        Object.keys(data.horizontalOffsetsCover).forEach(key => {
-            horizontalOffsetsCover[key] = data.horizontalOffsetsCover[key];
-        });
-    }
-    if (data.imageSizeMultiplier !== undefined) {
-        imageSizeMultiplier = data.imageSizeMultiplier;
-        if (imageSizeMultiplierSlider) {
-            imageSizeMultiplierSlider.value(imageSizeMultiplier);
-            imageSizeMultiplierLabel.html(imageSizeMultiplier.toFixed(2) + 'x');
-        }
-    }
-    if (data.maxTextboxWidths) {
-        Object.keys(data.maxTextboxWidths).forEach(key => {
-            maxTextboxWidths[key] = data.maxTextboxWidths[key];
-        });
-    }
-    if (data.textSizeOffsets) {
-        Object.keys(data.textSizeOffsets).forEach(key => {
-            textSizeOffsets[key] = data.textSizeOffsets[key];
-        });
-    }
-    if (data.textLeadingOffsets) {
-        Object.keys(data.textLeadingOffsets).forEach(key => {
-            textLeadingOffsets[key] = data.textLeadingOffsets[key];
-        });
-    }
-    if (data.textAlignRatings) {
-        Object.keys(data.textAlignRatings).forEach(key => { textAlignRatings[key] = data.textAlignRatings[key]; });
-    }
-    if (data.textAlignCover) {
-        Object.keys(data.textAlignCover).forEach(key => { textAlignCover[key] = data.textAlignCover[key]; });
-    }
-    if (data.showGradeLegend !== undefined) {
-        showGradeLegend = data.showGradeLegend;
-        if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
-    }
-    if (data.transparentBackground !== undefined) {
-        transparentBackground = data.transparentBackground;
-        if (transparentBackgroundCheckbox) transparentBackgroundCheckbox.checked(transparentBackground);
-    }
-    if (data.tracksTextSize !== undefined) {
-        tracksTextSize = data.tracksTextSize;
-        if (tracksTextSizeSlider) {
-            tracksTextSizeSlider.value(tracksTextSize);
-            tracksTextSizeLabel.html(tracksTextSize);
-        }
-    }
-    if (data.tracksSpacing !== undefined) {
-        tracksSpacing = data.tracksSpacing;
-        if (tracksSpacingSlider) {
-            tracksSpacingSlider.value(tracksSpacing);
-            tracksSpacingLabel.html(tracksSpacing);
-        }
-    }
-    if (data.tracksRectHeight !== undefined) {
-        tracksRectHeight = data.tracksRectHeight;
-        if (tracksRectHeightSlider) {
-            tracksRectHeightSlider.value(tracksRectHeight);
-            tracksRectHeightLabel.html(tracksRectHeight);
-        }
-    }
-    if (data.tracksTwoColumns !== undefined) {
-        tracksTwoColumns = data.tracksTwoColumns;
-        if (tracksTwoColumnsCheckbox) tracksTwoColumnsCheckbox.checked(tracksTwoColumns);
-    }
     if(data.currentProfileName) {
         currentProfileName = data.currentProfileName;
         if(profileSelect) profileSelect.selected(currentProfileName);
@@ -3414,34 +3831,7 @@ function saveToLocalStorage() {
         customText: t.textInput ? t.textInput.value() : null,
         customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null
     })));
-    data.aspectRatio = currentAspectRatio;
-    data.aspectRatioCover = currentAspectRatioCover;
-    data.imageFormat = currentImageFormat;
-    data.downloadImageOption = downloadImageOption;
-    data.showGradeLegend = showGradeLegend;
-    data.transparentBackground = transparentBackground;
-    data.customTextboxes = customTextboxes.map(t => ({
-        id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
-        fontType: t.fontType, color: t.color, viewType: t.viewType,
-        textAlign: t.textAlign || 'left', leading: t.leading || 0, maxWidth: t.maxWidth || width - 100
-    }));
-    // Save all offsets and advanced options
-    data.verticalOffsetsRatings = {...verticalOffsetsRatings};
-    data.verticalOffsetsCover = {...verticalOffsetsCover};
-    data.horizontalOffsetsRatings = {...horizontalOffsetsRatings};
-    data.horizontalOffsetsCover = {...horizontalOffsetsCover};
-    data.imageSizeMultiplier = imageSizeMultiplier;
-    data.maxTextboxWidths = {...maxTextboxWidths};
-    data.textSizeOffsets = {...textSizeOffsets};
-    data.textLeadingOffsets = {...textLeadingOffsets};
-    data.tracksTextSize = tracksTextSize;
-    data.tracksSpacing = tracksSpacing;
-    data.tracksRectHeight = tracksRectHeight;
-    data.tracksTwoColumns = tracksTwoColumns;
-    data.textAlignRatings = {...textAlignRatings};
-    data.textAlignCover = {...textAlignCover};
-    data.glitchOpts = {...glitchOpts}
-    data.glitchOptsTitle = {...glitchOptsTitle}
+    Object.assign(data, serializeLayout());
     localStorage.setItem('albumGeneratorData', JSON.stringify(data));
 }
 
@@ -3666,11 +4056,12 @@ async function printAlbum(){
 
     let cover = drawAlbumCover(img, hasImage, false);
 
+    await drawCustomImages(currentPageId);
     drawAlbumHeader();
-    drawCustomTextboxes('ratings');
+    drawCustomTextboxes(currentPageId);
     drawTrackList();
 
-    let exportHeight = aspectRatioOptions[currentAspectRatio].height;
+    let exportHeight = currentExportHeight();
     if (showGradeLegend) drawGradeLegend(cover);
     if (albumData.albumGrade !== 'None') drawAlbumGradeBar(exportHeight);
 
@@ -3695,8 +4086,8 @@ async function printAlbum(){
 
 function drawAlbumCover(img, hasImage, drawGlitch = true) {
     const C = RATINGS_LAYOUT.cover;
-    let x = width * C.xRatio + (horizontalOffsetsRatings.image || 0);
-    let y = C.y + (verticalOffsetsRatings.image || 0);
+    let x = width * C.xRatio + (horizontalOffsets.ratings.image || 0);
+    let y = C.y + (verticalOffsets.ratings.image || 0);
     let size = width * C.sizeRatio * imageSizeMultiplier;
 
     utils.beginShadow("#000000", C.shadowBlur, 0, 0);
@@ -3739,53 +4130,53 @@ function drawAlbumHeader() {
     drawTextWithBox('title', fontHeavy,
         ratingsTitleSize,
         albumData.title,
-        leftMargin + (horizontalOffsetsRatings.title || 0),
-        H.top + (verticalOffsetsRatings.title || 0),
-        titleMaxWidth, H.title.leading, textAlignRatings.title || 'left', BOTTOM, false);
+        leftMargin + (horizontalOffsets.ratings.title || 0),
+        H.top + (verticalOffsets.ratings.title || 0),
+        titleMaxWidth, H.title.leading, textAligns.ratings.title || 'left', BOTTOM, false);
 
     drawStylizedText(fontHeavy,
         ratingsTitleSize,
         albumData.title,
-        leftMargin + (horizontalOffsetsRatings.title || 0),
-        H.top + (verticalOffsetsRatings.title || 0) + safariTextShift(true), textAlignRatings.title || 'left', BOTTOM, glitchOptsTitle, 'ratingsTitle')
+        leftMargin + (horizontalOffsets.ratings.title || 0),
+        H.top + (verticalOffsets.ratings.title || 0) + safariTextShift(true), textAligns.ratings.title || 'left', BOTTOM, glitchOptsTitle, 'ratingsTitle')
 
 
     let artistMaxWidth = maxTextboxWidths.artist || defaultMaxTextboxWidths.artist;
     let artistBox = drawTextWithBox('artist', fontRegularCondensed,
         H.artist.fontSize + textSizeOffsets.artist,
         albumData.artist,
-        rightColX + (horizontalOffsetsRatings.artist || 0),
-        H.top + H.artist.offsetY + (verticalOffsetsRatings.artist || 0),
-        artistMaxWidth, H.artist.leading, textAlignRatings.artist || 'left', BASELINE, true, safariTextShift());
+        rightColX + (horizontalOffsets.ratings.artist || 0),
+        H.top + H.artist.offsetY + (verticalOffsets.ratings.artist || 0),
+        artistMaxWidth, H.artist.leading, textAligns.ratings.artist || 'left', BASELINE, true, safariTextShift());
 
     // year / genre / funfact shift down with the artist block height
     let blockTop = H.top + artistBox.h;
     fill(230);
 
-    let yearX = rightColX + (horizontalOffsetsRatings.year || 0);
-    let yearY = blockTop + H.year.offsetY + (verticalOffsetsRatings.year || 0);
+    let yearX = rightColX + (horizontalOffsets.ratings.year || 0);
+    let yearY = blockTop + H.year.offsetY + (verticalOffsets.ratings.year || 0);
     let yearMaxWidth = maxTextboxWidths.year || defaultMaxTextboxWidths.year;
     let yearSize = H.year.fontSize + textSizeOffsets.year;
-    let yearAlign = textAlignRatings.year || 'left';
+    let yearAlign = textAligns.ratings.year || 'left';
     textFont(fontLight); textSize(yearSize); textLeading(H.year.leading);
     drawBoxText(albumData.year, yearX, yearY + safariTextShift(), yearMaxWidth, yearAlign);
     addTextBox('year', getAlignedBounds(fontLight.textBounds(getRichText(albumData.year), yearX, yearY, yearMaxWidth), yearX, yearAlign, yearMaxWidth, fontLight), yearSize);
 
-    let genreX = rightColX + (horizontalOffsetsRatings.genre || 0);
-    let genreY = blockTop + H.genre.offsetY + (verticalOffsetsRatings.genre || 0);
+    let genreX = rightColX + (horizontalOffsets.ratings.genre || 0);
+    let genreY = blockTop + H.genre.offsetY + (verticalOffsets.ratings.genre || 0);
     let genreMaxWidth = maxTextboxWidths.genre || defaultMaxTextboxWidths.genre;
     let genreSize = H.genre.fontSize + textSizeOffsets.genre;
-    let genreAlign = textAlignRatings.genre || 'left';
+    let genreAlign = textAligns.ratings.genre || 'left';
     textSize(genreSize); textLeading(H.genre.leading);
     let genreText = shortenText(albumData.genre, genreMaxWidth);
     drawBoxText(genreText, genreX, genreY + safariTextShift(), genreMaxWidth, genreAlign);
     addTextBox('genre', getAlignedBounds(fontLight.textBounds(getRichText(genreText), genreX, genreY, genreMaxWidth), genreX, genreAlign, genreMaxWidth, fontLight), genreSize);
 
-    let funfactX = rightColX + (horizontalOffsetsRatings.funfact || 0);
-    let funfactY = blockTop + H.funfact.offsetY + (verticalOffsetsRatings.funfact || 0);
+    let funfactX = rightColX + (horizontalOffsets.ratings.funfact || 0);
+    let funfactY = blockTop + H.funfact.offsetY + (verticalOffsets.ratings.funfact || 0);
     let funfactMaxWidth = maxTextboxWidths.funfact || defaultMaxTextboxWidths.funfact;
     let funfactSize = H.funfact.fontSize + textSizeOffsets.funfact;
-    let funfactAlign = textAlignRatings.funfact || 'left';
+    let funfactAlign = textAligns.ratings.funfact || 'left';
     textFont(fontRegularCondensed);
     textSize(funfactSize); textLeading(H.funfact.leading + textLeadingOffsets.funfact);
     drawBoxText(albumData.funfact, funfactX, funfactY + safariTextShift(), funfactMaxWidth, funfactAlign);
@@ -3853,8 +4244,8 @@ function drawTrackList() {
     let titleBaseX = leftMargin + textIndent; // first-column titles
     let pillCenterBaseX = titleBaseX * 0.5 + twoColumnsFix;   // first-column pill centers
 
-    let horizOffset = (horizontalOffsetsRatings.tracks || 0) + T.horizOffsetFix;
-    let columnTopY = T.startY + (verticalOffsetsRatings.tracks || 0);
+    let horizOffset = (horizontalOffsets.ratings.tracks || 0) + T.horizOffsetFix;
+    let columnTopY = T.startY + (verticalOffsets.ratings.tracks || 0);
     let titleMaxWidth = twoColumns ? T.titleMaxWidth.twoColumns : T.titleMaxWidth.oneColumn;
     let S = T.rowSpacing;
     let rowSpacing = Math.min(map(albumData.tracks.length, S.fewTracks, S.manyTracks, S.max, S.min, true), S.cap) + tracksSpacing;
@@ -4243,7 +4634,7 @@ async function printCoverScreen() {
     let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
 
-    let exportHeight = aspectRatioOptions[currentAspectRatioCover].height;
+    let exportHeight = currentExportHeight();
 
     let coverSize = width * 0.65, coverY = exportHeight * 0.5, hasImage = false, imgBW, img;
 
@@ -4290,10 +4681,10 @@ async function printCoverScreen() {
 
     push()
 
-    let titleVertOffset = verticalOffsetsCover.title || 0;
-    let titleHorizOffset = horizontalOffsetsCover.title || 0;
+    let titleVertOffset = verticalOffsets.cover.title || 0;
+    let titleHorizOffset = horizontalOffsets.cover.title || 0;
     let titleY = coverY + coverSize * 0.5 + 60 + titleVertOffset;
-    let titleAlignCover = textAlignCover.title || 'center'; //right now not suppored, it defaults to center
+    let titleAlignCover = textAligns.cover.title || 'center'; //right now not suppored, it defaults to center
     let coverTitleMaxWidth = maxTextboxWidths.title || defaultMaxTextboxWidths.title;
     textFont(fontHeavy);
     let titleSize = getMaxTextSizeByWidth(albumData.title, coverTitleMaxWidth, 100) + textSizeOffsets.title;
@@ -4305,10 +4696,10 @@ async function printCoverScreen() {
     let titleBounds = fontHeavy.textBounds(getRichText(albumData.title), width * 0.5 + titleHorizOffset, titleY, coverTitleMaxWidth);
     addTextBox('title', getAlignedBounds(titleBounds, width * 0.5 + titleHorizOffset, titleAlignCover), titleSize);
 
-    let artistVertOffset = verticalOffsetsCover.artist || 0;
-    let artistHorizOffset = horizontalOffsetsCover.artist || 0;
+    let artistVertOffset = verticalOffsets.cover.artist || 0;
+    let artistHorizOffset = horizontalOffsets.cover.artist || 0;
     let artistY = coverY + coverSize * 0.5 + 60 + 130 + artistVertOffset;
-    let artistAlignCover = textAlignCover.artist || 'center';
+    let artistAlignCover = textAligns.cover.artist || 'center';
     textFont(fontRegularCondensed);
     textAlign(CENTER, CENTER);
     let artistSize = getMaxTextSizeByWidth(albumData.artist, width - 100, 50) + textSizeOffsets.artist;
@@ -4317,8 +4708,9 @@ async function printCoverScreen() {
     addTextBox('artist', getAlignedBounds(artistBounds, width * 0.5 + artistHorizOffset, artistAlignCover), artistSize);
     utils.endShadow();
 
-    // Draw custom textboxes
-    drawCustomTextboxes('cover');
+    // Draw custom image elements and textboxes
+    await drawCustomImages(currentPageId);
+    drawCustomTextboxes(currentPageId);
 
     if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
     if (selectedTextBox) {
@@ -4339,7 +4731,7 @@ async function printCoverScreen() {
         stroke(0, 255, 0);
         strokeWeight(4);
         rectMode(CORNER);
-        rect(0, 0, WIDTH, aspectRatioOptions[currentAspectRatioCover].height);
+        rect(0, 0, WIDTH, exportHeight);
         pop();
     }
 }
@@ -4388,12 +4780,12 @@ function drawStylizedText(font, fontSz, str, x, y, hAlign = CENTER, vAlign = CEN
     pop()
 }
 
-function drawCustomTextboxes(coverType){
+function drawCustomTextboxes(pageId){
     push();
     let fontObj;
     customTextboxes.forEach(textbox => {
         rectMode(CORNER);
-        if (textbox.viewType === coverType) {
+        if (textbox.pageId === pageId) {
             
             switch(textbox.fontType) {
                 case 'fontHeavy': fontObj = fontHeavy; break;
@@ -4467,16 +4859,11 @@ function dimImage(img, amount){
     return img;
 }
 
-function updateVisibilityCustomTextBoxesUI(){
-    for(let ctb of customTextboxes){
-        if(currentView == "ratings"){
-            if(ctb.viewType == "cover") ctb.rowDiv.hide()
-            else ctb.rowDiv.show()
-        }
-        else {
-            if(ctb.viewType == "ratings") ctb.rowDiv.hide()
-            else ctb.rowDiv.show()
-        }
+function updateVisibilityCustomElementsUI(){
+    // Column 1 only lists the elements that live on the page being viewed.
+    for (let el of customTextboxes.concat(customImages)) {
+        if (!el.rowDiv) continue;
+        el.pageId === currentPageId ? el.rowDiv.show() : el.rowDiv.hide();
     }
 }
 
@@ -4489,7 +4876,7 @@ function mousePressed() {
     let scaledMouseY = mouseY / canvasScale;
 
     // Ignore clicks that land inside either floating panel (don't deselect)
-    for (let panel of [sizeAdjustPanel, tracksAdjustPanel]) {
+    for (let panel of [sizeAdjustPanel, tracksAdjustPanel, pageTabsBar]) {
         if (panel && panel.style('display') !== 'none') {
             let panelRect = panel.elt.getBoundingClientRect();
             let mouseClientX = mouseX + canvasRect.left;
@@ -4519,19 +4906,14 @@ function mousePressed() {
 
         // Store starting positions/offsets
         if (clickedBox.isCustom) {
-            let textbox = customTextboxes.find(t => t.id === clickedBox.id);
+            let textbox = findCustomElement(clickedBox.id);
             if (textbox) {
                 dragStartOffsetX = textbox.x;
                 dragStartOffsetY = textbox.y;
             }
         } else {
-            if (currentView === 'ratings') {
-                dragStartOffsetX = horizontalOffsetsRatings[clickedBox.id] || 0;
-                dragStartOffsetY = verticalOffsetsRatings[clickedBox.id] || 0;
-            } else {
-                dragStartOffsetX = horizontalOffsetsCover[clickedBox.id] || 0;
-                dragStartOffsetY = verticalOffsetsCover[clickedBox.id] || 0;
-            }
+            dragStartOffsetX = curHOffs()[clickedBox.id] || 0;
+            dragStartOffsetY = curVOffs()[clickedBox.id] || 0;
         }
 
         // Show the matching floating panel for the selected box
@@ -4548,14 +4930,14 @@ function mousePressed() {
             showSizeAdjustPanel(clickedBox);
         }
 
-        if (selectionChanged) currentView === 'ratings' ? printAlbum() : printCoverScreen();
+        if (selectionChanged) renderPage();
     } else {
         if (selectedTextBox) {
             selectedTextBox = null;
             sizeAdjustPanel.style('display', 'none');
             tracksAdjustPanel.style('display', 'none');
             updateVerticalOffsetSlider();
-            currentView === 'ratings' ? printAlbum() : printCoverScreen();
+            renderPage();
         }
     }
 }
@@ -4583,7 +4965,7 @@ function mouseDragged() {
 
         if (draggedTextbox.isCustom) {
             // Custom textbox: update x, y directly
-            let textbox = customTextboxes.find(t => t.id === draggedTextbox.id);
+            let textbox = findCustomElement(draggedTextbox.id);
             if (textbox) {
                 if (keyIsDown(SHIFT) && shiftDragAxis) {
                     // Constrained drag
@@ -4600,18 +4982,13 @@ function mouseDragged() {
             }
         } else {
             // Predefined textbox: update offsets
-            if (currentView === 'ratings') {
-                horizontalOffsetsRatings[draggedTextbox.id] = Math.round(dragStartOffsetX + deltaX);
-                verticalOffsetsRatings[draggedTextbox.id] = Math.round(dragStartOffsetY + deltaY);
-            } else {
-                horizontalOffsetsCover[draggedTextbox.id] = Math.round(dragStartOffsetX + deltaX);
-                verticalOffsetsCover[draggedTextbox.id] = Math.round(dragStartOffsetY + deltaY);
-            }
+            curHOffs()[draggedTextbox.id] = Math.round(dragStartOffsetX + deltaX);
+            curVOffs()[draggedTextbox.id] = Math.round(dragStartOffsetY + deltaY);
 
             if(draggedTextbox.id === 'image' && automaticAlignmentCheckbox.checked()){
                 alignMainElementsToImage()
                 captureState()
-                currentView === 'ratings' ? printAlbum() : printCoverScreen();
+                renderPage();
             }
 
             // Update sliders
@@ -4622,7 +4999,7 @@ function mouseDragged() {
         // Update position controls
         updatePositionControls();
 
-        currentView === 'ratings' ? printAlbum() : printCoverScreen();
+        renderPage();
     }
 }
 
@@ -4657,58 +5034,72 @@ function selectTextBoxById(id) {
     }
 
     // Re-render to draw the selection outline (only needed if the selection actually changed)
-    if (selectionChanged) currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    if (selectionChanged) renderPage();
 }
 
 function showSizeAdjustPanel(box) {
     let isCustom = !!box.isCustom;
-    let textbox = isCustom ? customTextboxes.find(t => t.id === box.id) : null;
+    let isImage = !!box.isImage;
+    let el = isCustom ? findCustomElement(box.id) : null;
 
-    // Size — shown for every textbox. Custom shows its absolute font size; predefined
-    // shows the signed offset applied on top of its auto-fitted base size.
-    if (isCustom) {
-        select('#sap-size-display').html(textbox ? textbox.fontSize : 40);
-    } else {
-        let offset = box.sizeOffset || 0;
-        select('#sap-size-display').html(offset >= 0 ? '+' + offset : '' + offset);
+    // Size — hidden for image elements (they resize through the Width slider).
+    // Custom textboxes show their absolute font size; predefined boxes show the
+    // signed offset applied on top of their auto-fitted base size.
+    select('#sap-size').style('display', isImage ? 'none' : 'flex');
+    if (!isImage) {
+        if (isCustom) {
+            select('#sap-size-display').html(el ? el.fontSize : 40);
+        } else {
+            let offset = box.sizeOffset || 0;
+            select('#sap-size-display').html(offset >= 0 ? '+' + offset : '' + offset);
+        }
     }
 
-    // Leading — custom boxes and the predefined funfact support line spacing
-    let showLeading = isCustom || box.id === 'funfact';
+    // Leading — custom textboxes and the predefined funfact support line spacing
+    let showLeading = (isCustom && !isImage) || box.id === 'funfact';
     select('#sap-leading').style('display', showLeading ? 'flex' : 'none');
     if (showLeading) {
         if (isCustom) {
-            select('#sap-leading-display').html(textbox ? (textbox.leading || 0) : 0);
+            select('#sap-leading-display').html(el ? (el.leading || 0) : 0);
         } else {
             let leadingOffset = textLeadingOffsets.funfact || 0;
             select('#sap-leading-display').html(leadingOffset >= 0 ? '+' + leadingOffset : '' + leadingOffset);
         }
     }
 
-    // Width — every text box has a wrap width
+    // Width — wrap width for textboxes, display width for image elements
     let showWidth = isCustom || maxTextboxWidths.hasOwnProperty(box.id);
     select('#sap-width').style('display', showWidth ? 'flex' : 'none');
     if (showWidth) {
-        let w = isCustom
-            ? (textbox ? (textbox.maxWidth || 500) : 500)
-            : (maxTextboxWidths[box.id] || defaultMaxTextboxWidths[box.id] || 500);
+        let w;
+        if (isImage) w = el ? (el.w || 400) : 400;
+        else if (isCustom) w = el ? (el.maxWidth || 500) : 500;
+        else w = maxTextboxWidths[box.id] || defaultMaxTextboxWidths[box.id] || 500;
         select('#sap-width-slider').value(w);
         select('#sap-width-display').html(w);
     }
 
-    // Font + Color — only custom boxes expose these (predefined styling is fixed)
-    select('#sap-font').style('display', isCustom ? 'flex' : 'none');
-    select('#sap-color').style('display', isCustom ? 'flex' : 'none');
-    if (isCustom && textbox) {
-        select('#sap-font-select').selected(textbox.fontType);
-        select('#sap-color-picker').value(textbox.color);
+    // Font + Color — only custom textboxes expose these
+    let showFontColor = isCustom && !isImage;
+    select('#sap-font').style('display', showFontColor ? 'flex' : 'none');
+    select('#sap-color').style('display', showFontColor ? 'flex' : 'none');
+    if (showFontColor && el) {
+        select('#sap-font-select').selected(el.fontType);
+        select('#sap-color-picker').value(el.color);
     }
 
-    // Align — shown for every textbox
-    let align;
-    if (isCustom) align = textbox ? (textbox.textAlign || 'left') : 'left';
-    else align = currentView === 'ratings' ? (textAlignRatings[box.id] || 'left') : (textAlignCover[box.id] || 'center');
-    select('#sap-align-select').selected(align);
+    // Align — textboxes only
+    select('#sap-align').style('display', isImage ? 'none' : 'flex');
+    if (!isImage) {
+        let align;
+        if (isCustom) align = el ? (el.textAlign || 'left') : 'left';
+        else align = curAligns()[box.id] || (currentView === 'cover' ? 'center' : 'left');
+        select('#sap-align-select').selected(align);
+    }
+
+    // Glitch — image elements only
+    select('#sap-glitch').style('display', isImage ? 'flex' : 'none');
+    if (isImage && el && sapGlitchCheckbox) sapGlitchCheckbox.checked(!!el.glitch);
 
     if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
     sizeAdjustPanel.style('display', 'flex');
@@ -4725,12 +5116,7 @@ function updateVerticalOffsetSlider() {
             verticalOffsetSlider.removeAttribute('disabled');
             verticalOffsetSlider.removeClass('disabled');
 
-            let offset;
-            if (currentView === 'ratings') {
-                offset = verticalOffsetsRatings[selectedTextBox.id] || 0;
-            } else {
-                offset = verticalOffsetsCover[selectedTextBox.id] || 0;
-            }
+            let offset = curVOffs()[selectedTextBox.id] || 0;
 
             verticalOffsetSlider.value(offset);
             verticalOffsetLabel.html(offset);
@@ -4752,9 +5138,9 @@ function updateVerticalOffsetSlider() {
 }
 
 function adjustTextSize(delta) {
-    if (!selectedTextBox) return;
+    if (!selectedTextBox || selectedTextBox.isImage) return;
     if (selectedTextBox.isCustom) {
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        let textbox = findCustomElement(selectedTextBox.id);
         if (textbox) textbox.fontSize = Math.max(8, Math.min(200, textbox.fontSize + delta));
     } else if (textSizeOffsets.hasOwnProperty(selectedTextBox.id)) {
         textSizeOffsets[selectedTextBox.id] += delta;
@@ -4762,36 +5148,43 @@ function adjustTextSize(delta) {
     }
     captureState();
     showSizeAdjustPanel(selectedTextBox);
-    currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    renderPage();
 }
 
 function adjustTextLeading(delta) {
-    if (!selectedTextBox) return;
+    if (!selectedTextBox || selectedTextBox.isImage) return;
     if (selectedTextBox.isCustom) {
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
+        let textbox = findCustomElement(selectedTextBox.id);
         if (textbox) textbox.leading = (textbox.leading || 0) + delta;
     } else if (selectedTextBox.id === 'funfact') {
         textLeadingOffsets.funfact += delta;
     } else return;
     captureState();
     showSizeAdjustPanel(selectedTextBox);
-    currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    renderPage();
 }
 
 function resetTextBoxToDefault() {
     if (!selectedTextBox) return;
 
     if (selectedTextBox.isCustom) {
-        // Reset custom textbox to defaults
-        let textbox = customTextboxes.find(t => t.id === selectedTextBox.id);
-        if (textbox) {
-            textbox.fontSize = 40;
-            textbox.leading = 0;
-            textbox.fontType = 'fontHeavy';
-            textbox.color = '#ffffff';
-            textbox.maxWidth = width - 100;
-            textbox.x = 100;
-            textbox.y = 100;
+        // Reset custom element (textbox or image) to defaults
+        let el = findCustomElement(selectedTextBox.id);
+        if (el) {
+            if (selectedTextBox.isImage) {
+                el.w = 400;
+                el.glitch = false;
+                el.x = 100;
+                el.y = 100;
+            } else {
+                el.fontSize = 40;
+                el.leading = 0;
+                el.fontType = 'fontHeavy';
+                el.color = '#ffffff';
+                el.maxWidth = width - 100;
+                el.x = 100;
+                el.y = 100;
+            }
         }
     } else {
         // Reset predefined textbox
@@ -4804,7 +5197,7 @@ function resetTextBoxToDefault() {
 
     captureState();
     showSizeAdjustPanel(selectedTextBox);
-    currentView === 'ratings' ? printAlbum() : printCoverScreen();
+    renderPage();
 }
 
 // ============ UNDO/REDO FUNCTIONS ============
@@ -4815,36 +5208,10 @@ function captureState() {
         title: titleInput.value(), artist: artistInput.value(), year: yearInput.value(),
         genre: genreInput.value(), funfact: funfactInput.value(), imageUrl: imageUrlInput.value(),
         albumGrade: albumGradeSelect.value(),
-        aspectRatio: currentAspectRatio,
-        aspectRatioCover: currentAspectRatioCover,
-        imageFormat: currentImageFormat,
-        downloadImageOption: downloadImageOption,
-        showGradeLegend: showGradeLegend,
-        transparentBackground: transparentBackground,
         tracks: tracks.map(t => ({ title: t.titleInput.value(), grade: t.gradeSelect.value(), interlude: t.interlude || false,
                                     customNumber: t.customNumber || null, customText: t.textInput ? t.textInput.value() : null,
                                     customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null})),
-        customTextboxes: customTextboxes.map(t => ({
-            id: t.id, text: t.text, x: t.x, y: t.y, fontSize: t.fontSize,
-            fontType: t.fontType, color: t.color, viewType: t.viewType,
-            leading: t.leading || 0, maxWidth: t.maxWidth || width - 100, textAlign: t.textAlign || 'left'
-        })),
-        textSizeOffsets: {...textSizeOffsets},
-        textLeadingOffsets: {...textLeadingOffsets},
-        verticalOffsetsRatings: {...verticalOffsetsRatings},
-        verticalOffsetsCover: {...verticalOffsetsCover},
-        horizontalOffsetsRatings: {...horizontalOffsetsRatings},
-        horizontalOffsetsCover: {...horizontalOffsetsCover},
-        imageSizeMultiplier: imageSizeMultiplier,
-        maxTextboxWidths: {...maxTextboxWidths},
-        tracksTextSize: tracksTextSize,
-        tracksSpacing: tracksSpacing,
-        tracksRectHeight: tracksRectHeight,
-        tracksTwoColumns: tracksTwoColumns,
-        textAlignRatings: {...textAlignRatings},
-        textAlignCover: {...textAlignCover},
-        glitchOpts: {...glitchOpts},
-        glitchOptsTitle: {...glitchOptsTitle}
+        ...serializeLayout()
     };
 
     if (historyIndex < historyStack.length - 1) historyStack = historyStack.slice(0, historyIndex + 1);
@@ -4873,78 +5240,12 @@ function redo() {
 }
 
 function restoreState(state) {
+    state = migrateData(state);
+
     titleInput.value(state.title || ''); artistInput.value(state.artist || '');
     yearInput.value(state.year || ''); genreInput.value(state.genre || '');
     funfactInput.value(state.funfact || ''); imageUrlInput.value(state.imageUrl || '');
     albumGradeSelect.selected(state.albumGrade || 'GOAT');
-
-    if (state.aspectRatio) {
-        currentAspectRatio = state.aspectRatio;
-        aspectRatioSelect.selected(state.aspectRatio);
-    }
-
-    if(state.aspectRatioCover) {
-        currentAspectRatioCover = state.aspectRatioCover;
-        aspectRatioCoverSelect.selected(state.aspectRatioCover);
-    }
-
-    if (state.imageFormat) {
-        currentImageFormat = state.imageFormat;
-        imageFormatSelect.selected(state.imageFormat);
-    }
-
-    if (state.downloadImageOption) {
-        downloadImageOption = state.downloadImageOption;
-        if (downloadImageSelect) downloadImageSelect.selected(downloadImageOption);
-    }
-
-    if (state.showGradeLegend !== undefined) {
-        showGradeLegend = state.showGradeLegend;
-        if (gradeLegendCheckbox) gradeLegendCheckbox.checked(showGradeLegend);
-    }
-    if (state.transparentBackground !== undefined) {
-        transparentBackground = state.transparentBackground;
-        if (transparentBackgroundCheckbox) transparentBackgroundCheckbox.checked(transparentBackground);
-    }
-
-    if (state.glitchOpts)      glitchOpts      = JSON.parse(JSON.stringify(state.glitchOpts));
-    if (state.glitchOptsTitle) glitchOptsTitle = JSON.parse(JSON.stringify(state.glitchOptsTitle));
-    if (glitchTargetSel) syncGlitchUI(getActiveGlitchOpts());
-
-    // Clear existing offsets before restoring
-    Object.keys(verticalOffsetsRatings).forEach(k => delete verticalOffsetsRatings[k]);
-    Object.keys(verticalOffsetsCover).forEach(k => delete verticalOffsetsCover[k]);
-    Object.keys(horizontalOffsetsRatings).forEach(k => delete horizontalOffsetsRatings[k]);
-    Object.keys(horizontalOffsetsCover).forEach(k => delete horizontalOffsetsCover[k]);
-    Object.keys(textSizeOffsets).forEach(k => textSizeOffsets[k] = 0);
-    Object.keys(textLeadingOffsets).forEach(k => textLeadingOffsets[k] = 0);
-    Object.keys(maxTextboxWidths).forEach(k => maxTextboxWidths[k] = defaultMaxTextboxWidths[k] || 500);
-    Object.keys(textAlignRatings).forEach(k => textAlignRatings[k] = 'left');
-    Object.keys(textAlignCover).forEach(k => textAlignCover[k] = 'center');
-
-    if (state.textSizeOffsets) Object.assign(textSizeOffsets, state.textSizeOffsets);
-    if (state.textLeadingOffsets) Object.assign(textLeadingOffsets, state.textLeadingOffsets);
-    if (state.textAlignRatings) Object.assign(textAlignRatings, state.textAlignRatings);
-    if (state.textAlignCover) Object.assign(textAlignCover, state.textAlignCover);
-    if (state.verticalOffsetsRatings) Object.assign(verticalOffsetsRatings, state.verticalOffsetsRatings);
-    if (state.verticalOffsetsCover) Object.assign(verticalOffsetsCover, state.verticalOffsetsCover);
-    if (state.horizontalOffsetsRatings) Object.assign(horizontalOffsetsRatings, state.horizontalOffsetsRatings);
-    if (state.horizontalOffsetsCover) Object.assign(horizontalOffsetsCover, state.horizontalOffsetsCover);
-    if (state.imageSizeMultiplier !== undefined) {
-        imageSizeMultiplier = state.imageSizeMultiplier;
-        if (imageSizeMultiplierSlider) {
-            imageSizeMultiplierSlider.value(imageSizeMultiplier);
-            imageSizeMultiplierLabel.html(imageSizeMultiplier.toFixed(2) + 'x');
-        }
-    }
-    if (state.maxTextboxWidths) Object.assign(maxTextboxWidths, state.maxTextboxWidths);
-    if (state.tracksTextSize !== undefined) tracksTextSize = state.tracksTextSize;
-    if (state.tracksSpacing !== undefined) tracksSpacing = state.tracksSpacing;
-    if (state.tracksRectHeight !== undefined) tracksRectHeight = state.tracksRectHeight;
-    if (state.tracksTwoColumns !== undefined) {
-        tracksTwoColumns = state.tracksTwoColumns;
-        if (tracksTwoColumnsCheckbox) tracksTwoColumnsCheckbox.checked(tracksTwoColumns);
-    }
 
     while (tracks.length > 0) { tracks[0].rowDiv.remove(); tracks.shift(); }
 
@@ -4974,28 +5275,7 @@ function restoreState(state) {
         });
     } else addTrackRowWithoutCapture();
 
-    // Restore custom textboxes
-    customTextboxes = [];
-    if (customTextboxContainer) customTextboxContainer.html('');
-    if (state.customTextboxes && state.customTextboxes.length > 0) {
-        state.customTextboxes.forEach(textboxData => {
-            let textbox = {
-                id: textboxData.id,
-                text: textboxData.text || '',
-                x: textboxData.x != undefined ? textboxData.x : 100,
-                y: textboxData.y != undefined ? textboxData.y : 100,
-                fontSize: textboxData.fontSize || 40,
-                fontType: textboxData.fontType || 'fontHeavy',
-                color: textboxData.color || '#ffffff',
-                viewType: textboxData.viewType || 'both',
-                textAlign: textboxData.textAlign || 'left',
-                leading: textboxData.leading || 0,
-                maxWidth: textboxData.maxWidth || width - 100
-            };
-            customTextboxes.push(textbox);
-            addCustomTextboxUI(textbox);
-        });
-    }
+    applyLayoutData(state);
 
     generateFromForm();
     updateVerticalOffsetSlider();

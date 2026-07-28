@@ -1425,3 +1425,101 @@ canvas {
     /* Toasts clear the tab bar */
     .toast { bottom: calc(var(--mtabbar-h) + env(safe-area-inset-bottom) + 20px); }
 }
+/* ============================================================
+   PAGE TABS
+   ------------------------------------------------------------
+   Strip of page pills rendered over the top-left of the canvas
+   (built in sketch.js › setupPageTabs). On phones it only shows
+   on the Preview section, centered above the artwork.
+   ============================================================ */
+
+#page-tabs {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 1500;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    max-width: 45vw;
+}
+
+.page-tab {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    border-radius: 999px;
+    background: rgba(18, 20, 34, 0.75);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 13px;
+    cursor: pointer;
+    user-select: none;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    -webkit-tap-highlight-color: transparent;
+    transition: background 0.15s ease, color 0.15s ease;
+    white-space: nowrap;
+}
+
+.page-tab:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+}
+
+.page-tab.active {
+    background: #8ab4f8;
+    border-color: #8ab4f8;
+    color: #10121f;
+    font-weight: 600;
+}
+
+.page-tab-close {
+    font-size: 15px;
+    line-height: 1;
+    opacity: 0.55;
+    padding: 0 2px;
+}
+
+.page-tab-close:hover {
+    opacity: 1;
+    color: #ff6b6b;
+}
+
+.page-tab.active .page-tab-close:hover {
+    color: #a30000;
+}
+
+.page-tab-add {
+    font-weight: 700;
+    justify-content: center;
+    min-width: 20px;
+}
+
+.page-tab-rename-input {
+    width: 90px;
+    font-size: 13px;
+    border: none;
+    border-radius: 4px;
+    background: rgba(255, 255, 255, 0.95);
+    color: #111;
+    padding: 2px 6px;
+    outline: none;
+}
+
+@media (max-width: 768px) {
+    /* Only visible while the Preview section is active, spanning the top */
+    #page-tabs {
+        display: none;
+        top: 8px;
+        left: 8px;
+        right: 8px;
+        max-width: none;
+        justify-content: center;
+    }
+    body[data-mtab="preview"] #page-tabs { display: flex; }
+
+    .page-tab { padding: 8px 14px; }   /* bigger touch targets */
+}
