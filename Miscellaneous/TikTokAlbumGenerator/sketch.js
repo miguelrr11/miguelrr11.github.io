@@ -1128,8 +1128,8 @@ function getDefaultProfile() {
             "funfact": -83,
             "title": 100,
             "tracks": -30,
-            "year": -52,
-            "genre": -54
+            "year": -12,
+            "genre": -14
         },
         "cover": {
             "artist": -500,
@@ -1140,8 +1140,8 @@ function getDefaultProfile() {
         "ratings": {
             "artist": -40,
             "funfact": -39,
-            "year": 253,
-            "genre": -40,
+            "year": -45,
+            "genre": -44,
             "tracks": -29
         },
         "cover": {
