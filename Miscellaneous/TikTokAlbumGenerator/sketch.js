@@ -1735,6 +1735,14 @@ function applyProfile(profileData) {
             profileData.verticalOffsets.ratings.tracks = profileData.tracksVerticalOffset;
     }
 
+    pages = profileData.pages.map(page => {
+        if(page.distances && page.distances.array){
+            page.distances.map = new Map(page.distances.array.map(e => [e.key, e.val]))
+            delete page.distances.array
+        }
+        return page
+    })
+
     // Colors
     if (profileData.colorMap) {
         Object.keys(profileData.colorMap).forEach(grade => {
