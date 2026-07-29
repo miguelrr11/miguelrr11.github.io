@@ -90,7 +90,22 @@ function currentExportHeight() {
     return (aspectRatioOptions[p.aspectRatio] || aspectRatioOptions['9:16']).height;
 }
 
-function deepCopy(o) { return JSON.parse(JSON.stringify(o)); }
+function deepCopy(o) {
+    return JSON.parse(
+        JSON.stringify(o, (key, val) => {
+            if(val instanceof Map){
+                return { __isMap: true, entries: Array.from(val.entries()) }
+            }
+            return val
+        }),
+        (key, val) => {
+            if(val && val.__isMap){
+                return new Map(val.entries)
+            }
+            return val
+        }
+    )
+}
 
 // Single entry point to redraw whatever page is active.
 async function renderPage() {
@@ -1090,310 +1105,7 @@ function alignMainElementsToImage(){
 }
 
 function getDefaultProfile() {
-    return {
-    "colorMap": {
-        "GOAT": "#05668d",
-        "PEAK": "#ffd21f",
-        "EXCEPTIONAL": "#ff1fa9",
-        "STRONG": "#bc3fde",
-        "DECENT": "#38b6ff",
-        "OKAY": "#14b60b",
-        "FLOP": "#CC0000",
-        "SHIT": "#7a4900",
-        "INTERLUDE": "#b2b2b2",
-        "None": "#5c5c5c"
-    },
-    "pages": [
-        {
-            "id": "cover",
-            "name": "Cover",
-            "type": "cover",
-            "aspectRatio": "3:4"
-        },
-        {
-            "id": "page_1",
-            "name": "Context",
-            "type": "general",
-            "aspectRatio": "3:4"
-        },
-        {
-            "id": "ratings",
-            "name": "Ratings",
-            "type": "ratings",
-            "aspectRatio": "3:4"
-        },
-        
-    ],
-    "currentPageId": "page_1",
-    "verticalOffsets": {
-        "ratings": {
-            "funfact": -43,
-            "title": 100,
-            "tracks": -30,
-            "year": -12,
-            "genre": -14
-        },
-        "cover": {
-            "artist": -500,
-            "title": 23
-        }
-    },
-    "horizontalOffsets": {
-        "ratings": {
-            "artist": -40,
-            "funfact": -44,
-            "year": -45,
-            "genre": -44,
-            "tracks": -29
-        },
-        "cover": {
-            "title": 0,
-            "artist": 2597
-        }
-    },
-    "textAligns": {
-        "ratings": {
-            "title": "left",
-            "artist": "left",
-            "year": "left",
-            "genre": "left",
-            "funfact": "justify"
-        },
-        "cover": {
-            "title": "center",
-            "artist": "center"
-        }
-    },
-    "textSizeOffsets": {
-        "title": 0,
-        "artist": 4,
-        "year": 0,
-        "genre": 0,
-        "funfact": -6
-    },
-    "textLeadingOffsets": {
-        "funfact": -6
-    },
-    "maxTextboxWidths": {
-        "title": 980,
-        "artist": 480,
-        "year": 480,
-        "genre": 520,
-        "funfact": 490
-    },
-    "imageSizeMultiplier": 0.95,
-    "imageFormat": "jpg",
-    "downloadImageOption": "all",
-    "showGradeLegend": true,
-    "transparentBackground": false,
-    "tracksTextSize": 36,
-    "tracksSpacing": -31,
-    "tracksRectHeight": 28,
-    "tracksTwoColumns": false,
-    "customTextboxes": [
-        {
-            "color": "#f2f2f2",
-            "fontSize": 48,
-            "fontType": "fontRegularCondensed",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "Album Review #nnn",
-            "pageId": "cover",
-            "textAlign": "center",
-            "x": 49,
-            "y": 292,
-            "id": "album_review"
-        },
-        {
-            "color": "#ffffff",
-            "fontSize": 24,
-            "fontType": "fontRegularCondensed",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "Songs added to GOAT Playlist: 1 (link in bio)",
-            "pageId": "ratings",
-            "textAlign": "left",
-            "x": 56.94990391440638,
-            "y": 1284.4670669176778,
-            "id": "songsAddedToGOATPlaylist"
-        },
-        {
-            "color": "#cccccc",
-            "fontSize": 30,
-            "fontType": "fontLight",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "$(js: albumData.genre.split(/,s*/g)[0])$",
-            "pageId": "cover",
-            "textAlign": "center",
-            "x": 55.02164222708063,
-            "y": 1266.3363191721955,
-            "id": "genreInCover"
-        },
-        {
-            "color": "#ededed",
-            "fontSize": 36,
-            "fontType": "fontRegularCondensed",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "$artist$, $year$",
-            "pageId": "cover",
-            "textAlign": "center",
-            "x": 50.7153196622437,
-            "y": 1209.336460532268,
-            "id": "artistAndYearInCover"
-        },
-        {
-            "color": "#ffffff",
-            "fontSize": 90,
-            "fontType": "fontHeavy",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "Some context",
-            "glitch": true,
-            "pageId": "page_1",
-            "textAlign": "left",
-            "x": 70.0083623892076,
-            "y": 142.25235637708548,
-            "id": "custom_1785251657804"
-        },
-        {
-            "color": "#ffffff",
-            "fontSize": 40,
-            "fontType": "fontRegularCondensed",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "before the review",
-            "pageId": "page_1",
-            "textAlign": "left",
-            "x": 70.12409777437438,
-            "y": 233.97287824230966,
-            "id": "custom_1785251686697"
-        },
-        {
-            "color": "#ffffff",
-            "fontSize": 42,
-            "fontType": "fontHeavy",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "the band",
-            "pageId": "page_1",
-            "textAlign": "left",
-            "x": 70,
-            "y": 344.7862356621481,
-            "id": "custom_1785251730029"
-        },
-        {
-            "color": "#ffffff",
-            "fontSize": 24,
-            "fontType": "fontLight",
-            "leading": 0,
-            "maxWidth": 920,
-            "text": "Dictumst vivamus curae non, porttitor diam odio, aliquet nunc massa tortor etiam quisque. Morbi quis gravida taciti, rutrum phasellus consectetur, mi pulvinar eros himenaeos vestibulum sagittis duis. Ipsum suspendisse donec, leo at, vehicula lacus semper gravida per",
-            "pageId": "page_1",
-            "textAlign": "justify",
-            "x": 70.18252248435874,
-            "y": 401.56409875195516,
-            "id": "custom_1785251803030"
-        },
-        {
-            "color": "#ffffff",
-            "fontSize": 42,
-            "fontType": "fontHeavy",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "the genres",
-            "pageId": "page_1",
-            "textAlign": "left",
-            "x": 69.7392914168405,
-            "y": 603.7018134124087,
-            "id": "custom_1785251838428"
-        },
-        {
-            "color": "#dedede",
-            "fontSize": 30,
-            "fontType": "fontHeavy",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "Genre 1",
-            "pageId": "page_1",
-            "textAlign": "left",
-            "x": 70.29196061978621,
-            "y": 656.600635834854,
-            "id": "custom_1785251853712"
-        },
-        {
-            "color": "#ffffff",
-            "fontSize": 24,
-            "fontType": "fontLight",
-            "leading": 0,
-            "maxWidth": 920,
-            "text": "Blandit rhoncus, quam molestie luctus. Congue sit, fringilla ullamcorper gravida platea. Ut sapien vivamus tristique, turpis integer tortor, nostra cursus magna lectus eros pretium. Vel nulla, condimentum nostra ligula curae.",
-            "pageId": "page_1",
-            "textAlign": "justify",
-            "x": 70,
-            "y": 697.4243800508343,
-            "id": "custom_1785251886944"
-        },
-        {
-            "color": "#dedede",
-            "fontSize": 30,
-            "fontType": "fontHeavy",
-            "leading": 0,
-            "maxWidth": 980,
-            "text": "Genre 2",
-            "pageId": "page_1",
-            "textAlign": "left",
-            "x": 69.58083371350364,
-            "y": 850.4432107012514,
-            "id": "custom_1785251928912"
-        },
-        {
-            "color": "#ffffff",
-            "fontSize": 24,
-            "fontType": "fontLight",
-            "leading": 0,
-            "maxWidth": 920,
-            "text": "Volutpat platea mollis curabitur, sodales est vehicula, quisque sollicitudin ante tortor nam feugiat. Senectus duis lacinia rhoncus, suspendisse ornare condimentum, inceptos dapibus pretium ad massa taciti eleifend. ",
-            "pageId": "page_1",
-            "textAlign": "justify",
-            "x": 69.97184567257568,
-            "y": 891.5589308117179,
-            "id": "custom_1785251952709"
-        }
-    ],
-    "customImages": [
-        {
-            "id": "img_1785251989928",
-            "url": "",
-            "x": 95.16164706074034,
-            "y": 1041.7622828955944,
-            "w": 890,
-            "glitch": false,
-            "pageId": "page_1"
-        }
-    ],
-    "glitchOpts": {
-            "sides": {"left": true, "right": true, "top": false, "bottom": false},
-            "type": "sine",
-            "amp": 50,
-            "scale": 0.005,
-            "symmetrical": false,
-            "color": {"mode": "bloom+glow", "amount": 0.15, "tint": [255, 60, 180], "levels": 10, "shift": 60},
-            "warp": {},
-            "edges": {"mode": "noise", "sample": true, "scale": 0.04},
-            "colEffOr": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
-        },
-        "glitchOptsTitle": {
-            "sides": {"left": true, "right": true, "top": false, "bottom": false},
-            "type": "none",
-            "amp": 60,
-            "scale": 0.005,
-            "symmetrical": false,
-            "color": {"mode": "fade+bands", "amount": 0.85, "bandScale": 0.05, "bandSeed": 10, "tint": [255, 60, 180], "levels": 10, "shift": 60},
-            "warp": {}
-        }
-}
+    return defaultProfileSaved
 }
 
 function getCurrentProfileData() {
@@ -2036,6 +1748,7 @@ function applyProfile(profileData) {
 
     // Profiles are templates: applying one replaces the pages and every custom
     // element with the profile's version.
+
     applyLayoutData(profileData);
 
     // Refresh glitched images with the new options
@@ -2130,7 +1843,19 @@ function loadProfiles() {
     if (savedProfiles) {
         try {
             profiles = JSON.parse(savedProfiles);
-        } catch (err) {
+            for(let profileKey in profiles){
+                let profile = profiles[profileKey]
+                if(profile.pages && profile.pages.length > 0){
+                    for(let page of profile.pages){
+                        if(page.distances){
+                            page.distances.map = new Map(page.distances.array.map(e => [e.key, e.val]))
+                            delete page.distances.array
+                        }
+                    }
+                }
+            }
+        } 
+        catch (err) {
             console.log("Error loading profiles");
             profiles = {};
         }
@@ -2138,7 +1863,31 @@ function loadProfiles() {
 }
 
 function saveProfiles() {
-    localStorage.setItem('albumGeneratorProfiles', JSON.stringify(profiles));
+    let fixedProfiles = {}
+
+    for(let profileKey in profiles){
+        let profile = profiles[profileKey]
+        let pagesAux = []
+
+        for(let page of profile.pages){
+            let newPage = {...page}
+            if(page.distances){
+                let array = []
+                page.distances.map.forEach((val, key) => {
+                    array.push({key: key, val: val})
+                })
+                newPage.distances = {
+                    head: page.distances.head,
+                    array: array
+                }
+            }
+            pagesAux.push(newPage)
+        }
+
+        fixedProfiles[profileKey] = {...profile, pages: pagesAux}
+    }
+
+    localStorage.setItem('albumGeneratorProfiles', JSON.stringify(fixedProfiles))
 }
 
 function loadLastProfile() {
@@ -2843,6 +2592,18 @@ function createAdvancedOptionsSection(parent = editorPanel) {
         captureState();
     });
 
+    let buttonRow = createDiv('').parent(advancedContent)
+    let group = createDiv('').parent(buttonRow).class('form-group').style('display: flex; gap: 8px; margin-bottom: 20px;');
+    let buttonEnableAutoTB = createButton('Enable & Set Auto TB').parent(group).class('btn btn-secondary')
+    buttonEnableAutoTB.mousePressed(() => {
+        setDistances()
+    })
+
+    let buttonDisableTB = createButton('Disable Auto TB').parent(group).class('btn btn-secondary')
+    buttonDisableTB.mousePressed(() => {
+        delete currentPage().distances
+    })
+
     // Reset button
     createButton('Reset Advanced Options').parent(advancedContent).class('btn btn-secondary').style('margin-top', '12px').mousePressed(() => {
         imageSizeMultiplier = 1.0;
@@ -3244,6 +3005,8 @@ function addCustomTextboxUI(textbox) {
     textarea.elt.value = textbox.text || '';
     textarea.elt.addEventListener('input', () => {
         textbox.text = textarea.elt.value;
+        updateWidthHeightCustomTextBox(textbox)
+        applyDistances(textbox.id)
         autoGeneratePreview();
     });
     textarea.elt.addEventListener('focus', () => selectTextBoxById(textbox.id));
@@ -3259,7 +3022,13 @@ function addCustomTextboxUI(textbox) {
                 selectedTextBox = null;
                 sizeAdjustPanel.style('display', 'none');
             }
+
+            let distancesAux = pageById(textbox.pageId).distances
+            let entry = distancesAux?.map.get(textbox.id)
+            let prevId = entry ? entry.prevID : -1
             customTextboxes.splice(index, 1);
+            applyDistances(prevId)
+
             group.remove();
             captureState();
             autoGeneratePreview();
@@ -3855,6 +3624,7 @@ function saveToLocalStorage() {
         customTextLarge: t.textLargeInput ? t.textLargeInput.value() : null
     })));
     Object.assign(data, serializeLayout());
+
     localStorage.setItem('albumGeneratorData', JSON.stringify(data));
 }
 
@@ -3863,6 +3633,18 @@ function loadFromLocalStorage() {
     if (savedData) {
         try {
             let parsedData = JSON.parse(savedData);
+
+            if(parsedData.pages && parsedData.pages.length > 0){
+                for(let page of parsedData.pages){
+                    if(page.distances && page.distances.array){
+                        page.distances.map = new Map(page.distances.array.map(e => [e.key, e.val]))
+                        delete page.distances.array
+                    }
+                }
+            }
+
+            pages = parsedData.pages
+
             fillFormFromData(parsedData);
             generateFromForm();
         } catch (err) { console.log("Error loading saved data"); }
@@ -4805,6 +4587,40 @@ function drawStylizedText(font, fontSz, str, x, y, hAlign = CENTER, vAlign = CEN
     pop()
 }
 
+function updateWidthHeightCustomTextBox(textbox){
+    push()
+    switch(textbox.fontType) {
+        case 'fontHeavy': fontObj = fontHeavy; break;
+        case 'fontLight': fontObj = fontLight; break;
+        case 'fontRegular': fontObj = fontRegular; break;
+        case 'fontRegularItalic': fontObj = fontRegularItalic; break;
+        case 'fontRegularCrammed': fontObj = fontRegularCrammed; break;
+        case 'fontRegularCondensed': fontObj = fontRegularCondensed; break;
+        default: fontObj = fontHeavy;
+    }
+
+    let tbAlign = textbox.textAlign || 'left';
+    textFont(fontObj);
+    textSize(textbox.fontSize);
+    fill(textbox.color);
+
+
+    let baseLeading = textbox.fontSize * 1.25; // Default line height
+    textLeading(baseLeading + (textbox.leading || 0));
+
+
+    if (textbox.text) {
+        let bbox = fontObj.textBounds(textbox.text, 0, 0, textbox.maxWidth || 500)
+        textbox.w = bbox.w
+        textbox.h = bbox.h
+    }
+    else{
+        textbox.w = 0
+        textbox.h = 0
+    }
+    pop()
+}
+
 function drawCustomTextboxes(pageId){
     push();
     let fontObj;
@@ -4831,7 +4647,18 @@ function drawCustomTextboxes(pageId){
             let baseLeading = textbox.fontSize * 1.25; // Default line height
             textLeading(baseLeading + (textbox.leading || 0));
 
+        
             if (textbox.text) {
+                let bbox = fontObj.textBounds(textbox.text, 0, 0, textbox.maxWidth || 500)
+                textbox.w = bbox.w
+                textbox.h = bbox.h
+
+                // push()
+                // stroke(255, 0, 0)
+                // strokeWeight(3)
+                // line(textbox.x- 15, textbox.y, textbox.x - 15, textbox.y + bbox.h)
+                // pop()
+
                 if (textbox.glitch) {
                     // Same path as the album title: drawStylizedText's x anchor is the
                     // left/center/right edge depending on hAlign, while textbox.x is
@@ -5511,5 +5338,69 @@ function getRichText(str){
     return str;
 }
 
+function setDistances(){
+    let pageID = currentPageId
+    let tbs = customTextboxes.filter(tb => tb.pageId == pageID)
+    tbs.sort((a, b) => a.y - b.y)
 
+    let map = new Map()
+    for(let i = 0; i < tbs.length; i++){
+        let tb = tbs[i]
+        let prev = tbs[i - 1]
+        let next = tbs[i + 1]
+        map.set(tb.id, {
+            prevID: prev ? prev.id : -1,
+            nextID: next ? next.id : -1,
+            distance: next ? (next.y - (tb.y + tb.h)) : -1
+        })
+    }
 
+    let distancesAux = {
+        head: tbs.length ? tbs[0].id : -1,
+        map: map
+    }
+
+    currentPage().distances = distancesAux
+}
+
+function applyDistances(originTbId){
+    let distancesAux = currentPage().distances
+    if(!distancesAux || distancesAux.head == -1) return
+    let map = distancesAux.map
+
+    // resolver punto de partida
+    let curId = (originTbId == null || originTbId == -1 || !map.has(originTbId))
+        ? distancesAux.head
+        : originTbId
+
+    // auto-reparar la cabeza: si el nodo de partida ya no existe como textbox, saltarlo
+    while(curId != -1 && map.has(curId) && !customTextboxes.find(tb => tb.id == curId)){
+        let dead = map.get(curId)
+        map.delete(curId)
+        if(distancesAux.head == curId) distancesAux.head = dead.nextID
+        curId = dead.nextID
+    }
+
+    if(curId == -1 || !map.has(curId)) return
+    let cur = map.get(curId)
+
+    while(cur && cur.nextID != -1){
+        let originTb = customTextboxes.find(tb => tb.id == curId)
+        if(!originTb) break
+
+        // auto-reparar hacia adelante: saltar cualquier "next" eliminado
+        while(cur.nextID != -1 && !customTextboxes.find(tb => tb.id == cur.nextID)){
+            let deletedId = cur.nextID
+            let deletedEntry = map.get(deletedId)
+            map.delete(deletedId)
+            cur.nextID = deletedEntry ? deletedEntry.nextID : -1
+        }
+        if(cur.nextID == -1) break
+
+        let nextTb = customTextboxes.find(tb => tb.id == cur.nextID)
+        nextTb.y = originTb.y + originTb.h + cur.distance
+
+        curId = cur.nextID
+        cur = map.get(curId)
+    }
+}
