@@ -246,6 +246,7 @@ function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {
     }
 }
 
+
 function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
     //stretches the edge pixels of an image toward the canvas sides for a glitchy effect
     //opts:
@@ -282,8 +283,10 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
         color = {},
         warp = {},
         edges = {},
-        blur = 0           //gaussian blur radius applied to the finished glitch image (0 = off)
+        blur = 0,           //gaussian blur radius applied to the finished glitch image (0 = off)
+        colEffOr = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
     } = opts
+
     const isSine = type === 'sine'
     const isSquare = type === 'square'     //hard alternating bands (digital tearing)
     const isSaw = type === 'sawtooth'      //ramp that snaps back (directional sweep tears)
@@ -628,79 +631,84 @@ function createGlitchyImage(img, imgW, imgH, imgPos, opts = {}){
                 }
             }
 
+            
+            
+
             //--- colour effects: each runs in order, so they stack ---------------------------
             if(doColor && str > 0){
                 const t = Math.min(1, str * cAmount)   //blend strength, capped so it never over-shoots
-                if(mInvert){                           //fade toward the negative
-                    r += (255 - 2 * r) * t
-                    g += (255 - 2 * g) * t
-                    b += (255 - 2 * b) * t
-                }
-                if(mTint){                             //fade toward a single colour
-                    r += (cTint[0] - r) * t
-                    g += (cTint[1] - g) * t
-                    b += (cTint[2] - b) * t
-                }
-                if(mRainbow){                          //fade toward a palette colour picked by distance
-                    const li = (str * 255 | 0) * 3
-                    r += (palette[li]     - r) * t
-                    g += (palette[li + 1] - g) * t
-                    b += (palette[li + 2] - b) * t
-                }
-                if(mChromatic){                        //split red up / blue down by a growing vertical offset
-                    const sh = (str * cShift * geoPd) | 0    //shift in physical pixels
-                    let ry = ssy + sh; if(ry < 0) ry = 0; else if(ry > iph - 1) ry = iph - 1
-                    let by = ssy - sh; if(by < 0) by = 0; else if(by > iph - 1) by = iph - 1
-                    if(eBuf){                          //on edge-art, split within the synthetic strip (vertical strips only)
-                        if(vert){ r = eBuf[(ry/pd|0) << 2]; b = eBuf[((by/pd|0) << 2) + 2] }
-                    } else {
-                        r = src[(ssx + ry * physStride) << 2]
-                        b = src[((ssx + by * physStride) << 2) + 2]
+                for(let eff of colEffOr){
+                    if(mInvert && eff == 1){                           //fade toward the negative
+                        r += (255 - 2 * r) * t
+                        g += (255 - 2 * g) * t
+                        b += (255 - 2 * b) * t
                     }
-                }
-                if(mPosterize){                        //crush to fewer colour levels the farther out we go
-                    let lv = (cLevels - (cLevels - 2) * str) | 0
-                    if(lv < 2) lv = 2
-                    const step = 255 / (lv - 1)
-                    r = Math.round(r / step) * step
-                    g = Math.round(g / step) * step
-                    b = Math.round(b / step) * step
-                }
-                if(mGlow){                             //overexpose: pump brightness and bloom toward white
-                    const gain = 1 + str * cAmount * 2.5
-                    r *= gain; g *= gain; b *= gain
-                    const lift = str * cAmount * 0.4
-                    r += (255 - r) * lift
-                    g += (255 - g) * lift
-                    b += (255 - b) * lift
-                }
-                if(mBloom){                            //selective overexposure: only bright pixels blow out
-                    const lum = r * 0.299 + g * 0.587 + b * 0.114
-                    if(lum > 160){
-                        const over = (lum - 160) / 95              //0..1 above the threshold
-                        const gain = 1 + over * str * cAmount * 3
+                    if(mTint && eff == 2){                             //fade toward a single colour
+                        r += (cTint[0] - r) * t
+                        g += (cTint[1] - g) * t
+                        b += (cTint[2] - b) * t
+                    }
+                    if(mRainbow && eff == 3){                          //fade toward a palette colour picked by distance
+                        const li = (str * 255 | 0) * 3
+                        r += (palette[li]     - r) * t
+                        g += (palette[li + 1] - g) * t
+                        b += (palette[li + 2] - b) * t
+                    }
+                    if(mChromatic && eff == 4){                        //split red up / blue down by a growing vertical offset
+                        const sh = (str * cShift * geoPd) | 0    //shift in physical pixels
+                        let ry = ssy + sh; if(ry < 0) ry = 0; else if(ry > iph - 1) ry = iph - 1
+                        let by = ssy - sh; if(by < 0) by = 0; else if(by > iph - 1) by = iph - 1
+                        if(eBuf){                          //on edge-art, split within the synthetic strip (vertical strips only)
+                            if(vert){ r = eBuf[(ry/pd|0) << 2]; b = eBuf[((by/pd|0) << 2) + 2] }
+                        } else {
+                            r = src[(ssx + ry * physStride) << 2]
+                            b = src[((ssx + by * physStride) << 2) + 2]
+                        }
+                    }
+                    if(mPosterize && eff == 5){                        //crush to fewer colour levels the farther out we go
+                        let lv = (cLevels - (cLevels - 2) * str) | 0
+                        if(lv < 2) lv = 2
+                        const step = 255 / (lv - 1)
+                        r = Math.round(r / step) * step
+                        g = Math.round(g / step) * step
+                        b = Math.round(b / step) * step
+                    }
+                    if(mGlow && eff == 6){                             //overexpose: pump brightness and bloom toward white
+                        const gain = 1 + str * cAmount * 2.5
                         r *= gain; g *= gain; b *= gain
-                    } else {
-                        a *= (1 - t * 0.5)                         //dark pixels recede instead
+                        const lift = str * cAmount * 0.4
+                        r += (255 - r) * lift
+                        g += (255 - g) * lift
+                        b += (255 - b) * lift
                     }
-                }
-                if(mScanline){                         //CRT lines: darken alternate rows, deepening with distance
-                    if(((yl | 0) & 1) === 0){
-                        const dim = 1 - 0.5 * t
-                        r *= dim; g *= dim; b *= dim
+                    if(mBloom && eff == 7){                            //selective overexposure: only bright pixels blow out
+                        const lum = r * 0.299 + g * 0.587 + b * 0.114
+                        if(lum > 160){
+                            const over = (lum - 160) / 95              //0..1 above the threshold
+                            const gain = 1 + over * str * cAmount * 3
+                            r *= gain; g *= gain; b *= gain
+                        } else {
+                            a *= (1 - t * 0.5)                         //dark pixels recede instead
+                        }
                     }
-                }
-                if(mBands && bandW !== 0){              //random white/black noise bands of varying width
-                    if(bandW > 0){
-                        const w = bandW * t                //bright band: blow toward white
-                        r += (255 - r) * w; g += (255 - g) * w; b += (255 - b) * w
-                    } else {
-                        const w = -bandW * t               //dark band: crush toward black
-                        r *= (1 - w); g *= (1 - w); b *= (1 - w)
+                    if(mScanline && eff == 8){                         //CRT lines: darken alternate rows, deepening with distance
+                        if(((yl | 0) & 1) === 0){
+                            const dim = 1 - 0.5 * t
+                            r *= dim; g *= dim; b *= dim
+                        }
                     }
-                }
-                if(mFade){                             //alpha-only, so run last: dissolve into the background
-                    a *= (1 - t)
+                    if(mBands && bandW !== 0 && eff == 9){              //random white/black noise bands of varying width
+                        if(bandW > 0){
+                            const w = bandW * t                //bright band: blow toward white
+                            r += (255 - r) * w; g += (255 - g) * w; b += (255 - b) * w
+                        } else {
+                            const w = -bandW * t               //dark band: crush toward black
+                            r *= (1 - w); g *= (1 - w); b *= (1 - w)
+                        }
+                    }
+                    if(mFade && eff == 10){                             //alpha-only, so run last: dissolve into the background
+                        a *= (1 - t)
+                    }
                 }
             }
 

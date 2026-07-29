@@ -202,6 +202,8 @@ let glEdgesOffsetSlider, glEdgesOffsetLabel;
 let glTintRow, glShiftRow, glLvlRow, glBandScaleRow, glBandSeedRow;
 let glSfRow, glEdgeScaleRow, glEdgeSeedRow;
 
+let orderOfEffects = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
 // Custom textboxes system
 let customTextboxes = [];
 let customTextboxContainer;
@@ -1379,7 +1381,8 @@ function getDefaultProfile() {
             "symmetrical": false,
             "color": {"mode": "bloom+glow", "amount": 0.15, "tint": [255, 60, 180], "levels": 10, "shift": 60},
             "warp": {},
-            "edges": {"mode": "noise", "sample": true, "scale": 0.04}
+            "edges": {"mode": "noise", "sample": true, "scale": 0.04},
+            "colEffOr": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]
         },
         "glitchOptsTitle": {
             "sides": {"left": true, "right": true, "top": false, "bottom": false},
@@ -2492,14 +2495,6 @@ function createGlitchOptionsSection(parent = editorPanel) {
         o.color.amount = v; refreshGlitchCache();
     });
 
-    glTintRow = createDiv('').parent(colorBody).class('color-row');
-    createSpan('Tint').parent(glTintRow).class('color-label');
-    glColorTint = createColorPicker('#ff3cb4').parent(glTintRow).class('color-picker');
-    glColorTint.input(() => {
-        const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
-        o.color.tint = hexToRgbArr(glColorTint.value()); refreshGlitchCache();
-    });
-
     let shift = sliderRow('Chr. Shift', 0, 120, 60, 1, colorBody);
     glColorShiftSlider = shift.sl; glColorShiftLabel = shift.lbl; glShiftRow = shift.row;
     glColorShiftSlider.input(() => {
@@ -2531,6 +2526,30 @@ function createGlitchOptionsSection(parent = editorPanel) {
         const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
         o.color.bandSeed = v; refreshGlitchCache();
     });
+
+    glTintRow = createDiv('').parent(colorBody).class('color-row');
+    createSpan('Tint').parent(glTintRow).class('color-label');
+    glColorTint = createColorPicker('#ff3cb4').parent(glTintRow).class('color-picker');
+    glColorTint.input(() => {
+        const o = getActiveGlitchOpts(); if(!o.color) o.color = {};
+        o.color.tint = hexToRgbArr(glColorTint.value()); refreshGlitchCache();
+    });
+
+    let buttonRow = createDiv('').parent(colorBody)
+    let group = createDiv('').parent(buttonRow).class('form-group').style('display: flex; gap: 8px; margin-bottom: 20px;');
+    let buttonRandomOrder = createButton('Randomize Order').parent(group).class('btn btn-secondary')
+    buttonRandomOrder.mousePressed(() => {
+        for(let i = 0; i < 20; i++) glitchOpts.colEffOr.unshift(...glitchOpts.colEffOr.splice(Math.floor(glitchOpts.colEffOr.length * Math.random()), 1))
+        updateGlitchColorVis();
+        refreshGlitchCache();
+    })
+
+    let buttomOrderDefault = createButton('Default Order').parent(group).class('btn btn-secondary')
+    buttomOrderDefault.mousePressed(() => {
+        glitchOpts.colEffOr = orderOfEffects
+        updateGlitchColorVis();
+        refreshGlitchCache();
+    })
 
     // ── Warp ─────────────────────────────────────────────────────────────────────
     let warpBody = subSection('Warp');
@@ -4108,6 +4127,7 @@ function drawAlbumCover(img, hasImage, drawGlitch = true) {
             let glitchOptsAux = {...glitchOpts, color: {...glitchOpts.color}}
             glitchOptsAux.sides = {left: false, right: false, top: false, bottom: false}
             glitchOptsAux.color.amount = 0.4
+
             let glitchedImg = getCachedGlitchyImage('ratingsImage', () => img, size, size, center, glitchOptsAux, albumData.imageUrl);
             imageMode(CORNER);
             image(glitchedImg, 0, 0, width, height);
@@ -4533,7 +4553,8 @@ let glitchOpts = {
         mode: 'noise',
         sample: true,
         scale: 0.04
-    }
+    },
+    colEffOr: orderOfEffects
 }
 
 let glitchOptsTitle = {
