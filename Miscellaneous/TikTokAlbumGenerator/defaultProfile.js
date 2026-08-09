@@ -114,7 +114,7 @@ let defaultProfileSaved = {
             "funfact": -28,
             "title": 100,
             "tracks": -22,
-            "year": 6,
+            "year": 3,
             "genre": 0
         },
         "cover": {
