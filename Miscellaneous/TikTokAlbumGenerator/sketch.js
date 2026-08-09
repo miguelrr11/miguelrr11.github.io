@@ -4618,7 +4618,7 @@ function updateWidthHeightCustomTextBox(textbox){
 
 
     if (textbox.text) {
-        let bbox = fontObj.textBounds(textbox.text, 0, 0, textbox.maxWidth || 500)
+        let bbox = fontObj.textBounds(getRichText(textbox.text), 0, 0, textbox.maxWidth || 500)
         textbox.w = bbox.w
         textbox.h = bbox.h
     }
@@ -4657,7 +4657,7 @@ function drawCustomTextboxes(pageId){
 
         
             if (textbox.text) {
-                let bbox = fontObj.textBounds(textbox.text, 0, 0, textbox.maxWidth || 500)
+                let bbox = fontObj.textBounds(getRichText(textbox.text), 0, 0, textbox.maxWidth || 500)
                 textbox.w = bbox.w
                 textbox.h = bbox.h
 
@@ -4681,7 +4681,7 @@ function drawCustomTextboxes(pageId){
                         glitchOptsTitle, 'ctb_' + textbox.id);
                 } else {
                     utils.beginShadow("#000000", 20, 0, 0);
-                    drawBoxText(textbox.text, textbox.x, textbox.y, textbox.maxWidth || 500, tbAlign, TOP);
+                    drawBoxText(getRichText(textbox.text), textbox.x, textbox.y, textbox.maxWidth || 500, tbAlign, TOP);
                     utils.endShadow();
                 }
 
@@ -5324,25 +5324,46 @@ function _text(...args) {
     text(...args);
 }
 
-function getRichText(str){
-    if (typeof str === 'string') {
-        str = str.replace(/\$(\w+)\$/g, (match, varName) => {
-            if (albumData.hasOwnProperty(varName)) return albumData[varName];
-            return match; // no replacement if variable not found
-        });
-        str = str.replace(/\$\((js:)?\s*([^]+?)\s*\)\$/g, (match, jsPrefix, code) => {
-            if (jsPrefix) {
-                try {
-                    let func = new Function('albumData', `with(albumData) { return ${code} }`);
-                    return func(albumData);
-                } catch (err) {
-                    console.error("Error executing code in text: ", err);
-                    return match; // return original if error
-                }
-            }
-            return match; // no replacement if not js
-        });
-    }
+// Registro central de variables que querés poder referenciar desde el texto
+// (agregá aquí lo que necesites exponer)
+function buildRichTextContext() {
+    return {
+        ...albumData,        // compat: $title$ sigue funcionando como antes
+        genreDescriptions,   // ahora $genreDescriptions.progressiveRock$ funciona
+        // otraVariable,
+        // otroObjeto,
+    };
+}
+
+function resolvePath(path, context) {
+    return path.split('.').reduce((acc, key) => {
+        return (acc !== undefined && acc !== null) ? acc[key] : undefined;
+    }, context);
+}
+
+function getRichText(str) {
+    if (typeof str !== 'string') return str;
+
+    const context = buildRichTextContext();
+
+    // 1) Interpolación simple: $var$ o $var.prop.subprop$
+    str = str.replace(/\$([a-zA-Z_$][\w$]*(?:\.[a-zA-Z_$][\w$]*)*)\$/g, (match, path) => {
+        const value = resolvePath(path, context);
+        return value !== undefined ? value : match; // si no existe, dejo el original
+    });
+
+    // 2) Ejecución de JS: $(js: codigo)$ -> ahora con acceso a todo el contexto, no solo albumData
+    str = str.replace(/\$\((js:)?\s*([^]+?)\s*\)\$/g, (match, jsPrefix, code) => {
+        if (!jsPrefix) return match;
+        try {
+            const func = new Function('ctx', `with(ctx) { return ${code} }`);
+            return func(context);
+        } catch (err) {
+            console.error("Error executing code in text: ", err);
+            return match;
+        }
+    });
+
     return str;
 }
 
