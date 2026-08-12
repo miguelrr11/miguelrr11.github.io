@@ -454,5 +454,6 @@ let genreDescriptions = {
     "Psychedelia": "Umbrella of styles intended to replicate or enhance the altered state of consciousness brought on by the use of psychedelic drugs, originating in the 1960s.",
     "Neo-Psyhedelic": "Developments in Psychedelia since the early 1980s, building on the drug-inspired styles developed in the 1960s.",
     "Psychedelic": "Umbrella of styles intended to replicate or enhance the altered state of consciousness brought on by the use of psychedelic drugs, originating in the 1960s.",
-    "Jazz Rap": "Incorporates elements of Jazz through the use of samples or live instrumentation."
+    "Jazz Rap": "Incorporates elements of Jazz through the use of samples or live instrumentation.",
+    "Jangle Pop": "Treble-heavy guitars with arpeggiated melodies, distinct basslines, and often propulsive, repetitive strum-rhythms; frequently influenced by Post-Punk."
 }
