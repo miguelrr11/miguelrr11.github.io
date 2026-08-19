@@ -1531,7 +1531,7 @@ function pasteTextboxFormat() {
 
 function serializeLayout() {
     return {
-        pages: deepCopy(pages),
+        pages: packDistances(deepCopy(pages)),
         currentPageId,
         verticalOffsets: deepCopy(verticalOffsets),
         horizontalOffsets: deepCopy(horizontalOffsets),
@@ -1637,7 +1637,7 @@ function setCustomImagesFromData(arr) {
 // Apply every layout field of a (migrated) data object to the live state + UI.
 function applyLayoutData(data) {
     // Pages
-    pages = (data.pages && data.pages.length) ? deepCopy(data.pages) : DEFAULT_PAGES();
+    pages = (data.pages && data.pages.length) ? unpackDistances(deepCopy(data.pages)) : DEFAULT_PAGES();
     ensureCorePages();
     if (data.currentPageId && pageById(data.currentPageId)) currentPageId = data.currentPageId;
     if (!pageById(currentPageId)) currentPageId = 'ratings';
@@ -1871,31 +1871,12 @@ function loadProfiles() {
 }
 
 function saveProfiles() {
-    let fixedProfiles = {}
-
-    for(let profileKey in profiles){
-        let profile = profiles[profileKey]
-        let pagesAux = []
-
-        for(let page of profile.pages){
-            let newPage = {...page}
-            if(page.distances){
-                let array = []
-                page.distances.map.forEach((val, key) => {
-                    array.push({key: key, val: val})
-                })
-                newPage.distances = {
-                    head: page.distances.head,
-                    array: array
-                }
-            }
-            pagesAux.push(newPage)
-        }
-
-        fixedProfiles[profileKey] = {...profile, pages: pagesAux}
+    let fixedProfiles = {};
+    for (let profileKey in profiles) {
+        let profile = profiles[profileKey];
+        fixedProfiles[profileKey] = { ...profile, pages: packDistances(profile.pages) };
     }
-
-    localStorage.setItem('albumGeneratorProfiles', JSON.stringify(fixedProfiles))
+    localStorage.setItem('albumGeneratorProfiles', JSON.stringify(fixedProfiles));
 }
 
 function loadLastProfile() {
@@ -5432,4 +5413,28 @@ function applyDistances(originTbId){
         curId = cur.nextID
         cur = map.get(curId)
     }
+}
+
+// distances.map es un Map real en runtime. Un Map no sobrevive a un segundo
+// JSON.stringify sin replacer (localStorage, downloadJSON, undo history), así que
+// se empaqueta a {head, array:[{key,val}]} — el mismo formato que ya usa
+// saveProfiles/loadProfiles — antes de que cualquier cosa lo stringifique,
+// y se desempaqueta de vuelta a Map donde se aplica a `pages`.
+function packDistances(pages) {
+    return (pages || []).map(p => {
+        if (!p.distances || !p.distances.map) return p;
+        let array = [];
+        p.distances.map.forEach((val, key) => array.push({ key, val }));
+        return { ...p, distances: { head: p.distances.head, array } };
+    });
+}
+
+function unpackDistances(pages) {
+    (pages || []).forEach(p => {
+        if (p.distances && p.distances.array) {
+            p.distances.map = new Map(p.distances.array.map(e => [e.key, e.val]));
+            delete p.distances.array;
+        }
+    });
+    return pages;
 }
