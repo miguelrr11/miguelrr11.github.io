@@ -23,7 +23,7 @@ const gradeOptions = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY',
 // Grades selectable in the album/track dropdowns. INTERLUDE is no longer a grade —
 // it's a per-track boolean toggle — but it stays in gradeOptions/colorMap so the grey
 // pill colour remains customizable in the color section.
-const selectableGradeOptions = gradeOptions.filter(g => g !== 'INTERLUDE');
+const selectableGradeOptions = ['GOAT', 'PEAK', 'EXCEPTIONAL +', 'EXCEPTIONAL', 'STRONG +', 'STRONG', 'DECENT +', 'DECENT', 'OKAY +', 'OKAY', 'FLOP', 'SHIT', 'None'];
 let allLegendGrades = ['GOAT', 'PEAK', 'EXCEPTIONAL', 'STRONG', 'DECENT', 'OKAY', 'FLOP', 'SHIT'];
 let allLegendLabels = ['GOAT', '10', '9', '8', '7', '<7', '<5', '<2'];
 let verticalOffsetSlider, verticalOffsetLabel;
@@ -4211,6 +4211,15 @@ function drawAlbumGradeBar(exportHeight) {
     fill(colorMap[albumData.albumGrade] || "#888888");
     if (albumData.albumGrade == 'GOAT') {
         utils.beginLinearGradient(goatGradient, 0, barY, width, barY, GOAT_GRADIENT_STOPS);
+    }
+    if(albumData.albumGrade.includes('+')){
+        let aux = albumData.albumGrade.replace(/ \+$/, "");
+        let next = aux
+        if(aux == "OKAY") next = "DECENT"
+        else if(aux == "DECENT") next = "STRONG"
+        else if(aux == "STRONG") next = "EXCEPTIONAL"
+        else if(aux == "EXCEPTIONAL") next = "PEAK"
+        utils.beginLinearGradient([colorMap[aux], colorMap[aux], colorMap[next], colorMap[next]], 0, barY, width, barY, [0, 0.4, 0.6, 1]);
     }
     rect(0, barY, width, G.height, G.cornerRadius, G.cornerRadius, 0, 0);
 
