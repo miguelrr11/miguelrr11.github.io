@@ -3308,13 +3308,13 @@ function addTrackRowWithCapture(shouldCapture) {
     titleIn.elt.addEventListener('keydown', (e) => handleTrackNavigation(e, titleIn));
 
     let gradeSelect = createSelect().parent(rowDiv).class('track-grade-select');
-    selectableGradeOptions.forEach(grade => {
+    allLegendGrades.forEach(grade => {
         gradeSelect.option(grade)
     });
     let options = gradeSelect.elt.options;
-    for(let i = 0; i < selectableGradeOptions.length; i++) {
-        options[i].style.backgroundColor = colorMap[selectableGradeOptions[i]];
-        options[i].style.color = getContrastYIQ(colorMap[selectableGradeOptions[i]]);
+    for(let i = 0; i < allLegendGrades.length; i++) {
+        options[i].style.backgroundColor = colorMap[allLegendGrades[i]];
+        options[i].style.color = getContrastYIQ(colorMap[allLegendGrades[i]]);
     }
     gradeSelect.selected('STRONG');
     gradeSelect.changed(() => { autoGeneratePreview(); captureState(); });
