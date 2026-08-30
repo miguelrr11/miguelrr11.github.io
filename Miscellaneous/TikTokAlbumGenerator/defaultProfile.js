@@ -114,8 +114,8 @@ let defaultProfileSaved = {
             "funfact": -28,
             "title": 100,
             "tracks": -22,
-            "year": 3,
-            "genre": 0
+            "year": -10,
+            "genre": -16
         },
         "cover": {
             "artist": -500,
@@ -307,7 +307,7 @@ let defaultProfileSaved = {
     "fontType": "fontHeavy",
     "leading": 0,
     "maxWidth": 980,
-    "text": "$(js: albumData.genre.split(/,\\s*/g)[0])$",
+    "text": "$(js: albumData.genre.split(/,\\s*/g)[0] ?? '')$",
     "glitch": false,
     "pageId": "page_1",
     "textAlign": "left",
@@ -321,7 +321,7 @@ let defaultProfileSaved = {
     "fontType": "fontLight",
     "leading": 0,
     "maxWidth": 920,
-    "text": "$(js: genreDescriptions[albumData.genre.split(/,\\s*/g)[0]] ?? 'Sin descripción')$",
+    "text": "$(js: genreDescriptions[albumData.genre.split(/,\\s*/g)[0]] ?? '')$",
     "glitch": false,
     "pageId": "page_1",
     "textAlign": "justify",
@@ -335,7 +335,7 @@ let defaultProfileSaved = {
     "fontType": "fontHeavy",
     "leading": 0,
     "maxWidth": 980,
-    "text": "$(js: albumData.genre.split(/,\\s*/g)[1])$",
+    "text": "$(js: albumData.genre.split(/,\\s*/g)[1] ?? '')$",
     "glitch": false,
     "pageId": "page_1",
     "textAlign": "left",
@@ -349,7 +349,7 @@ let defaultProfileSaved = {
     "fontType": "fontLight",
     "leading": 0,
     "maxWidth": 920,
-    "text": "$(js: genreDescriptions[albumData.genre.split(/,\\s*/g)[1]] ?? 'Sin descripción')$",
+    "text": "$(js: genreDescriptions[albumData.genre.split(/,\\s*/g)[1]] ?? '')$",
     "glitch": false,
     "pageId": "page_1",
     "textAlign": "justify",
@@ -473,5 +473,7 @@ let genreDescriptions = {
     "Acoustic Rock": "Rock with acoustic instrumentation, as opposed to the typical electric instrumentation.",
     "Post-Punk Revival": "Incorporating the sounds and aesthetics of Post-Punk into Indie Rock, with jagged guitarwork, a dominant and danceable rhythm section, clean production, and poppy song structures.",
     "New Wave": "Broad term referring to a variety of styles that saw popularity in the wake of the Punk Rock explosion of 1976-77, initially strongly associated with more accessible and stylish offshoots of punk; developed alongside Post-Punk, similarly emphasising freshness and daring.",
+    "Slowcore": "Characterized by its subdued, often sombre songwriting and slow tempos, while taking primarily from genres like Dream Pop and Folk Rock.",
+    
     
 }
