@@ -106,17 +106,29 @@ function filterLink(link, targetUrl, targetHost, targetPath) {
 //   • Captures the surrounding <figcaption> as the context
 //   • Logs all steps via console.log for debugging
 
-async function extractAndFilterLinksCategorized(targetUrl, maxImages = 20, onImagesReady) {
-    // Helper to grab a snippet of words around the link text
-    try {
-        const proxyUrl = `https://corsproxy.io/?url=`;
-        const response = await fetch(proxyUrl + encodeURIComponent(targetUrl));
-        if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
-        const contentType = response.headers.get('Content-Type') || '';
-        if (!contentType.includes('text/html')) throw new Error('Expected HTML but got ' + contentType);
+// Fetches a Wikipedia article's rendered HTML through the MediaWiki API (CORS-enabled, no proxy needed).
+// An <h1> with the article title is prepended so the lead section keeps the page title, as with the full page.
+async function fetchWikiDoc(targetUrl) {
+    const target = new URL(targetUrl);
+    const title = decodeURIComponent(target.pathname.replace(/^\/wiki\//, ''));
+    const apiUrl = `${target.protocol}//${target.host}/w/api.php` +
+        `?action=parse&page=${encodeURIComponent(title)}&prop=text&redirects=1` +
+        `&format=json&formatversion=2&origin=*`;
+    const response = await fetch(apiUrl);
+    if (!response.ok) throw new Error(`HTTP error! Status: ${response.status}`);
+    const data = await response.json();
+    if (data.error) throw new Error(data.error.info || data.error.code);
 
-        const html = await response.text();
-        const doc = new DOMParser().parseFromString(html, 'text/html');
+    const doc = new DOMParser().parseFromString(data.parse.text, 'text/html');
+    const h1 = doc.createElement('h1');
+    h1.textContent = data.parse.title;
+    doc.body.prepend(h1);
+    return doc;
+}
+
+async function extractAndFilterLinksCategorized(targetUrl, maxImages = 20, onImagesReady) {
+    try {
+        const doc = await fetchWikiDoc(targetUrl);
         const target = new URL(targetUrl);
         const protoHost = `${target.protocol}//${target.host}`;
 
@@ -159,7 +171,7 @@ async function extractAndFilterLinksCategorized(targetUrl, maxImages = 20, onIma
             links: []
         };
 
-        extractImagesFast(targetUrl, maxImages)
+        extractImagesFast(doc, target.host, maxImages)
         .then(imageLinks => {
             if (imageLinks.length) {
                 const imgSection = { title: 'Images', links: imageLinks };
@@ -184,11 +196,7 @@ async function extractAndFilterLinksCategorized(targetUrl, maxImages = 20, onIma
 }
 
 
-async function extractImagesFast(targetUrl, maxImages = 2) {
-    const proxy = url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
-    const html = await fetch(proxy(targetUrl)).then(r => r.text());
-    const doc = new DOMParser().parseFromString(html, 'text/html');
-
+async function extractImagesFast(doc, host, maxImages = 2) {
     // 1) Gather file titles from the page
     const anchors = Array.from(
         doc.querySelectorAll('figure[typeof="mw:File/Thumb"] a.mw-file-description')
@@ -199,7 +207,7 @@ async function extractImagesFast(targetUrl, maxImages = 2) {
         .map(h => decodeURIComponent(h.replace('/wiki/', '')));
 
     // 2) Batch-fetch real URLs via API
-    const imageUrls = await fetchImageUrls(titles, maxImages);
+    const imageUrls = await fetchImageUrls(titles, host, maxImages);
 
     // 3) Extract captions from the original DOM (no extra fetch!)
     const captions = anchors.map(a =>
@@ -212,17 +220,16 @@ async function extractImagesFast(targetUrl, maxImages = 2) {
     }));
 }
 
-async function fetchImageUrls(fileTitles, maxImages = 2) {
-    const proxy = url => `https://corsproxy.io/?url=${encodeURIComponent(url)}`;
+async function fetchImageUrls(fileTitles, host, maxImages = 2) {
     // MediaWiki limits ~50 titles per call
     const chunkSize = 50;
     const urls = [];
     for (let i = 0; i < fileTitles.length && urls.length < maxImages; i += chunkSize) {
         const chunk = fileTitles.slice(i, i + chunkSize);
-        const apiUrl = `https://en.wikipedia.org/w/api.php` +
+        const apiUrl = `https://${host}/w/api.php` +
             `?action=query&titles=${chunk.map(encodeURIComponent).join('|')}` +
             `&prop=imageinfo&iiprop=url&format=json&origin=*`;
-        const res = await fetch(proxy(apiUrl));
+        const res = await fetch(apiUrl);
         if (!res.ok) throw new Error(res.statusText);
         const data = await res.json();
         for (const page of Object.values(data.query.pages)) {
