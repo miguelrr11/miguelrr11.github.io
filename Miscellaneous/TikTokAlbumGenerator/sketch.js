@@ -3878,6 +3878,54 @@ async function printAlbum(){
     }
 }
 
+function printAlbumNotAsync(opts){
+    transparentBackground ? clear() : background(200);
+    if (!albumData) return;
+    let selectedId = selectedTextBox ? selectedTextBox.id : null;
+    textBoxes = [];
+
+    // Load the album art (cached after the first successful load)
+    let hasImage = true, img, imgBW;
+    img = cachedOriginalImage
+    imgBW = cachedFilteredImage
+
+    // Blurred grayscale backdrop (skipped entirely when the background is transparent)
+    if (!transparentBackground) {
+        if (hasImage) { imageMode(CENTER); image(imgBW, width * 0.5, height * 0.5, height, height); }
+        else background(50);
+    }
+    imageMode(CORNER); rectMode(CORNER);
+
+    let cover = drawAlbumCover(img, hasImage, false);
+
+    //await drawCustomImages(currentPageId);
+    drawAlbumHeader(true);
+    drawCustomTextboxes(currentPageId);
+    drawTrackList();
+
+    let exportHeight = currentExportHeight();
+    if (showGradeLegend) drawGradeLegend(cover);
+    if (albumData.albumGrade !== 'None') drawAlbumGradeBar(exportHeight, opts);
+
+    // Green outline showing the export area (hidden while downloading)
+    if (showGreenRectangle) {
+        push();
+        noFill(); stroke(0, 255, 0); strokeWeight(4); rectMode(CORNER);
+        rect(0, 0, WIDTH, exportHeight);
+        pop();
+    }
+
+    // Outline the selected box
+    if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
+    if (selectedTextBox) {
+        push();
+        noFill(); stroke(138, 180, 248); strokeWeight(3); rectMode(CORNER);
+        let padding = 5;
+        rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
+        pop();
+    }
+}
+
 function drawAlbumCover(img, hasImage, drawGlitch = true) {
     const C = RATINGS_LAYOUT.cover;
     let x = width * C.xRatio + (horizontalOffsets.ratings.image || 0);
@@ -3912,7 +3960,7 @@ function drawAlbumCover(img, hasImage, drawGlitch = true) {
     return { x, y, size };
 }
 
-function drawAlbumHeader() {
+function drawAlbumHeader(notStylized = false) {
     const H = RATINGS_LAYOUT.header;
     const leftMargin = RATINGS_LAYOUT.leftMargin;
     let rightColX = leftMargin + width * H.rightColumnXRatio;
@@ -3927,14 +3975,16 @@ function drawAlbumHeader() {
         albumData.title,
         leftMargin + (horizontalOffsets.ratings.title || 0),
         H.top + (verticalOffsets.ratings.title || 0),
-        titleMaxWidth, H.title.leading, textAligns.ratings.title || 'left', BOTTOM, false);
+        titleMaxWidth, H.title.leading, textAligns.ratings.title || 'left', BOTTOM, notStylized);
 
-    drawStylizedText(fontHeavy,
-        ratingsTitleSize,
-        albumData.title,
-        leftMargin + (horizontalOffsets.ratings.title || 0),
-        H.top + (verticalOffsets.ratings.title || 0) + safariTextShift(true), textAligns.ratings.title || 'left', BOTTOM, glitchOptsTitle, 'ratingsTitle')
-
+        if(!notStylized){
+            drawStylizedText(fontHeavy,
+            ratingsTitleSize,
+            albumData.title,
+            leftMargin + (horizontalOffsets.ratings.title || 0),
+            H.top + (verticalOffsets.ratings.title || 0) + safariTextShift(true), textAligns.ratings.title || 'left', BOTTOM, glitchOptsTitle, 'ratingsTitle')
+        }
+       
 
     let artistMaxWidth = maxTextboxWidths.artist || defaultMaxTextboxWidths.artist;
     let artistBox = drawTextWithBox('artist', fontRegularCondensed,
@@ -4007,14 +4057,12 @@ function getMiddleTrack(){
     
     let totalHeightTracks = heights.reduce((a, b) => {return a + b})
     let midH = totalHeightTracks * .5
-    console.log(heights)
     
     let sum = 0
     for(let i = 0; i < heights.length; i++) {
         sum += heights[i]
         if(sum > midH){
             pop()
-            console.log(i)
             diffI1 = Math.abs(sum - midH)
             diffI2 = Math.abs((sum+heights[i+1] - midH))
             return diffI1 > diffI2 ? i : i + 1
@@ -4202,13 +4250,14 @@ function drawGradeLegend(cover) {
     pop();
 }
 
-function drawAlbumGradeBar(exportHeight) {
+function drawAlbumGradeBar(exportHeight, opts = {}) {
     const G = RATINGS_LAYOUT.gradeBar;
     let barY = exportHeight - G.height;
 
     push();
     rectMode(CORNER); noStroke();
-    fill(colorMap[albumData.albumGrade] || "#888888");
+    fill(opts.gradeBarTrans != undefined ? makeTransparent(colorMap[albumData.albumGrade], opts.gradeBarTrans) : 
+                                                           colorMap[albumData.albumGrade] || "#888888");
     if (albumData.albumGrade == 'GOAT') {
         utils.beginLinearGradient(goatGradient, 0, barY, width, barY, GOAT_GRADIENT_STOPS);
     }
@@ -5446,4 +5495,106 @@ function unpackDistances(pages) {
         }
     });
     return pages;
+}
+
+let animationPlaying = false
+let sepa = []  // start - end posisiton animation
+let sepaCustom = []  // same but for custom text boxes
+let originalFunFact, originalTrackSpacing
+//let animVel = .015
+let opts = {
+    gradeBarTrans: 0
+}
+let animVel = {
+    image: .015,
+    title: .015,
+    tracks: .0125,
+    artist: 0.016,
+    year: 0.015,
+    genre: 0.014,
+    funfact: 0.013,
+    custom: 0.05
+}
+let t = 0
+function startAnimation(){
+    sepa = []
+    originalFunFact = albumData.funfact
+    originalTrackSpacing = tracksSpacing
+
+    albumData.funfact = ""
+    tracksSpacing = 1000
+
+    opts.gradeBarTrans = 0
+
+    t = 0
+
+    let tbImage = textBoxes.find(tb => {return tb.id == 'image'})
+    if(tbImage){
+        sepa.push({tb: tbImage, startPos: {x: -600, y: verticalOffsets.ratings.image}, endPos: {x: horizontalOffsets.ratings.image, y: verticalOffsets.ratings.image}})
+        horizontalOffsets.ratings.image = -600
+        verticalOffsets.ratings.image = 0
+    }
+
+    let tbTitle = textBoxes.find(tb => {return tb.id == 'title'})
+    if(tbTitle){
+        sepa.push({tb: tbTitle, startPos: {x: horizontalOffsets.ratings.title, y: -200}, endPos: {x: horizontalOffsets.ratings.title, y: verticalOffsets.ratings.title}})
+        verticalOffsets.ratings.title = -200
+    }
+
+    let tbTracks = textBoxes.find(tb => {return tb.id == 'tracks'})
+    if(tbTracks){
+        sepa.push({tb: tbTracks, startPos: {x: horizontalOffsets.ratings.tracks, y: 1000}, endPos: {x: horizontalOffsets.ratings.tracks, y: verticalOffsets.ratings.tracks}})
+        verticalOffsets.ratings.tracks = 1000
+    }
+
+    let elements = ['artist', 'year', 'genre', 'funfact']
+    let deltaOffsetHor = 700
+    let i = 1
+    for(let el of elements){
+        sepa.push({tb: textBoxes.find(tb => {return tb.id == el}), startPos: {x: horizontalOffsets.ratings[el] + deltaOffsetHor, y: verticalOffsets.ratings[el]}, 
+                                                                   endPos: {x: horizontalOffsets.ratings[el], y: verticalOffsets.ratings[el]}})
+        let last = sepa[sepa.length-1]
+        horizontalOffsets.ratings[el] = last.startPos.x
+        verticalOffsets.ratings[el] = last.startPos.y
+        deltaOffsetHor += i * 50
+        i++
+    }
+
+    let tbGoatPlaylist = customTextboxes.find(tb => {return tb.id == 'songsAddedToGOATPlaylist'})
+    if(tbGoatPlaylist){
+        sepaCustom.push({tb: tbGoatPlaylist, startPos: {x: 6400, y: tbGoatPlaylist.y}, endPos: {x: tbGoatPlaylist.x, y: tbGoatPlaylist.y}, startT: 5*60})
+        tbGoatPlaylist.x = -1000
+    }
+
+
+    animationPlaying = true
+}
+
+function draw(){
+    if(animationPlaying){
+        t++
+        for(let element of sepa){
+            horizontalOffsets.ratings[element.tb.id] = lerp(horizontalOffsets.ratings[element.tb.id], element.endPos.x, animVel[element.tb.id])
+            verticalOffsets.ratings[element.tb.id] = lerp(verticalOffsets.ratings[element.tb.id], element.endPos.y, animVel[element.tb.id])
+
+            if(Math.abs(horizontalOffsets.ratings[element.tb.id] - element.endPos.x) < 1) horizontalOffsets.ratings[element.tb.id] = element.endPos.x
+            if(Math.abs(verticalOffsets.ratings[element.tb.id] - element.endPos.y) < 1) verticalOffsets.ratings[element.tb.id] = element.endPos.y
+        }
+        for(let element of sepaCustom){
+            if (element.startT == null || t >= element.startT) {
+                element.tb.x = lerp(element.tb.x, element.endPos.x, animVel['custom'])
+                element.tb.y = lerp(element.tb.y, element.endPos.y, animVel['custom'])
+            }
+
+            if(Math.abs(element.tb.x - element.endPos.x) < 1) element.tb.x = element.endPos.x
+            if(Math.abs(element.tb.y - element.endPos.y) < 1) element.tb.y = element.endPos.y
+        }
+        let stringLength = lerp(albumData.funfact.length, originalFunFact.length, .001)
+        albumData.funfact = originalFunFact.substring(0, ceil(stringLength))
+        tracksSpacing = lerp(tracksSpacing, originalTrackSpacing, .015)
+        if(t > 2*60) opts.gradeBarTrans = lerp(opts.gradeBarTrans, 255, .2)
+        console.log(t)
+
+        printAlbumNotAsync(opts)
+    }
 }
