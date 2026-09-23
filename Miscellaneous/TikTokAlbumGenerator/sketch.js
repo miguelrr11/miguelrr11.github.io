@@ -1101,7 +1101,7 @@ function alignMainElementsToImage(){
     horizontalOffsets.ratings.funfact = marginNeeded;
 
     captureState();
-    renderPage();    
+    //renderPage();    
 }
 
 function getDefaultProfile() {
@@ -3977,14 +3977,23 @@ function drawAlbumHeader(notStylized = false) {
         H.top + (verticalOffsets.ratings.title || 0),
         titleMaxWidth, H.title.leading, textAligns.ratings.title || 'left', BOTTOM, notStylized);
 
-        if(!notStylized){
-            drawStylizedText(fontHeavy,
-            ratingsTitleSize,
-            albumData.title,
+    if(!notStylized){
+        drawStylizedText(fontHeavy,
+        ratingsTitleSize,
+        albumData.title,
+        leftMargin + (horizontalOffsets.ratings.title || 0),
+        H.top + (verticalOffsets.ratings.title || 0) + safariTextShift(true), textAligns.ratings.title || 'left', BOTTOM, glitchOptsTitle, 'ratingsTitle')
+    }
+
+    // White glow wave running across the title — keeps the frame alive once the
+    // animation has settled. Inert (amt == 0) outside the animation.
+    if(titleGlow.amt > 0.01){
+        drawTitleGlowWave(fontHeavy, ratingsTitleSize, albumData.title,
             leftMargin + (horizontalOffsets.ratings.title || 0),
-            H.top + (verticalOffsets.ratings.title || 0) + safariTextShift(true), textAligns.ratings.title || 'left', BOTTOM, glitchOptsTitle, 'ratingsTitle')
-        }
-       
+            H.top + (verticalOffsets.ratings.title || 0),
+            titleMaxWidth, H.title.leading, textAligns.ratings.title || 'left', BOTTOM);
+    }
+
 
     let artistMaxWidth = maxTextboxWidths.artist || defaultMaxTextboxWidths.artist;
     let artistBox = drawTextWithBox('artist', fontRegularCondensed,
@@ -4272,7 +4281,7 @@ function drawAlbumGradeBar(exportHeight, opts = {}) {
     }
     rect(0, barY, width, G.height, G.cornerRadius, G.cornerRadius, 0, 0);
 
-    textAlign(CENTER, CENTER); fill(255); textFont(fontHeavy); textSize(G.fontSize);
+    textAlign(CENTER, CENTER); fill(255, opts.gradeBarTrans != undefined ? opts.gradeBarTrans : 255); textFont(fontHeavy); textSize(G.fontSize);
     utils.beginShadow("#ffffffa3", G.glowBlur, 0, 0);
     _text(albumData.albumGrade, width * 0.5, barY + G.height * G.textYFactor + safariTextShift(true));
     utils.endShadow();
@@ -4900,7 +4909,7 @@ function mouseDragged() {
             if(draggedTextbox.id === 'image' && automaticAlignmentCheckbox.checked()){
                 alignMainElementsToImage()
                 captureState()
-                renderPage();
+                //renderPage();
             }
 
             // Update sliders
@@ -5516,8 +5525,129 @@ let animVel = {
     custom: 0.05
 }
 let t = 0
+const ANIM_FRAMES = 11 * 60       // elements travelling to their end position
+const ANIM_HOLD_FRAMES = 3 * 60   // everything at rest — only the title wave moves
+
+// ─── Title glow wave ──────────────────────────────────────────────────────────
+// A white glow that pulses and runs across the title left → right. It is on for
+// the whole animation — including while the title is still dropping in — and its
+// main job is the tail, where every element has landed and the frame would
+// otherwise read as a still.
+//
+// The obvious way — splitting the string and calling text() per character — loses
+// kerning, so instead the title is rendered ONCE into a cached buffer, that buffer
+// is re-drawn onto itself under a white shadow to bake the halo, and the wave is a
+// horizontal gradient masking the result with 'destination-in'. The mask changes
+// per frame, the glyphs never do, so positions stay pixel-identical to the title.
+const TITLE_GLOW_BLUR = 45        // shadow blur of the cached silhouette (device px)
+const TITLE_GLOW_PAD = 100        // buffer padding so the glow never clips
+const TITLE_GLOW_STOPS = 48       // gradient resolution of the wave mask
+const TITLE_GLOW_SPEED = 1 / 110  // phase per frame → a pass every ~1.8 s
+const TITLE_GLOW_BASE = 0.22      // resting glow
+const TITLE_GLOW_PEAK = 0.85      // extra glow at the crest
+const TITLE_GLOW_SHARP = 4        // higher = tighter band
+const TITLE_GLOW_BREATHE = 0.045  // rad per frame of the base pulse
+const TITLE_GLOW_FADE = 0.06      // lerp speed of the fade in
+const TITLE_GLOW_FADE_OUT = 0.09  // ...and out, so it clears inside the recording tail
+let titleGlow = { active: false, amt: 0, phase: 0, t: 0, key: null, layer: null, mask: null }
+
+// Frame-counted rather than deltaTime/millis so a recording is reproducible.
+function updateTitleGlow(){
+    titleGlow.t++
+    titleGlow.phase = (titleGlow.phase + TITLE_GLOW_SPEED) % 1
+    titleGlow.amt = titleGlow.active ? lerp(titleGlow.amt, 1, TITLE_GLOW_FADE)
+                                     : lerp(titleGlow.amt, 0, TITLE_GLOW_FADE_OUT)
+    if(!titleGlow.active && titleGlow.amt < 0.01) titleGlow.amt = 0
+}
+
+// Alpha of the mask at horizontal position p (0..1 across the title).
+function titleGlowAlphaAt(p){
+    let band = Math.pow(0.5 + 0.5 * Math.cos(TWO_PI * (p - titleGlow.phase)), TITLE_GLOW_SHARP)
+    let breathe = 0.5 + 0.5 * Math.sin(titleGlow.t * TITLE_GLOW_BREATHE)
+    let a = (TITLE_GLOW_BASE * (0.6 + 0.4 * breathe) + band * TITLE_GLOW_PEAK) * titleGlow.amt
+    return Math.min(1, Math.max(0, a))
+}
+
+function buildTitleGlowLayer(font, size, str, maxWidth, leading, align, verAlign){
+    if(titleGlow.layer){ titleGlow.layer.glow.remove(); titleGlow.mask.remove() }
+
+    // Bounds are measured at the origin and the buffer is blitted at the title's
+    // current position, so the cache survives the title sliding into place.
+    push()
+    textFont(font); textSize(size); textLeading(leading)
+    textAlign(getP5Align(align), verAlign)
+    let b = font.textBounds(getRichText(str), 0, 0, maxWidth)
+    pop()
+
+    let ox = Math.floor(b.x - TITLE_GLOW_PAD), oy = Math.floor(b.y - TITLE_GLOW_PAD)
+    let w = Math.ceil(b.w + TITLE_GLOW_PAD * 2), h = Math.ceil(b.h + TITLE_GLOW_PAD * 2)
+
+    let glyphs = createGraphics(w, h)
+    glyphs.textFont(font); glyphs.textSize(size); glyphs.textLeading(leading)
+    glyphs.textAlign(getP5Align(align), verAlign)
+    glyphs.noStroke(); glyphs.fill(255)
+    glyphs.text(getRichText(str), -ox, -oy, maxWidth)
+
+    // The glyphs are kept in the layer along with their white shadow: the title
+    // underneath is already pure white, so compositing them back with 'lighter'
+    // adds only the halo.
+    let glow = createGraphics(w, h)
+    let ctx = glow.drawingContext
+    ctx.shadowColor = '#ffffff'
+    for(let blur of [TITLE_GLOW_BLUR, TITLE_GLOW_BLUR * 0.4]){   // wide haze + tight core
+        ctx.shadowBlur = blur
+        glow.image(glyphs, 0, 0)
+    }
+    glyphs.remove()
+
+    titleGlow.layer = { glow, ox, oy, w, h }
+    titleGlow.mask = createGraphics(w, h)
+}
+
+function drawTitleGlowWave(font, size, str, x, y, maxWidth, leading, align, verAlign){
+    if(!str || str.trim() === '') return
+    // 'justify' is drawn by justifyText(), which stretches the line and can't render
+    // into a buffer — the glow would sit on the wrong glyph positions, so skip it.
+    if(align === 'justify') return
+
+    let key = [str, size, maxWidth, leading, align, verAlign].join('|')
+    if(titleGlow.key !== key){
+        buildTitleGlowLayer(font, size, str, maxWidth, leading, align, verAlign)
+        titleGlow.key = key
+    }
+
+    let L = titleGlow.layer, m = titleGlow.mask
+    m.clear()
+    m.image(L.glow, 0, 0)
+
+    let mctx = m.drawingContext
+    mctx.save()
+    mctx.globalCompositeOperation = 'destination-in'
+    let grad = mctx.createLinearGradient(0, 0, L.w, 0)
+    for(let i = 0; i <= TITLE_GLOW_STOPS; i++){
+        let p = i / TITLE_GLOW_STOPS
+        grad.addColorStop(p, 'rgba(255,255,255,' + titleGlowAlphaAt(p).toFixed(3) + ')')
+    }
+    mctx.fillStyle = grad
+    mctx.fillRect(0, 0, L.w, L.h)
+    mctx.restore()
+
+    push()
+    imageMode(CORNER)
+    // save/restore because the header runs inside a black beginShadow(), which would
+    // otherwise drop a dark halo behind the glow.
+    drawingContext.save()
+    drawingContext.shadowBlur = 0
+    drawingContext.shadowColor = 'rgba(0,0,0,0)'
+    drawingContext.globalCompositeOperation = 'lighter'
+    image(m, x + L.ox, y + L.oy, L.w, L.h)
+    drawingContext.restore()
+    pop()
+}
+
 function startAnimation(){
     sepa = []
+    sepaCustom = []
     originalFunFact = albumData.funfact
     originalTrackSpacing = tracksSpacing
 
@@ -5527,18 +5657,25 @@ function startAnimation(){
     opts.gradeBarTrans = 0
 
     t = 0
+    // The wave rides along from frame 0, while the title is still dropping in.
+    titleGlow.active = true
+    titleGlow.amt = 1
+    titleGlow.phase = 0
+    titleGlow.t = 0
 
     let tbImage = textBoxes.find(tb => {return tb.id == 'image'})
     if(tbImage){
-        sepa.push({tb: tbImage, startPos: {x: -600, y: verticalOffsets.ratings.image}, endPos: {x: horizontalOffsets.ratings.image, y: verticalOffsets.ratings.image}})
-        horizontalOffsets.ratings.image = -600
+        if(!verticalOffsets.ratings.image) verticalOffsets.ratings.image = 0
+        if(!horizontalOffsets.ratings.image) horizontalOffsets.ratings.image = 0
+        sepa.push({tb: tbImage, startPos: {x: -800, y: verticalOffsets.ratings.image}, endPos: {x: horizontalOffsets.ratings.image, y: verticalOffsets.ratings.image}})
+        horizontalOffsets.ratings.image = -800
         verticalOffsets.ratings.image = 0
     }
 
     let tbTitle = textBoxes.find(tb => {return tb.id == 'title'})
     if(tbTitle){
-        sepa.push({tb: tbTitle, startPos: {x: horizontalOffsets.ratings.title, y: -200}, endPos: {x: horizontalOffsets.ratings.title, y: verticalOffsets.ratings.title}})
-        verticalOffsets.ratings.title = -200
+        sepa.push({tb: tbTitle, startPos: {x: horizontalOffsets.ratings.title, y: -250}, endPos: {x: horizontalOffsets.ratings.title, y: verticalOffsets.ratings.title}})
+        verticalOffsets.ratings.title = -250
     }
 
     let tbTracks = textBoxes.find(tb => {return tb.id == 'tracks'})
@@ -5548,7 +5685,7 @@ function startAnimation(){
     }
 
     let elements = ['artist', 'year', 'genre', 'funfact']
-    let deltaOffsetHor = 700
+    let deltaOffsetHor = 800
     let i = 1
     for(let el of elements){
         sepa.push({tb: textBoxes.find(tb => {return tb.id == el}), startPos: {x: horizontalOffsets.ratings[el] + deltaOffsetHor, y: verticalOffsets.ratings[el]}, 
@@ -5562,7 +5699,7 @@ function startAnimation(){
 
     let tbGoatPlaylist = customTextboxes.find(tb => {return tb.id == 'songsAddedToGOATPlaylist'})
     if(tbGoatPlaylist){
-        sepaCustom.push({tb: tbGoatPlaylist, startPos: {x: 6400, y: tbGoatPlaylist.y}, endPos: {x: tbGoatPlaylist.x, y: tbGoatPlaylist.y}, startT: 5*60})
+        sepaCustom.push({tb: tbGoatPlaylist, startPos: {x: -1000, y: tbGoatPlaylist.y}, endPos: {x: tbGoatPlaylist.x, y: tbGoatPlaylist.y}, startT: 8.5*60})
         tbGoatPlaylist.x = -1000
     }
 
@@ -5570,7 +5707,165 @@ function startAnimation(){
     animationPlaying = true
 }
 
+function stopAnimation(){
+    animationPlaying = false
+
+    for(let element of sepa){
+        horizontalOffsets.ratings[element.tb.id] = element.endPos.x
+        verticalOffsets.ratings[element.tb.id] = element.endPos.y
+    }
+    for(let element of sepaCustom){
+        element.tb.x = element.endPos.x
+        element.tb.y = element.endPos.y
+    }
+    albumData.funfact = originalFunFact
+    tracksSpacing = originalTrackSpacing
+    opts.gradeBarTrans = 255
+
+    // While recording, the glow keeps running through the tail (the draw loop fades
+    // it out at the end); on screen the animation just ends on a clean still.
+    titleGlow.active = recordingAnimation
+    if(!recordingAnimation) titleGlow.amt = 0
+    printAlbumNotAsync(opts)
+
+    // Keep the recorder alive for a short hold on the finished frame.
+    if(recordingAnimation) recordTailFrames = RECORD_TAIL_FRAMES
+}
+
+// ─── Animation recording ──────────────────────────────────────────────────────
+// Records the intro animation off the canvas and downloads it as a video.
+// The sketch canvas is always WIDTH×HEIGHT, so every frame is cropped to the
+// export height of the active page's aspect ratio (same crop downloadBothImages
+// does for stills) before being handed to the recorder.
+const RECORD_FPS = 60
+const RECORD_TAIL_FRAMES = 10*60   // frames recorded after the elements land (wave still running)
+const RECORD_FADE_FRAMES = 45      // ...of which the last ones fade the glow out
+let recordingAnimation = false
+let recordCanvas = null, recordCtx = null, recorder = null
+let recordChunks = [], recordTailFrames = 0, recordGreenRect = true
+
+// MediaRecorder support is per-browser: mp4 works on Safari and recent Chrome,
+// webm everywhere else. First supported wins.
+function pickRecordingFormat(){
+    const candidates = [
+        { mime: 'video/mp4;codecs=avc1.42E01E', ext: 'mp4' },
+        { mime: 'video/mp4', ext: 'mp4' },
+        { mime: 'video/webm;codecs=vp9', ext: 'webm' },
+        { mime: 'video/webm;codecs=vp8', ext: 'webm' },
+        { mime: 'video/webm', ext: 'webm' }
+    ]
+    return candidates.find(c => MediaRecorder.isTypeSupported(c.mime)) || null
+}
+
+async function recordAnimation(){
+    if(recordingAnimation || animationPlaying){
+        showToast('An animation is already running.', true)
+        return
+    }
+    if(typeof MediaRecorder === 'undefined' || !HTMLCanvasElement.prototype.captureStream){
+        showToast('Video recording is not supported in this browser.', true)
+        return
+    }
+    if(currentPage().type !== 'ratings'){
+        showToast('Switch to the Ratings page to record the animation.', true)
+        return
+    }
+
+    let format = pickRecordingFormat()
+    if(!format){
+        showToast('No supported video format found in this browser.', true)
+        return
+    }
+
+    albumData = collectAlbumData(collectTracksData())
+    if(!albumData.imageUrl){
+        showToast('Add an image before recording.', true)
+        return
+    }
+
+    // The animation renders through printAlbumNotAsync, which only reads the
+    // cached images — so do one async pass first to warm that cache.
+    recordGreenRect = showGreenRectangle
+    showGreenRectangle = false
+    selectedTextBox = null
+    if(sizeAdjustPanel) sizeAdjustPanel.style('display', 'none')
+    if(tracksAdjustPanel) tracksAdjustPanel.style('display', 'none')
+    await printAlbum()
+
+    // H.264 needs even dimensions and a couple of the aspect ratios are odd (8:13).
+    let exportHeight = currentExportHeight()
+    if(exportHeight % 2 !== 0) exportHeight--
+
+    recordCanvas = document.createElement('canvas')
+    recordCanvas.width = WIDTH
+    recordCanvas.height = exportHeight
+    recordCtx = recordCanvas.getContext('2d')
+
+    let stream = recordCanvas.captureStream(RECORD_FPS)
+    recordChunks = []
+    recorder = new MediaRecorder(stream, { mimeType: format.mime, videoBitsPerSecond: 20000000 })
+    recorder.ondataavailable = e => { if(e.data && e.data.size) recordChunks.push(e.data) }
+    recorder.onstop = () => {
+        stream.getTracks().forEach(track => track.stop())
+        downloadRecording(format)
+    }
+
+    recordTailFrames = 0
+    recordingAnimation = true
+    frameRate(RECORD_FPS)
+    recorder.start()
+    startAnimation()
+    showToast('Recording animation…')
+}
+
+// Copy the export-sized crop of the sketch canvas into the recorded canvas.
+// pixelDensity is 2 on retina screens, so the source rect is in device pixels
+// while the destination stays at the 1080-wide export size.
+function grabRecordingFrame(){
+    if(!recordCtx) return
+    let src = drawingContext.canvas
+    let d = pixelDensity()
+    recordCtx.clearRect(0, 0, recordCanvas.width, recordCanvas.height)
+    recordCtx.drawImage(src, 0, 0, WIDTH * d, recordCanvas.height * d,
+                             0, 0, WIDTH, recordCanvas.height)
+}
+
+function finishRecording(){
+    recordingAnimation = false
+    showGreenRectangle = recordGreenRect
+    titleGlow.active = false
+    titleGlow.amt = 0
+    if(recorder && recorder.state !== 'inactive') recorder.stop()
+    renderPage()
+}
+
+// Blob URL rather than a data: URL — mobile Safari silently blocks downloads of
+// large data: URLs (same reason the image export uses toBlob).
+function downloadRecording(format){
+    let blob = new Blob(recordChunks, { type: format.mime })
+    let url = URL.createObjectURL(blob)
+    let link = document.createElement('a')
+    link.download = getBaseFileName() + ' - Animation.' + format.ext
+    link.href = url
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    setTimeout(() => URL.revokeObjectURL(url), 1000)
+    recordChunks = []
+    recordCanvas = recordCtx = recorder = null
+    showToast('Animation downloaded.')
+}
+
 function draw(){
+    if(!animationPlaying && recordingAnimation){
+        // Elements have landed: the wave carries the tail, then fades out at the end.
+        titleGlow.active = recordTailFrames > RECORD_FADE_FRAMES
+        updateTitleGlow()
+        printAlbumNotAsync(opts)
+        grabRecordingFrame()
+        if(--recordTailFrames <= 0) finishRecording()
+        return
+    }
     if(animationPlaying){
         t++
         for(let element of sepa){
@@ -5592,9 +5887,13 @@ function draw(){
         let stringLength = lerp(albumData.funfact.length, originalFunFact.length, .001)
         albumData.funfact = originalFunFact.substring(0, ceil(stringLength))
         tracksSpacing = lerp(tracksSpacing, originalTrackSpacing, .015)
-        if(t > 2*60) opts.gradeBarTrans = lerp(opts.gradeBarTrans, 255, .2)
-        console.log(t)
+        if(t > 7.5*60) opts.gradeBarTrans = lerp(opts.gradeBarTrans, 255, .05)
+
+        updateTitleGlow()
 
         printAlbumNotAsync(opts)
+        if(recordingAnimation) grabRecordingFrame()
+
+        if(t > ANIM_FRAMES + ANIM_HOLD_FRAMES) stopAnimation()
     }
 }
