@@ -713,6 +713,13 @@ canvas {
     border-color: rgba(255, 255, 255, 0.25);
 }
 
+/* e.g. the Video button while the animation is being recorded */
+.btn:disabled {
+    opacity: 0.45;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
 .btn-primary {
     background: linear-gradient(135deg, #4ade80, #22c55e);
     color: #fff;

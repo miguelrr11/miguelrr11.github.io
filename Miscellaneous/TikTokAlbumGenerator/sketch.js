@@ -1031,7 +1031,17 @@ function createButtonGrid(parent = editorPanel) {
         .class('btn btn-secondary')
         .mousePressed(downloadJSON)
         .style('flex: 0.6;')
-    
+
+    // Plays the intro animation and downloads it as a video — disabled while it runs
+    // (it records in real time, so the canvas is busy for the whole take).
+    let downloadVideoGroup = createDiv('').parent(downloadRow).class('form-group').style('flex: 1; margin-bottom: 0; align-items: end;');
+    createElement('label', 'Video').parent(downloadVideoGroup).style('margin-right: 8px;');
+    recordVideoButton = createButton('<i class="fa-solid fa-video"></i>')
+        .parent(downloadVideoGroup)
+        .class('btn btn-secondary')
+        .mousePressed(recordAnimation)
+        .style('flex: 0.6;')
+
     createDiv('').parent(buttonGrid).class('section-divider'); 
 
     let undoRedoRow = createDiv('').parent(buttonGrid).class('button-row');
@@ -5743,6 +5753,7 @@ const RECORD_FADE_FRAMES = 45      // ...of which the last ones fade the glow ou
 let recordingAnimation = false
 let recordCanvas = null, recordCtx = null, recorder = null
 let recordChunks = [], recordTailFrames = 0, recordGreenRect = true
+let recordVideoButton = null   // the Video download button, disabled while taking
 
 // MediaRecorder support is per-browser: mp4 works on Safari and recent Chrome,
 // webm everywhere else. First supported wins.
@@ -5812,6 +5823,7 @@ async function recordAnimation(){
 
     recordTailFrames = 0
     recordingAnimation = true
+    if(recordVideoButton) recordVideoButton.attribute('disabled', '')
     frameRate(RECORD_FPS)
     recorder.start()
     startAnimation()
@@ -5835,6 +5847,7 @@ function finishRecording(){
     showGreenRectangle = recordGreenRect
     titleGlow.active = false
     titleGlow.amt = 0
+    if(recordVideoButton) recordVideoButton.removeAttribute('disabled')
     if(recorder && recorder.state !== 'inactive') recorder.stop()
     renderPage()
 }
