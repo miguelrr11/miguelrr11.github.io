@@ -4287,7 +4287,9 @@ function drawAlbumGradeBar(exportHeight, opts = {}) {
         else if(aux == "DECENT") next = "STRONG"
         else if(aux == "STRONG") next = "EXCEPTIONAL"
         else if(aux == "EXCEPTIONAL") next = "PEAK"
-        utils.beginLinearGradient([colorMap[aux], colorMap[aux], colorMap[next], colorMap[next]], 0, barY, width, barY, [0, 0.4, 0.6, 1]);
+        let col1 = opts.gradeBarTrans != undefined ? makeTransparent(colorMap[aux], opts.gradeBarTrans) : colorMap[aux]
+        let col2 = opts.gradeBarTrans != undefined ? makeTransparent(colorMap[next], opts.gradeBarTrans) : colorMap[next]
+        utils.beginLinearGradient([col1, col1, col2, col2], 0, barY, width, barY, [0, 0.4, 0.6, 1]);
     }
     rect(0, barY, width, G.height, G.cornerRadius, G.cornerRadius, 0, 0);
 
