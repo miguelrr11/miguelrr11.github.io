@@ -1459,9 +1459,9 @@ async function drawCustomImages(pageId) {
                     { x: el.x + w / 2, y: el.y + h / 2 }, glitchOpts, el.url + '|g');
                 image(glitched, 0, 0, width, height);
             }
+            // No backing rect: the canvas shadow follows the image's alpha, so
+            // transparent pixels stay transparent and the shadow hugs the shape.
             utils.beginShadow("#000000", 30, 0, 0);
-            fill(0);
-            rect(el.x + 1, el.y + 1, w - 2, h - 2); // backing rect so the shadow has a solid edge
             image(img, el.x, el.y, w, h);
             utils.endShadow();
         } else {
