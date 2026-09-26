@@ -229,12 +229,19 @@ let customImageContainer;
 let elementImageCache = {}; // url -> loaded p5.Image for custom image elements
 let copiedTextFormat = null; // clipboard for the copy/paste format buttons
 let sapGlitchCheckbox = null;
+// Multi-selection: selectedIds holds every selected canvas box on the current page.
+// selectedTextBox stays the single-selection handle the floating panels and position
+// controls work with — it's only set while exactly one box is selected.
+let selectedIds = [];
 let isDraggingTextbox = false;
-let draggedTextbox = null;
+let groupDragStarts = null; // id -> { x, y, isCustom } start positions of the boxes being dragged
+let dragMoved = false;      // the press turned into an actual drag (passed DRAG_THRESHOLD)
+let pendingClick = null;    // { only } | { toggleOff } — selection change applied on release if it was just a click
+const DRAG_THRESHOLD = 3;   // canvas px the mouse must travel before a press becomes a drag
+let marquee = null;         // { x0, y0, x1, y1, base } while rubber-band selecting
+let marqueeDiv = null;
 let dragStartX = 0;
 let dragStartY = 0;
-let dragStartOffsetX = 0;
-let dragStartOffsetY = 0;
 let shiftDragAxis = null; // null, 'x', or 'y' - for shift+drag constraint
 
 let draggedTrackIndex = null;
@@ -491,7 +498,17 @@ function handleKeyboard(e) {
     if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
         e.preventDefault();
         e.shiftKey ? redo() : undo();
+    } else if ((e.key === 'Delete' || e.key === 'Backspace') && selectedIds.length && !isTypingTarget(document.activeElement)) {
+        e.preventDefault();
+        deleteSelectedElements();
     }
+}
+
+// True when keystrokes should go to the focused field instead of acting on the canvas.
+function isTypingTarget(el) {
+    if (!el) return false;
+    if (el.isContentEditable || el.tagName === 'TEXTAREA' || el.tagName === 'SELECT') return true;
+    return el.tagName === 'INPUT' && !['range', 'checkbox', 'radio', 'button', 'color'].includes(el.type);
 }
 
 function createAlbumEditor() {
@@ -1188,10 +1205,7 @@ function switchToPage(id) {
     currentView = currentPage().type;
 
     // Deselect and hide floating panels when switching pages
-    selectedTextBox = null;
-    if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
-    if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
-    updateVerticalOffsetSlider();
+    clearSelection();
     delete glitchImageCache['coverTitle'];
     delete glitchImageCache['ratingsTitle'];
 
@@ -1278,7 +1292,6 @@ function updateMetadataVisibility() {
 async function printGeneralPage() {
     push();
     transparentBackground ? clear() : background(200);
-    let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
 
     // Blurred grayscale backdrop from the album image (same one every page uses)
@@ -1314,15 +1327,7 @@ async function printGeneralPage() {
         pop();
     }
 
-    // Outline the selected box
-    if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
-    if (selectedTextBox) {
-        push();
-        noFill(); stroke(138, 180, 248); strokeWeight(3); rectMode(CORNER);
-        let padding = 5;
-        rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
-        pop();
-    }
+    drawSelectionOutlines();
     pop();
 }
 
@@ -1392,18 +1397,48 @@ function addCustomImageUI(imgEl) {
 
     let removeBtn = createButton('×').parent(inputRow).class('track-remove-btn').style('width: 32px; height: 32px; font-size: 18px; flex-shrink: 0;');
     removeBtn.mousePressed(() => {
-        let index = customImages.findIndex(t => t.id === imgEl.id);
-        if (index !== -1) {
-            if (selectedTextBox && selectedTextBox.id === imgEl.id) {
-                selectedTextBox = null;
-                sizeAdjustPanel.style('display', 'none');
-            }
-            customImages.splice(index, 1);
-            group.remove();
+        if (removeCustomElement(imgEl.id)) {
             captureState();
             autoGeneratePreview();
         }
     });
+}
+
+// Remove a custom textbox or image element (data + its column-1 row) and drop it
+// from the selection. Returns true if something was removed; the caller captures
+// state and re-renders (so a multi-delete makes a single undo step).
+function removeCustomElement(id) {
+    let tbIndex = customTextboxes.findIndex(t => t.id === id);
+    if (tbIndex !== -1) {
+        let textbox = customTextboxes[tbIndex];
+        let distancesAux = pageById(textbox.pageId)?.distances;
+        let entry = distancesAux?.map.get(textbox.id);
+        let prevId = entry ? entry.prevID : -1;
+        customTextboxes.splice(tbIndex, 1);
+        applyDistances(prevId);
+        if (textbox.rowDiv) textbox.rowDiv.remove();
+    } else {
+        let imgIndex = customImages.findIndex(t => t.id === id);
+        if (imgIndex === -1) return false;
+        let imgEl = customImages[imgIndex];
+        customImages.splice(imgIndex, 1);
+        if (imgEl.rowDiv) imgEl.rowDiv.remove();
+    }
+    if (selectedIds.includes(id)) setSelection(selectedIds.filter(s => s !== id));
+    return true;
+}
+
+// Delete / Backspace: remove every selected custom element. Built-in boxes
+// (title, tracks, cover image…) can't be deleted and stay selected.
+function deleteSelectedElements() {
+    let ids = selectedIds.filter(id => findCustomElement(id));
+    if (!ids.length) {
+        showToast("Built-in elements can't be deleted", true);
+        return;
+    }
+    ids.forEach(removeCustomElement);
+    captureState();
+    renderPage();
 }
 
 function getCustomImagesProperties() {
@@ -1646,6 +1681,7 @@ function setCustomImagesFromData(arr) {
 
 // Apply every layout field of a (migrated) data object to the live state + UI.
 function applyLayoutData(data) {
+    let prevPageId = currentPageId;
     // Pages
     pages = (data.pages && data.pages.length) ? unpackDistances(deepCopy(data.pages)) : DEFAULT_PAGES();
     ensureCorePages();
@@ -1719,6 +1755,7 @@ function applyLayoutData(data) {
     setCustomTextboxesFromData(data.customTextboxes || []);
     setCustomImagesFromData(data.customImages || []);
 
+    pruneSelection(prevPageId);
     refreshPageDependentUI();
 }
 
@@ -1969,9 +2006,7 @@ function createTracksAdjustPanel() {
         captureState();
     });
     createButton('✕').parent(actionsGroup).class('sap-btn sap-btn-close').mousePressed(() => {
-        selectedTextBox = null;
-        tracksAdjustPanel.style('display', 'none');
-        updateVerticalOffsetSlider();
+        clearSelection();
         renderPage();
     });
 }
@@ -3014,21 +3049,7 @@ function addCustomTextboxUI(textbox) {
     // Remove button
     let removeBtn = createButton('×').parent(inputRow).class('track-remove-btn').style('width: 32px; height: 32px; font-size: 18px; flex-shrink: 0;');
     removeBtn.mousePressed(() => {
-        let index = customTextboxes.findIndex(t => t.id === textbox.id);
-        if (index !== -1) {
-            // Deselect if this textbox is selected
-            if (selectedTextBox && selectedTextBox.id === textbox.id) {
-                selectedTextBox = null;
-                sizeAdjustPanel.style('display', 'none');
-            }
-
-            let distancesAux = pageById(textbox.pageId).distances
-            let entry = distancesAux?.map.get(textbox.id)
-            let prevId = entry ? entry.prevID : -1
-            customTextboxes.splice(index, 1);
-            applyDistances(prevId)
-
-            group.remove();
+        if (removeCustomElement(textbox.id)) {
             captureState();
             autoGeneratePreview();
         }
@@ -3170,9 +3191,7 @@ function createSizeAdjustPanel() {
         .attribute('title', 'Paste format').mousePressed(pasteTextboxFormat);
     createButton('↻').parent(actionsGroup).class('sap-btn sap-btn-reset').mousePressed(resetTextBoxToDefault);
     createButton('✕').parent(actionsGroup).class('sap-btn sap-btn-close').mousePressed(() => {
-        selectedTextBox = null;
-        sizeAdjustPanel.style('display', 'none');
-        updateVerticalOffsetSlider();
+        clearSelection();
         renderPage();
     });
 }
@@ -3189,10 +3208,7 @@ function clearAll() {
     albumData = null;
     cachedImageUrl = cachedOriginalImage = cachedFilteredImage = null;
     lastUrlChecked = null;
-    selectedTextBox = null;
-    if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
-    if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
-    updateVerticalOffsetSlider();
+    clearSelection();
     background(200);
     localStorage.removeItem('albumGeneratorData');
 }
@@ -3830,7 +3846,6 @@ function safariTextShift(large = false) {
 async function printAlbum(){
     transparentBackground ? clear() : background(200);
     if (!albumData) return;
-    let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
 
     // Load the album art (cached after the first successful load)
@@ -3877,21 +3892,12 @@ async function printAlbum(){
         pop();
     }
 
-    // Outline the selected box
-    if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
-    if (selectedTextBox) {
-        push();
-        noFill(); stroke(138, 180, 248); strokeWeight(3); rectMode(CORNER);
-        let padding = 5;
-        rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
-        pop();
-    }
+    drawSelectionOutlines();
 }
 
 function printAlbumNotAsync(opts){
     transparentBackground ? clear() : background(200);
     if (!albumData) return;
-    let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
 
     // Load the album art (cached after the first successful load)
@@ -3925,15 +3931,7 @@ function printAlbumNotAsync(opts){
         pop();
     }
 
-    // Outline the selected box
-    if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
-    if (selectedTextBox) {
-        push();
-        noFill(); stroke(138, 180, 248); strokeWeight(3); rectMode(CORNER);
-        let padding = 5;
-        rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
-        pop();
-    }
+    drawSelectionOutlines();
 }
 
 function drawAlbumCover(img, hasImage, drawGlitch = true) {
@@ -4050,45 +4048,56 @@ function drawAlbumHeader(notStylized = false) {
     utils.endShadow();
 }
 
-// in the 2 column mode, instead of dividing the tracks exactly in half, we take into
-// account the large text of tracks to divide by total height
-function getMiddleTrack(){
-    if(albumData.tracks.length < 1) return 0
-    push()
+function wrappedTextHeight(str, maxWidth) {
+    // assumes textFont/textSize are already set
+    let lines = 0;
+    for (const para of str.split('\n')) {
+        let line = '';
+        lines++;
+        for (const word of para.split(' ')) {
+            const test = line ? line + ' ' + word : word;
+            if (textWidth(test) > maxWidth && line) {
+                lines++;
+                line = word;
+            } else {
+                line = test;
+            }
+        }
+    }
+    return lines * textLeading();
+}
+
+function getMiddleTrack() {
+    if (albumData.tracks.length < 1) return 0;
+    push();
     const T = RATINGS_LAYOUT.tracks;
     const N = T.note;
-    rectMode(CORNER); // anchor the text box at its top-left so noteX is the left edge
-    fill(245); noStroke(); textFont(fontLight); textSize(N.fontSize); textAlign(LEFT, TOP);
-    let S = T.rowSpacing;
-    let rowSpacing = Math.min(map(albumData.tracks.length, S.fewTracks, S.manyTracks, S.max, S.min, true), S.cap) + tracksSpacing;
-    let heightWithoutText = tracksRectHeight + rowSpacing
-    let heights = []
+    textFont(fontLight); textSize(N.fontSize); textAlign(LEFT, TOP);
+    const S = T.rowSpacing;
+    const rowSpacing = Math.min(map(albumData.tracks.length, S.fewTracks, S.manyTracks, S.max, S.min, true), S.cap) + tracksSpacing;
+    const heightWithoutText = tracksRectHeight + rowSpacing;
 
-    for(let i = 0; i < albumData.tracks.length; i++) {
-        let track = albumData.tracks[i];
-        let totalHeight = heightWithoutText
-        if(track.customTextLarge && track.customTextLarge.trim() !== ''){
-            let bbox = fontLight.textBounds(track.customTextLarge, 0, 0, N.maxWidth.twoColumns)
-            totalHeight += bbox.h + N.topGap
+    const heights = albumData.tracks.map(track => {
+        let h = heightWithoutText;
+        if (track.customTextLarge && track.customTextLarge.trim() !== '') {
+            h += wrappedTextHeight(track.customTextLarge, N.maxWidth.twoColumns) + N.topGap;
         }
-        heights.push(totalHeight)
-    }
-    
-    let totalHeightTracks = heights.reduce((a, b) => {return a + b})
-    let midH = totalHeightTracks * .5
-    
-    let sum = 0
-    for(let i = 0; i < heights.length; i++) {
-        sum += heights[i]
-        if(sum > midH){
-            pop()
-            diffI1 = Math.abs(sum - midH)
-            diffI2 = Math.abs((sum+heights[i+1] - midH))
-            return diffI1 > diffI2 ? i : i + 1
+        return h;
+    });
+    pop();
+
+    const midH = heights.reduce((a, b) => a + b, 0) * 0.5;
+
+    let sum = 0;
+    for (let i = 0; i < heights.length; i++) {
+        const before = sum;          // column 1 = tracks 0..i-1
+        sum += heights[i];           // column 1 = tracks 0..i
+        if (sum >= midH) {
+            // return value = number of tracks in column 1 (= first index of column 2)
+            return Math.abs(before - midH) < Math.abs(sum - midH) ? i : i + 1;
         }
     }
-    pop()
-    return "WTF"
+    return heights.length;
 }
 
 function drawTrackList() {
@@ -4506,7 +4515,6 @@ const textOpts = {
 async function printCoverScreen() {
     push()
     transparentBackground ? clear() : background(200);
-    let selectedId = selectedTextBox ? selectedTextBox.id : null;
     textBoxes = [];
 
     let exportHeight = currentExportHeight();
@@ -4587,16 +4595,7 @@ async function printCoverScreen() {
     await drawCustomImages(currentPageId);
     drawCustomTextboxes(currentPageId);
 
-    if (selectedId) selectedTextBox = textBoxes.find(b => b.id === selectedId);
-    if (selectedTextBox) {
-        noFill(); 
-        stroke(255); 
-        strokeWeight(3); 
-        rectMode(CORNER);
-        let padding = 5;
-        rect(selectedTextBox.x - padding, selectedTextBox.y - padding, selectedTextBox.w + padding * 2, selectedTextBox.h + padding * 2, 5);
-        noStroke();
-    }
+    drawSelectionOutlines([255, 255, 255]);
     pop()
     pop()
 
@@ -4800,6 +4799,142 @@ function updateVisibilityCustomElementsUI(){
     }
 }
 
+// ─── Selection ────────────────────────────────────────────────────────────────
+// Click selects one box; click-drag on empty canvas draws a rubber band that
+// selects every box it touches; Shift adds to / removes from the selection.
+// Pressing on any selected box drags the whole group together.
+
+function isSelected(id) { return selectedIds.includes(id); }
+
+function sameIds(a, b) { return a.length === b.length && a.every(id => b.includes(id)); }
+
+// Replace the selection. `updatePanels` is false while rubber-banding so the
+// floating panels don't flicker in and out under the cursor.
+function setSelection(ids, updatePanels = true) {
+    selectedIds = [...new Set(ids)];
+    selectedTextBox = selectedIds.length === 1 ? (textBoxes.find(b => b.id === selectedIds[0]) || null) : null;
+    if (updatePanels) showSelectionPanels();
+}
+
+function clearSelection() { setSelection([]); }
+
+// Canvas boxes that aren't custom elements (moved through the page offsets)
+const BUILTIN_BOX_IDS = ['title', 'artist', 'year', 'genre', 'funfact', 'tracks', 'image'];
+
+// Drop selected ids that no longer point at an element on the page being shown —
+// undo/redo and profile/JSON loads can remove elements or switch the page.
+function pruneSelection(prevPageId) {
+    if (!selectedIds.length) return;
+    let keep = currentPageId !== prevPageId ? [] : selectedIds.filter(id => {
+        let el = findCustomElement(id);
+        return el ? el.pageId === currentPageId : BUILTIN_BOX_IDS.includes(id);
+    });
+    if (!sameIds(keep, selectedIds)) setSelection(keep);
+}
+
+// Show the floating panel that matches the selection: a single box gets its own
+// panel, while an empty or multi selection shows none.
+function showSelectionPanels() {
+    let box = selectedTextBox;
+    if (box && box.id === 'tracks') {
+        sizeAdjustPanel.style('display', 'none');
+        showTracksAdjustPanel();
+    } else if (box && box.id !== 'image') {
+        tracksAdjustPanel.style('display', 'none');
+        showSizeAdjustPanel(box);
+    } else {
+        // Nothing / several selected, or the cover image (no styling panel)
+        if (sizeAdjustPanel) sizeAdjustPanel.style('display', 'none');
+        if (tracksAdjustPanel) tracksAdjustPanel.style('display', 'none');
+        updateVerticalOffsetSlider();
+    }
+}
+
+// Re-resolve the single-selection handle against the boxes this render just laid
+// out, then outline every selected box. Called at the end of each page renderer.
+function drawSelectionOutlines(col = [138, 180, 248]) {
+    selectedTextBox = selectedIds.length === 1 ? textBoxes.find(b => b.id === selectedIds[0]) : null;
+    push();
+    noFill(); stroke(...col); strokeWeight(3); rectMode(CORNER);
+    let padding = 5;
+    for (let box of textBoxes) {
+        if (isSelected(box.id)) rect(box.x - padding, box.y - padding, box.w + padding * 2, box.h + padding * 2, 5);
+    }
+    pop();
+}
+
+// Remember where every selected box starts so a drag can move them all by the same delta.
+function startGroupDrag(mx, my) {
+    isDraggingTextbox = true;
+    dragMoved = false;
+    dragStartX = mx;
+    dragStartY = my;
+    shiftDragAxis = null; // Reset axis constraint
+    groupDragStarts = {};
+    for (let id of selectedIds) {
+        let el = findCustomElement(id);
+        groupDragStarts[id] = el
+            ? { x: el.x, y: el.y, isCustom: true }
+            : { x: curHOffs()[id] || 0, y: curVOffs()[id] || 0, isCustom: false };
+    }
+}
+
+function marqueeRect() {
+    return {
+        x: Math.min(marquee.x0, marquee.x1), y: Math.min(marquee.y0, marquee.y1),
+        w: Math.abs(marquee.x1 - marquee.x0), h: Math.abs(marquee.y1 - marquee.y0)
+    };
+}
+
+// The rubber band is a DOM overlay inside #canvas-container (so the container's
+// scale applies and canvas px can be used directly) — moving it needs no re-render.
+function startMarquee(x, y, base) {
+    marquee = { x0: x, y0: y, x1: x, y1: y, base };
+    if (!marqueeDiv) marqueeDiv = createDiv('').id('selection-marquee').parent('canvas-container');
+    updateMarquee(x, y);
+    marqueeDiv.style('display', 'block');
+}
+
+function updateMarquee(x, y) {
+    marquee.x1 = x;
+    marquee.y1 = y;
+    let r = marqueeRect();
+    marqueeDiv.style('left', r.x + 'px').style('top', r.y + 'px')
+              .style('width', r.w + 'px').style('height', r.h + 'px');
+
+    // Every box the band touches, plus whatever was selected before a Shift+drag
+    let hits = textBoxes.filter(b =>
+        b.x <= r.x + r.w && b.x + b.w >= r.x &&
+        b.y <= r.y + r.h && b.y + b.h >= r.y
+    ).map(b => b.id);
+    let ids = [...new Set([...marquee.base, ...hits])];
+    if (!sameIds(ids, selectedIds)) {
+        setSelection(ids, false);
+        renderPage();
+    }
+}
+
+function endMarquee() {
+    marquee = null;
+    if (marqueeDiv) marqueeDiv.style('display', 'none');
+    showSelectionPanels();
+}
+
+// The box under (x, y). When boxes overlap (a textbox sitting on an image or on a
+// bigger textbox), a box that's already selected wins so it can be dragged without
+// the one behind stealing the press; otherwise the smallest box wins, which is the
+// inner element the user is aiming at.
+function boxAtPoint(x, y) {
+    let hits = textBoxes.filter(box =>
+        x >= box.x && x <= box.x + box.w &&
+        y >= box.y && y <= box.y + box.h
+    );
+    if (!hits.length) return null;
+    let selectedHits = hits.filter(box => isSelected(box.id));
+    let pool = selectedHits.length ? selectedHits : hits;
+    return pool.reduce((best, box) => (box.w * box.h < best.w * best.h ? box : best));
+}
+
 function mousePressed() {
     // On mobile, only the visible "Preview" section owns canvas input.
     if (!canvasInteractive()) return;
@@ -4821,128 +4956,118 @@ function mousePressed() {
 
     if (scaledMouseX < 0 || scaledMouseX > width || scaledMouseY < 0 || scaledMouseY > height) return;
 
-    let clickedBox = textBoxes.find(box =>
-        scaledMouseX >= box.x && scaledMouseX <= box.x + box.w &&
-        scaledMouseY >= box.y && scaledMouseY <= box.y + box.h
-    );
+    let clickedBox = boxAtPoint(scaledMouseX, scaledMouseY);
+    let shift = keyIsDown(SHIFT);
+    pendingClick = null;
 
-    if (clickedBox) {
-        let selectionChanged = !selectedTextBox || selectedTextBox.id !== clickedBox.id;
-        selectedTextBox = clickedBox;
-
-        // Enable dragging for all textboxes
-        isDraggingTextbox = true;
-        draggedTextbox = clickedBox;
-        dragStartX = scaledMouseX;
-        dragStartY = scaledMouseY;
-        shiftDragAxis = null; // Reset axis constraint
-
-        // Store starting positions/offsets
-        if (clickedBox.isCustom) {
-            let textbox = findCustomElement(clickedBox.id);
-            if (textbox) {
-                dragStartOffsetX = textbox.x;
-                dragStartOffsetY = textbox.y;
-            }
-        } else {
-            dragStartOffsetX = curHOffs()[clickedBox.id] || 0;
-            dragStartOffsetY = curVOffs()[clickedBox.id] || 0;
-        }
-
-        // Show the matching floating panel for the selected box
-        if (clickedBox.id === 'tracks') {
-            sizeAdjustPanel.style('display', 'none');
-            showTracksAdjustPanel();
-        } else if (clickedBox.id === 'image') {
-            // Image has no styling panel — just update the offset slider
-            sizeAdjustPanel.style('display', 'none');
-            tracksAdjustPanel.style('display', 'none');
-            updateVerticalOffsetSlider();
-        } else {
-            tracksAdjustPanel.style('display', 'none');
-            showSizeAdjustPanel(clickedBox);
-        }
-
-        if (selectionChanged) renderPage();
-    } else {
-        if (selectedTextBox) {
-            selectedTextBox = null;
-            sizeAdjustPanel.style('display', 'none');
-            tracksAdjustPanel.style('display', 'none');
-            updateVerticalOffsetSlider();
+    if (!clickedBox) {
+        // Empty canvas: start a rubber band. Without Shift it starts a fresh
+        // selection; with Shift it adds to the current one.
+        if (!shift && selectedIds.length) {
+            clearSelection();
             renderPage();
         }
+        startMarquee(scaledMouseX, scaledMouseY, shift ? selectedIds.slice() : []);
+        return;
     }
+
+    let prevIds = selectedIds.slice();
+    if (shift) {
+        // Shift+click toggles the box. Removal waits for the release so that
+        // Shift+drag on a selected box still does an axis-constrained group move.
+        if (isSelected(clickedBox.id)) pendingClick = { toggleOff: clickedBox.id };
+        else setSelection([...selectedIds, clickedBox.id]);
+    } else if (isSelected(clickedBox.id)) {
+        // Pressing a box that's already part of the selection keeps the group so
+        // it can be dragged together; a plain click narrows it down to this box.
+        if (selectedIds.length > 1) pendingClick = { only: clickedBox.id };
+        else showSelectionPanels();
+    } else {
+        setSelection([clickedBox.id]);
+    }
+
+    startGroupDrag(scaledMouseX, scaledMouseY);
+    if (!sameIds(prevIds, selectedIds)) renderPage();
 }
 
 function mouseDragged() {
-    if (isDraggingTextbox && draggedTextbox) {
-        let scaledMouseX = mouseX / canvasScale;
-        let scaledMouseY = mouseY / canvasScale;
+    if (marquee) {
+        updateMarquee(constrain(mouseX / canvasScale, 0, width), constrain(mouseY / canvasScale, 0, height));
+        return;
+    }
+    if (!isDraggingTextbox || !groupDragStarts) return;
 
-        let deltaX = scaledMouseX - dragStartX;
-        let deltaY = scaledMouseY - dragStartY;
+    let scaledMouseX = mouseX / canvasScale;
+    let scaledMouseY = mouseY / canvasScale;
 
-        // Shift+drag: constrain to X or Y axis
-        if (keyIsDown(SHIFT)) {
-            // Determine axis on first significant movement
-            if (shiftDragAxis === null && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
-                shiftDragAxis = Math.abs(deltaX) > Math.abs(deltaY) ? 'x' : 'y';
-            }
-            // Apply constraint
-            if (shiftDragAxis === 'x') deltaY = 0;
-            else if (shiftDragAxis === 'y') deltaX = 0;
-        } else {
-            shiftDragAxis = null; // Reset if shift released
+    let deltaX = scaledMouseX - dragStartX;
+    let deltaY = scaledMouseY - dragStartY;
+
+    // A press only becomes a drag once it travels a few px, so clicks never nudge
+    if (!dragMoved) {
+        if (Math.abs(deltaX) < DRAG_THRESHOLD && Math.abs(deltaY) < DRAG_THRESHOLD) return;
+        dragMoved = true;
+        pendingClick = null;
+    }
+
+    // Shift+drag: constrain to X or Y axis
+    if (keyIsDown(SHIFT)) {
+        // Determine axis on first significant movement
+        if (shiftDragAxis === null && (Math.abs(deltaX) > 5 || Math.abs(deltaY) > 5)) {
+            shiftDragAxis = Math.abs(deltaX) > Math.abs(deltaY) ? 'x' : 'y';
         }
+        // Apply constraint
+        if (shiftDragAxis === 'x') deltaY = 0;
+        else if (shiftDragAxis === 'y') deltaX = 0;
+    } else {
+        shiftDragAxis = null; // Reset if shift released
+    }
 
-        if (draggedTextbox.isCustom) {
-            // Custom textbox: update x, y directly
-            let textbox = findCustomElement(draggedTextbox.id);
-            if (textbox) {
-                if (keyIsDown(SHIFT) && shiftDragAxis) {
-                    // Constrained drag
-                    if (shiftDragAxis === 'x') {
-                        textbox.x = dragStartOffsetX + deltaX;
-                    } else {
-                        textbox.y = dragStartOffsetY + deltaY;
-                    }
-                } else {
-                    // Unconstrained drag
-                    textbox.x = dragStartOffsetX + deltaX;
-                    textbox.y = dragStartOffsetY + deltaY;
-                }
+    let movedCoverImage = false;
+    for (let id in groupDragStarts) {
+        let start = groupDragStarts[id];
+        if (start.isCustom) {
+            // Custom textbox / image: update x, y directly
+            let el = findCustomElement(id);
+            if (el) {
+                el.x = start.x + deltaX;
+                el.y = start.y + deltaY;
             }
         } else {
             // Predefined textbox: update offsets
-            curHOffs()[draggedTextbox.id] = Math.round(dragStartOffsetX + deltaX);
-            curVOffs()[draggedTextbox.id] = Math.round(dragStartOffsetY + deltaY);
-
-            if(draggedTextbox.id === 'image' && automaticAlignmentCheckbox.checked()){
-                alignMainElementsToImage()
-                captureState()
-                //renderPage();
-            }
-
-            // Update sliders
-            updateVerticalOffsetSlider();
-            updateHorizontalOffsetSlider();
+            curHOffs()[id] = Math.round(start.x + deltaX);
+            curVOffs()[id] = Math.round(start.y + deltaY);
+            if (id === 'image') movedCoverImage = true;
         }
-
-        // Update position controls
-        updatePositionControls();
-
-        renderPage();
     }
+
+    if (movedCoverImage && automaticAlignmentCheckbox.checked()) alignMainElementsToImage();
+
+    // Update sliders + position controls
+    updateVerticalOffsetSlider();
+
+    renderPage();
 }
 
 function mouseReleased() {
-    if (isDraggingTextbox) {
-        isDraggingTextbox = false;
-        draggedTextbox = null;
-        shiftDragAxis = null; // Reset axis constraint
-        captureState();
+    if (marquee) {
+        endMarquee();
+        return;
     }
+    if (!isDraggingTextbox) return;
+    isDraggingTextbox = false;
+    groupDragStarts = null;
+    shiftDragAxis = null; // Reset axis constraint
+
+    if (dragMoved) {
+        captureState();
+    } else if (pendingClick) {
+        // It was a click, not a drag: apply the deferred selection change
+        if (pendingClick.only) setSelection([pendingClick.only]);
+        else setSelection(selectedIds.filter(id => id !== pendingClick.toggleOff));
+        renderPage();
+    }
+    pendingClick = null;
 }
 
 // Select the canvas textbox with the given id (if it exists in the current view) and
@@ -4951,20 +5076,8 @@ function mouseReleased() {
 function selectTextBoxById(id) {
     let box = textBoxes.find(b => b.id === id);
     if (!box) return;
-    let selectionChanged = !selectedTextBox || selectedTextBox.id !== box.id;
-    selectedTextBox = box;
-
-    if (box.id === 'tracks') {
-        sizeAdjustPanel.style('display', 'none');
-        showTracksAdjustPanel();
-    } else if (box.id === 'image') {
-        sizeAdjustPanel.style('display', 'none');
-        tracksAdjustPanel.style('display', 'none');
-        updateVerticalOffsetSlider();
-    } else {
-        tracksAdjustPanel.style('display', 'none');
-        showSizeAdjustPanel(box);
-    }
+    let selectionChanged = !(selectedIds.length === 1 && selectedIds[0] === id);
+    setSelection([id]);
 
     // Re-render to draw the selection outline (only needed if the selection actually changed)
     if (selectionChanged) renderPage();
@@ -5800,9 +5913,7 @@ async function recordAnimation(){
     // cached images — so do one async pass first to warm that cache.
     recordGreenRect = showGreenRectangle
     showGreenRectangle = false
-    selectedTextBox = null
-    if(sizeAdjustPanel) sizeAdjustPanel.style('display', 'none')
-    if(tracksAdjustPanel) tracksAdjustPanel.style('display', 'none')
+    clearSelection()
     await printAlbum()
 
     // H.264 needs even dimensions and a couple of the aspect ratios are odd (8:13).

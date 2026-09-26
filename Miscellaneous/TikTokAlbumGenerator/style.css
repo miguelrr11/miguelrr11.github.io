@@ -27,10 +27,22 @@ main {
 
 /* Canvas container - scales down the canvas visually */
 #canvas-container {
+    position: relative; /* anchors the selection marquee */
     flex-shrink: 0;
     transform: scale(var(--canvas-scale));
     transform-origin: top left;
     /* These will be set by JS based on actual canvas size */
+}
+
+/* Rubber-band selection rectangle — positioned in canvas px (the container's
+   scale applies), border divided by the scale so it stays ~1px on screen */
+#selection-marquee {
+    position: absolute;
+    display: none;
+    pointer-events: none;
+    border: calc(1px / var(--canvas-scale)) solid rgb(138, 180, 248);
+    background: rgba(138, 180, 248, 0.15);
+    z-index: 5;
 }
 
 canvas {
