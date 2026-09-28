@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>¿Quién está en el server?</title>
+<meta name="theme-color" content="#8ec5f0" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0f1b33" media="(prefers-color-scheme: dark)">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛏️</text></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Silkscreen:wght@400;700&family=Figtree:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  /* ============ CONFIGURACIÓN ============
+     Pon aquí la IP o dominio de vuestro server (con puerto si no es 25565).
+     Ejemplo: "mc.miserver.com" o "123.45.67.89:25580"
+     Si lo dejas vacío, la página te pedirá la IP la primera vez. */
+</style>
+<script>const SERVER = "172.255.204.220:25614";</script>
+
+<style>
+  :root {
+    --sky: #8ec5f0;
+    --sky-low: #cfe6f8;
+    --ink: #1c2a3a;
+    --ink-soft: #4a5d72;
+    --grass: #5c9e31;
+    --grass-dark: #447a22;
+    --dirt: #7a5230;
+    --dirt-dark: #5e3e23;
+    --off: #b8412e;
+    --panel: rgba(255,255,255,.55);
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --sky: #0f1b33; --sky-low: #22335a; --ink: #eef3fa; --ink-soft: #a9b8cc;
+      --grass: #3f7422; --grass-dark: #2f5a18; --dirt: #5a3c22; --dirt-dark: #432c18;
+      --off: #ff8a73; --panel: rgba(255,255,255,.08);
+    }
+  }
+  :root[data-theme="dark"] {
+    --sky: #0f1b33; --sky-low: #22335a; --ink: #eef3fa; --ink-soft: #a9b8cc;
+    --grass: #3f7422; --grass-dark: #2f5a18; --dirt: #5a3c22; --dirt-dark: #432c18;
+    --off: #ff8a73; --panel: rgba(255,255,255,.08);
+  }
+  *, *::before, *::after { box-sizing: inherit; }
+  html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
+  body {
+    margin: 0; min-height: 100%;
+    display: flex; flex-direction: column;
+    background: linear-gradient(180deg, var(--sky) 0%, var(--sky-low) 100%) fixed;
+    background-color: var(--sky);
+    color: var(--ink);
+    font: 400 1.0625rem/1.5 Figtree, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  main {
+    flex: 1;
+    width: 100%; max-width: 34rem; margin: 0 auto;
+    padding: 3rem 1.25rem 2.5rem;
+  }
+  .addr {
+    margin: 0 0 1.75rem;
+    color: var(--ink-soft);
+    font-size: .95rem;
+    word-break: break-all;
+  }
+  .addr button {
+    background: none; border: 0; padding: 0; margin-left: .4rem;
+    color: inherit; text-decoration: underline; font: inherit; cursor: pointer;
+  }
+  h1 {
+    margin: 0 0 .5rem;
+    font: 700 clamp(2rem, 9vw, 3.1rem)/1.1 Silkscreen, "Courier New", monospace;
+    letter-spacing: -.01em;
+    text-wrap: balance;
+  }
+  h1.off { color: var(--off); }
+  .sub { margin: 0 0 2.25rem; color: var(--ink-soft); }
+
+  .players { list-style: none; margin: 0; padding: 0; display: grid; gap: .75rem; }
+  .player {
+    display: flex; align-items: center; gap: 1rem;
+    padding: .6rem .9rem .6rem .6rem;
+    background: var(--panel);
+    border-radius: 6px;
+  }
+  .head {
+    width: 56px; height: 56px; flex: none;
+    image-rendering: pixelated;
+    border-radius: 3px;
+    background: var(--dirt);
+    box-shadow: 0 3px 0 var(--dirt-dark);
+  }
+  .player-name { font-weight: 600; font-size: 1.15rem; word-break: break-all; }
+  .note { margin-top: 1rem; font-size: .9rem; color: var(--ink-soft); }
+
+  form { display: grid; gap: .75rem; }
+  label { font-weight: 600; }
+  input {
+    font: inherit; padding: .75rem .9rem;
+    border: 2px solid var(--dirt); border-radius: 6px;
+    background: var(--panel); color: var(--ink);
+  }
+  .btn {
+    font: 700 1rem Silkscreen, "Courier New", monospace;
+    padding: .8rem 1.1rem; cursor: pointer;
+    color: #fff; background: var(--grass);
+    border: 0; border-radius: 4px;
+    box-shadow: 0 4px 0 var(--grass-dark);
+  }
+  .btn:active { transform: translateY(2px); box-shadow: 0 2px 0 var(--grass-dark); }
+  :focus-visible { outline: 3px solid #ffd54a; outline-offset: 2px; }
+
+  /* Suelo: franja de hierba y tierra */
+  footer {
+    background: var(--dirt);
+    border-top: 14px solid var(--grass);
+    box-shadow: inset 0 3px 0 var(--grass-dark);
+    color: #f3e6d6;
+    padding: 1.1rem 1.25rem 1.4rem;
+  }
+  .foot {
+    max-width: 34rem; margin: 0 auto;
+    display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+    font-size: .95rem;
+  }
+  .foot .btn { background: var(--dirt-dark); box-shadow: 0 4px 0 #3a2615; font-size: .85rem; }
+
+  .loading h1 { opacity: .5; }
+  @media (prefers-reduced-motion: no-preference) {
+    .player { animation: pop .25s ease-out both; }
+    @keyframes pop { from { transform: scale(.96); opacity: 0; } }
+  }
+</style>
+</head>
+<body>
+<main id="app" aria-live="polite"></main>
+<footer>
+  <div class="foot">
+    <span id="updated">Cargando…</span>
+    <button class="btn" id="refresh" type="button">Actualizar</button>
+  </div>
+</footer>
+
+<script>
+(() => {
+  const REFRESH_MS = 60_000;
+  const app = document.getElementById("app");
+  const updatedEl = document.getElementById("updated");
+  const refreshBtn = document.getElementById("refresh");
+  let lastOk = null;
+  let timer = null;
+
+  // --- Qué servidor mirar: ?ip= en la URL > constante SERVER > guardado en el navegador
+  function getServer() {
+    const fromUrl = new URLSearchParams(location.search).get("ip");
+    if (fromUrl) return fromUrl.trim();
+    if (SERVER) return SERVER.trim();
+    try { return localStorage.getItem("mc-server") || ""; } catch { return ""; }
+  }
+  function saveServer(ip) {
+    try { localStorage.setItem("mc-server", ip); } catch {}
+    const url = new URL(location.href);
+    url.searchParams.set("ip", ip);
+    history.replaceState(null, "", url);
+  }
+
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[c]));
+
+  // --- Dos APIs públicas gratuitas; si una falla se usa la otra
+  async function fetchMcstatus(ip) {
+    const r = await fetch(`https://api.mcstatus.io/v2/status/java/${encodeURIComponent(ip)}`);
+    if (!r.ok) throw new Error("mcstatus " + r.status);
+    const d = await r.json();
+    return {
+      online: !!d.online,
+      count: d.players?.online ?? 0,
+      max: d.players?.max ?? 0,
+      names: (d.players?.list || []).map(p => p.name_clean || p.name_raw).filter(Boolean),
+    };
+  }
+  async function fetchMcsrvstat(ip) {
+    const r = await fetch(`https://api.mcsrvstat.us/3/${encodeURIComponent(ip)}`);
+    if (!r.ok) throw new Error("mcsrvstat " + r.status);
+    const d = await r.json();
+    return {
+      online: !!d.online,
+      count: d.players?.online ?? 0,
+      max: d.players?.max ?? 0,
+      names: (d.players?.list || []).map(p => p.name).filter(Boolean),
+    };
+  }
+  async function getStatus(ip) {
+    try { return await fetchMcstatus(ip); }
+    catch { return await fetchMcsrvstat(ip); }
+  }
+
+  // --- Pintado
+  function renderAsk() {
+    updatedEl.textContent = "";
+    refreshBtn.hidden = true;
+    app.innerHTML = `
+      <h1>¿Qué server miramos?</h1>
+      <p class="sub">Escribe la dirección que usáis en Minecraft. Se guarda en el enlace para compartirlo.</p>
+      <form id="f">
+        <label for="ip">Dirección del servidor</label>
+        <input id="ip" name="ip" required placeholder="mc.ejemplo.com o 1.2.3.4:25565" autocomplete="off" autocapitalize="off" spellcheck="false">
+        <button class="btn" type="submit">Ver jugadores</button>
+      </form>`;
+    document.getElementById("f").addEventListener("submit", e => {
+      e.preventDefault();
+      const ip = document.getElementById("ip").value.trim();
+      if (!ip) return;
+      saveServer(ip);
+      start();
+    });
+  }
+
+  function headline(s) {
+    if (!s.online) return { text: "Servidor apagado", cls: "off" };
+    if (s.count === 0) return { text: "No hay nadie", cls: "" };
+    if (s.count === 1) return { text: "Hay 1 jugando", cls: "" };
+    return { text: `Hay ${s.count} jugando`, cls: "" };
+  }
+
+  function render(ip, s) {
+    const h = headline(s);
+    const real = s.names.filter(n => !/^anonymous player$/i.test(n));
+    const hidden = Math.max(0, s.count - real.length);
+
+    let sub = "";
+    if (!s.online) sub = "Nadie puede entrar ahora mismo.";
+    else if (s.count === 0) sub = `0 de ${s.max} plazas ocupadas. Sé el primero.`;
+    else sub = `${s.count} de ${s.max} plazas ocupadas.`;
+
+    const list = real.map(n => `
+      <li class="player">
+        <img class="head" src="https://mc-heads.net/avatar/${encodeURIComponent(n)}/64" alt="" width="56" height="56" loading="lazy">
+        <span class="player-name">${esc(n)}</span>
+      </li>`).join("");
+
+    const note = hidden > 0
+      ? `<p class="note">${hidden === 1 ? "Hay 1 jugador" : `Hay ${hidden} jugadores`} sin nombre visible (tienen desactivado “Permitir listado en servidores” o el servidor solo muestra una parte de la lista).</p>`
+      : "";
+
+    app.innerHTML = `
+      <p class="addr">${esc(ip)}<button type="button" id="change">Cambiar</button></p>
+      <h1 class="${h.cls}">${h.text}</h1>
+      <p class="sub">${sub}</p>
+      ${list ? `<ul class="players">${list}</ul>` : ""}
+      ${note}`;
+    document.getElementById("change").addEventListener("click", () => {
+      try { localStorage.removeItem("mc-server"); } catch {}
+      history.replaceState(null, "", location.pathname);
+      clearInterval(timer);
+      renderAsk();
+    });
+
+    document.title = s.online ? `(${s.count}) ¿Quién está en el server?` : "Apagado · ¿Quién está en el server?";
+  }
+
+  function renderError(ip) {
+    app.innerHTML = `
+      <p class="addr">${esc(ip)}</p>
+      <h1 class="off">Sin respuesta</h1>
+      <p class="sub">No se pudo consultar el estado. Revisa tu conexión o que la dirección sea correcta, y pulsa Actualizar.</p>`;
+  }
+
+  function tickUpdated() {
+    if (!lastOk) return;
+    const sec = Math.round((Date.now() - lastOk) / 1000);
+    updatedEl.textContent = sec < 10 ? "Actualizado ahora" : sec < 60 ? `Actualizado hace ${sec} s` : `Actualizado hace ${Math.floor(sec/60)} min`;
+  }
+
+  async function load() {
+    const ip = getServer();
+    if (!ip) return renderAsk();
+    app.classList.add("loading");
+    refreshBtn.disabled = true;
+    try {
+      const s = await getStatus(ip);
+      lastOk = Date.now();
+      render(ip, s);
+    } catch {
+      renderError(ip);
+    } finally {
+      app.classList.remove("loading");
+      refreshBtn.disabled = false;
+      tickUpdated();
+    }
+  }
+
+  function start() {
+    refreshBtn.hidden = false;
+    clearInterval(timer);
+    load();
+    timer = setInterval(() => { if (!document.hidden) load(); }, REFRESH_MS);
+  }
+
+  refreshBtn.addEventListener("click", load);
+  document.addEventListener("visibilitychange", () => { if (!document.hidden && getServer()) load(); });
+  setInterval(tickUpdated, 5000);
+
+  getServer() ? start() : renderAsk();
+})();
+</script>
+</body>
+</html>
