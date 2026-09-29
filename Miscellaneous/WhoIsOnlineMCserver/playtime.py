@@ -37,16 +37,26 @@ def mojang_name(uuid):
         return None
 
 
+def find_stats(world, listdir):
+    # Las versiones nuevas guardan las stats en players/stats; las antiguas, directamente en stats
+    for path in (f"{world}/players/stats", f"{world}/stats"):
+        try:
+            return path, listdir(path)
+        except OSError:
+            pass
+    raise FileNotFoundError(f"No hay carpeta de estadísticas en {world}/")
+
+
 def collect(read, listdir):
     """read(ruta) -> texto, listdir(ruta) -> nombres de archivo. Rutas relativas a la raíz del server."""
-    stats_dir = level_name(read("server.properties")) + "/stats"
+    stats_dir, files = find_stats(level_name(read("server.properties")), listdir)
     try:
         names = {e["uuid"]: e["name"] for e in json.loads(read("usercache.json"))}
     except (OSError, ValueError):
         names = {}
 
     players = []
-    for file in listdir(stats_dir):
+    for file in files:
         if not file.endswith(".json"):
             continue
         uuid = file.removesuffix(".json")
