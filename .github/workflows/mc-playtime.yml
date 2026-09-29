@@ -1,0 +1,61 @@
+name: Tiempo de juego MC server
+
+# Lee las estadísticas del server por SFTP y deja playtime.json en la rama mc-stats,
+# de donde lo lee Miscellaneous/WhoIsOnlineMCserver/index.html.
+# Secrets necesarios: SFTP_HOST, SFTP_PORT, SFTP_USER, SFTP_PASSWORD.
+
+on:
+  schedule:
+    - cron: "*/10 * * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: mc-playtime
+  cancel-in-progress: false
+
+jobs:
+  playtime:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (solo la carpeta del script)
+        uses: actions/checkout@v5
+        with:
+          sparse-checkout: Miscellaneous/WhoIsOnlineMCserver
+
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+
+      - run: pip install paramiko
+
+      - name: Leer estadísticas del server
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+        run: python Miscellaneous/WhoIsOnlineMCserver/playtime.py "$RUNNER_TEMP/playtime.json"
+
+      - name: Publicar en la rama mc-stats si ha cambiado
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir "$RUNNER_TEMP/data" && cd "$RUNNER_TEMP/data"
+          git init -q -b mc-stats
+          git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          if git fetch -q --depth=1 origin mc-stats; then
+            git reset -q FETCH_HEAD
+          fi
+          cp "$RUNNER_TEMP/playtime.json" playtime.json
+          git add playtime.json
+          if git diff --cached --quiet; then
+            echo "Sin cambios."
+            exit 0
+          fi
+          git -c user.name="github-actions[bot]" \
+              -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
+              commit -qm "Actualizar tiempo de juego"
+          git push -q origin mc-stats

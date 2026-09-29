@@ -17,7 +17,11 @@
      Ejemplo: "mc.miserver.com" o "123.45.67.89:25580"
      Si lo dejas vacío, la página te pedirá la IP la primera vez. */
 </style>
-<script>const SERVER = "172.255.204.220:25614";</script>
+<script>
+const SERVER = "172.255.204.220:25614";
+// JSON que genera .github/workflows/mc-playtime.yml (solo se muestra para SERVER)
+const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.github.io/mc-stats/playtime.json";
+</script>
 
 <style>
   :root {
@@ -31,6 +35,8 @@
     --dirt-dark: #5e3e23;
     --off: #b8412e;
     --panel: rgba(255,255,255,.55);
+    --track: rgba(28,42,58,.12);
+    --xp: #5c9e31;
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -39,13 +45,13 @@
     :root:not([data-theme="light"]) {
       --sky: #0f1b33; --sky-low: #22335a; --ink: #eef3fa; --ink-soft: #a9b8cc;
       --grass: #3f7422; --grass-dark: #2f5a18; --dirt: #5a3c22; --dirt-dark: #432c18;
-      --off: #ff8a73; --panel: rgba(255,255,255,.08);
+      --off: #ff8a73; --panel: rgba(255,255,255,.08); --track: rgba(255,255,255,.12); --xp: #7fc94a;
     }
   }
   :root[data-theme="dark"] {
     --sky: #0f1b33; --sky-low: #22335a; --ink: #eef3fa; --ink-soft: #a9b8cc;
     --grass: #3f7422; --grass-dark: #2f5a18; --dirt: #5a3c22; --dirt-dark: #432c18;
-    --off: #ff8a73; --panel: rgba(255,255,255,.08);
+    --off: #ff8a73; --panel: rgba(255,255,255,.08); --track: rgba(255,255,255,.12); --xp: #7fc94a;
   }
   *, *::before, *::after { box-sizing: inherit; }
   html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
@@ -98,6 +104,29 @@
   .player-name { font-weight: 600; font-size: 1.15rem; word-break: break-all; }
   .note { margin-top: 1rem; font-size: .9rem; color: var(--ink-soft); }
 
+  /* Ranking de tiempo de juego */
+  .playtime { margin-top: 3rem; }
+  h2 { margin: 0 0 1rem; font: 700 1.35rem/1.2 Silkscreen, "Courier New", monospace; }
+  .ranking { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
+  .rank {
+    display: flex; align-items: center; gap: .75rem;
+    padding: .5rem .8rem .5rem .5rem;
+    background: var(--panel);
+    border-radius: 6px;
+  }
+  .pos {
+    width: 1.4rem; flex: none; text-align: center;
+    font: 700 .95rem Silkscreen, "Courier New", monospace;
+    color: var(--ink-soft);
+  }
+  .rank .head { width: 40px; height: 40px; box-shadow: 0 2px 0 var(--dirt-dark); }
+  .rank-info { flex: 1; min-width: 0; }
+  .rank-line { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; column-gap: .75rem; }
+  .rank .player-name { font-size: 1.05rem; }
+  .time { color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .bar { height: 6px; margin-top: .35rem; background: var(--track); border-radius: 3px; overflow: hidden; }
+  .bar span { display: block; height: 100%; background: var(--xp); }
+
   form { display: grid; gap: .75rem; }
   label { font-weight: 600; }
   input {
@@ -138,7 +167,10 @@
 </style>
 </head>
 <body>
-<main id="app" aria-live="polite"></main>
+<main>
+  <div id="app" aria-live="polite"></div>
+  <section id="playtime" class="playtime" hidden></section>
+</main>
 <footer>
   <div class="foot">
     <span id="updated">Cargando…</span>
@@ -152,6 +184,7 @@
   const app = document.getElementById("app");
   const updatedEl = document.getElementById("updated");
   const refreshBtn = document.getElementById("refresh");
+  const playtimeEl = document.getElementById("playtime");
   let lastOk = null;
   let timer = null;
 
@@ -203,6 +236,7 @@
   function renderAsk() {
     updatedEl.textContent = "";
     refreshBtn.hidden = true;
+    playtimeEl.hidden = true;
     app.innerHTML = `
       <h1>¿Qué server miramos?</h1>
       <p class="sub">Escribe la dirección que usáis en Minecraft. Se guarda en el enlace para compartirlo.</p>
@@ -272,6 +306,42 @@
       <p class="sub">No se pudo consultar el estado. Revisa tu conexión o que la dirección sea correcta, y pulsa Actualizar.</p>`;
   }
 
+  // --- Tiempo de juego total por jugador
+  function formatTime(sec) {
+    const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60);
+    if (h === 0) return m === 0 ? "< 1 min" : `${m} min`;
+    return `${h} h ${m} min`;
+  }
+
+  function renderPlaytime(players) {
+    playtimeEl.hidden = !players.length;
+    if (!players.length) return;
+    const max = players[0].seconds;
+    const rows = players.map((p, i) => `
+      <li class="rank">
+        <span class="pos">${i + 1}</span>
+        <img class="head" src="https://mc-heads.net/avatar/${encodeURIComponent(p.name)}/64" alt="" width="40" height="40" loading="lazy">
+        <div class="rank-info">
+          <div class="rank-line">
+            <span class="player-name">${esc(p.name)}</span>
+            <span class="time">${formatTime(p.seconds)}</span>
+          </div>
+          <div class="bar"><span style="width:${(p.seconds / max * 100).toFixed(1)}%"></span></div>
+        </div>
+      </li>`).join("");
+    playtimeEl.innerHTML = `
+      <h2>Tiempo de juego</h2>
+      <ol class="ranking">${rows}</ol>
+      <p class="note">Total acumulado de cada jugador. Se actualiza cada 10 min aprox.</p>`;
+  }
+
+  async function loadPlaytime() {
+    try {
+      const r = await fetch(PLAYTIME_URL, { cache: "no-cache" });
+      if (r.ok) renderPlaytime((await r.json()).players);
+    } catch {}
+  }
+
   function tickUpdated() {
     if (!lastOk) return;
     const sec = Math.round((Date.now() - lastOk) / 1000);
@@ -281,6 +351,7 @@
   async function load() {
     const ip = getServer();
     if (!ip) return renderAsk();
+    if (ip === SERVER) loadPlaytime();
     app.classList.add("loading");
     refreshBtn.disabled = true;
     try {
