@@ -19,8 +19,8 @@
 </style>
 <script>
 const SERVER = "172.255.204.220:25614";
-// JSON que genera .github/workflows/mc-playtime.yml (solo se muestra para SERVER)
-const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.github.io/mc-stats/playtime.json";
+// JSON que genera .github/workflows/mc-stats.yml (solo se muestra para SERVER)
+const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.github.io/mc-stats/stats.json";
 </script>
 
 <style>
@@ -36,7 +36,11 @@ const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.gi
     --off: #b8412e;
     --panel: rgba(255,255,255,.55);
     --track: rgba(28,42,58,.12);
-    --xp: #5c9e31;
+    --grid: rgba(28,42,58,.25);
+    --tile: rgba(255,255,255,.55);
+    --chip: #fff;
+    --xp: #4a8a26;
+    --online: #23873a;
     box-sizing: border-box;
     padding-top: env(safe-area-inset-top, 0px);
     padding-bottom: env(safe-area-inset-bottom, 0px);
@@ -45,13 +49,17 @@ const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.gi
     :root:not([data-theme="light"]) {
       --sky: #0f1b33; --sky-low: #22335a; --ink: #eef3fa; --ink-soft: #a9b8cc;
       --grass: #3f7422; --grass-dark: #2f5a18; --dirt: #5a3c22; --dirt-dark: #432c18;
-      --off: #ff8a73; --panel: rgba(255,255,255,.08); --track: rgba(255,255,255,.12); --xp: #7fc94a;
+      --off: #ff8a73; --panel: rgba(255,255,255,.08); --track: rgba(255,255,255,.12);
+      --grid: rgba(255,255,255,.22); --tile: rgba(255,255,255,.06); --chip: rgba(255,255,255,.18);
+      --xp: #5ea832; --online: #5fd36e;
     }
   }
   :root[data-theme="dark"] {
     --sky: #0f1b33; --sky-low: #22335a; --ink: #eef3fa; --ink-soft: #a9b8cc;
     --grass: #3f7422; --grass-dark: #2f5a18; --dirt: #5a3c22; --dirt-dark: #432c18;
-    --off: #ff8a73; --panel: rgba(255,255,255,.08); --track: rgba(255,255,255,.12); --xp: #7fc94a;
+    --off: #ff8a73; --panel: rgba(255,255,255,.08); --track: rgba(255,255,255,.12);
+    --grid: rgba(255,255,255,.22); --tile: rgba(255,255,255,.06); --chip: rgba(255,255,255,.18);
+    --xp: #5ea832; --online: #5fd36e;
   }
   *, *::before, *::after { box-sizing: inherit; }
   html { height: 100%; scroll-padding-top: env(safe-area-inset-top, 0px); }
@@ -104,16 +112,37 @@ const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.gi
   .player-name { font-weight: 600; font-size: 1.15rem; word-break: break-all; }
   .note { margin-top: 1rem; font-size: .9rem; color: var(--ink-soft); }
 
-  /* Ranking de tiempo de juego */
-  .playtime { margin-top: 3rem; }
+  /* ===== Estadísticas ===== */
+  .sec { margin-top: 3rem; }
   h2 { margin: 0 0 1rem; font: 700 1.35rem/1.2 Silkscreen, "Courier New", monospace; }
+  .sec-head { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem .75rem; margin-bottom: 1rem; }
+  .sec-head h2 { margin: 0; }
+  h3 { margin: 1.25rem 0 .5rem; font-size: .95rem; font-weight: 600; color: var(--ink-soft); }
+  .muted { color: var(--ink-soft); font-weight: 400; }
+  .stack { display: grid; gap: .5rem; }
+  .card { background: var(--panel); border-radius: 6px; padding: .9rem; }
+  .card > h3:first-child { margin-top: 0; }
+  .dot { display: inline-block; width: .55rem; height: .55rem; margin: 0 .1rem 0 .4rem; border-radius: 50%; background: var(--online); vertical-align: .1em; }
+  .seen .dot { margin: 0 .35rem 0 0; }
+
+  /* Selector Total / 7 días */
+  .seg { display: inline-flex; padding: 3px; border-radius: 6px; background: var(--track); }
+  .seg button {
+    font: 600 .85rem Figtree, system-ui, sans-serif; color: var(--ink-soft);
+    padding: .35rem .75rem; border: 0; border-radius: 4px; background: none; cursor: pointer;
+  }
+  .seg button[aria-pressed="true"] { background: var(--chip); color: var(--ink); }
+
+  /* Ranking */
   .ranking { list-style: none; margin: 0; padding: 0; display: grid; gap: .5rem; }
   .rank {
     display: flex; align-items: center; gap: .75rem;
     padding: .5rem .8rem .5rem .5rem;
     background: var(--panel);
     border-radius: 6px;
+    color: inherit; text-decoration: none;
   }
+  a.rank:hover .player-name { text-decoration: underline; }
   .pos {
     width: 1.4rem; flex: none; text-align: center;
     font: 700 .95rem Silkscreen, "Courier New", monospace;
@@ -126,6 +155,63 @@ const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.gi
   .time { color: var(--ink-soft); font-variant-numeric: tabular-nums; white-space: nowrap; }
   .bar { height: 6px; margin-top: .35rem; background: var(--track); border-radius: 3px; overflow: hidden; }
   .bar span { display: block; height: 100%; background: var(--xp); }
+
+  /* Premios */
+  .awards { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(8.25rem, 1fr)); gap: .5rem; }
+  .award { display: flex; flex-direction: column; gap: .3rem; padding: .75rem; background: var(--panel); border-radius: 6px; }
+  .award-emoji { font-size: 1.5rem; line-height: 1.1; }
+  .award-title { font-weight: 600; line-height: 1.2; }
+  .award-desc { font-size: .8rem; line-height: 1.3; color: var(--ink-soft); }
+  .award-who { display: flex; align-items: center; flex-wrap: wrap; gap: .35rem; margin-top: auto; padding-top: .35rem; font-weight: 600; font-size: .95rem; overflow-wrap: anywhere; }
+  .award-who .head, .hito-who .head { width: 22px; height: 22px; box-shadow: none; border-radius: 2px; }
+  .award-value { font-size: .85rem; color: var(--ink-soft); }
+
+  /* Fichas de jugador */
+  .ficha { background: var(--panel); border-radius: 6px; }
+  .ficha summary { display: flex; align-items: center; gap: .75rem; padding: .5rem .9rem .5rem .5rem; cursor: pointer; list-style: none; }
+  .ficha summary::-webkit-details-marker { display: none; }
+  .ficha summary .head { width: 40px; height: 40px; box-shadow: 0 2px 0 var(--dirt-dark); }
+  .ficha-name { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+  .seen { font-size: .85rem; color: var(--ink-soft); }
+  .chev { flex: none; width: .55rem; height: .55rem; margin-bottom: .2rem; border: solid var(--ink-soft); border-width: 0 2px 2px 0; transform: rotate(45deg); }
+  .ficha[open] .chev { margin: .2rem 0 0; transform: rotate(-135deg); }
+  .ficha-body { padding: .25rem .9rem 1rem; }
+
+  .tiles { margin: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr)); gap: .4rem; }
+  .tiles div { padding: .45rem .6rem; background: var(--tile); border-radius: 4px; }
+  .tiles dt { font-size: .8rem; color: var(--ink-soft); }
+  .tiles dd { margin: 0; font-weight: 600; font-size: 1.05rem; }
+  .tiles small { display: block; font-weight: 400; font-size: .75rem; color: var(--ink-soft); }
+
+  .favs { margin: 0; display: grid; gap: .35rem; }
+  .favs div, .dist li, .advs li, .hitos li { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: .1rem .75rem; }
+  .favs dt { color: var(--ink-soft); }
+  .favs dd { margin: 0; font-weight: 600; }
+  .dist, .advs, .hitos { list-style: none; margin: 0; padding: 0; display: grid; gap: .45rem; }
+  .dist .bar { flex-basis: 100%; margin-top: .1rem; }
+  .hitos .pending { color: var(--ink-soft); }
+  .hito-who { display: inline-flex; align-items: center; gap: .35rem; font-weight: 600; }
+
+  /* Gráficas de columnas */
+  .cols { display: flex; height: 7.5rem; padding-top: 1.25rem; border-bottom: 1px solid var(--grid); }
+  .chart.small .cols { height: 4.75rem; }
+  .col { flex: 1; min-width: 0; display: flex; flex-direction: column; justify-content: flex-end; align-items: center; cursor: default; }
+  .col > * { flex: none; }
+  .col-bar { width: 70%; max-width: 18px; min-height: 0; background: var(--xp); border-radius: 4px 4px 0 0; }
+  .col:hover .col-bar, .col:focus-visible .col-bar { filter: brightness(1.2); }
+  .col-val { margin-bottom: 2px; font-size: .75rem; color: var(--ink-soft); white-space: nowrap; }
+  .xlabels { display: flex; margin-top: .25rem; }
+  .xlabels span { flex: 1; min-width: 0; text-align: center; white-space: nowrap; font-size: .7rem; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+
+  .tip {
+    position: fixed; left: 0; top: 0; z-index: 10; pointer-events: none;
+    display: grid; max-width: 16rem; padding: .5rem .65rem; border-radius: 6px;
+    background: var(--ink); color: var(--sky-low);
+    font-size: .85rem; line-height: 1.35;
+    box-shadow: 0 4px 16px rgba(0,0,0,.25);
+  }
+  .tip[hidden] { display: none; }
+  .tip strong { font-size: .95rem; }
 
   form { display: grid; gap: .75rem; }
   label { font-weight: 600; }
@@ -169,8 +255,9 @@ const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.gi
 <body>
 <main>
   <div id="app" aria-live="polite"></div>
-  <section id="playtime" class="playtime" hidden></section>
+  <div id="stats" hidden></div>
 </main>
+<div id="tip" class="tip" role="tooltip" hidden></div>
 <footer>
   <div class="foot">
     <span id="updated">Cargando…</span>
@@ -184,7 +271,8 @@ const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.gi
   const app = document.getElementById("app");
   const updatedEl = document.getElementById("updated");
   const refreshBtn = document.getElementById("refresh");
-  const playtimeEl = document.getElementById("playtime");
+  const statsEl = document.getElementById("stats");
+  const tip = document.getElementById("tip");
   let lastOk = null;
   let timer = null;
 
@@ -236,7 +324,7 @@ const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.gi
   function renderAsk() {
     updatedEl.textContent = "";
     refreshBtn.hidden = true;
-    playtimeEl.hidden = true;
+    statsEl.hidden = true;
     app.innerHTML = `
       <h1>¿Qué server miramos?</h1>
       <p class="sub">Escribe la dirección que usáis en Minecraft. Se guarda en el enlace para compartirlo.</p>
@@ -297,6 +385,8 @@ const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.gi
     });
 
     document.title = s.online ? `(${s.count}) ¿Quién está en el server?` : "Apagado · ¿Quién está en el server?";
+    online = new Set(s.online ? real : []);
+    renderStats();
   }
 
   function renderError(ip) {
@@ -306,41 +396,346 @@ const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.gi
       <p class="sub">No se pudo consultar el estado. Revisa tu conexión o que la dirección sea correcta, y pulsa Actualizar.</p>`;
   }
 
-  // --- Tiempo de juego total por jugador
+  // ============ Estadísticas: stats.json, que genera .github/workflows/mc-stats.yml ============
+  let stats = null;            // último stats.json
+  let online = new Set();      // quién está conectado según el estado del server
+  let rankMode = "total";      // ranking: "total" o "week"
+
+  const DAY = 86400;
+  const nf = new Intl.NumberFormat("es-ES");
+  const nf1 = new Intl.NumberFormat("es-ES", { maximumFractionDigits: 1 });
+  const dateFmt = new Intl.DateTimeFormat("es-ES", { day: "numeric", month: "short" });
+  const dayFmt = new Intl.DateTimeFormat("es-ES", { weekday: "long", day: "numeric", month: "short" });
+  const list = new Intl.ListFormat("es-ES", { type: "conjunction" });
+  const num = n => nf.format(n);
+  const plural = (n, one, many) => `${num(n)} ${n === 1 ? one : many}`;
+  const km = m => m < 1000 ? `${num(m)} m` : `${nf1.format(m / 1000)} km`;
+  const short = s => s < 3600 ? `${Math.round(s / 60)} min` : `${nf1.format(s / 3600)} h`;
+  const date = ts => dateFmt.format(ts * 1000);
+  const dayKey = d => `${d.getFullYear()}-${d.getMonth() + 1}-${d.getDate()}`;
+  const head = (name, size) => `<img class="head" src="https://mc-heads.net/avatar/${encodeURIComponent(name)}/64" alt="" width="${size}" height="${size}" loading="lazy">`;
+  const onlineDot = name => online.has(name) ? `<span class="dot" role="img" aria-label="Jugando ahora"></span>` : "";
+
   function formatTime(sec) {
     const h = Math.floor(sec / 3600), m = Math.floor(sec % 3600 / 60);
-    if (h === 0) return m === 0 ? "< 1 min" : `${m} min`;
+    if (h === 0) return m > 0 ? `${m} min` : sec > 0 ? "< 1 min" : "0 min";
     return `${h} h ${m} min`;
   }
+  function ago(ts) {
+    const s = Date.now() / 1000 - ts;
+    if (s < 3600) return `hace ${Math.max(1, Math.round(s / 60))} min`;
+    if (s < DAY) return `hace ${Math.round(s / 3600)} h`;
+    return `el ${date(ts)}`;
+  }
 
-  function renderPlaytime(players) {
-    playtimeEl.hidden = !players.length;
-    if (!players.length) return;
-    const max = players[0].seconds;
-    const rows = players.map((p, i) => `
-      <li class="rank">
+  // --- Sesiones [entrada, salida] -> tiempo por día y por hora (en la hora local de quien mira)
+  function activity(sessions) {
+    const byDay = new Map(), byHour = new Array(24).fill(0);
+    let longest = 0, last = 0, week = 0;
+    const weekAgo = Date.now() / 1000 - 7 * DAY;
+    for (const [start, end] of sessions) {
+      longest = Math.max(longest, end - start);
+      last = Math.max(last, end);
+      week += Math.max(0, end - Math.max(start, weekAgo));
+      for (let t = start; t < end;) {
+        const d = new Date(t * 1000);
+        const nextHour = new Date(d.getFullYear(), d.getMonth(), d.getDate(), d.getHours() + 1) / 1000;
+        const next = Math.min(end, Math.max(t + 1, nextHour));
+        byDay.set(dayKey(d), (byDay.get(dayKey(d)) || 0) + next - t);
+        byHour[d.getHours()] += next - t;
+        t = next;
+      }
+    }
+    const night = byHour.slice(0, 6).reduce((a, b) => a + b, 0);
+    return { byDay, byHour, longest, last, week, night, ...streaks(byDay, sessions[0]?.[0]) };
+  }
+
+  function streaks(byDay, first) {
+    if (!first) return { streak: 0, bestStreak: 0 };
+    let run = 0, best = 0, before = 0;
+    const d = new Date(first * 1000);
+    d.setHours(0, 0, 0, 0);
+    for (const now = new Date(); d <= now; d.setDate(d.getDate() + 1)) {
+      before = run;
+      run = byDay.has(dayKey(d)) ? run + 1 : 0;
+      best = Math.max(best, run);
+    }
+    return { streak: run || before, bestStreak: best };  // si hoy aún no ha jugado, la racha de ayer sigue viva
+  }
+
+  function lastDays(n) {
+    return Array.from({ length: n }, (_, i) => {
+      const d = new Date();
+      d.setHours(12, 0, 0, 0);
+      d.setDate(d.getDate() - (n - 1 - i));
+      return d;
+    });
+  }
+
+  // --- Piezas de HTML
+  const tiles = items => `<dl class="tiles">${items.map(([label, value, extra]) =>
+    `<div><dt>${label}</dt><dd>${value}${extra ? `<small>${extra}</small>` : ""}</dd></div>`).join("")}</dl>`;
+
+  const favs = items => `<dl class="favs">${items.filter(([, t]) => t).map(([label, t]) =>
+    `<div><dt>${label}</dt><dd>${esc(t.name)} <span class="muted">· ${num(t.count)}</span></dd></div>`).join("")}</dl>`;
+
+  // Columnas de tiempo: [{ label, value (s), tip }]. Solo la más alta lleva su valor encima.
+  function columns(items, small) {
+    const max = Math.max(...items.map(i => i.value));
+    if (!max) return `<p class="muted">Sin partidas en este periodo.</p>`;
+    const peak = items.findIndex(i => i.value === max);
+    const cols = items.map((it, i) => `
+      <div class="col" tabindex="0" data-tip="${esc(it.tip)}" aria-label="${esc(it.tip.replace(/\n/g, ", "))}">
+        ${i === peak ? `<span class="col-val">${short(max)}</span>` : ""}
+        <span class="col-bar" style="height:${it.value ? Math.max(2, it.value / max * 100) : 0}%"></span>
+      </div>`).join("");
+    const labels = items.map(it => `<span>${esc(it.label)}</span>`).join("");
+    return `<div class="chart${small ? " small" : ""}"><div class="cols">${cols}</div><div class="xlabels">${labels}</div></div>`;
+  }
+
+  const MEDIA = { foot: "A pie", swim: "Nadando", ride: "Montando", vehicle: "Barco y vagoneta", fly: "Por el aire" };
+
+  // [emoji, premio, qué mide, valor, formato]
+  const AWARDS = [
+    ["⛏️", "El Minero", "Más bloques minados", p => p.mined, n => plural(n, "bloque", "bloques")],
+    ["💎", "El Rico", "Más diamantes minados", p => p.diamonds, n => plural(n, "diamante", "diamantes")],
+    ["🗡️", "El Cazador", "Más mobs matados", p => p.mobKills, n => plural(n, "mob", "mobs")],
+    ["🔪", "El Traidor", "Más amigos matados", p => p.playerKills, n => plural(n, "baja", "bajas")],
+    ["💀", "El Kamikaze", "Más muertes", p => p.deaths, n => plural(n, "muerte", "muertes")],
+    ["🛡️", "El Superviviente", "Más tiempo de juego sin morir", p => p.sinceDeath, formatTime],
+    ["🧭", "El Explorador", "Más distancia recorrida", p => p.distanceTotal, km],
+    ["🦘", "El Canguro", "Más saltos", p => p.jumps, n => plural(n, "salto", "saltos")],
+    ["🥊", "El Saco de Boxeo", "Más daño recibido", p => p.damageTaken, n => `${num(n)} ❤`],
+    ["🛏️", "El Dormilón", "Más veces durmiendo", p => p.sleeps, n => plural(n, "siesta", "siestas")],
+    ["🔨", "El Artesano", "Más objetos fabricados", p => p.crafted, n => plural(n, "objeto", "objetos")],
+    ["🏆", "El Completista", "Más logros", p => p.advancements, n => plural(n, "logro", "logros")],
+    ["🏃", "El Maratoniano", "Sesión más larga", p => p.longest, formatTime],
+    ["🦉", "El Noctámbulo", "Más tiempo jugado entre las 0 y las 6 h", p => p.night, formatTime],
+    ["📅", "El Fiel", "Más días seguidos jugando", p => p.bestStreak, n => plural(n, "día", "días")],
+  ];
+
+  // [logro, descripción] en orden de progreso
+  const MILESTONES = [
+    ["story/smelt_iron", "Fundir hierro"],
+    ["story/mine_diamond", "Encontrar diamantes"],
+    ["story/enter_the_nether", "Entrar al Nether"],
+    ["adventure/trade", "Comerciar con un aldeano"],
+    ["husbandry/tame_an_animal", "Domesticar un animal"],
+    ["nether/find_fortress", "Encontrar una fortaleza del Nether"],
+    ["story/follow_ender_eye", "Encontrar una fortaleza"],
+    ["story/enter_the_end", "Entrar al End"],
+    ["end/kill_dragon", "Matar al dragón"],
+    ["end/elytra", "Conseguir unos élitros"],
+    ["nether/obtain_ancient_debris", "Encontrar escombros ancestrales"],
+    ["nether/summon_wither", "Invocar al Wither"],
+    ["nether/netherite_armor", "Armadura completa de netherita"],
+  ];
+
+  // --- Secciones
+  function sectionPlaytime(players) {
+    const key = rankMode === "week" ? "week" : "playtime";
+    const sorted = [...players].sort((a, b) => b[key] - a[key]);
+    const max = Math.max(1, sorted[0][key]);
+    const rows = sorted.map((p, i) => `
+      <li><a class="rank" href="#j-${p.uuid}">
         <span class="pos">${i + 1}</span>
-        <img class="head" src="https://mc-heads.net/avatar/${encodeURIComponent(p.name)}/64" alt="" width="40" height="40" loading="lazy">
+        ${head(p.name, 40)}
         <div class="rank-info">
           <div class="rank-line">
-            <span class="player-name">${esc(p.name)}</span>
-            <span class="time">${formatTime(p.seconds)}</span>
+            <span class="player-name">${esc(p.name)}${onlineDot(p.name)}</span>
+            <span class="time">${formatTime(p[key])}</span>
           </div>
-          <div class="bar"><span style="width:${(p.seconds / max * 100).toFixed(1)}%"></span></div>
+          <div class="bar"><span style="width:${(p[key] / max * 100).toFixed(1)}%"></span></div>
         </div>
-      </li>`).join("");
-    playtimeEl.innerHTML = `
-      <h2>Tiempo de juego</h2>
-      <ol class="ranking">${rows}</ol>
-      <p class="note">Total acumulado de cada jugador. Se actualiza cada 10 min aprox.</p>`;
+      </a></li>`).join("");
+    const btn = (mode, label) => `<button type="button" data-mode="${mode}" aria-pressed="${rankMode === mode}">${label}</button>`;
+    return `
+      <section class="sec">
+        <div class="sec-head">
+          <h2>Tiempo de juego</h2>
+          <div class="seg" role="group" aria-label="Periodo">${btn("total", "Total")}${btn("week", "Últimos 7 días")}</div>
+        </div>
+        <ol class="ranking">${rows}</ol>
+      </section>`;
   }
 
-  async function loadPlaytime() {
+  function sectionAwards(players) {
+    const cards = AWARDS.map(([emoji, title, desc, value, format]) => {
+      const best = Math.max(...players.map(value));
+      const winners = best > 0 ? players.filter(p => value(p) === best) : [];
+      const who = winners.length
+        ? `${winners.slice(0, 3).map(p => head(p.name, 22)).join("")}<span>${esc(list.format(winners.map(p => p.name)))}</span>`
+        : `<span class="muted">Nadie todavía</span>`;
+      return `
+        <li class="award">
+          <span class="award-emoji" aria-hidden="true">${emoji}</span>
+          <span class="award-title">${title}</span>
+          <span class="award-desc">${desc}</span>
+          <div class="award-who">${who}</div>
+          ${winners.length ? `<span class="award-value">${format(best)}</span>` : ""}
+        </li>`;
+    }).join("");
+    return `<section class="sec"><h2>Premios</h2><ul class="awards">${cards}</ul></section>`;
+  }
+
+  function ficha(p, open) {
+    const seen = online.has(p.name) ? `<span class="dot"></span>Jugando ahora` : p.last ? `Visto ${ago(p.last)}` : "";
+    const dist = Object.entries(p.distance).filter(([, m]) => m > 0).sort((a, b) => b[1] - a[1]);
+    const days = lastDays(14).map(d => {
+      const v = p.byDay.get(dayKey(d)) || 0;
+      return { label: d.getDate(), value: v, tip: `${v ? formatTime(v) : "Sin partidas"}\n${dayFmt.format(d)}` };
+    });
+    return `
+      <details class="ficha" id="j-${p.uuid}" data-uuid="${p.uuid}"${open ? " open" : ""}>
+        <summary>
+          ${head(p.name, 40)}
+          <span class="ficha-name"><span class="player-name">${esc(p.name)}</span><span class="seen">${seen}</span></span>
+          <span class="chev" aria-hidden="true"></span>
+        </summary>
+        <div class="ficha-body">
+          ${tiles([
+            ["Tiempo jugado", formatTime(p.playtime)],
+            ["Últimos 7 días", formatTime(p.week)],
+            ["Sesión más larga", formatTime(p.longest)],
+            ["Racha", plural(p.streak, "día", "días"), `récord: ${plural(p.bestStreak, "día", "días")}`],
+            ["Muertes", num(p.deaths)],
+            ["Sin morir", formatTime(p.sinceDeath)],
+            ["Mobs matados", num(p.mobKills)],
+            ["Amigos matados", num(p.playerKills)],
+            ["Distancia", km(p.distanceTotal)],
+            ["Diamantes", num(p.diamonds)],
+            ["Logros", `${num(p.advancements)} / ${num(stats.advancementsTotal)}`],
+            ["Bloques minados", num(p.mined)],
+            ["Objetos fabricados", num(p.crafted)],
+            ["Saltos", num(p.jumps)],
+            ["Daño recibido", `${num(p.damageTaken)} ❤`],
+            ["Veces dormido", num(p.sleeps)],
+          ])}
+          <h3>Favoritos</h3>
+          ${favs([
+            ["Bloque más minado", p.topMined],
+            ["Mob más cazado", p.topKilled],
+            ["Lo que más fabrica", p.topCrafted],
+            ["Lo que más le mata", p.topKilledBy],
+          ])}
+          ${dist.length ? `<h3>Distancia por medio</h3><ul class="dist">${dist.map(([k, m]) => `
+            <li><span>${MEDIA[k] || esc(k)}</span><span class="time">${km(m)}</span>
+              <div class="bar"><span style="width:${(m / dist[0][1] * 100).toFixed(1)}%"></span></div></li>`).join("")}</ul>` : ""}
+          <h3>Horas jugadas, últimos 14 días</h3>
+          ${columns(days, true)}
+          ${p.recentAdvancements.length ? `<h3>Últimos logros</h3><ul class="advs">${p.recentAdvancements.map(a =>
+            `<li><span>${esc(a.title)}</span><span class="muted">${date(a.time)}</span></li>`).join("")}</ul>` : ""}
+        </div>
+      </details>`;
+  }
+
+  function sectionWorld(players) {
+    const sum = f => players.reduce((total, p) => total + f(p), 0);
+    const days = lastDays(14).map(d => {
+      const who = players.map(p => [p.name, p.byDay.get(dayKey(d)) || 0]).filter(([, v]) => v).sort((a, b) => b[1] - a[1]);
+      const v = who.reduce((total, [, s]) => total + s, 0);
+      return { label: d.getDate(), value: v, tip: [v ? formatTime(v) : "Sin partidas", dayFmt.format(d), ...who.map(([n, s]) => `${n} · ${formatTime(s)}`)].join("\n") };
+    });
+    const hours = Array.from({ length: 24 }, (_, h) => {
+      const v = sum(p => p.byHour[h]);
+      return { label: h % 6 === 0 ? h : "", value: v, tip: `${v ? formatTime(v) : "Sin partidas"}\nDe ${h}:00 a ${h + 1}:00` };
+    });
+    const firsts = stats.firsts;
+    const hitos = MILESTONES.map(([id, label]) => {
+      const f = firsts["minecraft:" + id];
+      return f
+        ? `<li><span>${label}</span><span class="hito-who">${head(f.name, 22)}${esc(f.name)} <span class="muted">· ${date(f.time)}</span></span></li>`
+        : `<li class="pending"><span>${label}</span><span>Pendiente</span></li>`;
+    }).join("");
+    return `
+      <section class="sec">
+        <h2>El mundo</h2>
+        <div class="stack">
+          <div class="card">
+            ${tiles([
+              ["Tiempo jugado", formatTime(sum(p => p.playtime))],
+              ["Jugadores", num(players.length)],
+              ["Bloques minados", num(sum(p => p.mined))],
+              ["Mobs matados", num(sum(p => p.mobKills))],
+              ["Muertes", num(sum(p => p.deaths))],
+              ["Diamantes", num(sum(p => p.diamonds))],
+              ["Distancia", km(sum(p => p.distanceTotal))],
+              ["Logros", `${num(Object.keys(firsts).length)} / ${num(stats.advancementsTotal)}`],
+            ])}
+          </div>
+          <div class="card">
+            <h3>Lo más…</h3>
+            ${favs([
+              ["Bloque más minado", stats.world.topMined],
+              ["Mob más cazado", stats.world.topKilled],
+              ["Lo que más mata", stats.world.topKilledBy],
+            ])}
+          </div>
+          <div class="card"><h3>Horas jugadas por día</h3>${columns(days)}</div>
+          <div class="card"><h3>¿A qué hora se juega?</h3>${columns(hours)}</div>
+          <div class="card"><h3>Hitos: quién lo consiguió primero</h3><ul class="hitos">${hitos}</ul></div>
+        </div>
+      </section>`;
+  }
+
+  function renderStats() {
+    if (!stats || getServer() !== SERVER || !stats.players.length) return;
+    const openIds = new Set([...statsEl.querySelectorAll("details[open]")].map(d => d.dataset.uuid));
+    const players = stats.players.map(p => ({
+      ...p,
+      ...activity(stats.sessions[p.uuid] || []),
+      distanceTotal: Object.values(p.distance).reduce((a, b) => a + b, 0),
+    }));
+    const firstSession = Math.min(...Object.values(stats.sessions).flat().map(s => s[0]));
+    hideTip();
+    statsEl.innerHTML = `
+      ${sectionPlaytime(players)}
+      ${sectionAwards(players)}
+      <section class="sec"><h2>Jugadores</h2><div class="stack">${players.map(p => ficha(p, openIds.has(p.uuid))).join("")}</div></section>
+      ${sectionWorld(players)}
+      <p class="note">Se actualiza cada 10 min aprox.${isFinite(firstSession) ? ` Las sesiones se registran desde el ${date(firstSession)}.` : ""}</p>`;
+    statsEl.hidden = false;
+  }
+
+  async function loadStats() {
     try {
-      const r = await fetch(PLAYTIME_URL, { cache: "no-cache" });
-      if (r.ok) renderPlaytime((await r.json()).players);
+      const r = await fetch(STATS_URL, { cache: "no-cache" });
+      if (!r.ok) return;
+      stats = await r.json();
+      renderStats();
     } catch {}
   }
+
+  statsEl.addEventListener("click", e => {
+    const mode = e.target.closest("[data-mode]")?.dataset.mode;
+    if (mode) { rankMode = mode; renderStats(); }
+    const link = e.target.closest("a.rank");
+    if (link) document.querySelector(link.getAttribute("href")).open = true;
+  });
+
+  // --- Tooltip de las gráficas (ratón, dedo o teclado)
+  function showTip(el) {
+    const [first, ...rest] = el.dataset.tip.split("\n");
+    const strong = document.createElement("strong");
+    strong.textContent = first;
+    tip.replaceChildren(strong, ...rest.map(line => Object.assign(document.createElement("span"), { textContent: line })));
+    tip.hidden = false;
+    const r = el.getBoundingClientRect(), t = tip.getBoundingClientRect();
+    const x = Math.min(innerWidth - t.width - 8, Math.max(8, r.left + r.width / 2 - t.width / 2));
+    const y = r.top - t.height - 8 < 8 ? r.bottom + 8 : r.top - t.height - 8;
+    tip.style.transform = `translate(${x}px, ${y}px)`;
+  }
+  function hideTip() { tip.hidden = true; }
+  document.addEventListener("pointerover", e => {
+    const el = e.target.closest("[data-tip]");
+    el ? showTip(el) : hideTip();
+  });
+  document.addEventListener("focusin", e => {
+    const el = e.target.closest("[data-tip]");
+    if (el) showTip(el);
+  });
+  document.addEventListener("focusout", hideTip);
+  addEventListener("scroll", hideTip, { passive: true });
 
   function tickUpdated() {
     if (!lastOk) return;
@@ -351,7 +746,7 @@ const PLAYTIME_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.gi
   async function load() {
     const ip = getServer();
     if (!ip) return renderAsk();
-    if (ip === SERVER) loadPlaytime();
+    if (ip === SERVER) loadStats();
     app.classList.add("loading");
     refreshBtn.disabled = true;
     try {

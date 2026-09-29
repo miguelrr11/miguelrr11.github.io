@@ -1,6 +1,6 @@
-name: Tiempo de juego MC server
+name: Estadísticas MC server
 
-# Lee las estadísticas del server por SFTP y deja playtime.json en la rama mc-stats,
+# Lee las estadísticas y los logs del server por SFTP y deja stats.json en la rama mc-stats,
 # de donde lo lee Miscellaneous/WhoIsOnlineMCserver/index.html.
 # Secrets necesarios: SFTP_HOST, SFTP_PORT, SFTP_USER, SFTP_PASSWORD.
 
@@ -13,11 +13,11 @@ permissions:
   contents: write
 
 concurrency:
-  group: mc-playtime
+  group: mc-stats
   cancel-in-progress: false
 
 jobs:
-  playtime:
+  stats:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout (solo la carpeta del script)
@@ -31,15 +31,7 @@ jobs:
 
       - run: pip install paramiko
 
-      - name: Leer estadísticas del server
-        env:
-          SFTP_HOST: ${{ secrets.SFTP_HOST }}
-          SFTP_PORT: ${{ secrets.SFTP_PORT }}
-          SFTP_USER: ${{ secrets.SFTP_USER }}
-          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
-        run: python Miscellaneous/WhoIsOnlineMCserver/playtime.py "$RUNNER_TEMP/playtime.json"
-
-      - name: Publicar en la rama mc-stats si ha cambiado
+      - name: Descargar la rama mc-stats (historial de sesiones)
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -47,15 +39,28 @@ jobs:
           git init -q -b mc-stats
           git remote add origin "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
           if git fetch -q --depth=1 origin mc-stats; then
-            git reset -q FETCH_HEAD
+            git reset -q --hard FETCH_HEAD
           fi
-          cp "$RUNNER_TEMP/playtime.json" playtime.json
-          git add playtime.json
+
+      - name: Leer estadísticas del server
+        env:
+          SFTP_HOST: ${{ secrets.SFTP_HOST }}
+          SFTP_PORT: ${{ secrets.SFTP_PORT }}
+          SFTP_USER: ${{ secrets.SFTP_USER }}
+          SFTP_PASSWORD: ${{ secrets.SFTP_PASSWORD }}
+        run: python Miscellaneous/WhoIsOnlineMCserver/stats.py "$RUNNER_TEMP/data/stats.json" "$RUNNER_TEMP/stats.json"
+
+      - name: Publicar en la rama mc-stats si ha cambiado
+        run: |
+          cd "$RUNNER_TEMP/data"
+          git rm -rq --ignore-unmatch .   # la rama contiene exactamente lo que genera el script
+          cp "$RUNNER_TEMP/stats.json" .
+          git add -A
           if git diff --cached --quiet; then
             echo "Sin cambios."
             exit 0
           fi
           git -c user.name="github-actions[bot]" \
               -c user.email="41898282+github-actions[bot]@users.noreply.github.com" \
-              commit -qm "Actualizar tiempo de juego"
+              commit -qm "Actualizar estadísticas"
           git push -q origin mc-stats
