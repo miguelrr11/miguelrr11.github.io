@@ -2,7 +2,7 @@
 
 Uso: python stats.py anterior/stats.json salida/stats.json
 Variables de entorno: SFTP_HOST, SFTP_PORT, SFTP_USER, SFTP_PASSWORD.
-Lo ejecuta .github/workflows/mc-stats.yml cada 10 minutos. Del stats.json anterior solo se
+Lo ejecuta .github/workflows/mc-stats.yml cada hora. Del stats.json anterior solo se
 reutiliza el historial de sesiones, para no perder las de logs que ya no se descargan.
 """
 import gzip

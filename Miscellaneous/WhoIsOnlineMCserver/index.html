@@ -693,7 +693,7 @@ const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.githu
       ${sectionAwards(players)}
       <section class="sec"><h2>Jugadores</h2><div class="stack">${players.map(p => ficha(p, openIds.has(p.uuid))).join("")}</div></section>
       ${sectionWorld(players)}
-      <p class="note">Se actualiza cada 10 min aprox.${isFinite(firstSession) ? ` Las sesiones se registran desde el ${date(firstSession)}.` : ""}</p>`;
+      <p class="note">Se actualiza cada hora aprox.${isFinite(firstSession) ? ` Las sesiones se registran desde el ${date(firstSession)}.` : ""}</p>`;
     statsEl.hidden = false;
   }
 

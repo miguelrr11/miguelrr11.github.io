@@ -5,8 +5,11 @@ name: Estadísticas MC server
 # Secrets necesarios: SFTP_HOST, SFTP_PORT, SFTP_USER, SFTP_PASSWORD.
 
 on:
+  # El cron de GitHub no es fiable (retrasa o salta ejecuciones cuando va cargado), así que
+  # queda solo de respaldo. Lo que lo lanza cada hora es cron-job.org llamando a la API de
+  # workflow_dispatch con un token que solo puede ejecutar Actions en este repo.
   schedule:
-    - cron: "*/10 * * * *"
+    - cron: "23 * * * *"
   workflow_dispatch:
 
 permissions:
