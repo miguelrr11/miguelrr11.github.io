@@ -13,4 +13,4 @@ CONTACT = "https://miguelrr11.github.io/Miscellaneous/WhoIsOnlineMCserver/"   # 
 
 [[kv_namespaces]]
 binding = "PUSH"
-id = "PON_AQUI_EL_ID_DEL_KV"   # el que te da `npx wrangler kv namespace create PUSH`
+id = "5d1f0424d0d24fabbd701e83e78ee33e"   # el que te da `npx wrangler kv namespace create PUSH`
