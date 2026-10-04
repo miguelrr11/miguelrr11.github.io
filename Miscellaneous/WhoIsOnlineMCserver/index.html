@@ -7,6 +7,8 @@
 <meta name="theme-color" content="#8ec5f0" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0f1b33" media="(prefers-color-scheme: dark)">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-180.png">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⛏️</text></svg>">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -21,6 +23,8 @@
 const SERVER = "172.255.204.220:25614";
 // JSON que genera .github/workflows/mc-stats.yml (solo se muestra para SERVER)
 const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.github.io/mc-stats/stats.json";
+// URL del Worker de avisos (push/worker.js) que da `npx wrangler deploy`. Vacía = no se ofrecen avisos.
+const PUSH_URL = "";
 </script>
 
 <style>
@@ -124,6 +128,19 @@ const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.githu
   .card > h3:first-child { margin-top: 0; }
   .dot { display: inline-block; width: .55rem; height: .55rem; margin: 0 .1rem 0 .4rem; border-radius: 50%; background: var(--online); vertical-align: .1em; }
   .seen .dot { margin: 0 .35rem 0 0; }
+
+  /* Avisos */
+  .push {
+    display: flex; flex-wrap: wrap; align-items: center; gap: .6rem .9rem;
+    margin-top: 2rem; padding: .8rem .9rem;
+    background: var(--panel); border-radius: 6px; font-size: .95rem;
+  }
+  .push p { margin: 0; flex: 1 1 14rem; }
+  .push .btn { font-size: .8rem; padding: .6rem .9rem; }
+  .push select { font: inherit; padding: .25rem .4rem; border: 1px solid var(--grid); border-radius: 4px; background: var(--chip); color: var(--ink); }
+  .push .muted { font-size: .85rem; }
+  .push .link { background: none; border: 0; padding: 0; color: inherit; font: inherit; text-decoration: underline; cursor: pointer; }
+  .push .push-error { flex-basis: 100%; color: var(--off); }
 
   /* Selector Total / 7 días */
   .seg { display: inline-flex; padding: 3px; border-radius: 6px; background: var(--track); }
@@ -255,6 +272,7 @@ const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.githu
 <body>
 <main>
   <div id="app" aria-live="polite"></div>
+  <section id="push" class="push" hidden></section>
   <div id="stats" hidden></div>
 </main>
 <div id="tip" class="tip" role="tooltip" hidden></div>
@@ -272,6 +290,7 @@ const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.githu
   const updatedEl = document.getElementById("updated");
   const refreshBtn = document.getElementById("refresh");
   const statsEl = document.getElementById("stats");
+  const pushEl = document.getElementById("push");
   const tip = document.getElementById("tip");
   let lastOk = null;
   let timer = null;
@@ -325,6 +344,7 @@ const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.githu
     updatedEl.textContent = "";
     refreshBtn.hidden = true;
     statsEl.hidden = true;
+    pushEl.hidden = true;
     app.innerHTML = `
       <h1>¿Qué server miramos?</h1>
       <p class="sub">Escribe la dirección que usáis en Minecraft. Se guarda en el enlace para compartirlo.</p>
@@ -701,8 +721,10 @@ const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.githu
     try {
       const r = await fetch(STATS_URL, { cache: "no-cache" });
       if (!r.ok) return;
+      const first = !stats;
       stats = await r.json();
       renderStats();
+      if (first) renderPush();  // para la lista de "Yo soy"
     } catch {}
   }
 
@@ -737,6 +759,102 @@ const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.githu
   document.addEventListener("focusout", hideTip);
   addEventListener("scroll", hideTip, { passive: true });
 
+  // ============ Avisos (Web Push): los manda el Worker de Cloudflare de push/worker.js ============
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+  const installed = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
+  const pushSupported = "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+  let pushSub = null;    // suscripción de este dispositivo
+  let pushError = "";
+
+  const getMe = () => { try { return localStorage.getItem("mc-me") || ""; } catch { return ""; } };
+  const setMe = name => { try { localStorage.setItem("mc-me", name); } catch {} };
+  const b64urlToBytes = s => Uint8Array.from(atob(s.replace(/-/g, "+").replace(/_/g, "/")), c => c.charCodeAt(0));
+
+  async function pushApi(path, body) {
+    const r = await fetch(PUSH_URL + path, body
+      ? { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }
+      : undefined);
+    if (!r.ok) throw new Error(`${path}: ${r.status}`);
+    return r.json();
+  }
+
+  function renderPush() {
+    pushEl.hidden = !PUSH_URL || getServer() !== SERVER;
+    if (pushEl.hidden) return;
+    let html;
+    if (!pushSupported) {
+      html = isIOS && !installed
+        ? `<p>🔔 <b>¿Quieres un aviso cuando alguien entre?</b> En iPhone, pulsa <b>Compartir</b> → <b>Añadir a pantalla de inicio</b> y abre la web desde ese icono.</p>`
+        : `<p>🔔 Este navegador no permite avisos.</p>`;
+    } else if (Notification.permission === "denied") {
+      html = `<p>🔔 Has bloqueado las notificaciones de esta web. Para recibir avisos, permítelas en los ajustes del navegador.</p>`;
+    } else if (pushSub) {
+      const me = getMe();
+      const names = [...new Set([me, ...(stats?.players || []).map(p => p.name)].filter(Boolean))].sort((a, b) => a.localeCompare(b));
+      html = `
+        <p>🔔 Avisos activados: te llegará una notificación cuando alguien entre.</p>
+        <label>Yo soy <select id="me"><option value="">—</option>${names.map(n =>
+          `<option value="${esc(n)}"${n === me ? " selected" : ""}>${esc(n)}</option>`).join("")}</select>
+          <span class="muted">(para no avisarte de ti)</span></label>
+        <button type="button" class="link" id="push-off">Desactivar</button>`;
+    } else {
+      html = `<p>🔔 Recibe un aviso cuando alguien entre al server.</p><button type="button" class="btn" id="push-on">Activar avisos</button>`;
+    }
+    pushEl.innerHTML = html + (pushError ? `<p class="push-error">${pushError}</p>` : "");
+  }
+
+  async function enablePush() {
+    pushError = "";
+    try {
+      // En iPhone el permiso hay que pedirlo nada más pulsar, antes de cualquier otra espera
+      if (await Notification.requestPermission() === "granted") {
+        const reg = await navigator.serviceWorker.register("sw.js");
+        await navigator.serviceWorker.ready;
+        const { key } = await pushApi("/key");
+        await (await reg.pushManager.getSubscription())?.unsubscribe();  // por si era de otra clave
+        const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64urlToBytes(key) });
+        try {
+          await pushApi("/subscribe", { subscription: sub.toJSON(), me: getMe() });
+        } catch (e) {
+          await sub.unsubscribe();
+          throw e;
+        }
+        pushSub = sub;
+      }
+    } catch {
+      pushError = "No se han podido activar los avisos. Inténtalo otra vez.";
+    }
+    renderPush();
+  }
+
+  async function disablePush() {
+    const sub = pushSub;
+    pushSub = null;
+    renderPush();
+    await pushApi("/unsubscribe", { endpoint: sub.endpoint }).catch(() => {});
+    await sub.unsubscribe().catch(() => {});
+  }
+
+  async function initPush() {
+    if (pushSupported && PUSH_URL) {
+      const reg = await navigator.serviceWorker.getRegistration().catch(() => null);
+      pushSub = (await reg?.pushManager.getSubscription()) || null;
+      // Se reenvía al abrir la web por si el Worker la perdió (si no ha cambiado, no escribe nada)
+      if (pushSub) pushApi("/subscribe", { subscription: pushSub.toJSON(), me: getMe() }).catch(() => {});
+    }
+    renderPush();
+  }
+
+  pushEl.addEventListener("click", e => {
+    if (e.target.id === "push-on") enablePush();
+    if (e.target.id === "push-off") disablePush();
+  });
+  pushEl.addEventListener("change", e => {
+    if (e.target.id !== "me") return;
+    setMe(e.target.value);
+    pushApi("/subscribe", { subscription: pushSub.toJSON(), me: e.target.value }).catch(() => {});
+  });
+
   function tickUpdated() {
     if (!lastOk) return;
     const sec = Math.round((Date.now() - lastOk) / 1000);
@@ -764,6 +882,7 @@ const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.githu
 
   function start() {
     refreshBtn.hidden = false;
+    renderPush();
     clearInterval(timer);
     load();
     timer = setInterval(() => { if (!document.hidden) load(); }, REFRESH_MS);
@@ -774,6 +893,7 @@ const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.githu
   setInterval(tickUpdated, 5000);
 
   getServer() ? start() : renderAsk();
+  initPush();
 })();
 </script>
 </body>

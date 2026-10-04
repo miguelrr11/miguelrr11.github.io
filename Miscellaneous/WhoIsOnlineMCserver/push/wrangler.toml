@@ -1,0 +1,16 @@
+# Worker de avisos del server de Minecraft. Se despliega desde esta carpeta con `npx wrangler deploy`.
+name = "mc-avisos"
+main = "worker.js"
+compatibility_date = "2025-09-01"
+
+[triggers]
+crons = ["* * * * *"]   # cada minuto
+
+[vars]
+SERVER = "172.255.204.220:25614"
+ALLOWED_ORIGIN = "https://miguelrr11.github.io"
+CONTACT = "https://miguelrr11.github.io/Miscellaneous/WhoIsOnlineMCserver/"   # lo exige VAPID; los servicios de push lo usan si hay problemas
+
+[[kv_namespaces]]
+binding = "PUSH"
+id = "PON_AQUI_EL_ID_DEL_KV"   # el que te da `npx wrangler kv namespace create PUSH`
