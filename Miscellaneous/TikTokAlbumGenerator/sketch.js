@@ -1952,7 +1952,7 @@ function createTracksAdjustPanel() {
     // --- Text Size ---
     let sizeGroup = createDiv('').parent(tracksAdjustPanel).class('sap-group');
     createSpan('Text Size').parent(sizeGroup).class('sap-label');
-    tracksTextSizeSlider = createSlider(30, 80, 60, 2).parent(sizeGroup).class('sap-slider');
+    tracksTextSizeSlider = createSlider(22, 45, 60, 2).parent(sizeGroup).class('sap-slider');
     tracksTextSizeLabel = createSpan('60').parent(sizeGroup).class('sap-value');
     tracksTextSizeSlider.input(() => {
         tracksTextSize = tracksTextSizeSlider.value();
@@ -4150,6 +4150,8 @@ function drawTrackList() {
             let noteX = (twoColumns ? N.x.twoColumns : N.x.oneColumn) + columnShift + horizOffset;
             let noteMaxWidth = twoColumns ? N.maxWidth.twoColumns : N.maxWidth.oneColumn;
             let noteY = rowY + N.topGap;
+
+            N.fontSize = tracksTextSize - 7
 
             push();
             rectMode(CORNER); // anchor the text box at its top-left so noteX is the left edge
