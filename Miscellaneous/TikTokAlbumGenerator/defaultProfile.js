@@ -71,7 +71,7 @@ let defaultProfileSaved = {
                         "val": {
                             "prevID": "custom_1785251838428",
                             "nextID": "custom_1785251886944",
-                            "distance": 15.201427366238931
+                            "distance": 11.201427366238931
                         }
                         },
                         {
@@ -79,7 +79,7 @@ let defaultProfileSaved = {
                         "val": {
                             "prevID": "custom_1785251853712",
                             "nextID": "custom_1785251928912",
-                            "distance": 40.79565339789531
+                            "distance": 44.79565339789531
                         }
                         },
                         {
@@ -87,7 +87,7 @@ let defaultProfileSaved = {
                         "val": {
                             "prevID": "custom_1785251886944",
                             "nextID": "custom_1785251952709",
-                            "distance": 12.75007579672183
+                            "distance": 17.75007579672183
                         }
                         },
                         {
@@ -251,7 +251,7 @@ let defaultProfileSaved = {
     "fontType": "fontRegularCondensed",
     "leading": 0,
     "maxWidth": 980,
-    "text": "before the review",
+    "text": "for a deeper dive",
     "glitch": false,
     "pageId": "page_1",
     "textAlign": "left",

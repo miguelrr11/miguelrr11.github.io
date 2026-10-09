@@ -4151,7 +4151,7 @@ function drawTrackList() {
             let noteMaxWidth = twoColumns ? N.maxWidth.twoColumns : N.maxWidth.oneColumn;
             let noteY = rowY + N.topGap;
 
-            N.fontSize = tracksTextSize - 7
+            N.fontSize = tracksTextSize * .7
 
             push();
             rectMode(CORNER); // anchor the text box at its top-left so noteX is the left edge
