@@ -474,6 +474,27 @@ let genreDescriptions = {
     "Post-Punk Revival": "Incorporating the sounds and aesthetics of Post-Punk into Indie Rock, with jagged guitarwork, a dominant and danceable rhythm section, clean production, and poppy song structures.",
     "New Wave": "Broad term referring to a variety of styles that saw popularity in the wake of the Punk Rock explosion of 1976-77, initially strongly associated with more accessible and stylish offshoots of punk; developed alongside Post-Punk, similarly emphasising freshness and daring.",
     "Slowcore": "Characterized by its subdued, often sombre songwriting and slow tempos, while taking primarily from genres like Dream Pop and Folk Rock.",
+    "Blackgaze": "Fuses tremolo-picked riffing, intense drumming and harsh vocal techniques with mellow, dreamy textures, major-key melodies and extended build-ups.",
+    "Poetry": "Encompasses many forms of literature that use style and rhythm to evoke ideas and emotions further than the prosaic meaning of the literature itself.",
+    "New Age": "Broad genre centered on peaceful, meditative melodies, using a wide variety of instrumentation.",
+    "Atmospheric Drum and Bass": "Prominent in the mid-1990s, uses faster, de-emphasized breakbeats, and places a greater focus on melodic elements such as slow, warm basslines and atmospheric melodies inspired by Ambient and Ambient House.",
+    "Contemporary R&B": "Soulful, passionate and melismatic vocals originally derived from popular Soul and Disco, as well as smooth, lush and often synthesized production variously influenced by Hip Hop, Funk, and related strands of Pop.",
+    "Chamber Folk": "Gentle fingerpicked acoustic guitar or harp-led music that commonly includes a backing ensemble of harpsichords, strings, horns, or other orchestral instruments.",
+    "Alternative Dance": "Incorporates rhythms and synthesizers from Electronic Dance Music within the context of Alternative Rock and related styles; predominantly popular in the 1990s.",
+    "Synthpop": "Led by melodic synthesizer sounds, often with reverberating drum machine patterns; commonly associated with the 1980s.",
+    "Chillwave": "Emulates vintage aesthetics and popular musical styles of the 1980s/1990s altered by modern recording technology to create a hazy dreamlike atmosphere.",
+    "Ethereal Wave": "Atmospheric guitar and synthesizer soundscapes, effects like reverb and delay, and commonly soprano female vocals to create a surreal, otherworldly effect.",
+    "Psychedelic Soul": "Soul which incorporates the effects and instrumentation of Psychedelic Rock.",
+    "Funk": "Danceable, syncopated grooves carried by bass and drums alongside percussive guitar, keyboard, and/or horn parts, with rhythmic emphasis on the downbeat.",
+    "Grindcore": "Brief and intense song structures featuring a plethora of blast beats, down-tuned and tremolo-picked guitars, and abrasive, usually raw production.",
+    "Slacker Rock": "Raw, noisy, and melodic, with a loose, blasé approach to performances and typically low-fidelity production.",
+    "Alt-Country": "Arose in the 1980s and 1990s, performed by artists with roots in Alternative Rock and Indie Rock who were disconnected from the mainstream Country industry.",
+    "Country Rock": "Combination of contemporary Rock with more traditional American Country.",
+    "Jazz-Funk": "Jazz highly influenced by Funk",
+    "Jazz Fusion": "Near-universal usage of electric guitars and keyboards coupled with influences from genres such as Rock, Rhythm & Blues, Funk, and Traditional Folk Music, and a relative degree of harmonic simplicity.",
+    "Space Age Pop": "Inspired by the excitement and optimism of the Space Age during the 1950s and 196Os, frequently experimenting with futuristic sounds made possible by contemporary technology.",
+    "Neo-Soul": "Emerged during the mid-to-late 1990s; defined by a combination of Soul with the rhythmic percussion and groove of Hip Hop.",
+    "Hip Hop": "Emerged primarily on the United States East Coast in African-American communities in the late 1970s; emphasizes rhythmic beat patterns and a type of spoken vocal delivery known as rapping.",
     
-    
+
 }
