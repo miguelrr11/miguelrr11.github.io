@@ -130,8 +130,6 @@ def player_stats(stats, done):
         if stat.endswith("_one_cm") and stat != "fall_one_cm":
             distance[DISTANCE.get(stat, "ride")] += cm
 
-    # Los "root" son la cabecera de cada pestaña de logros ("Minecraft", "El Nether"...)
-    recent = sorted(((k, t) for k, t in done.items() if not k.endswith("/root")), key=lambda kv: kv[1], reverse=True)[:3]
     return {
         # Todo lo que es tiempo va en ticks (20 por segundo); antes de la 1.17 play_time era play_one_minute
         "playtime": (get("play_time") or get("play_one_minute")) // 20,
@@ -151,10 +149,8 @@ def player_stats(stats, done):
         "topKilled": top(stats.get("minecraft:killed", {}), NAMES["entities"]),
         "topKilledBy": top(stats.get("minecraft:killed_by", {}), NAMES["entities"]),
         "advancements": len(done),
-        "recentAdvancements": [
-            {"title": NAMES["advancements"].get(key) or pretty(key.split("/")[-1]), "time": time}
-            for key, time in recent
-        ],
+        # {logro: momento}; la web saca de advancements.json su nombre, icono y pestaña
+        "done": {key.removeprefix("minecraft:"): time for key, time in sorted(done.items())},
     }
 
 
