@@ -4072,7 +4072,7 @@ function getMiddleTrack() {
     push();
     const T = RATINGS_LAYOUT.tracks;
     const N = T.note;
-    textFont(fontLight); textSize(N.fontSize); textAlign(LEFT, TOP);
+    textFont(fontLight); textSize(tracksTextSize * .7); textAlign(LEFT, TOP);
     const S = T.rowSpacing;
     const rowSpacing = Math.min(map(albumData.tracks.length, S.fewTracks, S.manyTracks, S.max, S.min, true), S.cap) + tracksSpacing;
     const heightWithoutText = tracksRectHeight + rowSpacing;
@@ -4080,22 +4080,21 @@ function getMiddleTrack() {
     const heights = albumData.tracks.map(track => {
         let h = heightWithoutText;
         if (track.customTextLarge && track.customTextLarge.trim() !== '') {
-            h += wrappedTextHeight(track.customTextLarge, N.maxWidth.twoColumns) + N.topGap;
+            let bbox = textFont().textBounds(getRichText(track.customTextLarge), 0, 0, N.maxWidth.twoColumns);
+            h += bbox.h + N.topGap + N.bottomGap
+            //h += wrappedTextHeight(track.customTextLarge, N.maxWidth.twoColumns) + N.topGap + N.bottomGap
         }
         return h;
     });
     pop();
 
+
     const midH = heights.reduce((a, b) => a + b, 0) * 0.5;
 
     let sum = 0;
     for (let i = 0; i < heights.length; i++) {
-        const before = sum;          // column 1 = tracks 0..i-1
-        sum += heights[i];           // column 1 = tracks 0..i
-        if (sum >= midH) {
-            // return value = number of tracks in column 1 (= first index of column 2)
-            return Math.abs(before - midH) < Math.abs(sum - midH) ? i : i + 1;
-        }
+        sum += heights[i];
+        if (sum >= midH) return i + 1; 
     }
     return heights.length;
 }
