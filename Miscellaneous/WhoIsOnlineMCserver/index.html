@@ -27,6 +27,8 @@ const STATS_URL = "https://raw.githubusercontent.com/miguelrr11/miguelrr11.githu
 const PUSH_URL = "https://mc-avisos.mconline.workers.dev";
 // Logros del juego e iconos (advancements.png), generados con gen_advancements.py
 const ADV_URL = "advancements.json";
+// Mapa 3D (BlueMap). Para elegir dónde empieza la cámara, copia la URL del mapa con su # (p. ej. https://mapa.mrod.app/#world:...). Vacía = sin mapa.
+const MAP_URL = "https://mapa.mrod.app";
 </script>
 
 <style>
@@ -350,6 +352,20 @@ const ADV_URL = "advancements.json";
   /* Quien lo consiguió primero (o ganó el premio) brilla */
   img.head.first { box-shadow: 0 0 0 2px var(--gold), 0 0 10px 2px var(--gold-glow); }
 
+  /* Mapa 3D (BlueMap): se carga al pulsar, para no gastar datos ni atrapar el scroll en móvil */
+  .map-link { font-size: .9rem; color: var(--ink-soft); }
+  .map {
+    border-radius: 6px; overflow: hidden;
+    background: var(--panel);
+    background-image: linear-gradient(var(--track) 1px, transparent 1px), linear-gradient(90deg, var(--track) 1px, transparent 1px);
+    background-size: 24px 24px; background-position: center;
+  }
+  .map.on { height: clamp(20rem, 65vh, 42rem); background: var(--panel); }
+  .map iframe { display: block; width: 100%; height: 100%; border: 0; }
+  .map-cover { display: grid; justify-items: center; gap: 1rem; padding: 2.5rem 1.25rem; text-align: center; }
+  .map-cover p { margin: 0; max-width: 22rem; color: var(--ink-soft); }
+  .map-cover .btn:disabled { opacity: .55; cursor: default; transform: none; }
+
   form { display: grid; gap: .75rem; }
   label { font-weight: 600; }
   input {
@@ -432,6 +448,18 @@ const ADV_URL = "advancements.json";
 <main>
   <div class="wrap">
     <div id="app" aria-live="polite"></div>
+    <section id="map" class="sec" hidden>
+      <div class="sec-head">
+        <h2>Mapa</h2>
+        <a class="map-link" id="map-open" target="_blank" rel="noopener">Abrir en otra pestaña ↗</a>
+      </div>
+      <div class="map" id="map-box">
+        <div class="map-cover">
+          <p id="map-msg"></p>
+          <button class="btn" type="button" id="map-load">Ver el mapa</button>
+        </div>
+      </div>
+    </section>
     <div id="stats" hidden></div>
   </div>
   <div class="dock" id="dock" hidden>
@@ -515,6 +543,7 @@ const ADV_URL = "advancements.json";
     updatedEl.textContent = "";
     refreshBtn.hidden = true;
     statsEl.hidden = true;
+    mapEl.hidden = true;
     dock.hidden = true;
     app.innerHTML = `
       <h1>¿Qué server miramos?</h1>
@@ -579,6 +608,7 @@ const ADV_URL = "advancements.json";
     document.title = s.online ? `(${s.count}) ¿Quién está en el server?` : "Apagado · ¿Quién está en el server?";
     online = new Set(s.online ? real : []);
     renderStats();
+    renderMap();
   }
 
   // Cuando no hay nadie: quién fue el último (según el historial de sesiones, que va con ~1 h de retraso)
@@ -1215,6 +1245,33 @@ const ADV_URL = "advancements.json";
   document.addEventListener("focusout", e => { if (!e.target.closest("[data-chart]")) hideTip(); });
   addEventListener("scroll", hideTip, { passive: true });
 
+  // ============ Mapa 3D (BlueMap): fuera de #app para que el iframe no se recargue cada minuto ============
+  const mapEl = document.getElementById("map");
+  const mapBox = document.getElementById("map-box");
+  const mapMsg = document.getElementById("map-msg");
+  const mapLoad = document.getElementById("map-load");
+  document.getElementById("map-open").href = MAP_URL;
+
+  function renderMap() {
+    mapEl.hidden = !MAP_URL || getServer() !== SERVER;
+    if (mapEl.hidden || mapBox.classList.contains("on")) return;
+    // Con el server apagado BlueMap tampoco responde (saldría un error de Cloudflare)
+    const off = status && !status.online;
+    mapMsg.textContent = off
+      ? "El servidor está apagado, así que el mapa no está disponible ahora mismo."
+      : "El mundo en 3D. Lo que construyáis aparece a los pocos minutos.";
+    mapLoad.disabled = !!off;
+  }
+
+  mapLoad.addEventListener("click", () => {
+    const frame = document.createElement("iframe");
+    frame.src = MAP_URL;
+    frame.title = "Mapa 3D del mundo";
+    frame.allow = "fullscreen";
+    mapBox.classList.add("on");
+    mapBox.replaceChildren(frame);
+  });
+
   // ============ Avisos (Web Push): los manda el Worker de Cloudflare de push/worker.js ============
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
   const installed = navigator.standalone || matchMedia("(display-mode: standalone)").matches;
@@ -1352,6 +1409,7 @@ const ADV_URL = "advancements.json";
   function start() {
     refreshBtn.hidden = false;
     renderPush();
+    renderMap();
     clearInterval(timer);
     refresh();
     timer = setInterval(() => { if (!document.hidden) refresh(); }, REFRESH_MS);
