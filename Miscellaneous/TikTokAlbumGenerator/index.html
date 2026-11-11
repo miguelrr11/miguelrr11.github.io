@@ -6,41 +6,63 @@
     <title>Album Rating Generator</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <link rel="icon" href="favicon.png" type="image/png">
     <script src="https://cdn.jsdelivr.net/npm/p5@2.0.5/lib/p5.min.js"></script>
-    <script src="libraries/p5.utils.min.js"></script>
-    <script src="https://unpkg.com/monaco-editor@latest/min/vs/loader.js"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
-    <script>
-      require.config({ paths: { vs: 'https://unpkg.com/monaco-editor@latest/min/vs' }});
-    </script>
   </head>
-  <body>
-    <main>
-      <!-- Preview column: page tabs on top, canvas below -->
-      <div id="preview-column">
+  <body data-mtab="preview">
+    <div id="app">
+      <!-- Preview: page tabs on top, the canvas below -->
+      <aside id="preview">
         <div id="page-tabs"></div>
-        <div id="canvas-container"></div>
-      </div>
-      <div id="editor-panel" class="editor-panel"></div>
-    </main>
+        <div id="canvas-container"><div id="canvas-scaler"></div></div>
+      </aside>
 
-    <!-- Drag and Drop Overlay -->
+      <!-- Editor: top bar + content · tracks · design -->
+      <main id="workspace">
+        <header id="topbar"></header>
+        <div id="columns">
+          <section class="col" id="col-content" aria-label="Album and page content"></section>
+          <section class="col" id="col-tracks" aria-label="Tracks"></section>
+          <section class="col" id="json-panel" aria-label="JSON editor"></section>
+          <section class="col" id="col-design" aria-label="Design"></section>
+        </div>
+      </main>
+    </div>
+
+    <nav id="mobile-tabbar"></nav>
+
     <div id="drag-overlay" class="drag-overlay">
       <div class="drag-overlay-content">
-        <div class="drag-overlay-icon">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
-          </svg>
-        </div>
-        <h3>Drop JSON file here</h3>
-        <p>Release to load album data</p>
+        <h3>Drop it here</h3>
+        <p>A review .json opens it · an image becomes the album cover</p>
       </div>
     </div>
-    <script src="defaultProfile.js"></script>
-    <script src="Utils.js"></script>
-    <script src="sketch.js"></script>
+
+    <!-- pure logic (also used by the unit tests) -->
+    <script src="js/core/model.js"></script>
+    <script src="js/core/genres.js"></script>
+    <script src="js/render/glitch-core.js"></script>
+    <!-- app -->
+    <script src="js/ui/dom.js"></script>
+    <script src="js/core/store.js"></script>
+    <script src="js/render/text.js"></script>
+    <script src="js/render/glitch.js"></script>
+    <script src="js/render/draw.js"></script>
+    <script src="js/ui/actions.js"></script>
+    <script src="js/ui/stage.js"></script>
+    <script src="js/ui/content.js"></script>
+    <script src="js/ui/tracks.js"></script>
+    <script src="js/ui/design.js"></script>
+    <script src="js/ui/glitchpanel.js"></script>
+    <script src="js/ui/selbar.js"></script>
+    <script src="js/ui/setup.js"></script>
+    <script src="js/ui/topbar.js"></script>
+    <script src="js/ui/ai.js"></script>
+    <script src="js/export.js"></script>
+    <script src="js/anim.js"></script>
+    <script src="js/main.js"></script>
   </body>
 </html>

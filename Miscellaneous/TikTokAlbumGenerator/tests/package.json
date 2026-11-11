@@ -1,0 +1,16 @@
+{
+  "name": "album-rating-generator-tests",
+  "private": true,
+  "description": "Tests for the Album Rating Generator (the app itself has no build step or dependencies).",
+  "scripts": {
+    "test": "npm run test:unit && npm run test:e2e",
+    "test:unit": "node --test unit/*.test.js",
+    "test:e2e": "node --test --test-concurrency=1 e2e/*.test.mjs",
+    "test:parity": "node --test e2e/parity.test.mjs"
+  },
+  "devDependencies": {
+    "pixelmatch": "^7.1.0",
+    "pngjs": "^7.0.0",
+    "puppeteer-core": "^24.0.0"
+  }
+}

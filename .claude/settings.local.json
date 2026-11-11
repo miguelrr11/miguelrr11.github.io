@@ -7,7 +7,26 @@
       "Bash(command -v python3)",
       "Bash(node -e \"try{require.resolve\\('playwright'\\);console.log\\('playwright: yes'\\)}catch\\(e\\){console.log\\('playwright: no'\\)}\")",
       "Bash(node -e \"try{require.resolve\\('puppeteer'\\);console.log\\('puppeteer: yes'\\)}catch\\(e\\){console.log\\('puppeteer: no'\\)}\")",
-      "Read(//Users/miguelrodriguezmbp/.cache/**)"
+      "Read(//Users/miguelrodriguezmbp/.cache/**)",
+      "Bash(python3 -)",
+      "Bash(node -e \"const M=require\\('./js/core/model.js'\\);const d=M.migrate\\(require\\('./tests/fixtures/legacy-standard.json'\\)\\);console.log\\(JSON.stringify\\(d.glitch.title.edges\\),JSON.stringify\\(d.glitch.image.edges\\)\\)\")",
+      "Bash(node new.js parity)",
+      "Bash(node -e ' *)",
+      "Bash(node crop.js standard-ratings 1030 490 330 110 out-new/c3.png)",
+      "Bash(node -e *)",
+      "Bash(node probe.js legacy ' *)",
+      "Bash(sed -i '' 's|        App.loadFile\\(json\\);|        if \\(window.__READBACK\\) for \\(let i = 0; i < 6; i++\\) drawingContext.getImageData\\(0, 0, 4, 4\\);\\\\n        App.loadFile\\(json\\);|' new.js)",
+      "Bash(sed -i '' \"s|    const page = await browser.newPage\\(\\);|    const page = await browser.newPage\\(\\); if \\(process.env.READBACK\\) await page.evaluateOnNewDocument\\(\\(\\) => { window.__READBACK = true; }\\);|\" new.js)",
+      "Bash(READBACK=1 node new.js parity)",
+      "Bash(node analyze.js many-ratings)",
+      "Bash(node analyze.js many-cover)",
+      "Bash(node analyze.js standard-ratings)",
+      "Bash(node crop.js many-ratings 0 330 700 160 out-new/c4.png)",
+      "Bash(node new.js shot)",
+      "Bash(node --test tests/unit/*.test.js)",
+      "Bash(node --test --test-concurrency=1 e2e/workflow.test.mjs)",
+      "Bash(node probe.js new ' *)",
+      "Bash(node --test tests/unit/glitch.test.js)"
     ]
   }
 }
