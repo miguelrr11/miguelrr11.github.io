@@ -60,7 +60,7 @@ function getRadius(circumference) {
     return circumference / (2 * Math.PI);
 }
 
-function mod(n, m) {
+function modd(n, m) {
     return ((n % m) + m) % m;
 }
 
