@@ -8,11 +8,17 @@ const ENEMY_RAD = 15
 
 class Game{
     constructor(){
+        this.towerGrid = []      //stores what does exist (towers and path segments) in each [i,j] position for easier lookups
+        this.initGrid()
         this.path = this.createRandomPath(
             {i: floor(N_CELLS/4), j: 0},
             {i: floor(3*N_CELLS/4), j: N_CELLS - 1},
             {i: -1, j: N_CELLS - 1}
         )
+        this.path.unshift({i: this.path[0].i, j: this.path[0].j-1})
+        this.path.push({i: this.path[this.path.length-1].i, j: this.path[this.path.length-1].j+1})
+
+        
         this.enemies = []
         this.towers = []
         this.projectiles = []
@@ -20,8 +26,22 @@ class Game{
         this.initPath()
         this.spawnEnemy()
         this.initOres()
+        this.currentOre = Infinity
         this.UI = new UI(this)
+        this.particleManager = new ParticleManager()
         this.doingAction = undefined
+
+        this.enemiesPerSecond = 2
+        this.totalEnemies = 0  //all historical amount ever spawned
+    }
+
+    initGrid(){
+        for(let i = 0; i < N_CELLS; i++){
+            this.towerGrid[i] = []
+            for(let j = 0; j < N_CELLS; j++){
+                this.towerGrid[i][j] = null
+            }
+        }
     }
 
     initOres(){
@@ -37,8 +57,9 @@ class Game{
             for(let i = 0; i < N_CELLS_ORE; i++){
                 this.oreGrid[i] = []
                 for(let j = 0; j < N_CELLS_ORE; j++){
-                    if(noise(i*scale + seed, j*scale + seed) > 0.65) {
-                        this.oreGrid[i][j] = 1
+                    let val = noise(i*scale + seed, j*scale + seed)
+                    if(val > 0.65) {
+                        this.oreGrid[i][j] = val
                         count++
                     }
                     else this.oreGrid[i][j] = 0
@@ -59,7 +80,8 @@ class Game{
     getEnemiesInRange(tower){
         let inRange = []
         for(let en of this.enemies){
-            if(Math.sqrt((en.pos.x - tower.pos.x)*(en.pos.x - tower.pos.x) + 
+            if(inBounds(en.pos.x, en.pos.y, 0, 0, WIDTH_SCENE, HEIGHT_SCENE) &&
+                Math.sqrt((en.pos.x - tower.pos.x)*(en.pos.x - tower.pos.x) + 
                          (en.pos.y - tower.pos.y)*(en.pos.y - tower.pos.y)) < tower.range){
                             inRange.push(en)
                          }
@@ -71,17 +93,16 @@ class Game{
         this.doingAction = tag
     }
 
-    getTower(x, y){
+    //either null, tower, or 'path_seg'
+    getElementTowerGrid(x, y){
+        if(!inBounds(x, y, 0, 0, WIDTH_SCENE, HEIGHT_SCENE)) return
         let i = Math.floor(x/(WIDTH_SCENE/N_CELLS))
         let j = Math.floor(y/(HEIGHT_SCENE/N_CELLS))
-        for(let tower of this.towers){
-            if(tower.gridPos.i == i && tower.gridPos.j == j) return tower
-        }
-        return undefined
+        return this.towerGrid[i][j]
     }
 
     dbClick(x, y){
-        let tower = this.getTower(x, y)
+        let tower = this.getElementTowerGrid(x, y)
         if(tower){
             tower.levelUp()
         }
@@ -91,25 +112,55 @@ class Game{
         this.UI.click(x, y)
     }
 
-    //UI calls this when it knows the click its not in the UI
-    clickAction(x, y){
-        if(this.doingAction == 'addCanon') this.plantTower(x, y)
+    addOre(count, pos){
+        this.currentOre += count
+        for(let i = 0; i < count; i++) {
+            let angle = random(TWO_PI)
+            let speed = random(2, 5)
+            this.particleManager.addParticle({
+                pos: createVector(pos.x, pos.y),
+                vel: createVector(Math.cos(angle) * speed, Math.sin(angle) * speed),
+                acc: createVector(1.1, 1.1),
+                size: 3,
+                color: [0, 0, 0],
+                goal: createVector(WIDTH - 20, HEIGHT_SCENE + HEIGHT_UI*.5)
+            })
+        }
     }
 
-    plantTower(x, y){
-        let tower = this.getTower(x, y)
+    //UI calls this when it knows the click its not in the UI
+    clickAction(x, y){
+        if(this.doingAction == 'addCanon') this.plantTower(x, y, 'addCanon')
+        if(this.doingAction == 'addMiner') this.plantTower(x, y, 'addMiner')
+        if(this.doingAction == 'addCrossBow') this.plantTower(x, y, 'addCrossBow')
+    }
+
+    plantTower(x, y, type){
+        let tower = this.getElementTowerGrid(x, y)
         if(tower) return
 
         let i = Math.floor(x/(WIDTH_SCENE/N_CELLS))
         let j = Math.floor(y/(HEIGHT_SCENE/N_CELLS))
-        this.towers.push(new Canon({
-            x: i * SIZE_CELL + SIZE_CELL * .5,
-            y: j * SIZE_CELL + SIZE_CELL * .5
-        }, 
-        {i, j},
-        this))
+        let _x = i * SIZE_CELL + SIZE_CELL * .5
+        let _y = j * SIZE_CELL + SIZE_CELL * .5
+        if(type == 'addCanon' && this.currentOre >= CANON_BASE_PRICE) {
+            this.towers.push(new Canon({x:_x, y:_y}, {i, j}, this))
+            this.currentOre -= CANON_BASE_PRICE
+            this.towerGrid[i][j] = this.towers[this.towers.length - 1]
+        }
+        else if(type == 'addMiner' && this.currentOre >= MINER_BASE_PRICE) {
+            this.towers.push(new Miner({x:_x, y:_y}, {i, j}, this))
+            this.currentOre -= MINER_BASE_PRICE
+            this.towerGrid[i][j] = this.towers[this.towers.length - 1]
+        }
+        else if(type == 'addCrossBow' && this.currentOre >= CROSSBOW_BASE_PRICE) {
+            this.towers.push(new CrossBow({x:_x, y:_y}, {i, j}, this))
+            this.currentOre -= CROSSBOW_BASE_PRICE
+            this.towerGrid[i][j] = this.towers[this.towers.length - 1]
+        }
     }
 
+    //p.enemies is not used and not mantained
     initPath(){
         for(let p of this.path) p.enemies = []
     }
@@ -163,6 +214,9 @@ class Game{
             }
         }
         console.timeEnd('trackGen')
+        for(let p of path){
+            this.towerGrid[p.i][p.j] = 'path_seg'
+        }
         return path
     }
 
@@ -171,11 +225,13 @@ class Game{
             x: this.path[0].i * SIZE_CELL,
             y: this.path[0].j * SIZE_CELL
         }, 0))
+        this.totalEnemies++
     }
 
     update(){
-        if(Math.random() < 0.01) this.spawnEnemy()
+        if(Math.random() < this.enemiesPerSecond/60) this.spawnEnemy()
         this.UI.update()
+        this.particleManager.updateParticles()
 
         const m = SIZE_CELL * .5
         for(let i = this.enemies.length - 1; i >= 0; i--){
@@ -188,7 +244,7 @@ class Game{
                 continue
             }
 
-            en.t += en.speed * deltaTime
+            en.t += en.speed * dt
 
             while(en.t >= 1){
                 en.t -= 1
@@ -217,13 +273,14 @@ class Game{
             pr.update()
             for(let en of this.enemies){
                 if(!pr.enemiesTouchedID.includes(en.id) && 
-                    Math.sqrt((pr.pos.x - en.pos.x)*(pr.pos.x - en.pos.x) + 
-                    (pr.pos.y - en.pos.y)*(pr.pos.y - en.pos.y)) < ENEMY_RAD){ 
+                    distanceAB(pr.pos, en.pos) < ENEMY_RAD){ 
 
-                    if(pr.hit(en.id)) en.hit(pr.damage)
+                    if(pr.hit(en.id)) en.hit(pr)
                 }
             }
         }
+
+        //console.log(round(this.totalEnemies/(frameCount/60), 2))
     }  
     
     showOreGrid(){
@@ -234,7 +291,8 @@ class Game{
         let m = SIZE_CELL_ORE * .5
         for(let i = 0; i < N_CELLS_ORE; i++){
             for(let j = 0; j < N_CELLS_ORE; j++){
-                if(this.oreGrid[i][j] == 1){
+                if(this.oreGrid[i][j] > 0){
+                    fill(map(this.oreGrid[i][j], 0.65, 1, 240, 160))
                     square(i*SIZE_CELL_ORE + m, j*SIZE_CELL_ORE + m, SIZE_CELL_ORE)
                 }
             }
@@ -255,7 +313,7 @@ class Game{
 
     showUI(){
         push()
-        noFill()
+        fill(255)
         strokeWeight(1.5)
         stroke(180)
         rect(0, HEIGHT_SCENE, WIDTH_SCENE, HEIGHT)
@@ -266,23 +324,35 @@ class Game{
 
     showDoing(){
         if(!this.doingAction) return
+        push()
+        stroke(150)
+        noFill()
+        strokeWeight(2)
+        rectMode(CENTER)
+        let [i, j] = getIJ(mouseX, mouseY)
+        let el = this.getElementTowerGrid(i*SIZE_CELL, j*SIZE_CELL)
+        if(el) {pop(); return}
+        let x = i*SIZE_CELL+SIZE_CELL/2
+        let y = j*SIZE_CELL+SIZE_CELL/2
         if(this.doingAction == 'addCanon' && mouseY < HEIGHT_SCENE){
-            push()
-            stroke(150)
-            noFill()
-            strokeWeight(2)
-            rectMode(CENTER)
-            let [i, j] = getIJ(mouseX, mouseY)
-            square(i*SIZE_CELL+SIZE_CELL/2, j*SIZE_CELL+SIZE_CELL/2, SIZE_CELL*.5)
-            discLinesEllipse({x:i*SIZE_CELL+SIZE_CELL/2, y:j*SIZE_CELL+SIZE_CELL/2},80,80)
-            pop()
+            square(x, y, SIZE_CELL*.5)
+            discLinesEllipse({x, y},80,80)
         }
+        else if(this.doingAction == 'addMiner' && mouseY < HEIGHT_SCENE){
+            ellipse(x, y, SIZE_CELL*0.65)
+            drawCross(x, y, SIZE_CELL*0.65)
+        }
+        else if(this.doingAction == 'addCrossBow' && mouseY < HEIGHT_SCENE){
+            rect(x, y, SIZE_CELL*.55, SIZE_CELL*.25)
+            discLinesEllipse({x, y},80,80)
+        }
+        pop()
     }
 
     render(){
         this.showOreGrid()
         this.showGrid()
-        this.showUI()
+        
         this.showDoing()
         push()
         stroke(180)
@@ -303,6 +373,9 @@ class Game{
         for(let tower of this.towers) tower.render()
         for(let projectile of this.projectiles) projectile.render()
         pop()
+        this.showUI()
+        this.particleManager.drawParticles()
+        
     }
 }
 

@@ -1,7 +1,7 @@
 class Enemy{
     constructor(pos, pathIndex){
         this.pos = pos
-        this.prevPos = pos
+        this.prevPos = {x: pos.x, y: pos.y}
         this.pathIndex = pathIndex
         this.t = 0
         this.speed = random(.0002, 0.0008)
@@ -14,9 +14,9 @@ class Enemy{
 
     static globalEnemyID = 0
 
-    hit(damage){
-        this.hp -= damage
-        this.t = Math.max(0, this.t - .1)
+    hit(projectile){
+        this.hp -= projectile.damage
+        this.t = Math.max(0, this.t - projectile.knockback)
         this.hitAnim = 1
     }
 

@@ -7,6 +7,56 @@ class Tower{
     }
 }
 
+class Miner extends Tower{
+    constructor(pos, gridPos, game){
+        super(pos, gridPos, game)
+
+        this.fireRate = 40
+        this.cooldown = this.fireRate
+
+        this.shootAnim = 0
+        this.hasShoot = false
+    }
+
+    update(){
+        this.cooldown -= dt * 0.01
+        if(this.cooldown > 0) return
+
+        let i = this.gridPos.i*2
+        let j = this.gridPos.j*2
+        let count = 0
+        if(this.game.oreGrid[i][j] == 1) count++
+        if(this.game.oreGrid[i+1][j] == 1) count++
+        if(this.game.oreGrid[i][j+1] == 1) count++
+        if(this.game.oreGrid[i+1][j+1] == 1) count++
+
+        if(count > 0) this.game.addOre(count, this.pos)
+
+        this.hasShoot = true
+        this.cooldown = this.fireRate
+
+    }
+    
+    render(){
+        if(this.hasShoot) this.shootAnim = lerp(this.shootAnim, 1, .15)
+        else{
+            this.shootAnim = 0
+        }
+        if(this.shootAnim > 0.99){
+            this.shootAnim = 0
+            this.hasShoot = false
+        }
+        push()
+        noFill()
+        stroke(0)
+        strokeWeight(2)
+        let off = this.hasShoot ? this.shootAnim * 5 : 0
+        ellipse(this.pos.x, this.pos.y, SIZE_CELL*0.65-off)
+        drawCross(this.pos.x, this.pos.y, SIZE_CELL*0.65-off*2.5, (frameCount*.1+this.shootAnim))
+        pop()
+    }
+}
+
 class Canon extends Tower{
     constructor(pos, gridPos, game){
         super(pos, gridPos, game)
@@ -19,10 +69,12 @@ class Canon extends Tower{
             maxSpeed: .3,
             pierce: 1,
             acc: .01,
-            startSpeed: .001
+            startSpeed: .001,
+            knockback: 0
         }
 
         this.shootAnim = 1
+        this.lookingTo = 0
     }
 
     levelUp(){
@@ -32,7 +84,7 @@ class Canon extends Tower{
     }
 
     update(){
-        this.cooldown -= deltaTime * 0.01
+        this.cooldown -= dt * 0.01
         if(this.cooldown > 0) return
 
         let inRange = this.game.getEnemiesInRange(this)
@@ -47,10 +99,12 @@ class Canon extends Tower{
                 x: first.pos.x + vel.x * SIZE_CELL*mag,
                 y: first.pos.y + vel.y * SIZE_CELL*mag
             }
-            this.game.addProjectile({x: this.pos.x, y: this.pos.y}, 
-                                    atan2(posCorrected.y - this.pos.y, 
-                                    posCorrected.x - this.pos.x), 
-                                    this.projectileOptions)
+            let angle =  atan2(posCorrected.y - this.pos.y, posCorrected.x - this.pos.x)
+            this.lookingTo = angle
+            this.game.addProjectile({x: this.pos.x + Math.cos(angle) * SIZE_CELL*.5, 
+                                     y: this.pos.y + Math.sin(angle) * SIZE_CELL*.5}, 
+                                     angle, 
+                                     this.projectileOptions)
             this.cooldown = this.fireRate
             this.shootAnim = 1
         }
@@ -58,25 +112,56 @@ class Canon extends Tower{
     }
 
     render(){
+        let d = distanceAB({x: mouseX, y: mouseY}, this.pos)
         this.shootAnim = lerp(this.shootAnim, 0, .5)
         push()
         rectMode(CENTER)
         noFill()
         stroke(0)
         strokeWeight(2)
-        square(this.pos.x, this.pos.y, SIZE_CELL*.5 + this.shootAnim*10)
-        if(this.level == 2) square(this.pos.x, this.pos.y, SIZE_CELL*.2 + this.shootAnim*10)
-        else if(this.level == 3){
-            fill(0)
-            square(this.pos.x, this.pos.y, SIZE_CELL*.2 + this.shootAnim*10)
+        drawCanon(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
+        let t = map(d, 30, this.range + 20, 255, 0)
+        if(d < 30) t = 255
+        stroke(220, t)
+        discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
+        pop()
+    }
+}
+
+class CrossBow extends Canon{
+    constructor(pos, gridPos, game){
+        super(pos, gridPos, game)
+        this.fireRate = 10
+        this.cooldown = this.fireRate
+        this.projectileOptions = {
+            damage: .6,
+            maxSpeed: .3,
+            pierce: 5,
+            acc: .01,
+            startSpeed: .001,
+            knockback: .25
         }
-        else if(this.level == 4){
-            fill(0)
-            square(this.pos.x, this.pos.y, SIZE_CELL*.2 + this.shootAnim*10)
-            stroke(255)
-            drawCross(this.pos.x, this.pos.y, SIZE_CELL*.2 + this.shootAnim*10)
-        }
-        stroke(200)
+    }
+
+    levelUp(){
+        this.level++
+        this.projectileOptions.damage += .3
+        this.pierce++
+        this.fireRate *= 0.9
+    }
+
+    render(){
+        let d = distanceAB({x: mouseX, y: mouseY}, this.pos)
+        this.shootAnim = lerp(this.shootAnim, 0, .5)
+        push()
+        rectMode(CENTER)
+        noFill()
+        stroke(0)
+        strokeWeight(2)
+        drawCrossBow(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
+        let t = map(d, 30, this.range + 20, 255, 0)
+        if(d < 30) t = 255
+        stroke(220, t)
         discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
         pop()
     }

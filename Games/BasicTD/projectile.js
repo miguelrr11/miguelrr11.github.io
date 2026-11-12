@@ -10,7 +10,9 @@ class Projectile{
         this.maxSpeed = options.maxSpeed ? options.maxSpeed : .1
         this.damage = options.damage ? options.damage : 1
         this.acc = options.acc ? options.acc : 0
+        this.knockback = options.knockback ? options.knockback : 0
 
+        
         this.lifetime = .2 * 60
 
         this.dead = false
@@ -27,9 +29,9 @@ class Projectile{
         this.speed += this.acc
         this.speed = Math.min(this.speed, this.maxSpeed)
 
-        this.pos.x += Math.cos(this.angle) * this.speed * deltaTime
-        this.pos.y += Math.sin(this.angle) * this.speed * deltaTime
-        this.lifetime -= deltaTime * 0.01
+        this.pos.x += Math.cos(this.angle) * this.speed * dt
+        this.pos.y += Math.sin(this.angle) * this.speed * dt
+        this.lifetime -= dt * 0.01
         if(this.pierce <= 0) this.dead = true
         if(this.lifetime <= 0) this.dead = true
     }
@@ -38,7 +40,7 @@ class Projectile{
         push()
         fill(250, 0, 30)
         noStroke()
-        ellipse(this.pos.x, this.pos.y, 6, 6)
+        circle(this.pos.x, this.pos.y, 8)
         pop()
     }
 }
