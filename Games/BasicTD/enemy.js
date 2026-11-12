@@ -4,10 +4,12 @@ class Enemy{
         this.prevPos = pos
         this.pathIndex = pathIndex
         this.t = 0
-        this.speed = random(.0025, 0.001)
+        this.speed = random(.0002, 0.0008)
         this.dead = false
         this.hp = floor(random(3, 10))
         this.id = Enemy.globalEnemyID++
+
+        this.hitAnim = 0
     }
 
     static globalEnemyID = 0
@@ -15,6 +17,7 @@ class Enemy{
     hit(damage){
         this.hp -= damage
         this.t = Math.max(0, this.t - .1)
+        this.hitAnim = 1
     }
 
     update(){
@@ -24,6 +27,11 @@ class Enemy{
     render(){
         push()
         stroke(0)
+        if(this.hitAnim != 0){
+            stroke(255 * this.hitAnim, 0, 0)
+            this.hitAnim = lerp(this.hitAnim, 0, 0.1)
+            if(this.hitAnim < 0.001) this.hitAnim = 0
+        }
         strokeWeight(2)
         fill(180)
         //ellipse(this.pos.x, this.pos.y, 16)

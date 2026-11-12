@@ -4,6 +4,10 @@
 // Math Utilities
 // ===================
 
+function inBounds(x, y, a, b, w, h) {
+    return x < a + w && x > a && y < b + h && y > b;
+}
+
 function mapp(value, start1, stop1, start2, stop2, clamped = false) {
     let res = start2 + ((value - start1) / (stop1 - start1)) * (stop2 - start2);
     if (clamped) {

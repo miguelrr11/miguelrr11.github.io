@@ -4,12 +4,17 @@
 
 p5.disableFriendlyErrors = true
 const WIDTH = 600
-const HEIGHT = 600
+const HEIGHT = 680
+const HEIGHT_UI = 80
 
 let game
 
 function mouseClicked(){
-    game.plantTower(mouseX, mouseY)
+    game.click(mouseX, mouseY)
+}
+
+function doubleClicked(){
+    game.dbClick(mouseX, mouseY)
 }
 
 function setup(){
