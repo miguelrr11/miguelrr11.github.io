@@ -435,7 +435,9 @@
     function noteFor(page, tracks) {
         const n = page.note;
         if (!page.show.note || n.mode === 'off') return null;
-        const count = countGrades(tracks, n.grades || ['GOAT', 'PEAK']);
+        const countGoat = countGrades(tracks, ['GOAT']);
+        const countPeak = countGrades(tracks, ['PEAK']);
+        let count = countGoat > 0 ? countGoat : countPeak
         if (n.mode === 'auto' && count === 0) return null;
         const text = String(n.text || NOTE_TEXT).replace(/\{n\}/g, String(count)).replace(/\{s\}/g, count === 1 ? '' : 's');
         return { text, count };
