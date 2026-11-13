@@ -4,7 +4,7 @@ const SIZE_CELL = 30
 const N_CELLS = WIDTH_SCENE / SIZE_CELL
 const SIZE_CELL_ORE = SIZE_CELL / 2
 const N_CELLS_ORE = N_CELLS * 2
-const ENEMY_RAD = 15
+
 
 class Game{
     constructor(){
@@ -26,12 +26,12 @@ class Game{
         this.initPath()
         this.spawnEnemy()
         this.initOres()
-        this.currentOre = Infinity
+        this.currentOre = 10
         this.UI = new UI(this)
         this.particleManager = new ParticleManager()
         this.doingAction = undefined
 
-        this.enemiesPerSecond = 2
+        this.enemiesPerSecond = 3
         this.totalEnemies = 0  //all historical amount ever spawned
     }
 
@@ -59,7 +59,7 @@ class Game{
                 for(let j = 0; j < N_CELLS_ORE; j++){
                     let val = noise(i*scale + seed, j*scale + seed)
                     if(val > 0.65) {
-                        this.oreGrid[i][j] = val
+                        this.oreGrid[i][j] = 1
                         count++
                     }
                     else this.oreGrid[i][j] = 0
@@ -73,8 +73,12 @@ class Game{
     }
 
 
-    addProjectile(pos, angle, projectileOptions){
-        this.projectiles.push(new Projectile(pos, angle, projectileOptions))
+    addProjectile(pos, angle, projectileOptions, drawOptions = {}){
+        this.projectiles.push(new Projectile(pos, angle, projectileOptions, drawOptions, this))
+    }
+
+    addBomb(pos, angle, projectileOptions, drawOptions = {}){
+        this.projectiles.push(new Bomb(pos, angle, projectileOptions, drawOptions, this))
     }
 
     getEnemiesInRange(tower){
@@ -133,6 +137,7 @@ class Game{
         if(this.doingAction == 'addCanon') this.plantTower(x, y, 'addCanon')
         if(this.doingAction == 'addMiner') this.plantTower(x, y, 'addMiner')
         if(this.doingAction == 'addCrossBow') this.plantTower(x, y, 'addCrossBow')
+        if(this.doingAction == 'addBomber') this.plantTower(x, y, 'addBomber')
     }
 
     plantTower(x, y, type){
@@ -156,6 +161,11 @@ class Game{
         else if(type == 'addCrossBow' && this.currentOre >= CROSSBOW_BASE_PRICE) {
             this.towers.push(new CrossBow({x:_x, y:_y}, {i, j}, this))
             this.currentOre -= CROSSBOW_BASE_PRICE
+            this.towerGrid[i][j] = this.towers[this.towers.length - 1]
+        }
+        else if(type == 'addBomber' && this.currentOre >= BOMBER_BASE_PRICE) {
+            this.towers.push(new Bomber({x:_x, y:_y}, {i, j}, this))
+            this.currentOre -= BOMBER_BASE_PRICE
             this.towerGrid[i][j] = this.towers[this.towers.length - 1]
         }
     }
@@ -263,6 +273,7 @@ class Game{
         }
 
         for(let tower of this.towers) tower.update()
+
         //needs obvious optimization
         for(let i = this.projectiles.length - 1; i >= 0; i--) {
             let pr = this.projectiles[i]
@@ -272,9 +283,7 @@ class Game{
             }
             pr.update()
             for(let en of this.enemies){
-                if(!pr.enemiesTouchedID.includes(en.id) && 
-                    distanceAB(pr.pos, en.pos) < ENEMY_RAD){ 
-
+                if(!pr.enemiesTouchedID.includes(en.id) && pr.isCollision(en)){ 
                     if(pr.hit(en.id)) en.hit(pr)
                 }
             }
@@ -293,6 +302,8 @@ class Game{
             for(let j = 0; j < N_CELLS_ORE; j++){
                 if(this.oreGrid[i][j] > 0){
                     fill(map(this.oreGrid[i][j], 0.65, 1, 240, 160))
+
+                    fill(220)
                     square(i*SIZE_CELL_ORE + m, j*SIZE_CELL_ORE + m, SIZE_CELL_ORE)
                 }
             }
@@ -336,7 +347,7 @@ class Game{
         let y = j*SIZE_CELL+SIZE_CELL/2
         if(this.doingAction == 'addCanon' && mouseY < HEIGHT_SCENE){
             square(x, y, SIZE_CELL*.5)
-            discLinesEllipse({x, y},80,80)
+            discLinesEllipse({x, y},CANON_BASE_RANGE,CANON_BASE_RANGE)
         }
         else if(this.doingAction == 'addMiner' && mouseY < HEIGHT_SCENE){
             ellipse(x, y, SIZE_CELL*0.65)
@@ -344,7 +355,11 @@ class Game{
         }
         else if(this.doingAction == 'addCrossBow' && mouseY < HEIGHT_SCENE){
             rect(x, y, SIZE_CELL*.55, SIZE_CELL*.25)
-            discLinesEllipse({x, y},80,80)
+            discLinesEllipse({x, y},CROSSBOW_BASE_RANGE,CROSSBOW_BASE_RANGE)
+        }
+        else if(this.doingAction == 'addBomber' && mouseY < HEIGHT_SCENE){
+            circle(x, y, SIZE_CELL*.55)
+            discLinesEllipse({x, y},BOMBER_BASE_RANGE,BOMBER_BASE_RANGE)
         }
         pop()
     }

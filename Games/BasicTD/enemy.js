@@ -7,7 +7,10 @@ class Enemy{
         this.speed = random(.0002, 0.0008)
         this.dead = false
         this.hp = floor(random(3, 10))
+        this.maxHp = this.hp
         this.id = Enemy.globalEnemyID++
+
+        this.rad = ENEMY_RAD
 
         this.hitAnim = 0
     }
@@ -35,7 +38,7 @@ class Enemy{
         strokeWeight(2)
         fill(180)
         //ellipse(this.pos.x, this.pos.y, 16)
-        drawCross(this.pos.x, this.pos.y, 20, this.t * TWO_PI * .25)
+        drawCross(this.pos.x, this.pos.y, map(this.hp, 0, this.maxHp, 0, 20, true), this.t * TWO_PI * .25)
         pop()
     }
 }

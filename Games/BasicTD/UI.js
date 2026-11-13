@@ -21,7 +21,7 @@ class UI{
             action: (x, y) => this.game.plantTower(x, y), //action to execute when this button is selected and there is a click elsewhere
             anim: 0,
             subtitle: CANON_BASE_PRICE,
-            hint: 'Add Canon'
+            hint: 'Add Cannon'
         }
         buttons.push(buttonAddCanon)
 
@@ -50,6 +50,19 @@ class UI{
             hint: 'Add CrossBow'
         }
         buttons.push(buttonAddCrossBow)
+
+        let buttonAddBomber = {
+            size: SIZE_CELL,
+            tag: 'addBomber',
+            pos: {x: 10 + SIZE_CELL + (SIZE_CELL)*4, y: baseHeight},
+            onClick: (tag) => this.game.doing(tag),       //action to execute when selecting the button
+            onUnclick: () => this.game.doing(undefined),  //action  to execute when deselecting the button
+            action: (x, y) => this.game.plantTower(x, y), //action to execute when this button is selected and there is a click elsewhere
+            anim: 0,
+            subtitle: BOMBER_BASE_PRICE,
+            hint: 'Add Bomber'
+        }
+        buttons.push(buttonAddBomber)
 
         return buttons
     }
@@ -112,6 +125,9 @@ class UI{
             }
             if(b.tag == 'addCrossBow'){
                 rect(b.pos.x, b.pos.y, SIZE_CELL*.55, SIZE_CELL*.25)
+            }
+            if(b.tag == 'addBomber'){
+                circle(b.pos.x, b.pos.y, SIZE_CELL*.55)
             }
             if(b.subtitle){
                 push()
