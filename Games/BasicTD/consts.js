@@ -8,6 +8,12 @@ const CANON_BASE_RANGE = 80
 const CROSSBOW_BASE_RANGE = 80
 const BOMBER_BASE_RANGE = 40
 
+const CANON_BASE_POWER = 1
+const MINER_BASE_POWER = 3
+const CROSSBOW_BASE_POWER = 2
+const BOMBER_BASE_POWER = 4
+const GENERATOR_BASE_POWER = 4
+
 const ENEMY_RAD = 15
 
 const START_ORE = 10
@@ -20,6 +26,8 @@ const FULL_AT     = 0.8;  // actividad a partir de la cual consume el 100%
 const POWER_OFF_RATIO = 0.75     // se apaga si recibe menos de esto
 const POWER_ON_RATIO  = 0.80     // vuelve a encenderse al superar esto
 const LIMIT_RATIO = 1 / POWER_OFF_RATIO
+
+const CURRENCY_SYMBOL = '†'
 
 function drawCanon(x, y, level, shootAnim, angle){
     push()

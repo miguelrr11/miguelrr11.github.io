@@ -12,28 +12,33 @@ class UI{
 
         let baseHeight = HEIGHT_UI/2 - 10
 
+        let a = 0.5
+        let b = 1.75
+
         let buttonAddCanon = {
             size: SIZE_CELL,
             tag: 'addCanon',
-            pos: {x: 10 + (SIZE_CELL)*2, y: baseHeight},
+            pos: {x: 10 + SIZE_CELL * (a + b * 2), y: baseHeight},
             onClick: (tag) => this.game.doing(tag),       //action to execute when selecting the button
             onUnclick: () => this.game.doing(undefined),  //action  to execute when deselecting the button
             action: (x, y) => this.game.plantTower(x, y), //action to execute when this button is selected and there is a click elsewhere
+            active: () => this.game.currentOre >= CANON_BASE_PRICE,
             anim: 0,
-            subtitle: CANON_BASE_PRICE,
-            hint: 'Add Cannon'
+            subtitle: CANON_BASE_PRICE + CURRENCY_SYMBOL,
+            hint: 'Add Cannon †'
         }
         buttons.push(buttonAddCanon)
 
         let buttonMiner = {
             size: SIZE_CELL,
             tag: 'addMiner',
-            pos: {x: 10 + SIZE_CELL/2, y: baseHeight},
+            pos: {x: 10 + SIZE_CELL * (a + b * 1), y: baseHeight},
             anim: 0,
             onClick: (tag) => this.game.doing(tag),
             onUnclick: () => this.game.doing(undefined),
             action: (x, y) => this.game.plantTower(x, y),
-            subtitle: MINER_BASE_PRICE,
+            active: () => this.game.currentOre >= MINER_BASE_PRICE,
+            subtitle: MINER_BASE_PRICE + CURRENCY_SYMBOL,
             hint: 'Add Miner'
         }
         buttons.push(buttonMiner)
@@ -41,12 +46,13 @@ class UI{
         let buttonAddCrossBow = {
             size: SIZE_CELL,
             tag: 'addCrossBow',
-            pos: {x: 10 + SIZE_CELL*0.5 + (SIZE_CELL)*3, y: baseHeight},
+            pos: {x: 10 + SIZE_CELL * (a + b * 3), y: baseHeight},
             onClick: (tag) => this.game.doing(tag),       //action to execute when selecting the button
             onUnclick: () => this.game.doing(undefined),  //action  to execute when deselecting the button
             action: (x, y) => this.game.plantTower(x, y), //action to execute when this button is selected and there is a click elsewhere
+            active: () => this.game.currentOre >= CROSSBOW_BASE_PRICE,
             anim: 0,
-            subtitle: CROSSBOW_BASE_PRICE,
+            subtitle: CROSSBOW_BASE_PRICE + CURRENCY_SYMBOL,
             hint: 'Add CrossBow'
         }
         buttons.push(buttonAddCrossBow)
@@ -54,12 +60,13 @@ class UI{
         let buttonAddBomber = {
             size: SIZE_CELL,
             tag: 'addBomber',
-            pos: {x: 10 + SIZE_CELL + (SIZE_CELL)*4, y: baseHeight},
+            pos: {x: 10 + SIZE_CELL * (a + b * 4), y: baseHeight},
             onClick: (tag) => this.game.doing(tag),       //action to execute when selecting the button
             onUnclick: () => this.game.doing(undefined),  //action  to execute when deselecting the button
             action: (x, y) => this.game.plantTower(x, y), //action to execute when this button is selected and there is a click elsewhere
+            active: () => this.game.currentOre >= BOMBER_BASE_PRICE,
             anim: 0,
-            subtitle: BOMBER_BASE_PRICE,
+            subtitle: BOMBER_BASE_PRICE + CURRENCY_SYMBOL,
             hint: 'Add Bomber'
         }
         buttons.push(buttonAddBomber)
@@ -67,12 +74,13 @@ class UI{
         let buttonAddGenerator = {
             size: SIZE_CELL,
             tag: 'addGenerator',
-            pos: {x: 10 + (SIZE_CELL)*6 + SIZE_CELL/2, y: baseHeight},
+            pos: {x: 10 + SIZE_CELL * (a + b * 0), y: baseHeight},
             onClick: (tag) => this.game.doing(tag),       //action to execute when selecting the button
             onUnclick: () => this.game.doing(undefined),  //action  to execute when deselecting the button
             action: (x, y) => this.game.plantTower(x, y), //action to execute when this button is selected and there is a click elsewhere
+            active: () => this.game.currentOre >= GENERATOR_BASE_PRICE,
             anim: 0,
-            subtitle: GENERATOR_BASE_PRICE,
+            subtitle: GENERATOR_BASE_PRICE + CURRENCY_SYMBOL,
             hint: 'Add Generator'
         }
         buttons.push(buttonAddGenerator)
@@ -124,13 +132,14 @@ class UI{
     render(){
         push()
         rectMode(CENTER)
-        stroke(0)
         strokeWeight(2)
         textAlign(CENTER)
         textSize(20)
         for(let b of this.buttons){
-            if(this.selectedButton == b) fill(220)
+            if(this.selectedButton == b && b.active()) fill(220)
             else noFill()
+
+            stroke(b.active() ? 0 : 200)
 
             b.anim = lerp(b.anim, 0, .5)
 
@@ -155,7 +164,7 @@ class UI{
             if(b.subtitle){
                 push()
                 noStroke()
-                fill(0)
+                fill(b.active() ? 0 : 200)
                 text(b.subtitle, b.pos.x, b.pos.y + b.size + 5)
                 pop()
             }
@@ -183,7 +192,7 @@ class UI{
         noStroke()
         textSize(40)
         textAlign(RIGHT, CENTER)
-        text(this.game.currentOre, WIDTH - 20, HEIGHT_UI*.5)
+        text(this.game.currentOre + CURRENCY_SYMBOL, WIDTH - 20, HEIGHT_UI*.5)
         pop()
     }
 }

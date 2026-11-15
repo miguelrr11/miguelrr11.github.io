@@ -5,6 +5,14 @@ const N_CELLS = WIDTH_SCENE / SIZE_CELL
 const SIZE_CELL_ORE = SIZE_CELL / 2
 const N_CELLS_ORE = N_CELLS * 2
 
+const TOWER_TYPES = {
+    addCanon:     { cls: Canon,     price: CANON_BASE_PRICE },
+    addMiner:     { cls: Miner,     price: MINER_BASE_PRICE },
+    addCrossBow:  { cls: CrossBow,  price: CROSSBOW_BASE_PRICE },
+    addBomber:    { cls: Bomber,    price: BOMBER_BASE_PRICE },
+    addGenerator: { cls: Generator, price: GENERATOR_BASE_PRICE },
+}
+
 
 class Game{
     constructor(){
@@ -168,12 +176,7 @@ class Game{
         return this.pathGrid[i][j] == 'path_seg'
     }
 
-    dbClick(x, y){
-        let tower = this.getElementTowerGrid(x, y)
-        if(tower){
-            tower.levelUp()
-        }
-    }
+    
 
     click(x, y){
         this.UI.click(x, y)
@@ -204,11 +207,8 @@ class Game{
         console.log('click')
         let [i, j] = getIJ(x, y)
 
-        if(this.doingAction == 'addCanon') {this.plantTower(x, y, 'addCanon'); return}
-        if(this.doingAction == 'addMiner') {this.plantTower(x, y, 'addMiner'); return}
-        if(this.doingAction == 'addCrossBow') {this.plantTower(x, y, 'addCrossBow'); return}
-        if(this.doingAction == 'addBomber') {this.plantTower(x, y, 'addBomber'); return}
-        if(this.doingAction == 'addGenerator') {this.plantTower(x, y, 'addGenerator'); return}
+        if(TOWER_TYPES[this.doingAction]){this.plantTower(x, y, this.doingAction); return}
+
         if(this.doingAction == 'connecting'){
             //make sure you are connecting to a tower, not a generator
             if(this.towerGrid[i][j] && this.towerGrid[i][j].constructor.name != 'Generator'){
@@ -249,47 +249,47 @@ class Game{
         }
     }
 
-    plantTower(x, y, type){
-        let tower = this.getElementTowerGrid(x, y)
-        let path = this.isTherePathThere(x, y)
-        if(tower || path) return
+    // dbClick(x, y){
+    //     let tower = this.getElementTowerGrid(x, y)
+    //     if(tower && tower.getPriceToLevelUp() < this.currentOre){
+    //         this.currentOre -= tower.getPriceToLevelUp()
+    //         tower.levelUp()
+    //     }
+    // }
 
-        let old = this.towers.length
+    plantTower(x, y, type) {
+        if (this.isTherePathThere(x, y)) return
+        const def = TOWER_TYPES[type]
+        if (!def) return
 
-        let i = Math.floor(x/(WIDTH_SCENE/N_CELLS))
-        let j = Math.floor(y/(HEIGHT_SCENE/N_CELLS))
-        let _x = i * SIZE_CELL + SIZE_CELL * .5
-        let _y = j * SIZE_CELL + SIZE_CELL * .5
-        if(type == 'addCanon' && this.currentOre >= CANON_BASE_PRICE) {
-            this.towers.push(new Canon({x:_x, y:_y}, {i, j}, this))
-            this.currentOre -= CANON_BASE_PRICE
-            this.towerGrid[i][j] = this.towers[this.towers.length - 1]
-        }
-        else if(type == 'addMiner' && this.currentOre >= MINER_BASE_PRICE) {
-            this.towers.push(new Miner({x:_x, y:_y}, {i, j}, this))
-            this.currentOre -= MINER_BASE_PRICE
-            this.towerGrid[i][j] = this.towers[this.towers.length - 1]
-        }
-        else if(type == 'addCrossBow' && this.currentOre >= CROSSBOW_BASE_PRICE) {
-            this.towers.push(new CrossBow({x:_x, y:_y}, {i, j}, this))
-            this.currentOre -= CROSSBOW_BASE_PRICE
-            this.towerGrid[i][j] = this.towers[this.towers.length - 1]
-        }
-        else if(type == 'addBomber' && this.currentOre >= BOMBER_BASE_PRICE) {
-            this.towers.push(new Bomber({x:_x, y:_y}, {i, j}, this))
-            this.currentOre -= BOMBER_BASE_PRICE
-            this.towerGrid[i][j] = this.towers[this.towers.length - 1]
-        }
-        else if(type == 'addGenerator' && this.currentOre >= GENERATOR_BASE_PRICE) {
-            this.towers.push(new Generator({x:_x, y:_y}, {i, j}, this))
-            this.currentOre -= GENERATOR_BASE_PRICE
-            this.towerGrid[i][j] = this.towers[this.towers.length - 1]
+        const tower = this.getElementTowerGrid(x, y)
+
+        // levelear si hover en la misma torre del boton presionado
+        if (tower) {
+            if (tower instanceof def.cls) {
+                const cost = tower.getPriceToLevelUp()
+                if (this.currentOre >= cost) {
+                    this.currentOre -= cost
+                    tower.levelUp()
+                }
+            }
+            return
         }
 
-        if(this.towers.length != old) {
-            this.UI.deselectButton()
-            this.doingAction = null
-        }
+        // construir torre en celda vacia
+        if (this.currentOre < def.price) return
+
+        const i = Math.floor(x / (WIDTH_SCENE / N_CELLS))
+        const j = Math.floor(y / (HEIGHT_SCENE / N_CELLS))
+        const pos = { x: (i + .5) * SIZE_CELL, y: (j + .5) * SIZE_CELL }
+
+        const newTower = new def.cls(pos, { i, j }, this)
+        this.towers.push(newTower)
+        this.towerGrid[i][j] = newTower
+        this.currentOre -= def.price
+
+        this.UI.deselectButton()
+        this.doingAction = null
     }
 
     //p.enemies is not used and not mantained

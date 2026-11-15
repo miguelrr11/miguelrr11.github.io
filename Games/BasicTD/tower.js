@@ -17,6 +17,41 @@ class Tower{
 
     static globalID = 0
 
+    getPriceToLevelUp(){
+        return round(this.price * 1.5)
+    }
+
+    levelUp(){
+        this.level++
+        this.price *= 1.5
+        this.maxPower *= 1.2
+        this.upgradeProperties()
+    }
+
+    renderActivity(){
+        push()
+        translate(-SIZE_CELL/2, SIZE_CELL/2)
+        rectMode(CORNER)
+        if(!this.working){
+            let t = frameCount % 25 > 12.5 ? 0 : 255
+            fill(255, 0, 0, t)
+            noStroke()
+            rect(this.pos.x, this.pos.y, SIZE_CELL, -SIZE_CELL)
+            pop()
+            return
+        }
+        let h = map(this.ratio, 0, LIMIT_RATIO, 5, SIZE_CELL)
+
+        //h = SIZE_CELL
+        colorMode(HSB, 255, 255, 255)
+        if(this.ratio < 1) fill(map(this.ratio, 0, 0.99, 120, 60), 255, 255)
+        else if(this.ratio < LIMIT_RATIO) fill(map(this.ratio, 1, LIMIT_RATIO, 60, 0), 255, 255)
+        else fill(0, 255, 255) // es muy raro que caiga aqui
+        noStroke()
+        rect(this.pos.x+2, this.pos.y-2, SIZE_CELL*0.12, -h+4, 3)
+        pop()
+    }
+
     updateActivity(inRange) {
         let target = inRange.length > 0 ? 1 : 0;
         //if(!this.working) target = 0   // asi se pueden recuperar (entonces flashea, no me convence)
@@ -34,13 +69,15 @@ class Generator extends Tower{
     constructor(pos, gridPos, game){
         super(pos, gridPos, game)
 
+        this.price = GENERATOR_BASE_PRICE
+
         this.fireRate = 40
         this.cooldown = this.fireRate
 
         this.shootAnim = 0
         this.hasShoot = false
 
-        this.generates = 3
+        this.generates = GENERATOR_BASE_POWER
 
         this.supply = this.generates 
         this.demand = 0     
@@ -83,7 +120,7 @@ class Generator extends Tower{
             push()
             noStroke()
             fill(0)
-            textSize(12)
+            textSize(15)
             let txt = 'Supply: ' + this.supply + '\nDemand: ' + round(this.demand * POWER_OFF_RATIO, 2)
             let bbox = textFont().textBounds(txt, this.pos.x, this.pos.y - SIZE_CELL - SIZE_CELL * 0.2)
             fill(0)
@@ -101,34 +138,43 @@ class Generator extends Tower{
 class Miner extends Tower{
     constructor(pos, gridPos, game){
         super(pos, gridPos, game)
+        this.price = MINER_BASE_PRICE
 
         this.fireRate = 40
         this.cooldown = this.fireRate
 
         this.shootAnim = 0
         this.hasShoot = false
+
+        this.maxPower = MINER_BASE_POWER
+
+        let i = this.gridPos.i*2
+        let j = this.gridPos.j*2
+        this.oresAvailable = 0
+        if(this.game.oreGrid[i][j] == 1) this.oresAvailable++
+        if(this.game.oreGrid[i+1][j] == 1) this.oresAvailable++
+        if(this.game.oreGrid[i][j+1] == 1) this.oresAvailable++
+        if(this.game.oreGrid[i+1][j+1] == 1) this.oresAvailable++
+    }
+
+    updateActivity() {
+        let target = 1
+        const speed  = target > this.activity ? ACT_ATTACK : ACT_RELEASE;
+        this.activity += (target - this.activity) * (1 - Math.exp(-speed * dt));
     }
 
     update(){
         this.cooldown -= dt * 0.01
-        if(this.cooldown > 0) return
+        if(this.cooldown > 0 || !this.working) return
 
-        let i = this.gridPos.i*2
-        let j = this.gridPos.j*2
-        let count = 0
-        if(this.game.oreGrid[i][j] == 1) count++
-        if(this.game.oreGrid[i+1][j] == 1) count++
-        if(this.game.oreGrid[i][j+1] == 1) count++
-        if(this.game.oreGrid[i+1][j+1] == 1) count++
-
-        if(count > 0) this.game.addOre(count, this.pos)
+        if(this.oresAvailable > 0) this.game.addOre(this.oresAvailable, this.pos)
 
         this.hasShoot = true
         this.cooldown = this.fireRate
-
     }
     
     render(){
+        this.renderActivity()
         if(this.hasShoot) this.shootAnim = lerp(this.shootAnim, 1, .15)
         else{
             this.shootAnim = 0
@@ -143,7 +189,7 @@ class Miner extends Tower{
         strokeWeight(2)
         let off = this.hasShoot ? this.shootAnim * 5 : 0
         ellipse(this.pos.x, this.pos.y, SIZE_CELL*0.65-off)
-        drawCross(this.pos.x, this.pos.y, SIZE_CELL*0.65-off*2.5, (frameCount*.1+this.shootAnim))
+        drawCross(this.pos.x, this.pos.y, SIZE_CELL*0.65-off, (frameCount*.1+this.shootAnim)*(this.working ? 1 : 0))
         pop()
     }
 }
@@ -190,30 +236,6 @@ class Shooter extends Tower{
         }
     }
 
-    renderActivity(){
-        push()
-        translate(-SIZE_CELL/2, SIZE_CELL/2)
-        rectMode(CORNER)
-        if(!this.working){
-            let t = frameCount % 25 > 12.5 ? 0 : 255
-            fill(255, 0, 0, t)
-            noStroke()
-            rect(this.pos.x, this.pos.y, SIZE_CELL, -SIZE_CELL)
-            pop()
-            return
-        }
-        let h = map(this.ratio, 0, LIMIT_RATIO, 1, SIZE_CELL)
-
-        //h = SIZE_CELL
-        colorMode(HSB, 255, 255, 255)
-        if(this.ratio < 1) fill(map(this.ratio, 0, 0.99, 120, 60), 255, 255)
-        else if(this.ratio < LIMIT_RATIO) fill(map(this.ratio, 1, LIMIT_RATIO, 60, 0), 255, 255)
-        else fill(0, 255, 255) // es muy raro que caiga aqui
-        noStroke()
-        rect(this.pos.x+2, this.pos.y-2, SIZE_CELL*0.12, -h+4, 3)
-        pop()
-    }
-
     render(hoveredTowerID){
         this.renderActivity()
 
@@ -233,6 +255,22 @@ class Shooter extends Tower{
         if(hoveredTowerID == -1) discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
         else if(hoveredTowerID == this.id) discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
         pop()
+
+        if(hoveredTowerID == this.id){
+            push()
+            noStroke()
+            fill(0)
+            textSize(15)
+            let txt = this.getPriceToLevelUp() + CURRENCY_SYMBOL + ' to level up'
+            let bbox = textFont().textBounds(txt, this.pos.x, this.pos.y - SIZE_CELL)
+            fill(0)
+            rectMode(CORNER)
+            let m = bbox.w/2
+            rect(bbox.x-3-m, bbox.y-3, bbox.w+6, bbox.h+6)
+            fill(255)
+            text(txt, this.pos.x-m, this.pos.y - SIZE_CELL)
+            pop()
+        }
     }
 }
 
@@ -243,6 +281,8 @@ class Canon extends Shooter{
         this.fireRate = 6
         this.cooldown = 0
 
+        this.price = CANON_BASE_PRICE
+
         this.projectileOptions = {
             damage: .33,
             maxSpeed: .3,
@@ -252,11 +292,10 @@ class Canon extends Shooter{
             knockback: 0
         }
 
-        this.maxPower = 1
+        this.maxPower = CANON_BASE_POWER
     }
 
-    levelUp(){
-        this.level++
+    upgradeProperties(){
         this.projectileOptions.damage += 2
         this.fireRate *= 0.8
     }
@@ -269,6 +308,7 @@ class Canon extends Shooter{
 class CrossBow extends Shooter{
     constructor(pos, gridPos, game){
         super(pos, gridPos, game)
+        this.price =  CROSSBOW_BASE_PRICE
         this.range = CROSSBOW_BASE_RANGE
         this.fireRate = 10
         this.cooldown = this.fireRate
@@ -280,10 +320,11 @@ class CrossBow extends Shooter{
             startSpeed: .001,
             knockback: .25
         }
+
+        this.maxPower = CROSSBOW_BASE_POWER
     }
 
-    levelUp(){
-        this.level++
+    upgradeProperties(){
         this.projectileOptions.damage += .3
         this.pierce++
         this.fireRate *= 0.9
@@ -297,6 +338,7 @@ class CrossBow extends Shooter{
 class Bomber extends Shooter{
     constructor(pos, gridPos, game){
         super(pos, gridPos, game)
+        this.price = BOMBER_BASE_PRICE
         this.range = BOMBER_BASE_RANGE
         this.fireRate = 25
         this.cooldown = this.fireRate
@@ -318,7 +360,7 @@ class Bomber extends Shooter{
             rad: 12
         }
 
-        this.maxPower = 4
+        this.maxPower = BOMBER_BASE_POWER
     }
 
     addProjectile(angle){
@@ -328,8 +370,7 @@ class Bomber extends Shooter{
                                 this.projectileOptions, this.drawOptionsProjectile)
     }
 
-    levelUp(){
-        this.level++
+    upgradeProperties(){
         this.projectileOptions.onDeathOptions.damage *= 2
         this.fireRate -= 3.5
     }
