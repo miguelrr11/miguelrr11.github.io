@@ -4,6 +4,55 @@ class Tower{
         this.gridPos = gridPos
         this.game = game
         this.level = 1
+        this.id = Tower.globalID++
+    }
+
+    static globalID = 0
+}
+
+class Generator extends Tower{
+    constructor(pos, gridPos, game){
+        super(pos, gridPos, game)
+
+        this.fireRate = 40
+        this.cooldown = this.fireRate
+
+        this.shootAnim = 0
+        this.hasShoot = false
+    }
+
+    update(){
+        this.cooldown -= dt * 0.01
+        if(this.cooldown > 0) return
+
+        // give energy to connected towers
+
+        this.hasShoot = true
+        this.cooldown = this.fireRate
+
+    }
+    
+    render(){
+        // if(this.hasShoot) this.shootAnim = lerp(this.shootAnim, 1, .15)
+        // else{
+        //     this.shootAnim = 0
+        // }
+        // if(this.shootAnim > 0.99){
+        //     this.shootAnim = 0
+        //     this.hasShoot = false
+        // }
+        push()
+        translate(this.pos.x, this.pos.y)
+        rotate(frameCount * 0.03)
+        noFill()
+        stroke(0)
+        strokeWeight(2)
+        let off = this.hasShoot ? this.shootAnim * 5 : 0
+        ellipse(0, 0, SIZE_CELL*0.65-off)
+        let m = (SIZE_CELL*0.65-off)*.5
+        arc(0, 0-m*.5, m, m, -PI/2, PI/2)
+        arc(0, 0+m*.5, m, m, PI/2, -PI/2)
+        pop()
     }
 }
 
@@ -127,7 +176,7 @@ class Canon extends Tower{
         drawCanon(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
         let t = map(d, 30, this.range + 20, 255, 0)
         if(d < 30) t = 255
-        stroke(220, t)
+        stroke(180, t)
         discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
         pop()
     }
@@ -167,7 +216,7 @@ class CrossBow extends Canon{
         drawCrossBow(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
         let t = map(d, 30, this.range + 20, 255, 0)
         if(d < 30) t = 255
-        stroke(220, t)
+        stroke(180, t)
         discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
         pop()
     }
@@ -222,7 +271,7 @@ class Bomber extends Canon{
         drawBomber(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
         let t = map(d, 30, this.range + 20, 255, 0)
         if(d < 30) t = 255
-        stroke(220, t)
+        stroke(180, t)
         discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
         pop()
     }

@@ -26,12 +26,18 @@ class Game{
         this.initPath()
         this.spawnEnemy()
         this.initOres()
-        this.currentOre = 10
+        this.currentOre = Infinity
         this.UI = new UI(this)
         this.particleManager = new ParticleManager()
-        this.doingAction = undefined
 
-        this.enemiesPerSecond = 3
+        this.doingAction = undefined
+        this.doingActionProperties = {
+            connectingGeneratorID: -1
+        }
+
+        this.generatorGrid = []     //list of connections generator - tower
+
+        this.enemiesPerSecond = 0.5
         this.totalEnemies = 0  //all historical amount ever spawned
     }
 
@@ -134,10 +140,43 @@ class Game{
 
     //UI calls this when it knows the click its not in the UI
     clickAction(x, y){
-        if(this.doingAction == 'addCanon') this.plantTower(x, y, 'addCanon')
-        if(this.doingAction == 'addMiner') this.plantTower(x, y, 'addMiner')
-        if(this.doingAction == 'addCrossBow') this.plantTower(x, y, 'addCrossBow')
-        if(this.doingAction == 'addBomber') this.plantTower(x, y, 'addBomber')
+        console.log('click')
+        let [i, j] = getIJ(x, y)
+
+        if(this.doingAction == 'addCanon') {this.plantTower(x, y, 'addCanon'); return}
+        if(this.doingAction == 'addMiner') {this.plantTower(x, y, 'addMiner'); return}
+        if(this.doingAction == 'addCrossBow') {this.plantTower(x, y, 'addCrossBow'); return}
+        if(this.doingAction == 'addBomber') {this.plantTower(x, y, 'addBomber'); return}
+        if(this.doingAction == 'addGenerator') {this.plantTower(x, y, 'addGenerator'); return}
+        if(this.doingAction == 'connecting'){
+            //make sure you are connecting to a tower, not a generator
+            if(this.towerGrid[i][j] && this.towerGrid[i][j].constructor.name != 'Generator'){
+                //make sure you are not making the same connection
+                for(let connection of this.generatorGrid){
+                    if(connection[0] == this.doingActionProperties.connectingGeneratorID &&
+                        connection[1] == this.towerGrid[i][j].id) return
+                }
+                this.generatorGrid.push([this.doingActionProperties.connectingGeneratorID, this.towerGrid[i][j].id])
+                this.doingAction = null
+                this.doingActionProperties.connectingGeneratorID = -1
+            }
+            else{
+                this.doingAction = null
+                this.doingActionProperties.connectingGeneratorID = -1
+            }
+            return
+        }
+        
+        if(this.towerGrid[i][j] && this.towerGrid[i][j].constructor.name == 'Generator'){
+            this.doingAction = "connecting"
+            this.doingActionProperties.connectingGeneratorID = this.towerGrid[i][j].id
+            return
+        }
+
+        else{
+            this.doingAction = null
+            this.doingActionProperties.connectingGeneratorID = -1
+        }
     }
 
     plantTower(x, y, type){
@@ -166,6 +205,11 @@ class Game{
         else if(type == 'addBomber' && this.currentOre >= BOMBER_BASE_PRICE) {
             this.towers.push(new Bomber({x:_x, y:_y}, {i, j}, this))
             this.currentOre -= BOMBER_BASE_PRICE
+            this.towerGrid[i][j] = this.towers[this.towers.length - 1]
+        }
+        else if(type == 'addGenerator' && this.currentOre >= GENERATOR_BASE_PRICE) {
+            this.towers.push(new Generator({x:_x, y:_y}, {i, j}, this))
+            this.currentOre -= GENERATOR_BASE_PRICE
             this.towerGrid[i][j] = this.towers[this.towers.length - 1]
         }
     }
@@ -262,7 +306,8 @@ class Game{
             }
 
             if(en.pathIndex >= this.path.length - 1){
-                this.enemies.splice(i, 1) 
+                en.pathIndex = 0
+                //this.enemies.splice(i, 1) 
                 continue
             }
 
@@ -291,6 +336,11 @@ class Game{
 
         //console.log(round(this.totalEnemies/(frameCount/60), 2))
     }  
+
+    getTowerFromID(id){
+        for(let tower of this.towers) if(tower.id == id) return tower
+        return undefined
+    }
     
     showOreGrid(){
         push()
@@ -341,25 +391,51 @@ class Game{
         strokeWeight(2)
         rectMode(CENTER)
         let [i, j] = getIJ(mouseX, mouseY)
-        let el = this.getElementTowerGrid(i*SIZE_CELL, j*SIZE_CELL)
-        if(el) {pop(); return}
+        let hoveredTower = this.getElementTowerGrid(i*SIZE_CELL, j*SIZE_CELL)
+        let hoveredTowerIsPath = hoveredTower == 'path_seg'
+        //if(el) {pop(); return}
         let x = i*SIZE_CELL+SIZE_CELL/2
         let y = j*SIZE_CELL+SIZE_CELL/2
-        if(this.doingAction == 'addCanon' && mouseY < HEIGHT_SCENE){
+        if(this.doingAction == 'addCanon' && mouseY < HEIGHT_SCENE && !hoveredTower){
             square(x, y, SIZE_CELL*.5)
             discLinesEllipse({x, y},CANON_BASE_RANGE,CANON_BASE_RANGE)
         }
-        else if(this.doingAction == 'addMiner' && mouseY < HEIGHT_SCENE){
+        else if(this.doingAction == 'addMiner' && mouseY < HEIGHT_SCENE && !hoveredTower){
             ellipse(x, y, SIZE_CELL*0.65)
             drawCross(x, y, SIZE_CELL*0.65)
         }
-        else if(this.doingAction == 'addCrossBow' && mouseY < HEIGHT_SCENE){
+        else if(this.doingAction == 'addCrossBow' && mouseY < HEIGHT_SCENE && !hoveredTower){
             rect(x, y, SIZE_CELL*.55, SIZE_CELL*.25)
             discLinesEllipse({x, y},CROSSBOW_BASE_RANGE,CROSSBOW_BASE_RANGE)
         }
-        else if(this.doingAction == 'addBomber' && mouseY < HEIGHT_SCENE){
+        else if(this.doingAction == 'addBomber' && mouseY < HEIGHT_SCENE && !hoveredTower){
             circle(x, y, SIZE_CELL*.55)
             discLinesEllipse({x, y},BOMBER_BASE_RANGE,BOMBER_BASE_RANGE)
+        }
+        else if(this.doingAction == 'addGenerator' && mouseY < HEIGHT_SCENE && !hoveredTower){
+            ellipse(x, y, SIZE_CELL*0.65)
+            let m = (SIZE_CELL*0.65)*.5
+            arc(x, y-m*.5, m, m, -PI/2, PI/2)
+            arc(x, y+m*.5, m, m, PI/2, -PI/2)
+        }
+        else if(this.doingAction == 'connecting' && this.doingActionProperties.connectingGeneratorID != -1){
+            let posFrom = this.getTowerFromID(this.doingActionProperties.connectingGeneratorID).pos
+            let posTo = {x: mouseX, y: mouseY}
+            if(hoveredTower && hoveredTower.constructor.name != 'Generator' && !hoveredTowerIsPath) posTo = hoveredTower.pos
+            strokeWeight(3)
+            drawDashedLine(posFrom.x, posFrom.y, posTo.x, posTo.y, 1, 8)
+        }
+        pop()
+    }
+
+    showGeneratorGrid(){
+        push()
+        stroke(180)
+        strokeWeight(3)
+        for(let connection of this.generatorGrid){
+            let posFrom = this.getTowerFromID(connection[0]).pos
+            let posTo = this.getTowerFromID(connection[1]).pos
+            drawDashedLine(posFrom.x, posFrom.y, posTo.x, posTo.y, 1, 8, frameCount*0.1)
         }
         pop()
     }
@@ -367,7 +443,7 @@ class Game{
     render(){
         this.showOreGrid()
         this.showGrid()
-        
+        this.showGeneratorGrid()
         this.showDoing()
         push()
         stroke(180)

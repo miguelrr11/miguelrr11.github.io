@@ -64,6 +64,19 @@ class UI{
         }
         buttons.push(buttonAddBomber)
 
+        let buttonAddGenerator = {
+            size: SIZE_CELL,
+            tag: 'addGenerator',
+            pos: {x: 10 + (SIZE_CELL)*6 + SIZE_CELL/2, y: baseHeight},
+            onClick: (tag) => this.game.doing(tag),       //action to execute when selecting the button
+            onUnclick: () => this.game.doing(undefined),  //action  to execute when deselecting the button
+            action: (x, y) => this.game.plantTower(x, y), //action to execute when this button is selected and there is a click elsewhere
+            anim: 0,
+            subtitle: GENERATOR_BASE_PRICE,
+            hint: 'Add Generator'
+        }
+        buttons.push(buttonAddGenerator)
+
         return buttons
     }
 
@@ -128,6 +141,12 @@ class UI{
             }
             if(b.tag == 'addBomber'){
                 circle(b.pos.x, b.pos.y, SIZE_CELL*.55)
+            }
+            if(b.tag == 'addGenerator'){
+                ellipse(b.pos.x, b.pos.y, SIZE_CELL*0.65)
+                let m = (SIZE_CELL*0.65)*.5
+                arc(b.pos.x, b.pos.y-m*.5, m, m, -PI/2, PI/2)
+                arc(b.pos.x, b.pos.y+m*.5, m, m, PI/2, -PI/2)
             }
             if(b.subtitle){
                 push()

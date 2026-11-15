@@ -151,14 +151,21 @@ function drawArrowTip(x, y, angle, arrowSize = 7) {
     line(x, y, x2, y2);
 }
 
-function drawDashedLine(x1, y1, x2, y2, dashLength = 10) {
-    let d = dist(x1, y1, x2, y2);
-    let numDashes = Math.floor(d / dashLength);
-    let dx = (x2 - x1) / numDashes;
-    let dy = (y2 - y1) / numDashes;
-    for (let i = 0; i < numDashes; i++) {
-        line(x1 + i * dx, y1 + i * dy, x1 + (i + 0.5) * dx, y1 + (i + 0.5) * dy);
+function drawDashedLine(x1, y1, x2, y2, dashLength = 10, gap = 6, off = 0) {
+  const d = dist(x1, y1, x2, y2);
+  if (d === 0) return;
+  const ux = (x2 - x1) / d;
+  const uy = (y2 - y1) / d;
+  const period = dashLength + gap;
+  let start = ((off % period) + period) % period - period;
+
+  for (let t = start; t < d; t += period) {
+    const a = Math.max(t, 0);
+    const b = Math.min(t + dashLength, d);
+    if (b > a) {
+      line(x1 + ux * a, y1 + uy * a, x1 + ux * b, y1 + uy * b);
     }
+  }
 }
 
 // ===================
