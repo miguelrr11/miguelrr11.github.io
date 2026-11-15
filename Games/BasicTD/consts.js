@@ -12,6 +12,15 @@ const ENEMY_RAD = 15
 
 const START_ORE = 10
 
+// constantes de consumo energetico torres
+const ACT_ATTACK  = 0.005;    // velocidad de subida (por segundo)
+const ACT_RELEASE = 0.0001;  // velocidad de bajada (por segundo)
+const IDLE_DRAW   = 0.15; // consumo en reposo (fracción del máximo)
+const FULL_AT     = 0.8;  // actividad a partir de la cual consume el 100%
+const POWER_OFF_RATIO = 0.75     // se apaga si recibe menos de esto
+const POWER_ON_RATIO  = 0.80     // vuelve a encenderse al superar esto
+const LIMIT_RATIO = 1 / POWER_OFF_RATIO
+
 function drawCanon(x, y, level, shootAnim, angle){
     push()
     translate(x, y)

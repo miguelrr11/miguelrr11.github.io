@@ -80,6 +80,10 @@ class UI{
         return buttons
     }
 
+    deselectButton(){
+        this.selectedButton = undefined
+    }
+
     click(x, y){
         if(y < HEIGHT_SCENE){
             this.game.clickAction(x, y)

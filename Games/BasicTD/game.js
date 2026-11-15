@@ -9,6 +9,7 @@ const N_CELLS_ORE = N_CELLS * 2
 class Game{
     constructor(){
         this.towerGrid = []      //stores what does exist (towers and path segments) in each [i,j] position for easier lookups
+        this.pathGrid = []
         this.initGrid()
         this.path = this.createRandomPath(
             {i: floor(N_CELLS/4), j: 0},
@@ -35,17 +36,66 @@ class Game{
             connectingGeneratorID: -1
         }
 
-        this.generatorGrid = []     //list of connections generator - tower
+        this.generatorGrid = new Map()      // <id generator> - [id t1, id t2, ...]
+                                            // used for drawing connections and calculting generatorMap
+        this.generatorMap = []              // list of separated grids ({supply: [g1, g2], demand: [t1, t2, t3]})
+                                            //                          {supply: [g3], demand: [t4, t5]}
+                                            // used for distributing energy
 
         this.enemiesPerSecond = 0.5
         this.totalEnemies = 0  //all historical amount ever spawned
     }
 
+    calculateGeneratorMap(){
+        this.generatorMap = []
+
+        const towerToGens = new Map()
+        for (const [genId, towerIds] of this.generatorGrid) {
+            for (const tId of towerIds) {
+                if (!towerToGens.has(tId)) towerToGens.set(tId, [])
+                towerToGens.get(tId).push(genId)
+            }
+        }
+
+        const visitedGens = new Set()
+        const visitedTowers = new Set()
+
+        for (const startGen of this.generatorGrid.keys()) {
+            if (visitedGens.has(startGen)) continue
+
+            const grid = { supply: [], demand: [] }
+            const pending = [startGen]
+            visitedGens.add(startGen)
+
+            while (pending.length > 0) {
+                const genId = pending.pop()
+                grid.supply.push(genId)
+
+                for (const tId of this.generatorGrid.get(genId)) {
+                    if (visitedTowers.has(tId)) continue
+                    visitedTowers.add(tId)
+                    grid.demand.push(tId)
+
+                    for (const otherGen of towerToGens.get(tId)) {
+                        if (!visitedGens.has(otherGen)) {
+                            visitedGens.add(otherGen)
+                            pending.push(otherGen)
+                        }
+                    }
+                }
+            }
+
+            this.generatorMap.push(grid)
+        }
+    }
+
     initGrid(){
         for(let i = 0; i < N_CELLS; i++){
             this.towerGrid[i] = []
+            this.pathGrid[i] = []
             for(let j = 0; j < N_CELLS; j++){
                 this.towerGrid[i][j] = null
+                this.pathGrid[i][j] = null
             }
         }
     }
@@ -111,6 +161,13 @@ class Game{
         return this.towerGrid[i][j]
     }
 
+    isTherePathThere(x, y){
+        if(!inBounds(x, y, 0, 0, WIDTH_SCENE, HEIGHT_SCENE)) return
+        let i = Math.floor(x/(WIDTH_SCENE/N_CELLS))
+        let j = Math.floor(y/(HEIGHT_SCENE/N_CELLS))
+        return this.pathGrid[i][j] == 'path_seg'
+    }
+
     dbClick(x, y){
         let tower = this.getElementTowerGrid(x, y)
         if(tower){
@@ -138,6 +195,10 @@ class Game{
         }
     }
 
+    isShooter(tower){
+        return tower.constructor.name != 'Generator'
+    }
+
     //UI calls this when it knows the click its not in the UI
     clickAction(x, y){
         console.log('click')
@@ -152,11 +213,20 @@ class Game{
             //make sure you are connecting to a tower, not a generator
             if(this.towerGrid[i][j] && this.towerGrid[i][j].constructor.name != 'Generator'){
                 //make sure you are not making the same connection
-                for(let connection of this.generatorGrid){
-                    if(connection[0] == this.doingActionProperties.connectingGeneratorID &&
-                        connection[1] == this.towerGrid[i][j].id) return
+                for(let [genID, towerIDs] of this.generatorGrid){
+                    for(let towerID of towerIDs){
+                        if(genID == this.doingActionProperties.connectingGeneratorID &&
+                        towerID == this.towerGrid[i][j].id) return
+                    }
+                     
                 }
-                this.generatorGrid.push([this.doingActionProperties.connectingGeneratorID, this.towerGrid[i][j].id])
+                let genID = this.doingActionProperties.connectingGeneratorID
+                if(this.generatorGrid.has(genID)){
+                    let grid = this.generatorGrid.get(genID)
+                    grid.push(this.towerGrid[i][j].id)
+                }
+                else this.generatorGrid.set(genID, [this.towerGrid[i][j].id])
+                this.calculateGeneratorMap()
                 this.doingAction = null
                 this.doingActionProperties.connectingGeneratorID = -1
             }
@@ -181,7 +251,10 @@ class Game{
 
     plantTower(x, y, type){
         let tower = this.getElementTowerGrid(x, y)
-        if(tower) return
+        let path = this.isTherePathThere(x, y)
+        if(tower || path) return
+
+        let old = this.towers.length
 
         let i = Math.floor(x/(WIDTH_SCENE/N_CELLS))
         let j = Math.floor(y/(HEIGHT_SCENE/N_CELLS))
@@ -211,6 +284,11 @@ class Game{
             this.towers.push(new Generator({x:_x, y:_y}, {i, j}, this))
             this.currentOre -= GENERATOR_BASE_PRICE
             this.towerGrid[i][j] = this.towers[this.towers.length - 1]
+        }
+
+        if(this.towers.length != old) {
+            this.UI.deselectButton()
+            this.doingAction = null
         }
     }
 
@@ -269,7 +347,7 @@ class Game{
         }
         console.timeEnd('trackGen')
         for(let p of path){
-            this.towerGrid[p.i][p.j] = 'path_seg'
+            this.pathGrid[p.i][p.j] = 'path_seg'
         }
         return path
     }
@@ -319,6 +397,8 @@ class Game{
 
         for(let tower of this.towers) tower.update()
 
+        for(let grid of this.generatorMap) this.distributeEnergy(grid)
+
         //needs obvious optimization
         for(let i = this.projectiles.length - 1; i >= 0; i--) {
             let pr = this.projectiles[i]
@@ -336,6 +416,28 @@ class Game{
 
         //console.log(round(this.totalEnemies/(frameCount/60), 2))
     }  
+
+    distributeEnergy(grid){
+        const supply = sum(grid.supply, g => this.getTowerFromID(g).generates)
+        const demand = sum(grid.demand, c => this.getTowerFromID(c).currentDemand())
+
+        const ratio = demand > 0 ? Math.min(1, supply / demand) : 1
+
+        for (const id of grid.demand) {
+            const tower = this.getTowerFromID(id)
+            tower.power = tower.currentDemand() * ratio
+            tower.ratio = 1/(supply / demand)
+
+            if (tower.working && ratio < POWER_OFF_RATIO) tower.working = false
+            else if (!tower.working && ratio > POWER_ON_RATIO) tower.working = true
+        }
+
+        for(const id of grid.supply){
+            const gen = this.getTowerFromID(id)
+            gen.demand = demand
+            gen.supply = supply
+        }
+    }
 
     getTowerFromID(id){
         for(let tower of this.towers) if(tower.id == id) return tower
@@ -383,6 +485,13 @@ class Game{
         pop()
     }
 
+    updateHovered(){
+        let [i, j] = getIJ(mouseX, mouseY)
+        let hoveredTower = this.getElementTowerGrid(i*SIZE_CELL, j*SIZE_CELL)
+        if(hoveredTower) this.hoveredTower = hoveredTower
+        else this.hoveredTower = undefined
+    }
+
     showDoing(){
         if(!this.doingAction) return
         push()
@@ -391,28 +500,26 @@ class Game{
         strokeWeight(2)
         rectMode(CENTER)
         let [i, j] = getIJ(mouseX, mouseY)
-        let hoveredTower = this.getElementTowerGrid(i*SIZE_CELL, j*SIZE_CELL)
-        let hoveredTowerIsPath = hoveredTower == 'path_seg'
-        //if(el) {pop(); return}
         let x = i*SIZE_CELL+SIZE_CELL/2
         let y = j*SIZE_CELL+SIZE_CELL/2
-        if(this.doingAction == 'addCanon' && mouseY < HEIGHT_SCENE && !hoveredTower){
+        let isFree = !this.hoveredTower && !this.isTherePathThere(x, y)
+        if(this.doingAction == 'addCanon' && mouseY < HEIGHT_SCENE && isFree){
             square(x, y, SIZE_CELL*.5)
             discLinesEllipse({x, y},CANON_BASE_RANGE,CANON_BASE_RANGE)
         }
-        else if(this.doingAction == 'addMiner' && mouseY < HEIGHT_SCENE && !hoveredTower){
+        else if(this.doingAction == 'addMiner' && mouseY < HEIGHT_SCENE && isFree){
             ellipse(x, y, SIZE_CELL*0.65)
             drawCross(x, y, SIZE_CELL*0.65)
         }
-        else if(this.doingAction == 'addCrossBow' && mouseY < HEIGHT_SCENE && !hoveredTower){
+        else if(this.doingAction == 'addCrossBow' && mouseY < HEIGHT_SCENE && isFree){
             rect(x, y, SIZE_CELL*.55, SIZE_CELL*.25)
             discLinesEllipse({x, y},CROSSBOW_BASE_RANGE,CROSSBOW_BASE_RANGE)
         }
-        else if(this.doingAction == 'addBomber' && mouseY < HEIGHT_SCENE && !hoveredTower){
+        else if(this.doingAction == 'addBomber' && mouseY < HEIGHT_SCENE && isFree){
             circle(x, y, SIZE_CELL*.55)
             discLinesEllipse({x, y},BOMBER_BASE_RANGE,BOMBER_BASE_RANGE)
         }
-        else if(this.doingAction == 'addGenerator' && mouseY < HEIGHT_SCENE && !hoveredTower){
+        else if(this.doingAction == 'addGenerator' && mouseY < HEIGHT_SCENE && isFree){
             ellipse(x, y, SIZE_CELL*0.65)
             let m = (SIZE_CELL*0.65)*.5
             arc(x, y-m*.5, m, m, -PI/2, PI/2)
@@ -421,7 +528,7 @@ class Game{
         else if(this.doingAction == 'connecting' && this.doingActionProperties.connectingGeneratorID != -1){
             let posFrom = this.getTowerFromID(this.doingActionProperties.connectingGeneratorID).pos
             let posTo = {x: mouseX, y: mouseY}
-            if(hoveredTower && hoveredTower.constructor.name != 'Generator' && !hoveredTowerIsPath) posTo = hoveredTower.pos
+            if(this.hoveredTower && this.hoveredTower?.constructor.name != 'Generator') posTo = this.hoveredTower.pos
             strokeWeight(3)
             drawDashedLine(posFrom.x, posFrom.y, posTo.x, posTo.y, 1, 8)
         }
@@ -432,15 +539,26 @@ class Game{
         push()
         stroke(180)
         strokeWeight(3)
-        for(let connection of this.generatorGrid){
-            let posFrom = this.getTowerFromID(connection[0]).pos
-            let posTo = this.getTowerFromID(connection[1]).pos
-            drawDashedLine(posFrom.x, posFrom.y, posTo.x, posTo.y, 1, 8, frameCount*0.1)
+        for(let [genID, towerIDs] of this.generatorGrid){
+            let generates = this.getTowerFromID(genID).generates
+            let demandLocal = 0
+            for(let towerID of towerIDs){
+                demandLocal += this.getTowerFromID(towerID).power
+            }
+            for(let towerID of towerIDs){
+                let tower = this.getTowerFromID(towerID)
+                let posFrom = this.getTowerFromID(genID).pos
+                let posTo = tower.pos
+                let speed = Math.min(Math.max(tower.power/demandLocal, 0.1), 0.9)
+                drawDashedLine(posFrom.x, posFrom.y, posTo.x, posTo.y, 1, 8, frameCount*speed)
+            }
+            
         }
         pop()
     }
 
     render(){
+        this.updateHovered()
         this.showOreGrid()
         this.showGrid()
         this.showGeneratorGrid()
@@ -461,12 +579,11 @@ class Game{
                 en.render()
             }
         }
-        for(let tower of this.towers) tower.render()
+        for(let tower of this.towers) tower.render(this.hoveredTower?.id ?? -1)
         for(let projectile of this.projectiles) projectile.render()
         pop()
         this.showUI()
         this.particleManager.drawParticles()
-        
     }
 }
 
@@ -474,4 +591,10 @@ function getIJ(x, y, nCells = N_CELLS){
     let i = Math.floor(x/(WIDTH_SCENE/nCells))
     let j = Math.floor(y/(HEIGHT_SCENE/nCells))
     return [i, j]
+}
+
+function sum(arr, fn) {
+    let total = 0
+    for (const x of arr) total += fn(x)
+    return total
 }

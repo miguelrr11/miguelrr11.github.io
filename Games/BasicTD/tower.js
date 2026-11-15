@@ -5,9 +5,29 @@ class Tower{
         this.game = game
         this.level = 1
         this.id = Tower.globalID++
+
+        this.working = false
+        
+        this.activity = 0   // sube con la demanda, baja solo
+        this.maxPower = 1   // lo que la torre consume cuando su demanda es maxima (deberia ser diferente segun torre)
+
+        this.power = 0 // esto se va cambiando dinamicamente segun el generador conetado
+        this.ratio = 0 // usado para indicaciones (supply/demand)
     }
 
     static globalID = 0
+
+    updateActivity(inRange) {
+        let target = inRange.length > 0 ? 1 : 0;
+        //if(!this.working) target = 0   // asi se pueden recuperar (entonces flashea, no me convence)
+        const speed  = target > this.activity ? ACT_ATTACK : ACT_RELEASE;
+        this.activity += (target - this.activity) * (1 - Math.exp(-speed * dt));
+    }
+
+    currentDemand() {
+        const load = Math.min(1, this.activity / FULL_AT);
+        return this.maxPower * (IDLE_DRAW + (1 - IDLE_DRAW) * load);
+    }
 }
 
 class Generator extends Tower{
@@ -19,6 +39,11 @@ class Generator extends Tower{
 
         this.shootAnim = 0
         this.hasShoot = false
+
+        this.generates = 3
+
+        this.supply = this.generates 
+        this.demand = 0     
     }
 
     update(){
@@ -32,7 +57,7 @@ class Generator extends Tower{
 
     }
     
-    render(){
+    render(hoveredTowerID){
         // if(this.hasShoot) this.shootAnim = lerp(this.shootAnim, 1, .15)
         // else{
         //     this.shootAnim = 0
@@ -53,6 +78,23 @@ class Generator extends Tower{
         arc(0, 0-m*.5, m, m, -PI/2, PI/2)
         arc(0, 0+m*.5, m, m, PI/2, -PI/2)
         pop()
+
+        if(hoveredTowerID == this.id){
+            push()
+            noStroke()
+            fill(0)
+            textSize(12)
+            let txt = 'Supply: ' + this.supply + '\nDemand: ' + round(this.demand * POWER_OFF_RATIO, 2)
+            let bbox = textFont().textBounds(txt, this.pos.x, this.pos.y - SIZE_CELL - SIZE_CELL * 0.2)
+            fill(0)
+            rectMode(CORNER)
+            let m = bbox.w/2
+            rect(bbox.x-3-m, bbox.y-3, bbox.w+6, bbox.h+6)
+            fill(255)
+            text(txt, this.pos.x-m, this.pos.y - SIZE_CELL - SIZE_CELL * 0.2)
+            pop()
+        }
+        
     }
 }
 
@@ -106,30 +148,12 @@ class Miner extends Tower{
     }
 }
 
-class Canon extends Tower{
+class Shooter extends Tower{
     constructor(pos, gridPos, game){
         super(pos, gridPos, game)
-        this.range = CANON_BASE_RANGE
-        this.fireRate = 6
         this.cooldown = 0
-
-        this.projectileOptions = {
-            damage: 1,
-            maxSpeed: .3,
-            pierce: 1,
-            acc: .01,
-            startSpeed: .001,
-            knockback: 0
-        }
-
         this.shootAnim = 1
         this.lookingTo = 0
-    }
-
-    levelUp(){
-        this.level++
-        this.projectileOptions.damage += 2
-        this.fireRate *= 0.8
     }
 
     addProjectile(angle){
@@ -141,9 +165,11 @@ class Canon extends Tower{
 
     update(){
         this.cooldown -= dt * 0.01
-        if(this.cooldown > 0) return
-
         let inRange = this.game.getEnemiesInRange(this)
+        this.updateActivity(inRange)
+
+        if(this.cooldown > 0 || !this.working) return
+
         inRange.sort((a, b) => (b.pathIndex - a.pathIndex) || (b.t - a.t))
 
         if (inRange.length > 0) {
@@ -156,33 +182,91 @@ class Canon extends Tower{
                 x: first.pos.x + vel.x * SIZE_CELL*mag,
                 y: first.pos.y + vel.y * SIZE_CELL*mag
             }
-            let angle =  atan2(posCorrected.y - this.pos.y, posCorrected.x - this.pos.x)
+            let angle = atan2(posCorrected.y - this.pos.y, posCorrected.x - this.pos.x)
             this.lookingTo = angle
             this.addProjectile(angle)
             this.cooldown = this.fireRate
             this.shootAnim = 1
         }
-    
     }
 
-    render(){
+    renderActivity(){
+        push()
+        translate(-SIZE_CELL/2, SIZE_CELL/2)
+        rectMode(CORNER)
+        if(!this.working){
+            let t = frameCount % 25 > 12.5 ? 0 : 255
+            fill(255, 0, 0, t)
+            noStroke()
+            rect(this.pos.x, this.pos.y, SIZE_CELL, -SIZE_CELL)
+            pop()
+            return
+        }
+        let h = map(this.ratio, 0, LIMIT_RATIO, 1, SIZE_CELL)
+
+        //h = SIZE_CELL
+        colorMode(HSB, 255, 255, 255)
+        if(this.ratio < 1) fill(map(this.ratio, 0, 0.99, 120, 60), 255, 255)
+        else if(this.ratio < LIMIT_RATIO) fill(map(this.ratio, 1, LIMIT_RATIO, 60, 0), 255, 255)
+        else fill(0, 255, 255) // es muy raro que caiga aqui
+        noStroke()
+        rect(this.pos.x+2, this.pos.y-2, SIZE_CELL*0.12, -h+4, 3)
+        pop()
+    }
+
+    render(hoveredTowerID){
+        this.renderActivity()
+
         let d = distanceAB({x: mouseX, y: mouseY}, this.pos)
         this.shootAnim = lerp(this.shootAnim, 0, .5)
         push()
+
         rectMode(CENTER)
         noFill()
         stroke(0)
         strokeWeight(2)
-        drawCanon(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
+        this.renderTower()
+
         let t = map(d, 30, this.range + 20, 255, 0)
         if(d < 30) t = 255
         stroke(180, t)
-        discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
+        if(hoveredTowerID == -1) discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
+        else if(hoveredTowerID == this.id) discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
         pop()
     }
 }
 
-class CrossBow extends Canon{
+class Canon extends Shooter{
+    constructor(pos, gridPos, game){
+        super(pos, gridPos, game)
+        this.range = CANON_BASE_RANGE
+        this.fireRate = 6
+        this.cooldown = 0
+
+        this.projectileOptions = {
+            damage: .33,
+            maxSpeed: .3,
+            pierce: 1,
+            acc: .01,
+            startSpeed: .001,
+            knockback: 0
+        }
+
+        this.maxPower = 1
+    }
+
+    levelUp(){
+        this.level++
+        this.projectileOptions.damage += 2
+        this.fireRate *= 0.8
+    }
+
+    renderTower(){
+        drawCanon(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
+    }
+}
+
+class CrossBow extends Shooter{
     constructor(pos, gridPos, game){
         super(pos, gridPos, game)
         this.range = CROSSBOW_BASE_RANGE
@@ -205,24 +289,12 @@ class CrossBow extends Canon{
         this.fireRate *= 0.9
     }
 
-    render(){
-        let d = distanceAB({x: mouseX, y: mouseY}, this.pos)
-        this.shootAnim = lerp(this.shootAnim, 0, .5)
-        push()
-        rectMode(CENTER)
-        noFill()
-        stroke(0)
-        strokeWeight(2)
+    renderTower(){
         drawCrossBow(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
-        let t = map(d, 30, this.range + 20, 255, 0)
-        if(d < 30) t = 255
-        stroke(180, t)
-        discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
-        pop()
     }
 }
 
-class Bomber extends Canon{
+class Bomber extends Shooter{
     constructor(pos, gridPos, game){
         super(pos, gridPos, game)
         this.range = BOMBER_BASE_RANGE
@@ -245,6 +317,8 @@ class Bomber extends Canon{
         this.drawOptionsProjectile = {
             rad: 12
         }
+
+        this.maxPower = 4
     }
 
     addProjectile(angle){
@@ -260,19 +334,7 @@ class Bomber extends Canon{
         this.fireRate -= 3.5
     }
 
-    render(){
-        let d = distanceAB({x: mouseX, y: mouseY}, this.pos)
-        this.shootAnim = lerp(this.shootAnim, 0, .5)
-        push()
-        rectMode(CENTER)
-        noFill()
-        stroke(0)
-        strokeWeight(2)
+    renderTower(){
         drawBomber(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
-        let t = map(d, 30, this.range + 20, 255, 0)
-        if(d < 30) t = 255
-        stroke(180, t)
-        discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
-        pop()
     }
 }
