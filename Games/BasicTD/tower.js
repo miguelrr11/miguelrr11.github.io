@@ -44,7 +44,7 @@ class Tower{
 
         //h = SIZE_CELL
         colorMode(HSB, 255, 255, 255)
-        if(this.ratio < 1) fill(map(this.ratio, 0, 0.99, 120, 60), 255, 255)
+        if(this.ratio < 1) fill(map(this.ratio, 0, 0.99, 120, 90), 255, 255)
         else if(this.ratio < LIMIT_RATIO) fill(map(this.ratio, 1, LIMIT_RATIO, 60, 0), 255, 255)
         else fill(0, 255, 255) // es muy raro que caiga aqui
         noStroke()
@@ -77,10 +77,21 @@ class Generator extends Tower{
         this.shootAnim = 0
         this.hasShoot = false
 
-        this.generates = GENERATOR_BASE_POWER
+        let i = this.gridPos.i*2
+        let j = this.gridPos.j*2
+        this.oresAvailable = 0
+        if(this.game.oreGrid[i][j] == ENERGY_VAL) this.oresAvailable++
+        if(this.game.oreGrid[i+1][j] == ENERGY_VAL) this.oresAvailable++
+        if(this.game.oreGrid[i][j+1] == ENERGY_VAL) this.oresAvailable++
+        if(this.game.oreGrid[i+1][j+1] == ENERGY_VAL) this.oresAvailable++
+
+        this.generates = (GENERATOR_BASE_POWER*.5*this.oresAvailable > 0 ? 1 : 0) + 
+                          GENERATOR_BASE_POWER*.5*(this.oresAvailable/4)
 
         this.supply = this.generates 
         this.demand = 0     
+
+        
     }
 
     update(){
@@ -105,8 +116,8 @@ class Generator extends Tower{
         // }
         push()
         translate(this.pos.x, this.pos.y)
-        rotate(frameCount * 0.03)
-        noFill()
+        rotate(frameCount * 0.03 * this.oresAvailable*.5)
+        fill(COLOR_GENERATOR)
         stroke(0)
         strokeWeight(2)
         let off = this.hasShoot ? this.shootAnim * 5 : 0
@@ -151,10 +162,10 @@ class Miner extends Tower{
         let i = this.gridPos.i*2
         let j = this.gridPos.j*2
         this.oresAvailable = 0
-        if(this.game.oreGrid[i][j] == 1) this.oresAvailable++
-        if(this.game.oreGrid[i+1][j] == 1) this.oresAvailable++
-        if(this.game.oreGrid[i][j+1] == 1) this.oresAvailable++
-        if(this.game.oreGrid[i+1][j+1] == 1) this.oresAvailable++
+        if(this.game.oreGrid[i][j] == ORE_VAL) this.oresAvailable++
+        if(this.game.oreGrid[i+1][j] == ORE_VAL) this.oresAvailable++
+        if(this.game.oreGrid[i][j+1] == ORE_VAL) this.oresAvailable++
+        if(this.game.oreGrid[i+1][j+1] == ORE_VAL) this.oresAvailable++
     }
 
     updateActivity() {
@@ -184,12 +195,12 @@ class Miner extends Tower{
             this.hasShoot = false
         }
         push()
-        noFill()
+        fill(COLOR_MINER)
         stroke(0)
         strokeWeight(2)
         let off = this.hasShoot ? this.shootAnim * 5 : 0
         ellipse(this.pos.x, this.pos.y, SIZE_CELL*0.65-off)
-        drawCross(this.pos.x, this.pos.y, SIZE_CELL*0.65-off, (frameCount*.1+this.shootAnim)*(this.working ? 1 : 0))
+        drawCross(this.pos.x, this.pos.y, SIZE_CELL*0.65-off-3, (frameCount*.1+this.shootAnim)*(this.working ? 1 : 0)*(this.oresAvailable/4))
         pop()
     }
 }

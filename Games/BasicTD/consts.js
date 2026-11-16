@@ -1,8 +1,23 @@
+const WIDTH_SCENE = 600
+const HEIGHT_SCENE = 600
+const SIZE_CELL = 30
+const N_CELLS = WIDTH_SCENE / SIZE_CELL
+const SIZE_CELL_ORE = SIZE_CELL / 2
+const N_CELLS_ORE = N_CELLS * 2
+
 const CANON_BASE_PRICE = 15
 const MINER_BASE_PRICE = 10
 const CROSSBOW_BASE_PRICE = 15
 const BOMBER_BASE_PRICE = 20
 const GENERATOR_BASE_PRICE = 5
+
+const TOWER_TYPES = {
+    addCanon:     { cls: Canon,     price: CANON_BASE_PRICE },
+    addMiner:     { cls: Miner,     price: MINER_BASE_PRICE },
+    addCrossBow:  { cls: CrossBow,  price: CROSSBOW_BASE_PRICE },
+    addBomber:    { cls: Bomber,    price: BOMBER_BASE_PRICE },
+    addGenerator: { cls: Generator, price: GENERATOR_BASE_PRICE },
+}
 
 const CANON_BASE_RANGE = 80
 const CROSSBOW_BASE_RANGE = 80
@@ -17,6 +32,15 @@ const GENERATOR_BASE_POWER = 4
 const ENEMY_RAD = 15
 
 const START_ORE = 10
+
+// enum for oregrid
+const ORE_VAL = 1
+const ENERGY_VAL = 2
+
+const COLOR_ORE_CELL = [242, 196, 167]
+const COLOR_MINER = [240, 149, 91]
+const COLOR_ENERGY_CELL = [160, 210, 255]
+const COLOR_GENERATOR = [86, 167, 240]
 
 // constantes de consumo energetico torres
 const ACT_ATTACK  = 0.005;    // velocidad de subida (por segundo)

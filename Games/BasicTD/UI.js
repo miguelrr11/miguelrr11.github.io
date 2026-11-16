@@ -146,6 +146,7 @@ class UI{
             square(b.pos.x, b.pos.y, b.size + (b.inBounds ? b.anim * 10 : 0))
             if(b.tag == 'addCanon') square(b.pos.x, b.pos.y, SIZE_CELL*.5)
             if(b.tag == 'addMiner'){
+                fill(COLOR_MINER)
                 ellipse(b.pos.x, b.pos.y, SIZE_CELL*0.65)
                 drawCross(b.pos.x, b.pos.y, SIZE_CELL*0.6)
             }
@@ -156,6 +157,7 @@ class UI{
                 circle(b.pos.x, b.pos.y, SIZE_CELL*.55)
             }
             if(b.tag == 'addGenerator'){
+                fill(COLOR_ENERGY_CELL)
                 ellipse(b.pos.x, b.pos.y, SIZE_CELL*0.65)
                 let m = (SIZE_CELL*0.65)*.5
                 arc(b.pos.x, b.pos.y-m*.5, m, m, -PI/2, PI/2)

@@ -1,17 +1,4 @@
-const WIDTH_SCENE = 600
-const HEIGHT_SCENE = 600
-const SIZE_CELL = 30
-const N_CELLS = WIDTH_SCENE / SIZE_CELL
-const SIZE_CELL_ORE = SIZE_CELL / 2
-const N_CELLS_ORE = N_CELLS * 2
 
-const TOWER_TYPES = {
-    addCanon:     { cls: Canon,     price: CANON_BASE_PRICE },
-    addMiner:     { cls: Miner,     price: MINER_BASE_PRICE },
-    addCrossBow:  { cls: CrossBow,  price: CROSSBOW_BASE_PRICE },
-    addBomber:    { cls: Bomber,    price: BOMBER_BASE_PRICE },
-    addGenerator: { cls: Generator, price: GENERATOR_BASE_PRICE },
-}
 
 
 class Game{
@@ -19,14 +6,8 @@ class Game{
         this.towerGrid = []      //stores what does exist (towers and path segments) in each [i,j] position for easier lookups
         this.pathGrid = []
         this.initGrid()
-        this.path = this.createRandomPath(
-            {i: floor(N_CELLS/4), j: 0},
-            {i: floor(3*N_CELLS/4), j: N_CELLS - 1},
-            {i: -1, j: N_CELLS - 1}
-        )
-        this.path.unshift({i: this.path[0].i, j: this.path[0].j-1})
-        this.path.push({i: this.path[this.path.length-1].i, j: this.path[this.path.length-1].j+1})
 
+        this.path = this.createPathFromColumns(Array.from({ length: 7 }, () => Math.random()))
         
         this.enemies = []
         this.towers = []
@@ -52,6 +33,37 @@ class Game{
 
         this.enemiesPerSecond = 0.5
         this.totalEnemies = 0  //all historical amount ever spawned
+    }
+
+    // xs es la lista de coordenadas x de los endpoints de cada division
+    // la separacion y es uniforme
+    createPathFromColumns(xs, options) {
+        const waypoints = xs.map((x, k) => ({
+            i: Math.min(N_CELLS - 1, Math.max(0, Math.floor(x * N_CELLS))),
+            j: Math.round(k * (N_CELLS - 1) / (xs.length - 1)),
+        }))
+        return this.createPathThroughPoints(waypoints, options)
+    }
+
+    //junta paths para crear el completo
+    createPathThroughPoints(waypoints, { addEndCaps = true } = {}) {
+        let path = []
+        for (let k = 0; k < waypoints.length - 1; k++) {
+            const start = waypoints[k]
+            const end = waypoints[k + 1]
+            const segment = this.createRandomPath(start, end, { i: -1, j: end.j })
+
+            path.push(...(k === 0 ? segment : segment.slice(1)))
+        }
+
+        if (addEndCaps) {
+            const first = path[0]
+            const last = path[path.length - 1]
+            path.unshift({ i: first.i, j: first.j - 1 })
+            path.push({ i: last.i, j: last.j + 1 })
+        }
+
+        return path
     }
 
     calculateGeneratorMap(){
@@ -113,8 +125,13 @@ class Game{
 
         let scale = 0.07
         let finished = false
+        let iters = 0
+        let countOres = 0
+        let countEnergy = 0
 
-        while(!finished){
+        const maxIters = 200
+
+        while(!finished && iters < maxIters){
             let seed = random(1, 10000)
             let count = 0
             this.oreGrid = []
@@ -123,17 +140,64 @@ class Game{
                 for(let j = 0; j < N_CELLS_ORE; j++){
                     let val = noise(i*scale + seed, j*scale + seed)
                     if(val > 0.65) {
-                        this.oreGrid[i][j] = 1
+                        this.oreGrid[i][j] = ORE_VAL
                         count++
                     }
                     else this.oreGrid[i][j] = 0
                 }
             }
-            if(count > 130) finished = true
+            if(count > 130){ 
+                finished = true
+                countOres = count
+            }
+
+            iters++
         }
 
+        finished = false
+        scale = 0.07
+        iters = 0
+        while(!finished && iters < maxIters){
+            let seed = random(1, 10000)
+            let count = 0
+            for(let i = 0; i < N_CELLS_ORE && count < 10; i++){
+                for(let j = 0; j < N_CELLS_ORE && count < 10; j++){
+                    let val = noise(i*scale + seed, j*scale + seed)
+                    if(val > 0.8 && !this.isTherePathThere((i/2)*SIZE_CELL, (j/2)*SIZE_CELL)) {
+                        this.oreGrid[i][j] = ENERGY_VAL
+                        count++
+                    }
+                    //else this.oreGrid[i][j] = 0
+                }
+            }
+            if(count >= 10) {
+                finished = true
+                countEnergy = count
+            }
+
+            iters++
+        }
+
+        //remove energy cells that are not adjacent to another one
+        let kernel = [         [0, -1],
+                      [-1, 0],          [1, 0],
+                                [0, 1]]
+        for(let i = 1; i < N_CELLS_ORE-1; i++){
+                for(let j = 1; j < N_CELLS_ORE-1; j++){
+                    if(this.oreGrid[i][j] == ENERGY_VAL){
+                        let neighs = 0
+                        for(let k of kernel){
+                            if(this.oreGrid[i+k[0]][j+k[1]] == ENERGY_VAL){
+                                neighs++
+                            }
+                        }
+                        if(neighs < 2) this.oreGrid[i][j] = 0
+                    }
+                }
+            }
+
         console.timeEnd('genOres')
-        
+        console.log(countOres, countEnergy, iters)
     }
 
 
@@ -361,7 +425,13 @@ class Game{
     }
 
     update(){
-        if(Math.random() < this.enemiesPerSecond/60) this.spawnEnemy()
+        //this.enemiesPerSecond *= 1.0001
+
+        const expected = this.enemiesPerSecond * dt / 1000
+        let n = Math.floor(expected)
+        if (Math.random() < expected - n) n++
+        for (let k = 0; k < n; k++) this.spawnEnemy()
+
         this.UI.update()
         this.particleManager.updateParticles()
 
@@ -452,10 +522,13 @@ class Game{
         let m = SIZE_CELL_ORE * .5
         for(let i = 0; i < N_CELLS_ORE; i++){
             for(let j = 0; j < N_CELLS_ORE; j++){
-                if(this.oreGrid[i][j] > 0){
-                    fill(map(this.oreGrid[i][j], 0.65, 1, 240, 160))
-
-                    fill(220)
+                if(this.oreGrid[i][j] == ORE_VAL){
+                    //fill(map(this.oreGrid[i][j], 0.65, 1, 240, 160))
+                    fill(COLOR_ORE_CELL)
+                    square(i*SIZE_CELL_ORE + m, j*SIZE_CELL_ORE + m, SIZE_CELL_ORE)
+                }
+                else if(this.oreGrid[i][j] == ENERGY_VAL){
+                    fill(COLOR_ENERGY_CELL)
                     square(i*SIZE_CELL_ORE + m, j*SIZE_CELL_ORE + m, SIZE_CELL_ORE)
                 }
             }
@@ -540,19 +613,20 @@ class Game{
         stroke(180)
         strokeWeight(3)
         for(let [genID, towerIDs] of this.generatorGrid){
-            let generates = this.getTowerFromID(genID).generates
+            let gen = this.getTowerFromID(genID)
+            let generates = gen.generates
             let demandLocal = 0
             for(let towerID of towerIDs){
                 demandLocal += this.getTowerFromID(towerID).power
             }
             for(let towerID of towerIDs){
                 let tower = this.getTowerFromID(towerID)
-                let posFrom = this.getTowerFromID(genID).pos
+                let posFrom = gen.pos
                 let posTo = tower.pos
                 let speed = Math.min(Math.max(tower.power/demandLocal, 0.1), 0.9)
+                if(gen.supply == 0) speed = 0
                 drawDashedLine(posFrom.x, posFrom.y, posTo.x, posTo.y, 1, 8, frameCount*speed)
             }
-            
         }
         pop()
     }
