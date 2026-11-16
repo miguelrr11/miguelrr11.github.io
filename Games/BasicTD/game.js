@@ -7,14 +7,14 @@ class Game{
         this.pathGrid = []
         this.initGrid()
 
-        this.path = this.createPathFromColumns(Array.from({ length: 7 }, () => Math.random()))
+        this.path = this.createPathFromColumns(Array.from({ length: 3 }, () => Math.random()))
         
         this.enemies = []
         this.towers = []
         this.projectiles = []
         this.oreGrid = []
         this.initPath()
-        this.spawnEnemy()
+        this.spawnCrawlerAtStart()
         this.initOres()
         this.currentOre = Infinity
         this.UI = new UI(this)
@@ -32,7 +32,7 @@ class Game{
                                             // used for distributing energy
 
         this.enemiesPerSecond = 0.5
-        this.totalEnemies = 0  //all historical amount ever spawned
+        this.totalCrawlers = 0  //all historical amount ever spawned
     }
 
     // xs es la lista de coordenadas x de los endpoints de cada division
@@ -308,6 +308,8 @@ class Game{
         }
 
         else{
+            this.spawnRaiderAtxy(mouseX, mouseY)
+
             this.doingAction = null
             this.doingActionProperties.connectingGeneratorID = -1
         }
@@ -416,12 +418,16 @@ class Game{
         return path
     }
 
-    spawnEnemy(){
-        this.enemies.push(new Enemy({
+    spawnCrawlerAtStart(){
+        this.enemies.push(new Crawler({
             x: this.path[0].i * SIZE_CELL,
             y: this.path[0].j * SIZE_CELL
-        }, 0))
-        this.totalEnemies++
+        }, 0, this))
+        this.totalCrawlers++
+    }
+
+    spawnRaiderAtxy(x, y, options = {}){
+        this.enemies.push(new Raider({x, y}, this, options))
     }
 
     update(){
@@ -430,12 +436,12 @@ class Game{
         const expected = this.enemiesPerSecond * dt / 1000
         let n = Math.floor(expected)
         if (Math.random() < expected - n) n++
-        for (let k = 0; k < n; k++) this.spawnEnemy()
+        for (let k = 0; k < n; k++) this.spawnCrawlerAtStart()
 
         this.UI.update()
         this.particleManager.updateParticles()
 
-        const m = SIZE_CELL * .5
+    
         for(let i = this.enemies.length - 1; i >= 0; i--){
             const en = this.enemies[i]
             en.prevPos = {...en.pos}
@@ -446,23 +452,7 @@ class Game{
                 continue
             }
 
-            en.t += en.speed * dt
-
-            while(en.t >= 1){
-                en.t -= 1
-                en.pathIndex++
-            }
-
-            if(en.pathIndex >= this.path.length - 1){
-                en.pathIndex = 0
-                //this.enemies.splice(i, 1) 
-                continue
-            }
-
-            const a = this.path[en.pathIndex]
-            const b = this.path[en.pathIndex + 1]
-            en.pos.x = lerp(a.i, b.i, en.t) * SIZE_CELL + m
-            en.pos.y = lerp(a.j, b.j, en.t) * SIZE_CELL + m
+            en.move(this)
         }
 
         for(let tower of this.towers) tower.update()
@@ -484,7 +474,7 @@ class Game{
             }
         }
 
-        //console.log(round(this.totalEnemies/(frameCount/60), 2))
+        //console.log(round(this.totalCrawlers/(frameCount/60), 2))
     }  
 
     distributeEnergy(grid){

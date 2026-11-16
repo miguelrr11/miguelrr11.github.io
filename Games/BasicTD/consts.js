@@ -1,6 +1,7 @@
 const WIDTH_SCENE = 600
 const HEIGHT_SCENE = 600
 const SIZE_CELL = 30
+const HALF_SIZE_CELL = SIZE_CELL * .5
 const N_CELLS = WIDTH_SCENE / SIZE_CELL
 const SIZE_CELL_ORE = SIZE_CELL / 2
 const N_CELLS_ORE = N_CELLS * 2
@@ -10,6 +11,8 @@ const MINER_BASE_PRICE = 10
 const CROSSBOW_BASE_PRICE = 15
 const BOMBER_BASE_PRICE = 20
 const GENERATOR_BASE_PRICE = 5
+
+const ATTACK_DISTANCE_RAIDER = SIZE_CELL * 2
 
 const TOWER_TYPES = {
     addCanon:     { cls: Canon,     price: CANON_BASE_PRICE },

@@ -4,6 +4,15 @@
 // Math Utilities
 // ===================
 
+function direction(a, b){
+    return Math.atan2(b.y - a.y, b.x - a.x)
+}
+
+function randomUnitVector(){
+    let a = Math.random() * TWO_PI
+    return {x: Math.cos(a), y: Math.sin(a)}
+}
+
 function inBounds(x, y, a, b, w, h) {
     return x < a + w && x > a && y < b + h && y > b;
 }
