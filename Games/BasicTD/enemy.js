@@ -36,7 +36,7 @@ class Crawler extends Enemy{
     }
 
     updateLocal(){
-        if(!this.spawning && Math.random() < 0.0005){
+        if(!this.spawning && Math.random() < 0.00035){
             this.spawning = true
             this.phase = 0
         }
@@ -44,7 +44,8 @@ class Crawler extends Enemy{
         if(this.spawning) this.phase += dt * .0005
 
         if(this.spawning && this.phase > 1){
-            let nRaiders = Math.ceil(Math.random() * 5)
+            //let nRaiders = Math.ceil(Math.random() * 5)
+            let nRaiders = 1
             for(let i = 0; i < nRaiders; i++){
                 let vel = randomUnitVector()
                 vel.x *= .2
@@ -113,13 +114,21 @@ class Raider extends Enemy{
         this.vel = options.vel ? options.vel : {x:0, y:0}
 
         this.maxForce = 0.001
+
+        this.hp = 1
+    }
+
+    hit(projectile){
+        this.hp -= projectile.damage
+        //this.t = Math.max(0, this.t - projectile.knockback)
+        this.hitAnim = 1
     }
 
     setTarget(){
         let minDist = Infinity
         let best = undefined
         for(let tower of this.chunk.towers){
-            if(tower.constructor.name == 'Miner' && distanceAB(this.pos, tower.pos) < minDist){
+            if(tower.isTargetedBy == 'Raider' && distanceAB(this.pos, tower.pos) < minDist){
                 minDist = distanceAB(this.pos, tower.pos)
                 best = tower
             }
@@ -128,7 +137,7 @@ class Raider extends Enemy{
     }
 
     updateLocal(){
-
+        
     }
 
     move(){
@@ -170,6 +179,13 @@ class Raider extends Enemy{
         fill(0, 255, 0)
         stroke(0)
         strokeWeight(2)
+
+        if(this.hitAnim != 0){
+            fill(255 * this.hitAnim, 0, 0)
+            this.hitAnim = lerp(this.hitAnim, 0, 0.1)
+            if(this.hitAnim < 0.001) this.hitAnim = 0
+        }
+
         ellipse(this.pos.x, this.pos.y, 10, 10)
         pop()
     }

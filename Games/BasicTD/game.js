@@ -197,7 +197,6 @@ class Game{
             }
 
         console.timeEnd('genOres')
-        console.log(countOres, countEnergy, iters)
     }
 
 
@@ -209,9 +208,10 @@ class Game{
         this.projectiles.push(new Bomb(pos, angle, projectileOptions, drawOptions, this))
     }
 
-    getEnemiesInRange(tower){
+    getEnemiesInRange(tower, type = undefined){
         let inRange = []
         for(let en of this.enemies){
+            if(type && type != en.constructor.name) continue
             if(inBounds(en.pos.x, en.pos.y, 0, 0, WIDTH_SCENE, HEIGHT_SCENE) &&
                 Math.sqrt((en.pos.x - tower.pos.x)*(en.pos.x - tower.pos.x) + 
                          (en.pos.y - tower.pos.y)*(en.pos.y - tower.pos.y)) < tower.range){
@@ -587,6 +587,10 @@ class Game{
             let m = (SIZE_CELL*0.65)*.5
             arc(x, y-m*.5, m, m, -PI/2, PI/2)
             arc(x, y+m*.5, m, m, PI/2, -PI/2)
+        }
+        if(this.doingAction == 'addPeaShooter' && mouseY < HEIGHT_SCENE && isFree){
+            square(x, y, SIZE_CELL*.35)
+            discLinesEllipse({x, y},PEA_SHOOTER_BASE_RANGE,PEA_SHOOTER_BASE_RANGE)
         }
         else if(this.doingAction == 'connecting' && this.doingActionProperties.connectingGeneratorID != -1){
             let posFrom = this.getTowerFromID(this.doingActionProperties.connectingGeneratorID).pos

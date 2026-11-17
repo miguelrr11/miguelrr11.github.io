@@ -159,6 +159,8 @@ class Miner extends Tower{
 
         this.maxPower = MINER_BASE_POWER
 
+        this.isTargetedBy = 'Raider'
+
         let i = this.gridPos.i*2
         let j = this.gridPos.j*2
         this.oresAvailable = 0
@@ -222,7 +224,7 @@ class Shooter extends Tower{
 
     update(){
         this.cooldown -= dt * 0.01
-        let inRange = this.game.getEnemiesInRange(this)
+        let inRange = this.game.getEnemiesInRange(this, 'Crawler')
         this.updateActivity(inRange)
 
         if(this.cooldown > 0 || !this.working) return
@@ -389,4 +391,65 @@ class Bomber extends Shooter{
     renderTower(){
         drawBomber(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
     }
+}
+
+// shoots raiders
+class PeaShooter extends Shooter{
+    constructor(pos, gridPos, game){
+        super(pos, gridPos, game)
+        this.range = PEA_SHOOTER_BASE_RANGE
+        this.fireRate = 2
+        this.cooldown = 0
+
+        this.price = PEA_SHOOTER_BASE_PRICE
+
+        this.projectileOptions = {
+            damage: .1,
+            maxSpeed: .3,
+            pierce: 1,
+            acc: .015,
+            startSpeed: .005,
+            knockback: 0
+        }
+
+        this.isTargetedBy = 'Raider'
+        this.maxPower = PEA_SHOOTER_BASE_POWER
+    }
+
+    update(){
+        this.cooldown -= dt * 0.01
+        let inRange = this.game.getEnemiesInRange(this, 'Raider')
+        this.updateActivity(inRange)
+
+        if(this.cooldown > 0 || !this.working) return
+
+        inRange.sort((a, b) => (distanceAB(this.pos, b.pos) - distanceAB(this.pos, a.pos)))
+
+        if (inRange.length > 0) {
+            let first = inRange[0]
+            let vel = {x: first.pos.x - first.prevPos.x, y: first.pos.y - first.prevPos.y}
+            let mag = Math.sqrt(vel.x*vel.x + vel.y+vel.y)
+            if(mag < 0.001) mag = .0001
+            vel.x /= mag
+            vel.y /= mag
+            let posCorrected = {
+                x: first.pos.x + vel.x * SIZE_CELL*mag,
+                y: first.pos.y + vel.y * SIZE_CELL*mag
+            }
+            let angle = atan2(posCorrected.y - this.pos.y, posCorrected.x - this.pos.x)
+            this.lookingTo = angle
+            this.addProjectile(angle)
+            this.cooldown = this.fireRate
+            this.shootAnim = 1
+        }
+    }
+
+    upgradeProperties(){
+        this.projectileOptions.damage += 2
+        this.fireRate *= 0.8
+    }
+
+    renderTower(){
+        drawPeaShooter(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
+    }   
 }

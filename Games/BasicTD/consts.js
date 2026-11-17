@@ -11,6 +11,7 @@ const MINER_BASE_PRICE = 10
 const CROSSBOW_BASE_PRICE = 15
 const BOMBER_BASE_PRICE = 20
 const GENERATOR_BASE_PRICE = 5
+const PEA_SHOOTER_BASE_PRICE = 5
 
 const ATTACK_DISTANCE_RAIDER = SIZE_CELL * 2
 
@@ -20,17 +21,20 @@ const TOWER_TYPES = {
     addCrossBow:  { cls: CrossBow,  price: CROSSBOW_BASE_PRICE },
     addBomber:    { cls: Bomber,    price: BOMBER_BASE_PRICE },
     addGenerator: { cls: Generator, price: GENERATOR_BASE_PRICE },
+    addPeaShooter:{ cls: PeaShooter, price: PEA_SHOOTER_BASE_PRICE}
 }
 
 const CANON_BASE_RANGE = 80
 const CROSSBOW_BASE_RANGE = 80
 const BOMBER_BASE_RANGE = 40
+const PEA_SHOOTER_BASE_RANGE = 60
 
 const CANON_BASE_POWER = 1
 const MINER_BASE_POWER = 3
 const CROSSBOW_BASE_POWER = 2
 const BOMBER_BASE_POWER = 4
 const GENERATOR_BASE_POWER = 4
+const PEA_SHOOTER_BASE_POWER = 1
 
 const ENEMY_RAD = 15
 
@@ -132,5 +136,28 @@ function drawBomber(x, y, level, shootAnim, angle){
     fill(0)
     let s = 5
     square(SIZE_CELL*.55*.5+s*.3, 0, s)
+    pop()
+}
+
+function drawPeaShooter(x, y, level, shootAnim, angle){
+    push()
+    translate(x, y)
+    rotate(angle)
+    square(0, 0, SIZE_CELL*.35 + shootAnim*10)
+    if(level == 2) square(0, 0, SIZE_CELL*.2 + shootAnim*10)
+    else if(level == 3){
+        fill(0)
+        square(0, 0, SIZE_CELL*.2 + shootAnim*10)
+    }
+    else if(level == 4){
+        fill(0)
+        square(0, 0, SIZE_CELL*.2 + shootAnim*10)
+        stroke(255)
+        drawCross(0, 0, SIZE_CELL*.25 + shootAnim*10)
+    }
+    noStroke()
+    fill(0)
+    let s = 5
+    //rect(SIZE_CELL*.5*.5+s*.3, 0, s, s*2)
     pop()
 }

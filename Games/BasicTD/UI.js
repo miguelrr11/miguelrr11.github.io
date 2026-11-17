@@ -71,6 +71,20 @@ class UI{
         }
         buttons.push(buttonAddBomber)
 
+        let buttonAddPeaShooter = {
+            size: SIZE_CELL,
+            tag: 'addPeaShooter',
+            pos: {x: 10 + SIZE_CELL * (a + b * 5), y: baseHeight},
+            onClick: (tag) => this.game.doing(tag),       //action to execute when selecting the button
+            onUnclick: () => this.game.doing(undefined),  //action  to execute when deselecting the button
+            action: (x, y) => this.game.plantTower(x, y), //action to execute when this button is selected and there is a click elsewhere
+            active: () => this.game.currentOre >= PEA_SHOOTER_BASE_PRICE,
+            anim: 0,
+            subtitle: PEA_SHOOTER_BASE_PRICE + CURRENCY_SYMBOL,
+            hint: 'Add Pea Shooter'
+        }
+        buttons.push(buttonAddPeaShooter)
+
         let buttonAddGenerator = {
             size: SIZE_CELL,
             tag: 'addGenerator',
@@ -145,6 +159,7 @@ class UI{
 
             square(b.pos.x, b.pos.y, b.size + (b.inBounds ? b.anim * 10 : 0))
             if(b.tag == 'addCanon') square(b.pos.x, b.pos.y, SIZE_CELL*.5)
+            if(b.tag == 'addPeaShooter') square(b.pos.x, b.pos.y, SIZE_CELL*.35)
             if(b.tag == 'addMiner'){
                 fill(COLOR_MINER)
                 ellipse(b.pos.x, b.pos.y, SIZE_CELL*0.65)
