@@ -13,7 +13,7 @@ const BOMBER_BASE_PRICE = 20
 const GENERATOR_BASE_PRICE = 5
 const PEA_SHOOTER_BASE_PRICE = 5
 
-const ATTACK_DISTANCE_RAIDER = SIZE_CELL * 2
+const ATTACK_DISTANCE_RAIDER = 50
 
 const TOWER_TYPES = {
     addCanon:     { cls: Canon,     price: CANON_BASE_PRICE },

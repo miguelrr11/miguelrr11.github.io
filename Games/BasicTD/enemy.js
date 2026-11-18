@@ -109,19 +109,33 @@ class Raider extends Enemy{
         this.acc = 0.005
         this.decel = 0.0001
         this.maxSpeed = 100
-        this.target = this.setTarget()
+        this.target = null
+        this.setTarget()
         if(!this.target) this.dead = true
         this.vel = options.vel ? options.vel : {x:0, y:0}
 
         this.maxForce = 0.001
 
+        this.range = ATTACK_DISTANCE_RAIDER
+
         this.hp = 1
+
+        this.fireRate = 10
+        this.coolDown = this.fireRate
+        this.damage = 0.1
+
+        this.damageAnim = 0
     }
 
     hit(projectile){
         this.hp -= projectile.damage
         //this.t = Math.max(0, this.t - projectile.knockback)
         this.hitAnim = 1
+    }
+
+    checkTarget(){
+        if(this.target && this.chunk.checkTower(this.target)) return true
+        else this.setTarget()
     }
 
     setTarget(){
@@ -133,11 +147,20 @@ class Raider extends Enemy{
                 best = tower
             }
         }
-        return best
+        if(best) {this.target = best; return true}
+        return false
     }
 
     updateLocal(){
-        
+        this.checkTarget()
+        if(this.target && distanceAB(this.pos, this.target.pos) <= this.range){
+            this.coolDown -= dt * 0.01
+            if(this.coolDown <= 0){
+                this.coolDown = this.fireRate
+                this.chunk.damageTower(this.target, {damage: this.damage})
+                this.damageAnim = 1
+            }
+        }
     }
 
     move(){
@@ -146,7 +169,7 @@ class Raider extends Enemy{
         const dx = this.target.pos.x - this.pos.x
         const dy = this.target.pos.y - this.pos.y
         const d = Math.hypot(dx, dy)
-        const remaining = d - ATTACK_DISTANCE_RAIDER
+        const remaining = d - this.range
 
         // 1. desired velocity: towards the target, braking on arrival
         const desiredSpeed = remaining > 0
@@ -184,6 +207,16 @@ class Raider extends Enemy{
             fill(255 * this.hitAnim, 0, 0)
             this.hitAnim = lerp(this.hitAnim, 0, 0.1)
             if(this.hitAnim < 0.001) this.hitAnim = 0
+        }
+
+        if(this.damageAnim != 0 && this.checkTarget()){
+            push()
+            stroke(255, 0, 0, 255*this.damageAnim)
+            strokeWeight(3)
+            line(this.pos.x, this.pos.y, this.target.pos.x, this.target.pos.y)
+            this.damageAnim = lerp(this.damageAnim, 0, 0.05)
+            if(this.damageAnim < 0.001) this.damageAnim = 0
+            pop()
         }
 
         ellipse(this.pos.x, this.pos.y, 10, 10)

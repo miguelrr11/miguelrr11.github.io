@@ -27,7 +27,7 @@ class UI{
             subtitle: CANON_BASE_PRICE + CURRENCY_SYMBOL,
             hint: 'Add Cannon †'
         }
-        buttons.push(buttonAddCanon)
+
 
         let buttonMiner = {
             size: SIZE_CELL,
@@ -41,7 +41,7 @@ class UI{
             subtitle: MINER_BASE_PRICE + CURRENCY_SYMBOL,
             hint: 'Add Miner'
         }
-        buttons.push(buttonMiner)
+
 
         let buttonAddCrossBow = {
             size: SIZE_CELL,
@@ -55,7 +55,7 @@ class UI{
             subtitle: CROSSBOW_BASE_PRICE + CURRENCY_SYMBOL,
             hint: 'Add CrossBow'
         }
-        buttons.push(buttonAddCrossBow)
+
 
         let buttonAddBomber = {
             size: SIZE_CELL,
@@ -69,7 +69,7 @@ class UI{
             subtitle: BOMBER_BASE_PRICE + CURRENCY_SYMBOL,
             hint: 'Add Bomber'
         }
-        buttons.push(buttonAddBomber)
+
 
         let buttonAddPeaShooter = {
             size: SIZE_CELL,
@@ -83,7 +83,7 @@ class UI{
             subtitle: PEA_SHOOTER_BASE_PRICE + CURRENCY_SYMBOL,
             hint: 'Add Pea Shooter'
         }
-        buttons.push(buttonAddPeaShooter)
+
 
         let buttonAddGenerator = {
             size: SIZE_CELL,
@@ -97,7 +97,13 @@ class UI{
             subtitle: GENERATOR_BASE_PRICE + CURRENCY_SYMBOL,
             hint: 'Add Generator'
         }
-        buttons.push(buttonAddGenerator)
+
+        buttons.push(buttonAddGenerator, 
+            buttonMiner, 
+            buttonAddCanon, 
+            buttonAddCrossBow, 
+            buttonAddBomber, 
+            buttonAddPeaShooter)
 
         return buttons
     }
@@ -116,18 +122,26 @@ class UI{
         for(let b of this.buttons){
             let m = b.size * .5
             if(inBounds(actualX, actualY, b.pos.x-m, b.pos.y-m, b.size, b.size)){
-                if(this.selectedButton == b){
-                    this.selectedButton = undefined
-                    if(b.onUnclick) b.onUnclick()
-                }
-                else {
-                    this.selectedButton = b
-                    if(b.onClick) b.onClick(b.tag)
-                }
+                this.clickButton(b)
                 break
             }
         }
+    }
 
+    clickButton(b){
+        if(this.selectedButton == b){
+            this.selectedButton = undefined
+            if(b.onUnclick) b.onUnclick()
+        }
+        else {
+            this.selectedButton = b
+            if(b.onClick) b.onClick(b.tag)
+        }
+    }
+
+    clickButtonByIndex(index){
+        if(!Number.isInteger(index) || index > this.buttons.length-1) return
+        this.clickButton(this.buttons[index])
     }
 
     update(){
@@ -149,6 +163,7 @@ class UI{
         strokeWeight(2)
         textAlign(CENTER)
         textSize(20)
+        let k = 1
         for(let b of this.buttons){
             if(this.selectedButton == b && b.active()) fill(220)
             else noFill()
@@ -185,7 +200,16 @@ class UI{
                 text(b.subtitle, b.pos.x, b.pos.y + b.size + 5)
                 pop()
             }
-    
+
+            push()
+            fill(130)
+            noStroke()
+            textSize(11)
+            textAlign(CENTER)
+            text(k, b.pos.x, b.pos.y - b.size/2 - 4)
+            pop()
+            
+            k++
         }
 
         for(let b of this.buttons){

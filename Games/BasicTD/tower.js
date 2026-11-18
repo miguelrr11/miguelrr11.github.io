@@ -13,9 +13,16 @@ class Tower{
 
         this.power = 0 // esto se va cambiando dinamicamente segun el generador conetado
         this.ratio = 0 // usado para indicaciones (supply/demand)
+
+        this.hp = 1
+        this.dead = false
     }
 
     static globalID = 0
+
+    takeDamage(options){
+        this.hp -= options.damage
+    }
 
     getPriceToLevelUp(){
         return round(this.price * 1.5)
@@ -26,6 +33,11 @@ class Tower{
         this.price *= 1.5
         this.maxPower *= 1.2
         this.upgradeProperties()
+    }
+
+    update(){
+        if(this.hp <= 0) this.dead = true
+        this.updateLocal()
     }
 
     renderActivity(){
@@ -94,7 +106,7 @@ class Generator extends Tower{
         
     }
 
-    update(){
+    updateLocal(){
         this.cooldown -= dt * 0.01
         if(this.cooldown > 0) return
 
@@ -176,7 +188,7 @@ class Miner extends Tower{
         this.activity += (target - this.activity) * (1 - Math.exp(-speed * dt));
     }
 
-    update(){
+    updateLocal(){
         this.cooldown -= dt * 0.01
         if(this.cooldown > 0 || !this.working) return
 
@@ -222,7 +234,7 @@ class Shooter extends Tower{
                                 this.projectileOptions, this.drawOptionsProjectile)
     }
 
-    update(){
+    updateLocal(){
         this.cooldown -= dt * 0.01
         let inRange = this.game.getEnemiesInRange(this, 'Crawler')
         this.updateActivity(inRange)
@@ -416,7 +428,7 @@ class PeaShooter extends Shooter{
         this.maxPower = PEA_SHOOTER_BASE_POWER
     }
 
-    update(){
+    updateLocal(){
         this.cooldown -= dt * 0.01
         let inRange = this.game.getEnemiesInRange(this, 'Raider')
         this.updateActivity(inRange)

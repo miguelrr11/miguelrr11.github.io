@@ -13,6 +13,10 @@ function mouseClicked(){
     game.click(mouseX, mouseY)
 }
 
+function keyPressed(){
+    game.keyPressed(key)
+}
+
 async function setup(){
     createCanvas(WIDTH, HEIGHT)
     let font = await loadFont('font.ttf')
@@ -22,14 +26,14 @@ async function setup(){
 
 
 function draw(){
-    background(255)
+    background(240)
 
     dt = deltaTime
     //if(keyIsPressed) dt *= 15
 
     game.update()
 
-    if(keyIsPressed){
+    if(keyIsPressed && keyCode == 32){
         for(let i = 0; i < 15; i++) game.update()
     }
 

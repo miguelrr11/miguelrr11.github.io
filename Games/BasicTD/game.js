@@ -35,6 +35,33 @@ class Game{
         this.totalCrawlers = 0  //all historical amount ever spawned
     }
 
+    keyPressed(k){
+        this.UI.clickButtonByIndex(parseInt(k)-1)
+    }
+
+    checkTower(tower){
+        for(let t of this.towers) if(t.id == tower.id) return true
+        return false
+    }
+
+    removeTower(tower){
+        for(let i = 0; i < this.towerGrid.length; i++){
+            for(let j = 0; j < this.towerGrid[i].length; j++){
+                if(this.towerGrid[i][j]?.id == tower.id) this.towerGrid[i][j] = null
+            }
+        }
+
+        this.towers = this.towers.filter((t) => t.id != tower.id)
+
+        this.generatorGrid.delete(tower.id)
+        for (let [key, val] of this.generatorGrid) {
+            let remaining = val.filter((id) => id != tower.id)
+            if (remaining.length == 0) this.generatorGrid.delete(key)
+            else this.generatorGrid.set(key, remaining)
+        }
+        this.calculateGeneratorMap()
+    }
+
     // xs es la lista de coordenadas x de los endpoints de cada division
     // la separacion y es uniforme
     createPathFromColumns(xs, options) {
@@ -64,6 +91,10 @@ class Game{
         }
 
         return path
+    }
+
+    damageTower(tower, options = {}){
+        tower.takeDamage(options)
     }
 
     calculateGeneratorMap(){
@@ -157,11 +188,12 @@ class Game{
         finished = false
         scale = 0.07
         iters = 0
+        const minCountEnergyOres = 15
         while(!finished && iters < maxIters){
             let seed = random(1, 10000)
             let count = 0
-            for(let i = 0; i < N_CELLS_ORE && count < 10; i++){
-                for(let j = 0; j < N_CELLS_ORE && count < 10; j++){
+            for(let i = 0; i < N_CELLS_ORE && count < minCountEnergyOres; i++){
+                for(let j = 0; j < N_CELLS_ORE && count < minCountEnergyOres; j++){
                     let val = noise(i*scale + seed, j*scale + seed)
                     if(val > 0.8 && !this.isTherePathThere((i/2)*SIZE_CELL, (j/2)*SIZE_CELL)) {
                         this.oreGrid[i][j] = ENERGY_VAL
@@ -170,7 +202,7 @@ class Game{
                     //else this.oreGrid[i][j] = 0
                 }
             }
-            if(count >= 10) {
+            if(count >= minCountEnergyOres) {
                 finished = true
                 countEnergy = count
             }
@@ -196,7 +228,7 @@ class Game{
                 }
             }
 
-        console.timeEnd('genOres')
+        console.timeEnd('genOres') 
     }
 
 
@@ -455,8 +487,13 @@ class Game{
             en.move(this)
         }
 
-        for(let tower of this.towers) tower.update()
+        for(let tower of this.towers) {
+            tower.update()
+            if(tower.dead) this.removeTower(tower)
+        }
 
+        //reset supply values
+        for(let tower of this.towers) if(tower.constructor.name == 'Generator') {tower.supply = 0; tower.demand = 0}
         for(let grid of this.generatorMap) this.distributeEnergy(grid)
 
         //needs obvious optimization
