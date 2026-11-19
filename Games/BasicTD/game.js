@@ -35,6 +35,14 @@ class Game{
         this.totalCrawlers = 0  //all historical amount ever spawned
     }
 
+    getTowersInRange(pos, range){
+        let towers = []
+        for(let tower of this.towers){
+            if(distanceAB(pos, tower.pos) <= range) towers.push(tower)
+        }
+        return towers
+    }
+
     keyPressed(k){
         this.UI.clickButtonByIndex(parseInt(k)-1)
     }
@@ -628,6 +636,10 @@ class Game{
         if(this.doingAction == 'addPeaShooter' && mouseY < HEIGHT_SCENE && isFree){
             square(x, y, SIZE_CELL*.35)
             discLinesEllipse({x, y},PEA_SHOOTER_BASE_RANGE,PEA_SHOOTER_BASE_RANGE)
+        }
+        if(this.doingAction == 'addMedic' && mouseY < HEIGHT_SCENE && isFree){
+            drawTriangle({x, y}, SIZE_CELL*.5)
+            discLinesEllipse({x, y},MEDIC_BASE_RANGE,MEDIC_BASE_RANGE)
         }
         else if(this.doingAction == 'connecting' && this.doingActionProperties.connectingGeneratorID != -1){
             let posFrom = this.getTowerFromID(this.doingActionProperties.connectingGeneratorID).pos

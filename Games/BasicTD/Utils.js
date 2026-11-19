@@ -221,6 +221,16 @@ function discLinesEllipse(pos, rad, dis, offset = 0, isDotted = false) {
     pop();
 }
 
+function drawTriangle(center, sideSize){
+    const r = sideSize / Math.sqrt(3)   // distance from center to each corner
+    const h = r / 2                     // distance from center to the base
+    const half = sideSize / 2
+    let off = 2
+    triangle(center.x,        center.y - r + off,
+             center.x - half, center.y + h + off,
+             center.x + half, center.y + h + off)
+}
+
 // ===================
 // String Utilities
 // ===================

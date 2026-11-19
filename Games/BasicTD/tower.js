@@ -1,467 +1,537 @@
-class Tower{
-    constructor(pos, gridPos, game){
-        this.pos = pos
-        this.gridPos = gridPos
-        this.game = game
-        this.level = 1
-        this.id = Tower.globalID++
+function damp(current, target, perFrame) {
+    return lerp(current, target, 1 - Math.pow(1 - perFrame, dt / FRAME_MS))
+}
 
-        this.working = false
-        
-        this.activity = 0   // sube con la demanda, baja solo
-        this.maxPower = 1   // lo que la torre consume cuando su demanda es maxima (deberia ser diferente segun torre)
-
-        this.power = 0 // esto se va cambiando dinamicamente segun el generador conetado
-        this.ratio = 0 // usado para indicaciones (supply/demand)
-
-        this.hp = 1
-        this.dead = false
-    }
-
+// un tower es cualquier edificio que esté en una celda en el grid
+class Tower {
     static globalID = 0
 
-    takeDamage(options){
-        this.hp -= options.damage
+    constructor(pos, gridPos, game, stats = {}) {
+        this.pos     = pos
+        this.gridPos = gridPos
+        this.game    = game
+        this.id      = Tower.globalID++
+        this.level   = 1
+        this.price   = stats.price ?? 0
+        this.dead    = false
+        
+        // si es null, ningun enemigo le ataca
+        this.isTargetedBy = stats.isTargetedBy ?? null
     }
 
-    getPriceToLevelUp(){
-        return round(this.price * 1.5)
+    updateLocal() {}
+    renderLocal(hoveredTowerID) {}
+    getTooltipText()   { return null }
+    getTooltipOffset() { return SIZE_CELL }
+    canLevelUp()       { return false }
+    upgradeProperties() {
+        throw new Error(`${this.constructor.name} must implement upgradeProperties()`)
     }
 
-    levelUp(){
-        this.level++
-        this.price *= 1.5
-        this.maxPower *= 1.2
-        this.upgradeProperties()
-    }
-
-    update(){
-        if(this.hp <= 0) this.dead = true
+    update() {
         this.updateLocal()
     }
 
-    renderActivity(){
+    render(hoveredTowerID) {
+        this.renderLocal(hoveredTowerID)
+        if (hoveredTowerID === this.id) this.renderTooltip()
+    }
+
+    getPriceToLevelUp() {
+        return round(this.price * LEVEL_UP_PRICE_MULT)
+    }
+
+    levelUp() {
+        if (!this.canLevelUp()) return false
+        this.level++
+        this.price = this.getPriceToLevelUp()
+        this.upgradeProperties()
+        return true
+    }
+
+    heal(amount) {}
+    get isDamaged() { return false }
+
+    countOres(oreType) {
+        const i = this.gridPos.i * 2
+        const j = this.gridPos.j * 2
+        const grid = this.game.oreGrid
+        const cells = [grid[i][j], grid[i + 1][j], grid[i][j + 1], grid[i + 1][j + 1]]
+        return cells.filter(cell => cell === oreType).length
+    }
+
+    renderTooltip() {
+        const txt = this.getTooltipText()
+        if (!txt) return
+
+        const x = this.pos.x
+        const y = this.pos.y - this.getTooltipOffset()
+
         push()
-        translate(-SIZE_CELL/2, SIZE_CELL/2)
-        rectMode(CORNER)
-        if(!this.working){
-            let t = frameCount % 25 > 12.5 ? 0 : 255
-            fill(255, 0, 0, t)
-            noStroke()
-            rect(this.pos.x, this.pos.y, SIZE_CELL, -SIZE_CELL)
-            pop()
-            return
-        }
-        let h = map(this.ratio, 0, LIMIT_RATIO, 5, SIZE_CELL)
-
-        //h = SIZE_CELL
-        colorMode(HSB, 255, 255, 255)
-        if(this.ratio < 1) fill(map(this.ratio, 0, 0.99, 120, 90), 255, 255)
-        else if(this.ratio < LIMIT_RATIO) fill(map(this.ratio, 1, LIMIT_RATIO, 60, 0), 255, 255)
-        else fill(0, 255, 255) // es muy raro que caiga aqui
         noStroke()
-        rect(this.pos.x+2, this.pos.y-2, SIZE_CELL*0.12, -h+4, 3)
+        textSize(TOOLTIP_TEXT_SIZE)
+        const bbox  = textFont().textBounds(txt, x, y)
+        const halfW = bbox.w / 2
+        rectMode(CORNER)
+        fill(0)
+        rect(bbox.x - TOOLTIP_PADDING - halfW, bbox.y - TOOLTIP_PADDING,
+             bbox.w + TOOLTIP_PADDING * 2,     bbox.h + TOOLTIP_PADDING * 2)
+        fill(255)
+        text(txt, x - halfW, y)
         pop()
-    }
-
-    updateActivity(inRange) {
-        let target = inRange.length > 0 ? 1 : 0;
-        //if(!this.working) target = 0   // asi se pueden recuperar (entonces flashea, no me convence)
-        const speed  = target > this.activity ? ACT_ATTACK : ACT_RELEASE;
-        this.activity += (target - this.activity) * (1 - Math.exp(-speed * dt));
-    }
-
-    currentDemand() {
-        const load = Math.min(1, this.activity / FULL_AT);
-        return this.maxPower * (IDLE_DRAW + (1 - IDLE_DRAW) * load);
     }
 }
 
-class Generator extends Tower{
-    constructor(pos, gridPos, game){
-        super(pos, gridPos, game)
+// simplemente produce energia, no es atacado, no ataca y no consume energia
+class Generator extends Tower {
+    constructor(pos, gridPos, game) {
+        super(pos, gridPos, game, { price: GENERATOR_BASE_PRICE })
 
-        this.price = GENERATOR_BASE_PRICE
+        this.oresAvailable = this.countOres(ENERGY_VAL)
 
-        this.fireRate = 40
-        this.cooldown = this.fireRate
+        const hasAnyOre = this.oresAvailable > 0 ? 1 : 0
+        this.generates  = hasAnyOre + GENERATOR_BASE_POWER * 0.5 * (this.oresAvailable / 4)
 
-        this.shootAnim = 0
-        this.hasShoot = false
-
-        let i = this.gridPos.i*2
-        let j = this.gridPos.j*2
-        this.oresAvailable = 0
-        if(this.game.oreGrid[i][j] == ENERGY_VAL) this.oresAvailable++
-        if(this.game.oreGrid[i+1][j] == ENERGY_VAL) this.oresAvailable++
-        if(this.game.oreGrid[i][j+1] == ENERGY_VAL) this.oresAvailable++
-        if(this.game.oreGrid[i+1][j+1] == ENERGY_VAL) this.oresAvailable++
-
-        this.generates = (GENERATOR_BASE_POWER*.5*this.oresAvailable > 0 ? 1 : 0) + 
-                          GENERATOR_BASE_POWER*.5*(this.oresAvailable/4)
-
-        this.supply = this.generates 
-        this.demand = 0     
-
-        
+        this.supply = this.generates
+        this.demand = 0   // set by the game's power distribution in game.js
     }
 
-    updateLocal(){
-        this.cooldown -= dt * 0.01
-        if(this.cooldown > 0) return
+    getTooltipOffset() { return SIZE_CELL * 1.2 }
 
-        // give energy to connected towers
-
-        this.hasShoot = true
-        this.cooldown = this.fireRate
-
+    getTooltipText() {
+        return `Supply: ${round(this.supply, 2)}\nDemand: ${round(this.demand * POWER_OFF_RATIO, 2)}`
     }
-    
-    render(hoveredTowerID){
-        // if(this.hasShoot) this.shootAnim = lerp(this.shootAnim, 1, .15)
-        // else{
-        //     this.shootAnim = 0
-        // }
-        // if(this.shootAnim > 0.99){
-        //     this.shootAnim = 0
-        //     this.hasShoot = false
-        // }
+
+    renderLocal() {
+        const diameter = SIZE_CELL * TOWER_BODY_SCALE
+        const r = diameter / 2
+
         push()
         translate(this.pos.x, this.pos.y)
-        rotate(frameCount * 0.03 * this.oresAvailable*.5)
+        rotate(frameCount * 0.03 * this.oresAvailable * 0.5)
         fill(COLOR_GENERATOR)
         stroke(0)
         strokeWeight(2)
-        let off = this.hasShoot ? this.shootAnim * 5 : 0
-        ellipse(0, 0, SIZE_CELL*0.65-off)
-        let m = (SIZE_CELL*0.65-off)*.5
-        arc(0, 0-m*.5, m, m, -PI/2, PI/2)
-        arc(0, 0+m*.5, m, m, PI/2, -PI/2)
+        ellipse(0, 0, diameter)
+        arc(0, -r / 2, r, r, -PI / 2,  PI / 2)
+        arc(0,  r / 2, r, r,  PI / 2, -PI / 2)
         pop()
-
-        if(hoveredTowerID == this.id){
-            push()
-            noStroke()
-            fill(0)
-            textSize(15)
-            let txt = 'Supply: ' + this.supply + '\nDemand: ' + round(this.demand * POWER_OFF_RATIO, 2)
-            let bbox = textFont().textBounds(txt, this.pos.x, this.pos.y - SIZE_CELL - SIZE_CELL * 0.2)
-            fill(0)
-            rectMode(CORNER)
-            let m = bbox.w/2
-            rect(bbox.x-3-m, bbox.y-3, bbox.w+6, bbox.h+6)
-            fill(255)
-            text(txt, this.pos.x-m, this.pos.y - SIZE_CELL - SIZE_CELL * 0.2)
-            pop()
-        }
-        
     }
 }
 
-class Miner extends Tower{
-    constructor(pos, gridPos, game){
-        super(pos, gridPos, game)
-        this.price = MINER_BASE_PRICE
+// torre que consume energia y tiene vida
+class PoweredTower extends Tower {
+    constructor(pos, gridPos, game, stats = {}) {
+        super(pos, gridPos, game, stats)
 
-        this.fireRate = 40
-        this.cooldown = this.fireRate
+        this.maxHp = stats.maxHp ?? 1
+        this.hp    = this.maxHp
 
+        this.maxPower = stats.maxPower ?? 1  // power drawn at full demand
+        this.working  = false                // set by the game's power distribution
+        this.power    = 0                    // set by the game's power distribution
+        this.ratio    = 0                    // supply/demand, used for the activity bar
+        this.activity = 0                    // rises with demand, decays on its own
+
+        this.fireRate  = stats.fireRate ?? 1
+        this.cooldown  = stats.initialCooldown ?? this.fireRate
         this.shootAnim = 0
-        this.hasShoot = false
 
-        this.maxPower = MINER_BASE_POWER
+        this.hasShot = false
+    }
 
-        this.isTargetedBy = 'Raider'
+    scan() {}                            // look around before acting
+    getActivityTarget() { return 0 }     // 0..1, how busy the tower wants to be
+    updateAnimation() {}
 
-        let i = this.gridPos.i*2
-        let j = this.gridPos.j*2
-        this.oresAvailable = 0
-        if(this.game.oreGrid[i][j] == ORE_VAL) this.oresAvailable++
-        if(this.game.oreGrid[i+1][j] == ORE_VAL) this.oresAvailable++
-        if(this.game.oreGrid[i][j+1] == ORE_VAL) this.oresAvailable++
-        if(this.game.oreGrid[i+1][j+1] == ORE_VAL) this.oresAvailable++
+    heal(amount) {
+        if (this.dead) return
+        this.hp = Math.min(this.hp + amount, this.maxHp)
+    }
+
+    get isDamaged() { return !this.dead && this.hp < this.maxHp }
+
+    // pulso por defecto (Miner, Medic). Shooter lo sobreescribe
+    updateAnimation() {
+        if (!this.hasShot) {
+            this.shootAnim = 0
+            return
+        }
+        this.shootAnim = damp(this.shootAnim, 1, 0.15)
+        if (this.shootAnim > 0.99) {
+            this.shootAnim = 0
+            this.hasShot   = false
+        }
+    }
+
+    update() {
+        this.cooldown -= dt * COOLDOWN_SCALE
+        this.scan()
+        this.updateActivity()
+        this.updateLocal()
+        this.updateAnimation()
+    }
+
+    render(hoveredTowerID) {
+        this.renderActivity()
+        super.render(hoveredTowerID)
+        this.renderHealth()
+    }
+
+    getStrokeColor(){
+        return this.working ? 0 : 180
     }
 
     updateActivity() {
-        let target = 1
-        const speed  = target > this.activity ? ACT_ATTACK : ACT_RELEASE;
-        this.activity += (target - this.activity) * (1 - Math.exp(-speed * dt));
+        const target = this.getActivityTarget()
+        const speed  = target > this.activity ? ACT_ATTACK : ACT_RELEASE
+        this.activity += (target - this.activity) * (1 - Math.exp(-speed * dt))
     }
 
-    updateLocal(){
-        this.cooldown -= dt * 0.01
-        if(this.cooldown > 0 || !this.working) return
+    currentDemand() {
+        const load = Math.min(1, this.activity / FULL_AT)
+        return this.maxPower * (IDLE_DRAW + (1 - IDLE_DRAW) * load)
+    }
 
-        if(this.oresAvailable > 0) this.game.addOre(this.oresAvailable, this.pos)
+    takeDamage({ damage }) {
+        this.hp = Math.max(0, this.hp - damage)
+        if (this.hp === 0) this.dead = true
+    }
 
-        this.hasShoot = true
+    levelUp() {
+        const leveled = super.levelUp()
+        if (leveled) this.maxPower *= LEVEL_UP_POWER_MULT
+        return leveled
+    }
+
+    get cellLeft()   { return this.pos.x - SIZE_CELL / 2 }
+    get cellBottom() { return this.pos.y + SIZE_CELL / 2 }
+
+    ratioHue() {
+        // if (this.ratio < 1)           return map(this.ratio, 0, 0.99, 120, 90)
+        // if (this.ratio < LIMIT_RATIO) return map(this.ratio, 1, LIMIT_RATIO, 60, 0)
+        if (this.ratio < 1)           return COLOR_ENERGY_CELL_HSB
+        if (this.ratio < LIMIT_RATIO) return map(this.ratio, 1, LIMIT_RATIO, COLOR_ENERGY_CELL_HSB, 330)
+        return 0
+    }
+
+    renderActivity() {
+        push()
+        rectMode(CORNER)
+        noStroke()
+
+        if (!this.working) {
+            const visible = frameCount % BLINK_PERIOD < BLINK_PERIOD / 2
+            fill(COLOR_ENERGY_CELL[0], COLOR_ENERGY_CELL[1], COLOR_ENERGY_CELL[2], visible ? 255 : 0)
+            rect(this.cellLeft, this.cellBottom, SIZE_CELL, -SIZE_CELL)
+        } 
+        else {
+            const h = map(this.ratio, 0, LIMIT_RATIO, 5, SIZE_CELL)
+            colorMode(HSB, 255, 255, 255)
+            fill(this.ratioHue(), 255, 255)
+            rect(this.cellLeft + 2, this.cellBottom - 2, SIZE_CELL * BAR_WIDTH_SCALE, -h + 4, 3)
+        }
+
+        pop()
+    }
+
+    renderHealth() {
+        const h = map(this.hp, 0, this.maxHp, 5, SIZE_CELL)
+        push()
+        rectMode(CORNER)
+        noStroke()
+        colorMode(HSB, 255, 255, 255)
+        fill(0, 255, 255)
+        rect(this.cellLeft + SIZE_CELL - 5, this.cellBottom - 2, SIZE_CELL * BAR_WIDTH_SCALE, -h + 4, 3)
+        pop()
+    }
+}
+
+// no ataca
+class Miner extends PoweredTower {
+    constructor(pos, gridPos, game) {
+        super(pos, gridPos, game, {
+            price:        MINER_BASE_PRICE,
+            maxPower:     MINER_BASE_POWER,
+            fireRate:     40,
+            isTargetedBy: 'Raider',
+        })
+        this.oresAvailable = this.countOres(ORE_VAL)
+    }
+
+    getActivityTarget() { return 1 }   // el minero siempre trabaja a full demand
+
+    updateLocal() {
+        if (this.cooldown > 0 || !this.working) return
+        if (this.oresAvailable > 0) this.game.addOre(this.oresAvailable, this.pos)
+        this.hasShot  = true
         this.cooldown = this.fireRate
     }
-    
-    render(){
-        this.renderActivity()
-        if(this.hasShoot) this.shootAnim = lerp(this.shootAnim, 1, .15)
-        else{
-            this.shootAnim = 0
-        }
-        if(this.shootAnim > 0.99){
-            this.shootAnim = 0
-            this.hasShoot = false
-        }
+
+
+    renderLocal() {
+        const pulse    = this.hasShot ? this.shootAnim * 5 : 0
+        const diameter = SIZE_CELL * TOWER_BODY_SCALE - pulse
+        const spinning = this.working ? 1 : 0
+        const rotation = (frameCount * 0.1 + this.shootAnim) * spinning * (this.oresAvailable / 4)
+
         push()
         fill(COLOR_MINER)
-        stroke(0)
+        stroke(this.getStrokeColor())
         strokeWeight(2)
-        let off = this.hasShoot ? this.shootAnim * 5 : 0
-        ellipse(this.pos.x, this.pos.y, SIZE_CELL*0.65-off)
-        drawCross(this.pos.x, this.pos.y, SIZE_CELL*0.65-off-3, (frameCount*.1+this.shootAnim)*(this.working ? 1 : 0)*(this.oresAvailable/4))
+        ellipse(this.pos.x, this.pos.y, diameter)
+        drawCross(this.pos.x, this.pos.y, diameter - 3, rotation)
         pop()
     }
 }
 
-class Shooter extends Tower{
-    constructor(pos, gridPos, game){
-        super(pos, gridPos, game)
-        this.cooldown = 0
-        this.shootAnim = 1
-        this.lookingTo = 0
+// cura torres dañadas en rango
+class Medic extends PoweredTower {
+    constructor(pos, gridPos, game) {
+        super(pos, gridPos, game, {
+            price:        MEDIC_BASE_PRICE,
+            maxPower:     MEDIC_BASE_POWER,
+            fireRate:     1,
+            isTargetedBy: 'Raider',
+        })
+        this.range      = MEDIC_BASE_RANGE
+        this.cureAmount = 0.05
+        this.patients   = []
     }
 
-    addProjectile(angle){
-        this.game.addProjectile({x: this.pos.x + Math.cos(angle) * SIZE_CELL*.5, 
-                                y: this.pos.y + Math.sin(angle) * SIZE_CELL*.5}, 
-                                angle, 
-                                this.projectileOptions, this.drawOptionsProjectile)
+    scan() {
+        this.patients = this.game.getTowersInRange(this.pos, this.range)
+            .filter(tower => tower !== this && tower.isDamaged)
     }
 
-    updateLocal(){
-        this.cooldown -= dt * 0.01
-        let inRange = this.game.getEnemiesInRange(this, 'Crawler')
-        this.updateActivity(inRange)
-
-        if(this.cooldown > 0 || !this.working) return
-
-        inRange.sort((a, b) => (b.pathIndex - a.pathIndex) || (b.t - a.t))
-
-        if (inRange.length > 0) {
-            let first = inRange[0]
-            let vel = {x: first.pos.x - first.prevPos.x, y: first.pos.y - first.prevPos.y}
-            let mag = Math.sqrt(vel.x*vel.x + vel.y+vel.y)
-            vel.x /= mag
-            vel.y /= mag
-            let posCorrected = {
-                x: first.pos.x + vel.x * SIZE_CELL*mag,
-                y: first.pos.y + vel.y * SIZE_CELL*mag
-            }
-            let angle = atan2(posCorrected.y - this.pos.y, posCorrected.x - this.pos.x)
-            this.lookingTo = angle
-            this.addProjectile(angle)
-            this.cooldown = this.fireRate
-            this.shootAnim = 1
-        }
+    // solo consume a full cuando hay alguien a quien curar
+    getActivityTarget() {
+        return this.patients.length > 0 ? 1 : 0
     }
 
-    render(hoveredTowerID){
-        this.renderActivity()
+    updateLocal() {
+        if (this.cooldown > 0 || !this.working || this.patients.length === 0) return
+        for (const tower of this.patients) tower.heal(this.cureAmount)
+        this.hasShot  = true
+        this.cooldown = this.fireRate
+    }
 
-        let d = distanceAB({x: mouseX, y: mouseY}, this.pos)
-        this.shootAnim = lerp(this.shootAnim, 0, .5)
+    renderLocal(hoveredTowerID) {
+        const pulse    = this.hasShot ? this.shootAnim * 1.2 : 1
+
         push()
-
-        rectMode(CENTER)
-        noFill()
-        stroke(0)
+        fill(COLOR_MEDIC)
+        stroke(this.getStrokeColor())
         strokeWeight(2)
-        this.renderTower()
+        drawTriangle(this.pos, SIZE_CELL*.5*pulse)
 
-        let t = map(d, 30, this.range + 20, 255, 0)
-        if(d < 30) t = 255
-        stroke(180, t)
-        if(hoveredTowerID == -1) discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
-        else if(hoveredTowerID == this.id) discLinesEllipse({x: this.pos.x, y: this.pos.y}, this.range, this.range)
-        pop()
-
-        if(hoveredTowerID == this.id){
-            push()
-            noStroke()
-            fill(0)
-            textSize(15)
-            let txt = this.getPriceToLevelUp() + CURRENCY_SYMBOL + ' to level up'
-            let bbox = textFont().textBounds(txt, this.pos.x, this.pos.y - SIZE_CELL)
-            fill(0)
-            rectMode(CORNER)
-            let m = bbox.w/2
-            rect(bbox.x-3-m, bbox.y-3, bbox.w+6, bbox.h+6)
-            fill(255)
-            text(txt, this.pos.x-m, this.pos.y - SIZE_CELL)
-            pop()
+        const showRange = hoveredTowerID === NO_TOWER_HOVERED || hoveredTowerID === this.id
+        if (showRange) {
+            const d = distanceAB({ x: mouseX, y: mouseY }, this.pos)
+            const alpha = d < RANGE_FADE_START ? 255 : map(d, RANGE_FADE_START, this.range + 20, 255, 0)
+            stroke(180, alpha)
+            discLinesEllipse({ x: this.pos.x, y: this.pos.y }, this.range, this.range)
         }
+        pop()
     }
 }
 
-class Canon extends Shooter{
-    constructor(pos, gridPos, game){
-        super(pos, gridPos, game)
-        this.range = CANON_BASE_RANGE
-        this.fireRate = 6
-        this.cooldown = 0
+// powered tower que dispara
+class Shooter extends PoweredTower {
+    constructor(pos, gridPos, game, stats) {
+        super(pos, gridPos, game, stats)
 
-        this.price = CANON_BASE_PRICE
+        this.range       = stats.range
+        this.targetType  = stats.targetType ?? 'Crawler'
+        this.projectileOptions     = stats.projectileOptions
+        this.drawOptionsProjectile = stats.drawOptionsProjectile   // undefined means default look
 
-        this.projectileOptions = {
-            damage: .33,
-            maxSpeed: .3,
-            pierce: 1,
-            acc: .01,
-            startSpeed: .001,
-            knockback: 0
-        }
-
-        this.maxPower = CANON_BASE_POWER
+        this.enemiesInRange = []
+        this.lookingTo = 0
+        this.shootAnim = 1
     }
 
-    upgradeProperties(){
+    renderTower() {
+        throw new Error(`${this.constructor.name} must implement renderTower()`)
+    }
+
+    // sirve para enemigos en un path o en campo libre
+    selectTarget(enemies) {
+        return enemies.reduce((best, e) =>
+            (e.pathIndex - best.pathIndex || e.t - best.t) > 0 ? e : best)
+    }
+
+    // Default upgrade (Canon and PeaShooter use this one)
+    upgradeProperties() {
         this.projectileOptions.damage += 2
         this.fireRate *= 0.8
     }
 
-    renderTower(){
+    canLevelUp() { return true }
+
+    scan() {
+        this.enemiesInRange = this.game.getEnemiesInRange(this, this.targetType)
+    }
+
+    getActivityTarget() {
+        return this.enemiesInRange.length > 0 ? 1 : 0
+    }
+
+    updateLocal() {
+        if (this.cooldown > 0 || !this.working || this.enemiesInRange.length === 0) return
+        this.shootAt(this.selectTarget(this.enemiesInRange))
+    }
+
+    updateAnimation() {
+        this.shootAnim = damp(this.shootAnim, 0, 0.5)
+    }
+
+    predictPosition(enemy) {
+        return {
+            x: enemy.pos.x + (enemy.pos.x - enemy.prevPos.x) * SIZE_CELL,
+            y: enemy.pos.y + (enemy.pos.y - enemy.prevPos.y) * SIZE_CELL,
+        }
+    }
+
+    shootAt(enemy) {
+        const aim   = this.predictPosition(enemy)
+        const angle = atan2(aim.y - this.pos.y, aim.x - this.pos.x)
+        this.lookingTo = angle
+        this.addProjectile(angle)
+        this.cooldown  = this.fireRate
+        this.shootAnim = 1
+    }
+
+    addProjectile(angle) {
+        const from = {
+            x: this.pos.x + Math.cos(angle) * SIZE_CELL * 0.5,
+            y: this.pos.y + Math.sin(angle) * SIZE_CELL * 0.5,
+        }
+        // copiamos las stats para que si mejoramos la torre, los proyectiles no cambian
+        this.game.addProjectile(from, angle,
+            structuredClone(this.projectileOptions), this.drawOptionsProjectile)
+    }
+
+    getTooltipText() {
+        return `${this.getPriceToLevelUp()}${CURRENCY_SYMBOL} to level up`
+    }
+
+    renderLocal(hoveredTowerID) {
+        push()
+        rectMode(CENTER)
+        noFill()
+        stroke(this.getStrokeColor())
+        strokeWeight(2)
+        this.renderTower()
+
+        const showRange = hoveredTowerID === NO_TOWER_HOVERED || hoveredTowerID === this.id
+        if (showRange) {
+            const d = distanceAB({ x: mouseX, y: mouseY }, this.pos)
+            const alpha = d < RANGE_FADE_START ? 255 : map(d, RANGE_FADE_START, this.range + 20, 255, 0)
+            stroke(180, alpha)
+            discLinesEllipse({ x: this.pos.x, y: this.pos.y }, this.range, this.range)
+        }
+        pop()
+    }
+}
+
+// shooters normales (disparan enemigos en path (crawlers))
+class Canon extends Shooter {
+    constructor(pos, gridPos, game) {
+        super(pos, gridPos, game, {
+            price:           CANON_BASE_PRICE,
+            maxPower:        CANON_BASE_POWER,
+            range:           CANON_BASE_RANGE,
+            fireRate:        6,
+            initialCooldown: 0,
+            projectileOptions: {
+                damage: 0.33, maxSpeed: 0.3, pierce: 1,
+                acc: 0.01, startSpeed: 0.001, knockback: 0,
+            },
+        })
+    }
+
+    renderTower() {
         drawCanon(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
     }
 }
 
-class CrossBow extends Shooter{
-    constructor(pos, gridPos, game){
-        super(pos, gridPos, game)
-        this.price =  CROSSBOW_BASE_PRICE
-        this.range = CROSSBOW_BASE_RANGE
-        this.fireRate = 10
-        this.cooldown = this.fireRate
-        this.projectileOptions = {
-            damage: .6,
-            maxSpeed: .3,
-            pierce: 5,
-            acc: .01,
-            startSpeed: .001,
-            knockback: .25
-        }
-
-        this.maxPower = CROSSBOW_BASE_POWER
+class CrossBow extends Shooter {
+    constructor(pos, gridPos, game) {
+        super(pos, gridPos, game, {
+            price:    CROSSBOW_BASE_PRICE,
+            maxPower: CROSSBOW_BASE_POWER,
+            range:    CROSSBOW_BASE_RANGE,
+            fireRate: 10,
+            projectileOptions: {
+                damage: 0.6, maxSpeed: 0.3, pierce: 5,
+                acc: 0.01, startSpeed: 0.001, knockback: 0.25,
+            },
+        })
     }
 
-    upgradeProperties(){
-        this.projectileOptions.damage += .3
-        this.pierce++
+    upgradeProperties() {
+        this.projectileOptions.damage += 0.3
+        this.projectileOptions.pierce++
         this.fireRate *= 0.9
     }
 
-    renderTower(){
+    renderTower() {
         drawCrossBow(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
     }
 }
 
-class Bomber extends Shooter{
-    constructor(pos, gridPos, game){
-        super(pos, gridPos, game)
-        this.price = BOMBER_BASE_PRICE
-        this.range = BOMBER_BASE_RANGE
-        this.fireRate = 25
-        this.cooldown = this.fireRate
-        this.projectileOptions = {
-            damage: .6,
-            maxSpeed: .1,
-            pierce: 1,
-            acc: .005,
-            startSpeed: .0005,
-            knockback: .25,
-
-            onDeath: 'bomb',
-            onDeathOptions:{
-                damage: 1
-            }
-        }
-
-        this.drawOptionsProjectile = {
-            rad: 12
-        }
-
-        this.maxPower = BOMBER_BASE_POWER
+class Bomber extends Shooter {
+    constructor(pos, gridPos, game) {
+        super(pos, gridPos, game, {
+            price:    BOMBER_BASE_PRICE,
+            maxPower: BOMBER_BASE_POWER,
+            range:    BOMBER_BASE_RANGE,
+            fireRate: 25,
+            projectileOptions: {
+                damage: 0.6, maxSpeed: 0.1, pierce: 1,
+                acc: 0.005, startSpeed: 0.0005, knockback: 0.25,
+                onDeath: 'bomb',
+                onDeathOptions: { damage: 1 },
+            },
+            drawOptionsProjectile: { rad: 12 },
+        })
     }
 
-    addProjectile(angle){
-        this.game.addProjectile({x: this.pos.x + Math.cos(angle) * SIZE_CELL*.5, 
-                                y: this.pos.y + Math.sin(angle) * SIZE_CELL*.5}, 
-                                angle, 
-                                this.projectileOptions, this.drawOptionsProjectile)
-    }
-
-    upgradeProperties(){
+    upgradeProperties() {
         this.projectileOptions.onDeathOptions.damage *= 2
-        this.fireRate -= 3.5
+        this.fireRate = Math.max(MIN_FIRE_RATE, this.fireRate - 3.5)
     }
 
-    renderTower(){
+    renderTower() {
         drawBomber(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
     }
 }
 
-// shoots raiders
-class PeaShooter extends Shooter{
-    constructor(pos, gridPos, game){
-        super(pos, gridPos, game)
-        this.range = PEA_SHOOTER_BASE_RANGE
-        this.fireRate = 2
-        this.cooldown = 0
-
-        this.price = PEA_SHOOTER_BASE_PRICE
-
-        this.projectileOptions = {
-            damage: .1,
-            maxSpeed: .3,
-            pierce: 1,
-            acc: .015,
-            startSpeed: .005,
-            knockback: 0
-        }
-
-        this.isTargetedBy = 'Raider'
-        this.maxPower = PEA_SHOOTER_BASE_POWER
+// dispara enemigos en campo libre (raiders)
+class PeaShooter extends Shooter {
+    constructor(pos, gridPos, game) {
+        super(pos, gridPos, game, {
+            price:           PEA_SHOOTER_BASE_PRICE,
+            maxPower:        PEA_SHOOTER_BASE_POWER,
+            range:           PEA_SHOOTER_BASE_RANGE,
+            fireRate:        2,
+            initialCooldown: 0,
+            targetType:      'Raider',
+            isTargetedBy:    'Raider',
+            projectileOptions: {
+                damage: 0.1, maxSpeed: 0.3, pierce: 1,
+                acc: 0.015, startSpeed: 0.005, knockback: 0,
+            },
+        })
     }
 
-    updateLocal(){
-        this.cooldown -= dt * 0.01
-        let inRange = this.game.getEnemiesInRange(this, 'Raider')
-        this.updateActivity(inRange)
-
-        if(this.cooldown > 0 || !this.working) return
-
-        inRange.sort((a, b) => (distanceAB(this.pos, b.pos) - distanceAB(this.pos, a.pos)))
-
-        if (inRange.length > 0) {
-            let first = inRange[0]
-            let vel = {x: first.pos.x - first.prevPos.x, y: first.pos.y - first.prevPos.y}
-            let mag = Math.sqrt(vel.x*vel.x + vel.y+vel.y)
-            if(mag < 0.001) mag = .0001
-            vel.x /= mag
-            vel.y /= mag
-            let posCorrected = {
-                x: first.pos.x + vel.x * SIZE_CELL*mag,
-                y: first.pos.y + vel.y * SIZE_CELL*mag
-            }
-            let angle = atan2(posCorrected.y - this.pos.y, posCorrected.x - this.pos.x)
-            this.lookingTo = angle
-            this.addProjectile(angle)
-            this.cooldown = this.fireRate
-            this.shootAnim = 1
-        }
+    selectTarget(enemies) {
+        const dist = e => distanceAB(this.pos, e.pos)
+        return enemies.reduce((best, e) => dist(e) < dist(best) ? e : best)
     }
 
-    upgradeProperties(){
-        this.projectileOptions.damage += 2
-        this.fireRate *= 0.8
-    }
-
-    renderTower(){
+    renderTower() {
         drawPeaShooter(this.pos.x, this.pos.y, this.level, this.shootAnim, this.lookingTo)
-    }   
+    }
 }

@@ -98,12 +98,32 @@ class UI{
             hint: 'Add Generator'
         }
 
+        let buttonAddMedic = {
+            size: SIZE_CELL,
+            tag: 'addMedic',
+            pos: {x: 10 + SIZE_CELL * (a + b * 0), y: baseHeight},
+            onClick: (tag) => this.game.doing(tag),       //action to execute when selecting the button
+            onUnclick: () => this.game.doing(undefined),  //action  to execute when deselecting the button
+            action: (x, y) => this.game.plantTower(x, y), //action to execute when this button is selected and there is a click elsewhere
+            active: () => this.game.currentOre >= MEDIC_BASE_PRICE,
+            anim: 0,
+            subtitle: MEDIC_BASE_PRICE + CURRENCY_SYMBOL,
+            hint: 'Add Medic'
+        }
+
+        // el orden se establece aqui 
         buttons.push(buttonAddGenerator, 
             buttonMiner, 
+            buttonAddMedic,
             buttonAddCanon, 
             buttonAddCrossBow, 
             buttonAddBomber, 
             buttonAddPeaShooter)
+
+        for(let i = 0; i < buttons.length; i++){
+            let button = buttons[i]
+            button.pos.x = 10 + SIZE_CELL * (a + b * i)
+        }
 
         return buttons
     }
@@ -165,6 +185,7 @@ class UI{
         textSize(20)
         let k = 1
         for(let b of this.buttons){
+            push()
             if(this.selectedButton == b && b.active()) fill(220)
             else noFill()
 
@@ -193,6 +214,11 @@ class UI{
                 arc(b.pos.x, b.pos.y-m*.5, m, m, -PI/2, PI/2)
                 arc(b.pos.x, b.pos.y+m*.5, m, m, PI/2, -PI/2)
             }
+            if(b.tag == 'addMedic'){
+                stroke(0)
+                fill(COLOR_MEDIC)
+                drawTriangle(b.pos, SIZE_CELL*.5)
+            }
             if(b.subtitle){
                 push()
                 noStroke()
@@ -207,6 +233,8 @@ class UI{
             textSize(11)
             textAlign(CENTER)
             text(k, b.pos.x, b.pos.y - b.size/2 - 4)
+            pop()
+
             pop()
             
             k++
