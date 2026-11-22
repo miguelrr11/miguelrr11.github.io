@@ -1,6 +1,3 @@
-
-
-
 class Game{
     constructor(){
         this.towerGrid = []      //stores what does exist (towers and path segments) in each [i,j] position for easier lookups
@@ -16,7 +13,7 @@ class Game{
         this.initPath()
         this.spawnCrawlerAtStart()
         this.initOres()
-        this.currentOre = Infinity
+        this.currentOre = 40
         this.UI = new UI(this)
         this.particleManager = new ParticleManager()
 
@@ -31,7 +28,7 @@ class Game{
                                             //                          {supply: [g3], demand: [t4, t5]}
                                             // used for distributing energy
 
-        this.enemiesPerSecond = 0.5
+        this.enemiesPerSecond = 0.05
         this.totalCrawlers = 0  //all historical amount ever spawned
     }
 
@@ -179,10 +176,10 @@ class Game{
                 for(let j = 0; j < N_CELLS_ORE; j++){
                     let val = noise(i*scale + seed, j*scale + seed)
                     if(val > 0.65) {
-                        this.oreGrid[i][j] = ORE_VAL
+                        this.oreGrid[i][j] = {type: ORE_CELL, hp: 1}
                         count++
                     }
-                    else this.oreGrid[i][j] = 0
+                    else this.oreGrid[i][j] = {type: EMPTY_CELL, hp: 0}
                 }
             }
             if(count > 130){ 
@@ -196,7 +193,7 @@ class Game{
         finished = false
         scale = 0.07
         iters = 0
-        const minCountEnergyOres = 15
+        const minCountEnergyOres = 20
         while(!finished && iters < maxIters){
             let seed = random(1, 10000)
             let count = 0
@@ -204,7 +201,7 @@ class Game{
                 for(let j = 0; j < N_CELLS_ORE && count < minCountEnergyOres; j++){
                     let val = noise(i*scale + seed, j*scale + seed)
                     if(val > 0.8 && !this.isTherePathThere((i/2)*SIZE_CELL, (j/2)*SIZE_CELL)) {
-                        this.oreGrid[i][j] = ENERGY_VAL
+                        this.oreGrid[i][j] = {type: ENERGY_CELL, hp: 1}
                         count++
                     }
                     //else this.oreGrid[i][j] = 0
@@ -224,14 +221,14 @@ class Game{
                                 [0, 1]]
         for(let i = 1; i < N_CELLS_ORE-1; i++){
                 for(let j = 1; j < N_CELLS_ORE-1; j++){
-                    if(this.oreGrid[i][j] == ENERGY_VAL){
+                    if(this.oreGrid[i][j].type == ENERGY_CELL){
                         let neighs = 0
                         for(let k of kernel){
-                            if(this.oreGrid[i+k[0]][j+k[1]] == ENERGY_VAL){
+                            if(this.oreGrid[i+k[0]][j+k[1]].type == ENERGY_CELL){
                                 neighs++
                             }
                         }
-                        if(neighs < 2) this.oreGrid[i][j] = 0
+                        if(neighs < 2) this.oreGrid[i][j].type = EMPTY_CELL
                     }
                 }
             }
@@ -288,6 +285,10 @@ class Game{
 
     addOre(count, pos){
         this.currentOre += count
+        this.addOreParticles(Math.ceil(count), pos)
+    }
+
+    addOreParticles(count, pos){
         for(let i = 0; i < count; i++) {
             let angle = random(TWO_PI)
             let speed = random(2, 5)
@@ -301,6 +302,7 @@ class Game{
             })
         }
     }
+    
 
     isShooter(tower){
         return tower.constructor.name != 'Generator'
@@ -312,6 +314,8 @@ class Game{
         let [i, j] = getIJ(x, y)
 
         if(TOWER_TYPES[this.doingAction]){this.plantTower(x, y, this.doingAction); return}
+
+        if(this.doingAction == 'removeTower') {this.removeTowerAt(x, y); return}
 
         if(this.doingAction == 'connecting'){
             //make sure you are connecting to a tower, not a generator
@@ -348,8 +352,6 @@ class Game{
         }
 
         else{
-            this.spawnRaiderAtxy(mouseX, mouseY)
-
             this.doingAction = null
             this.doingActionProperties.connectingGeneratorID = -1
         }
@@ -396,6 +398,15 @@ class Game{
 
         this.UI.deselectButton()
         this.doingAction = null
+    }
+
+    removeTowerAt(x, y){
+        const tower = this.getElementTowerGrid(x, y)
+        if(tower){
+            this.removeTower(tower)
+            this.doingAction = null
+            this.UI.deselectButton()
+        }
     }
 
     //p.enemies is not used and not mantained
@@ -488,7 +499,8 @@ class Game{
             en.update()
 
             if(en.dead){
-                this.enemies.splice(i, 1) 
+                this.enemies.splice(i, 1)
+                this.addOre(random(.1), en.pos)
                 continue
             }
 
@@ -557,12 +569,12 @@ class Game{
         let m = SIZE_CELL_ORE * .5
         for(let i = 0; i < N_CELLS_ORE; i++){
             for(let j = 0; j < N_CELLS_ORE; j++){
-                if(this.oreGrid[i][j] == ORE_VAL){
+                if(this.oreGrid[i][j].type == ORE_CELL){
                     //fill(map(this.oreGrid[i][j], 0.65, 1, 240, 160))
                     fill(COLOR_ORE_CELL)
                     square(i*SIZE_CELL_ORE + m, j*SIZE_CELL_ORE + m, SIZE_CELL_ORE)
                 }
-                else if(this.oreGrid[i][j] == ENERGY_VAL){
+                else if(this.oreGrid[i][j].type == ENERGY_CELL){
                     fill(COLOR_ENERGY_CELL)
                     square(i*SIZE_CELL_ORE + m, j*SIZE_CELL_ORE + m, SIZE_CELL_ORE)
                 }

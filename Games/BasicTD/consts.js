@@ -45,8 +45,9 @@ const ENEMY_RAD = 15
 const START_ORE = 10
 
 // enum for oregrid
-const ORE_VAL = 1
-const ENERGY_VAL = 2
+const EMPTY_CELL = 0
+const ORE_CELL = 1
+const ENERGY_CELL = 2
 
 const COLOR_ORE_CELL = [242, 196, 167]
 const COLOR_MINER = [240, 149, 91]

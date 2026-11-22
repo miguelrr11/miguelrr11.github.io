@@ -111,6 +111,19 @@ class UI{
             hint: 'Add Medic'
         }
 
+        let buttonRemoveTower = {
+            size: SIZE_CELL,
+            tag: 'removeTower',
+            pos: {x: 10 + SIZE_CELL * (a + b * 0), y: baseHeight},
+            onClick: (tag) => this.game.doing(tag),       //action to execute when selecting the button
+            onUnclick: () => this.game.doing(undefined),  //action  to execute when deselecting the button
+            action: (x, y) => this.game.plantTower(x, y), //action to execute when this button is selected and there is a click elsewhere
+            active: () => {return true},
+            anim: 0,
+            subtitle: '',
+            hint: 'Remove Tower'
+        }
+
         // el orden se establece aqui 
         buttons.push(buttonAddGenerator, 
             buttonMiner, 
@@ -118,7 +131,8 @@ class UI{
             buttonAddCanon, 
             buttonAddCrossBow, 
             buttonAddBomber, 
-            buttonAddPeaShooter)
+            buttonAddPeaShooter,
+            buttonRemoveTower)
 
         for(let i = 0; i < buttons.length; i++){
             let button = buttons[i]
@@ -187,6 +201,7 @@ class UI{
         for(let b of this.buttons){
             push()
             if(this.selectedButton == b && b.active()) fill(220)
+            else if(b.tag == 'removeTower') fill(255, 200, 200)
             else noFill()
 
             stroke(b.active() ? 0 : 200)
@@ -218,6 +233,10 @@ class UI{
                 stroke(0)
                 fill(COLOR_MEDIC)
                 drawTriangle(b.pos, SIZE_CELL*.5)
+            }
+            if(b.tag == 'removeTower'){
+                stroke(180, 0, 0)
+                drawCross(b.pos.x, b.pos.y, SIZE_CELL * .55, PI/4)
             }
             if(b.subtitle){
                 push()
@@ -261,7 +280,7 @@ class UI{
         noStroke()
         textSize(40)
         textAlign(RIGHT, CENTER)
-        text(this.game.currentOre + CURRENCY_SYMBOL, WIDTH - 20, HEIGHT_UI*.5)
+        text(round(this.game.currentOre, 1) + CURRENCY_SYMBOL, WIDTH - 20, HEIGHT_UI*.5)
         pop()
     }
 }

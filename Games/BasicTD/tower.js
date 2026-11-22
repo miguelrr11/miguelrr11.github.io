@@ -57,7 +57,7 @@ class Tower {
         const j = this.gridPos.j * 2
         const grid = this.game.oreGrid
         const cells = [grid[i][j], grid[i + 1][j], grid[i][j + 1], grid[i + 1][j + 1]]
-        return cells.filter(cell => cell === oreType).length
+        return cells.filter(cell => cell.type === oreType).length
     }
 
     renderTooltip() {
@@ -87,7 +87,7 @@ class Generator extends Tower {
     constructor(pos, gridPos, game) {
         super(pos, gridPos, game, { price: GENERATOR_BASE_PRICE })
 
-        this.oresAvailable = this.countOres(ENERGY_VAL)
+        this.oresAvailable = this.countOres(ENERGY_CELL)
 
         const hasAnyOre = this.oresAvailable > 0 ? 1 : 0
         this.generates  = hasAnyOre + GENERATOR_BASE_POWER * 0.5 * (this.oresAvailable / 4)
@@ -256,7 +256,7 @@ class Miner extends PoweredTower {
             fireRate:     40,
             isTargetedBy: 'Raider',
         })
-        this.oresAvailable = this.countOres(ORE_VAL)
+        this.oresAvailable = this.countOres(ORE_CELL)
     }
 
     getActivityTarget() { return 1 }   // el minero siempre trabaja a full demand
@@ -445,7 +445,7 @@ class Canon extends Shooter {
             fireRate:        6,
             initialCooldown: 0,
             projectileOptions: {
-                damage: 0.33, maxSpeed: 0.3, pierce: 1,
+                damage: 0.5, maxSpeed: 0.3, pierce: 1,
                 acc: 0.01, startSpeed: 0.001, knockback: 0,
             },
         })

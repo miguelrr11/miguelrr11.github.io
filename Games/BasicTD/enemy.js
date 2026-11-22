@@ -108,7 +108,7 @@ class Raider extends Enemy{
         this.chunk = chunk
         this.acc = 0.005
         this.decel = 0.0001
-        this.maxSpeed = 100
+        this.maxSpeed = .05
         this.target = null
         this.setTarget()
         if(!this.target) this.dead = true
@@ -178,9 +178,11 @@ class Raider extends Enemy{
         const desiredX = d > 0 ? (dx / d) * desiredSpeed : 0
         const desiredY = d > 0 ? (dy / d) * desiredSpeed : 0
 
-        // 2. steering = the difference between where I want to go and where I'm going
+        // 2. steering = the difference between where I want t o go and where I'm going
         let steerX = desiredX - this.vel.x
         let steerY = desiredY - this.vel.y
+
+
 
         // 3. limit how much I can change per frame
         const steerMag = Math.hypot(steerX, steerY)
