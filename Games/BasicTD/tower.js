@@ -21,12 +21,14 @@ class Tower {
 
     updateLocal() {}
     renderLocal(hoveredTowerID) {}
-    getTooltipText()   { return null }
+    getTooltipText(type)   { return null }
     getTooltipOffset() { return SIZE_CELL }
     canLevelUp()       { return false }
     upgradeProperties() {
         throw new Error(`${this.constructor.name} must implement upgradeProperties()`)
     }
+
+    get getDPS(){return this.projectileOptions.damage * 1000 * COOLDOWN_SCALE / this.fireRate}
 
     update() {
         this.updateLocal()
@@ -34,7 +36,7 @@ class Tower {
 
     render(hoveredTowerID) {
         this.renderLocal(hoveredTowerID)
-        if (hoveredTowerID === this.id) this.renderTooltip()
+        //if (hoveredTowerID === this.id) this.renderTooltip()
     }
 
     getPriceToLevelUp() {
@@ -57,12 +59,12 @@ class Tower {
         const j = this.gridPos.j * 2
         const grid = this.game.oreGrid
         const cells = [grid[i][j], grid[i + 1][j], grid[i][j + 1], grid[i + 1][j + 1]]
-        return cells.filter(cell => cell.type === oreType).length
+        return cells.filter(cell => cell.type === oreType && cell.hp > 0).length
     }
 
-    renderTooltip() {
-        const txt = this.getTooltipText()
-        if (!txt) return
+    renderTooltip(type) {
+        const txt = this.getTooltipText(type)
+        if (!txt || txt.length == 0) return
 
         const x = this.pos.x
         const y = this.pos.y - this.getTooltipOffset()
@@ -98,8 +100,10 @@ class Generator extends Tower {
 
     getTooltipOffset() { return SIZE_CELL * 1.2 }
 
-    getTooltipText() {
-        return `Supply: ${round(this.supply, 2)}\nDemand: ${round(this.demand * POWER_OFF_RATIO, 2)}`
+    getTooltipText(type) {
+        if(type == 'stats') return `Supply: ${round(this.supply, 2)}\nDemand: ${round(this.demand * POWER_OFF_RATIO, 2)}`
+        else if(type == 'sell') return `Sell for: ${round(this.price * SELL_PERCENTAGE, 1)+CURRENCY_SYMBOL}`
+        else return ''
     }
 
     renderLocal() {
@@ -150,6 +154,14 @@ class PoweredTower extends Tower {
     }
 
     get isDamaged() { return !this.dead && this.hp < this.maxHp }
+
+
+    getTooltipText(type) {
+        if(type == 'levelUp')  return `${this.getPriceToLevelUp()}${CURRENCY_SYMBOL} to level up`
+        else if(type == 'sell') return `Sell for: ${round(this.price * SELL_PERCENTAGE, 1)+CURRENCY_SYMBOL}`
+        else if(type == 'stats') return `DPS: ${round(this.getDPS, 1)}`
+        else return ''
+    }
 
     // pulso por defecto (Miner, Medic). Shooter lo sobreescribe
     updateAnimation() {
@@ -257,14 +269,28 @@ class Miner extends PoweredTower {
             isTargetedBy: 'Raider',
         })
         this.oresAvailable = this.countOres(ORE_CELL)
+        this.mineAmt = 0.5 //amount reduced of ore cell in each mine attack
     }
 
     getActivityTarget() { return 1 }   // el minero siempre trabaja a full demand
 
+    get getDPS(){return this.mineAmt * this.oresAvailable * 1000 * COOLDOWN_SCALE / this.fireRate }
+
+    getTooltipText(type) {
+        if(type == 'levelUp')  return `${this.getPriceToLevelUp()}${CURRENCY_SYMBOL} to level up`
+        else if(type == 'sell') return `Sell for: ${round(this.price * SELL_PERCENTAGE, 1)+CURRENCY_SYMBOL}`
+        else if(type == 'stats') return `OPS: ${round(this.getDPS, 1)}`
+        else return ''
+    }
+
+
     updateLocal() {
         if (this.cooldown > 0 || !this.working) return
-        if (this.oresAvailable > 0) this.game.addOre(this.oresAvailable, this.pos)
-        this.hasShot  = true
+        this.oresAvailable = this.countOres(ORE_CELL)
+        if (this.oresAvailable > 0) {
+            this.game.mine(this.mineAmt, this.gridPos)
+            this.hasShot  = true
+        }
         this.cooldown = this.fireRate
     }
 
@@ -412,9 +438,7 @@ class Shooter extends PoweredTower {
             structuredClone(this.projectileOptions), this.drawOptionsProjectile)
     }
 
-    getTooltipText() {
-        return `${this.getPriceToLevelUp()}${CURRENCY_SYMBOL} to level up`
-    }
+    
 
     renderLocal(hoveredTowerID) {
         push()

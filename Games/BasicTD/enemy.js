@@ -13,6 +13,8 @@ class Enemy{
         this.rad = ENEMY_RAD
 
         this.hitAnim = 0
+
+        
     }
 
     static globalEnemyID = 0
@@ -33,12 +35,15 @@ class Crawler extends Enemy{
         this.t = 0
 
         this.phase = 0
+
+        this.hasSpawnedRaider = false
     }
 
     updateLocal(){
-        if(!this.spawning && Math.random() < 0.00035){
+        if(!this.hasSpawnedRaider && !this.spawning && Math.random() < 0.00035){
             this.spawning = true
             this.phase = 0
+            this.hasSpawnedRaider = true
         }
 
         if(this.spawning) this.phase += dt * .0005
@@ -51,6 +56,7 @@ class Crawler extends Enemy{
                 vel.x *= .2
                 vel.y *= .2
                 this.chunk.spawnRaiderAtxy(this.pos.x, this.pos.y, {vel})
+                
             }
             this.spawning = false
             this.phase = 0
@@ -74,6 +80,7 @@ class Crawler extends Enemy{
 
         if(this.pathIndex >= chunk.path.length - 1){
             this.pathIndex = 0
+            this.hasSpawnedRaider = false
         }
         else{
             const a = chunk.path[this.pathIndex]
@@ -109,14 +116,15 @@ class Raider extends Enemy{
         this.acc = 0.005
         this.decel = 0.0001
         this.maxSpeed = .05
-        this.target = null
-        this.setTarget()
-        if(!this.target) this.dead = true
+        this.target = null      //target is a raider
+        this.nextPos = null     // if it doesnt have a target, it has a nexpos it walks to
+        this.checkTarget()
         this.vel = options.vel ? options.vel : {x:0, y:0}
 
         this.maxForce = 0.001
 
-        this.range = ATTACK_DISTANCE_RAIDER
+        this.attackRange = ATTACK_DISTANCE_RAIDER    //range at which it attacks
+        this.targetRange = 100              // range at which it detects a target
 
         this.hp = 1
 
@@ -133,9 +141,21 @@ class Raider extends Enemy{
         this.hitAnim = 1
     }
 
+    setNextMove(){
+        let dx = 0
+        let dy = 0
+        let d = SIZE_CELL * random(1.5, 2.5)
+        if(Math.random() < .5) {dx = Math.random() < .5 ? -d : d}
+        else {dy = Math.random() < .5 ? -d : d}
+        if(this.pos.x + dx > WIDTH_SCENE || this.pos.x + dx < 0) dx *= -1
+        if(this.pos.y + dy > HEIGHT_SCENE || this.pos.y + dy < 0) dy *= -1
+        this.nextPos = {x: this.pos.x + dx, y: this.pos.y + dy}
+    }
+
     checkTarget(){
         if(this.target && this.chunk.checkTower(this.target)) return true
         else this.setTarget()
+        if(!this.target && !this.nextPos) this.setNextMove()
     }
 
     setTarget(){
@@ -147,13 +167,14 @@ class Raider extends Enemy{
                 best = tower
             }
         }
-        if(best) {this.target = best; return true}
+        if(best && minDist < this.targetRange) {this.target = best; return true}
+        this.target = null
         return false
     }
 
     updateLocal(){
         this.checkTarget()
-        if(this.target && distanceAB(this.pos, this.target.pos) <= this.range){
+        if(this.target && distanceAB(this.pos, this.target.pos) <= this.attackRange){
             this.coolDown -= dt * 0.01
             if(this.coolDown <= 0){
                 this.coolDown = this.fireRate
@@ -164,12 +185,19 @@ class Raider extends Enemy{
     }
 
     move(){
-        if (!this.target) return
+        if (!this.target && this.nextPos){
+            this.pos.x = lerp(this.pos.x, this.nextPos.x, 0.025)
+            this.pos.y = lerp(this.pos.y, this.nextPos.y, 0.025)
+            if(distanceAB(this.pos, this.nextPos) < .1){
+                this.setNextMove()
+            }
+            return
+        }
 
         const dx = this.target.pos.x - this.pos.x
         const dy = this.target.pos.y - this.pos.y
         const d = Math.hypot(dx, dy)
-        const remaining = d - this.range
+        const remaining = d - this.attackRange
 
         // 1. desired velocity: towards the target, braking on arrival
         const desiredSpeed = remaining > 0
@@ -222,6 +250,14 @@ class Raider extends Enemy{
         }
 
         ellipse(this.pos.x, this.pos.y, 10, 10)
+
+        // push()
+        // fill(0)
+        // noStroke()
+        // textSize(12)
+        // if(this.nextPos) text(round(this.pos.x) + ' ' + round(this.pos.y) + '\n' + round(this.nextPos.x) + ' ' + round(this.nextPos.y), this.pos.x, this.pos.y - 10)
+        // pop()
+
         pop()
     }
 

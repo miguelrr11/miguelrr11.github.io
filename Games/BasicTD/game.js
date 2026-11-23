@@ -176,10 +176,10 @@ class Game{
                 for(let j = 0; j < N_CELLS_ORE; j++){
                     let val = noise(i*scale + seed, j*scale + seed)
                     if(val > 0.65) {
-                        this.oreGrid[i][j] = {type: ORE_CELL, hp: 1}
+                        this.oreGrid[i][j] = {type: ORE_CELL, hp: 5, maxHp: 5}
                         count++
                     }
-                    else this.oreGrid[i][j] = {type: EMPTY_CELL, hp: 0}
+                    else this.oreGrid[i][j] = {type: EMPTY_CELL, hp: 0, maxHp: 0}
                 }
             }
             if(count > 130){ 
@@ -277,10 +277,20 @@ class Game{
         return this.pathGrid[i][j] == 'path_seg'
     }
 
-    
-
     click(x, y){
         this.UI.click(x, y)
+    }
+
+    mine(mineAmt, gridPos){
+        let grid = this.oreGrid
+        let i = gridPos.i * 2
+        let j = gridPos.j * 2
+        const cells = [grid[i][j], grid[i + 1][j], grid[i][j + 1], grid[i + 1][j + 1]]
+        cells.forEach(cell => {
+            cell.hp -= mineAmt
+            if(cell.hp >= 0) this.addOre(mineAmt, {x:gridPos.i*SIZE_CELL, y:gridPos.j*SIZE_CELL})
+            cell.hp = Math.max(cell.hp, 0)
+        })
     }
 
     addOre(count, pos){
@@ -315,7 +325,7 @@ class Game{
 
         if(TOWER_TYPES[this.doingAction]){this.plantTower(x, y, this.doingAction); return}
 
-        if(this.doingAction == 'removeTower') {this.removeTowerAt(x, y); return}
+        if(this.doingAction == 'removeTower') {this.removeTowerAt(x, y, true); return}
 
         if(this.doingAction == 'connecting'){
             //make sure you are connecting to a tower, not a generator
@@ -400,9 +410,10 @@ class Game{
         this.doingAction = null
     }
 
-    removeTowerAt(x, y){
+    removeTowerAt(x, y, sell = false){
         const tower = this.getElementTowerGrid(x, y)
         if(tower){
+            if(sell) this.addOre(tower.price * SELL_PERCENTAGE, tower.pos)
             this.removeTower(tower)
             this.doingAction = null
             this.UI.deselectButton()
@@ -571,7 +582,8 @@ class Game{
             for(let j = 0; j < N_CELLS_ORE; j++){
                 if(this.oreGrid[i][j].type == ORE_CELL){
                     //fill(map(this.oreGrid[i][j], 0.65, 1, 240, 160))
-                    fill(COLOR_ORE_CELL)
+                    let c = map(this.oreGrid[i][j].hp, 0, this.oreGrid[i][j].maxHp, 0, 255)
+                    fill(COLOR_ORE_CELL[0], COLOR_ORE_CELL[1], COLOR_ORE_CELL[2], c)
                     square(i*SIZE_CELL_ORE + m, j*SIZE_CELL_ORE + m, SIZE_CELL_ORE)
                 }
                 else if(this.oreGrid[i][j].type == ENERGY_CELL){
@@ -710,6 +722,15 @@ class Game{
         }
         for(let tower of this.towers) tower.render(this.hoveredTower?.id ?? -1)
         for(let projectile of this.projectiles) projectile.render()
+        if(this.hoveredTower){
+            if(TOWER_TYPES[this.doingAction]?.cls.name == this.hoveredTower.constructor.name){
+                this.hoveredTower.renderTooltip('levelUp')
+            }
+            else if(this.doingAction == 'removeTower'){
+                this.hoveredTower.renderTooltip('sell')
+            }
+            else this.hoveredTower.renderTooltip('stats')
+        }
         pop()
         this.showUI()
         this.particleManager.drawParticles()

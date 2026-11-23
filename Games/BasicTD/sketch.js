@@ -34,7 +34,7 @@ function draw(){
     game.update()
 
     if(keyIsPressed && keyCode == 32){
-        for(let i = 0; i < 15; i++) game.update()
+        for(let i = 0; i < 50; i++) game.update()
     }
 
     game.render()

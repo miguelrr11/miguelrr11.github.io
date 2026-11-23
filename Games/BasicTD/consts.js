@@ -81,6 +81,8 @@ const TOOLTIP_TEXT_SIZE    = 15
 const TOOLTIP_PADDING      = 3
 const RANGE_FADE_START     = 30        // mouse distance where the range circle starts fading
 
+const SELL_PERCENTAGE = 0.5
+
 function drawCanon(x, y, level, shootAnim, angle){
     push()
     translate(x, y)
